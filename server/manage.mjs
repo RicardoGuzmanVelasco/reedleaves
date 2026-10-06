@@ -1,0 +1,20 @@
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { openDatabase, initializeDatabase, backupDatabase, DEFAULT_DB } from "./database.mjs";
+import { seedCatalog } from "./seed.mjs";
+import { checkCatalog } from "./catalog-repository.mjs";
+
+const action = process.argv[2];
+if (!["init", "seed", "check", "backup"].includes(action)) throw new Error("Use init, seed, check or backup <destination>");
+const db = openDatabase();
+try {
+  initializeDatabase(db);
+  if (action === "seed") console.log(seedCatalog(db));
+  else if (action === "check") console.log(checkCatalog(db));
+  else if (action === "backup") {
+    const destination = process.argv[3];
+    if (!destination || resolve(destination) === resolve(process.env.REED_DB_PATH || DEFAULT_DB) || existsSync(destination)) throw new Error("Choose a new backup file; existing files are never overwritten");
+    await backupDatabase(db, destination);
+    console.log(`Backup saved: ${resolve(destination)}`);
+  } else console.log("Schema initialized");
+} finally { db.close(); }

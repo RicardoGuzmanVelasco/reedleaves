@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Sprout</title>
+  <desc id="desc">A seed-shaped mark opening into a simple sprout.</desc>
+  <defs>
+    <linearGradient id="seed" x1="139" y1="390" x2="365" y2="116" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18B7A0"/>
+      <stop offset="1" stop-color="#B6F36C"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="18" stdDeviation="13" flood-color="#17453D" flood-opacity=".2"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M256 413c-86 0-151-63-151-150 0-85 65-157 151-157s151 72 151 157c0 87-65 150-151 150Z" fill="url(#seed)" stroke="#17453D" stroke-width="16"/>
+    <path d="M256 391V180" stroke="#FFF9ED" stroke-width="18" stroke-linecap="round"/>
+    <path d="M247 206c-46-10-83-41-91-91 47-8 91 22 100 70" fill="#FF7B72" stroke="#17453D" stroke-width="14" stroke-linejoin="round"/>
+    <path d="M266 177c9-45 41-76 91-83 5 48-26 89-75 100" fill="#FFCE72" stroke="#17453D" stroke-width="14" stroke-linejoin="round"/>
+  </g>
+</svg>

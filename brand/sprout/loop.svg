@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Bucle: dos hojas enlazadas que forman un lazo">
+  <path d="M80 89C61 41 25 35 21 71c-5 36 25 58 59 18Zm0 0c19-48 55-54 59-18 5 36-25 58-59 18Z" fill="none" stroke="#369247" stroke-width="21" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 6)"/>
+  <path d="M80 89C61 41 25 35 21 71c-5 36 25 58 59 18Zm0 0c19-48 55-54 59-18 5 36-25 58-59 18Z" fill="none" stroke="#58BE59" stroke-width="21" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M80 91v41" fill="none" stroke="#58BE59" stroke-width="15" stroke-linecap="round"/>
+</svg>

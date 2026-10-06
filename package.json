@@ -1,0 +1,14 @@
+{
+  "name": "reedleaves",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.0.0" },
+  "scripts": {
+    "start": "node server/index.mjs",
+    "db:init": "node server/manage.mjs init",
+    "db:seed": "node server/manage.mjs seed",
+    "db:check": "node server/manage.mjs check",
+    "db:backup": "node server/manage.mjs backup",
+    "test": "node --test app/*.test.mjs server/*.test.mjs"
+  }
+}

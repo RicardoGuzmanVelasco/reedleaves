@@ -1,0 +1,20 @@
+.color-intro{padding:34px 0 28px}.color-intro h1{font-size:clamp(32px,4.6vw,52px);margin-bottom:12px}
+.color-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.color-option{position:relative;border:2px solid var(--line);border-radius:24px;background:var(--paper)}
+.color-option.selected{border-color:var(--ink);box-shadow:0 4px 0 var(--ink)}
+.color-pick{display:flex;flex-direction:column;align-items:start;border:0;border-radius:22px;background:transparent;padding:18px 18px 38px;width:100%;text-align:left}
+.color-name{font-size:16px;font-weight:800;min-height:40px;line-height:1.3;letter-spacing:-.025em}
+.color-pick img{width:100%;height:auto;margin:6px 0 16px}
+.color-note{font-size:12px;line-height:1.5;color:var(--muted);min-height:54px}
+.color-values{font-size:10px;line-height:1.6;margin-top:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.color-download{position:absolute;right:18px;bottom:14px;font-size:11px;padding:5px}
+.color-preview{display:flex;align-items:center;justify-content:space-between;gap:32px;padding:34px 0}
+.color-preview h2{font-size:26px;letter-spacing:-.035em;margin:0 0 12px}
+.color-preview p:not(.eyebrow){font-size:13px;color:var(--muted);line-height:1.6;max-width:430px}
+.color-preview a{font-size:12px}.preview-sizes{display:flex;align-items:center;gap:26px}
+.preview-sizes figure{margin:0;flex-shrink:0}.preview-sizes figcaption{font-size:10px;text-align:center;color:var(--muted);margin-top:6px}
+.original-reference{display:flex;align-items:center;gap:20px;border-top:1px solid var(--line);padding:14px 0 22px;font-size:12px}
+.original-reference p{font-size:11px;color:var(--muted)}.original-reference img{flex-shrink:0}
+@media(max-width:900px){.color-options{grid-template-columns:repeat(2,minmax(0,1fr))}.color-pick img{max-width:220px;align-self:center}.color-note{min-height:36px}}
+@media(max-width:720px){.color-intro{padding:24px 0}.color-intro .eyebrow{font-size:8px}.color-intro h1{font-size:32px}.color-options{gap:14px}.color-pick{padding:13px 11px 38px}.color-name{font-size:13px;min-height:35px}.color-note{font-size:11px;min-height:50px}.color-values{font-size:9px;letter-spacing:-.02em}.color-pick img{margin:0 0 12px}.color-download{font-size:10px;right:9px;bottom:9px}.color-preview{flex-direction:column;align-items:start;gap:12px}.color-preview h2{font-size:24px}.preview-sizes{align-self:center}.original-reference{gap:10px}footer{flex-wrap:wrap}}
+

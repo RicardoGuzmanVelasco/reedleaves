@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#FFF9ED">
+  <title>Reedleaves · Inicio</title>
+  <meta name="application-name" content="Reedleaves">
+  <link rel="icon" type="image/svg+xml" href="../brand/reed/d-compacto.svg">
+  <link rel="stylesheet" href="reader.css">
+  <script type="module" src="reader.mjs"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Ir al contenido</a>
+  <header class="app-header">
+    <a href="#home" class="brand" aria-label="Reedleaves · Inicio"><img src="../brand/reed/d-compacto.svg" width="46" height="46" alt=""><span class="brand-name" id="brand-name" hidden>Reedleaves</span></a>
+    <div class="header-tools">
+      <span class="wallet" id="leaf-wallet" role="status" aria-label="Hojas" hidden><img src="../brand/reed/leaf-token.svg" width="30" height="30" alt=""><span id="leaf-count" aria-hidden="true">—</span></span>
+      <button class="icon-button" id="open-settings" type="button" aria-label="Ajustes" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 3-.7 2.4-2 .9-2.3-.6L2 10l1.7 1.8v2.3L2 16l2.5 4.3 2.3-.6 2 .9.7 2.4h5l.7-2.4 2-.9 2.3.6L22 16l-1.7-1.9v-2.3L22 10l-2.5-4.3-2.3.6-2-.9L14.5 3Z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+    </div>
+  </header>
+  <main id="main" tabindex="-1"><div class="loading" role="status"><img src="../brand/reed/mascot.svg" width="130" height="130" alt=""><p>Abriendo tu libro…</p></div></main>
+  <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+  <dialog class="settings-modal" id="settings" aria-labelledby="settings-title">
+    <div class="settings-heading"><h2 id="settings-title">Ajustes</h2><button class="icon-button" id="close-settings" type="button" aria-label="Cerrar ajustes" autofocus>×</button></div>
+    <p id="language-label">Idioma</p>
+    <div class="languages" role="group" aria-labelledby="language-label"><button type="button" data-language="es" aria-pressed="true" lang="es">Español</button><button type="button" data-language="en" aria-pressed="false" lang="en">English</button><button type="button" data-language="fr" aria-pressed="false" lang="fr">Français</button></div>
+    <div id="account-controls" class="settings-account"></div>
+  </dialog>
+  <noscript><p class="noscript-note">Activa JavaScript para ver la idea del día y repasar.</p></noscript>
+</body>
+</html>

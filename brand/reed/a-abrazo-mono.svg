@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Reed: Abrazo, versión 2, un color" data-axis-x="128">
+<g id="book"><path d="M32 71Q82 50 128 85Q174 50 224 71V221Q174 210 128 237Q82 210 32 221Z" fill="none" stroke="#173D2C" stroke-width="8" stroke-linejoin="round"/></g>
+<g id="spine"><path d="M128 84V230" fill="none" stroke="#173D2C" stroke-width="3" stroke-linecap="round"/></g>
+<g id="leaf" transform="translate(33.6 49) scale(1.18)"><path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#173D2C"/>
+<path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#173D2C"/></g>
+</svg>

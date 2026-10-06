@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Reed: Compacto, versión 2" data-axis-x="128">
+<g id="book"><path d="M26 74Q82 55 128 101Q174 55 230 74V224Q174 213 128 239Q82 213 26 224Z" fill="#369247"/>
+<path d="M33 65Q82 53 128 97Q174 53 223 65V211Q174 202 128 224Q82 202 33 211Z" fill="#FFF9ED" stroke="#173D2C" stroke-width="7" stroke-linejoin="round"/></g>
+<g id="spine"><path d="M128 97V224" fill="none" stroke="#173D2C" stroke-width="3" stroke-linecap="round"/></g>
+<g id="leaf" transform="translate(33.6 45) scale(1.18)"><path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+  <path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+  <path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+  <path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/></g>
+</svg>

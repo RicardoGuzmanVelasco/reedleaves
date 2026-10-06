@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Orbit</title>
+  <desc id="desc">A looping ribbon around a central idea dot.</desc>
+  <defs>
+    <linearGradient id="ring" x1="103" y1="91" x2="418" y2="422" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9E8CFF"/>
+      <stop offset="1" stop-color="#41DCC2"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="18" stdDeviation="13" flood-color="#18224D" flood-opacity=".22"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M256 86c98 0 178 63 178 140 0 78-80 141-178 141S78 304 78 226c0-77 80-140 178-140Z" fill="none" stroke="#18224D" stroke-width="64"/>
+    <path d="M256 86c98 0 178 63 178 140 0 78-80 141-178 141S78 304 78 226c0-77 80-140 178-140Z" fill="none" stroke="url(#ring)" stroke-width="40"/>
+    <circle cx="256" cy="226" r="58" fill="#FFF4AE" stroke="#18224D" stroke-width="16"/>
+    <circle cx="256" cy="226" r="20" fill="#FFB83D"/>
+  </g>
+  <path d="M387 131 436 99l-11 58" fill="#FFB83D" stroke="#18224D" stroke-width="14" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 910" role="img" aria-label="Reed: cuatro pruebas de libro abierto y hoja sobre el mismo eje">
+<defs><symbol id="test-a" viewBox="0 0 256 256"><g id="book-a"><path d="M12 81Q76 52 128 89Q180 52 244 81V193Q180 177 128 218Q76 177 12 193Z" fill="#369247"/>
+<path d="M20 68Q78 44 128 81Q178 44 236 68V184Q178 164 128 205Q78 164 20 184Z" fill="#FFF9ED" stroke="#173D2C" stroke-width="6" stroke-linejoin="round"/></g>
+<g id="spine-a"><path d="M128 81V205" fill="none" stroke="#173D2C" stroke-width="3" stroke-linecap="round"/></g>
+<g id="leaf-a" transform="translate(67.2 58) scale(0.76)"><path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+<path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+<path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+<path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/></g></symbol>
+<symbol id="test-b" viewBox="0 0 256 256"><g id="book-b"><path d="M16 177Q72 167 128 204Q184 167 240 177V196Q184 183 128 219Q72 183 16 196Z" fill="#369247"/>
+<path d="M16 66Q72 46 128 82V202Q72 171 16 185Z" fill="#FFFEF7"/>
+<path d="M128 82Q184 46 240 66V185Q184 171 128 202Z" fill="#EDE1C7"/>
+<path d="M16 66Q72 46 128 82Q184 46 240 66" fill="none" stroke="#D4C3A1" stroke-width="3" stroke-linecap="round"/></g>
+<g id="spine-b"><path d="M128 82V202" fill="none" stroke="#173D2C" stroke-width="3" stroke-linecap="round"/></g>
+<g id="leaf-b" transform="translate(67.2 58) scale(0.76)"><path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+<path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+<path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+<path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/></g></symbol>
+<symbol id="test-c" viewBox="0 0 256 256"><g id="book-c"><path d="M18 69Q78 53 128 78Q178 53 238 69V195Q178 174 128 207Q78 174 18 195Z" fill="#FFFEF7" stroke="#173D2C" stroke-width="5" stroke-linejoin="round"/></g>
+<g id="spine-c"><path d="M128 78V207" fill="none" stroke="#173D2C" stroke-width="2.5" stroke-linecap="round"/></g>
+<g id="leaf-c" transform="translate(60.8 52) scale(0.84)"><path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+<path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+<path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+<path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/></g></symbol>
+<symbol id="test-d" viewBox="0 0 256 256"><g id="book-d"><path d="M10 72Q74 51 128 98Q182 51 246 72V188Q180 172 128 209Q76 172 10 188Z" fill="#369247"/>
+<path d="M15 64Q74 45 128 91Q182 45 241 64V175Q180 161 128 195Q76 161 15 175Z" fill="#FFF9ED" stroke="#173D2C" stroke-width="7" stroke-linejoin="round"/></g>
+<g id="spine-d"><path d="M128 91V195" fill="none" stroke="#173D2C" stroke-width="3" stroke-linecap="round"/></g>
+<g id="leaf-d" transform="translate(60.8 52) scale(0.84)"><path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+<path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+<path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+<path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/></g></symbol></defs><rect width="1020" height="910" fill="#FFF9ED"/><g font-family="Avenir Next, Arial, sans-serif"><text x="30" y="60" fill="#173D2C" font-size="36" font-weight="800">Reed · De hoja a hoja.</text><text x="30" y="95" fill="#526550" font-size="17">La misma mascota. Cuatro libros. Un solo pliegue.</text><g transform="translate(30 130)"><rect width="480" height="355" rx="28" fill="#F4F0E3"/><text x="24" y="36" fill="#173D2C" font-size="17" font-weight="700">A · Abrazo</text><use href="#test-a" x="32" y="56" width="245" height="245"/><text x="294" y="173" fill="#173D2C" font-size="43" font-weight="800" letter-spacing="-2">reed.</text><text x="296" y="199" fill="#526550" font-size="12">Read. Plant a seed.</text><g transform="translate(322 222) scale(.36)"><g><path d="M12 81Q76 52 128 89Q180 52 244 81V193Q180 177 128 218Q76 177 12 193Z" fill="#369247"/>
+<path d="M20 68Q78 44 128 81Q178 44 236 68V184Q178 164 128 205Q78 164 20 184Z" fill="#FFF9ED" stroke="#173D2C" stroke-width="6" stroke-linejoin="round"/></g>
+<g><path d="M128 81V205" fill="none" stroke="#173D2C" stroke-width="3" stroke-linecap="round"/></g>
+<g transform="translate(67.2 58) scale(0.76)"><path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+<path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+<path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+<path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/></g><g transform="translate(67.2 58) scale(0.76)" fill="#173D2C"><ellipse cx="53" cy="104" rx="3.5" ry="5"/><ellipse cx="111" cy="104" rx="3.5" ry="5"/><path d="M78 119q4 6 8 0" stroke="#173D2C" stroke-width="3" stroke-linecap="round" fill="none"/></g></g><text x="336" y="326" fill="#526550" font-size="11">Con cara</text></g>
+<g transform="translate(510 130)"><rect width="480" height="355" rx="28" fill="#F1E9D9"/><text x="24" y="36" fill="#173D2C" font-size="17" font-weight="700">B · Papel</text><use href="#test-b" x="32" y="56" width="245" height="245"/><text x="294" y="173" fill="#173D2C" font-size="43" font-weight="800" letter-spacing="-2">reed.</text><text x="296" y="199" fill="#526550" font-size="12">Read. Plant a seed.</text><g transform="translate(322 222) scale(.36)"><g><path d="M16 177Q72 167 128 204Q184 167 240 177V196Q184 183 128 219Q72 183 16 196Z" fill="#369247"/>
+<path d="M16 66Q72 46 128 82V202Q72 171 16 185Z" fill="#FFFEF7"/>
+<path d="M128 82Q184 46 240 66V185Q184 171 128 202Z" fill="#EDE1C7"/>
+<path d="M16 66Q72 46 128 82Q184 46 240 66" fill="none" stroke="#D4C3A1" stroke-width="3" stroke-linecap="round"/></g>
+<g><path d="M128 82V202" fill="none" stroke="#173D2C" stroke-width="3" stroke-linecap="round"/></g>
+<g transform="translate(67.2 58) scale(0.76)"><path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+<path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+<path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+<path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/></g><g transform="translate(67.2 58) scale(0.76)" fill="#173D2C"><ellipse cx="53" cy="104" rx="3.5" ry="5"/><ellipse cx="111" cy="104" rx="3.5" ry="5"/><path d="M78 119q4 6 8 0" stroke="#173D2C" stroke-width="3" stroke-linecap="round" fill="none"/></g></g><text x="336" y="326" fill="#526550" font-size="11">Con cara</text></g>
+<g transform="translate(30 515)"><rect width="480" height="355" rx="28" fill="#EAF1D9"/><text x="24" y="36" fill="#173D2C" font-size="17" font-weight="700">C · Trazo</text><use href="#test-c" x="32" y="56" width="245" height="245"/><text x="294" y="173" fill="#173D2C" font-size="43" font-weight="800" letter-spacing="-2">reed.</text><text x="296" y="199" fill="#526550" font-size="12">Read. Plant a seed.</text><g transform="translate(322 222) scale(.36)"><g><path d="M18 69Q78 53 128 78Q178 53 238 69V195Q178 174 128 207Q78 174 18 195Z" fill="#FFFEF7" stroke="#173D2C" stroke-width="5" stroke-linejoin="round"/></g>
+<g><path d="M128 78V207" fill="none" stroke="#173D2C" stroke-width="2.5" stroke-linecap="round"/></g>
+<g transform="translate(60.8 52) scale(0.84)"><path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+<path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+<path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+<path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/></g><g transform="translate(60.8 52) scale(0.84)" fill="#173D2C"><ellipse cx="53" cy="104" rx="3.5" ry="5"/><ellipse cx="111" cy="104" rx="3.5" ry="5"/><path d="M78 119q4 6 8 0" stroke="#173D2C" stroke-width="3" stroke-linecap="round" fill="none"/></g></g><text x="336" y="326" fill="#526550" font-size="11">Con cara</text></g>
+<g transform="translate(510 515)"><rect width="480" height="355" rx="28" fill="#F4F0E3"/><text x="24" y="36" fill="#173D2C" font-size="17" font-weight="700">D · Compacto</text><use href="#test-d" x="32" y="56" width="245" height="245"/><text x="294" y="173" fill="#173D2C" font-size="43" font-weight="800" letter-spacing="-2">reed.</text><text x="296" y="199" fill="#526550" font-size="12">Read. Plant a seed.</text><g transform="translate(322 222) scale(.36)"><g><path d="M10 72Q74 51 128 98Q182 51 246 72V188Q180 172 128 209Q76 172 10 188Z" fill="#369247"/>
+<path d="M15 64Q74 45 128 91Q182 45 241 64V175Q180 161 128 195Q76 161 15 175Z" fill="#FFF9ED" stroke="#173D2C" stroke-width="7" stroke-linejoin="round"/></g>
+<g><path d="M128 91V195" fill="none" stroke="#173D2C" stroke-width="3" stroke-linecap="round"/></g>
+<g transform="translate(60.8 52) scale(0.84)"><path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+<path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+<path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+<path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/></g><g transform="translate(60.8 52) scale(0.84)" fill="#173D2C"><ellipse cx="53" cy="104" rx="3.5" ry="5"/><ellipse cx="111" cy="104" rx="3.5" ry="5"/><path d="M78 119q4 6 8 0" stroke="#173D2C" stroke-width="3" stroke-linecap="round" fill="none"/></g></g><text x="336" y="326" fill="#526550" font-size="11">Con cara</text></g></g></svg>

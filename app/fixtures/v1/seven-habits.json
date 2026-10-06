@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "seven-habits",
+  "title": {
+    "es": "Los 7 hábitos de la gente altamente efectiva",
+    "en": "The 7 Habits of Highly Effective People"
+  },
+  "shortTitle": {
+    "es": "Los 7 hábitos",
+    "en": "The 7 Habits"
+  },
+  "author": "Stephen R. Covey",
+  "genres": ["personal-growth"],
+  "description": {
+    "es": "Siete ideas para dirigir tus decisiones, cuidar tus relaciones y renovarte.",
+    "en": "Seven ideas for making choices, building relationships, and renewing yourself."
+  },
+  "editorialNote": {
+    "es": "Resumen propio de las siete ideas. No contiene citas ni sustituye el libro.",
+    "en": "Our own summary of the seven ideas. No quotes; not a replacement for the book."
+  },
+  "cardsFile": "seven-habits.ndjson",
+  "sources": [
+    {
+      "title": "FranklinCovey · The 7 Habits",
+      "url": "https://www.franklincovey.com/courses/the-7-habits/"
+    }
+  ]
+}

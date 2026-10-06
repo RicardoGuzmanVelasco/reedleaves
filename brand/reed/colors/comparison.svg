@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 810" role="img" aria-labelledby="title desc"><title id="title">Reed: cuatro colores para Compacto</title><desc id="desc">Misma geometría y colores de hoja. Cambian solo el contorno del libro y el pliegue.</desc><rect width="880" height="810" fill="#FFF9ED"/><g font-family="Avenir Next,system-ui,sans-serif" fill="#173D2C"><text x="40" y="48" font-size="28" font-weight="800">reed. / Compacto</text><text x="40" y="76" font-size="14" fill="#526550">Solo cambian las líneas del libro. La hoja y la forma se conservan.</text><g transform="translate(40 104)"><rect width="380" height="316" rx="24" fill="#FFF9ED" stroke="#DDDCCB"/><text x="22" y="33" font-size="18" font-weight="800">A · Musgo</text><g transform="translate(80 36) scale(.86)">
+<g><path d="M26 74Q82 55 128 101Q174 55 230 74V224Q174 213 128 239Q82 213 26 224Z" fill="#369247"/>
+<path d="M33 65Q82 53 128 97Q174 53 223 65V211Q174 202 128 224Q82 202 33 211Z" fill="#FFF9ED" stroke="#5E7B57" stroke-width="7" stroke-linejoin="round"/></g>
+<g><path d="M128 97V224" fill="none" stroke="#5E7B57" stroke-width="3" stroke-linecap="round"/></g>
+<g transform="translate(33.6 45) scale(1.18)"><path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+  <path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+  <path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+  <path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/></g>
+</g><text x="22" y="279" font-size="13" fill="#526550">Contorno #5E7B57 · Pliegue #5E7B57</text><text x="22" y="301" font-size="11" fill="#526550">Más suave; mantiene un libro bien definido.</text></g><g transform="translate(460 104)"><rect width="380" height="316" rx="24" fill="#FFF9ED" stroke="#DDDCCB"/><text x="22" y="33" font-size="18" font-weight="800">B · Salvia</text><g transform="translate(80 36) scale(.86)">
+<g><path d="M26 74Q82 55 128 101Q174 55 230 74V224Q174 213 128 239Q82 213 26 224Z" fill="#369247"/>
+<path d="M33 65Q82 53 128 97Q174 53 223 65V211Q174 202 128 224Q82 202 33 211Z" fill="#FFF9ED" stroke="#779A72" stroke-width="7" stroke-linejoin="round"/></g>
+<g><path d="M128 97V224" fill="none" stroke="#779A72" stroke-width="3" stroke-linecap="round"/></g>
+<g transform="translate(33.6 45) scale(1.18)"><path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+  <path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+  <path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+  <path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/></g>
+</g><text x="22" y="279" font-size="13" fill="#526550">Contorno #779A72 · Pliegue #779A72</text><text x="22" y="301" font-size="11" fill="#526550">Más ligero y cercano al verde de la hoja.</text></g><g transform="translate(40 444)"><rect width="380" height="316" rx="24" fill="#FFF9ED" stroke="#DDDCCB"/><text x="22" y="33" font-size="18" font-weight="800">C · Arena</text><g transform="translate(80 36) scale(.86)">
+<g><path d="M26 74Q82 55 128 101Q174 55 230 74V224Q174 213 128 239Q82 213 26 224Z" fill="#369247"/>
+<path d="M33 65Q82 53 128 97Q174 53 223 65V211Q174 202 128 224Q82 202 33 211Z" fill="#FFF9ED" stroke="#B1A082" stroke-width="7" stroke-linejoin="round"/></g>
+<g><path d="M128 97V224" fill="none" stroke="#B1A082" stroke-width="3" stroke-linecap="round"/></g>
+<g transform="translate(33.6 45) scale(1.18)"><path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+  <path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+  <path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+  <path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/></g>
+</g><text x="22" y="279" font-size="13" fill="#526550">Contorno #B1A082 · Pliegue #B1A082</text><text x="22" y="301" font-size="11" fill="#526550">Cálido y neutro; recuerda al papel.</text></g><g transform="translate(460 444)"><rect width="380" height="316" rx="24" fill="#FFF9ED" stroke="#DDDCCB"/><text x="22" y="33" font-size="18" font-weight="800">D · Salvia · pliegue suave</text><g transform="translate(80 36) scale(.86)">
+<g><path d="M26 74Q82 55 128 101Q174 55 230 74V224Q174 213 128 239Q82 213 26 224Z" fill="#369247"/>
+<path d="M33 65Q82 53 128 97Q174 53 223 65V211Q174 202 128 224Q82 202 33 211Z" fill="#FFF9ED" stroke="#779A72" stroke-width="7" stroke-linejoin="round"/></g>
+<g><path d="M128 97V224" fill="none" stroke="#ADBF98" stroke-width="3" stroke-linecap="round"/></g>
+<g transform="translate(33.6 45) scale(1.18)"><path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+  <path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+  <path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+  <path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/></g>
+</g><text x="22" y="279" font-size="13" fill="#526550">Contorno #779A72 · Pliegue #ADBF98</text><text x="22" y="301" font-size="11" fill="#526550">Recomendada: centro más suave.</text></g><text x="40" y="799" font-size="12" fill="#526550">Read. Plant a seed. / De hoja a hoja. · Colores en prueba, sin elección definitiva.</text></g></svg>
+

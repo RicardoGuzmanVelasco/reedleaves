@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Comet</title>
+  <desc id="desc">A small rounded bookmark moving forward with a bright trail.</desc>
+  <defs>
+    <linearGradient id="body" x1="141" y1="147" x2="384" y2="396" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF6F9A"/>
+      <stop offset="1" stop-color="#A35CFF"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="18" stdDeviation="13" flood-color="#38204F" flood-opacity=".22"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M128 188h206c25 0 45 20 45 45v70c0 25-20 45-45 45H128c-25 0-45-20-45-45v-70c0-25 20-45 45-45Z" fill="url(#body)" stroke="#38204F" stroke-width="16"/>
+    <path d="M280 188v160l-50-35-50 35V188" fill="#FFE18A" stroke="#38204F" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M83 233H54M83 280H38M83 327H54" stroke="#38204F" stroke-width="16" stroke-linecap="round"/>
+    <circle cx="333" cy="234" r="12" fill="#FFF9ED"/>
+    <circle cx="333" cy="301" r="12" fill="#FFF9ED"/>
+  </g>
+</svg>

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Conceptos de símbolo · Long Story Short</title>
+    <style>
+      :root { color: #172b57; background: #fff9ed; font-family: "Avenir Next", Avenir, Arial, sans-serif; }
+      body { margin: 0; }
+      main { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 42px 0 64px; }
+      h1 { margin: 0 0 8px; font-size: clamp(26px, 4vw, 42px); letter-spacing: -.04em; }
+      .intro { max-width: 680px; margin: 0 0 30px; color: #536680; line-height: 1.5; }
+      .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+      .card { overflow: hidden; background: white; border: 2px solid #eee4d4; border-radius: 24px; }
+      .visual { min-height: 220px; padding: 22px; display: grid; place-items: center; }
+      .visual img { width: 100%; max-width: 180px; }
+      .fold { background: #fff0e5; } .orbit { background: #eeeaff; } .sprout { background: #e4f8e9; } .lens { background: #e6f8ff; } .comet { background: #ffe7f0; }
+      .copy { padding: 16px 18px 18px; }
+      h2 { margin: 0 0 5px; font-size: 19px; }
+      p { margin: 0; color: #65758d; font-size: 14px; line-height: 1.4; }
+      @media (max-width: 900px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+      @media (max-width: 620px) { .grid { grid-template-columns: repeat(2, 1fr); } .visual { min-height: 170px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>5 símbolos, 5 personalidades</h1>
+      <p class="intro">Todos son vectoriales, abstractos y suficientemente simples para convertirse en una mascota. No hay un logo elegido todavía.</p>
+      <section class="grid">
+        <article class="card"><div class="visual fold"><img src="concepts/fold.svg" alt="Concepto Fold" /></div><div class="copy"><h2>Fold</h2><p>La idea como página doblada.</p></div></article>
+        <article class="card"><div class="visual orbit"><img src="concepts/orbit.svg" alt="Concepto Orbit" /></div><div class="copy"><h2>Orbit</h2><p>La idea como hábito que vuelve.</p></div></article>
+        <article class="card"><div class="visual sprout"><img src="concepts/sprout.svg" alt="Concepto Sprout" /></div><div class="copy"><h2>Sprout</h2><p>La idea como crecimiento.</p></div></article>
+        <article class="card"><div class="visual lens"><img src="concepts/lens.svg" alt="Concepto Lens" /></div><div class="copy"><h2>Lens</h2><p>La idea como nueva perspectiva.</p></div></article>
+        <article class="card"><div class="visual comet"><img src="concepts/comet.svg" alt="Concepto Comet" /></div><div class="copy"><h2>Comet</h2><p>La idea que llega cada día.</p></div></article>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Lens</title>
+  <desc id="desc">A playful lens shape revealing a page and an idea dot.</desc>
+  <defs>
+    <linearGradient id="lens" x1="84" y1="95" x2="429" y2="424" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#55D8F5"/>
+      <stop offset="1" stop-color="#477AEF"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="18" stdDeviation="13" flood-color="#172B57" flood-opacity=".22"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <circle cx="228" cy="228" r="142" fill="url(#lens)" stroke="#172B57" stroke-width="16"/>
+    <path d="m333 333 83 83" stroke="#172B57" stroke-width="48" stroke-linecap="round"/>
+    <path d="M163 178c0-13 10-23 23-23h68l49 49v99H163V178Z" fill="#FFF9ED" stroke="#172B57" stroke-width="14" stroke-linejoin="round"/>
+    <path d="M254 155v49h49" fill="#FFE27A" stroke="#172B57" stroke-width="14" stroke-linejoin="round"/>
+    <circle cx="220" cy="251" r="22" fill="#FFB83D"/>
+    <path d="M196 300h76" stroke="#B1E4F4" stroke-width="14" stroke-linecap="round"/>
+  </g>
+</svg>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Sprout · De hoja a hoja</title>
+  <link rel="stylesheet" href="spike.css">
+  <script src="spike.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="signature" href="#top"><img src="leaf.svg" width="34" height="34" alt=""><span>sprout<span class="edition"> / estudio 01</span></span></a>
+    <div class="top-actions"><span class="status" data-i18n="exploration">Exploración de marca</span><div class="languages" role="group" aria-label="Idioma / Language"><button type="button" data-lang="es" aria-pressed="true">ES</button><button type="button" data-lang="en" aria-pressed="false">EN</button></div></div>
+  </header>
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow" data-i18n="eyebrow">LECTURA × CRECIMIENTO PERSONAL</p>
+        <h1 id="hero-title" data-i18n="headline">De hoja<br>a hoja<span class="dot">.</span></h1>
+        <p class="lead" data-i18n="lead">Una página que se convierte en una planta. Una idea que se queda contigo.</p>
+        <a class="pill-link" href="#lab" data-i18n="try">Dale vida al símbolo <span aria-hidden="true">↓</span></a>
+      </div>
+      <div class="hero-art">
+        <span class="orbit-text" data-i18n="visualPhrase">PEQUEÑAS IDEAS. ESPACIO PARA CRECER.</span>
+        <div class="sun" aria-hidden="true"></div>
+        <div class="page-tile"><div class="art hero-mark" data-route="leaf" data-face="logo"><img src="leaf.svg" alt="Símbolo hoja / libro"></div></div>
+        <span class="hero-note" data-i18n="heroNote">La misma forma.<br>Dos maneras de verla.</span>
+        <div class="spark s1" aria-hidden="true">✳</div><div class="spark s2" aria-hidden="true">✳</div>
+      </div>
+    </section>
+
+    <section class="routes" aria-labelledby="routes-title">
+      <div class="section-intro"><div><p class="eyebrow" data-i18n="routesEyebrow">01 / FORMA</p><h2 id="routes-title" data-i18n="routesTitle">Tres maneras de brotar.</h2></div><p data-i18n="routesIntro">Elige una para probar su personalidad.<br>El nombre sigue abierto.</p></div>
+      <div class="route-grid" role="group" aria-label="Variantes del símbolo / Symbol variants">
+        <button class="route-card" type="button" data-choice="seed" aria-pressed="false">
+          <span class="route-number">A</span><div class="route-visual"><img src="seed.svg" alt=""></div>
+          <span class="route-name" data-i18n="seedName">Semilla</span><span class="route-tag" data-i18n="seedTag">Más compañero</span><span class="route-description" data-i18n="seedDesc">Una idea pequeña, lista para crecer.</span>
+        </button>
+        <button class="route-card selected" type="button" data-choice="leaf" aria-pressed="true">
+          <span class="route-number">B</span><span class="recommendation" data-i18n="recommendation">RECOMENDADA</span><div class="route-visual"><img src="leaf.svg" alt=""></div>
+          <span class="route-name" data-i18n="leafName">Hoja / página</span><span class="route-tag" data-i18n="leafTag">Más producto</span><span class="route-description" data-i18n="leafDesc">Un libro que también es un brote.</span>
+        </button>
+        <button class="route-card" type="button" data-choice="loop" aria-pressed="false">
+          <span class="route-number">C</span><div class="route-visual"><img src="loop.svg" alt=""></div>
+          <span class="route-name" data-i18n="loopName">Bucle vivo</span><span class="route-tag" data-i18n="loopTag">Más abstracto</span><span class="route-description" data-i18n="loopDesc">Volver a una idea. Dejarla crecer.</span>
+        </button>
+      </div>
+      <div class="size-strip">
+        <span class="size-caption" data-i18n="sizeCaption">MISMA SILUETA, CUALQUIER TAMAÑO</span>
+        <figure><img class="mono dynamic-symbol" src="leaf.svg" width="24" height="24" alt=""><figcaption>24 px</figcaption></figure>
+        <figure><img class="dynamic-symbol" src="leaf.svg" width="48" height="48" alt=""><figcaption>48 px</figcaption></figure>
+        <figure><img class="dynamic-symbol" src="leaf.svg" width="80" height="80" alt=""><figcaption>80 px</figcaption></figure>
+        <figure class="mono-sample"><img class="mono dynamic-symbol" src="leaf.svg" width="72" height="72" alt=""><figcaption data-i18n="oneColor">Un color</figcaption></figure>
+      </div>
+      <p id="route-verdict" class="verdict" aria-live="polite">Hoja / página: la mejor unión entre lectura y crecimiento.</p>
+    </section>
+
+    <section id="lab" class="lab" aria-labelledby="lab-title">
+      <div class="section-intro"><div><p class="eyebrow" data-i18n="labEyebrow">02 / PERSONALIDAD</p><h2 id="lab-title" data-i18n="labTitle">El logo te mira.</h2></div><p data-i18n="labIntro">Dos ojos. Un gesto. La misma silueta.<br>Una mascota que acompaña la lectura.</p></div>
+      <div class="lab-grid">
+        <div class="character-panel">
+          <div class="panel-top"><span data-i18n="characterLabel">EL COMPAÑERO</span><span id="current-route">HOJA / PÁGINA</span></div>
+          <div class="character-stage"><div class="ground" aria-hidden="true"></div><div class="art dynamic-art character" data-route="leaf" data-face="logo"><img src="leaf.svg" alt="Símbolo hoja / libro"></div><span class="celebration-star star-one" aria-hidden="true">✦</span><span class="celebration-star star-two" aria-hidden="true">✦</span></div>
+          <p id="character-speech" class="speech" aria-live="polite">Una hoja, todavía.</p>
+          <button id="wake" type="button" class="light-button" aria-pressed="false" data-i18n="wake">Convertir en mascota</button>
+          <div class="expressions" role="group" aria-label="Expresión / Expression">
+            <button type="button" data-state="logo" aria-pressed="true" data-i18n="logoState">Símbolo</button>
+            <button type="button" data-state="hello" aria-pressed="false" data-i18n="helloState">Saludo</button>
+            <button type="button" data-state="reading" aria-pressed="false" data-i18n="readingState">Lectura</button>
+            <button type="button" data-state="celebrate" aria-pressed="false" data-i18n="celebrateState">Celebración</button>
+          </div>
+        </div>
+        <div class="product-stage">
+          <p class="eyebrow" data-i18n="productLabel">EN LA APP / DEMO DE LECTURA</p>
+          <div class="phone">
+            <div class="phone-top"><div class="app-wordmark"><img class="dynamic-symbol" src="leaf.svg" width="32" height="32" alt=""><span>brote<span class="wordmark-period">.</span></span></div><span class="day-chip" data-i18n="today">HOY</span></div>
+            <div class="phone-heading"><h3 data-i18n="daily">Tu idea del día</h3><div class="art dynamic-art mini-character" data-route="leaf" data-face="hello"><img src="leaf.svg" alt="Compañero"></div></div>
+            <article class="reading-card">
+              <p class="book-label" data-i18n="notebook">CUADERNO DE EJEMPLO</p>
+              <h4 data-i18n="cardTitle">Hazlo fácil para tu yo de mañana.</h4>
+              <p class="card-body" data-i18n="cardBody">Deja preparado el primer paso de lo que quieres hacer. Una pequeña decisión hoy puede ayudarte a empezar mañana.</p>
+              <details id="card-detail"><summary data-i18n="detail">Ver un ejemplo</summary><p data-i18n="detailBody">Si quieres leer por la mañana, deja el libro donde desayunas.</p></details>
+            </article>
+            <button id="review" type="button" class="primary-button" data-i18n="review">Ya la he leído <span aria-hidden="true">✓</span></button>
+            <p id="reading-feedback" class="reading-feedback" role="status" data-i18n="readingHint">Una idea. Un momento para ti.</p>
+          </div>
+          <p class="prototype-note" data-i18n="prototypeNote">Nombre provisional · Texto original de ejemplo · Estado temporal</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="language-story" aria-labelledby="story-title">
+      <div><p class="eyebrow" data-i18n="storyEyebrow">03 / LENGUAJE</p><h2 id="story-title" data-i18n="storyTitle">Crecer también cabe<br>en pocas palabras.</h2><p data-i18n="storyIntro">El juego visual cruza idiomas.<br>El texto se adapta a cada uno.</p></div>
+      <div class="phrase-list"><div><span>ES</span><p>De hoja a hoja.</p></div><div><span>EN</span><p id="english-brand-line">Read. Plant a seed.</p></div><div><span>ES + EN</span><p>Hoja ↔ Leaf</p></div></div>
+    </section>
+    <section class="naming" aria-labelledby="naming-title">
+      <p class="eyebrow" data-i18n="namingEyebrow">04 / NOMBRE ABIERTO</p>
+      <h2 id="naming-title" data-i18n="namingTitle">Un nuevo nombre. La misma idea.</h2>
+      <p class="naming-intro" data-i18n="nameIntro">Prueba cómo suena cada nombre en la marca y en la app.</p>
+      <div class="name-list" role="group" aria-label="Nombres candidatos / Candidate names">
+        <button class="name-choice" data-name="seedo" type="button" aria-pressed="true"><strong>Seedo</strong><span data-i18n="seedoReason">Seed + un final juguetón.</span><span class="name-rhyme">READ / SEED</span></button>
+        <button class="name-choice" data-name="reed" type="button" aria-pressed="false"><strong>Reed</strong><span data-i18n="reedReason">Suena a read; significa junco.</span><span class="name-rhyme">READ / REED / SEED</span></button>
+        <button class="name-choice" data-name="glo" type="button" aria-pressed="false"><strong>Glo</strong><span data-i18n="gloReason">Brillar y crecer.</span><span class="name-rhyme">GLOW / GROW</span></button>
+        <button class="name-choice" data-name="bloom" type="button" aria-pressed="false"><strong>Bloom</strong><span data-i18n="bloomReason">Espacio para florecer.</span><span class="name-rhyme">ROOM / BLOOM</span></button>
+      </div>
+      <div class="name-context"><span id="name-context-label">EN / SEEDO</span><p id="name-tagline">Read. Plant a seed.</p><small data-i18n="spanishFixed">ES / De hoja a hoja.</small></div>
+      <p class="prototype-note" data-i18n="nameNote">Nombres de exploración. Seleccionar uno cambia la vista, no fija la marca.</p>
+    </section>
+  </main>
+  <footer><span data-i18n="footer">Poco que hacer. Mucho que sentir.</span><a href="../../docs/frontend/SPROUT_SPIKE.md" data-i18n="fullSpike">Leer el spike completo ↗</a></footer>
+  <noscript><p>Activa JavaScript para probar las expresiones y el cambio de idioma. Los símbolos siguen visibles.</p></noscript>
+</body>
+</html>

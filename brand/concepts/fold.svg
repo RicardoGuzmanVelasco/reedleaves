@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Fold</title>
+  <desc id="desc">A rounded page shape with a folded corner and a small inner page.</desc>
+  <defs>
+    <linearGradient id="bg" x1="74" y1="58" x2="433" y2="456" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFCE72"/>
+      <stop offset="1" stop-color="#FF7A72"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="18" stdDeviation="13" flood-color="#33254E" flood-opacity=".2"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M126 70h180l80 80v256c0 20-16 36-36 36H126c-20 0-36-16-36-36V106c0-20 16-36 36-36Z" fill="url(#bg)" stroke="#33254E" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M306 70v80h80" fill="#FFE9A6" stroke="#33254E" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M174 238h112M174 292h152M174 346h94" stroke="#FFF9EC" stroke-width="22" stroke-linecap="round"/>
+    <path d="m337 215-28 27 28 27" fill="none" stroke="#33254E" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
