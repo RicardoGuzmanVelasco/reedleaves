@@ -7,3 +7,4 @@
 - La interfaz tendrá español, inglés y francés. El idioma de las barajas es independiente. La plataforma sigue pendiente de decisión.
 - Las exploraciones en `brand/` son propuestas; no convertirlas en decisiones aprobadas.
 - El primer logo de tarjetas y estrella está descartado.
+- Git: acumular cambios relacionados y hacer commit al cerrar hitos grandes. Prima el pragmatismo; no exigir commits atómicos ni nombres estrictos. No versionar bases locales, copias, credenciales o secretos.
