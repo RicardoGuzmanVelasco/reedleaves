@@ -1,6 +1,6 @@
 # Catálogo y barajas: base real de desarrollo
 
-Contenido CSV → importación validada → SQLite persistente → repositorio SQL → API.
+Contenido CSV → importación validada → SQLite local / PostgreSQL producción → repositorio SQL → API.
 No se simula la base mediante JSON. JSON solo transporta la respuesta HTTP.
 
 ## Modelo actual
@@ -39,7 +39,7 @@ La cuadrícula muestra primero la recomendación, después las ganadoras reales 
 
 ## Archivos y ejecución
 
-- `server/schema.sql`: esquema único actual; sin historial ni migraciones.
+- `server/schema.sql` y `server/schema.postgres.sql`: esquemas iniciales para SQLite y PostgreSQL; sin historial ni migraciones.
 - `var/catalog.sqlite`: datos activos, privados y fuera del repositorio.
 - `content/catalog/users.csv`, `books.csv`, `genres.csv`, `decks.csv`, `cards.csv`, `links.csv`: carga inicial en texto.
 - `server/seed.mjs`: importación transaccional; reiniciar no sobrescribe datos.
@@ -62,8 +62,8 @@ El usuario `reed-team`, «Equipo Reedleaves», representa al equipo que redacta 
 La inicialización es repetible. Si detecta un esquema anterior, falla con instrucciones; nunca migra ni borra una base al arrancar.
 En desarrollo se puede archivar una base y crear otra vacía. Antes de producción habrá que establecer migraciones.
 
-Variables: `REED_DB_PATH`, `REED_HOST` (127.0.0.1), `REED_PORT` (4173), `REED_ORIGIN` (origen HTTPS obligatorio con `NODE_ENV=production`).
-SQLite usa WAL, claves foráneas, tipos STRICT y sincronización FULL. Backup consistente con la API de SQLite; no copiar solo el archivo principal si hay escrituras WAL.
+Variables: `DATABASE_URL` selecciona PostgreSQL; `REED_DB_PATH` selecciona la ruta SQLite local. `REED_HOST` (127.0.0.1), `REED_PORT` (4173), `REED_ORIGIN` (origen HTTPS obligatorio con `NODE_ENV=production`). Producción exige `DATABASE_URL` y no inicia sobre SQLite.
+SQLite usa WAL, claves foráneas, tipos STRICT y sincronización FULL. Su backup es consistente con la API SQLite; no copiar solo el archivo principal si hay escrituras WAL. En PostgreSQL, usar las copias y restauración del proveedor.
 
 La base anterior a barajas quedó respaldada en `var/backups/pre-decks-2026-10-06.sqlite`. El esquema con barajas previo al campo de idioma está en `var/backups/pre-language-2026-10-06.sqlite`.
 Los archivos originales también se archivaron, sin eliminación irreversible.
@@ -92,7 +92,7 @@ Cambiar la publicación de una baraja no cambia el repaso iniciado: el selector 
 Cada usuario recibe una hoja al día, con máximo de tres. Un nuevo monedero empieza con una. Los días ausentes suman hasta el máximo; las fechas excedentes no se guardan para después. Una carta nueva cuesta una hoja y se pueden gastar varias el mismo día. La hermana siguiente y la primera hija son alternativas.
 Volver a una carta repasada, subir a la madre y cambiar baraja no gasta hojas.
 Finalizar exige todas las cartas, incluidas las hijas; no solo las raíces.
-La tabla `leaf_wallets` guarda saldo y fecha por usuario. El trigger de desbloqueo abona días pendientes y descuenta una hoja en la misma operación SQL. Rechaza saldo insuficiente; un desbloqueo duplicado o inválido revierte también el gasto. Ya no existe la restricción de un avance por usuario y fecha. Los monederos se aíslan por usuario y se comparten entre sus barajas.
+La tabla `leaf_wallets` guarda saldo y fecha por usuario. En SQLite, el trigger de desbloqueo abona días pendientes y descuenta una hoja en la misma operación SQL. En PostgreSQL, el repositorio realiza el débito condicional dentro de la transacción del desbloqueo; la actualización atómica evita saldo negativo ante peticiones concurrentes. En ambos motores, un error revierte el avance. Ya no existe la restricción de un avance por usuario y fecha. Los monederos se aíslan por usuario y se comparten entre sus barajas.
 La autenticación identifica al usuario y el servidor calcula la fecha en la zona horaria fijada de su cuenta. Un doble clic o reintento no cobra dos veces la misma carta. Borrar almacenamiento local o cambiar el reloj del navegador no concede hojas ni elimina progreso SQL.
 Las métricas SQL se incrementan con actividad real de cuentas: primera carta y finalización completa, no al elegir baraja ni explorarla.
 
@@ -103,8 +103,6 @@ Los filtros repasando y repasado agrupan el progreso de todas las barajas de un 
 La versión 3 del catálogo todavía expone nuestros borradores editoriales para la prueba interna.
 Antes de aceptar contenido de usuarios, filtrar borradores privados por autor y publicar únicamente versiones completas validadas.
 
-Para producción de instancia única, SQLite requiere disco persistente, backups, supervisión y HTTPS.
-Para múltiples instancias, adaptar el repositorio a PostgreSQL; no compartir WAL en una unidad de red.
-`node:sqlite` es experimental en el Node 24.11 instalado: fijar y validar runtime/controlador antes de publicar.
+Producción usa PostgreSQL gestionado, `DATABASE_URL`, TLS del proveedor, backups, supervisión y HTTPS. SQLite se conserva para desarrollo y pruebas. `node:sqlite` sigue siendo experimental en el Node 24.11 local; el runtime requerido se fija en `.node-version`.
 
 Las tarjetas son borradores editoriales propios. Revisar traducciones, contenido y derechos antes de publicación.

@@ -55,11 +55,11 @@ test("Old daily limits are converted once without erasing progress or giving a d
   assert.deepEqual(restoreWallet(wallet,"2026-10-06",old),wallet);
 });
 
-test("Three leaves open a parent, child and another deck; free revisits and locked paths cost nothing", () => {
+test("Three leaves open a parent, child and another deck; free revisits and locked paths cost nothing", async () => {
   const db = openDatabase(":memory:");
   let catalog;
-  try { initializeDatabase(db); seedCatalog(db); catalog = prepareCatalog(readCatalog(db)); }
-  finally { db.close(); }
+  try { initializeDatabase(db); await seedCatalog(db); catalog = prepareCatalog(await readCatalog(db)); }
+  finally { await db.close(); }
   const id = "seven-habits-inside-out-v1", model = catalog.versionModels.get(id), day = "2026-10-06";
   let wallet = {balance:3,lastAccrualDay:day}, review = restoreTreeReview(null,model,id);
   const locked = openTreeCard(review,model,id,"inside-out-2",day,wallet);

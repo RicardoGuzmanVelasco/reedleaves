@@ -37,9 +37,9 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       if (!routes.get(path).includes(request.method)) {
         response.setHeader("Allow",routes.get(path).join(", ")); throw new ApiError(405,"invalidRequest");
       }
-      const time = now(), session = readSession(db,request,time);
+      const time = now(), session = await readSession(db,request,time);
       if (path === "/api/session") {
-        const state = session ? readReaderState(db,session,time) : {user:null};
+        const state = session ? await readReaderState(db,session,time) : {user:null};
         send(200,inviteCode === undefined ? state : {...state,inviteRequired:true}); return true;
       }
       if (request.method === "POST") sameOrigin(request,origin);
@@ -47,27 +47,27 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         const input = await readBody(request);
         const token = await authenticate(db,path.endsWith("register") ? "register" : "login",input,{now:time,ip:request.socket.remoteAddress,previous:session,inviteCode});
         response.setHeader("Set-Cookie",sessionCookie(token,secureCookies));
-        const signed = readSession(db,{headers:{cookie:`reedleaves_session=${token}`}},time);
-        const state = readReaderState(db,signed,time);
+        const signed = await readSession(db,{headers:{cookie:`reedleaves_session=${token}`}},time);
+        const state = await readReaderState(db,signed,time);
         send(200,inviteCode === undefined ? state : {...state,inviteRequired:true}); return true;
       }
       if (!session) throw new ApiError(401,"signInRequired");
       if (request.method === "POST") checkCsrf(session,request.headers["x-csrf-token"]);
       if (path === "/api/auth/logout") {
-        await readBody(request); revokeSession(db,session);
+        await readBody(request); await revokeSession(db,session);
         response.setHeader("Set-Cookie",sessionCookie("",secureCookies,true)); send(200,inviteCode === undefined ? {user:null} : {user:null,inviteRequired:true}); return true;
       }
-      if (path === "/api/reader/state") { send(200,readReaderState(db,session,time)); return true; }
+      if (path === "/api/reader/state") { send(200,await readReaderState(db,session,time)); return true; }
       const input = await readBody(request);
       // Re-check after awaiting the body: a concurrent logout/expiry must revoke writes.
-      const active = readSession(db,request,now());
+      const active = await readSession(db,request,now());
       if (!active) throw new ApiError(401,"signInRequired");
       checkCsrf(active,request.headers["x-csrf-token"]);
       const currentTime = now();
-      const result = path === "/api/reader/select" ? selectDeck(db,active,input.versionId,currentTime) :
-        path === "/api/reader/open" ? openCard(db,active,input.versionId,input.cardId,currentTime) :
-        path === "/api/reader/reading" ? changeReading(db,active,input.bookId,input.status,currentTime) :
-        path === "/api/reader/preferences" ? changePreferences(db,active,input,currentTime) : dailyIdea(db,active,currentTime);
+      const result = path === "/api/reader/select" ? await selectDeck(db,active,input.versionId,currentTime) :
+        path === "/api/reader/open" ? await openCard(db,active,input.versionId,input.cardId,currentTime) :
+        path === "/api/reader/reading" ? await changeReading(db,active,input.bookId,input.status,currentTime) :
+        path === "/api/reader/preferences" ? await changePreferences(db,active,input,currentTime) : await dailyIdea(db,active,currentTime);
       send(200,result);
     } catch(error) {
       if (!(error instanceof ApiError)) throw error;

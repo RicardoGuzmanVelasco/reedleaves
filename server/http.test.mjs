@@ -6,10 +6,10 @@ import { seedCatalog } from "./seed.mjs";
 import { createCatalogServer } from "./http.mjs";
 
 test("Live HTTP API reads SQL; static access cannot expose private files", async t => {
-  const db = openDatabase(":memory:"); initializeDatabase(db); seedCatalog(db);
+  const db = openDatabase(":memory:"); initializeDatabase(db); await seedCatalog(db);
   const server = createCatalogServer(db);
   server.listen(0, "127.0.0.1"); await once(server, "listening");
-  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); db.close(); });
+  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await db.close(); });
   const base = `http://127.0.0.1:${server.address().port}`;
   const catalog = await fetch(base + "/api/catalog");
   assert.equal(catalog.status, 200); assert.match(catalog.headers.get("content-type"), /application\/json/);
@@ -40,10 +40,10 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
 });
 
 test("Internal mode protects the book catalog until an invited user signs in", async t => {
-  const db = openDatabase(":memory:"); initializeDatabase(db); seedCatalog(db);
+  const db = openDatabase(":memory:"); initializeDatabase(db); await seedCatalog(db);
   const server = createCatalogServer(db,undefined,{inviteCode:"r".repeat(32)});
   server.listen(0,"127.0.0.1"); await once(server,"listening");
-  t.after(async()=>{server.closeAllConnections(); await new Promise(resolve=>server.close(resolve)); db.close();});
+  t.after(async()=>{server.closeAllConnections(); await new Promise(resolve=>server.close(resolve)); await db.close();});
   const base = `http://127.0.0.1:${server.address().port}`;
   assert.equal((await fetch(base+"/api/catalog")).status,401);
   const session = await fetch(base+"/api/session").then(r=>r.json()); assert.equal(session.inviteRequired,true);

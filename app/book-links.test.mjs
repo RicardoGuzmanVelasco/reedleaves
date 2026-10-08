@@ -9,14 +9,14 @@ import {openDatabase, initializeDatabase} from "../server/database.mjs";
 import {readSeed, seedCatalog} from "../server/seed.mjs";
 import {readCatalog, checkCatalog} from "../server/catalog-repository.mjs";
 
-function fixture(t) {
+async function fixture(t) {
   const db = openDatabase(":memory:");
-  initializeDatabase(db); seedCatalog(db); t.after(() => db.close());
+  initializeDatabase(db); await seedCatalog(db); t.after(async () => db.close());
   return db;
 }
 
-test("Every book has its own Amazon product and Goodreads book links persisted in SQL", t => {
-  const db = fixture(t), payload = readCatalog(db);
+test("Every book has its own Amazon product and Goodreads book links persisted in SQL", async t => {
+  const db = await fixture(t), payload = await readCatalog(db);
   assert.equal(db.prepare("SELECT count(*) AS n FROM book_links").get().n, 10);
   for (const book of payload.books) {
     assert.deepEqual(Object.keys(book.links).sort(), ["amazon", "goodreads"]);
@@ -25,10 +25,10 @@ test("Every book has its own Amazon product and Goodreads book links persisted i
   }
   assert.equal(new Set(payload.books.map(book => book.links.amazon)).size, payload.books.length);
   assert.equal(new Set(payload.books.map(book => book.links.goodreads)).size, payload.books.length);
-  seedCatalog(db); assert.equal(db.prepare("SELECT count(*) AS n FROM book_links").get().n, 10);
+  await seedCatalog(db); assert.equal(db.prepare("SELECT count(*) AS n FROM book_links").get().n, 10);
   const url = "https://www.amazon.es/dp/8418118032/";
   db.prepare("UPDATE book_links SET url = ? WHERE book_id = ? AND platform = ?").run(url, "atomic-habits", "amazon");
-  assert.equal(readCatalog(db).books.find(book => book.id === "atomic-habits").links.amazon, url);
+  assert.equal((await readCatalog(db)).books.find(book => book.id === "atomic-habits").links.amazon, url);
 });
 
 test("Book links reject unsafe protocols, fake hosts, redirects, affiliate parameters and unknown platforms", () => {
@@ -43,26 +43,26 @@ test("Book links reject unsafe protocols, fake hosts, redirects, affiliate param
   assert.throws(() => validateBookLinks({}, {required:true}));
 });
 
-test("Missing, duplicate, orphaned and invalid seed links fail without changing the catalog", t => {
-  const db = fixture(t), before = readCatalog(db);
+test("Missing, duplicate, orphaned and invalid seed links fail without changing the catalog", async t => {
+  const db = await fixture(t), before = await readCatalog(db);
   for (const mutate of [s => s.links.pop(), s => s.links.push({...s.links[0]}), s => s.links[0].book_id = "missing", s => s.links[0].url = "https://evil.test", s => s.links[0].platform = "other"]) {
-    const seed = readSeed(); mutate(seed); assert.throws(() => seedCatalog(db,seed));
-    assert.deepEqual(readCatalog(db), before);
+    const seed = readSeed(); mutate(seed); await assert.rejects(seedCatalog(db,seed));
+    assert.deepEqual(await readCatalog(db), before);
   }
   assert.throws(() => db.prepare("INSERT INTO book_links VALUES (?,?,?)").run("missing", "amazon", "https://www.amazon.es/dp/8418118032"));
   db.prepare("UPDATE book_links SET url = ? WHERE book_id = ? AND platform = ?").run("https://evil.test", "atomic-habits", "amazon");
-  assert.throws(() => checkCatalog(db), /book link/);
+  await assert.rejects(checkCatalog(db), /book link/);
 });
 
-test("API consumers reject missing or untrusted links; changing interface language does not swap editions", t => {
-  const db = fixture(t);
+test("API consumers reject missing or untrusted links; changing interface language does not swap editions", async t => {
+  const db = await fixture(t);
   for (const mutate of [p => delete p.books[0].links.amazon, p => p.books[0].links.goodreads = "https://evil.test"]) {
-    const payload = readCatalog(db); mutate(payload); assert.throws(() => prepareCatalog(payload), /book link/);
+    const payload = await readCatalog(db); mutate(payload); assert.throws(() => prepareCatalog(payload), /book link/);
   }
 });
 
-test("Each book modal offers labelled external anchors and platform icons in ES/EN/FR; previews remain simple", t => {
-  const db = fixture(t), catalog = prepareCatalog(readCatalog(db));
+test("Each book modal offers labelled external anchors and platform icons in ES/EN/FR; previews remain simple", async t => {
+  const db = await fixture(t), catalog = prepareCatalog(await readCatalog(db));
   for (const language of LANGUAGES) for (const book of catalog.books) {
     const s = {catalog,language,statuses:{},bookReviews:{},reviews:{},openBookId:book.id,storageAvailable:true};
     const html = libraryView(s), modal = html.slice(html.indexOf("<dialog"));
@@ -81,8 +81,8 @@ test("Each book modal offers labelled external anchors and platform icons in ES/
   }
 });
 
-test("The view never renders an unsafe link or a misleading edition note", t => {
-  const db = fixture(t), catalog = prepareCatalog(readCatalog(db)), book = catalog.books[0];
+test("The view never renders an unsafe link or a misleading edition note", async t => {
+  const db = await fixture(t), catalog = prepareCatalog(await readCatalog(db)), book = catalog.books[0];
   book.links.amazon = "javascript:alert(1)";
   const html = libraryView({catalog,language:"es",statuses:{},bookReviews:{},openBookId:book.id,storageAvailable:true});
   assert.doesNotMatch(html, /javascript:|platforms\/amazon|Edición en español/);

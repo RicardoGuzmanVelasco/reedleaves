@@ -7,7 +7,7 @@ Estado: implementado para la prueba interna. Usuario y contraseña, sin correo n
 - Usuario único, sin distinguir mayúsculas, de 3 a 32 caracteres ASCII.
 - Contraseña de 15 a 128 caracteres; admite espacios y frases. No se guarda en claro.
 - Hash `scrypt` con sal aleatoria por contraseña: N=131072, r=8, p=1. Máximo dos cálculos simultáneos.
-- Sesión aleatoria de 256 bits, válida siete días. SQLite conserva su hash; el navegador recibe una cookie `HttpOnly`, `SameSite=Strict`, sin acceso desde JavaScript.
+- Sesión aleatoria de 256 bits, válida siete días. La base activa conserva su hash; el navegador recibe una cookie `HttpOnly`, `SameSite=Strict`, sin acceso desde JavaScript.
 - En HTTPS la cookie añade `Secure`. Entrar rota la sesión de ese navegador; cerrar sesión revoca solo esa sesión, no los otros dispositivos.
 - Intentos de acceso limitados por dirección y usuario. Error genérico si la cuenta no existe o la contraseña no coincide.
 - Mutaciones con origen exacto y token CSRF por sesión. JSON limitado a 8 KiB; respuestas de cuenta sin caché.
@@ -17,13 +17,13 @@ La zona horaria se valida y se fija al crear la cuenta. La fecha se calcula con 
 
 ## Persistencia
 
-SQLite guarda, por usuario: barajas elegidas, cartas vistas, última carta abierta, lectura del original, idioma, filtros, intereses, idea diaria y monedero.
+SQLite local o PostgreSQL en producción guarda, por usuario: barajas elegidas, cartas vistas, última carta abierta, lectura del original, idioma, filtros, intereses, idea diaria y monedero.
 
 Elegir baraja no gasta hojas ni aumenta «más popular». Abrir la primera carta crea el repaso y cuenta como una persona que empezó. Una persona se cuenta una vez por baraja, aunque use varias versiones.
 
 Cada carta nueva, también hija, cuesta una hoja. Se recibe una por día, con máximo de tres. Volver a una carta vista cuesta cero, incluso sin saldo. No se puede saltar la madre ni una hermana anterior.
 
-El desbloqueo y el gasto se confirman en una transacción SQL. La clave única de carta por repaso hace los reintentos seguros: un doble clic, una respuesta perdida o dos sesiones no cobran dos veces la misma carta. El trigger comprueba también el recorrido. El repaso termina solo al desbloquear todas las cartas, incluidas las hijas.
+El desbloqueo y el gasto se confirman en una transacción SQL. La clave única de carta por repaso hace los reintentos seguros: un doble clic, una respuesta perdida o dos sesiones no cobran dos veces la misma carta. El esquema SQL comprueba también el recorrido. El repaso termina solo al desbloquear todas las cartas, incluidas las hijas.
 
 La idea del día se fija por usuario y fecha, sin gastar ni desbloquear cartas. Cambiar filtros, idioma o baraja no reemplaza la idea ya asignada hoy.
 
@@ -55,7 +55,7 @@ El progreso anónimo antiguo del navegador no se borra ni se importa como verifi
 ## Antes de publicar
 
 - Despliegue HTTPS con `NODE_ENV=production` y `REED_ORIGIN=https://<dominio>`; el servidor rechaza producción sin esa configuración. TLS puede terminar en un proxy; no se confía en cabeceras reenviadas para inventar un origen.
-- Disco persistente, permisos privados de la base, copias y prueba de restauración.
+- `DATABASE_URL` de PostgreSQL, copias del proveedor y prueba de restauración.
 - Recuperación de contraseña y política de cuentas. No están implementados correo, verificación, MFA ni eliminación de cuentas.
 - Supervisión y límites de tráfico en el proxy: el límite de acceso local no sustituye protección frente a ataques distribuidos.
 - La app sigue sirviendo borradores editoriales internos. Autoría pública y votos no forman parte de esta entrega.

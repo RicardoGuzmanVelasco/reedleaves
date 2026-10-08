@@ -8,13 +8,13 @@ const action = process.argv[2];
 if (!["init", "seed", "check", "backup"].includes(action)) throw new Error("Use init, seed, check or backup <destination>");
 const db = openDatabase();
 try {
-  initializeDatabase(db);
-  if (action === "seed") console.log(seedCatalog(db));
-  else if (action === "check") console.log(checkCatalog(db));
+  await initializeDatabase(db);
+  if (action === "seed") console.log(await seedCatalog(db));
+  else if (action === "check") console.log(await checkCatalog(db));
   else if (action === "backup") {
     const destination = process.argv[3];
     if (!destination || resolve(destination) === resolve(process.env.REED_DB_PATH || DEFAULT_DB) || existsSync(destination)) throw new Error("Choose a new backup file; existing files are never overwritten");
     await backupDatabase(db, destination);
     console.log(`Backup saved: ${resolve(destination)}`);
   } else console.log("Schema initialized");
-} finally { db.close(); }
+} finally { await db.close(); }

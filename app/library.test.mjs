@@ -7,16 +7,16 @@ import {prepareCatalog} from "./catalog.mjs";
 import {featuredDecks} from "./decks.mjs";
 import {libraryView,deckView} from "./views.mjs";
 
-function state() {
+async function state() {
   const db = openDatabase(":memory:");
   let catalog;
-  try { initializeDatabase(db); seedCatalog(db); catalog = prepareCatalog(readCatalog(db)); }
-  finally { db.close(); }
+  try { initializeDatabase(db); await seedCatalog(db); catalog = prepareCatalog(await readCatalog(db)); }
+  finally { await db.close(); }
   return {catalog,language:"es",statuses:{"seven-habits":"read"},bookReviews:{"seven-habits":{hasReviewing:true,hasReviewed:true}},reviews:{},openBookId:null,storageAvailable:true,budget:{balance:2,lastAccrualDay:"2026-10-06"}};
 }
 
-test("Add book lists the whole catalog as closed books, with essential data and no forms or deck content", () => {
-  const s = state(), before = structuredClone(s.budget), html = libraryView(s);
+test("Add book lists the whole catalog as closed books, with essential data and no forms or deck content", async () => {
+  const s = await state(), before = structuredClone(s.budget), html = libraryView(s);
   assert.equal((html.match(/data-action="open-book-details"/g) || []).length,s.catalog.books.length);
   for (const book of s.catalog.books) {
     assert.ok(html.includes(book.shortTitle.es)); assert.ok(html.includes(book.author));
@@ -28,8 +28,8 @@ test("Add book lists the whole catalog as closed books, with essential data and 
   assert.deepEqual(s.budget,before);
 });
 
-test("A book modal has full title, author, description, interests, deck languages and independent reading status", () => {
-  const s = {...state(),openBookId:"seven-habits"}, book = s.catalog.booksById.get(s.openBookId), html = libraryView(s);
+test("A book modal has full title, author, description, interests, deck languages and independent reading status", async () => {
+  const s = {...await state(),openBookId:"seven-habits"}, book = s.catalog.booksById.get(s.openBookId), html = libraryView(s);
   assert.match(html,/<dialog class="deck-modal book-modal"/);
   assert.ok(html.includes(book.title.es)); assert.ok(html.includes(book.description.es));
   assert.match(html,/aria-labelledby="book-dialog-title"/); assert.match(html,/aria-describedby="book-dialog-description"/);
@@ -41,8 +41,8 @@ test("A book modal has full title, author, description, interests, deck language
   assert.match(libraryView({...s,storageAvailable:false}),/data-book-status="seven-habits" disabled/);
 });
 
-test("Book grid and modal translate, escape content and count decks rather than published versions", () => {
-  const s = {...state(),language:"en",openBookId:"atomic-habits"};
+test("Book grid and modal translate, escape content and count decks rather than published versions", async () => {
+  const s = {...await state(),language:"en",openBookId:"atomic-habits"};
   const v = s.catalog.versions.find(v => v.bookId === "atomic-habits");
   s.catalog.versions.push({...v,id:v.id+"-second",number:2});
   const book = s.catalog.booksById.get("atomic-habits");
@@ -57,8 +57,8 @@ test("Book grid and modal translate, escape content and count decks rather than 
   assert.match(modal,/English/);
 });
 
-test("Library has an empty state; deck selection can return to the catalog", () => {
-  const s = state();
+test("Library has an empty state; deck selection can return to the catalog", async () => {
+  const s = await state();
   assert.match(libraryView({...s,catalog:{...s.catalog,books:[]}}),/Todavía no hay libros disponibles/);
   const deckState = {...s,bookId:"seven-habits",bookOrigin:"library",deckChoices:featuredDecks(s.catalog,"seven-habits"),openDeckId:null};
   assert.match(deckView(deckState),/data-action="library">← Libros/);

@@ -7,10 +7,10 @@ import {createCatalogServer} from "./http.mjs";
 import {readSession,sessionCookie,SESSION_SECONDS} from "./auth.mjs";
 const password = "A test passphrase for Reedleaves";
 async function fixture(t,{inviteCode}={}) {
-  const db = openDatabase(":memory:"); initializeDatabase(db); seedCatalog(db);
+  const db = openDatabase(":memory:"); initializeDatabase(db); await seedCatalog(db);
   let clock = new Date("2026-10-06T12:00:00Z");
   const server = createCatalogServer(db,undefined,{now:()=>clock,inviteCode}); server.listen(0,"127.0.0.1"); await once(server,"listening");
-  t.after(async()=>{server.closeAllConnections(); await new Promise(r=>server.close(r)); db.close();});
+  t.after(async()=>{server.closeAllConnections(); await new Promise(r=>server.close(r)); await db.close();});
   const base = `http://127.0.0.1:${server.address().port}`;
   const call = async (path,input,headers = {})=>{
     const response = await fetch(base+path,{method:input === undefined ? "GET" : "POST",headers:{Origin:base,...(input === undefined ? {} : {"Content-Type":"application/json"}),...headers},...(input === undefined ? {} : {body:JSON.stringify(input)})});

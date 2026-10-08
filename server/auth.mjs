@@ -37,38 +37,38 @@ function tokenFrom(request) {
   const token = tokens[0].slice(COOKIE_NAME.length+1);
   return /^[a-f0-9]{64}$/.test(token) ? token : null;
 }
-export function readSession(db,request,now = new Date()) {
+export async function readSession(db,request,now = new Date()) {
   const token = tokenFrom(request);
   if (!token) return null;
-  return db.prepare(`SELECT s.token_hash,s.csrf_token,s.expires_at,a.user_id,a.username,a.time_zone,a.language
+  return await db.prepare(`SELECT s.token_hash,s.csrf_token,s.expires_at,a.user_id,a.username,a.time_zone,a.language
     FROM sessions s JOIN accounts a ON a.user_id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ?`).get(digest(token),Math.floor(now.getTime()/1000)) || null;
 }
 export function checkCsrf(session,token) {
   if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token) || !timingSafeEqual(Buffer.from(token),Buffer.from(session.csrf_token))) throw new ApiError(403,"invalidRequest");
 }
-export function revokeSession(db,session) {
-  if (session) db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(session.token_hash);
+export async function revokeSession(db,session) {
+  if (session) await db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(session.token_hash);
 }
-function issueSession(db,userId,now,previous) {
-  revokeSession(db,previous);
+async function issueSession(db,userId,now,previous) {
+  await revokeSession(db,previous);
   const token = randomBytes(32).toString("hex"), csrf = randomBytes(32).toString("hex"), seconds = Math.floor(now.getTime()/1000);
-  db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(seconds);
-  db.prepare("INSERT INTO sessions VALUES (?,?,?,?)").run(digest(token),userId,csrf,seconds+SESSION_SECONDS);
+  await db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(seconds);
+  await db.prepare("INSERT INTO sessions VALUES (?,?,?,?)").run(digest(token),userId,csrf,seconds+SESSION_SECONDS);
   return token;
 }
-export function rateLimit(db,bucket,now,max = 10) {
+export async function rateLimit(db,bucket,now,max = 10) {
   const seconds = Math.floor(now.getTime()/1000), key = digest(bucket);
-  transaction(db,()=>{
-    db.prepare("DELETE FROM auth_limits WHERE resets_at <= ?").run(seconds);
-    const row = db.prepare("SELECT attempts FROM auth_limits WHERE bucket = ?").get(key);
+  await transaction(db,async()=>{
+    await db.prepare("DELETE FROM auth_limits WHERE resets_at <= ?").run(seconds);
+    const row = await db.prepare("SELECT attempts FROM auth_limits WHERE bucket = ?").get(key);
     if (row?.attempts >= max) throw new ApiError(429,"tryLater");
-    db.prepare("INSERT INTO auth_limits VALUES (?,1,?) ON CONFLICT(bucket) DO UPDATE SET attempts=attempts+1").run(key,seconds+900);
+    await db.prepare("INSERT INTO auth_limits VALUES (?,1,?) ON CONFLICT(bucket) DO UPDATE SET attempts=auth_limits.attempts+1").run(key,seconds+900);
   });
 }
 export async function authenticate(db,kind,input,{now = new Date(),ip = "unknown",previous = null,inviteCode} = {}) {
   const username = usernameOf(input.username);
-  rateLimit(db,"ip:"+ip,now,30);
-  rateLimit(db,"name:"+username,now,10);
+  await rateLimit(db,"ip:"+ip,now,30);
+  await rateLimit(db,"name:"+username,now,10);
   if (kind === "register" && inviteCode !== undefined) {
     const supplied = createHash("sha256").update(typeof input.inviteCode === "string" ? input.inviteCode : "").digest();
     const expected = createHash("sha256").update(inviteCode).digest();
@@ -79,16 +79,16 @@ export async function authenticate(db,kind,input,{now = new Date(),ip = "unknown
     const timeZone = validZone(input.timeZone || "Europe/Madrid"), language = input.language || "es";
     if (!timeZone || !LANGUAGES.includes(language)) throw new ApiError(400,"invalidRequest");
     const salt = randomBytes(16).toString("hex"), result = await hash(input.password,salt);
-    return transaction(db,()=>{
-      if (db.prepare("SELECT 1 FROM accounts WHERE username = ?").get(username)) throw new ApiError(409,"usernameTaken");
+    return transaction(db,async()=>{
+      if (await db.prepare("SELECT 1 FROM accounts WHERE username = ?").get(username)) throw new ApiError(409,"usernameTaken");
       const userId = randomUUID();
-      db.prepare("INSERT INTO users(id,display_name) VALUES (?,?)").run(userId,username);
-      db.prepare("INSERT INTO accounts VALUES (?,?,?,?,?)").run(userId,username,`scrypt$131072$8$1$${salt}$${result.toString("hex")}`,timeZone,language);
-      db.prepare("INSERT INTO reader_filters VALUES (?,'all')").run(userId);
+      await db.prepare("INSERT INTO users(id,display_name) VALUES (?,?)").run(userId,username);
+      await db.prepare("INSERT INTO accounts VALUES (?,?,?,?,?)").run(userId,username,`scrypt$131072$8$1$${salt}$${result.toString("hex")}`,timeZone,language);
+      await db.prepare("INSERT INTO reader_filters VALUES (?,'all')").run(userId);
       return issueSession(db,userId,now,previous);
     });
   }
-  const account = db.prepare("SELECT * FROM accounts WHERE username = ?").get(username);
+  const account = await db.prepare("SELECT * FROM accounts WHERE username = ?").get(username);
   // Unknown accounts still pay the same hashing cost; no password/user enumeration.
   const saved = account?.password_hash.split("$");
   const result = await hash(input.password,saved?.[4] || "00000000000000000000000000000000");

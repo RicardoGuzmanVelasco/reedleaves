@@ -8,15 +8,15 @@ import {openDatabase, initializeDatabase} from "../server/database.mjs";
 import {readSeed, seedCatalog, validateSeed} from "../server/seed.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
 
-function fixture() {
+async function fixture() {
   const db = openDatabase(":memory:");
-  try { initializeDatabase(db); seedCatalog(db); return readCatalog(db); }
-  finally { db.close(); }
+  try { initializeDatabase(db); await seedCatalog(db); return await readCatalog(db); }
+  finally { await db.close(); }
 }
 const ids = books => books.map(book => book.id);
 
-test("One query searches all full and short titles regardless of interface language", () => {
-  const data = fixture(), books = data.books;
+test("One query searches all full and short titles regardless of interface language", async () => {
+  const data = await fixture(), books = data.books;
   for (const book of books) for (const field of ["title", "shortTitle"]) for (const title of Object.values(book[field])) {
     assert.ok(ids(filterBooks(books,title)).includes(book.id),title);
   }
@@ -32,24 +32,24 @@ test("One query searches all full and short titles regardless of interface langu
   }
 });
 
-test("Original titles and future translations are searchable without assuming English", () => {
-  const book = {...fixture().books[0],originalTitle:"La croissance intérieure",originalLanguage:"fr",
+test("Original titles and future translations are searchable without assuming English", async () => {
+  const book = {...(await fixture()).books[0],originalTitle:"La croissance intérieure",originalLanguage:"fr",
     title:{es:"Un nombre distinto",en:"Different name",fr:"Un autre nom",de:"Neue Gewohnheiten"},shortTitle:{es:"Breve",en:"Short",fr:"Court",de:"Neu"}};
   assert.deepEqual(filterBooks([book],"croissance interieure"),[book]);
   assert.deepEqual(filterBooks([book],"NEUE GEWOHNHEITEN"),[book]);
   assert.deepEqual(filterBooks([book],"Different croissance"),[]);
 });
 
-test("Empty search restores ordered books; no duplicates, author/body matches, or mutations", () => {
-  const books = fixture().books, before = structuredClone(books);
+test("Empty search restores ordered books; no duplicates, author/body matches, or mutations", async () => {
+  const books = (await fixture()).books, before = structuredClone(books);
   for (const query of ["", "  ","--"]) assert.deepEqual(filterBooks(books,query),books);
   assert.deepEqual(ids(filterBooks(books,"habits")),["seven-habits","atomic-habits"]);
   for (const query of ["not-a-book", "James Clear", "entorno"]) assert.deepEqual(filterBooks(books,query),[]);
   assert.deepEqual(books,before);
 });
 
-test("Simple search is labelled, escaped, clearable and recovers from no results", () => {
-  const s = {catalog:prepareCatalog(fixture()),language:"es",statuses:{},reviews:{},storageAvailable:true};
+test("Simple search is labelled, escaped, clearable and recovers from no results", async () => {
+  const s = {catalog:prepareCatalog(await fixture()),language:"es",statuses:{},reviews:{},storageAvailable:true};
   const initial = libraryView(s);
   assert.match(initial,/role="search"/); assert.match(initial,/for="book-search">Buscar libro/);
   assert.match(initial,/aria-controls="book-search-results"/);
@@ -60,8 +60,8 @@ test("Simple search is labelled, escaped, clearable and recovers from no results
   assert.doesNotMatch(html,/data-action="open-book-details"/);
 });
 
-test("Every book modal always shows original title in its own language, even if the titles coincide", () => {
-  const catalog = prepareCatalog(fixture());
+test("Every book modal always shows original title in its own language, even if the titles coincide", async () => {
+  const catalog = prepareCatalog(await fixture());
   for (const language of ["es","en","fr"]) for (const book of catalog.books) {
     const html = libraryView({catalog,language,statuses:{},reviews:{},openBookId:book.id,storageAvailable:true});
     assert.ok(html.includes(`<span>${words[language].originalTitle}</span><span lang="en" dir="auto">${book.originalTitle}</span>`));
@@ -71,21 +71,21 @@ test("Every book modal always shows original title in its own language, even if 
   assert.match(html,/lang="fr" dir="auto">&lt;img src=x&gt;/); assert.doesNotMatch(html,/<img src=x>/);
 });
 
-test("Original metadata is mandatory in SQL, imports and current catalog API", () => {
+test("Original metadata is mandatory in SQL, imports and current catalog API", async () => {
   for (const mutate of [b=>delete b.original_title,b=>b.original_title=" ",b=>b.original_language="en_US",b=>delete b.original_language]) {
     const seed = readSeed(); mutate(seed.books[0]); assert.throws(()=>validateSeed(seed),/original/);
   }
   for (const mutate of [b=>delete b.originalTitle,b=>b.originalTitle=" ",b=>b.originalLanguage="en_US",b=>delete b.originalLanguage]) {
-    const data = fixture(); mutate(data.books[0]); assert.throws(()=>prepareCatalog(data),/original/);
+    const data = await fixture(); mutate(data.books[0]); assert.throws(()=>prepareCatalog(data),/original/);
   }
   const db = openDatabase(":memory:");
   try {
-    initializeDatabase(db); seedCatalog(db);
+    initializeDatabase(db); await seedCatalog(db);
     assert.throws(()=>db.prepare("UPDATE books SET original_title = '' WHERE id = 'seven-habits'").run());
     assert.throws(()=>db.prepare("UPDATE books SET original_language = NULL WHERE id = 'seven-habits'").run());
     db.prepare("UPDATE books SET original_title = ?, original_language = 'fr' WHERE id = 'seven-habits'").run("Un titre original différent");
-    const book = readCatalog(db).books[0];
+    const book = (await readCatalog(db)).books[0];
     assert.equal(book.originalTitle,"Un titre original différent"); assert.equal(book.originalLanguage,"fr");
     assert.notEqual(book.originalTitle,book.title.en);
-  } finally { db.close(); }
+  } finally { await db.close(); }
 });
