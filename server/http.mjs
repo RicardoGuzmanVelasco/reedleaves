@@ -4,6 +4,7 @@ import { extname, resolve, sep } from "node:path";
 import { PROJECT_ROOT } from "./database.mjs";
 import { readCatalog } from "./catalog-repository.mjs";
 import {createReaderApi} from "./reader-api.mjs";
+import {readSession} from "./auth.mjs";
 
 const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8", ".js": "text/javascript; charset=utf-8",
@@ -11,6 +12,7 @@ const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=
 
 export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
   const readerApi = createReaderApi(db,options);
+  const inviteCode = options.inviteCode;
   const server = createServer(async (request, response) => {
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -28,7 +30,10 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
         send(405, { error: "Method not allowed" }); return;
       }
       if (path === "/api/health") { db.prepare("SELECT 1").get(); send(200, { status: "ok" }); return; }
-      if (path === "/api/catalog") { send(200, readCatalog(db)); return; }
+      if (path === "/api/catalog") {
+        if (inviteCode !== undefined && !readSession(db,request)) { send(401,{error:"signInRequired"}); return; }
+        send(200, readCatalog(db)); return;
+      }
       if (path === "/" || path === "/app") {
         response.writeHead(302, { Location: "/app/" }); response.end(); return;
       }

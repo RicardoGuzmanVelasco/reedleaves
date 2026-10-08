@@ -65,10 +65,15 @@ export function rateLimit(db,bucket,now,max = 10) {
     db.prepare("INSERT INTO auth_limits VALUES (?,1,?) ON CONFLICT(bucket) DO UPDATE SET attempts=attempts+1").run(key,seconds+900);
   });
 }
-export async function authenticate(db,kind,input,{now = new Date(),ip = "unknown",previous = null} = {}) {
+export async function authenticate(db,kind,input,{now = new Date(),ip = "unknown",previous = null,inviteCode} = {}) {
   const username = usernameOf(input.username);
   rateLimit(db,"ip:"+ip,now,30);
   rateLimit(db,"name:"+username,now,10);
+  if (kind === "register" && inviteCode !== undefined) {
+    const supplied = createHash("sha256").update(typeof input.inviteCode === "string" ? input.inviteCode : "").digest();
+    const expected = createHash("sha256").update(inviteCode).digest();
+    if (!timingSafeEqual(supplied,expected)) throw new ApiError(403,"invalidInvitation");
+  }
   if (!validUsername(username) || !validPassword(input.password)) throw new ApiError(400,"invalidCredentials");
   if (kind === "register") {
     const timeZone = validZone(input.timeZone || "Europe/Madrid"), language = input.language || "es";

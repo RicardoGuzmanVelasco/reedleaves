@@ -22,7 +22,7 @@ function sameOrigin(request,origin) {
   const allowed = origin ? [origin] : [`http://127.0.0.1:${localPort}`,`http://localhost:${localPort}`];
   if (!allowed.includes(originHeader) || request.headers["sec-fetch-site"] && request.headers["sec-fetch-site"] !== "same-origin") throw new ApiError(403,"invalidRequest");
 }
-export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = false} = {}) {
+export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = false,inviteCode} = {}) {
   if (origin) {
     const url = new URL(origin);
     if (url.origin !== origin || !["https:","http:"].includes(url.protocol) || url.protocol === "https:" && !secureCookies) throw new Error("Invalid API origin/cookie configuration");
@@ -38,20 +38,24 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         response.setHeader("Allow",routes.get(path).join(", ")); throw new ApiError(405,"invalidRequest");
       }
       const time = now(), session = readSession(db,request,time);
-      if (path === "/api/session") { send(200,session ? readReaderState(db,session,time) : {user:null}); return true; }
+      if (path === "/api/session") {
+        const state = session ? readReaderState(db,session,time) : {user:null};
+        send(200,inviteCode === undefined ? state : {...state,inviteRequired:true}); return true;
+      }
       if (request.method === "POST") sameOrigin(request,origin);
       if (["/api/auth/register","/api/auth/login"].includes(path)) {
         const input = await readBody(request);
-        const token = await authenticate(db,path.endsWith("register") ? "register" : "login",input,{now:time,ip:request.socket.remoteAddress,previous:session});
+        const token = await authenticate(db,path.endsWith("register") ? "register" : "login",input,{now:time,ip:request.socket.remoteAddress,previous:session,inviteCode});
         response.setHeader("Set-Cookie",sessionCookie(token,secureCookies));
         const signed = readSession(db,{headers:{cookie:`reedleaves_session=${token}`}},time);
-        send(200,readReaderState(db,signed,time)); return true;
+        const state = readReaderState(db,signed,time);
+        send(200,inviteCode === undefined ? state : {...state,inviteRequired:true}); return true;
       }
       if (!session) throw new ApiError(401,"signInRequired");
       if (request.method === "POST") checkCsrf(session,request.headers["x-csrf-token"]);
       if (path === "/api/auth/logout") {
         await readBody(request); revokeSession(db,session);
-        response.setHeader("Set-Cookie",sessionCookie("",secureCookies,true)); send(200,{user:null}); return true;
+        response.setHeader("Set-Cookie",sessionCookie("",secureCookies,true)); send(200,inviteCode === undefined ? {user:null} : {user:null,inviteRequired:true}); return true;
       }
       if (path === "/api/reader/state") { send(200,readReaderState(db,session,time)); return true; }
       const input = await readBody(request);

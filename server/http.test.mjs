@@ -38,3 +38,17 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   assert.equal(head.status, 200); assert.equal(await head.text(), "");
   assert.equal((await fetch(base + "/app/%xx")).status, 400);
 });
+
+test("Internal mode protects the book catalog until an invited user signs in", async t => {
+  const db = openDatabase(":memory:"); initializeDatabase(db); seedCatalog(db);
+  const server = createCatalogServer(db,undefined,{inviteCode:"r".repeat(32)});
+  server.listen(0,"127.0.0.1"); await once(server,"listening");
+  t.after(async()=>{server.closeAllConnections(); await new Promise(resolve=>server.close(resolve)); db.close();});
+  const base = `http://127.0.0.1:${server.address().port}`;
+  assert.equal((await fetch(base+"/api/catalog")).status,401);
+  const session = await fetch(base+"/api/session").then(r=>r.json()); assert.equal(session.inviteRequired,true);
+  const response = await fetch(base+"/api/auth/register",{method:"POST",headers:{Origin:base,"Content-Type":"application/json"},body:JSON.stringify({username:"team.reader",password:"A private invitation test phrase",inviteCode:"r".repeat(32),language:"es",timeZone:"Europe/Madrid"})});
+  assert.equal(response.status,200);
+  const cookie = response.headers.get("set-cookie").split(";")[0];
+  assert.equal((await fetch(base+"/api/catalog",{headers:{Cookie:cookie}})).status,200);
+});

@@ -7,7 +7,7 @@ Estado: el producto funciona en local con cuentas, SQLite y progreso persistente
 - Node 24 LTS, fijado en `.node-version`; la app usa `node:sqlite`.
 - `npm start` respeta `PORT`. En producción escucha en `0.0.0.0`; en desarrollo conserva `127.0.0.1`.
 - La base activa es SQLite v9. Definir `REED_DB_PATH` en un disco persistente. Ejecutar una sola instancia: no compartir SQLite/WAL entre máquinas.
-- `NODE_ENV=production` exige `REED_ORIGIN=https://<origen-exacto>`. Se activa la cookie `Secure`.
+- `NODE_ENV=production` exige `REED_ORIGIN=https://<origen-exacto>` y `REED_INVITE_CODE` con al menos 24 caracteres. Se activa la cookie `Secure`.
 - `/api/health` sirve como comprobación de salud; verifica una consulta a SQLite.
 - El primer arranque en un disco vacío crea esquema y siembra los CSV incluidos. Un esquema previo incompatible detiene el arranque; no se migra solo.
 
@@ -15,13 +15,13 @@ Estado: el producto funciona en local con cuentas, SQLite y progreso persistente
 
 Mantener una sola aplicación Node con almacenamiento persistente, HTTPS y una instancia. Render admite este formato y discos persistentes; un disco excluye el plan gratuito y hace que un despliegue reinicie la instancia. Es adecuado para un piloto pequeño, si se acepta ese coste y una interrupción breve al publicar.
 
-La app no debe abrirse al equipo todavía sin elegir un control de acceso. El registro actual está abierto y el catálogo también se puede leer sin iniciar sesión. Una clave de invitación para registrarse no protege el contenido. Para un piloto interno hay que proteger todas las rutas con la identidad corporativa (por ejemplo, una puerta SSO/VPN delante de la app) o cambiar la app para exigir sesión incluso al explorar. No guardar claves de acceso en el repositorio.
+En modo interno, el catálogo exige una cuenta y el alta exige una clave de invitación. Configurar `REED_INVITE_CODE` con una clave aleatoria de al menos 24 caracteres. El servidor solo acepta el alta si coincide; no se guarda en la base ni en el repositorio. La URL seguirá siendo pública, pero el contenido requiere cuenta y la clave limita quién puede crearla. No compartirla fuera del equipo.
 
 ## Pendiente antes de invitar al equipo
 
 1. Elegir proveedor, espacio privado del repositorio y región.
-2. Elegir el acceso interno: proteger el sitio entero con acceso corporativo, o hacer privados el catálogo y las páginas dentro de la app.
-3. Asignar el dominio y fijar el origen HTTPS.
+2. Crear una clave aleatoria de invitación de 24 caracteres o más y guardarla como secreto `REED_INVITE_CODE` en el hosting.
+3. Usar la URL HTTPS que da el hosting y copiarla exactamente a `REED_ORIGIN`. Un dominio propio es opcional.
 4. Crear el servicio con un disco persistente, una instancia y `/api/health` como comprobación.
 5. Probar en ese servicio alta, inicio y cierre de sesión, reinicio conservando el progreso y restauración de una copia de SQLite.
 

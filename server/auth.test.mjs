@@ -6,22 +6,34 @@ import {seedCatalog} from "./seed.mjs";
 import {createCatalogServer} from "./http.mjs";
 import {readSession,sessionCookie,SESSION_SECONDS} from "./auth.mjs";
 const password = "A test passphrase for Reedleaves";
-async function fixture(t) {
+async function fixture(t,{inviteCode}={}) {
   const db = openDatabase(":memory:"); initializeDatabase(db); seedCatalog(db);
   let clock = new Date("2026-10-06T12:00:00Z");
-  const server = createCatalogServer(db,undefined,{now:()=>clock}); server.listen(0,"127.0.0.1"); await once(server,"listening");
+  const server = createCatalogServer(db,undefined,{now:()=>clock,inviteCode}); server.listen(0,"127.0.0.1"); await once(server,"listening");
   t.after(async()=>{server.closeAllConnections(); await new Promise(r=>server.close(r)); db.close();});
   const base = `http://127.0.0.1:${server.address().port}`;
   const call = async (path,input,headers = {})=>{
     const response = await fetch(base+path,{method:input === undefined ? "GET" : "POST",headers:{Origin:base,...(input === undefined ? {} : {"Content-Type":"application/json"}),...headers},...(input === undefined ? {} : {body:JSON.stringify(input)})});
     return {status:response.status,body:await response.json(),headers:response.headers};
   };
-  const register = async username=>{
-    const result = await call("/api/auth/register",{username,password,language:"es",timeZone:"Europe/Madrid"});
+  const register = async (username,code)=>{
+    const result = await call("/api/auth/register",{username,password,language:"es",timeZone:"Europe/Madrid",...(code === undefined ? {} : {inviteCode:code})});
     assert.equal(result.status,200); return {result,headers:{Cookie:result.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":result.body.csrfToken}};
   };
   return {db,call,register,base,setClock:date=>clock=date};
 }
+test("Configured invitation gates registration and catalog access",async t=>{
+  const code = "a".repeat(32), {call,register,db} = await fixture(t,{inviteCode:code});
+  assert.deepEqual((await call("/api/session")).body,{user:null,inviteRequired:true});
+  assert.equal((await call("/api/catalog")).status,401);
+  assert.equal((await call("/api/auth/register",{username:"invite.reader",password})).status,403);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM accounts").get().n,0);
+  const {result,headers} = await register("invite.reader",code);
+  assert.equal(result.status,200); assert.equal(result.body.inviteRequired,true);
+  assert.equal((await call("/api/catalog",undefined,headers)).status,200);
+  const wrong = await call("/api/auth/register",{username:"other.reader",password,inviteCode:"b".repeat(32)});
+  assert.equal(wrong.status,403); assert.equal(db.prepare("SELECT count(*) AS n FROM accounts").get().n,1);
+});
 test("Real registration, two sessions, spending, reconnecting and logout persist one server state",async t=>{
   const f = await fixture(t), {db,call,register,setClock} = f;
   assert.deepEqual((await call("/api/session")).body,{user:null});

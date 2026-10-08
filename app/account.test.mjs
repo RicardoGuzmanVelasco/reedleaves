@@ -11,6 +11,8 @@ test("Account form is minimal, accessible and translated; passwords are not pers
     assert.match(login,/autocomplete="current-password"/); assert.match(login,/for="account-username"/); assert.match(login,/minlength="15"/); assert.match(login,/role="alert" hidden/);
     assert.doesNotMatch(login,/type="email"|repeat-password|dashboard/);
     assert.match(accountView({language,mode:"account",authMode:"register"}),/autocomplete="new-password"/);
+    assert.match(accountView({language,mode:"account",authMode:"register",inviteRequired:true}),/name="inviteCode"/);
+    assert.doesNotMatch(login,/name="inviteCode"/);
   }
   const source = readFileSync(new URL("./reader-app.mjs",import.meta.url),"utf8");
   assert.doesNotMatch(source,/store\.save\(keys\.(wallet|deckReview|studies|statuses|daily|preferences|selections)/);

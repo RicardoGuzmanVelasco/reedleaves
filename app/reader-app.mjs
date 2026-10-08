@@ -13,12 +13,13 @@ export function startReader() {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
   const settings = document.getElementById("settings");
   let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, reviews, budget, preferences, statuses, daily, bookId, versionId, requestedId, selections, bookReviews, enrolledIds;
-  let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", sourcesOpen = false, failed = false, ready = false, renderVersion = 0, animateMascot = false, scrollToCard = false;
+  let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, animateMascot = false, scrollToCard = false;
   let libraryQuery = "", authMode = "login", authReturn = "#home", pendingVersion = null, pendingNavigation = null, busy = false, syncError = null, syncGeneration = 0;
   const hasLocalProgress = () => catalog && (store.read(keys.studies)?.length || catalog.versions.some(v=>store.read(keys.deckReview(v.id))?.seenIds?.length || store.read(keys.review(v.bookId))?.unlockedCount));
 
   function applyState(state) {
     snapshot = state;
+    if (state.inviteRequired !== undefined) inviteRequired = state.inviteRequired;
     if (state.user) { language = restoreLanguage(state.language); store.save(keys.language,language); }
     refreshState();
   }
@@ -49,8 +50,8 @@ export function startReader() {
     wallet.hidden = !signedIn;
     document.getElementById("brand-name").hidden = signedIn;
     document.querySelector(".brand").classList.toggle("brand-with-name",!signedIn);
-    document.getElementById("leaf-count").textContent = ready ? String(budget.balance) : "—";
-    wallet.setAttribute("aria-label",ready ? c.leafBalance(budget.balance) : c.loading);
+    document.getElementById("leaf-count").textContent = ready && budget ? String(budget.balance) : "—";
+    wallet.setAttribute("aria-label",ready && budget ? c.leafBalance(budget.balance) : c.loading);
     document.querySelectorAll("[data-language]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.language === language)));
     document.getElementById("account-controls").innerHTML = snapshot.user ? `<p>${escapeHtml(snapshot.user.username)}</p><button type="button" class="text-button" data-account-action="logout">${c.signOut}</button>` : `<button type="button" class="text-button" data-account-action="login">${c.signIn}</button>`;
   }
@@ -65,7 +66,7 @@ export function startReader() {
     refreshState(); header();
     const state = {language,catalog,reviews,budget,preferences,statuses,daily,bookId,versionId,requestedId,bookReviews,
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,bookOrigin,sourcesOpen,enrolledIds,animateMascot,
-      storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,hasLocalProgress:hasLocalProgress()};
+      storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,hasLocalProgress:hasLocalProgress()};
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
       (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "daily" ? dailyView(state) : mode === "book" ? deckView(state) : reviewView(state));
     if (!snapshot.user && mode === "book") main.querySelector('[data-action="select-deck"]')?.removeAttribute("disabled");
@@ -83,6 +84,7 @@ export function startReader() {
   }
   function route(focus = true) {
     if (!ready) return; refreshState();
+    if (inviteRequired && !snapshot.user) { if (location.hash && location.hash !== "#account") authReturn = location.hash; mode = "account"; render({focus}); return; }
     const [view,first,second] = location.hash.slice(1).split("/");
     if (view !== "library") openBookId = null;
     if ((view === "daily" || ["review","read"].includes(view)) && !snapshot.user) { authReturn = location.hash; mode = "account"; render({focus}); return; }
@@ -143,7 +145,11 @@ export function startReader() {
   }
   async function load() {
     failed = false; ready = false; render();
-    try { catalog = await loadCatalog(); applyState(await api.request("/api/session")); ready = true; route(false); }
+    try {
+      const state = await api.request("/api/session"); applyState(state);
+      if (!inviteRequired || snapshot.user) catalog = await loadCatalog();
+      ready = true; route(false);
+    }
     catch { failed = true; ready = false; render(); }
   }
   document.querySelector(".skip-link").addEventListener("click",e=>{ e.preventDefault(); main.focus(); });
@@ -165,7 +171,10 @@ export function startReader() {
     if (!e.target.matches("[data-account-form]")) return; e.preventDefault(); if (busy) return;
     const form = e.target, input = new FormData(form), username = input.get("username"), password = input.get("password");
     busy = true; syncGeneration++; lockControls(); const errorNode = form.querySelector("#auth-error"); errorNode.hidden = true;
-    try { applyState(await api.request("/api/auth/"+authMode,{username,password,language,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone})); form.reset(); syncError = null;
+    try {
+      const state = await api.request("/api/auth/"+authMode,{username,password,inviteCode:authMode === "register" ? input.get("inviteCode") : undefined,language,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone});
+      if (inviteRequired && !catalog) catalog = await loadCatalog();
+      applyState(state); form.reset(); syncError = null;
       if (pendingVersion) { applyState(await api.request("/api/reader/select",{versionId:pendingVersion})); pendingVersion = null; }
       busy = false; navigate(authReturn);
     } catch(error) { busy = false; main.setAttribute("aria-busy","false"); form.querySelectorAll("button,input").forEach(c=>c.disabled = false); main.querySelectorAll("[data-action]").forEach(c=>c.disabled = false); settings.querySelectorAll("button").forEach(c=>c.disabled = false);

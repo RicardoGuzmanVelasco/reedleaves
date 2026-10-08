@@ -139,10 +139,11 @@ export function accountView(s) {
     <div class="account-welcome"><img src="../brand/reed/mascot.svg" width="100" height="100" alt=""><h1 tabindex="-1">${signup ? c.signUp : c.signIn}</h1><p>${c.accountIntro}</p></div>
     <form class="account-form" data-account-form>
       <label for="account-username">${c.username}</label><input id="account-username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9][a-zA-Z0-9._\\-]{2,31}" aria-describedby="username-hint"><small id="username-hint">${c.usernameHint}</small>
+      ${signup && s.inviteRequired ? `<label for="account-invite">${c.inviteCode}</label><input id="account-invite" name="inviteCode" type="password" autocomplete="off" required minlength="24" maxlength="256">` : ""}
       <label for="account-password">${c.password}</label><input id="account-password" name="password" type="password" autocomplete="${signup ? "new-password" : "current-password"}" required minlength="15" maxlength="128" aria-describedby="password-hint"><small id="password-hint">${c.passwordHint}</small>
       <p class="account-error" id="auth-error" role="alert" hidden></p><button class="primary" type="submit">${signup ? c.signUp : c.signIn}</button>
     </form><button class="text-button account-switch" type="button" data-action="toggle-auth">${signup ? c.switchToSignIn : c.switchToSignUp}</button>
-    <button class="text-button account-explore" type="button" data-action="library">${c.exploreBooks} →</button>
+    ${s.inviteRequired ? "" : `<button class="text-button account-explore" type="button" data-action="library">${c.exploreBooks} →</button>`}
     ${s.hasLocalProgress ? `<p class="legacy-progress-note">${c.localProgressNote}</p>` : ""}</section>`;
 }
 
