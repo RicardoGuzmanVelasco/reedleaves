@@ -4,7 +4,7 @@ Catálogo real: cinco libros, seis barajas y 42 cartas. Cada baraja tiene un idi
 
 ## Ejecutar
 
-Node 24 o superior, sin dependencias externas:
+Node 24.15 o superior (rama 24), sin dependencias externas:
 
 ```sh
 npm start
@@ -55,7 +55,7 @@ El backend guarda saldo, progreso, posición, lectura original, preferencias e i
 
 La cuenta nueva empieza limpia. El progreso de la antigua prueba anónima se conserva en el navegador, sin borrarlo ni importarlo como verificado. Solo el idioma sigue escribiéndose localmente.
 
-Esta entrega no publica la app. Para otro dispositivo hace falta un servidor accesible; antes de publicar faltan recuperación de contraseña, operación y revisión de contenido. Producción exige HTTPS y `REED_ORIGIN`. Ver ../docs/architecture/ACCOUNTS.md.
+Esta entrega no publica la app. Para otro dispositivo hace falta un servidor accesible; antes de publicar faltan recuperación de contraseña, operación y revisión de contenido. Producción exige HTTPS y `REED_ORIGIN`. Ver ../docs/architecture/ACCOUNTS.md y ../docs/DEPLOYMENT.md.
 
 Tarjetas editoriales propias y breves con fuentes de autores/editoriales; sin texto completo ni portadas comerciales. Son borradores pendientes de revisión antes de publicar. Finanzas resume ideas de los autores, no ofrece asesoramiento.
 
