@@ -20,7 +20,7 @@ function bookLinksMarkup(book, language) {
     const url = bookLinkUrl(platform, book.links?.[platform]);
     if (!url) return [];
     const context = platform === "amazon" ? c.amazonEdition + ". " : "";
-    return [`<a class="book-external-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(action + " · " + name + ": " + book.title[language] + ". " + context + c.newTab)}" title="${esc(context + c.newTab)}">
+    return [`<a class="book-external-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(action + " · " + name + ": " + contentText(book.title,language,book.originalLanguage) + ". " + context + c.newTab)}" title="${esc(context + c.newTab)}">
       <img src="../brand/platforms/${platform}.svg" width="22" height="22" alt="">
       <span class="book-external-link-copy"><strong>${name}</strong><span>${esc(action)}</span></span>
       <svg class="external-link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4 10 14M10 4H4v16h16v-6"/></svg>
@@ -31,8 +31,8 @@ function bookLinksMarkup(book, language) {
 
 function closedBookMarkup(s,book,{action="resume-book",caption=words[s.language].review,genres=[],catalog=false}={}) {
   const c = words[s.language];
-  return `<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} aria-label="${esc(catalog ? book.title[s.language] + ", " + book.author + ", " + caption : c.resume + ": " + book.shortTitle[s.language])}">
-    <span class="study-book-cover"><strong>${esc(book.shortTitle[s.language])}</strong><span class="study-book-author">${esc(book.author)}</span>
+  return `<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} aria-label="${esc(catalog ? contentText(book.title,s.language,book.originalLanguage) + ", " + book.author + ", " + caption : c.resume + ": " + contentText(book.shortTitle,s.language,book.originalLanguage))}">
+    <span class="study-book-cover"><strong lang="${esc(contentLocale(book.shortTitle,s.language,book.originalLanguage))}" dir="auto">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</strong><span class="study-book-author">${esc(book.author)}</span>
     ${catalog ? `<span class="book-tile-genres">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</span>` : `<img class="study-book-mark" src="../brand/reed/mascot.svg" width="64" height="64" alt="">`}
     <span class="study-book-footer">${esc(caption)}<span aria-hidden="true">→</span></span></span></button>`;
 }
@@ -62,21 +62,22 @@ export function libraryView(s) {
     });
     const review = s.bookReviews?.[book.id];
     const status = [review?.hasReviewing ? c.reviewing : "",review?.hasReviewed ? c.reviewedStatus : ""].filter(Boolean).join(" · ") || c.notReviewed;
-    return `<dialog class="deck-modal book-modal" data-book="${esc(book.id)}" aria-labelledby="book-dialog-title" aria-describedby="book-dialog-description"><article class="deck-card book-detail">
+    return `<dialog class="deck-modal book-modal" data-book="${esc(book.id)}" aria-labelledby="book-dialog-title" ${contentText(book.description,s.language,book.originalLanguage) ? 'aria-describedby="book-dialog-description"' : ""}><article class="deck-card book-detail">
       <button class="deck-modal-close" type="button" data-action="close-book-details" aria-label="${c.closeBook}" autofocus>×</button>
       <div class="deck-tags">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</div>
-      <h2 id="book-dialog-title">${esc(book.title[s.language])}</h2><p class="book-detail-author">${esc(book.author)}</p>
+      <h2 id="book-dialog-title" lang="${esc(contentLocale(book.title,s.language,book.originalLanguage))}" dir="auto">${esc(contentText(book.title,s.language,book.originalLanguage))}</h2><p class="book-detail-author">${esc(book.author)}</p>
       <p class="book-original-title"><span>${c.originalTitle}</span><span lang="${esc(book.originalLanguage)}" dir="auto">${esc(book.originalTitle)}</span></p>
-      <p class="deck-description" id="book-dialog-description">${esc(book.description[s.language])}</p>
+      ${contentText(book.description,s.language,book.originalLanguage) ? `<p class="deck-description" id="book-dialog-description" lang="${esc(contentLocale(book.description,s.language,book.originalLanguage))}" dir="auto">${esc(contentText(book.description,s.language,book.originalLanguage))}</p>` : ""}
       ${bookLinksMarkup(book, s.language)}
       <p class="deck-size">${c.deckCount(choices.length)}</p>${languages.length ? `<p class="book-detail-languages">${esc(languages.join(" · "))}</p>` : ""}
       <div class="book-detail-status"><label class="book-reading" for="book-status-${esc(book.id)}"><span>${c.bookStatus}</span><select id="book-status-${esc(book.id)}" data-book-status="${esc(book.id)}" ${!s.storageAvailable ? "disabled" : ""}>${[["unread",c.unread],["reading",c.readingStatus],["read",c.readStatus]].map(([value,label]) => `<option value="${value}" ${s.statuses[book.id] === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>
       <p class="book-detail-review">${c.reviewStatus}: <strong>${esc(status)}</strong></p></div>
-      <button class="primary" type="button" data-action="open-book" data-book="${esc(book.id)}" ${!choices.length ? "disabled" : ""}>${c.viewDecks}</button>
+      <button class="primary" type="button" data-action="open-book" data-book="${esc(book.id)}" ${!choices.length && book.creatorUserId !== s.userId ? "disabled" : ""}>${c.viewDecks}</button>
     </article></dialog>`;
   };
   return `<section class="library-screen"><button class="text-button" type="button" data-action="home">${c.homeBack}</button>
     <div class="screen-heading library-heading"><h1 tabindex="-1">${c.addBook}</h1><img class="mascot" src="../brand/reed/mascot.svg" width="74" height="74" alt=""></div>
+    ${s.userId ? `<div class="library-author-action">${button(c.createBook,"create-book")}</div>` : ""}
     <form class="book-search" role="search" data-book-search><label class="sr-only" for="book-search">${c.searchBooks}</label>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
       <input type="search" id="book-search" placeholder="${c.searchBooks}" value="${esc(s.libraryQuery || "")}" maxlength="200" autocomplete="off" enterkeyhint="search" aria-controls="book-search-results">
@@ -106,7 +107,7 @@ function cardMarkup(s, card, heading = "h2") {
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
   return `<article class="idea-card${card.isQuote ? " quote-card" : ""}">${card.isQuote ? `<blockquote lang="${esc(bodyLanguage)}" dir="auto" class="idea-body" id="idea-content" tabindex="-1">${esc(body)}</blockquote>` : `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-content" tabindex="-1">${esc(title)}</${heading}><p lang="${esc(bodyLanguage)}" dir="auto" class="idea-body">${esc(body)}</p>`}
-    <div class="card-source"><a href="${esc(safeUrl(card.sourceUrl))}" target="_blank" rel="noopener noreferrer" aria-label="${c.source}: ${esc(book.title[s.language])}">${esc(book.shortTitle[s.language])} · ${esc(book.author)} ↗</a></div></article>`;
+    <div class="card-source">${card.sourceUrl ? `<a href="${esc(safeUrl(card.sourceUrl))}" target="_blank" rel="noopener noreferrer" aria-label="${c.source}: ${esc(contentText(book.title,s.language,book.originalLanguage))}">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))} · ${esc(book.author)} ↗</a>` : `<span>${esc(contentText(book.shortTitle,s.language,book.originalLanguage))} · ${esc(book.author)}</span>`}</div></article>`;
 }
 
 export function dailyView(s) {
@@ -120,7 +121,7 @@ function legacyReviewView(s) {
   const c = words[s.language], book = s.catalog.booksById.get(s.bookId), model = s.catalog.models.get(s.bookId), review = s.reviews[s.bookId];
   const card = accessibleCard(review, model.roots, s.requestedId);
   const allowed = canAdvance(review, model.roots, s.today, s.budget) && s.storageAvailable;
-  if (!card) return `<section class="review-screen"><button class="text-button" data-action="daily" type="button">${c.back}</button><div class="review-intro"><img class="mascot" src="../brand/reed/mascot.svg" width="110" height="110" alt=""><p class="small-book">${esc(book.shortTitle[s.language])}</p><h1 tabindex="-1">${c.review}</h1><p ${allowed ? "" : 'id="daily-limit"'}>${allowed ? c.emptyReview : c.tomorrow}</p>${allowed ? button(c.start, "advance") : ""}</div></section>`;
+  if (!card) return `<section class="review-screen"><button class="text-button" data-action="daily" type="button">${c.back}</button><div class="review-intro"><img class="mascot" src="../brand/reed/mascot.svg" width="110" height="110" alt=""><p class="small-book">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</p><h1 tabindex="-1">${c.review}</h1><p ${allowed ? "" : 'id="daily-limit"'}>${allowed ? c.emptyReview : c.tomorrow}</p>${allowed ? button(c.start, "advance") : ""}</div></section>`;
   const i = model.roots.findIndex(root => root.id === card.id), hasNext = i + 1 < review.unlockedCount, finished = review.unlockedCount === model.roots.length;
   return `<section class="review-screen"><div class="review-heading"><button class="text-button" data-action="daily" type="button">${c.back}</button><span>${c.review} · ${c.position(i + 1, model.roots.length)}</span></div>
     ${cardMarkup(s, card, "h1")}<div class="review-actions"><button type="button" class="text-button" data-action="previous" ${i === 0 ? "disabled" : ""}>${c.previous}</button>
@@ -169,7 +170,7 @@ export function deckView(s) {
       <button class="primary" type="button" data-action="select-deck" data-version="${esc(version.id)}" ${!s.storageAvailable ? "disabled" : ""}>${started ? c.resume : c.choose}</button>`;
   };
   return `<section class="deck-screen"><button type="button" class="text-button" data-action="${s.bookOrigin === "library" ? "library" : "home"}">${s.bookOrigin === "library" ? c.booksBack : c.homeBack}</button>
-    <div class="screen-heading deck-heading"><div><p class="small-book">${esc(book.shortTitle[s.language])}</p><h1 tabindex="-1">${c.chooseDeck}</h1></div>
+    <div class="screen-heading deck-heading"><div><p class="small-book">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</p><h1 tabindex="-1">${c.chooseDeck}</h1></div>
     <img class="mascot" src="../brand/reed/mascot.svg" width="74" height="74" alt=""></div>
     ${s.userId ? `<div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
     ${!choices.length ? `<div class="empty-state">${c.noDecks}</div>` : `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${choices.map(item => {
@@ -223,7 +224,7 @@ export function reviewView(s) {
   const attribution = `<p class="review-attribution">${esc(contentText(version.title,s.language,version.language))} · ${c.by} ${esc(deck.creator.name)} · <span lang="${esc(deck.language)}">${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(deck.language) || deck.language)}</span></p>`;
   const map = `<div class="content-tools">${quoteFilter(s)}${s.userId === deck.creator.userId && version.status === "draft" ? `<button class="text-button" type="button" data-action="author-deck" data-version="${esc(version.id)}">${c.editDeck} →</button>` : ""}</div>` + treeMapMarkup(s,model,review,version,leaf);
   if (!card) return `<section class="review-screen">${head}${attribution}
-    <div class="review-start"><p class="small-book">${esc(s.catalog.booksById.get(s.bookId).shortTitle[s.language])}</p><h1 tabindex="-1" lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h1><p>${c.emptyReview}</p></div>${map}</section>`;
+    <div class="review-start"><p class="small-book">${esc(contentText(s.catalog.booksById.get(s.bookId).shortTitle,s.language,s.catalog.booksById.get(s.bookId).originalLanguage))}</p><h1 tabindex="-1" lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h1><p>${c.emptyReview}</p></div>${map}</section>`;
   return `<section class="review-screen">${head}${card.isQuote ? `<h1 class="sr-only" tabindex="-1">${c.review}</h1>` : ""}${attribution}${map}
     ${!s.quotesOnly || card.isQuote ? cardMarkup(s,card,"h1") : ""}<p class="review-progress">${c.progress(review.seenIds.length,model.cards.length)}</p>
     ${finished ? `<p class="complete-note">${c.complete}</p>` : !leaf ? `<p class="limit-note daily-limit" id="daily-limit">${c.tomorrow}</p>` : ""}
@@ -239,7 +240,7 @@ export function authorView(s) {
   const c=words[s.language],version=s.catalog.versionsById.get(s.versionId),model=s.catalog.versionModels.get(s.versionId);
   const card=model.byId.get(s.requestedId);
   return `<section class="author-screen"><div class="review-heading"><button type="button" class="text-button" data-action="choose-book">${c.deckBack}</button><button type="button" class="text-button" data-action="select-deck" data-version="${esc(version.id)}" ${!model.cards.length ? "disabled" : ""}>${c.review} →</button></div>
-    <p class="small-book">${esc(s.catalog.booksById.get(version.bookId).shortTitle[s.language])} · ${c.personalDeck}</p><h1 tabindex="-1" lang="${esc(version.language)}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h1>
+    <p class="small-book">${esc(contentText(s.catalog.booksById.get(version.bookId).shortTitle,s.language,s.catalog.booksById.get(version.bookId).originalLanguage))} · ${c.personalDeck}</p><h1 tabindex="-1" lang="${esc(version.language)}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h1>
     <div class="author-actions">${button(c.addCard,"add-card")}<button class="secondary" type="button" data-action="add-quote"><span aria-hidden="true">❝</span> ${c.addQuote}</button></div>
     ${model.cards.length ? quoteFilter(s)+treeMapMarkup(s,model,s.reviews[version.id],version,true) : `<div class="empty-state">${c.emptyAuthor}</div>`}
     ${s.quotesOnly && !model.cards.some(c=>c.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}
@@ -247,16 +248,16 @@ export function authorView(s) {
 }
 
 export function authorFormView(s) {
-  const f=s.authorForm,c=words[s.language],deck=f.kind === "deck",quote=f.kind === "quote",version=s.catalog.versionsById.get(s.versionId),model=s.catalog.versionModels.get(s.versionId);
+  const f=s.authorForm,c=words[s.language],book=f.kind === "book",deck=f.kind === "deck",quote=f.kind === "quote",version=s.catalog.versionsById.get(s.versionId),model=s.catalog.versionModels.get(s.versionId);
   const field=(name,label,value,max,required,area=false)=>`<label for="author-${name}">${label}</label>${area ? `<textarea id="author-${name}" name="${name}" rows="${name === "body" ? 6 : 3}" maxlength="${max}" ${required ? "required" : ""}>${esc(value || "")}</textarea>` : `<input id="author-${name}" name="${name}" value="${esc(value || "")}" maxlength="${max}" ${required ? "required" : ""}>`}`;
   const options=[];
   function walk(cards,depth=0) {
     for (const card of cards) { options.push(`<option value="${esc(card.id)}" ${f.parentId === card.id ? "selected" : ""}>${esc("— ".repeat(depth)+(card.isQuote ? quoteExcerpt(contentText(card.body,s.language,version.language)) : contentText(card.title,s.language,version.language)))}</option>`); walk(model.children.get(card.id) || [],depth+1); }
   }
-  if (!deck) walk(model.roots);
-  return `<dialog class="deck-modal author-modal" aria-labelledby="author-dialog-title"><article class="deck-card"><h2 id="author-dialog-title">${deck ? c.createDeck : quote ? c.addQuote : c.addCard}</h2><form class="author-form" data-author-form>
-    ${quote ? "" : field("title",deck ? c.deckTitle : c.cardTitle,f.title,160,true)}
-    ${deck ? `${field("description",c.deckDescription,f.description,1000,false,true)}<label for="author-language">${c.deckLanguage}</label><input id="author-language" name="language" value="${esc(f.language)}" maxlength="35" required list="author-languages"><datalist id="author-languages"><option value="es"><option value="en"><option value="fr"></datalist>` : `${field("body",quote ? c.quoteBody : c.cardBody,f.body,4000,true,true)}<label for="author-parentId">${c.parentCard}</label><select id="author-parentId" name="parentId"><option value="" ${!f.parentId ? "selected" : ""}>${quote ? c.unclassifiedQuotes : c.rootCard}</option>${options.join("")}</select>`}
-    <p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}</p><div class="form-actions"><button class="text-button" type="button" data-action="cancel-author">${c.cancel}</button><button class="primary" type="submit">${deck ? c.createDeck : c.save}</button></div>
+  if (!deck && !book) walk(model.roots);
+  return `<dialog class="deck-modal author-modal" aria-labelledby="author-dialog-title"><article class="deck-card"><h2 id="author-dialog-title">${book ? c.createBook : deck ? c.createDeck : quote ? c.addQuote : c.addCard}</h2><form class="author-form" data-author-form>
+    ${quote ? "" : field("title",book ? c.bookTitle : deck ? c.deckTitle : c.cardTitle,f.title,book ? 240 : 160,true)}
+    ${deck || book ? `${book ? field("author",c.bookAuthor,f.author,160,true) : field("description",c.deckDescription,f.description,1000,false,true)}<label for="author-language">${book ? c.originalLanguage : c.deckLanguage}</label><input id="author-language" name="language" value="${esc(f.language)}" maxlength="35" required list="author-languages"><datalist id="author-languages"><option value="es"><option value="en"><option value="fr"></datalist>` : `${field("body",quote ? c.quoteBody : c.cardBody,f.body,4000,true,true)}<label for="author-parentId">${c.parentCard}</label><select id="author-parentId" name="parentId"><option value="" ${!f.parentId ? "selected" : ""}>${quote ? c.unclassifiedQuotes : c.rootCard}</option>${options.join("")}</select>`}
+    <p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}</p><div class="form-actions"><button class="text-button" type="button" data-action="cancel-author">${c.cancel}</button><button class="primary" type="submit">${book ? c.createBook : deck ? c.createDeck : c.save}</button></div>
   </form></article></dialog>`;
 }

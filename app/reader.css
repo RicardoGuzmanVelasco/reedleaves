@@ -144,6 +144,7 @@
 
 /* Personal authorship shares the reader's paper, depth and native dialogs. */
 .author-screen{padding:22px 0 36px}.author-screen>h1{font-size:30px;line-height:1.2;overflow-wrap:anywhere}
+.library-author-action{margin:0 0 24px}
 .deck-author-action{margin:0 0 25px}.author-actions{display:flex;flex-wrap:wrap;gap:14px;margin:24px 0 28px}
 .secondary{min-height:53px;padding:12px 20px;border:2px solid #99754d;border-radius:17px;background:#ffe0cb;box-shadow:0 5px 0 #b88f62;font-weight:800;font-size:14px}
 .secondary:hover:not(:disabled){transform:translateY(-2px)}.secondary span{font-family:Georgia,serif;font-size:23px;vertical-align:middle}

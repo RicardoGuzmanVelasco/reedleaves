@@ -9,10 +9,10 @@ export function prepareCatalog(payload) {
   if (new Set(genres.map(g => g.id)).size !== genres.length || genres.some(g => !g.id || LANGUAGES.some(language => !g.name?.[language]?.trim()))) throw new Error("Invalid genres");
   const genreIds = new Set(genres.map(g => g.id));
   const books = payload.books.map(book => {
-    validateBookLinks(book.links, {required:true});
+    validateBookLinks(book.links, {required:!book.creatorUserId});
     return validateBook(book, LANGUAGES, {requireOriginal:true});
   }), booksById = new Map(books.map(b => [b.id,b]));
-  if (booksById.size !== books.length || books.some(b => !b.genres?.length || b.genres.some(id => !genreIds.has(id)))) throw new Error("Invalid book references");
+  if (booksById.size !== books.length || books.some(b => !Array.isArray(b.genres) || !b.creatorUserId && !b.genres.length || b.genres.some(id => !genreIds.has(id)))) throw new Error("Invalid book references");
   const decks = payload.decks, decksById = new Map(decks.map(d => [d.id,d]));
   if (decksById.size !== decks.length || decks.some(d => !booksById.has(d.bookId) || !isCanonicalLocale(d.language) || !d.creator?.userId || !d.creator?.name?.trim() || ["likes","dislikes","startedBy","completedBy"].some(k => !Number.isInteger(d.metrics?.[k]) || d.metrics[k] < 0))) throw new Error("Invalid deck references");
   const versions = payload.versions, versionsById = new Map(versions.map(v => [v.id,v]));
@@ -38,7 +38,7 @@ export function prepareCatalog(payload) {
     const deck = decks.find(d => d.bookId === book.id && d.isRecommended) || decks.find(d => d.bookId === book.id);
     const options = versions.filter(v => v.deckId === deck?.id && v.status !== "archived").sort((a,b) => b.number - a.number);
     const version = options.find(v => v.status === "published") || options[0];
-    if (!version) throw new Error("Missing book deck");
+    if (!version) { if (book.creatorUserId) continue; throw new Error("Missing book deck"); }
     models.set(book.id,versionModels.get(version.id)); selectedVersions.set(book.id,version.id);
   }
   const cards = allCards.filter(c => selectedVersions.get(c.bookId) === c.versionId);

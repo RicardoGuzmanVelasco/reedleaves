@@ -104,7 +104,7 @@ Sprout fue la exploración inicial: lectura y crecimiento conectados por la dobl
 
 Se contempla una familia futura de mascotas según perfil: semilla, brote, hoja y bucle. No implementar selección ni personalización de mascotas por ahora. La v1 utiliza solo la hoja elegida.
 
-La UI tendrá español, inglés y francés. Los nombres y metadatos de los libros e intereses están en los tres idiomas. Cada portada usa un título corto editorial; la ficha, el título completo. El idioma de cada baraja es independiente del de la interfaz y se muestra tal cual. No presentar traducciones inexistentes como disponibles. La plataforma (web, móvil o ambas) sigue sin decidir. Mantener los prototipos adaptables hasta resolverlo.
+La UI tendrá español, inglés y francés. Los nombres y metadatos de los libros e intereses están en los tres idiomas. Cada portada usa un título corto editorial; la ficha, el título completo. El idioma de cada baraja es independiente del de la interfaz y se muestra tal cual. No presentar traducciones inexistentes como disponibles. Los libros personales se crean desde «Añadir libro → Crear libro» con título, autor e idioma original; muestran ese título como alternativa cuando no hay traducción. No requieren metadatos editoriales ni enlaces. Tras guardarlos se abre la selección de barajas para crear la primera. La plataforma (web, móvil o ambas) sigue sin decidir. Mantener los prototipos adaptables hasta resolverlo.
 
 ## Límites
 

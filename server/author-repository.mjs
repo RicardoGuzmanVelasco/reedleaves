@@ -10,11 +10,28 @@ function requestId(value) {
   if (typeof value !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) throw new ApiError(400,"invalidRequest");
   return value;
 }
+export async function createBook(db,session,input) {
+  const id=requestId(input.requestId),title=text(input.title,240),author=text(input.author,160),language=input.language;
+  if (!isCanonicalLocale(language)) throw new ApiError(400,"invalidRequest");
+  return transaction(db,async()=>{
+    // Serializes catalog positions, including requests from different authors.
+    if (isPostgres(db)) await db.exec("LOCK TABLE books IN SHARE ROW EXCLUSIVE MODE;");
+    const previous=await db.prepare("SELECT * FROM books WHERE id=?").get(id);
+    if (previous) {
+      if (previous.creator_user_id !== session.user_id || previous.original_title !== title || previous.author !== author || previous.original_language !== language) throw new ApiError(409,"invalidRequest");
+      return {bookId:id};
+    }
+    const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM books").get();
+    await db.prepare("INSERT INTO books(id,author,original_title,original_language,position,creator_user_id) VALUES (?,?,?,?,?,?)").run(id,author,title,language,position,session.user_id);
+    await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'reading')").run(session.user_id,id);
+    return {bookId:id};
+  });
+}
 export async function createDeck(db,session,input) {
   const id=requestId(input.requestId),title=text(input.title,160),description=text(input.description ?? "",1000,false),language=input.language;
   if (!isCanonicalLocale(language) || typeof input.bookId !== "string") throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
-    if (!await db.prepare("SELECT 1 FROM books WHERE id=?").get(input.bookId)) throw new ApiError(404,"bookUnavailable");
+    if (!await db.prepare("SELECT 1 FROM books WHERE id=? AND (creator_user_id IS NULL OR creator_user_id=?)").get(input.bookId,session.user_id)) throw new ApiError(404,"bookUnavailable");
     await db.prepare("UPDATE users SET can_create_decks=1 WHERE id=?").run(session.user_id);
     const previous=await db.prepare("SELECT * FROM decks WHERE id=?").get(id);
     if (previous) {
@@ -48,7 +65,7 @@ export async function addCard(db,session,input) {
     if (input.parentId !== null && !await db.prepare("SELECT 1 FROM cards WHERE id=? AND version_id=?").get(input.parentId,version.id)) throw new ApiError(400,"invalidParent");
     const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM cards WHERE version_id=? AND (parent_id=? OR (parent_id IS NULL AND CAST(? AS TEXT) IS NULL))").get(version.id,input.parentId,input.parentId);
     const source=await db.prepare("SELECT id FROM sources WHERE book_id=? ORDER BY id LIMIT 1").get(version.book_id);
-    await db.prepare("INSERT INTO cards(id,version_id,book_id,parent_id,position,source_id,is_quote) VALUES (?,?,?,?,?,?,?)").run(id,version.id,version.book_id,input.parentId,position,source.id,input.isQuote ? 1 : 0);
+    await db.prepare("INSERT INTO cards(id,version_id,book_id,parent_id,position,source_id,is_quote) VALUES (?,?,?,?,?,?,?)").run(id,version.id,version.book_id,input.parentId,position,source?.id ?? null,input.isQuote ? 1 : 0);
     await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)").run(id,version.language,title,body);
     await db.prepare("UPDATE reviews SET completed_at=NULL WHERE version_id=?").run(version.id);
     return {versionId:version.id,cardId:id};

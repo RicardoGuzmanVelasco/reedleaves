@@ -66,13 +66,16 @@ test("PostgreSQL transactions roll back seed writes on failure", async t => {
 test("PostgreSQL v1 upgrade preserves accounts, catalog and reviews and is repeatable", async t => {
   const {readFileSync}=await import("node:fs");
   const {db}=postgresFixture(t);
-  const old=readFileSync(new URL("./schema.postgres.sql",import.meta.url),"utf8").replace("CHECK(version = 2)","CHECK(version = 1)").replace("reed_schema VALUES (2)","reed_schema VALUES (1)").replace(" is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),","").replace(" AND (c.parent_id IS NOT NULL OR sibling.is_quote=c.is_quote)","");
-  await db.exec(old);await seedCatalog(db);
+  const old=readFileSync(new URL("./schema.postgres.sql",import.meta.url),"utf8").replace("CHECK(version = 3)","CHECK(version = 1)").replace("reed_schema VALUES (3)","reed_schema VALUES (1)").replace(" is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),","").replace(" AND (c.parent_id IS NOT NULL OR sibling.is_quote=c.is_quote)","").replace("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);", "").replace("source_id TEXT,", "source_id TEXT NOT NULL,");
+  await db.exec(old);
+  await db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
+  await seedCatalog(db);await db.exec("ALTER TABLE books DROP COLUMN creator_user_id;");
   await authenticate(db,"register",{username:"migrate.reader",password:"migration test phrase"});
   const session={user_id:(await db.prepare("SELECT user_id FROM accounts WHERE username='migrate.reader'").get()).user_id,csrf_token:"test"};
-  await openCard(db,session,"seven-habits-editorial-v1","habit-1",new Date("2026-10-10T12:00:00Z"));
+  await db.prepare("INSERT INTO reviews(id,user_id,version_id) VALUES ('old-review',?,'seven-habits-editorial-v1')").run(session.user_id);
+  await db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) VALUES ('old-review',?,'seven-habits-editorial-v1','habit-1','2026-10-10')").run(session.user_id);
   await initializeDatabase(db);await initializeDatabase(db);
-  assert.equal((await db.prepare("SELECT version FROM reed_schema").get()).version,2);
+  assert.equal((await db.prepare("SELECT version FROM reed_schema").get()).version,3);
   assert.equal((await readCatalog(db)).cards.length,42);
   assert.equal((await readReaderState(db,session)).reviews["seven-habits-editorial-v1"].seenIds[0],"habit-1");
 });

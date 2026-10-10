@@ -2,7 +2,7 @@ import {authenticate, readSession, revokeSession, checkCsrf, sessionCookie} from
 import {ApiError} from "./errors.mjs";
 import {readReaderState, selectDeck, openCard, changeReading, changePreferences, dailyIdea} from "./reader-repository.mjs";
 
-import {createDeck,addCard} from "./author-repository.mjs";
+import {createBook,createDeck,addCard} from "./author-repository.mjs";
 
 async function readBody(request,maxBytes = 8192) {
   if (request.headers["content-type"]?.split(";")[0].trim() !== "application/json") throw new ApiError(415,"invalidRequest");
@@ -32,7 +32,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
   return async (request,response,path,send) => {
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
       ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],
-      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/author/decks",["POST"]],["/api/author/cards",["POST"]]]);
+      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/author/books",["POST"]],["/api/author/decks",["POST"]],["/api/author/cards",["POST"]]]);
     if (!routes.has(path)) return false;
     response.setHeader("Cache-Control","no-store");
     try {
@@ -67,7 +67,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       checkCsrf(active,request.headers["x-csrf-token"]);
       const currentTime = now();
       if (path.startsWith("/api/author/")) {
-        const result = path.endsWith("decks") ? await createDeck(db,active,input) : await addCard(db,active,input);
+        const result = path.endsWith("books") ? await createBook(db,active,input) : path.endsWith("decks") ? await createDeck(db,active,input) : await addCard(db,active,input);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
       const result = path === "/api/reader/select" ? await selectDeck(db,active,input.versionId,currentTime) :

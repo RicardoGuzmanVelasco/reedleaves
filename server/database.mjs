@@ -78,7 +78,7 @@ export async function transaction(db, callback) {
 export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
-  if (version === 10) return;
+  if (version === 11) return;
   if (version === 9) {
     const schema = readFileSync(new URL("./schema.sql", import.meta.url),"utf8");
     db.exec("BEGIN IMMEDIATE");
@@ -87,6 +87,26 @@ export function initializeDatabase(db) {
       db.exec(schema.slice(schema.indexOf("CREATE TRIGGER check_unlock_path"),schema.indexOf("CREATE TRIGGER complete_review")));
       db.exec("PRAGMA user_version = 10; COMMIT;");
     } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 10) {
+    const schema = readFileSync(new URL("./schema.sql", import.meta.url),"utf8");
+    const triggers = db.prepare("SELECT name,sql FROM sqlite_master WHERE type='trigger'").all();
+    const indexes = db.prepare("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='cards' AND sql IS NOT NULL").all();
+    // SQLite requires a table rebuild to make a column nullable. Keep child
+    // references, translations, unlocks, indexes and every trigger intact.
+    db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
+    try {
+      for (const trigger of triggers) db.exec(`DROP TRIGGER "${trigger.name.replaceAll('"','""')}";`);
+      db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
+      db.exec(schema.slice(schema.indexOf("CREATE TABLE cards ("),schema.indexOf("CREATE UNIQUE INDEX root_order")).replace("CREATE TABLE cards (","CREATE TABLE cards_new ("));
+      db.exec("INSERT INTO cards_new SELECT id,version_id,book_id,parent_id,position,source_id,is_quote FROM cards; DROP TABLE cards; ALTER TABLE cards_new RENAME TO cards;");
+      for (const index of indexes) db.exec(index.sql);
+      for (const trigger of triggers) db.exec(trigger.sql);
+      if (db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("Migration broke database references");
+      db.exec("PRAGMA user_version=11; COMMIT;");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    finally { db.exec("PRAGMA foreign_keys=ON;"); }
     return;
   }
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all();
@@ -100,15 +120,19 @@ async function initializePostgresDatabase(db) {
     const tables = await db.prepare("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'").all();
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
-      if (version?.version === 2) return;
-      if (version?.version === 1) {
+      if (version?.version === 3) return;
+      if ([1,2].includes(version?.version)) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
-          if ((await db.prepare("SELECT version FROM reed_schema").get()).version === 2) return;
-          await db.exec("ALTER TABLE cards ADD COLUMN is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1));");
-          const schema = readFileSync(new URL("./schema.postgres.sql", import.meta.url),"utf8");
-          await db.exec(schema.slice(schema.indexOf("CREATE FUNCTION reed_check_unlock"),schema.indexOf("CREATE TRIGGER spend_unlock_leaf")).replace("CREATE FUNCTION","CREATE OR REPLACE FUNCTION"));
-          await db.exec("ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=2; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=2);");
+          const current=(await db.prepare("SELECT version FROM reed_schema").get()).version;
+          if (current === 3) return;
+          if (current === 1) {
+            await db.exec("ALTER TABLE cards ADD COLUMN is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1));");
+            const schema = readFileSync(new URL("./schema.postgres.sql", import.meta.url),"utf8");
+            await db.exec(schema.slice(schema.indexOf("CREATE FUNCTION reed_check_unlock"),schema.indexOf("CREATE TRIGGER spend_unlock_leaf")).replace("CREATE FUNCTION","CREATE OR REPLACE FUNCTION"));
+          }
+          await db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id); ALTER TABLE cards ALTER COLUMN source_id DROP NOT NULL;");
+          await db.exec("ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=3; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=3);");
         });
         return;
       }

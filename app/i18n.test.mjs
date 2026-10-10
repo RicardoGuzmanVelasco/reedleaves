@@ -65,7 +65,7 @@ test("French book previews and full-title modal use their separate metadata fiel
   const html = libraryView(s);
   assert.match(html, /Ajouter un livre/);
   for (const book of s.catalog.books) assert.ok(html.includes(escapeHtml(book.shortTitle.fr)));
-  assert.match(html, /<h2 id="book-dialog-title">Les 7 habitudes des gens très efficaces<\/h2>/);
+  assert.match(html, /<h2 id="book-dialog-title"[^>]*>Les 7 habitudes des gens très efficaces<\/h2>/);
   assert.match(html, /Développement personnel/);
   assert.match(html, /Productivité/);
   assert.match(html, /Voir les jeux/);

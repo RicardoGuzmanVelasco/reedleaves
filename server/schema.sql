@@ -61,6 +61,8 @@ CREATE TABLE users (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) STRICT;
 
+ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);
+
 CREATE TABLE accounts (
   user_id TEXT PRIMARY KEY REFERENCES users(id),
   username TEXT NOT NULL UNIQUE CHECK(length(username) BETWEEN 3 AND 32),
@@ -126,7 +128,7 @@ CREATE TABLE cards (
   book_id TEXT NOT NULL,
   parent_id TEXT,
   position INTEGER NOT NULL CHECK(position > 0),
-  source_id TEXT NOT NULL,
+  source_id TEXT,
   is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),
   UNIQUE(id,version_id),
   FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id),
@@ -323,4 +325,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 10;
+PRAGMA user_version = 11;

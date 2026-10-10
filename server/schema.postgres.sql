@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 2));
-INSERT INTO reed_schema VALUES (2);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 3));
+INSERT INTO reed_schema VALUES (3);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -41,6 +41,8 @@ CREATE TABLE users(
   id TEXT PRIMARY KEY, display_name TEXT NOT NULL CHECK(length(btrim(display_name)) > 0),
   can_create_decks SMALLINT NOT NULL DEFAULT 0 CHECK(can_create_decks IN (0,1)), created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);
+
 CREATE TABLE accounts(
   user_id TEXT PRIMARY KEY REFERENCES users(id), username TEXT NOT NULL UNIQUE CHECK(length(username) BETWEEN 3 AND 32),
   password_hash TEXT NOT NULL, time_zone TEXT NOT NULL, language TEXT NOT NULL CHECK(language IN ('es','en','fr'))
@@ -72,7 +74,7 @@ CREATE TABLE deck_version_translations(
 );
 CREATE TABLE cards(
   id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0), version_id TEXT NOT NULL, book_id TEXT NOT NULL, parent_id TEXT,
-  position INTEGER NOT NULL CHECK(position > 0), source_id TEXT NOT NULL, is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)), UNIQUE(id,version_id),
+  position INTEGER NOT NULL CHECK(position > 0), source_id TEXT, is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)), UNIQUE(id,version_id),
   FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id),
   FOREIGN KEY(parent_id,version_id) REFERENCES cards(id,version_id) DEFERRABLE INITIALLY DEFERRED,
   FOREIGN KEY(source_id,book_id) REFERENCES sources(id,book_id), CHECK(parent_id IS NULL OR parent_id <> id)

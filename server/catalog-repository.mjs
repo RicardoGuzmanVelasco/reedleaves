@@ -9,8 +9,9 @@ export async function readCatalog(db, userId) {
     genres.push({id,name:Object.fromEntries(translations.map(t=>[t.language,t.name]))});
   }
   const books = [];
-  for (const row of await db.prepare("SELECT id,author,original_title,original_language,editorial_status FROM books ORDER BY position").all()) {
+  for (const row of await db.prepare("SELECT id,author,original_title,original_language,editorial_status,creator_user_id FROM books ORDER BY position").all()) {
     const book = {schemaVersion:1,id:row.id,author:row.author,editorialStatus:row.editorial_status,
+      creatorUserId:row.creator_user_id,
       originalTitle:row.original_title,originalLanguage:row.original_language,title:{},shortTitle:{},description:{},editorialNote:{},
       links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id = ? ORDER BY platform").all(row.id)).map(link=>[link.platform,link.url])),
       genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id = ? ORDER BY genre_id").all(row.id)).map(t=>t.genre_id),
@@ -19,11 +20,15 @@ export async function readCatalog(db, userId) {
       book.title[t.language]=t.title; book.shortTitle[t.language]=t.short_title;
       book.description[t.language]=t.description; book.editorialNote[t.language]=t.editorial_note;
     }
-    validateBookLinks(book.links,{required:true}); books.push(validateBook(book,LANGUAGES,{requireOriginal:true}));
+    if (book.creatorUserId) {
+      book.title[book.originalLanguage] ||= book.originalTitle;
+      book.shortTitle[book.originalLanguage] ||= book.originalTitle;
+    }
+    validateBookLinks(book.links,{required:!book.creatorUserId}); books.push(validateBook(book,LANGUAGES,{requireOriginal:true}));
   }
   const cards = [];
   const cardRows = await db.prepare(`SELECT c.*,d.deck_id,deck.language AS deck_language,s.url FROM cards c
-    JOIN deck_versions d ON d.id=c.version_id JOIN decks deck ON deck.id=d.deck_id JOIN sources s ON s.id=c.source_id
+    JOIN deck_versions d ON d.id=c.version_id JOIN decks deck ON deck.id=d.deck_id LEFT JOIN sources s ON s.id=c.source_id
     JOIN books b ON b.id=c.book_id ORDER BY b.position,d.deck_id,d.version,c.position,c.id`).all();
   for (const row of cardRows) {
     const card = {id:row.id,bookId:row.book_id,deckId:row.deck_id,versionId:row.version_id,deckLanguage:row.deck_language,
@@ -62,9 +67,10 @@ export async function readCatalog(db, userId) {
   }
   // Editorial samples remain public; personal drafts are visible only to their owner.
   const accountIds = new Set((await db.prepare("SELECT user_id FROM accounts").all()).map(r=>r.user_id));
-  const visible = versions.filter(v=>v.status !== "draft" || !accountIds.has(decks.find(d=>d.id===v.deckId).creator.userId) || decks.find(d=>d.id===v.deckId).creator.userId === userId);
+  const visibleBooks=books.filter(b=>!b.creatorUserId || b.creatorUserId === userId),bookIds=new Set(visibleBooks.map(b=>b.id));
+  const visible = versions.filter(v=>bookIds.has(v.bookId) && (v.status !== "draft" || !accountIds.has(decks.find(d=>d.id===v.deckId).creator.userId) || decks.find(d=>d.id===v.deckId).creator.userId === userId));
   const ids = new Set(visible.map(v=>v.id)), deckIds = new Set(visible.map(v=>v.deckId));
-  return {schemaVersion:3,genres,books,decks:decks.filter(d=>deckIds.has(d.id)),versions:visible,cards:cards.filter(c=>ids.has(c.versionId))};
+  return {schemaVersion:3,genres,books:visibleBooks,decks:decks.filter(d=>deckIds.has(d.id)),versions:visible,cards:cards.filter(c=>ids.has(c.versionId))};
 }
 
 export async function checkCatalog(db) {

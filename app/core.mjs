@@ -40,6 +40,17 @@ export function validateBook(book, requiredLanguages = ["es", "en"], {requireOri
     if (typeof book.originalTitle !== "string" || !book.originalTitle.trim() || !isCanonicalLocale(book.originalLanguage)) throw new Error("Invalid original book title or language");
   }
   const fields = ["title","shortTitle","description","editorialNote"];
+  if (book.creatorUserId != null) {
+    if (typeof book.creatorUserId !== "string" || !book.creatorUserId.trim() || !isCanonicalLocale(book.originalLanguage)) throw new Error("Invalid book owner");
+    for (const field of fields) {
+      for (const [language,value] of Object.entries(book[field] || {})) {
+        if (!isCanonicalLocale(language) || typeof value !== "string" || !value.trim()) throw new Error("Invalid book translation");
+      }
+    }
+    if (!book.title?.[book.originalLanguage]?.trim() || !book.shortTitle?.[book.originalLanguage]?.trim() || !Array.isArray(book.sources)) throw new Error("Missing book title");
+    if (book.sources.some(source => typeof source.title !== "string" || !source.title.trim() || typeof source.url !== "string" || !source.url.startsWith("https://"))) throw new Error("Invalid sources");
+    return book;
+  }
   const languages = new Set([...requiredLanguages, ...fields.flatMap(field => Object.keys(book[field] || {}))]);
   for (const field of fields) {
     for (const language of languages) {
