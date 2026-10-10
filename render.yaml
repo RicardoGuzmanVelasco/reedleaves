@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: reedleaves
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REED_INVITE_CODE
+        generateValue: true
