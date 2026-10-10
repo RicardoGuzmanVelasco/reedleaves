@@ -10,4 +10,4 @@
 - El primer logo de tarjetas y estrella está descartado.
 - Entorno Node: usar la versión de `.node-version`; al abrir un worktree nuevo, ejecutar `npm ci` si falta `node_modules` antes de iniciar la app o las pruebas.
 - Cuando haga falta contexto de avances recientes o estado operativo, leer `docs/development/README.md` y la entrada más reciente del diario. El código y la configuración del repo son la fuente de verdad técnica.
-- Git: acumular cambios relacionados y hacer commit al cerrar hitos grandes. Prima el pragmatismo; no exigir commits atómicos ni nombres estrictos. No versionar bases locales, copias, credenciales o secretos.
+- Git: usar `main` como destino por defecto; no publicar ramas salvo petición explícita. Tras integrar cambios, borrar la rama temporal local y remota. Acumular cambios relacionados y hacer commit al cerrar hitos grandes. Prima el pragmatismo; no exigir commits atómicos ni nombres estrictos. No versionar bases locales, copias, credenciales o secretos.
