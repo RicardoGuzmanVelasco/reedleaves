@@ -127,6 +127,7 @@ CREATE TABLE cards (
   parent_id TEXT,
   position INTEGER NOT NULL CHECK(position > 0),
   source_id TEXT NOT NULL,
+  is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),
   UNIQUE(id,version_id),
   FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id),
   FOREIGN KEY(parent_id,version_id) REFERENCES cards(id,version_id) DEFERRABLE INITIALLY DEFERRED,
@@ -254,6 +255,7 @@ CREATE TRIGGER check_unlock_path BEFORE INSERT ON review_unlocks BEGIN
   SELECT RAISE(ABORT,'Previous sibling is locked') WHERE EXISTS (
     SELECT 1 FROM cards c JOIN cards sibling ON sibling.version_id = c.version_id
       AND sibling.parent_id IS c.parent_id AND sibling.position < c.position
+      AND (c.parent_id IS NOT NULL OR sibling.is_quote = c.is_quote)
     WHERE c.id = NEW.card_id AND c.version_id = NEW.version_id AND NOT EXISTS (
       SELECT 1 FROM review_unlocks u WHERE u.review_id = NEW.review_id AND u.card_id = sibling.id
     )
@@ -321,4 +323,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 9;
+PRAGMA user_version = 10;

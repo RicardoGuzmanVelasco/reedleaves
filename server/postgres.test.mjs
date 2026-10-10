@@ -62,3 +62,17 @@ test("PostgreSQL transactions roll back seed writes on failure", async t => {
   assert.equal((await db.prepare("SELECT count(*) AS count FROM books").get()).count,countBefore);
   assert.equal((await db.prepare("SELECT author FROM books WHERE id = ?").get("seven-habits")).author,"Stephen R. Covey");
 });
+
+test("PostgreSQL v1 upgrade preserves accounts, catalog and reviews and is repeatable", async t => {
+  const {readFileSync}=await import("node:fs");
+  const {db}=postgresFixture(t);
+  const old=readFileSync(new URL("./schema.postgres.sql",import.meta.url),"utf8").replace("CHECK(version = 2)","CHECK(version = 1)").replace("reed_schema VALUES (2)","reed_schema VALUES (1)").replace(" is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),","").replace(" AND (c.parent_id IS NOT NULL OR sibling.is_quote=c.is_quote)","");
+  await db.exec(old);await seedCatalog(db);
+  await authenticate(db,"register",{username:"migrate.reader",password:"migration test phrase"});
+  const session={user_id:(await db.prepare("SELECT user_id FROM accounts WHERE username='migrate.reader'").get()).user_id,csrf_token:"test"};
+  await openCard(db,session,"seven-habits-editorial-v1","habit-1",new Date("2026-10-10T12:00:00Z"));
+  await initializeDatabase(db);await initializeDatabase(db);
+  assert.equal((await db.prepare("SELECT version FROM reed_schema").get()).version,2);
+  assert.equal((await readCatalog(db)).cards.length,42);
+  assert.equal((await readReaderState(db,session)).reviews["seven-habits-editorial-v1"].seenIds[0],"habit-1");
+});

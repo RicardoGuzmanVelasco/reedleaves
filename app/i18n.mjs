@@ -1,5 +1,6 @@
 export const words = {
   es: {
+    createDeck:"Crear baraja", addCard:"Añadir tarjeta", addQuote:"Añadir quote", editDeck:"Añadir contenido", deckTitle:"Nombre de la baraja", deckDescription:"Enfoque (opcional)", deckLanguage:"Idioma de la baraja", cardTitle:"Título", quoteTitle:"Título (opcional)", cardBody:"Texto", quoteBody:"Quote", parentCard:"Dentro de", rootCard:"Nivel principal", unclassifiedQuotes:"Quotes sin clasificar", quotesOnly:"Solo quotes", allCards:"Todas", save:"Guardar", cancel:"Cancelar", personalDeck:"Personal", emptyAuthor:"Todavía no hay tarjetas.", noQuotes:"Todavía no hay quotes.", deckReadOnly:"Esta baraja ya no se puede editar.", invalidParent:"Elige otra tarjeta padre.", bookUnavailable:"Este libro no está disponible.", saved:"Guardado.",
     account:"Cuenta", signIn:"Entrar", signUp:"Crear cuenta", username:"Usuario", password:"Contraseña", signOut:"Cerrar sesión",
     usernameHint:"3–32 letras, números, puntos, guiones o guiones bajos.", passwordHint:"8–128 caracteres.",
     switchToSignUp:"¿Primera vez? Crear cuenta", switchToSignIn:"Ya tengo cuenta", exploreBooks:"Ver libros",
@@ -48,6 +49,7 @@ export const words = {
     date: d => new Intl.DateTimeFormat("es", { day: "numeric", month: "long" }).format(d), position: (n, total) => `${n} de ${total}`
   },
   en: {
+    createDeck:"Create deck", addCard:"Add card", addQuote:"Add quote", editDeck:"Add content", deckTitle:"Deck name", deckDescription:"Focus (optional)", deckLanguage:"Deck language", cardTitle:"Title", quoteTitle:"Title (optional)", cardBody:"Text", quoteBody:"Quote", parentCard:"Inside", rootCard:"Top level", unclassifiedQuotes:"Unclassified quotes", quotesOnly:"Quotes only", allCards:"All", save:"Save", cancel:"Cancel", personalDeck:"Personal", emptyAuthor:"No cards yet.", noQuotes:"No quotes yet.", deckReadOnly:"This deck can no longer be edited.", invalidParent:"Choose another parent card.", bookUnavailable:"This book is unavailable.", saved:"Saved.",
     account:"Account", signIn:"Sign in", signUp:"Create account", username:"Username", password:"Password", signOut:"Sign out",
     usernameHint:"3–32 letters, numbers, dots, hyphens or underscores.", passwordHint:"8–128 characters.",
     switchToSignUp:"First time? Create account", switchToSignIn:"I already have an account", exploreBooks:"Browse books",
@@ -96,6 +98,7 @@ export const words = {
     date: d => new Intl.DateTimeFormat("en", { day: "numeric", month: "long" }).format(d), position: (n, total) => `${n} of ${total}`
   },
   fr: {
+    createDeck:"Créer un jeu", addCard:"Ajouter une carte", addQuote:"Ajouter une citation", editDeck:"Ajouter du contenu", deckTitle:"Nom du jeu", deckDescription:"Approche (facultatif)", deckLanguage:"Langue du jeu", cardTitle:"Titre", quoteTitle:"Titre (facultatif)", cardBody:"Texte", quoteBody:"Citation", parentCard:"Dans", rootCard:"Niveau principal", unclassifiedQuotes:"Citations non classées", quotesOnly:"Citations seules", allCards:"Toutes", save:"Enregistrer", cancel:"Annuler", personalDeck:"Personnel", emptyAuthor:"Aucune carte pour le moment.", noQuotes:"Aucune citation pour le moment.", deckReadOnly:"Ce jeu ne peut plus être modifié.", invalidParent:"Choisis une autre carte parente.", bookUnavailable:"Ce livre n’est pas disponible.", saved:"Enregistré.",
     account:"Compte", signIn:"Se connecter", signUp:"Créer un compte", username:"Nom d’utilisateur", password:"Mot de passe", signOut:"Se déconnecter",
     usernameHint:"3–32 lettres, chiffres, points, tirets ou tirets bas.", passwordHint:"8–128 caractères.",
     switchToSignUp:"Première visite ? Créer un compte", switchToSignIn:"J’ai déjà un compte", exploreBooks:"Voir les livres",

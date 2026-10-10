@@ -5,7 +5,7 @@ import {featuredDecks, restoreTreeReview, bookReviewStates, reviewedCard, studyi
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs";
-import {homeView,libraryView,libraryResultsMarkup,dailyView,deckView,reviewView,loadingView,accountView,escapeHtml} from "./views.mjs";
+import {homeView,libraryView,libraryResultsMarkup,dailyView,deckView,reviewView,authorView,authorFormView,loadingView,accountView,escapeHtml} from "./views.mjs";
 import {filterBooks} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
 
@@ -14,6 +14,7 @@ export function startReader() {
   const settings = document.getElementById("settings");
   let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, reviews, budget, preferences, statuses, daily, bookId, versionId, requestedId, selections, bookReviews, enrolledIds;
   let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, animateMascot = false, scrollToCard = false;
+  let authorForm = null, quotesOnly = false;
   let libraryQuery = "", authMode = "login", authReturn = "#home", pendingVersion = null, pendingNavigation = null, busy = false, syncError = null, syncGeneration = 0;
   const hasLocalProgress = () => catalog && (store.read(keys.studies)?.length || catalog.versions.some(v=>store.read(keys.deckReview(v.id))?.seenIds?.length || store.read(keys.review(v.bookId))?.unlockedCount));
 
@@ -42,7 +43,7 @@ export function startReader() {
   }
   function header() {
     const c = words[language]; document.documentElement.lang = language;
-    document.title = pageTitle(mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.addBook : mode === "daily" ? c.daily : mode === "book" ? c.chooseDeck : c.review);
+    document.title = pageTitle(mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.addBook : mode === "daily" ? c.daily : mode === "book" ? c.chooseDeck : mode === "author" ? c.editDeck : c.review);
     document.querySelector(".brand").setAttribute("aria-label",pageTitle(c.home)); document.querySelector(".skip-link").textContent = c.skip;
     for (const [id,text] of [["settings-title",c.settings],["language-label",c.language]]) document.getElementById(id).textContent = text;
     document.getElementById("open-settings").setAttribute("aria-label",c.settings); document.getElementById("close-settings").setAttribute("aria-label",c.closeSettings);
@@ -57,23 +58,24 @@ export function startReader() {
   }
   function lockControls() {
     main.setAttribute("aria-busy",String(busy));
-    if (busy) main.querySelectorAll("button,input,select").forEach(control=>control.disabled = true);
+    if (busy) main.querySelectorAll("button,input,select,textarea").forEach(control=>control.disabled = true);
     settings.querySelectorAll("button").forEach(control=>control.disabled = busy);
   }
   function render({focus = false} = {}) {
     ++renderVersion; header();
     if (!ready) { main.innerHTML = loadingView(language,failed); return; }
     refreshState(); header();
-    const state = {language,catalog,reviews,budget,preferences,statuses,daily,bookId,versionId,requestedId,bookReviews,
+    const state = {userId:snapshot.user?.id,authorForm,quotesOnly,language,catalog,reviews,budget,preferences,statuses,daily,bookId,versionId,requestedId,bookReviews,
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,bookOrigin,sourcesOpen,enrolledIds,animateMascot,
       storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,hasLocalProgress:hasLocalProgress()};
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
-      (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "daily" ? dailyView(state) : mode === "book" ? deckView(state) : reviewView(state));
+      (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "daily" ? dailyView(state) : mode === "book" ? deckView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "");
     if (!snapshot.user && mode === "book") main.querySelector('[data-action="select-deck"]')?.removeAttribute("disabled");
     if (mode === "library") live.textContent = libraryQuery ? words[language].searchResults(filterBooks(catalog.books,libraryQuery).length) : "";
     const dialog = main.querySelector(".deck-modal");
     if (dialog) {
-      dialog.showModal(); const close = ()=>dialog.dataset.book ? closeBookDetails(dialog.dataset.book) : closeDeck(dialog.dataset.version);
+      dialog.showModal(); const close = ()=>dialog.classList.contains("author-modal") ? closeAuthorForm() : dialog.dataset.book ? closeBookDetails(dialog.dataset.book) : closeDeck(dialog.dataset.version);
+      if (authorForm) dialog.querySelector("input,textarea")?.focus();
       dialog.addEventListener("cancel",event=>{ event.preventDefault(); close(); });
       dialog.addEventListener("click",event=>{ if (event.target === dialog) close(); });
     }
@@ -86,9 +88,13 @@ export function startReader() {
     if (!ready) return; refreshState();
     if (inviteRequired && !snapshot.user) { if (location.hash && location.hash !== "#account") authReturn = location.hash; mode = "account"; render({focus}); return; }
     const [view,first,second] = location.hash.slice(1).split("/");
+    if (!["author","review"].includes(view)) quotesOnly = false;
     if (view !== "library") openBookId = null;
     if ((view === "daily" || ["review","read"].includes(view)) && !snapshot.user) { authReturn = location.hash; mode = "account"; render({focus}); return; }
     if (view === "book" && catalog.booksById.has(first)) { if (bookId !== first) openDeckId = null; bookId = first; mode = "book"; }
+    else if (view === "author" && catalog.versionsById.has(first) && snapshot.user?.id === catalog.decksById.get(catalog.versionsById.get(first).deckId)?.creator.userId && catalog.versionsById.get(first).status === "draft") {
+      if (versionId !== first) quotesOnly = false; versionId = first; bookId = catalog.versionsById.get(first).bookId; requestedId = catalog.versionModels.get(first).byId.has(second) ? second : null; openDeckId = null; mode = "author";
+    }
     else if (["review","read"].includes(view)) {
       openDeckId = null; const oldCard = catalog.cardsById.get(first);
       versionId = catalog.versionsById.has(first) ? first : catalog.booksById.has(first) ? selections[first] : oldCard?.versionId;
@@ -108,13 +114,34 @@ export function startReader() {
     route();
   }
   function openBook(id) { if (!catalog.booksById.has(id)) return; bookOrigin = mode === "library" ? "library" : "home"; bookId = id; openDeckId = null; navigate("#book/"+id); }
-  function resumeBook(id) { const studies = studyingDecks(catalog,reviews,enrolledIds).filter(item=>item.book.id === id); if (studies.length !== 1) { openBook(id); return; } navigate("#review/"+studies[0].version.id); }
+  function resumeBook(id) { const studies = studyingDecks(catalog,reviews,enrolledIds).filter(item=>item.book.id === id); if (studies.length !== 1) { openBook(id); return; } navigate((studies[0].version.cardCount === 0 && studies[0].deck.creator.userId === snapshot.user?.id ? "#author/" : "#review/")+studies[0].version.id); }
+  function closeAuthorForm() { if (busy) return; const action = authorForm?.kind === "deck" ? "create-deck" : authorForm?.kind === "quote" ? "add-quote" : "add-card"; authorForm = null; render(); main.querySelector(`[data-action="${action}"]`)?.focus(); }
+  function openAuthorForm(kind) {
+    authorForm = {kind,requestId:crypto.randomUUID(),title:"",body:"",description:"",language,parentId:kind === "quote" ? null : requestedId || null};
+    openDeckId = null; render();
+  }
+  async function saveAuthorForm(form) {
+    if (busy || !authorForm) return;
+    const fields = Object.fromEntries(new FormData(form)); Object.assign(authorForm,fields);
+    const savedForm = authorForm;
+    const input = savedForm.kind === "deck" ? {...fields,requestId:savedForm.requestId,bookId} : {...fields,requestId:savedForm.requestId,versionId,parentId:fields.parentId || null,isQuote:savedForm.kind === "quote"};
+    busy = true; syncGeneration++; savedForm.error = null; lockControls();
+    try {
+      const result = await api.request(savedForm.kind === "deck" ? "/api/author/decks" : "/api/author/cards",input);
+      catalog = await loadCatalog(); applyState(result.state); authorForm = null; live.textContent = words[language].saved;
+      busy = false; navigate("#author/"+result.versionId+(result.cardId ? "/"+result.cardId : ""));
+    } catch(error) { savedForm.error = error.code || "connectionError"; }
+    finally { busy = false; render(); }
+  }
   function closeDeck(id) { openDeckId = null; render(); [...main.querySelectorAll('[data-action="open-deck"]')].find(b=>b.dataset.version === id)?.focus({preventScroll:true}); }
   function closeBookDetails(id) { openBookId = null; render(); [...main.querySelectorAll('[data-action="open-book-details"]')].find(b=>b.dataset.book === id)?.focus({preventScroll:true}); }
   async function mutation(path,input,onSuccess) {
     if (busy) return false; busy = true; syncGeneration++; syncError = null; lockControls();
     try { const result = await api.request(path,input); applyState(result.state || result);
-      if (path === "/api/reader/open") { try { catalog = await loadCatalog(); } catch { /* The committed state remains authoritative if catalog refresh fails. */ } }
+      if (path === "/api/auth/logout") {
+        catalog = null;
+        if (!inviteRequired) { try { catalog = await loadCatalog(); } catch { ready = false; failed = true; } }
+      } else if (path === "/api/reader/open") { try { catalog = await loadCatalog(); } catch { /* The committed state remains authoritative if catalog refresh fails. */ } }
       refreshState(); onSuccess?.(result); return true;
     } catch(error) { syncError = error.status === 401 ? "sessionExpired" : error.code || "connectionError";
       if (error.status === 409) { try { applyState(await api.request("/api/session")); } catch { /* Keep the last known state; retry remains idempotent. */ } }
@@ -137,10 +164,10 @@ export function startReader() {
   }
   async function ensureDaily() { if (!busy) await mutation("/api/reader/daily",{}); }
   async function sync(force = false) {
-    if (!ready || busy || !force && (main.querySelector("[data-account-form]") || document.activeElement?.id === "book-search" || main.querySelector(".deck-modal") || settings.open)) return;
+    if (!ready || busy || !force && (main.querySelector("[data-account-form]") || document.activeElement?.id === "book-search" || main.querySelector(".deck-modal") || mode === "author" || settings.open)) return;
     const generation = ++syncGeneration;
-    try { const state = await api.request("/api/session"); if (generation !== syncGeneration || busy) return;
-      const changed = JSON.stringify(state) !== JSON.stringify(snapshot); applyState(state); syncError = null; if (changed || force) route(false);
+    try { const state = await api.request("/api/session"); const updatedCatalog = !inviteRequired || state.user ? await loadCatalog() : null; if (generation !== syncGeneration || busy) return;
+      const changed = JSON.stringify(state) !== JSON.stringify(snapshot) || JSON.stringify(updatedCatalog?.allCards) !== JSON.stringify(catalog?.allCards); catalog = updatedCatalog; applyState(state); syncError = null; if (changed || force) route(false);
     } catch(error) { if (generation === syncGeneration) { syncError = error.code; render(); } }
   }
   async function load() {
@@ -165,15 +192,16 @@ export function startReader() {
   });
   main.addEventListener("toggle",e=>{ if (e.target.id === "sources") sourcesOpen = e.target.open; },true);
   function updateBookSearch() { main.querySelector("#book-search-results").innerHTML = libraryResultsMarkup({catalog,language,libraryQuery}); main.querySelector("[data-book-search] button").hidden = !libraryQuery; live.textContent = words[language].searchResults(filterBooks(catalog.books,libraryQuery).length); }
-  main.addEventListener("input",e=>{ if (e.target.id === "book-search") { libraryQuery = e.target.value; updateBookSearch(); } });
+  main.addEventListener("input",e=>{ if (authorForm && e.target.closest("[data-author-form]") && e.target.name) authorForm[e.target.name] = e.target.value; if (e.target.id === "book-search") { libraryQuery = e.target.value; updateBookSearch(); } });
   main.addEventListener("submit",async e=>{
     if (e.target.matches("[data-book-search]")) { e.preventDefault(); return; }
+    if (e.target.matches("[data-author-form]")) { e.preventDefault(); await saveAuthorForm(e.target); return; }
     if (!e.target.matches("[data-account-form]")) return; e.preventDefault(); if (busy) return;
     const form = e.target, input = new FormData(form), username = input.get("username"), password = input.get("password");
     busy = true; syncGeneration++; lockControls(); const errorNode = form.querySelector("#auth-error"); errorNode.hidden = true;
     try {
       const state = await api.request("/api/auth/"+authMode,{username,password,inviteCode:authMode === "register" ? input.get("inviteCode") : undefined,language,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone});
-      if (inviteRequired && !catalog) catalog = await loadCatalog();
+      catalog = await loadCatalog();
       applyState(state); form.reset(); syncError = null;
       if (pendingVersion) { applyState(await api.request("/api/reader/select",{versionId:pendingVersion})); pendingVersion = null; }
       busy = false; navigate(authReturn);
@@ -183,6 +211,7 @@ export function startReader() {
   });
   main.addEventListener("change",async e=>{
     const input = e.target;
+    if (authorForm && input.closest("[data-author-form]")) { authorForm[input.name] = input.value; return; }
     if (input.dataset.bookStatus) await mutation("/api/reader/reading",{bookId:input.dataset.bookStatus,status:input.value});
     else if (input.dataset.source || input.dataset.genre) { const next = input.dataset.source ? changeSource(preferences,input.dataset.source,input.checked) : {...preferences,genres:input.checked ? [...new Set([...preferences.genres,input.dataset.genre])] : preferences.genres.filter(g=>g !== input.dataset.genre)}; await mutation("/api/reader/preferences",{preferences:next}); }
     else return; document.getElementById(input.id)?.focus();
@@ -190,6 +219,14 @@ export function startReader() {
   main.addEventListener("click",e=>{
     const b = e.target.closest("[data-action]"); if (!b || b.disabled || busy || !ready && b.dataset.action !== "retry") return;
     switch(b.dataset.action) {
+      case "create-deck": openAuthorForm("deck"); break;
+      case "add-card": openAuthorForm("card"); break;
+      case "add-quote": openAuthorForm("quote"); break;
+      case "cancel-author": closeAuthorForm(); break;
+      case "author-deck": authorForm = null; quotesOnly = false; navigate("#author/"+b.dataset.version); break;
+      case "inspect-card": requestedId = b.dataset.card; history.replaceState(null,"","#author/"+versionId+"/"+requestedId); render(); main.querySelector("#idea-title")?.scrollIntoView({block:"start"}); break;
+      case "filter-all": quotesOnly = false; render(); main.querySelector('[data-action="filter-all"]')?.focus(); break;
+      case "filter-quotes": quotesOnly = true; render(); main.querySelector('[data-action="filter-quotes"]')?.focus(); break;
       case "clear-book-search": libraryQuery = ""; main.querySelector("#book-search").value = ""; updateBookSearch(); main.querySelector("#book-search").focus(); break;
       case "toggle-auth": authMode = authMode === "login" ? "register" : "login"; render(); main.querySelector("#account-username")?.focus(); break;
       case "sync": sync(true); break;
@@ -209,6 +246,6 @@ export function startReader() {
       case "open-card": openCard(b.dataset.card,b.dataset.version); break;
     }
   });
-  window.addEventListener("hashchange",()=>route()); document.addEventListener("visibilitychange",()=>{ if (!document.hidden) sync(); });
+  window.addEventListener("hashchange",()=>{ authorForm = null; route(); }); document.addEventListener("visibilitychange",()=>{ if (!document.hidden) sync(); });
   window.addEventListener("focus",()=>sync()); window.addEventListener("online",()=>sync()); setInterval(()=>{ if (!document.hidden) sync(); },30000); load();
 }

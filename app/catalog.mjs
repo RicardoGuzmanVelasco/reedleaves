@@ -21,7 +21,7 @@ export function prepareCatalog(payload) {
   if (new Set(allCards.map(c => c.id)).size !== allCards.length ||
       allCards.some(c => !booksById.has(c.bookId) || versionsById.get(c.versionId)?.bookId !== c.bookId || versionsById.get(c.versionId)?.deckId !== c.deckId || c.deckLanguage !== versionsById.get(c.versionId)?.language || !c.title[c.deckLanguage] || !c.body[c.deckLanguage])) throw new Error("Invalid card references");
   const versionModels = new Map(versions.map(v => {
-    const model = validateCards(allCards.filter(c => c.versionId === v.id),v.bookId);
+    const model = validateCards(allCards.filter(c => c.versionId === v.id),v.bookId,{allowEmpty:v.status === "draft"});
     for (const siblings of model.children.values()) if (siblings.some((c,i) => c.order !== i + 1)) throw new Error("Invalid sibling order");
     let depth = 0;
     for (const card of model.cards) {

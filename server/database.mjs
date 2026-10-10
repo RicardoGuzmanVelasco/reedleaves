@@ -78,7 +78,17 @@ export async function transaction(db, callback) {
 export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
-  if (version === 9) return;
+  if (version === 10) return;
+  if (version === 9) {
+    const schema = readFileSync(new URL("./schema.sql", import.meta.url),"utf8");
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec("ALTER TABLE cards ADD COLUMN is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)); DROP TRIGGER check_unlock_path;");
+      db.exec(schema.slice(schema.indexOf("CREATE TRIGGER check_unlock_path"),schema.indexOf("CREATE TRIGGER complete_review")));
+      db.exec("PRAGMA user_version = 10; COMMIT;");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return;
+  }
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all();
   if (tables.length) throw new Error("Outdated development database. Back it up, then use a fresh database file; no migrations.");
   db.exec("BEGIN IMMEDIATE");
@@ -90,7 +100,18 @@ async function initializePostgresDatabase(db) {
     const tables = await db.prepare("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'").all();
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
-      if (version?.version === 1) return;
+      if (version?.version === 2) return;
+      if (version?.version === 1) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version === 2) return;
+          await db.exec("ALTER TABLE cards ADD COLUMN is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1));");
+          const schema = readFileSync(new URL("./schema.postgres.sql", import.meta.url),"utf8");
+          await db.exec(schema.slice(schema.indexOf("CREATE FUNCTION reed_check_unlock"),schema.indexOf("CREATE TRIGGER spend_unlock_leaf")).replace("CREATE FUNCTION","CREATE OR REPLACE FUNCTION"));
+          await db.exec("ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=2; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=2);");
+        });
+        return;
+      }
       throw new Error("Outdated PostgreSQL database. Use a fresh database; no migrations.");
     }
     await transaction(db,async()=>{ await db.exec(readFileSync(new URL("./schema.postgres.sql", import.meta.url),"utf8")); });

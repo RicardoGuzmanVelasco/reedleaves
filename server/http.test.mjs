@@ -52,3 +52,33 @@ test("Internal mode protects the book catalog until an invited user signs in", a
   const cookie = response.headers.get("set-cookie").split(";")[0];
   assert.equal((await fetch(base+"/api/catalog",{headers:{Cookie:cookie}})).status,200);
 });
+
+test("Author HTTP routes require CSRF and hide personal decks from other accounts and guests",async t=>{
+  const {randomUUID}=await import("node:crypto");
+  const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);
+  const server=createCatalogServer(db);server.listen(0,"127.0.0.1");await once(server,"listening");
+  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const post=(path,input,headers={})=>fetch(base+path,{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify(input)});
+  const response=await post("/api/auth/register",{username:"author.http",password:"a local author test phrase"});
+  const state=await response.json(),headers={Cookie:response.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":state.csrfToken};
+  const deckInput={requestId:randomUUID(),bookId:"seven-habits",title:"Lecture",language:"fr"};
+  assert.equal((await post("/api/author/decks",deckInput)).status,401);
+  assert.equal((await post("/api/author/decks",deckInput,{Cookie:headers.Cookie})).status,403);
+  const deckResponse=await post("/api/author/decks",deckInput,headers);assert.equal(deckResponse.status,200);
+  const {versionId}=await deckResponse.json();
+  const cardInput={requestId:randomUUID(),versionId,isQuote:true,parentId:null,body:"Citation personnelle"};
+  assert.equal((await post("/api/author/cards",cardInput,headers)).status,200);
+  assert.equal((await post("/api/author/cards",cardInput,headers)).status,200);
+  const owned=await fetch(base+"/api/catalog",{headers:{Cookie:headers.Cookie}}).then(r=>r.json());
+  assert.equal(owned.cards.filter(c=>c.versionId===versionId).length,1);
+  assert.equal(owned.cards.find(c=>c.versionId===versionId).isQuote,true);
+  const unicodeInput={...cardInput,requestId:randomUUID(),body:"葉".repeat(4000)};
+  assert.equal((await post("/api/author/cards",unicodeInput,headers)).status,200);
+  const guest=await fetch(base+"/api/catalog").then(r=>r.json());assert.equal(guest.versions.some(v=>v.id===versionId),false);
+  const other=await post("/api/auth/register",{username:"other.http",password:"another local test phrase"});
+  const otherCookie=other.headers.get("set-cookie").split(";")[0];
+  const hidden=await fetch(base+"/api/catalog",{headers:{Cookie:otherCookie}}).then(r=>r.json());
+  assert.equal(hidden.versions.some(v=>v.id===versionId),false);
+  assert.equal((await post("/api/reader/select",{versionId},{Cookie:otherCookie,"X-CSRF-Token":(await other.json()).csrfToken})).status,404);
+});

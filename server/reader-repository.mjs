@@ -38,6 +38,8 @@ async function knownVersion(db,versionId,userId) {
   if(typeof versionId!=="string") throw new ApiError(400,"invalidRequest");
   const version=await db.prepare("SELECT * FROM deck_versions WHERE id = ?").get(versionId);
   const enrolled=await db.prepare("SELECT 1 FROM studies WHERE user_id = ? AND version_id = ?").get(userId,versionId);
+  const owner = version && await db.prepare("SELECT d.creator_user_id,a.user_id FROM decks d LEFT JOIN accounts a ON a.user_id=d.creator_user_id WHERE d.id=?").get(version.deck_id);
+  if (version?.status === "draft" && owner?.user_id && owner.creator_user_id !== userId) throw new ApiError(404,"deckUnavailable");
   if(!version||(version.status==="archived"&&!enrolled)) throw new ApiError(404,"deckUnavailable");
   return version;
 }
@@ -55,7 +57,7 @@ export async function selectDeck(db,session,versionId,now=new Date()) {
 }
 export async function openCard(db,session,versionId,cardId,now=new Date()) {
   return transaction(db,async()=>{
-    const userId=session.user_id,version=await knownVersion(db,versionId,userId),catalog=prepareCatalog(await readCatalog(db)),model=catalog.versionModels.get(versionId);
+    const userId=session.user_id,version=await knownVersion(db,versionId,userId),catalog=prepareCatalog(await readCatalog(db,session.user_id)),model=catalog.versionModels.get(versionId);
     if(typeof cardId!=="string"||!model.byId.has(cardId)) throw new ApiError(404,"cardUnavailable");
     const state=await stateInside(db,session,now),review=restoreTreeReview(state.reviews[versionId],model,versionId),seen=review.seenIds.includes(cardId);
     if(!seen&&!treeFrontier(review,model).some(c=>c.id===cardId)) throw new ApiError(409,"cardLocked");
@@ -104,7 +106,7 @@ export async function dailyIdea(db,session,now=new Date()) {
   return transaction(db,async()=>{
     const state=await stateInside(db,session,now);
     if(state.daily) return state;
-    const catalog=prepareCatalog(await readCatalog(db)),reviews=Object.fromEntries(catalog.versions.map(v=>[v.id,restoreTreeReview(state.reviews[v.id],catalog.versionModels.get(v.id),v.id)]));
+    const catalog=prepareCatalog(await readCatalog(db,session.user_id)),reviews=Object.fromEntries(catalog.versions.map(v=>[v.id,restoreTreeReview(state.reviews[v.id],catalog.versionModels.get(v.id),v.id)]));
     const candidates=catalog.allCards.filter(card=>card.versionId===(state.selections[card.bookId]||catalog.selectedVersions.get(card.bookId)));
     const pool=dailyPool(candidates,catalog.books,state.statuses,state.preferences,bookReviewStates(catalog,reviews));
     if(pool.length) await db.prepare("INSERT INTO daily_ideas VALUES (?,?,?) ON CONFLICT(user_id,local_day) DO NOTHING").run(session.user_id,state.today,pool[randomInt(pool.length)].id);

@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 1));
-INSERT INTO reed_schema VALUES (1);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 2));
+INSERT INTO reed_schema VALUES (2);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -72,7 +72,7 @@ CREATE TABLE deck_version_translations(
 );
 CREATE TABLE cards(
   id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0), version_id TEXT NOT NULL, book_id TEXT NOT NULL, parent_id TEXT,
-  position INTEGER NOT NULL CHECK(position > 0), source_id TEXT NOT NULL, UNIQUE(id,version_id),
+  position INTEGER NOT NULL CHECK(position > 0), source_id TEXT NOT NULL, is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)), UNIQUE(id,version_id),
   FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id),
   FOREIGN KEY(parent_id,version_id) REFERENCES cards(id,version_id) DEFERRABLE INITIALLY DEFERRED,
   FOREIGN KEY(source_id,book_id) REFERENCES sources(id,book_id), CHECK(parent_id IS NULL OR parent_id <> id)
@@ -163,7 +163,7 @@ BEGIN
     AND NOT EXISTS(SELECT 1 FROM review_unlocks u WHERE u.review_id=NEW.review_id AND u.card_id=c.parent_id)) THEN
     RAISE EXCEPTION 'Parent card is locked';
   END IF;
-  IF EXISTS(SELECT 1 FROM cards c JOIN cards sibling ON sibling.version_id=c.version_id AND sibling.parent_id IS NOT DISTINCT FROM c.parent_id AND sibling.position<c.position
+  IF EXISTS(SELECT 1 FROM cards c JOIN cards sibling ON sibling.version_id=c.version_id AND sibling.parent_id IS NOT DISTINCT FROM c.parent_id AND sibling.position<c.position AND (c.parent_id IS NOT NULL OR sibling.is_quote=c.is_quote)
     WHERE c.id=NEW.card_id AND c.version_id=NEW.version_id AND NOT EXISTS(SELECT 1 FROM review_unlocks u WHERE u.review_id=NEW.review_id AND u.card_id=sibling.id)) THEN
     RAISE EXCEPTION 'Previous sibling is locked';
   END IF;

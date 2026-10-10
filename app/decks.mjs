@@ -31,14 +31,19 @@ export function studyingDecks(catalog, reviews, enrolledIds = []) {
   // when the daily selection changes or the author publishes a newer version.
   return catalog.versions.filter(version => {
     const count = reviews[version.id]?.seenIds.length || 0;
-    return count < version.cardCount && (count > 0 || enrolled.has(version.id));
+    return (count < version.cardCount || version.status === "draft" && version.cardCount === 0) && (count > 0 || enrolled.has(version.id));
   }).map(version => ({version,deck:catalog.decksById.get(version.deckId),
     book:catalog.booksById.get(version.bookId),review:reviews[version.id] || restoreTreeReview(null,catalog.versionModels.get(version.id),version.id)}));
 }
 
+export function cardSiblings(card,model) {
+  const siblings = model.children.get(card.parentId) || [];
+  return card.parentId === null ? siblings.filter(c=>!!c.isQuote === !!card.isQuote) : siblings;
+}
+
 function eligible(card, seen, model) {
   if (card.parentId !== null && !seen.has(card.parentId)) return false;
-  const siblings = model.children.get(card.parentId), i = siblings.findIndex(c => c.id === card.id);
+  const siblings = cardSiblings(card,model), i = siblings.findIndex(c => c.id === card.id);
   return i === 0 || seen.has(siblings[i-1].id);
 }
 
@@ -89,7 +94,7 @@ export function reviewedCard(review, model, requestedId) {
 
 export function treeLinks(card, model) {
   if (!card) return {sibling:null,child:null,parent:null};
-  const siblings = model.children.get(card.parentId), i = siblings.findIndex(c => c.id === card.id);
+  const siblings = cardSiblings(card,model), i = siblings.findIndex(c => c.id === card.id);
   return {sibling:siblings[i+1] || null,child:model.children.get(card.id)?.[0] || null,
     parent:card.parentId ? model.byId.get(card.parentId) : null};
 }

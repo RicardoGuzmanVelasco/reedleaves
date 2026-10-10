@@ -25,15 +25,17 @@ Abrir http://127.0.0.1:4173/app/. La primera ejecución crea y carga SQLite; las
 - Elegir una baraja por libro: creador, enfoque, cartas y profundidad. Recomendación del equipo y ganadoras reales, sin duplicados ni premios con cero actividad.
 - Ganar una hoja al día y acumular hasta tres. Se pueden gastar varias el mismo día: hermana siguiente o hija cuestan una hoja si son nuevas. Volver a cartas repasadas es gratis. Los días ausentes suman hasta el máximo, sin guardar un exceso pendiente.
 - Los filtros afectan al siguiente día una vez asignada la idea de hoy, pendiente de confirmación.
-- Sin editor público, rachas ni tareas. El selector y el repaso admiten barajas anidadas.
+- Crear barajas personales desde las barajas de un libro. Añadir tarjetas o quotes con padre opcional, en el idioma de la baraja. La autoría es gratuita; el repaso mantiene las hojas.
+- Quotes diferenciadas y filtro «Solo quotes». Las sueltas aparecen bajo «Quotes sin clasificar», sin carta ficticia en la base.
+- Sin publicación del contenido personal, rachas ni tareas. El selector y el repaso admiten barajas anidadas.
 
 Lectura original y repaso son independientes. Una tarjeta aleatoria no desbloquea esa posición en el repaso. Los números de tarjetas no están fijados en la interfaz: cada libro usa sus datos de la API.
 
 ## Datos y código
 
-Contenido editable: content/catalog/*.csv. Datos activos: var/catalog.sqlite, con libros, barajas, versiones, árboles y fuentes. Esquema único de desarrollo sin migraciones. HTTP JSON es transporte, no almacenamiento del catálogo.
+Contenido editable: content/catalog/*.csv. Datos activos: var/catalog.sqlite, con libros, barajas, versiones, árboles y fuentes. SQLite v10 y PostgreSQL v2. La actualización desde v9/v1 añade quotes y conserva cuentas, cartas y progreso. HTTP JSON es transporte, no almacenamiento del catálogo.
 
-Backend: server/database.mjs, seed.mjs, catalog-repository.mjs, auth.mjs, reader-repository.mjs, reader-api.mjs y http.mjs.
+Backend: server/database.mjs, seed.mjs, catalog-repository.mjs, author-repository.mjs, auth.mjs, reader-repository.mjs, reader-api.mjs y http.mjs.
 
 Frontend: catalog.mjs (API), account-client.mjs (sesión y cambios confirmados), rhythm.mjs (reglas de filtros y compatibilidad antigua), wallet.mjs (reglas de saldo compartidas con servidor), decks.mjs (selección y árbol), storage.mjs (idioma y lectura del estado antiguo, sin progreso actual), views.mjs (HTML), i18n.mjs (copy), reader-app.mjs (interacción) y reader.mjs (entrada).
 

@@ -18,13 +18,14 @@ Estas reglas aplican a dirección de arte, UX, animaciones, copy y componentes. 
 
 - Libro: título, autor e intereses; varias barajas, no un único árbol.
 - Baraja: libro, usuario creador, enfoque y versiones del árbol. Cartas y profundidad se calculan.
-- Carta: versión, padre, título, texto y orden entre hermanas.
+- Carta: versión, padre, título, texto, orden entre hermanas y etiqueta `isQuote`.
+- Quote: carta con tratamiento visual de cita y filtro propio. Puede tener padre. Si no lo tiene, conserva `parentId: null` y aparece dentro de «Quotes sin clasificar», un grupo virtual que no se guarda como carta.
 - Hoja: una unidad de avance; una carta nueva cuesta una hoja, también si es hija. Se gana una al día, con un saldo máximo de tres.
 - `DailyCard`: una idea aleatoria del día, independiente del avance del repaso.
 - Lectura del libro original: sin empezar, leyendo o leído; selección manual.
 - Repaso: cartas vistas por usuario y versión. Termina al recorrer todas, incluidas las hijas.
 
-La estructura debe seguir siendo plana, textual y portable para permitir autoría por usuarios en una fase posterior.
+La estructura sigue siendo plana, textual y portable. Las cuentas pueden crear barajas personales y añadir contenido mientras leen.
 
 ## UX base
 
@@ -51,6 +52,18 @@ La estructura debe seguir siendo plana, textual y portable para permitir autorí
 - El saldo de hojas es global entre barajas, con máximo de tres. Los días ausentes suman hasta ese límite; los días excedentes no se guardan para después. Revisitar lo ya repasado es gratis. No introducir compras ni recompensas económicas.
 - Cuenta, monedero y repaso se guardan en servidor. Durante una petición no se aceptan nuevos clics; una carta se abre solo después de confirmar el gasto. Fallo de red: mensaje breve y reintento, sin progreso provisional. Las actualizaciones de otra sesión no interrumpen campos ni modales abiertos.
 - No mostrar mapas numéricos de tarjetas, marcas de leído, portadas grandes ni un cierre extra.
+
+## Autoría personal para dogfooding
+
+- Entrada: «Crear baraja» en las barajas de un libro existente. Nombre, enfoque opcional e idioma propio; no cambiar el idioma del contenido al cambiar la interfaz.
+- La baraja nueva es personal, editable y visible solo para su dueño. Aparece en Inicio aunque esté vacía. No implementar publicación, edición de cartas existentes, borrado ni reordenación en este caso de uso.
+- «Añadir contenido» abre la baraja propia. Se ven todas sus cartas sin gastar hojas; «Repasar» mantiene el monedero y el progreso habitual.
+- «Añadir tarjeta» exige título y texto. «Añadir quote» exige el texto y permite título opcional; sin título, usar un fragmento del texto para identificarla.
+- Ambos formularios permiten elegir padre entre las cartas de la misma baraja. Las tarjetas pueden ir en el nivel principal. Las quotes sin padre se muestran dentro de «Quotes sin clasificar».
+- El grupo sin clasificar no cuenta como carta, no se desbloquea ni consume hojas. Sus quotes siguen un orden propio, independiente de las tarjetas principales. Las quotes con padre siguen las mismas reglas de sus hermanas.
+- «Todas / Solo quotes» filtra la autoría y el repaso. Conservar los padres como contexto sin convertirlos en resultados del filtro ni revelar títulos bloqueados.
+- Quotes: papel melocotón, comillas y texto de cita con tipografía serif. Reutilizar el resto de la familia visual. El grupo virtual lleva borde discontinuo y no parece una carta interactiva.
+- Durante el guardado se bloquean los controles. Los errores conservan los campos; el reintento no duplica el contenido. Añadir una carta reabre un repaso terminado, conservando las cartas ya repasadas.
 
 ## Lenguaje
 

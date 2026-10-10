@@ -52,12 +52,13 @@ export function parseCards(text, bookId) {
   return validateCards(cards, bookId);
 }
 
-export function validateCards(cards, bookId) {
-  if (!Array.isArray(cards) || !cards.length) throw new Error("No cards");
+export function validateCards(cards, bookId, {allowEmpty = false} = {}) {
+  if (!Array.isArray(cards) || !allowEmpty && !cards.length) throw new Error("No cards");
   const byId = new Map();
   const orders = new Set();
   for (const card of cards) {
     if (!card || typeof card.id !== "string" || !card.id.trim() || byId.has(card.id)) throw new Error("Invalid or duplicate ID");
+    if (card.isQuote !== undefined && typeof card.isQuote !== "boolean") throw new Error("Invalid quote tag");
     if (card.bookId !== bookId) throw new Error("Wrong book");
     if (card.parentId !== null && (typeof card.parentId !== "string" || !card.parentId)) throw new Error("Invalid parent");
     if (!Number.isInteger(card.order) || card.order < 1) throw new Error("Invalid order");

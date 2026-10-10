@@ -2,7 +2,7 @@ import { validateBook, validateCards, LANGUAGES } from "../app/core.mjs";
 import { validateBookLinks } from "../app/book-links.mjs";
 import { isPostgres } from "./database.mjs";
 
-export async function readCatalog(db) {
+export async function readCatalog(db, userId) {
   const genres = [];
   for (const {id} of await db.prepare("SELECT id FROM genres ORDER BY id").all()) {
     const translations = await db.prepare("SELECT language,name FROM genre_translations WHERE genre_id = ?").all(id);
@@ -27,7 +27,7 @@ export async function readCatalog(db) {
     JOIN books b ON b.id=c.book_id ORDER BY b.position,d.deck_id,d.version,c.position,c.id`).all();
   for (const row of cardRows) {
     const card = {id:row.id,bookId:row.book_id,deckId:row.deck_id,versionId:row.version_id,deckLanguage:row.deck_language,
-      parentId:row.parent_id,order:row.position,sourceUrl:row.url,title:{},body:{}};
+      isQuote:!!row.is_quote,parentId:row.parent_id,order:row.position,sourceUrl:row.url,title:{},body:{}};
     for (const t of await db.prepare("SELECT language,title,body FROM card_translations WHERE card_id = ?").all(row.id)) {
       card.title[t.language]=t.title; card.body[t.language]=t.body;
     }
@@ -47,7 +47,7 @@ export async function readCatalog(db) {
   }
   const versions = [];
   for (const row of await db.prepare("SELECT v.*,d.language FROM deck_versions v JOIN decks d ON d.id=v.deck_id ORDER BY v.deck_id,v.version").all()) {
-    const model = validateCards(cards.filter(c=>c.versionId===row.id),row.book_id);
+    const model = validateCards(cards.filter(c=>c.versionId===row.id),row.book_id,{allowEmpty:row.status === "draft"});
     let depth=0;
     for (const card of model.cards) { let level=1,parent=card.parentId; while(parent!==null){level++;parent=model.byId.get(parent).parentId;} depth=Math.max(depth,level); }
     const version = {id:row.id,deckId:row.deck_id,bookId:row.book_id,number:row.version,status:row.status,
@@ -60,7 +60,11 @@ export async function readCatalog(db) {
     if(model.cards.some(card=>!card.title[row.language]||!card.body[row.language])) throw new Error("Card is missing text in its deck language");
     versions.push(version);
   }
-  return {schemaVersion:3,genres,books,decks,versions,cards};
+  // Editorial samples remain public; personal drafts are visible only to their owner.
+  const accountIds = new Set((await db.prepare("SELECT user_id FROM accounts").all()).map(r=>r.user_id));
+  const visible = versions.filter(v=>v.status !== "draft" || !accountIds.has(decks.find(d=>d.id===v.deckId).creator.userId) || decks.find(d=>d.id===v.deckId).creator.userId === userId);
+  const ids = new Set(visible.map(v=>v.id)), deckIds = new Set(visible.map(v=>v.deckId));
+  return {schemaVersion:3,genres,books,decks:decks.filter(d=>deckIds.has(d.id)),versions:visible,cards:cards.filter(c=>ids.has(c.versionId))};
 }
 
 export async function checkCatalog(db) {

@@ -30,15 +30,15 @@ test("Real SQLite schema: five books, six authored decks and 42 single-language 
 test("Schema initialization and seed are repeatable without duplicating data", async t => {
   const db = await fixture(t);
   initializeDatabase(db); await seedCatalog(db); await seedCatalog(db);
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 9);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 10);
   assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, versions: 6, cards: 42, genres: 3 });
 });
 test("Foreign keys, source ownership, order and translations are constrained", async t => {
   const db = await fixture(t);
   assert.throws(() => db.prepare("INSERT INTO book_genres VALUES (?, ?)").run("missing", "finance"));
   const wrongSource = db.prepare("SELECT id FROM sources WHERE book_id = 'atomic-habits' LIMIT 1").get().id;
-  assert.throws(() => db.prepare("INSERT INTO cards VALUES (?, ?, ?, ?, ?, ?)").run("wrong-source", "seven-habits-editorial-v1", "seven-habits", null, 8, wrongSource));
-  assert.throws(() => db.prepare("INSERT INTO cards VALUES (?, ?, ?, ?, ?, ?)").run("same-order", "atomic-habits-editorial-v1", "atomic-habits", null, 1, wrongSource));
+  assert.throws(() => db.prepare("INSERT INTO cards(id,version_id,book_id,parent_id,position,source_id) VALUES (?, ?, ?, ?, ?, ?)").run("wrong-source", "seven-habits-editorial-v1", "seven-habits", null, 8, wrongSource));
+  assert.throws(() => db.prepare("INSERT INTO cards(id,version_id,book_id,parent_id,position,source_id) VALUES (?, ?, ?, ?, ?, ?)").run("same-order", "atomic-habits-editorial-v1", "atomic-habits", null, 1, wrongSource));
   assert.throws(() => db.prepare("INSERT INTO card_translations VALUES (?, ?, ?, ?)").run("atomic-1", "", "x", "x"));
   assert.throws(() => db.prepare("UPDATE card_translations SET body = '' WHERE card_id = 'atomic-1'").run());
 });
