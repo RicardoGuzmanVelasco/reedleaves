@@ -43,7 +43,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.deepEqual(book.title,{fr:"L’Étranger"}); assert.deepEqual(book.sources,[]);
     assert.deepEqual(book.description,{}); assert.deepEqual(book.links,{});
     assert.equal(catalog.models.has(bookId),false);
-    assert.equal((await readReaderState(db,session)).statuses[bookId],"reading");
+    assert.equal((await readReaderState(db,session,new Date("2026-10-10T12:00:00Z"))).statuses[bookId],"reading");
     for (const userId of [undefined,other.user_id]) assert.equal((await readCatalog(db,userId)).books.some(b=>b.id===bookId),false);
     const deckInput={requestId:randomUUID(),bookId,title:"Mis notas",language:"es"};
     await assert.rejects(createDeck(db,other,deckInput),e=>e.status===404);
@@ -75,7 +75,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal((await readCatalog(db,other.user_id)).versions.some(v=>v.id===versionId),false);
     let catalog=prepareCatalog(await readCatalog(db,session.user_id));
     assert.equal(catalog.versionsById.get(versionId).cardCount,0);
-    assert.equal((await readReaderState(db,session)).enrolledIds.includes(versionId),true);
+    assert.equal((await readReaderState(db,session,new Date("2026-10-10T12:00:00Z"))).enrolledIds.includes(versionId),true);
     await assert.rejects(selectDeck(db,other,versionId),e=>e.status===404);
     await assert.rejects(addCard(db,other,{requestId:randomUUID(),versionId,title:"x",body:"x",parentId:null,isQuote:false}),e=>e.status===404);
     const add=(title,parentId=null,isQuote=false)=>({requestId:randomUUID(),versionId,title,body:"Texte à mémoriser\nDeuxième ligne",parentId,isQuote});

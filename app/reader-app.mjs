@@ -13,7 +13,7 @@ export function startReader() {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
   const settings = document.getElementById("settings");
   let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, reviews, budget, preferences, statuses, daily, bookId, versionId, requestedId, selections, bookReviews, enrolledIds;
-  let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, animateMascot = false, scrollToCard = false;
+  let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, scrollToCard = false;
   let authorForm = null, quotesOnly = false;
   let libraryQuery = "", authMode = "login", authReturn = "#home", pendingVersion = null, pendingNavigation = null, busy = false, syncError = null, syncGeneration = 0;
   const hasLocalProgress = () => catalog && (store.read(keys.studies)?.length || catalog.versions.some(v=>store.read(keys.deckReview(v.id))?.seenIds?.length || store.read(keys.review(v.bookId))?.unlockedCount));
@@ -66,7 +66,7 @@ export function startReader() {
     if (!ready) { main.innerHTML = loadingView(language,failed); return; }
     refreshState(); header();
     const state = {userId:snapshot.user?.id,authorForm,quotesOnly,language,catalog,reviews,budget,preferences,statuses,growth:snapshot.growth||{},daily,bookId,versionId,requestedId,bookReviews,
-      deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,bookOrigin,sourcesOpen,enrolledIds,animateMascot,
+      deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,bookOrigin,sourcesOpen,enrolledIds,
       storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,hasLocalProgress:hasLocalProgress()};
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
       (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "daily" ? dailyView(state) : mode === "book" ? deckView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "");
@@ -79,7 +79,7 @@ export function startReader() {
       dialog.addEventListener("cancel",event=>{ event.preventDefault(); close(); });
       dialog.addEventListener("click",event=>{ if (event.target === dialog) close(); });
     }
-    lockControls(); animateMascot = false;
+    lockControls();
     if (focus) { main.querySelector(mode === "review" && requestedId ? "#idea-content" : "h1")?.focus({preventScroll:true});
       if (mode === "review" && requestedId && scrollToCard) main.querySelector("#idea-content")?.scrollIntoView({block:"start"}); else window.scrollTo({top:0}); }
     scrollToCard = false;
@@ -166,7 +166,7 @@ export function startReader() {
   }
   async function openCard(id,activeVersion = versionId) {
     await mutation("/api/reader/open",{versionId:activeVersion,cardId:id},result=>{
-      if (result.spent) { animateMascot = true; live.textContent = words[language].leafRemaining(snapshot.wallet.balance); }
+      if (result.spent) { live.textContent = words[language].leafRemaining(snapshot.wallet.balance); }
       requestedId = id; scrollToCard = true; navigate("#review/"+activeVersion+"/"+id);
     });
   }
