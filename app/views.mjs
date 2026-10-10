@@ -1,5 +1,5 @@
 import { accessibleCard, canAdvance } from "./rhythm.mjs";
-import { reviewedCard, treeFrontier, hasLeaf, studyingDecks, availableVersions } from "./decks.mjs";
+import { treeFrontier, hasLeaf, studyingDecks, availableVersions } from "./decks.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import { words } from "./i18n.mjs";
 import { bookLinkUrl } from "./book-links.mjs";
@@ -187,48 +187,57 @@ export function deckView(s) {
   </section>`;
 }
 
-function treeMapMarkup(s,model,review,version,leaf,compact=false) {
+function treeMapMarkup(s,model,review,version,leaf) {
   const c = words[s.language], seen = new Set(review.seenIds), frontier = new Set(treeFrontier(review,model).map(card => card.id));
   const lock = `<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="7" width="9" height="7" rx="1.8"/><path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7"/></svg>`;
   const author = s.mode === "author";
   const containsQuote = card => card.isQuote || (model.children.get(card.id) || []).some(containsQuote);
   const node = card => {
-    const reviewed = author || seen.has(card.id), next = frontier.has(card.id), locked = !reviewed && !next;
-    const canOpen = reviewed || next && leaf;
+    const reviewed = seen.has(card.id), next = frontier.has(card.id), locked = !author && !reviewed && !next;
+    const canOpen = author || reviewed || next && leaf;
     const title = card.isQuote ? quoteExcerpt(contentText(card.body,s.language,version.language)) : contentText(card.title,s.language,version.language);
     const state = reviewed ? c.treeSeen : next ? leaf ? c.treeNextToday : c.treeNextLater : c.treeLocked;
-    const mark = author ? "" : reviewed ? `<span class="tree-node-check" aria-hidden="true">✓</span>` : next ? `<span class="tree-node-cost"><img src="../brand/reed/leaf-token.svg" alt=""><span class="sr-only">${c.leafCost}</span></span>` : `<span class="tree-node-lock">${lock}</span>`;
+    const mark = reviewed ? `<span class="tree-node-check" aria-hidden="true">✓</span>` : author ? "" : next ? `<span class="tree-node-cost"><img src="../brand/reed/leaf-token.svg" alt=""><span class="sr-only">${c.leafCost}</span></span>` : `<span class="tree-node-lock">${lock}</span>`;
     const name = locked ? `<span class="tree-node-hidden" aria-hidden="true"><i></i><i></i></span><span class="sr-only">${c.treeLocked}</span>` : `<span class="tree-node-name" lang="${esc(contentLocale(card.isQuote ? card.body : card.title,s.language,version.language))}" dir="auto">${esc(title)}</span>`;
     const accessibleName = author ? title : locked ? c.treeLocked : `${title}. ${state}`;
     const children = (model.children.get(card.id) || []).filter(c=>!s.quotesOnly || containsQuote(c));
     if (s.quotesOnly && !card.isQuote) return `<li><span class="quote-context">${name}</span>${children.length ? `<ul>${children.map(node).join("")}</ul>` : ""}</li>`;
-    return `<li><button type="button" class="tree-node ${card.isQuote ? "tree-node--quote" : ""} ${author ? "tree-node--author" : reviewed ? "tree-node--seen" : next ? "tree-node--next" : "tree-node--locked"} ${!compact && (author ? s.requestedId : review.currentId) === card.id ? "tree-node--current" : ""}" data-action="${author ? "inspect-card" : "open-card"}" data-version="${esc(version.id)}" data-card="${esc(card.id)}" aria-label="${esc(accessibleName)}" ${!canOpen ? "disabled" : ""} ${!compact && (author ? s.requestedId : review.currentId) === card.id ? 'aria-current="page"' : ""}>
+    return `<li><button type="button" class="tree-node ${card.isQuote ? "tree-node--quote" : ""} ${author ? "tree-node--author" : reviewed ? "tree-node--seen" : next ? "tree-node--next" : "tree-node--locked"}" data-action="${author ? "inspect-card" : "open-card"}" data-version="${esc(version.id)}" data-card="${esc(card.id)}" aria-label="${esc(accessibleName)}" ${!canOpen ? "disabled" : ""}>
       ${name}${mark}</button>
       ${children.length ? `<ul>${children.map(node).join("")}</ul>` : ""}</li>`;
   };
-  return `<section class="tree-map${compact ? " tree-map--compact" : ""}" aria-label="${c.treeMap}">${compact || author ? "" : `<div class="tree-map-heading"><p>${c.treeMap}</p>
-    <div class="tree-map-legend" aria-label="${c.treeLegend}">
-      <span><i class="tree-legend-seen" aria-hidden="true">✓</i>${c.treeLegendSeen}</span>
-      <span><img src="../brand/reed/leaf-token.svg" alt="">${c.treeLegendNext}</span>
-      <span><i class="tree-legend-locked" aria-hidden="true">${lock}</i>${c.treeLegendLocked}</span>
-    </div></div>`}<div class="tree-map-viewport"><ul class="mini-tree">${model.roots.filter(c=>!c.isQuote && (!s.quotesOnly || containsQuote(c))).map(node).join("")}${model.roots.some(c=>c.isQuote) ? `<li class="virtual-quotes"><span class="virtual-quotes-title">${c.unclassifiedQuotes}</span><ul>${model.roots.filter(c=>c.isQuote).map(node).join("")}</ul></li>` : ""}</ul></div></section>`;
+  return `<section class="tree-map" aria-label="${c.treeMap}"><div class="tree-map-viewport"><ul class="mini-tree">${model.roots.filter(c=>!c.isQuote && (!s.quotesOnly || containsQuote(c))).map(node).join("")}${model.roots.some(c=>c.isQuote) ? `<li class="virtual-quotes"><span class="virtual-quotes-title">${c.unclassifiedQuotes}</span><ul>${model.roots.filter(c=>c.isQuote).map(node).join("")}</ul></li>` : ""}</ul></div></section>`;
+}
+
+function albumSummary(s,version,deck,model,review) {
+  const c=words[s.language],book=s.catalog.booksById.get(version.bookId),seen=review.seenIds.length,total=model.cards.length;
+  const percent=total ? Math.round(seen / total * 100) : 0;
+  const language=new Intl.DisplayNames([s.language],{type:"language"}).of(deck.language) || deck.language;
+  return `<header class="album-heading"><p class="small-book" lang="${esc(contentLocale(book.shortTitle,s.language,book.originalLanguage))}" dir="auto">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</p>
+    <h1 tabindex="-1" lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h1>
+    <p class="album-meta">${s.userId === deck.creator.userId ? "" : esc(deck.creator.name)+" · "}${esc(language)}</p></header>
+    <div class="album-progress"><div><p>${c.progress(seen,total)}</p><span aria-hidden="true">${percent}%</span></div><progress value="${seen}" max="${Math.max(total,1)}" aria-label="${esc(c.progress(seen,total))}"></progress></div>`;
+}
+
+function cardView(s,card) {
+  const c=words[s.language];
+  return `<section class="review-screen card-screen"><button class="text-button" type="button" data-action="deck-album">${c.albumBack}</button>
+    ${card.isQuote ? `<h1 class="sr-only" tabindex="-1">${c.quoteBody}</h1>` : ""}${cardMarkup(s,card,"h1")}</section>`;
 }
 
 export function reviewView(s) {
   if (!s.versionId) return legacyReviewView(s);
-  const c = words[s.language], version = s.catalog.versionsById.get(s.versionId), deck = s.catalog.decksById.get(version.deckId),
-    model = s.catalog.versionModels.get(s.versionId), review = s.reviews[s.versionId];
-  const card = reviewedCard(review,model,s.requestedId), leaf = hasLeaf(s.today,s.budget) && s.storageAvailable,
-    finished = review.seenIds.length === model.cards.length;
-  const head = `<div class="review-heading"><button class="text-button" type="button" data-action="home">${c.homeBack}</button><button class="text-button" type="button" data-action="choose-book">${c.deckBack}</button></div>`;
-  const attribution = `<p class="review-attribution">${esc(contentText(version.title,s.language,version.language))} · ${c.by} ${esc(deck.creator.name)} · <span lang="${esc(deck.language)}">${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(deck.language) || deck.language)}</span></p>`;
-  const map = `<div class="content-tools">${quoteFilter(s)}${s.userId === deck.creator.userId && version.status === "draft" ? `<button class="text-button" type="button" data-action="author-deck" data-version="${esc(version.id)}">${c.editDeck} →</button>` : ""}</div>` + treeMapMarkup(s,model,review,version,leaf);
-  if (!card) return `<section class="review-screen">${head}${attribution}
-    <div class="review-start"><p class="small-book">${esc(contentText(s.catalog.booksById.get(s.bookId).shortTitle,s.language,s.catalog.booksById.get(s.bookId).originalLanguage))}</p><h1 tabindex="-1" lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h1><p>${c.emptyReview}</p></div>${map}</section>`;
-  return `<section class="review-screen">${head}${card.isQuote ? `<h1 class="sr-only" tabindex="-1">${c.review}</h1>` : ""}${attribution}${map}
-    ${!s.quotesOnly || card.isQuote ? cardMarkup(s,card,"h1") : ""}<p class="review-progress">${c.progress(review.seenIds.length,model.cards.length)}</p>
-    ${finished ? `<p class="complete-note">${c.complete}</p>` : !leaf ? `<p class="limit-note daily-limit" id="daily-limit">${c.tomorrow}</p>` : ""}
-    <img class="review-mascot ${s.animateMascot ? "celebrate" : ""}" src="../brand/reed/mascot.svg" width="65" height="65" alt=""></section>`;
+  const c=words[s.language],version=s.catalog.versionsById.get(s.versionId),deck=s.catalog.decksById.get(version.deckId),
+    model=s.catalog.versionModels.get(s.versionId),review=s.reviews[s.versionId];
+  const card=review.seenIds.includes(s.requestedId) ? model.byId.get(s.requestedId) : null;
+  if (card) return cardView(s,card);
+  const leaf=hasLeaf(s.today,s.budget) && s.storageAvailable,finished=model.cards.length > 0 && review.seenIds.length === model.cards.length;
+  return `<section class="review-screen album-screen"><button class="text-button" type="button" data-action="choose-book">${c.deckBack}</button>
+    ${albumSummary(s,version,deck,model,review)}
+    ${finished ? `<p class="complete-note">${c.complete}</p>` : model.cards.length && !leaf ? `<p class="limit-note daily-limit" id="daily-limit">${c.tomorrow}</p>` : ""}
+    <div class="content-tools">${model.cards.length ? quoteFilter(s) : ""}${s.userId === deck.creator.userId && version.status === "draft" ? `<button class="text-button" type="button" data-action="author-deck" data-version="${esc(version.id)}">${c.editDeck} →</button>` : ""}</div>
+    ${model.cards.length ? treeMapMarkup(s,model,review,version,leaf) : `<div class="empty-state">${c.emptyAuthor}</div>`}
+    ${s.quotesOnly && model.cards.length && !model.cards.some(card=>card.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}</section>`;
 }
 
 function quoteFilter(s) {
@@ -237,14 +246,15 @@ function quoteFilter(s) {
 }
 
 export function authorView(s) {
-  const c=words[s.language],version=s.catalog.versionsById.get(s.versionId),model=s.catalog.versionModels.get(s.versionId);
+  const c=words[s.language],version=s.catalog.versionsById.get(s.versionId),deck=s.catalog.decksById.get(version.deckId),model=s.catalog.versionModels.get(s.versionId),review=s.reviews[version.id];
   const card=model.byId.get(s.requestedId);
-  return `<section class="author-screen"><div class="review-heading"><button type="button" class="text-button" data-action="choose-book">${c.deckBack}</button><button type="button" class="text-button" data-action="select-deck" data-version="${esc(version.id)}" ${!model.cards.length ? "disabled" : ""}>${c.review} →</button></div>
-    <p class="small-book">${esc(contentText(s.catalog.booksById.get(version.bookId).shortTitle,s.language,s.catalog.booksById.get(version.bookId).originalLanguage))} · ${c.personalDeck}</p><h1 tabindex="-1" lang="${esc(version.language)}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h1>
+  if (card) return cardView(s,card);
+  return `<section class="author-screen album-screen"><div class="review-heading"><button type="button" class="text-button" data-action="choose-book">${c.deckBack}</button><button type="button" class="text-button" data-action="select-deck" data-version="${esc(version.id)}" ${!model.cards.length ? "disabled" : ""}>${c.review} →</button></div>
+    ${albumSummary(s,version,deck,model,review)}
+    ${model.cards.length && review.seenIds.length === model.cards.length ? `<p class="complete-note">${c.complete}</p>` : ""}
     <div class="author-actions">${button(c.addCard,"add-card")}<button class="secondary" type="button" data-action="add-quote"><span aria-hidden="true">❝</span> ${c.addQuote}</button></div>
-    ${model.cards.length ? quoteFilter(s)+treeMapMarkup(s,model,s.reviews[version.id],version,true) : `<div class="empty-state">${c.emptyAuthor}</div>`}
-    ${s.quotesOnly && !model.cards.some(c=>c.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}
-    ${card && (!s.quotesOnly || card.isQuote) ? cardMarkup(s,card) : ""}</section>`;
+    ${model.cards.length ? quoteFilter(s)+treeMapMarkup(s,model,review,version,true) : `<div class="empty-state">${c.emptyAuthor}</div>`}
+    ${s.quotesOnly && model.cards.length && !model.cards.some(c=>c.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}</section>`;
 }
 
 export function authorFormView(s) {

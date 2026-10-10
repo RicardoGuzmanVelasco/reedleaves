@@ -1,7 +1,7 @@
 import {loadCatalog} from "./catalog.mjs";
 import {localDay, restoreLanguage} from "./core.mjs";
 import {restorePreferences, changeSource} from "./rhythm.mjs";
-import {featuredDecks, restoreTreeReview, bookReviewStates, reviewedCard, studyingDecks} from "./decks.mjs";
+import {featuredDecks, restoreTreeReview, bookReviewStates, studyingDecks} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs";
@@ -13,8 +13,9 @@ export function startReader() {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
   const settings = document.getElementById("settings");
   let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, reviews, budget, preferences, statuses, daily, bookId, versionId, requestedId, selections, bookReviews, enrolledIds;
-  let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, animateMascot = false, scrollToCard = false;
+  let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, animateMascot = false;
   let authorForm = null, quotesOnly = false;
+  let albumPosition = null;
   let libraryQuery = "", authMode = "login", authReturn = "#home", pendingVersion = null, pendingNavigation = null, busy = false, syncError = null, syncGeneration = 0;
   const hasLocalProgress = () => catalog && (store.read(keys.studies)?.length || catalog.versions.some(v=>store.read(keys.deckReview(v.id))?.seenIds?.length || store.read(keys.review(v.bookId))?.unlockedCount));
 
@@ -80,9 +81,8 @@ export function startReader() {
       dialog.addEventListener("click",event=>{ if (event.target === dialog) close(); });
     }
     lockControls(); animateMascot = false;
-    if (focus) { main.querySelector(mode === "review" && requestedId ? "#idea-content" : "h1")?.focus({preventScroll:true});
-      if (mode === "review" && requestedId && scrollToCard) main.querySelector("#idea-content")?.scrollIntoView({block:"start"}); else window.scrollTo({top:0}); }
-    scrollToCard = false;
+    if (focus) { main.querySelector(["review","author"].includes(mode) && requestedId ? "#idea-content" : "h1")?.focus({preventScroll:true});
+      window.scrollTo({top:0}); }
   }
   function route(focus = true) {
     if (!ready) return; refreshState();
@@ -100,7 +100,8 @@ export function startReader() {
       versionId = catalog.versionsById.has(first) ? first : catalog.booksById.has(first) ? selections[first] : oldCard?.versionId;
       if (!versionId) { mode = "home"; history.replaceState(null,"","#home"); }
       else { mode = "review"; bookId = catalog.versionsById.get(versionId).bookId;
-        requestedId = reviewedCard(reviews[versionId],catalog.versionModels.get(versionId),second || oldCard?.id)?.id || null;
+        const cardId=second || oldCard?.id;
+        requestedId = reviews[versionId].seenIds.includes(cardId) ? cardId : null;
         const canonical = "#review/"+versionId+(requestedId ? "/"+requestedId : ""); if (location.hash !== canonical) history.replaceState(null,"",canonical); }
     } else {
       openDeckId = null; mode = view === "daily" ? "daily" : view === "library" ? "library" : view === "account" && !snapshot.user ? "account" : "home";
@@ -115,6 +116,15 @@ export function startReader() {
   }
   function openBook(id) { if (!catalog.booksById.has(id)) return; bookOrigin = mode === "library" ? "library" : "home"; bookId = id; openDeckId = null; navigate("#book/"+id); }
   function resumeBook(id) { const studies = studyingDecks(catalog,reviews,enrolledIds).filter(item=>item.book.id === id); if (studies.length !== 1) { openBook(id); return; } navigate((studies[0].version.cardCount === 0 && studies[0].deck.creator.userId === snapshot.user?.id ? "#author/" : "#review/")+studies[0].version.id); }
+  function restoreAlbumPosition(cardId) {
+    const position=albumPosition?.versionId === versionId && albumPosition.mode === mode ? albumPosition.scrollY : 0;
+    window.scrollTo({top:position});
+    [...main.querySelectorAll("[data-card]")].find(b=>b.dataset.card === cardId)?.focus({preventScroll:true});
+  }
+  function returnToAlbum() {
+    const cardId=requestedId;
+    history.replaceState(null,"","#"+mode+"/"+versionId); route(false); restoreAlbumPosition(cardId);
+  }
   function closeAuthorForm() { if (busy) return; const action = authorForm?.kind === "book" ? "create-book" : authorForm?.kind === "deck" ? "create-deck" : authorForm?.kind === "quote" ? "add-quote" : "add-card"; authorForm = null; render(); main.querySelector(`[data-action="${action}"]`)?.focus(); }
   function openAuthorForm(kind) {
     if (!snapshot.user) return;
@@ -132,9 +142,9 @@ export function startReader() {
       catalog = await loadCatalog(); applyState(result.state); authorForm = null; live.textContent = words[language].saved;
       busy = false;
       if (savedForm.kind === "book") { libraryQuery = ""; bookOrigin = "library"; navigate("#book/"+result.bookId); }
-      else navigate("#author/"+result.versionId+(result.cardId ? "/"+result.cardId : ""));
+      else { if (savedForm.kind === "card") quotesOnly = false; navigate("#author/"+result.versionId); }
     } catch(error) { savedForm.error = error.code || "connectionError"; }
-    finally { busy = false; render(); }
+    finally { busy = false; render({focus:!authorForm}); }
   }
   function closeDeck(id) { openDeckId = null; render(); [...main.querySelectorAll('[data-action="open-deck"]')].find(b=>b.dataset.version === id)?.focus({preventScroll:true}); }
   function closeBookDetails(id) { openBookId = null; render(); [...main.querySelectorAll('[data-action="open-book-details"]')].find(b=>b.dataset.book === id)?.focus({preventScroll:true}); }
@@ -157,12 +167,13 @@ export function startReader() {
   }
   async function enterDeck(id) {
     if (!snapshot.user) { pendingVersion = id; authReturn = "#review/"+id; navigate("#account"); return; }
-    await mutation("/api/reader/select",{versionId:id},()=>{ openDeckId = null; navigate("#review/"+id+(reviews[id].currentId ? "/"+reviews[id].currentId : "")); });
+    await mutation("/api/reader/select",{versionId:id},()=>{ openDeckId = null; navigate("#review/"+id); });
   }
   async function openCard(id,activeVersion = versionId) {
+    albumPosition={versionId:activeVersion,mode:"review",scrollY:window.scrollY};
     await mutation("/api/reader/open",{versionId:activeVersion,cardId:id},result=>{
       if (result.spent) { animateMascot = true; live.textContent = words[language].leafRemaining(snapshot.wallet.balance); }
-      requestedId = id; scrollToCard = true; navigate("#review/"+activeVersion+"/"+id);
+      requestedId = id; navigate("#review/"+activeVersion+"/"+id);
     });
   }
   async function ensureDaily() { if (!busy) await mutation("/api/reader/daily",{}); }
@@ -228,7 +239,8 @@ export function startReader() {
       case "add-quote": openAuthorForm("quote"); break;
       case "cancel-author": closeAuthorForm(); break;
       case "author-deck": authorForm = null; quotesOnly = false; navigate("#author/"+b.dataset.version); break;
-      case "inspect-card": requestedId = b.dataset.card; history.replaceState(null,"","#author/"+versionId+"/"+requestedId); render(); main.querySelector("#idea-content")?.scrollIntoView({block:"start"}); break;
+      case "inspect-card": albumPosition={versionId,mode:"author",scrollY:window.scrollY}; navigate("#author/"+versionId+"/"+b.dataset.card); break;
+      case "deck-album": returnToAlbum(); break;
       case "filter-all": quotesOnly = false; render(); main.querySelector('[data-action="filter-all"]')?.focus(); break;
       case "filter-quotes": quotesOnly = true; render(); main.querySelector('[data-action="filter-quotes"]')?.focus(); break;
       case "clear-book-search": libraryQuery = ""; main.querySelector("#book-search").value = ""; updateBookSearch(); main.querySelector("#book-search").focus(); break;
@@ -250,6 +262,9 @@ export function startReader() {
       case "open-card": openCard(b.dataset.card,b.dataset.version); break;
     }
   });
-  window.addEventListener("hashchange",()=>{ authorForm = null; route(); }); document.addEventListener("visibilitychange",()=>{ if (!document.hidden) sync(); });
+  window.addEventListener("hashchange",()=>{
+    const cardId=requestedId,returning=cardId && location.hash === "#"+mode+"/"+versionId;
+    authorForm = null; route(!returning); if (returning) restoreAlbumPosition(cardId);
+  }); document.addEventListener("visibilitychange",()=>{ if (!document.hidden) sync(); });
   window.addEventListener("focus",()=>sync()); window.addEventListener("online",()=>sync()); setInterval(()=>{ if (!document.hidden) sync(); },30000); load();
 }

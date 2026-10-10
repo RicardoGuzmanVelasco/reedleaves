@@ -110,10 +110,10 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal(catalog.cardsById.get(otherDaily.daily.id)?.versionId===versionId,false);
     await assert.rejects(addCard(db,session,{...add("x"),versionId:"seven-habits-editorial-v1"}),e=>e.status===404);
     const ui={catalog,versionId,bookId:"seven-habits",language:"es",userId:session.user_id,reviews:{[versionId]:review},mode:"author",requestedId:quote.cardId,budget:state.wallet,today:state.today,storageAvailable:true};
-    assert.match(authorView(ui),/Quotes sin clasificar/); assert.match(authorView(ui),/<blockquote/);
+    assert.match(authorView({...ui,requestedId:null}),/Quotes sin clasificar/); assert.match(authorView(ui),/<blockquote/);
     assert.match(authorView(ui),/quote-card/); assert.match(authorView({...ui,quotesOnly:true}),/Texte à mémoriser/);
     assert.match(authorFormView({...ui,authorForm:{kind:"quote",language:"fr"}}),/Quotes sin clasificar/);
-    assert.match(reviewView({...ui,mode:"review"}),/Quotes sin clasificar/);
+    assert.match(reviewView({...ui,mode:"review",requestedId:null}),/Quotes sin clasificar/);
     // Existing saved titles must not reappear in quote views or navigation.
     model.byId.get(quote.cardId).title.fr = "Ancien titre";
     for (const html of [authorView(ui),reviewView({...ui,mode:"review"}),dailyView({...ui,daily:{id:quote.cardId},preferences:state.preferences})]) {
