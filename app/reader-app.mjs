@@ -5,7 +5,7 @@ import {featuredDecks, restoreTreeReview, bookReviewStates, reviewedCard, studyi
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs";
-import {homeView,libraryView,libraryResultsMarkup,dailyView,deckView,reviewView,authorView,authorFormView,loadingView,accountView,escapeHtml} from "./views.mjs";
+import {homeView,libraryView,libraryResultsMarkup,dailyView,deckView,reviewView,mascotsView,authorView,authorFormView,loadingView,accountView,escapeHtml} from "./views.mjs";
 import {filterBooks} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
 
@@ -13,7 +13,7 @@ export function startReader() {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
   const settings = document.getElementById("settings");
   let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, reviews, budget, preferences, statuses, daily, bookId, versionId, requestedId, selections, bookReviews, enrolledIds;
-  let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, animateMascot = false, scrollToCard = false;
+  let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, animateMascot = false, scrollToCard = false;
   let authorForm = null, quotesOnly = false;
   let libraryQuery = "", authMode = "login", authReturn = "#home", pendingVersion = null, pendingNavigation = null, busy = false, syncError = null, syncGeneration = 0;
   const hasLocalProgress = () => catalog && (store.read(keys.studies)?.length || catalog.versions.some(v=>store.read(keys.deckReview(v.id))?.seenIds?.length || store.read(keys.review(v.bookId))?.unlockedCount));
@@ -43,7 +43,7 @@ export function startReader() {
   }
   function header() {
     const c = words[language]; document.documentElement.lang = language;
-    document.title = pageTitle(mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.addBook : mode === "daily" ? c.daily : mode === "book" ? c.chooseDeck : mode === "author" ? c.editDeck : c.review);
+    document.title = pageTitle(mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.addBook : mode === "daily" ? c.daily : mode === "book" ? c.chooseDeck : mode === "mascots" ? c.mascots : mode === "author" ? c.editDeck : c.review);
     document.querySelector(".brand").setAttribute("aria-label",pageTitle(c.home)); document.querySelector(".skip-link").textContent = c.skip;
     for (const [id,text] of [["settings-title",c.settings],["language-label",c.language]]) document.getElementById(id).textContent = text;
     document.getElementById("open-settings").setAttribute("aria-label",c.settings); document.getElementById("close-settings").setAttribute("aria-label",c.closeSettings);
@@ -65,11 +65,11 @@ export function startReader() {
     ++renderVersion; header();
     if (!ready) { main.innerHTML = loadingView(language,failed); return; }
     refreshState(); header();
-    const state = {userId:snapshot.user?.id,authorForm,quotesOnly,language,catalog,reviews,budget,preferences,statuses,daily,bookId,versionId,requestedId,bookReviews,
+    const state = {userId:snapshot.user?.id,authorForm,quotesOnly,language,catalog,reviews,budget,preferences,statuses,growth:snapshot.growth||{},daily,bookId,versionId,requestedId,bookReviews,
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,bookOrigin,sourcesOpen,enrolledIds,animateMascot,
       storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,hasLocalProgress:hasLocalProgress()};
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
-      (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "daily" ? dailyView(state) : mode === "book" ? deckView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "");
+      (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "daily" ? dailyView(state) : mode === "book" ? deckView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "");
     if (!snapshot.user && mode === "book") main.querySelector('[data-action="select-deck"]')?.removeAttribute("disabled");
     if (mode === "library") live.textContent = libraryQuery ? words[language].searchResults(filterBooks(catalog.books,libraryQuery).length) : "";
     const dialog = main.querySelector(".deck-modal");
@@ -88,10 +88,15 @@ export function startReader() {
     if (!ready) return; refreshState();
     if (inviteRequired && !snapshot.user) { if (location.hash && location.hash !== "#account") authReturn = location.hash; mode = "account"; render({focus}); return; }
     const [view,first,second] = location.hash.slice(1).split("/");
-    if (!["author","review"].includes(view)) quotesOnly = false;
+    if (view !== "mascots") {
+      if (view === "library" && mascotReturnHash === "#library" && mascotReturnBookId) openBookId=mascotReturnBookId;
+      mascotReturnHash=null;mascotReturnBookId=null;
+    }
+    if (!["author","review","mascots"].includes(view)) quotesOnly = false;
     if (view !== "library") openBookId = null;
     if ((view === "daily" || ["review","read"].includes(view)) && !snapshot.user) { authReturn = location.hash; mode = "account"; render({focus}); return; }
     if (view === "book" && catalog.booksById.has(first)) { if (bookId !== first) openDeckId = null; bookId = first; mode = "book"; }
+    else if (view === "mascots" && mascotReturnHash && catalog.booksById.has(first)) { bookId=first;openDeckId=null;openBookId=null;mode="mascots"; }
     else if (view === "author" && catalog.versionsById.has(first) && snapshot.user?.id === catalog.decksById.get(catalog.versionsById.get(first).deckId)?.creator.userId && catalog.versionsById.get(first).status === "draft") {
       if (versionId !== first) quotesOnly = false; versionId = first; bookId = catalog.versionsById.get(first).bookId; requestedId = catalog.versionModels.get(first).byId.has(second) ? second : null; openDeckId = null; mode = "author";
     }
@@ -244,6 +249,8 @@ export function startReader() {
       case "close-book-details": closeBookDetails(openBookId); break;
       case "resume-book": resumeBook(b.dataset.book); break;
       case "choose-book": openBook(bookId); break;
+      case "open-mascots": mascotReturnHash=location.hash;mascotReturnBookId=openBookId;navigate("#mascots/"+b.dataset.book); break;
+      case "close-mascots": navigate(mascotReturnHash||"#home"); break;
       case "open-deck": openDeckId = b.dataset.version; render(); break;
       case "close-deck": closeDeck(openDeckId); break;
       case "select-deck": enterDeck(b.dataset.version); break;

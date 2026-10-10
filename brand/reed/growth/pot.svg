@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Maceta: inicio de un libro">
+  <ellipse cx="80" cy="145" rx="48" ry="8" fill="#1E4C2E" opacity=".16"/>
+  <path d="M40 67h80l-9 66c-1 8-8 13-16 13H65c-8 0-15-5-16-13Z" fill="#D98B62"/>
+  <path d="M40 67h80l-2 14H42Z" fill="#B96E4D"/>
+  <path d="M48 82h64l-8 50c-1 5-5 8-10 8H66c-5 0-9-3-10-8Z" fill="#E8A078"/>
+  <path d="M50 69q30-13 60 0v9H50Z" fill="#73513B"/>
+  <ellipse cx="65" cy="108" rx="3.5" ry="5" fill="#173D2C"/><ellipse cx="95" cy="108" rx="3.5" ry="5" fill="#173D2C"/>
+  <path d="M75 120q5 6 10 0" fill="none" stroke="#173D2C" stroke-width="3" stroke-linecap="round"/>
+</svg>

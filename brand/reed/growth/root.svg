@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Raíz: el repaso echa raíces">
+  <ellipse cx="80" cy="145" rx="42" ry="7" fill="#1E4C2E" opacity=".14"/>
+  <path d="M27 93q25-15 53-3 28-12 53 3v9H27Z" fill="#73513B"/>
+  <ellipse cx="80" cy="78" rx="26" ry="30" fill="#C48A53"/>
+  <path d="M80 103v34m0-26-16 15m16-4 16 13m-16-30-11 10m11 9-10 8" fill="none" stroke="#E8A078" stroke-width="5" stroke-linecap="round"/>
+  <ellipse cx="71" cy="77" rx="3" ry="4" fill="#173D2C"/><ellipse cx="89" cy="77" rx="3" ry="4" fill="#173D2C"/>
+  <path d="M76 88q4 4 8 0" fill="none" stroke="#173D2C" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

@@ -25,8 +25,17 @@ async function stateInside(db,session,now) {
       currentId:position?.card_id||unlocks.at(-1)?.card_id||null,completed:!!row.completed_at};
   }
   const savedSources=new Set((await db.prepare("SELECT source FROM reader_filters WHERE user_id = ?").all(userId)).map(r=>r.source));
+  const addedBooks=new Set([
+    ...(await db.prepare("SELECT book_id FROM book_reading WHERE user_id = ?").all(userId)).map(r=>r.book_id),
+    ...(await db.prepare("SELECT v.book_id FROM studies s JOIN deck_versions v ON v.id=s.version_id WHERE s.user_id = ?").all(userId)).map(r=>r.book_id)
+  ]);
+  const growth=Object.fromEntries((await db.prepare(`SELECT v.book_id,COUNT(DISTINCT u.local_day) AS spent_days
+    FROM review_unlocks u JOIN deck_versions v ON v.id=u.version_id WHERE u.user_id = ? GROUP BY v.book_id`).all(userId))
+    .map(r=>[r.book_id,{spentDays:Number(r.spent_days)}]));
+  for(const bookId of addedBooks) growth[bookId]={spentDays:growth[bookId]?.spentDays||0,added:true};
+  for(const value of Object.values(growth)) value.added=!!value.added;
   const idea=await db.prepare("SELECT d.local_day,c.id,c.book_id FROM daily_ideas d JOIN cards c ON c.id=d.card_id WHERE d.user_id = ? AND d.local_day = ?").get(userId,today);
-  return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,today,wallet,reviews,
+  return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,today,wallet,reviews,growth,
     statuses:Object.fromEntries((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])),
     enrolledIds:(await db.prepare("SELECT version_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.version_id),
     selections:Object.fromEntries((await db.prepare("SELECT book_id,version_id FROM deck_selections WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.version_id])),

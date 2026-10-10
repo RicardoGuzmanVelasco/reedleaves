@@ -64,6 +64,7 @@ export function libraryView(s) {
     const status = [review?.hasReviewing ? c.reviewing : "",review?.hasReviewed ? c.reviewedStatus : ""].filter(Boolean).join(" · ") || c.notReviewed;
     return `<dialog class="deck-modal book-modal" data-book="${esc(book.id)}" aria-labelledby="book-dialog-title" ${contentText(book.description,s.language,book.originalLanguage) ? 'aria-describedby="book-dialog-description"' : ""}><article class="deck-card book-detail">
       <button class="deck-modal-close" type="button" data-action="close-book-details" aria-label="${c.closeBook}" autofocus>×</button>
+      ${mascotEntry(s,book.id)}
       <div class="deck-tags">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</div>
       <h2 id="book-dialog-title" lang="${esc(contentLocale(book.title,s.language,book.originalLanguage))}" dir="auto">${esc(contentText(book.title,s.language,book.originalLanguage))}</h2><p class="book-detail-author">${esc(book.author)}</p>
       <p class="book-original-title"><span>${c.originalTitle}</span><span lang="${esc(book.originalLanguage)}" dir="auto">${esc(book.originalTitle)}</span></p>
@@ -102,6 +103,40 @@ export function homeView(s) {
   </section>`;
 }
 
+const mascotStages = [
+  {id:"pot",name:"mascotNamePot",milestone:"mascotPot",image:"../brand/reed/growth/pot.svg",unlocked:g=>g.added},
+  {id:"seed",name:"mascotNameSeed",milestone:"mascotSeed",image:"../brand/reed/growth/seed.svg",unlocked:g=>g.spentDays>=1},
+  {id:"root",name:"mascotNameRoot"},
+  {id:"sprout",name:"mascotNameSprout",milestone:"mascotSprout",image:"../brand/reed/mascot.svg",unlocked:g=>g.spentDays>=3},
+  {id:"stem",name:"mascotNameStem"},
+  {id:"plant",name:"mascotNamePlant"},
+  {id:"flower",name:"mascotNameFlower"},
+  {id:"infinity",name:"mascotNameInfinity"}
+];
+function mascotState(s,bookId) {
+  const g=s.growth?.[bookId] || {added:false,spentDays:0};
+  const unlocked=mascotStages.filter(stage=>stage.unlocked?.(g)).map(stage=>stage.id);
+  return {g,unlocked,latest:[...unlocked].reverse().find(id=>id!=="pot") || (unlocked.includes("pot")?"pot":null)};
+}
+function mascotImage(s,bookId) {
+  const {latest}=mascotState(s,bookId), stage=mascotStages.find(item=>item.id===latest);
+  return stage?.image || "../brand/reed/growth/mystery.svg";
+}
+function mascotEntry(s,bookId) {
+  return `<button class="mascot-entry" type="button" data-action="open-mascots" data-book="${esc(bookId)}" aria-label="${esc(words[s.language].mascots)} · ${esc(contentText(s.catalog.booksById.get(bookId).shortTitle,s.language,s.catalog.booksById.get(bookId).originalLanguage))}"><img src="${mascotImage(s,bookId)}" width="74" height="74" alt=""></button>`;
+}
+export function mascotsView(s) {
+  const c=words[s.language],book=s.catalog.booksById.get(s.bookId),{g,unlocked}=mascotState(s,s.bookId);
+  return `<section class="mascots-screen"><button class="text-button" type="button" data-action="close-mascots">${c.mascotsBack}</button>
+    <header class="mascots-heading"><div><p class="small-book">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</p><h1 tabindex="-1">${c.mascots}</h1></div><img src="${mascotImage(s,s.bookId)}" width="82" height="82" alt=""></header>
+    <ol class="mascot-collection">${mascotStages.map((stage,index)=>{
+      const earned=unlocked.includes(stage.id),implemented=!!stage.unlocked,milestone=implemented?c[stage.milestone]:"";
+      const image=earned?stage.image:"../brand/reed/growth/mystery.svg";
+      return `<li class="mascot-stage${earned?" is-earned":""}${implemented?" is-known":" is-mystery"}"><span class="mascot-stage-number">${String(index+1).padStart(2,"0")}</span><img class="mascot-stage-art" src="${image}" width="76" height="76" alt=""><div class="mascot-stage-copy"><h2>${c[stage.name]}</h2>${milestone?`<p>${milestone}</p>`:""}</div>${earned?`<span class="mascot-earned">${c.mascotEarned}</span>`:""}</li>`;
+    }).join("")}</ol>
+  </section>`;
+}
+
 function cardMarkup(s, card, heading = "h2") {
   const c = words[s.language], book = s.catalog.booksById.get(card.bookId), deckLanguage = card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
@@ -126,7 +161,7 @@ function legacyReviewView(s) {
   return `<section class="review-screen"><div class="review-heading"><button class="text-button" data-action="daily" type="button">${c.back}</button><span>${c.review} · ${c.position(i + 1, model.roots.length)}</span></div>
     ${cardMarkup(s, card, "h1")}<div class="review-actions"><button type="button" class="text-button" data-action="previous" ${i === 0 ? "disabled" : ""}>${c.previous}</button>
     ${hasNext ? button(c.next, "next") : allowed ? button(c.unlock, "advance") : finished ? `<span class="limit-note">${c.complete}</span>` : `<span class="limit-note" id="daily-limit">${c.tomorrow}</span>`}</div>
-    <img class="review-mascot ${s.animateMascot ? "celebrate" : ""}" src="../brand/reed/mascot.svg" width="65" height="65" alt=""></section>`;
+    <div class="review-mascot-wrap ${s.animateMascot ? "celebrate" : ""}">${mascotEntry(s,s.bookId)}</div></section>`;
 }
 
 export function loadingView(language, failed) {
@@ -171,7 +206,7 @@ export function deckView(s) {
   };
   return `<section class="deck-screen"><button type="button" class="text-button" data-action="${s.bookOrigin === "library" ? "library" : "home"}">${s.bookOrigin === "library" ? c.booksBack : c.homeBack}</button>
     <div class="screen-heading deck-heading"><div><p class="small-book">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</p><h1 tabindex="-1">${c.chooseDeck}</h1></div>
-    <img class="mascot" src="../brand/reed/mascot.svg" width="74" height="74" alt=""></div>
+    ${mascotEntry(s,s.bookId)}</div>
     ${s.userId ? `<div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
     ${!choices.length ? `<div class="empty-state">${c.noDecks}</div>` : `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${choices.map(item => {
       const {deck,version,tags} = item, tag = tags[0] || "otherDeck";
@@ -220,7 +255,7 @@ export function reviewView(s) {
     model = s.catalog.versionModels.get(s.versionId), review = s.reviews[s.versionId];
   const card = reviewedCard(review,model,s.requestedId), leaf = hasLeaf(s.today,s.budget) && s.storageAvailable,
     finished = review.seenIds.length === model.cards.length;
-  const head = `<div class="review-heading"><button class="text-button" type="button" data-action="home">${c.homeBack}</button><button class="text-button" type="button" data-action="choose-book">${c.deckBack}</button></div>`;
+  const head = `<div class="review-heading"><button class="text-button" type="button" data-action="home">${c.homeBack}</button><button class="text-button" type="button" data-action="choose-book">${c.deckBack}</button>${mascotEntry(s,s.bookId)}</div>`;
   const attribution = `<p class="review-attribution">${esc(contentText(version.title,s.language,version.language))} · ${c.by} ${esc(deck.creator.name)} · <span lang="${esc(deck.language)}">${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(deck.language) || deck.language)}</span></p>`;
   const map = `<div class="content-tools">${quoteFilter(s)}${s.userId === deck.creator.userId && version.status === "draft" ? `<button class="text-button" type="button" data-action="author-deck" data-version="${esc(version.id)}">${c.editDeck} →</button>` : ""}</div>` + treeMapMarkup(s,model,review,version,leaf);
   if (!card) return `<section class="review-screen">${head}${attribution}
@@ -228,7 +263,7 @@ export function reviewView(s) {
   return `<section class="review-screen">${head}${card.isQuote ? `<h1 class="sr-only" tabindex="-1">${c.review}</h1>` : ""}${attribution}${map}
     ${!s.quotesOnly || card.isQuote ? cardMarkup(s,card,"h1") : ""}<p class="review-progress">${c.progress(review.seenIds.length,model.cards.length)}</p>
     ${finished ? `<p class="complete-note">${c.complete}</p>` : !leaf ? `<p class="limit-note daily-limit" id="daily-limit">${c.tomorrow}</p>` : ""}
-    <img class="review-mascot ${s.animateMascot ? "celebrate" : ""}" src="../brand/reed/mascot.svg" width="65" height="65" alt=""></section>`;
+    </section>`;
 }
 
 function quoteFilter(s) {

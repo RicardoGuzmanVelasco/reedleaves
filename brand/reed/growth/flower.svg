@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Flor: casi todo el libro repasado">
+  <ellipse cx="80" cy="147" rx="40" ry="6" fill="#1E4C2E" opacity=".14"/>
+  <path d="M80 140V73" fill="none" stroke="#368540" stroke-width="8" stroke-linecap="round"/>
+  <path d="M79 115c-23 0-34-12-30-29 17-4 31 5 32 27Zm3-14c19-13 33-8 37 8-14 10-28 8-37-8Z" fill="#58BE59"/>
+  <circle cx="80" cy="51" r="12" fill="#B9E877"/>
+  <circle cx="80" cy="25" r="15" fill="#FFE0CB"/><circle cx="103" cy="38" r="15" fill="#FFE0CB"/>
+  <circle cx="103" cy="64" r="15" fill="#FFE0CB"/><circle cx="57" cy="64" r="15" fill="#FFE0CB"/>
+  <circle cx="57" cy="38" r="15" fill="#FFE0CB"/>
+  <circle cx="80" cy="51" r="18" fill="#B9E877" stroke="#58BE59" stroke-width="3"/>
+  <circle cx="74" cy="49" r="2.6" fill="#173D2C"/><circle cx="86" cy="49" r="2.6" fill="#173D2C"/>
+  <path d="M77 57q3 3 6 0" fill="none" stroke="#173D2C" stroke-width="2" stroke-linecap="round"/>
+</svg>
