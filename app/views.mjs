@@ -38,7 +38,7 @@ function closedBookMarkup(s,book,{action="resume-book",caption=words[s.language]
   const c = words[s.language];
   return `<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} aria-label="${esc(catalog ? displayedBookTitle(s,book).text + ", " + book.author + ", " + caption : c.resume + ": " + displayedBookTitle(s,book,true).text)}">
     <span class="study-book-cover"><strong lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</strong><span class="study-book-author">${esc(book.author)}</span>
-    ${catalog ? `<span class="book-tile-genres">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</span>` : `<img class="study-book-mark" src="../brand/reed/mascot.svg" width="64" height="64" alt="">`}
+    ${catalog ? `<span class="book-tile-genres">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</span>` : `<img class="study-book-mark" src="${mascotImage(s,book.id)}" width="64" height="64" alt="">`}
     <span class="study-book-footer">${esc(caption)}<span aria-hidden="true">→</span></span></span></button>`;
 }
 
@@ -81,7 +81,7 @@ export function libraryView(s) {
     </article></dialog>`;
   };
   return `<section class="library-screen"><button class="text-button" type="button" data-action="home">${c.homeBack}</button>
-    <div class="screen-heading library-heading"><h1 tabindex="-1">${c.addBook}</h1><img class="mascot" src="../brand/reed/mascot.svg" width="74" height="74" alt=""></div>
+    <div class="screen-heading library-heading"><h1 tabindex="-1">${c.addBook}</h1></div>
     ${s.userId ? `<div class="library-author-action">${button(c.createBook,"create-book")}</div>` : ""}
     <form class="book-search" role="search" data-book-search><label class="sr-only" for="book-search">${c.searchBooks}</label>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
@@ -107,6 +107,48 @@ export function homeView(s) {
   </section>`;
 }
 
+const mascotStages = [
+  {id:"pot",name:"mascotNamePot",milestone:"mascotPot",motto:"mascotMottoPot",image:"../brand/reed/growth/pot.svg",unlocked:g=>g.added},
+  {id:"seed",name:"mascotNameSeed",milestone:"mascotSeed",motto:"mascotMottoSeed",image:"../brand/reed/growth/seed.svg",unlocked:g=>g.spentDays>=1},
+  {id:"root",name:"mascotNameRoot"},
+  {id:"sprout",name:"mascotNameSprout",milestone:"mascotSprout",motto:"mascotMottoSprout",image:"../brand/reed/mascot.svg",unlocked:g=>g.spentDays>=3},
+  {id:"stem",name:"mascotNameStem"},
+  {id:"plant",name:"mascotNamePlant"},
+  {id:"flower",name:"mascotNameFlower"},
+  {id:"infinity",name:"mascotNameInfinity"}
+];
+function mascotState(s,bookId) {
+  const g=s.growth?.[bookId] || {added:false,spentDays:0};
+  const unlocked=mascotStages.filter(stage=>stage.unlocked?.(g)).map(stage=>stage.id);
+  return {g,unlocked,latest:[...unlocked].reverse().find(id=>id!=="pot") || (unlocked.includes("pot")?"pot":null)};
+}
+function mascotImage(s,bookId) {
+  const {latest}=mascotState(s,bookId), stage=mascotStages.find(item=>item.id===latest);
+  return stage?.image || "../brand/reed/growth/mystery.svg";
+}
+function mascotEntry(s,bookId,className="") {
+  return `<button class="mascot-entry${className ? ` ${esc(className)}` : ""}" type="button" data-action="open-mascots" data-book="${esc(bookId)}" aria-label="${esc(words[s.language].mascots)} · ${esc(contentText(s.catalog.booksById.get(bookId).shortTitle,s.language,s.catalog.booksById.get(bookId).originalLanguage))}"><img src="${mascotImage(s,bookId)}" width="74" height="74" alt=""></button>`;
+}
+function mascotMotto(s,bookId) {
+  const current=mascotState(s,bookId).latest, stage=mascotStages.find(item=>item.id===current);
+  return stage?.motto ? {text:words[s.language][stage.motto],language:s.language} : null;
+}
+function reviewMascotCallout(s,bookId) {
+  const motto=mascotMotto(s,bookId);
+  return motto ? `<div class="review-mascot-callout">${mascotEntry(s,bookId,"review-mascot-button")}<p lang="${esc(motto.language)}">${esc(motto.text)}</p></div>` : "";
+}
+export function mascotsView(s) {
+  const c=words[s.language],book=s.catalog.booksById.get(s.bookId),{g,unlocked}=mascotState(s,s.bookId);
+  return `<section class="mascots-screen"><button class="text-button" type="button" data-action="close-mascots">${c.mascotsBack}</button>
+    <header class="mascots-heading"><div><p class="small-book">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</p><h1 tabindex="-1">${c.mascots}</h1></div><img src="${mascotImage(s,s.bookId)}" width="82" height="82" alt=""></header>
+    <ol class="mascot-collection">${mascotStages.map((stage,index)=>{
+      const earned=unlocked.includes(stage.id),implemented=!!stage.unlocked,milestone=implemented?c[stage.milestone]:"";
+      const image=earned?stage.image:"../brand/reed/growth/mystery.svg";
+      return `<li class="mascot-stage${earned?" is-earned":""}${implemented?" is-known":" is-mystery"}"><span class="mascot-stage-number">${String(index+1).padStart(2,"0")}</span><img class="mascot-stage-art" src="${image}" width="76" height="76" alt=""><div class="mascot-stage-copy"><h2>${c[stage.name]}</h2>${milestone?`<p>${milestone}</p>`:""}</div>${earned?`<span class="mascot-earned">${c.mascotEarned}</span>`:""}</li>`;
+    }).join("")}</ol>
+  </section>`;
+}
+
 function cardMarkup(s, card, heading = "h2") {
   const c = words[s.language], book = s.catalog.booksById.get(card.bookId), deckLanguage = card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
@@ -126,12 +168,13 @@ function legacyReviewView(s) {
   const c = words[s.language], book = s.catalog.booksById.get(s.bookId), model = s.catalog.models.get(s.bookId), review = s.reviews[s.bookId];
   const card = accessibleCard(review, model.roots, s.requestedId);
   const allowed = canAdvance(review, model.roots, s.today, s.budget) && s.storageAvailable;
-  if (!card) return `<section class="review-screen"><button class="text-button" data-action="daily" type="button">${c.back}</button><div class="review-intro"><img class="mascot" src="../brand/reed/mascot.svg" width="110" height="110" alt=""><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.review}</h1><p ${allowed ? "" : 'id="daily-limit"'}>${allowed ? c.emptyReview : c.tomorrow}</p>${allowed ? button(c.start, "advance") : ""}</div></section>`;
+  const mascot = reviewMascotCallout(s,book.id);
+  if (!card) return `<section class="review-screen"><button class="text-button" data-action="daily" type="button">${c.back}</button>${mascot}<div class="review-intro"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.review}</h1><p ${allowed ? "" : 'id="daily-limit"'}>${allowed ? c.emptyReview : c.tomorrow}</p>${allowed ? button(c.start, "advance") : ""}</div></section>`;
   const i = model.roots.findIndex(root => root.id === card.id), hasNext = i + 1 < review.unlockedCount, finished = review.unlockedCount === model.roots.length;
-  return `<section class="review-screen"><div class="review-heading"><button class="text-button" data-action="daily" type="button">${c.back}</button><span>${c.review} · ${c.position(i + 1, model.roots.length)}</span></div>
+  return `<section class="review-screen"><div class="review-heading"><button class="text-button" data-action="daily" type="button">${c.back}</button><span>${c.review} · ${c.position(i + 1, model.roots.length)}</span></div>${mascot}
     ${cardMarkup(s, card, "h1")}<div class="review-actions"><button type="button" class="text-button" data-action="previous" ${i === 0 ? "disabled" : ""}>${c.previous}</button>
     ${hasNext ? button(c.next, "next") : allowed ? button(c.unlock, "advance") : finished ? `<span class="limit-note">${c.complete}</span>` : `<span class="limit-note" id="daily-limit">${c.tomorrow}</span>`}</div>
-    <img class="review-mascot ${s.animateMascot ? "celebrate" : ""}" src="../brand/reed/mascot.svg" width="65" height="65" alt=""></section>`;
+    </section>`;
 }
 
 export function loadingView(language, failed) {
@@ -176,7 +219,7 @@ export function deckView(s) {
   };
   return `<section class="deck-screen"><button type="button" class="text-button" data-action="${s.bookOrigin === "library" ? "library" : "home"}">${s.bookOrigin === "library" ? c.booksBack : c.homeBack}</button>
     <div class="screen-heading deck-heading"><div><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.chooseDeck}</h1></div>
-    <img class="mascot" src="../brand/reed/mascot.svg" width="74" height="74" alt=""></div>
+    ${mascotEntry(s,s.bookId)}</div>
     ${s.userId ? `<div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
     ${!choices.length ? `<div class="empty-state">${c.noDecks}</div>` : `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${choices.map(item => {
       const {deck,version,tags} = item, tag = tags[0] || "otherDeck";
@@ -238,7 +281,7 @@ export function reviewView(s) {
   if (card) return cardView(s,card);
   const leaf=hasLeaf(s.today,s.budget) && s.storageAvailable,finished=model.cards.length > 0 && review.seenIds.length === model.cards.length;
   return `<section class="review-screen album-screen"><button class="text-button" type="button" data-action="choose-book">${c.deckBack}</button>
-    ${albumSummary(s,version,deck,model,review)}
+    ${reviewMascotCallout(s,version.bookId)}${albumSummary(s,version,deck,model,review)}
     ${finished ? `<p class="complete-note">${c.complete}</p>` : model.cards.length && !leaf ? `<p class="limit-note daily-limit" id="daily-limit">${c.tomorrow}</p>` : ""}
     <div class="content-tools">${model.cards.length ? quoteFilter(s) : ""}${s.userId === deck.creator.userId && version.status === "draft" ? `<button class="text-button" type="button" data-action="author-deck" data-version="${esc(version.id)}">${c.editDeck} →</button>` : ""}</div>
     ${model.cards.length ? treeMapMarkup(s,model,review,version,leaf) : `<div class="empty-state">${c.emptyAuthor}</div>`}

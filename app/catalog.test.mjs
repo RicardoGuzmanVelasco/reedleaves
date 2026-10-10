@@ -7,7 +7,7 @@ import { readCatalog } from "../server/catalog-repository.mjs";
 import { prepareCatalog, loadCatalog } from "./catalog.mjs";
 import { dailyPool, restoreBudget, advanceReview } from "./rhythm.mjs";
 import { createBrowserStore, storageKeys } from "./storage.mjs";
-import { dailyView, reviewView, libraryView } from "./views.mjs";
+import { dailyView, reviewView, libraryView, mascotsView, deckView, homeView, authorView } from "./views.mjs";
 
 async function payload() {
   const db = openDatabase(":memory:");
@@ -93,4 +93,36 @@ test("Views show correct book attribution, genres and only unlocked review text"
   assert.match(reviewView(state), /Small changes count/);
   assert.match(reviewView(state), /lang="en"/);
   assert.doesNotMatch(reviewView(state), /Vuelve tras un fallo/);
+});
+test("Book mascot collection shows earned art, ordered names and a shared unknown for future forms",async()=>{
+  const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{"seven-habits":{added:true,spentDays:3}}};
+  const html=mascotsView(state),names=["Maceta","Semilla","Raíz","Brote","Tallo","Planta","Flor","Infinito"];
+  assert.deepEqual(names.map(name=>html.indexOf(`<h2>${name}</h2>`)),[...names].map(name=>html.indexOf(`<h2>${name}</h2>`)).sort((a,b)=>a-b));
+  assert.equal((html.match(/\.\.\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,5);
+  assert.match(html,/\.\.\/brand\/reed\/growth\/pot\.svg/);assert.match(html,/\.\.\/brand\/reed\/growth\/seed\.svg/);assert.match(html,/\.\.\/brand\/reed\/mascot\.svg/);
+  assert.doesNotMatch(html,/root\.svg|stem\.svg|plant\.svg|flower\.svg|loop\.svg|20\s*%|60\s*%|100\s*%/);
+  assert.match(html,/Repaso en 3 días distintos/);
+  const empty=mascotsView({...state,growth:{}});assert.equal((empty.match(/\.\.\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,9);
+});
+test("Mascot collection opens from review album and deck selection, not library, card detail or authoring",async()=>{
+  const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{},reviews:{},bookReviews:{},statuses:{},enrolledIds:[],deckChoices:[],storageAvailable:false};
+  assert.doesNotMatch(libraryView({...state,openBookId:"seven-habits"}),/data-action="open-mascots"/);
+  assert.match(deckView(state),/data-action="open-mascots" data-book="seven-habits"/);
+  assert.match(deckView({...state,growth:{"seven-habits":{added:true,spentDays:1}}}),/mascot-entry[^>]*data-book="seven-habits"[^>]*><img src="\.\.\/brand\/reed\/growth\/seed\.svg"/);
+  assert.doesNotMatch(homeView(state),/data-action="open-mascots"/);
+  const version=catalog.versions.find(item=>item.bookId==="seven-habits"),model=catalog.versionModels.get(version.id),first=model.cards[0];
+  const reviewing={...state,versionId:version.id,requestedId:null,today:"2026-10-11",budget:null,storageAvailable:true,
+    reviews:{[version.id]:{seenIds:[first.id],currentId:first.id}},growth:{"seven-habits":{added:true,spentDays:1}}};
+  const review=reviewView(reviewing);
+  assert.match(review,/review-mascot-callout/);assert.match(review,/review-mascot-button/);
+  assert.match(review,/data-action="open-mascots" data-book="seven-habits"/);
+  assert.match(review,/Ya has plantado la semilla, ahora a regarla cada día/);
+  const french=reviewView({...reviewing,language:"fr"});assert.match(french,/Tu as planté la graine/);
+  assert.doesNotMatch(reviewView({...reviewing,requestedId:first.id}),/data-action="open-mascots"/);
+  assert.doesNotMatch(authorView({...reviewing,requestedId:first.id}),/data-action="open-mascots"/);
+});
+test("Home book cover uses that book's earned mascot",async()=>{
+  const catalog=prepareCatalog(await payload()),version=catalog.versions[0],bookId=version.bookId;
+  const state={catalog,language:"es",reviews:{},enrolledIds:[version.id],growth:{[bookId]:{added:true,spentDays:1}}};
+  assert.match(homeView(state),/class="study-book-mark" src="\.\.\/brand\/reed\/growth\/seed\.svg"/);
 });

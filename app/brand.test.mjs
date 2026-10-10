@@ -8,7 +8,7 @@ import {storageKeys} from "./storage.mjs";
 
 test("Official name stays Reedleaves on every screen and in every interface language", () => {
   assert.equal(APP_NAME,"Reedleaves");
-  for (const c of Object.values(words)) for (const screen of [c.home,c.addBook,c.daily,c.chooseDeck,c.review]) {
+  for (const c of Object.values(words)) for (const screen of [c.home,c.addBook,c.daily,c.chooseDeck,c.mascots,c.review]) {
     assert.equal(pageTitle(screen),`Reedleaves · ${screen}`);
   }
   const html = readFileSync(new URL("./index.html",import.meta.url),"utf8");
@@ -28,4 +28,10 @@ test("Renaming the team changes only its public label, not creator identity or p
   assert.equal(storageKeys.wallet,"leaf-reader:wallet:v1");
   assert.equal(storageKeys.deckReview("seven-habits-editorial-v1"),"leaf-reader:deck:seven-habits-editorial-v1:review:v3");
   assert.equal(storageKeys.studies,"leaf-reader:studies:v1");
+});
+
+test("Seed stays a brown body with a separated face and no leaf",()=>{
+  const seed=readFileSync(new URL("../brand/reed/growth/seed.svg",import.meta.url),"utf8");
+  assert.doesNotMatch(seed,/fill="#58BE59"|fill="#B9E877"/);
+  assert.match(seed,/cx="67" cy="101"/);assert.match(seed,/cx="96" cy="100"/);
 });

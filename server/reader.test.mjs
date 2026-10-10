@@ -24,8 +24,22 @@ test("Enrolling is persistent but free and not yet a started review; users are i
   const state = await selectDeck(db,a,version,today);
   assert.deepEqual(state.enrolledIds,[version]); assert.equal(state.selections["seven-habits"],version);
   assert.deepEqual(state.wallet,before.wallet); assert.deepEqual(state.reviews,{});
+  assert.deepEqual(state.growth["seven-habits"],{added:true,spentDays:0});
   assert.deepEqual((await readReaderState(db,b,today)).enrolledIds,[]);
   assert.equal((await readCatalog(db)).decks.find(d=>d.id === "seven-habits-editorial").metrics.startedBy,0);
+});
+test("Book mascot progress counts distinct local spend days across unlocked cards",async t=>{
+  const {db,a,b}=await fixture(t);
+  await readReaderState(db,a,date("2026-10-06"));
+  await openCard(db,a,version,"habit-1",date("2026-10-07"));
+  await openCard(db,a,version,"habit-2",date("2026-10-07"));
+  assert.deepEqual((await readReaderState(db,a,date("2026-10-07"))).growth["seven-habits"],{added:true,spentDays:1});
+  await openCard(db,a,version,"habit-3",date("2026-10-08"));
+  const threeDays=await openCard(db,a,version,"habit-4",date("2026-10-09"));
+  assert.equal(threeDays.state.growth["seven-habits"].spentDays,3);
+  await openCard(db,a,version,"habit-4",date("2026-10-09"));
+  assert.equal((await readReaderState(db,a,date("2026-10-09"))).growth["seven-habits"].spentDays,3);
+  assert.deepEqual((await readReaderState(db,b,today)).growth,{});
 });
 test("First unlock spends one leaf; repeats and revisits are free, with actual popularity",async t=>{
   const {db,a} = await fixture(t);

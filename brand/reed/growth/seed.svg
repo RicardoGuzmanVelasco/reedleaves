@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Semilla: primera tarjeta repasada">
+  <ellipse cx="80" cy="143" rx="42" ry="7" fill="#1E4C2E" opacity=".14"/>
+  <path d="M80 129C49 122 39 98 51 74c12-25 48-36 66-14 19 22 5 60-18 68-7 3-13 3-19 1Z" fill="#A86F40"/>
+  <path d="M78 126C53 117 47 97 57 77c9-18 37-27 51-12 15 16 5 46-13 56-6 4-11 6-17 5Z" fill="#C48A53"/>
+  <ellipse cx="67" cy="101" rx="3.2" ry="4.4" fill="#173D2C"/><ellipse cx="96" cy="100" rx="3.2" ry="4.4" fill="#173D2C"/>
+  <path d="M78 112q4 5 8 0" fill="none" stroke="#173D2C" stroke-width="2.7" stroke-linecap="round"/>
+</svg>
