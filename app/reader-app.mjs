@@ -12,6 +12,7 @@ import {pageTitle} from "./brand.mjs";
 export function startReader() {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
   const settings = document.getElementById("settings");
+  let showOriginalTitles = store.read(keys.originalTitles) === true;
   let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, reviews, budget, preferences, statuses, daily, bookId, versionId, requestedId, selections, bookReviews, enrolledIds;
   let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, animateMascot = false;
   let authorForm = null, quotesOnly = false;
@@ -22,7 +23,7 @@ export function startReader() {
   function applyState(state) {
     snapshot = state;
     if (state.inviteRequired !== undefined) inviteRequired = state.inviteRequired;
-    if (state.user) { language = restoreLanguage(state.language); store.save(keys.language,language); }
+    if (state.user) { language = restoreLanguage(state.language); store.save(keys.language,language); showOriginalTitles = state.showOriginalTitles === true; }
     refreshState();
   }
   function refreshState() {
@@ -46,8 +47,11 @@ export function startReader() {
     const c = words[language]; document.documentElement.lang = language;
     document.title = pageTitle(mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.addBook : mode === "daily" ? c.daily : mode === "book" ? c.chooseDeck : mode === "author" ? c.editDeck : c.review);
     document.querySelector(".brand").setAttribute("aria-label",pageTitle(c.home)); document.querySelector(".skip-link").textContent = c.skip;
-    for (const [id,text] of [["settings-title",c.settings],["language-label",c.language]]) document.getElementById(id).textContent = text;
+    for (const [id,text] of [["settings-title",c.settings],["language-label",c.language],["original-titles-label",c.showOriginalTitles]]) document.getElementById(id).textContent = text;
     document.getElementById("open-settings").setAttribute("aria-label",c.settings); document.getElementById("close-settings").setAttribute("aria-label",c.closeSettings);
+    document.getElementById("original-titles").checked = showOriginalTitles;
+    const settingsError = document.getElementById("settings-error");
+    settingsError.hidden = !syncError; settingsError.textContent = syncError ? c[syncError] || c.connectionError : "";
     const wallet = document.getElementById("leaf-wallet"), signedIn = !!snapshot.user;
     wallet.hidden = !signedIn;
     document.getElementById("brand-name").hidden = signedIn;
@@ -60,13 +64,13 @@ export function startReader() {
   function lockControls() {
     main.setAttribute("aria-busy",String(busy));
     if (busy) main.querySelectorAll("button,input,select,textarea").forEach(control=>control.disabled = true);
-    settings.querySelectorAll("button").forEach(control=>control.disabled = busy);
+    settings.querySelectorAll("button,input").forEach(control=>control.disabled = busy);
   }
   function render({focus = false} = {}) {
     ++renderVersion; header();
     if (!ready) { main.innerHTML = loadingView(language,failed); return; }
     refreshState(); header();
-    const state = {userId:snapshot.user?.id,authorForm,quotesOnly,language,catalog,reviews,budget,preferences,statuses,daily,bookId,versionId,requestedId,bookReviews,
+    const state = {userId:snapshot.user?.id,authorForm,quotesOnly,language,showOriginalTitles,catalog,reviews,budget,preferences,statuses,daily,bookId,versionId,requestedId,bookReviews,
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,bookOrigin,sourcesOpen,enrolledIds,animateMascot,
       storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,hasLocalProgress:hasLocalProgress()};
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
@@ -197,6 +201,10 @@ export function startReader() {
   document.querySelectorAll("[data-language]").forEach(b=>b.addEventListener("click",async()=>{
     if (snapshot.user) await mutation("/api/reader/preferences",{language:b.dataset.language}); else { language = restoreLanguage(b.dataset.language); store.save(keys.language,language); render(); }
   }));
+  document.getElementById("original-titles").addEventListener("change",async event=>{
+    if (snapshot.user) await mutation("/api/reader/preferences",{showOriginalTitles:event.target.checked});
+    else { showOriginalTitles = event.target.checked; store.save(keys.originalTitles,showOriginalTitles); render(); }
+  });
   document.getElementById("open-settings").addEventListener("click",()=>settings.showModal());
   document.getElementById("close-settings").addEventListener("click",()=>settings.close());
   settings.addEventListener("click",async event=>{
@@ -205,7 +213,7 @@ export function startReader() {
     if (action === "logout" && !busy) await mutation("/api/auth/logout",{},()=>{ settings.close(); pendingVersion = null; authReturn = "#home"; navigate("#home"); });
   });
   main.addEventListener("toggle",e=>{ if (e.target.id === "sources") sourcesOpen = e.target.open; },true);
-  function updateBookSearch() { main.querySelector("#book-search-results").innerHTML = libraryResultsMarkup({catalog,language,libraryQuery}); main.querySelector("[data-book-search] button").hidden = !libraryQuery; live.textContent = words[language].searchResults(filterBooks(catalog.books,libraryQuery).length); }
+  function updateBookSearch() { main.querySelector("#book-search-results").innerHTML = libraryResultsMarkup({catalog,language,showOriginalTitles,libraryQuery}); main.querySelector("[data-book-search] button").hidden = !libraryQuery; live.textContent = words[language].searchResults(filterBooks(catalog.books,libraryQuery).length); }
   main.addEventListener("input",e=>{ if (authorForm && e.target.closest("[data-author-form]") && e.target.name) authorForm[e.target.name] = e.target.value; if (e.target.id === "book-search") { libraryQuery = e.target.value; updateBookSearch(); } });
   main.addEventListener("submit",async e=>{
     if (e.target.matches("[data-book-search]")) { e.preventDefault(); return; }
@@ -219,7 +227,7 @@ export function startReader() {
       applyState(state); form.reset(); syncError = null;
       if (pendingVersion) { applyState(await api.request("/api/reader/select",{versionId:pendingVersion})); pendingVersion = null; }
       busy = false; navigate(authReturn);
-    } catch(error) { busy = false; main.setAttribute("aria-busy","false"); form.querySelectorAll("button,input").forEach(c=>c.disabled = false); main.querySelectorAll("[data-action]").forEach(c=>c.disabled = false); settings.querySelectorAll("button").forEach(c=>c.disabled = false);
+    } catch(error) { busy = false; main.setAttribute("aria-busy","false"); form.querySelectorAll("button,input").forEach(c=>c.disabled = false); main.querySelectorAll("[data-action]").forEach(c=>c.disabled = false); settings.querySelectorAll("button,input").forEach(c=>c.disabled = false);
       if (snapshot.user) { syncError = error.code; pendingVersion = null; navigate("#home"); return; }
       errorNode.textContent = words[language][error.code] || words[language].connectionError; errorNode.hidden = false; form.querySelector("#account-password").value = ""; form.querySelector("#account-password").focus(); }
   });

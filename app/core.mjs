@@ -32,6 +32,13 @@ export function contentLocale(translations, interfaceLanguage, deckLanguage = in
   return entries.find(([language]) => language.split("-")[0] === deckLanguage.split("-")[0])?.[0] || entries[0]?.[0] || deckLanguage;
 }
 
+export function bookTitle(book, interfaceLanguage, {original = false, short = false} = {}) {
+  if (original && book.originalTitle) return {text:book.originalTitle, language:book.originalLanguage};
+  const translations = short ? book.shortTitle : book.title;
+  return {text:contentText(translations,interfaceLanguage,book.originalLanguage) || book.originalTitle,
+    language:contentLocale(translations,interfaceLanguage,book.originalLanguage)};
+}
+
 export function validateBook(book, requiredLanguages = ["es", "en"], {requireOriginal = false} = {}) {
   if (!book || book.schemaVersion !== 1 || typeof book.id !== "string" || !book.id.trim() ||
       typeof book.author !== "string" || !book.author.trim()) throw new Error("Invalid book");

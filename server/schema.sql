@@ -70,6 +70,10 @@ CREATE TABLE accounts (
   time_zone TEXT NOT NULL,
   language TEXT NOT NULL CHECK(language IN ('es','en','fr'))
 ) STRICT;
+CREATE TABLE reader_display_preferences (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  show_original_titles INTEGER NOT NULL CHECK(show_original_titles IN (0,1))
+) STRICT;
 CREATE TABLE sessions (
   token_hash TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
@@ -325,4 +329,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 11;
+PRAGMA user_version = 12;

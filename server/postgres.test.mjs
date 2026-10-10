@@ -5,7 +5,7 @@ import {PostgresDatabase,initializeDatabase} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {authenticate} from "./auth.mjs";
-import {readReaderState,openCard} from "./reader-repository.mjs";
+import {readReaderState,openCard,changePreferences} from "./reader-repository.mjs";
 import {readLeafWallet} from "./leaf-wallet-repository.mjs";
 
 function postgresFixture(t) {
@@ -66,7 +66,7 @@ test("PostgreSQL transactions roll back seed writes on failure", async t => {
 test("PostgreSQL v1 upgrade preserves accounts, catalog and reviews and is repeatable", async t => {
   const {readFileSync}=await import("node:fs");
   const {db}=postgresFixture(t);
-  const old=readFileSync(new URL("./schema.postgres.sql",import.meta.url),"utf8").replace("CHECK(version = 3)","CHECK(version = 1)").replace("reed_schema VALUES (3)","reed_schema VALUES (1)").replace(" is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),","").replace(" AND (c.parent_id IS NOT NULL OR sibling.is_quote=c.is_quote)","").replace("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);", "").replace("source_id TEXT,", "source_id TEXT NOT NULL,");
+  const old=readFileSync(new URL("./schema.postgres.sql",import.meta.url),"utf8").replace("CHECK(version = 4)","CHECK(version = 1)").replace("reed_schema VALUES (4)","reed_schema VALUES (1)").replace(/CREATE TABLE reader_display_preferences \([\s\S]*?;\n/, "").replace(" is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),","").replace(" AND (c.parent_id IS NOT NULL OR sibling.is_quote=c.is_quote)","").replace("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);", "").replace("source_id TEXT,", "source_id TEXT NOT NULL,");
   await db.exec(old);
   await db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
   await seedCatalog(db);await db.exec("ALTER TABLE books DROP COLUMN creator_user_id;");
@@ -75,7 +75,26 @@ test("PostgreSQL v1 upgrade preserves accounts, catalog and reviews and is repea
   await db.prepare("INSERT INTO reviews(id,user_id,version_id) VALUES ('old-review',?,'seven-habits-editorial-v1')").run(session.user_id);
   await db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) VALUES ('old-review',?,'seven-habits-editorial-v1','habit-1','2026-10-10')").run(session.user_id);
   await initializeDatabase(db);await initializeDatabase(db);
-  assert.equal((await db.prepare("SELECT version FROM reed_schema").get()).version,3);
+  assert.equal((await db.prepare("SELECT version FROM reed_schema").get()).version,4);
   assert.equal((await readCatalog(db)).cards.length,42);
   assert.equal((await readReaderState(db,session)).reviews["seven-habits-editorial-v1"].seenIds[0],"habit-1");
+});
+
+
+test("PostgreSQL v3 upgrade preserves state and saves original title preferences across sessions",async t=>{
+  const {db}=postgresFixture(t);
+  await initializeDatabase(db); await seedCatalog(db);
+  await authenticate(db,"register",{username:"title.reader",password:"original title test phrase"});
+  const user_id=(await db.prepare("SELECT user_id FROM accounts WHERE username=?").get("title.reader")).user_id;
+  const session={user_id,csrf_token:"test"},now=new Date("2026-10-11T12:00:00Z");
+  await openCard(db,session,"seven-habits-editorial-v1","habit-1",now);
+  const before=await readReaderState(db,session,now);
+  await db.exec("DROP TABLE reader_display_preferences; ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=3; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=3);");
+  await initializeDatabase(db); await initializeDatabase(db);
+  assert.deepEqual(await readReaderState(db,session,now),before);
+  await changePreferences(db,session,{showOriginalTitles:true},now);
+  assert.deepEqual(await readReaderState(db,{user_id,csrf_token:"second session"},now),{...before,csrfToken:"second session",showOriginalTitles:true});
+  await assert.rejects(changePreferences(db,session,{showOriginalTitles:"true"},now),e=>e.code==="invalidRequest");
+  assert.equal((await changePreferences(db,session,{language:"fr"},now)).showOriginalTitles,true);
+  assert.equal((await changePreferences(db,session,{showOriginalTitles:false},now)).showOriginalTitles,false);
 });

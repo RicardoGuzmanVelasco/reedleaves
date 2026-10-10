@@ -1,3 +1,4 @@
+import {bookTitle} from "./core.mjs";
 import { accessibleCard, canAdvance } from "./rhythm.mjs";
 import { treeFrontier, hasLeaf, studyingDecks, availableVersions } from "./decks.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
@@ -14,13 +15,17 @@ function bookGenres(s,book) {
   return book.genres.map(id => s.catalog.genres.find(genre => genre.id === id)?.name[s.language]).filter(Boolean);
 }
 
-function bookLinksMarkup(book, language) {
-  const c = words[language];
+function displayedBookTitle(s,book,short = false) {
+  return bookTitle(book,s.language,{original:s.showOriginalTitles,short});
+}
+
+function bookLinksMarkup(s, book) {
+  const c = words[s.language];
   const links = [["amazon", "Amazon", c.buy], ["goodreads", "Goodreads", c.writeReview]].flatMap(([platform, name, action]) => {
     const url = bookLinkUrl(platform, book.links?.[platform]);
     if (!url) return [];
     const context = platform === "amazon" ? c.amazonEdition + ". " : "";
-    return [`<a class="book-external-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(action + " · " + name + ": " + contentText(book.title,language,book.originalLanguage) + ". " + context + c.newTab)}" title="${esc(context + c.newTab)}">
+    return [`<a class="book-external-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(action + " · " + name + ": " + displayedBookTitle(s,book).text + ". " + context + c.newTab)}" title="${esc(context + c.newTab)}">
       <img src="../brand/platforms/${platform}.svg" width="22" height="22" alt="">
       <span class="book-external-link-copy"><strong>${name}</strong><span>${esc(action)}</span></span>
       <svg class="external-link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4 10 14M10 4H4v16h16v-6"/></svg>
@@ -31,8 +36,8 @@ function bookLinksMarkup(book, language) {
 
 function closedBookMarkup(s,book,{action="resume-book",caption=words[s.language].review,genres=[],catalog=false}={}) {
   const c = words[s.language];
-  return `<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} aria-label="${esc(catalog ? contentText(book.title,s.language,book.originalLanguage) + ", " + book.author + ", " + caption : c.resume + ": " + contentText(book.shortTitle,s.language,book.originalLanguage))}">
-    <span class="study-book-cover"><strong lang="${esc(contentLocale(book.shortTitle,s.language,book.originalLanguage))}" dir="auto">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</strong><span class="study-book-author">${esc(book.author)}</span>
+  return `<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} aria-label="${esc(catalog ? displayedBookTitle(s,book).text + ", " + book.author + ", " + caption : c.resume + ": " + displayedBookTitle(s,book,true).text)}">
+    <span class="study-book-cover"><strong lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</strong><span class="study-book-author">${esc(book.author)}</span>
     ${catalog ? `<span class="book-tile-genres">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</span>` : `<img class="study-book-mark" src="../brand/reed/mascot.svg" width="64" height="64" alt="">`}
     <span class="study-book-footer">${esc(caption)}<span aria-hidden="true">→</span></span></span></button>`;
 }
@@ -65,10 +70,10 @@ export function libraryView(s) {
     return `<dialog class="deck-modal book-modal" data-book="${esc(book.id)}" aria-labelledby="book-dialog-title" ${contentText(book.description,s.language,book.originalLanguage) ? 'aria-describedby="book-dialog-description"' : ""}><article class="deck-card book-detail">
       <button class="deck-modal-close" type="button" data-action="close-book-details" aria-label="${c.closeBook}" autofocus>×</button>
       <div class="deck-tags">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</div>
-      <h2 id="book-dialog-title" lang="${esc(contentLocale(book.title,s.language,book.originalLanguage))}" dir="auto">${esc(contentText(book.title,s.language,book.originalLanguage))}</h2><p class="book-detail-author">${esc(book.author)}</p>
+      <h2 id="book-dialog-title" lang="${esc(displayedBookTitle(s,book).language)}" dir="auto">${esc(displayedBookTitle(s,book).text)}</h2><p class="book-detail-author">${esc(book.author)}</p>
       <p class="book-original-title"><span>${c.originalTitle}</span><span lang="${esc(book.originalLanguage)}" dir="auto">${esc(book.originalTitle)}</span></p>
       ${contentText(book.description,s.language,book.originalLanguage) ? `<p class="deck-description" id="book-dialog-description" lang="${esc(contentLocale(book.description,s.language,book.originalLanguage))}" dir="auto">${esc(contentText(book.description,s.language,book.originalLanguage))}</p>` : ""}
-      ${bookLinksMarkup(book, s.language)}
+      ${bookLinksMarkup(s, book)}
       <p class="deck-size">${c.deckCount(choices.length)}</p>${languages.length ? `<p class="book-detail-languages">${esc(languages.join(" · "))}</p>` : ""}
       <div class="book-detail-status"><label class="book-reading" for="book-status-${esc(book.id)}"><span>${c.bookStatus}</span><select id="book-status-${esc(book.id)}" data-book-status="${esc(book.id)}" ${!s.storageAvailable ? "disabled" : ""}>${[["unread",c.unread],["reading",c.readingStatus],["read",c.readStatus]].map(([value,label]) => `<option value="${value}" ${s.statuses[book.id] === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>
       <p class="book-detail-review">${c.reviewStatus}: <strong>${esc(status)}</strong></p></div>
@@ -107,7 +112,7 @@ function cardMarkup(s, card, heading = "h2") {
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
   return `<article class="idea-card${card.isQuote ? " quote-card" : ""}">${card.isQuote ? `<blockquote lang="${esc(bodyLanguage)}" dir="auto" class="idea-body" id="idea-content" tabindex="-1">${esc(body)}</blockquote>` : `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-content" tabindex="-1">${esc(title)}</${heading}><p lang="${esc(bodyLanguage)}" dir="auto" class="idea-body">${esc(body)}</p>`}
-    <div class="card-source">${card.sourceUrl ? `<a href="${esc(safeUrl(card.sourceUrl))}" target="_blank" rel="noopener noreferrer" aria-label="${c.source}: ${esc(contentText(book.title,s.language,book.originalLanguage))}">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))} · ${esc(book.author)} ↗</a>` : `<span>${esc(contentText(book.shortTitle,s.language,book.originalLanguage))} · ${esc(book.author)}</span>`}</div></article>`;
+    <div class="card-source" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${card.sourceUrl ? `<a href="${esc(safeUrl(card.sourceUrl))}" target="_blank" rel="noopener noreferrer" aria-label="${c.source}: ${esc(displayedBookTitle(s,book).text)}">${esc(displayedBookTitle(s,book,true).text)} · ${esc(book.author)} ↗</a>` : `<span>${esc(displayedBookTitle(s,book,true).text)} · ${esc(book.author)}</span>`}</div></article>`;
 }
 
 export function dailyView(s) {
@@ -121,7 +126,7 @@ function legacyReviewView(s) {
   const c = words[s.language], book = s.catalog.booksById.get(s.bookId), model = s.catalog.models.get(s.bookId), review = s.reviews[s.bookId];
   const card = accessibleCard(review, model.roots, s.requestedId);
   const allowed = canAdvance(review, model.roots, s.today, s.budget) && s.storageAvailable;
-  if (!card) return `<section class="review-screen"><button class="text-button" data-action="daily" type="button">${c.back}</button><div class="review-intro"><img class="mascot" src="../brand/reed/mascot.svg" width="110" height="110" alt=""><p class="small-book">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</p><h1 tabindex="-1">${c.review}</h1><p ${allowed ? "" : 'id="daily-limit"'}>${allowed ? c.emptyReview : c.tomorrow}</p>${allowed ? button(c.start, "advance") : ""}</div></section>`;
+  if (!card) return `<section class="review-screen"><button class="text-button" data-action="daily" type="button">${c.back}</button><div class="review-intro"><img class="mascot" src="../brand/reed/mascot.svg" width="110" height="110" alt=""><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.review}</h1><p ${allowed ? "" : 'id="daily-limit"'}>${allowed ? c.emptyReview : c.tomorrow}</p>${allowed ? button(c.start, "advance") : ""}</div></section>`;
   const i = model.roots.findIndex(root => root.id === card.id), hasNext = i + 1 < review.unlockedCount, finished = review.unlockedCount === model.roots.length;
   return `<section class="review-screen"><div class="review-heading"><button class="text-button" data-action="daily" type="button">${c.back}</button><span>${c.review} · ${c.position(i + 1, model.roots.length)}</span></div>
     ${cardMarkup(s, card, "h1")}<div class="review-actions"><button type="button" class="text-button" data-action="previous" ${i === 0 ? "disabled" : ""}>${c.previous}</button>
@@ -170,7 +175,7 @@ export function deckView(s) {
       <button class="primary" type="button" data-action="select-deck" data-version="${esc(version.id)}" ${!s.storageAvailable ? "disabled" : ""}>${started ? c.resume : c.choose}</button>`;
   };
   return `<section class="deck-screen"><button type="button" class="text-button" data-action="${s.bookOrigin === "library" ? "library" : "home"}">${s.bookOrigin === "library" ? c.booksBack : c.homeBack}</button>
-    <div class="screen-heading deck-heading"><div><p class="small-book">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</p><h1 tabindex="-1">${c.chooseDeck}</h1></div>
+    <div class="screen-heading deck-heading"><div><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.chooseDeck}</h1></div>
     <img class="mascot" src="../brand/reed/mascot.svg" width="74" height="74" alt=""></div>
     ${s.userId ? `<div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
     ${!choices.length ? `<div class="empty-state">${c.noDecks}</div>` : `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${choices.map(item => {
@@ -213,7 +218,7 @@ function albumSummary(s,version,deck,model,review) {
   const c=words[s.language],book=s.catalog.booksById.get(version.bookId),seen=review.seenIds.length,total=model.cards.length;
   const percent=total ? Math.round(seen / total * 100) : 0;
   const language=new Intl.DisplayNames([s.language],{type:"language"}).of(deck.language) || deck.language;
-  return `<header class="album-heading"><p class="small-book" lang="${esc(contentLocale(book.shortTitle,s.language,book.originalLanguage))}" dir="auto">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</p>
+  return `<header class="album-heading"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>
     <h1 tabindex="-1" lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h1>
     <p class="album-meta">${s.userId === deck.creator.userId ? "" : esc(deck.creator.name)+" · "}${esc(language)}</p></header>
     <div class="album-progress"><div><p>${c.progress(seen,total)}</p><span aria-hidden="true">${percent}%</span></div><progress value="${seen}" max="${Math.max(total,1)}" aria-label="${esc(c.progress(seen,total))}"></progress></div>`;

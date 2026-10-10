@@ -8,10 +8,13 @@ import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
 import {createBook,createDeck,addCard} from "./author-repository.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
-import {readReaderState,selectDeck,openCard,dailyIdea,changeReading} from "./reader-repository.mjs";
+import {readReaderState as readReaderStateAtDate,selectDeck,openCard,dailyIdea,changeReading} from "./reader-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
 import {treeFrontier,restoreTreeReview} from "../app/decks.mjs";
 import {authorView,authorFormView,reviewView,dailyView,libraryView,deckView} from "../app/views.mjs";
+
+// Keep wallet accrual independent of the day when this test suite runs.
+const readReaderState=(db,session,now=new Date("2026-10-10T12:00:00Z"))=>readReaderStateAtDate(db,session,now);
 
 async function fixture(t,dialect) {
   let db;
@@ -129,7 +132,7 @@ for (const dialect of ["sqlite","postgres"]) {
 
 test("SQLite upgrade from v9 preserves content, accounts and progress and runs once",async t=>{
   const db=openDatabase(":memory:");t.after(()=>db.close());
-  const old=readFileSync(new URL("./schema.sql",import.meta.url),"utf8").replace('  is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),\n','').replace('      AND (c.parent_id IS NOT NULL OR sibling.is_quote = c.is_quote)\n','').replace('user_version = 11','user_version = 9').replace("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);", "").replace("source_id TEXT,", "source_id TEXT NOT NULL,");
+  const old=readFileSync(new URL("./schema.sql",import.meta.url),"utf8").replace('  is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),\n','').replace('      AND (c.parent_id IS NOT NULL OR sibling.is_quote = c.is_quote)\n','').replace('user_version = 12','user_version = 9').replace(/CREATE TABLE reader_display_preferences \([\s\S]*?;\n/, '').replace("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);", "").replace("source_id TEXT,", "source_id TEXT NOT NULL,");
   db.exec(old);
   db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
   await seedCatalog(db);db.exec("ALTER TABLE books DROP COLUMN creator_user_id;");
@@ -141,7 +144,7 @@ test("SQLite upgrade from v9 preserves content, accounts and progress and runs o
   await initializeDatabase(db);await initializeDatabase(db);
   assert.equal((await readCatalog(db)).cards.length,42);
   assert.equal((await readReaderState(db,session)).reviews['seven-habits-editorial-v1'].seenIds[0],'habit-1');
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version,11);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version,12);
 });
 
 for (const dialect of ["sqlite","postgres"]) {
@@ -154,7 +157,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const before=await readCatalog(db,session.user_id),state=await readReaderState(db,session);
     await db.exec("ALTER TABLE books DROP COLUMN creator_user_id;");
     if (dialect === "postgres") {
-      await db.exec("ALTER TABLE cards ALTER COLUMN source_id SET NOT NULL; ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=2; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=2);");
+      await db.exec("DROP TABLE reader_display_preferences; ALTER TABLE cards ALTER COLUMN source_id SET NOT NULL; ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=2; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=2);");
     } else {
       // Rebuild just this fixture into the old table definition.
       const triggers=db.prepare("SELECT name,sql FROM sqlite_master WHERE type='trigger'").all();
@@ -166,7 +169,7 @@ for (const dialect of ["sqlite","postgres"]) {
       db.exec("INSERT INTO cards_old SELECT * FROM cards; DROP TABLE cards; ALTER TABLE cards_old RENAME TO cards;");
       for (const index of indexes) db.exec(index.sql);
       for (const trigger of triggers) db.exec(trigger.sql);
-      db.exec("PRAGMA user_version=10; PRAGMA foreign_keys=ON;");
+      db.exec("DROP TABLE reader_display_preferences; PRAGMA user_version=10; PRAGMA foreign_keys=ON;");
     }
     await initializeDatabase(db);await initializeDatabase(db);
     assert.deepEqual(await readCatalog(db,session.user_id),before);

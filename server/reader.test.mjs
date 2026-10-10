@@ -114,3 +114,32 @@ test("Separate SQL connections share one wallet; lost-response retry never doubl
   assert.equal((await readReaderState(second,a,today)).wallet.balance,0);
   await assert.rejects(openCard(second,a,other,"atomic-1",today),e=>e.code === "noLeaves");
 });
+
+test("Original title preference persists across connections, stays per account and cannot alter reading or daily state",async t=>{
+  const directory=mkdtempSync(join(tmpdir(),"reedleaves-title-test-")),path=join(directory,"catalog.sqlite");
+  t.after(()=>rmSync(directory,{recursive:true,force:true}));
+  const {db,a,b}=await fixture(t,path);
+  await openCard(db,a,version,"habit-1",today); await dailyIdea(db,a,today);
+  const before=await readReaderState(db,a,today);
+  assert.equal(before.showOriginalTitles,false);
+  await changePreferences(db,a,{showOriginalTitles:true},today);
+  const second=openDatabase(path);t.after(()=>second.close());
+  const restored=await readReaderState(second,a,today);
+  assert.deepEqual(restored,{...before,showOriginalTitles:true});
+  assert.equal((await readReaderState(db,b,today)).showOriginalTitles,false);
+  assert.equal((await changePreferences(db,a,{language:"fr"},today)).showOriginalTitles,true);
+  for(const value of ["true",1,null,{}]) await assert.rejects(changePreferences(db,a,{language:"en",showOriginalTitles:value},today),e=>e.code==="invalidRequest");
+  assert.equal((await readReaderState(db,a,today)).language,"fr");
+  assert.equal((await changePreferences(db,a,{showOriginalTitles:false},today)).showOriginalTitles,false);
+});
+
+test("SQLite v11 upgrade keeps account, cards and review state, defaulting to translated titles",async t=>{
+  const {db,a}=await fixture(t);
+  await openCard(db,a,version,"habit-1",today);
+  const before=await readReaderState(db,a,today);
+  db.exec("DROP TABLE reader_display_preferences; PRAGMA user_version=11;");
+  initializeDatabase(db); initializeDatabase(db);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version,12);
+  assert.deepEqual(await readReaderState(db,a,today),before);
+  assert.equal((await changePreferences(db,a,{showOriginalTitles:true},today)).showOriginalTitles,true);
+});

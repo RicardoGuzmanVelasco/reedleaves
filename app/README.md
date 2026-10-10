@@ -16,7 +16,7 @@ Abrir http://127.0.0.1:4173/app/. La primera ejecución crea y carga SQLite; las
 
 - Sin sesión: entrar o crear cuenta con usuario y contraseña; se pueden explorar los libros sin registrarse. El repaso necesita cuenta.
 - Inicio con sesión muestra los libros con repasos pendientes como libros cerrados: portada, lomo y canto de páginas. Elegir una baraja la añade sin gastar hojas; se recuperan también los repasos ya empezados. El árbol solo aparece al entrar en el repaso.
-- Cabecera: logo, hoja con saldo numérico y ajustes de idioma y cuenta. Sin lemas ni texto del saldo.
+- Cabecera: logo, hoja con saldo numérico y ajustes de idioma, títulos originales y cuenta. Sin lemas ni texto del saldo.
 - Libros permite añadir un repaso y consultar los completados. Idea del día queda como acceso secundario, fuera de Inicio.
 - Una idea aleatoria al día, estable tras recarga, idioma y cambio de filtros.
 - Seis grupos: leyendo, leídos, repasando, repasados, intereses y todos. Unión sin duplicar; Todos sustituye al resto.
@@ -33,7 +33,7 @@ Lectura original y repaso son independientes. Una tarjeta aleatoria no desbloque
 
 ## Datos y código
 
-Contenido editable: content/catalog/*.csv. Datos activos: var/catalog.sqlite, con libros, barajas, versiones, árboles y fuentes. SQLite v10 y PostgreSQL v2. La actualización desde v9/v1 añade quotes y conserva cuentas, cartas y progreso. HTTP JSON es transporte, no almacenamiento del catálogo.
+Contenido editable: content/catalog/*.csv. Datos activos: var/catalog.sqlite, con libros, barajas, versiones, árboles y fuentes. SQLite v12 y PostgreSQL v4. La actualización desde v9/v1 conserva cuentas, cartas y progreso; añade quotes, libros personales y la preferencia de títulos originales. HTTP JSON es transporte, no almacenamiento del catálogo.
 
 Backend: server/database.mjs, seed.mjs, catalog-repository.mjs, author-repository.mjs, auth.mjs, reader-repository.mjs, reader-api.mjs y http.mjs.
 
@@ -55,7 +55,7 @@ Pruebas automatizadas: integridad SQL, persistencia, backup, rollback, API, form
 
 El backend guarda saldo, progreso, posición, lectura original, preferencias e idea diaria por cuenta. La fecha y el gasto se validan en servidor. Dobles clics, reintentos y dos sesiones no duplican gasto. Volver a entrar recupera el repaso; completarlo exige todas las cartas, incluidas las hijas.
 
-La cuenta nueva empieza limpia. El progreso de la antigua prueba anónima se conserva en el navegador, sin borrarlo ni importarlo como verificado. Solo el idioma sigue escribiéndose localmente.
+La cuenta nueva empieza limpia. El progreso de la antigua prueba anónima se conserva en el navegador, sin borrarlo ni importarlo como verificado. El idioma sigue escribiéndose localmente. Sin sesión, también se conserva la preferencia de títulos originales en el navegador; con sesión se usa la preferencia de la cuenta.
 
 Esta entrega no publica la app. Para otro dispositivo hace falta un servidor accesible; antes de publicar faltan recuperación de contraseña, operación y revisión de contenido. Producción exige HTTPS y `REED_ORIGIN`. Ver ../docs/architecture/ACCOUNTS.md y ../docs/DEPLOYMENT.md.
 

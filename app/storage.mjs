@@ -1,4 +1,5 @@
 export const storageKeys = {
+  originalTitles: "leaf-reader:original-titles:v1",
   language: "leaf-reader:language:v1",
   daily: "leaf-reader:daily:v2",
   preferences: "leaf-reader:daily-preferences:v2",

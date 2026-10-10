@@ -25,8 +25,9 @@ async function stateInside(db,session,now) {
       currentId:position?.card_id||unlocks.at(-1)?.card_id||null,completed:!!row.completed_at};
   }
   const savedSources=new Set((await db.prepare("SELECT source FROM reader_filters WHERE user_id = ?").all(userId)).map(r=>r.source));
+  const display=await db.prepare("SELECT show_original_titles FROM reader_display_preferences WHERE user_id = ?").get(userId);
   const idea=await db.prepare("SELECT d.local_day,c.id,c.book_id FROM daily_ideas d JOIN cards c ON c.id=d.card_id WHERE d.user_id = ? AND d.local_day = ?").get(userId,today);
-  return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,today,wallet,reviews,
+  return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,showOriginalTitles:display?.show_original_titles === 1,today,wallet,reviews,
     statuses:Object.fromEntries((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])),
     enrolledIds:(await db.prepare("SELECT version_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.version_id),
     selections:Object.fromEntries((await db.prepare("SELECT book_id,version_id FROM deck_selections WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.version_id])),
@@ -91,6 +92,11 @@ export async function changePreferences(db,session,input,now=new Date()) {
     if(input.language!==undefined){
       if(!LANGUAGES.includes(input.language)) throw new ApiError(400,"invalidRequest");
       await db.prepare("UPDATE accounts SET language = ? WHERE user_id = ?").run(input.language,session.user_id);
+    }
+    if(input.showOriginalTitles!==undefined){
+      if(typeof input.showOriginalTitles!=="boolean") throw new ApiError(400,"invalidRequest");
+      await db.prepare("INSERT INTO reader_display_preferences VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET show_original_titles=excluded.show_original_titles")
+        .run(session.user_id,input.showOriginalTitles ? 1 : 0);
     }
     if(input.preferences!==undefined){
       const {filters,genres}=input.preferences||{};

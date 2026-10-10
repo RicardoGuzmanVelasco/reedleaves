@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 3));
-INSERT INTO reed_schema VALUES (3);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 4));
+INSERT INTO reed_schema VALUES (4);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -46,6 +46,10 @@ ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);
 CREATE TABLE accounts(
   user_id TEXT PRIMARY KEY REFERENCES users(id), username TEXT NOT NULL UNIQUE CHECK(length(username) BETWEEN 3 AND 32),
   password_hash TEXT NOT NULL, time_zone TEXT NOT NULL, language TEXT NOT NULL CHECK(language IN ('es','en','fr'))
+);
+CREATE TABLE reader_display_preferences (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  show_original_titles INTEGER NOT NULL CHECK(show_original_titles IN (0,1))
 );
 CREATE TABLE sessions(
   token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,

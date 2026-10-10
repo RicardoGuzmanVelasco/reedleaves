@@ -78,7 +78,14 @@ export async function transaction(db, callback) {
 export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
-  if (version === 11) return;
+  if (version === 12) return;
+  if (version === 11) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec("CREATE TABLE reader_display_preferences (user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE, show_original_titles INTEGER NOT NULL CHECK(show_original_titles IN (0,1))) STRICT; PRAGMA user_version=12; COMMIT;");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return;
+  }
   if (version === 9) {
     const schema = readFileSync(new URL("./schema.sql", import.meta.url),"utf8");
     db.exec("BEGIN IMMEDIATE");
@@ -107,7 +114,7 @@ export function initializeDatabase(db) {
       db.exec("PRAGMA user_version=11; COMMIT;");
     } catch(error) { db.exec("ROLLBACK"); throw error; }
     finally { db.exec("PRAGMA foreign_keys=ON;"); }
-    return;
+    return initializeDatabase(db);
   }
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all();
   if (tables.length) throw new Error("Outdated development database. Back it up, then use a fresh database file; no migrations.");
@@ -120,19 +127,20 @@ async function initializePostgresDatabase(db) {
     const tables = await db.prepare("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'").all();
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
-      if (version?.version === 3) return;
-      if ([1,2].includes(version?.version)) {
+      if (version?.version === 4) return;
+      if ([1,2,3].includes(version?.version)) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
           const current=(await db.prepare("SELECT version FROM reed_schema").get()).version;
-          if (current === 3) return;
+          if (current === 4) return;
           if (current === 1) {
             await db.exec("ALTER TABLE cards ADD COLUMN is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1));");
             const schema = readFileSync(new URL("./schema.postgres.sql", import.meta.url),"utf8");
             await db.exec(schema.slice(schema.indexOf("CREATE FUNCTION reed_check_unlock"),schema.indexOf("CREATE TRIGGER spend_unlock_leaf")).replace("CREATE FUNCTION","CREATE OR REPLACE FUNCTION"));
           }
-          await db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id); ALTER TABLE cards ALTER COLUMN source_id DROP NOT NULL;");
-          await db.exec("ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=3; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=3);");
+          if (current < 3) await db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id); ALTER TABLE cards ALTER COLUMN source_id DROP NOT NULL;");
+          await db.exec("CREATE TABLE reader_display_preferences (user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE, show_original_titles INTEGER NOT NULL CHECK(show_original_titles IN (0,1)));");
+          await db.exec("ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=4; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=4);");
         });
         return;
       }
