@@ -11,7 +11,7 @@ export const COOKIE_NAME = "reedleaves_session";
 const digest = value => createHash("sha256").update(value).digest("hex");
 const usernameOf = value => typeof value === "string" ? value.trim().toLowerCase() : "";
 const validUsername = value => /^[a-z0-9][a-z0-9._-]{2,31}$/.test(value);
-const validPassword = value => typeof value === "string" && [...value].length >= 15 && [...value].length <= 128 && Buffer.byteLength(value) <= 512;
+const validPassword = value => typeof value === "string" && [...value].length >= 8 && [...value].length <= 128 && Buffer.byteLength(value) <= 512;
 let activeHashes = 0;
 async function hash(password,salt) {
   if (activeHashes >= 2) throw new ApiError(429,"tryLater");

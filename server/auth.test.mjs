@@ -80,7 +80,8 @@ test("Origin, CSRF, malformed bodies and wrong methods are rejected without writ
 });
 test("Passwords, usernames and fixed account zones are validated; bad login is generic and throttled",async t=>{
   const {call,register,db} = await fixture(t);
-  for (const input of [{username:"x",password},{username:"reader x",password},{username:"reader.valid",password:"short"},{username:"reader.valid",password,timeZone:"Not/AZone"}]) assert.equal((await call("/api/auth/register",input)).status,400);
+  for (const input of [{username:"x",password},{username:"reader x",password},{username:"reader.valid",password:"short"},{username:"reader.valid",password:"1234567"},{username:"reader.valid",password,timeZone:"Not/AZone"}]) assert.equal((await call("/api/auth/register",input)).status,400);
+  assert.equal((await call("/api/auth/register",{username:"reader.eight",password:"12345678"})).status,200);
   await register("reader.valid");
   assert.equal((await call("/api/auth/register",{username:"READER.VALID",password})).status,409);
   const wrong = await call("/api/auth/login",{username:"reader.valid",password:"wrong but long enough"});

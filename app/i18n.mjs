@@ -1,7 +1,7 @@
 export const words = {
   es: {
     account:"Cuenta", signIn:"Entrar", signUp:"Crear cuenta", username:"Usuario", password:"Contraseña", signOut:"Cerrar sesión",
-    accountIntro:"Tus libros, estés donde estés.", usernameHint:"3–32 letras, números, puntos, guiones o guiones bajos.", passwordHint:"Entre 15 y 128 caracteres. Puedes usar una frase.",
+    usernameHint:"3–32 letras, números, puntos, guiones o guiones bajos.", passwordHint:"8–128 caracteres.",
     switchToSignUp:"¿Primera vez? Crear cuenta", switchToSignIn:"Ya tengo cuenta", exploreBooks:"Ver libros",
     localProgressNote:"La cuenta empieza de cero. Tu progreso de prueba sigue guardado en este navegador.", inviteCode:"Clave de invitación", invalidInvitation:"La clave de invitación no es correcta.",
     signInRequired:"Entra para guardar tu repaso.", invalidCredentials:"Revisa el usuario y la contraseña.", usernameTaken:"Ese usuario ya está ocupado.",
@@ -49,7 +49,7 @@ export const words = {
   },
   en: {
     account:"Account", signIn:"Sign in", signUp:"Create account", username:"Username", password:"Password", signOut:"Sign out",
-    accountIntro:"Your books, wherever you are.", usernameHint:"3–32 letters, numbers, dots, hyphens or underscores.", passwordHint:"15–128 characters. You can use a phrase.",
+    usernameHint:"3–32 letters, numbers, dots, hyphens or underscores.", passwordHint:"8–128 characters.",
     switchToSignUp:"First time? Create account", switchToSignIn:"I already have an account", exploreBooks:"Browse books",
     localProgressNote:"Your account starts fresh. Your trial progress is still saved in this browser.", inviteCode:"Invitation code", invalidInvitation:"That invitation code is not valid.",
     signInRequired:"Sign in to save your review.", invalidCredentials:"Check your username and password.", usernameTaken:"That username is already taken.",
@@ -97,7 +97,7 @@ export const words = {
   },
   fr: {
     account:"Compte", signIn:"Se connecter", signUp:"Créer un compte", username:"Nom d’utilisateur", password:"Mot de passe", signOut:"Se déconnecter",
-    accountIntro:"Tes livres, où que tu sois.", usernameHint:"3–32 lettres, chiffres, points, tirets ou tirets bas.", passwordHint:"15–128 caractères. Tu peux utiliser une phrase.",
+    usernameHint:"3–32 lettres, chiffres, points, tirets ou tirets bas.", passwordHint:"8–128 caractères.",
     switchToSignUp:"Première visite ? Créer un compte", switchToSignIn:"J’ai déjà un compte", exploreBooks:"Voir les livres",
     localProgressNote:"Ton compte commence à zéro. Ta progression d’essai reste enregistrée dans ce navigateur.", inviteCode:"Code d’invitation", invalidInvitation:"Ce code d’invitation n’est pas valide.",
     signInRequired:"Connecte-toi pour enregistrer ta révision.", invalidCredentials:"Vérifie ton nom d’utilisateur et ton mot de passe.", usernameTaken:"Ce nom d’utilisateur est déjà pris.",
