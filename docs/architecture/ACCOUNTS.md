@@ -5,7 +5,7 @@ Estado: implementado para la prueba interna. Usuario y contraseña, sin correo n
 ## Identidad y sesión
 
 - Usuario único, sin distinguir mayúsculas, de 3 a 32 caracteres ASCII.
-- Contraseña de 15 a 128 caracteres; admite espacios y frases. No se guarda en claro.
+- Contraseña de 8 a 128 caracteres; admite espacios y frases. No se guarda en claro.
 - Hash `scrypt` con sal aleatoria por contraseña: N=131072, r=8, p=1. Máximo dos cálculos simultáneos.
 - Sesión aleatoria de 256 bits, válida siete días. La base activa conserva su hash; el navegador recibe una cookie `HttpOnly`, `SameSite=Strict`, sin acceso desde JavaScript.
 - En HTTPS la cookie añade `Secure`. Entrar rota la sesión de ese navegador; cerrar sesión revoca solo esa sesión, no los otros dispositivos.
