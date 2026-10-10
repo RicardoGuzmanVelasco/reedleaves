@@ -11,7 +11,7 @@ import {readCatalog} from "./catalog-repository.mjs";
 import {readReaderState,selectDeck,openCard,dailyIdea} from "./reader-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
 import {treeFrontier,restoreTreeReview} from "../app/decks.mjs";
-import {authorView,authorFormView,reviewView} from "../app/views.mjs";
+import {authorView,authorFormView,reviewView,dailyView} from "../app/views.mjs";
 
 async function fixture(t,dialect) {
   let db;
@@ -43,6 +43,8 @@ for (const dialect of ["sqlite","postgres"]) {
     const root=await addCard(db,session,add("Principe"));
     const quoteInput=add("",null,true),quote=await addCard(db,session,quoteInput);
     assert.equal((await addCard(db,session,quoteInput)).cardId,quote.cardId);
+    await db.prepare("UPDATE card_translations SET title=? WHERE card_id=?").run("Legacy quote heading",quote.cardId);
+    assert.equal((await addCard(db,session,quoteInput)).cardId,quote.cardId);
     const secondRoot=await addCard(db,session,add("Autre principe"));
     const childQuote=await addCard(db,session,add("Citation liée",root.cardId,true));
     await assert.rejects(addCard(db,session,add("x","habit-1")),e=>e.code==="invalidParent");
@@ -70,9 +72,19 @@ for (const dialect of ["sqlite","postgres"]) {
     await assert.rejects(addCard(db,session,{...add("x"),versionId:"seven-habits-editorial-v1"}),e=>e.status===404);
     const ui={catalog,versionId,bookId:"seven-habits",language:"es",userId:session.user_id,reviews:{[versionId]:review},mode:"author",requestedId:quote.cardId,budget:state.wallet,today:state.today,storageAvailable:true};
     assert.match(authorView(ui),/Quotes sin clasificar/); assert.match(authorView(ui),/<blockquote/);
-    assert.match(authorView(ui),/quote-card/); assert.match(authorView({...ui,quotesOnly:true}),/Citation liée/);
+    assert.match(authorView(ui),/quote-card/); assert.match(authorView({...ui,quotesOnly:true}),/Texte à mémoriser/);
     assert.match(authorFormView({...ui,authorForm:{kind:"quote",language:"fr"}}),/Quotes sin clasificar/);
     assert.match(reviewView({...ui,mode:"review"}),/Quotes sin clasificar/);
+    // Existing saved titles must not reappear in quote views or navigation.
+    model.byId.get(quote.cardId).title.fr = "Ancien titre";
+    for (const html of [authorView(ui),reviewView({...ui,mode:"review"}),dailyView({...ui,daily:{id:quote.cardId},preferences:state.preferences})]) {
+      const quoteMarkup=html.match(/<article class="idea-card quote-card">[\s\S]*?<\/article>/)?.[0];
+      assert.ok(quoteMarkup); assert.doesNotMatch(quoteMarkup,/<h[1-6]\b/);
+      assert.doesNotMatch(html,/Ancien titre/);
+    }
+    const quoteForm=authorFormView({...ui,authorForm:{kind:"quote",language:"fr"}});
+    assert.doesNotMatch(quoteForm,/name="title"/);
+    assert.match(authorFormView({...ui,authorForm:{kind:"card",language:"fr"}}),/name="title"/);
   });
 }
 

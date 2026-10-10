@@ -58,7 +58,7 @@ La estructura sigue siendo plana, textual y portable. Las cuentas pueden crear b
 - Entrada: «Crear baraja» en las barajas de un libro existente. Nombre, enfoque opcional e idioma propio; no cambiar el idioma del contenido al cambiar la interfaz.
 - La baraja nueva es personal, editable y visible solo para su dueño. Aparece en Inicio aunque esté vacía. No implementar publicación, edición de cartas existentes, borrado ni reordenación en este caso de uso.
 - «Añadir contenido» abre la baraja propia. Se ven todas sus cartas sin gastar hojas; «Repasar» mantiene el monedero y el progreso habitual.
-- «Añadir tarjeta» exige título y texto. «Añadir quote» exige el texto y permite título opcional; sin título, usar un fragmento del texto para identificarla.
+- «Añadir tarjeta» exige título y texto. «Añadir quote» solo pide el texto y el padre. No tiene encabezado. Usar un fragmento del texto para identificarla en el árbol y en la selección de padre.
 - Ambos formularios permiten elegir padre entre las cartas de la misma baraja. Las tarjetas pueden ir en el nivel principal. Las quotes sin padre se muestran dentro de «Quotes sin clasificar».
 - El grupo sin clasificar no cuenta como carta, no se desbloquea ni consume hojas. Sus quotes siguen un orden propio, independiente de las tarjetas principales. Las quotes con padre siguen las mismas reglas de sus hermanas.
 - «Todas / Solo quotes» filtra la autoría y el repaso. Conservar los padres como contexto sin convertirlos en resultados del filtro ni revelar títulos bloqueados.

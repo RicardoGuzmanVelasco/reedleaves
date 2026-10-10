@@ -80,8 +80,8 @@ export function startReader() {
       dialog.addEventListener("click",event=>{ if (event.target === dialog) close(); });
     }
     lockControls(); animateMascot = false;
-    if (focus) { main.querySelector("h1")?.focus({preventScroll:true});
-      if (mode === "review" && requestedId && scrollToCard) main.querySelector("#idea-title")?.scrollIntoView({block:"start"}); else window.scrollTo({top:0}); }
+    if (focus) { main.querySelector(mode === "review" && requestedId ? "#idea-content" : "h1")?.focus({preventScroll:true});
+      if (mode === "review" && requestedId && scrollToCard) main.querySelector("#idea-content")?.scrollIntoView({block:"start"}); else window.scrollTo({top:0}); }
     scrollToCard = false;
   }
   function route(focus = true) {
@@ -224,7 +224,7 @@ export function startReader() {
       case "add-quote": openAuthorForm("quote"); break;
       case "cancel-author": closeAuthorForm(); break;
       case "author-deck": authorForm = null; quotesOnly = false; navigate("#author/"+b.dataset.version); break;
-      case "inspect-card": requestedId = b.dataset.card; history.replaceState(null,"","#author/"+versionId+"/"+requestedId); render(); main.querySelector("#idea-title")?.scrollIntoView({block:"start"}); break;
+      case "inspect-card": requestedId = b.dataset.card; history.replaceState(null,"","#author/"+versionId+"/"+requestedId); render(); main.querySelector("#idea-content")?.scrollIntoView({block:"start"}); break;
       case "filter-all": quotesOnly = false; render(); main.querySelector('[data-action="filter-all"]')?.focus(); break;
       case "filter-quotes": quotesOnly = true; render(); main.querySelector('[data-action="filter-quotes"]')?.focus(); break;
       case "clear-book-search": libraryQuery = ""; main.querySelector("#book-search").value = ""; updateBookSearch(); main.querySelector("#book-search").focus(); break;

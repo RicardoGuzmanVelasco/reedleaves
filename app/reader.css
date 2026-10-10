@@ -156,6 +156,8 @@
 .virtual-quotes-title{display:block;padding:14px 12px;border:1.5px dashed #b88f62;border-radius:13px;background:#fff0e3;font-size:12px;font-weight:800}.mini-tree .virtual-quotes>ul{border-color:#b88f62}
 .tree-node--quote:not(.tree-node--locked){background:#ffe9d6;border-color:#b88f62;box-shadow:0 2px 0 #d8b797}.tree-node--quote .tree-node-name::before{content:"❝ ";font-family:Georgia,serif;font-size:18px}
 .quote-card{background:#fff0e3;border-color:#b88f62;box-shadow:0 6px 0 #dfc09e}.quote-card::before{content:"❝";width:auto;height:auto;background:none;color:#b88f62;top:13px;left:auto;right:23px;font:64px/1 Georgia,serif}
-.quote-card h1,.quote-card h2{padding-right:30px}.quote-card blockquote{margin:0;white-space:pre-wrap;font-family:Georgia,"Times New Roman",serif;font-size:24px;line-height:1.6}.idea-body{white-space:pre-wrap;overflow-wrap:anywhere}.idea-card h1,.idea-card h2{overflow-wrap:anywhere}
+.quote-card{padding-top:64px}.quote-card blockquote{margin:0;white-space:pre-wrap;font-family:Georgia,"Times New Roman",serif;font-size:24px;line-height:1.6}.idea-body{white-space:pre-wrap;overflow-wrap:anywhere}.idea-card h1,.idea-card h2{overflow-wrap:anywhere}
 @media(max-width:520px){.author-screen>h1{font-size:27px}.author-actions{gap:12px}.author-actions .primary,.author-actions .secondary{flex:1;padding:12px 14px;font-size:12px}.quote-card blockquote{font-size:21px}.author-form select{max-width:100%}}
 .quote-context{padding:7px 12px;font-size:11px;color:var(--muted);overflow-wrap:anywhere}.tree-node--author{background:#fffdf6}
+
+#idea-content:focus{outline:none}

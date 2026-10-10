@@ -1,6 +1,6 @@
 import {transaction,isPostgres} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
-import {isCanonicalLocale} from "../app/core.mjs";
+import {isCanonicalLocale,quoteExcerpt} from "../app/core.mjs";
 
 function text(value,max,required=true) {
   if (typeof value !== "string" || value.trim().length > max || required && !value.trim()) throw new ApiError(400,"invalidRequest");
@@ -33,7 +33,7 @@ export async function createDeck(db,session,input) {
 export async function addCard(db,session,input) {
   const id=requestId(input.requestId),body=text(input.body,4000);
   if (typeof input.isQuote !== "boolean" || typeof input.versionId !== "string" || input.parentId !== null && typeof input.parentId !== "string") throw new ApiError(400,"invalidRequest");
-  const title=text(input.title ?? "",160,!input.isQuote) || body.slice(0,80);
+  const title=input.isQuote ? quoteExcerpt(body) : text(input.title,160);
   return transaction(db,async()=>{
     // Serializes sibling allocation against other author sessions in PostgreSQL.
     const version=await db.prepare(`SELECT v.*,d.creator_user_id,d.language FROM deck_versions v JOIN decks d ON d.id=v.deck_id WHERE v.id=?${isPostgres(db) ? " FOR UPDATE OF v" : ""}`).get(input.versionId);
@@ -42,7 +42,7 @@ export async function addCard(db,session,input) {
     const previous=await db.prepare("SELECT * FROM cards WHERE id=?").get(id);
     if (previous) {
       const saved = await db.prepare("SELECT title,body FROM card_translations WHERE card_id=? AND language=?").get(id,version.language);
-      if (previous.version_id !== version.id || previous.parent_id !== input.parentId || !!previous.is_quote !== input.isQuote || saved?.title !== title || saved?.body !== body) throw new ApiError(409,"invalidRequest");
+      if (previous.version_id !== version.id || previous.parent_id !== input.parentId || !!previous.is_quote !== input.isQuote || (!input.isQuote && saved?.title !== title) || saved?.body !== body) throw new ApiError(409,"invalidRequest");
       return {versionId:version.id,cardId:id};
     }
     if (input.parentId !== null && !await db.prepare("SELECT 1 FROM cards WHERE id=? AND version_id=?").get(input.parentId,version.id)) throw new ApiError(400,"invalidParent");

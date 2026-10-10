@@ -18,6 +18,11 @@ export function contentText(translations, interfaceLanguage, deckLanguage = inte
     entries[0]?.[1] || "";
 }
 
+export function quoteExcerpt(body) {
+  const characters = Array.from(body.trim().replace(/\s+/g," "));
+  return characters.length > 80 ? characters.slice(0,77).join("") + "…" : characters.join("");
+}
+
 export function contentLocale(translations, interfaceLanguage, deckLanguage = interfaceLanguage) {
   const entries = Object.entries(translations || {}).filter(([,text]) => typeof text === "string" && text.trim());
   if (translations?.[interfaceLanguage]) return interfaceLanguage;

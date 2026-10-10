@@ -1,6 +1,6 @@
 import { accessibleCard, canAdvance } from "./rhythm.mjs";
 import { reviewedCard, treeFrontier, hasLeaf, studyingDecks, availableVersions } from "./decks.mjs";
-import { contentText, contentLocale } from "./core.mjs";
+import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import { words } from "./i18n.mjs";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterBooks } from "./book-search.mjs";
@@ -105,7 +105,7 @@ function cardMarkup(s, card, heading = "h2") {
   const c = words[s.language], book = s.catalog.booksById.get(card.bookId), deckLanguage = card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
-  return `<article class="idea-card${card.isQuote ? " quote-card" : ""}"><${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-title" tabindex="-1">${esc(title)}</${heading}>${card.isQuote ? `<blockquote lang="${esc(bodyLanguage)}" dir="auto" class="idea-body">${esc(body)}</blockquote>` : `<p lang="${esc(bodyLanguage)}" dir="auto" class="idea-body">${esc(body)}</p>`}
+  return `<article class="idea-card${card.isQuote ? " quote-card" : ""}">${card.isQuote ? `<blockquote lang="${esc(bodyLanguage)}" dir="auto" class="idea-body" id="idea-content" tabindex="-1">${esc(body)}</blockquote>` : `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-content" tabindex="-1">${esc(title)}</${heading}><p lang="${esc(bodyLanguage)}" dir="auto" class="idea-body">${esc(body)}</p>`}
     <div class="card-source"><a href="${esc(safeUrl(card.sourceUrl))}" target="_blank" rel="noopener noreferrer" aria-label="${c.source}: ${esc(book.title[s.language])}">${esc(book.shortTitle[s.language])} · ${esc(book.author)} ↗</a></div></article>`;
 }
 
@@ -194,10 +194,10 @@ function treeMapMarkup(s,model,review,version,leaf,compact=false) {
   const node = card => {
     const reviewed = author || seen.has(card.id), next = frontier.has(card.id), locked = !reviewed && !next;
     const canOpen = reviewed || next && leaf;
-    const title = contentText(card.title,s.language,version.language);
+    const title = card.isQuote ? quoteExcerpt(contentText(card.body,s.language,version.language)) : contentText(card.title,s.language,version.language);
     const state = reviewed ? c.treeSeen : next ? leaf ? c.treeNextToday : c.treeNextLater : c.treeLocked;
     const mark = author ? "" : reviewed ? `<span class="tree-node-check" aria-hidden="true">✓</span>` : next ? `<span class="tree-node-cost"><img src="../brand/reed/leaf-token.svg" alt=""><span class="sr-only">${c.leafCost}</span></span>` : `<span class="tree-node-lock">${lock}</span>`;
-    const name = locked ? `<span class="tree-node-hidden" aria-hidden="true"><i></i><i></i></span><span class="sr-only">${c.treeLocked}</span>` : `<span class="tree-node-name" lang="${esc(contentLocale(card.title,s.language,version.language))}" dir="auto">${esc(title)}</span>`;
+    const name = locked ? `<span class="tree-node-hidden" aria-hidden="true"><i></i><i></i></span><span class="sr-only">${c.treeLocked}</span>` : `<span class="tree-node-name" lang="${esc(contentLocale(card.isQuote ? card.body : card.title,s.language,version.language))}" dir="auto">${esc(title)}</span>`;
     const accessibleName = author ? title : locked ? c.treeLocked : `${title}. ${state}`;
     const children = (model.children.get(card.id) || []).filter(c=>!s.quotesOnly || containsQuote(c));
     if (s.quotesOnly && !card.isQuote) return `<li><span class="quote-context">${name}</span>${children.length ? `<ul>${children.map(node).join("")}</ul>` : ""}</li>`;
@@ -224,7 +224,7 @@ export function reviewView(s) {
   const map = `<div class="content-tools">${quoteFilter(s)}${s.userId === deck.creator.userId && version.status === "draft" ? `<button class="text-button" type="button" data-action="author-deck" data-version="${esc(version.id)}">${c.editDeck} →</button>` : ""}</div>` + treeMapMarkup(s,model,review,version,leaf);
   if (!card) return `<section class="review-screen">${head}${attribution}
     <div class="review-start"><p class="small-book">${esc(s.catalog.booksById.get(s.bookId).shortTitle[s.language])}</p><h1 tabindex="-1" lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h1><p>${c.emptyReview}</p></div>${map}</section>`;
-  return `<section class="review-screen">${head}${attribution}${map}
+  return `<section class="review-screen">${head}${card.isQuote ? `<h1 class="sr-only" tabindex="-1">${c.review}</h1>` : ""}${attribution}${map}
     ${!s.quotesOnly || card.isQuote ? cardMarkup(s,card,"h1") : ""}<p class="review-progress">${c.progress(review.seenIds.length,model.cards.length)}</p>
     ${finished ? `<p class="complete-note">${c.complete}</p>` : !leaf ? `<p class="limit-note daily-limit" id="daily-limit">${c.tomorrow}</p>` : ""}
     <img class="review-mascot ${s.animateMascot ? "celebrate" : ""}" src="../brand/reed/mascot.svg" width="65" height="65" alt=""></section>`;
@@ -251,11 +251,11 @@ export function authorFormView(s) {
   const field=(name,label,value,max,required,area=false)=>`<label for="author-${name}">${label}</label>${area ? `<textarea id="author-${name}" name="${name}" rows="${name === "body" ? 6 : 3}" maxlength="${max}" ${required ? "required" : ""}>${esc(value || "")}</textarea>` : `<input id="author-${name}" name="${name}" value="${esc(value || "")}" maxlength="${max}" ${required ? "required" : ""}>`}`;
   const options=[];
   function walk(cards,depth=0) {
-    for (const card of cards) { options.push(`<option value="${esc(card.id)}" ${f.parentId === card.id ? "selected" : ""}>${esc("— ".repeat(depth)+contentText(card.title,s.language,version.language))}</option>`); walk(model.children.get(card.id) || [],depth+1); }
+    for (const card of cards) { options.push(`<option value="${esc(card.id)}" ${f.parentId === card.id ? "selected" : ""}>${esc("— ".repeat(depth)+(card.isQuote ? quoteExcerpt(contentText(card.body,s.language,version.language)) : contentText(card.title,s.language,version.language)))}</option>`); walk(model.children.get(card.id) || [],depth+1); }
   }
   if (!deck) walk(model.roots);
   return `<dialog class="deck-modal author-modal" aria-labelledby="author-dialog-title"><article class="deck-card"><h2 id="author-dialog-title">${deck ? c.createDeck : quote ? c.addQuote : c.addCard}</h2><form class="author-form" data-author-form>
-    ${field("title",deck ? c.deckTitle : quote ? c.quoteTitle : c.cardTitle,f.title,160,!quote)}
+    ${quote ? "" : field("title",deck ? c.deckTitle : c.cardTitle,f.title,160,true)}
     ${deck ? `${field("description",c.deckDescription,f.description,1000,false,true)}<label for="author-language">${c.deckLanguage}</label><input id="author-language" name="language" value="${esc(f.language)}" maxlength="35" required list="author-languages"><datalist id="author-languages"><option value="es"><option value="en"><option value="fr"></datalist>` : `${field("body",quote ? c.quoteBody : c.cardBody,f.body,4000,true,true)}<label for="author-parentId">${c.parentCard}</label><select id="author-parentId" name="parentId"><option value="" ${!f.parentId ? "selected" : ""}>${quote ? c.unclassifiedQuotes : c.rootCard}</option>${options.join("")}</select>`}
     <p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}</p><div class="form-actions"><button class="text-button" type="button" data-action="cancel-author">${c.cancel}</button><button class="primary" type="submit">${deck ? c.createDeck : c.save}</button></div>
   </form></article></dialog>`;
