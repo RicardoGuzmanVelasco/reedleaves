@@ -30,6 +30,16 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   assert.match(app.headers.get("content-security-policy"), /script-src 'self'/);
   assert.match((await fetch(base + "/app/reader.mjs")).headers.get("content-type"), /javascript/);
   assert.equal((await fetch(base + "/brand/reed/d-compacto.svg")).status, 200);
+  const favicon = await fetch(base + "/favicon.ico");
+  assert.equal(favicon.status, 200);
+  assert.match(favicon.headers.get("content-type"), /image\/x-icon/);
+  const iconBytes = Buffer.from(await favicon.arrayBuffer());
+  assert.equal(iconBytes.readUInt16LE(2), 1);
+  assert.equal(iconBytes.readUInt16LE(4), 3);
+  const faviconHead = await fetch(base + "/favicon.ico", { method: "HEAD" });
+  assert.equal(faviconHead.status, 200);
+  assert.equal(Number(faviconHead.headers.get("content-length")), iconBytes.length);
+  assert.equal(await faviconHead.text(), "");
   for (const path of ["/var/catalog.sqlite", "/content/catalog/books.csv", "/content/books/seven-habits.ndjson", "/server/index.mjs", "/AGENTS.md", "/app/core.test.mjs", "/app/../server/index.mjs", "/app/%2e%2e%2fserver/index.mjs", "/brand/"]) {
     assert.equal((await fetch(base + path)).status, 404, path);
   }
