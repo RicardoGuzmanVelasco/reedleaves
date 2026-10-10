@@ -18,6 +18,29 @@ Render configura `NODE_ENV=production` y proporciona `PORT` y `RENDER_EXTERNAL_U
 
 La primera ejecución crea el esquema e importa el catálogo inicial si la base está vacía. No apuntes una base con datos existentes sin revisar antes ese comportamiento.
 
+## Dominio propio: reedleaves.com
+
+Servicio confirmado en el espacio **RGV**: `reedleaves`, con URL `https://reedleaves-0vgb.onrender.com`.
+
+El dominio principal es **https://reedleaves.com**; `www.reedleaves.com` redirige al principal. El dominio está comprado en Cloudflare, ambos nombres están verificados en Render y HTTPS funciona. `REED_ORIGIN=https://reedleaves.com` está configurado y desplegado.
+
+Estos registros están configurados en Cloudflare, en **DNS > Records**, con proxy **DNS only** y TTL automático:
+
+| Tipo | Nombre | Destino |
+| --- | --- | --- |
+| CNAME | `@` | `reedleaves-0vgb.onrender.com` |
+| CNAME | `www` | `reedleaves-0vgb.onrender.com` |
+
+Para repetir o revisar la configuración:
+
+1. Pulsar **Verify** en los dominios del servicio de Render y esperar a que los certificados estén emitidos.
+2. Definir `REED_ORIGIN=https://reedleaves.com` en **Environment** y desplegar el cambio. No cambiar el origen antes de que el dominio esté operativo: las operaciones POST solo aceptan el origen configurado.
+3. Verificar `https://reedleaves.com/api/health`, la carga de la app, el inicio de sesión y el guardado. Comprobar la redirección de `www`.
+
+Verificación del 11 de octubre de 2026: `/api/health` y `/api/session` responden HTTP 200; `www` devuelve HTTP 301 al dominio principal; la app abre su pantalla de entrada. El inicio de sesión con una cuenta y el guardado no se han probado en esta comprobación. La URL de Render permanece habilitada, pero las operaciones POST solo aceptan el dominio principal configurado en `REED_ORIGIN`.
+
+Referencia: [DNS de Cloudflare en Render](https://render.com/docs/configure-cloudflare-dns).
+
 ## Límites del plan gratuito
 
 Render puede detener el servicio tras 15 minutos sin tráfico; la primera visita posterior puede tardar alrededor de un minuto. El sistema de archivos es temporal, así que la base local SQLite no se debe usar en producción. Reedleaves usa PostgreSQL cuando recibe `DATABASE_URL`.
