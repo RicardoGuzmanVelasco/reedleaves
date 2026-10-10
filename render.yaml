@@ -3,6 +3,7 @@ services:
     name: reedleaves
     runtime: node
     plan: free
+    region: frankfurt
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /api/health
