@@ -61,6 +61,7 @@ La estructura sigue siendo plana, textual y portable. Las cuentas pueden crear b
 - El saldo de hojas es global entre barajas, con máximo de tres. Los días ausentes suman hasta ese límite; los días excedentes no se guardan para después. Revisitar lo ya repasado es gratis. No introducir compras ni recompensas económicas.
 - Cuenta, monedero y repaso se guardan en servidor. Durante una petición no se aceptan nuevos clics; una carta se abre solo después de confirmar el gasto. Fallo de red: mensaje breve y reintento, sin progreso provisional. Las actualizaciones de otra sesión no interrumpen campos ni modales abiertos.
 - No mostrar mapas numéricos de tarjetas, marcas de leído, portadas grandes ni un cierre extra.
+- Las cartas de lectura tienen una altura mínima contenida y crecen con el texto. Las citas añaden comillas de cierre grandes y muy translúcidas en la zona inferior derecha, detrás del contenido; son decorativas, no reciben interacción y se ocultan a lectores de pantalla.
 
 ## Autoría personal para dogfooding
 
