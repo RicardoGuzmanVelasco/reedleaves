@@ -122,6 +122,8 @@ La UI tendrá español, inglés y francés. Los nombres y metadatos de los libro
 
 - Crear libro incluye «Autorellenar con IA». Con el título y, opcionalmente, autor e idioma original, busca información, muestra un spinner y abre la vista previa. No guardar durante la búsqueda. La propuesta incluye traducciones ES/EN/FR y los metadatos respaldados por fuentes; se conservan los valores escritos y se dejan vacíos los desconocidos. Fuentes clicables visibles y detalle plegado. Traducciones plegadas. «Crear libro» guarda; «Editar» vuelve al formulario sin perder la propuesta y permite corregir metadatos en controles plegados. Cancelar descarta el borrador. Errores y reintentos conservan lo escrito. No añadir portadas comerciales ni generar barajas o cartas en este flujo.
 
+- Los libros propios incompletos muestran un icono de interrogación cálido en las portadas de Inicio, Librería y Biblioteca, y junto al autor en la ficha. Falta información cuando faltan títulos completos/cortos o descripciones ES/EN/FR, o intereses. Los enlaces, fuentes y notas son opcionales y no mantienen el aviso. El icono abre «Completar información»: identidad de solo lectura, autorellenado con spinner y la misma vista previa. «Guardar» añade únicamente los datos que faltan al libro existente. Los campos previos no se pueden editar; la propuesta nueva sí. Cancelar vuelve al contexto de origen. No cambia barajas, progreso ni saldo; no permite modificar libros ajenos o editoriales.
+
 - No usar estética de dashboard empresarial.
 - No usar una pared de tarjetas sin jerarquía.
 - No añadir gamificación que no ayude a leer o recordar.

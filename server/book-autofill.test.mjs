@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {once} from "node:events";
+import {randomUUID} from "node:crypto";
 import {createBookAutofill} from "./book-autofill.mjs";
 import {researchResponse,extractionResponse,bookMetadata} from "./fixtures/book-autofill.mjs";
 import {openDatabase,initializeDatabase} from "./database.mjs";
@@ -81,4 +82,46 @@ test("Autofill HTTP requires session, origin and CSRF; preview never creates a b
   while (!release) await new Promise(resolve=>setTimeout(resolve,5));
   assert.equal((await post("/api/auth/logout",{},headers)).status,200);release();
   assert.equal((await pending).status,401);
+});
+
+test("Existing-book HTTP autofill uses stored identity, enforces ownership and preserves changes made during search",async t=>{
+  const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);
+  let calls=0,release;
+  const server=createCatalogServer(db,undefined,{bookAutofill:async(_user,input)=>{
+    calls++;assert.equal(input.title,bookMetadata.originalTitle);assert.equal(input.author,"Autor guardado");assert.equal(input.language,"en");
+    await new Promise(resolve=>{release=resolve;});return {author:"Autor generado",metadata:structuredClone(bookMetadata)};
+  }});
+  server.listen(0,"127.0.0.1");await once(server,"listening");
+  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const post=(path,data,headers={})=>fetch(base+path,{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify(data)});
+  const login=async username=>{
+    const response=await post("/api/auth/register",{username,password:"a local test password"}),state=await response.json();
+    return {Cookie:response.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":state.csrfToken};
+  };
+  const owner=await login("fill.owner"),other=await login("fill.other");
+  const bookId=randomUUID();
+  assert.equal((await post("/api/author/books",{requestId:bookId,title:bookMetadata.originalTitle,author:"Autor guardado",language:"en"},owner)).status,200);
+  const fill={bookId,title:"Identidad manipulada",author:"Otro autor",language:"fr"};
+  const complete={bookId,metadata:bookMetadata};
+  for (const path of ["/api/author/books/autofill","/api/author/books/complete"]) {
+    const body=path.endsWith("autofill") ? fill : complete;
+    assert.equal((await post(path,body,other)).status,404);
+    assert.equal((await post(path,{...body,bookId:"atomic-habits"},owner)).status,404);
+    assert.equal((await post(path,body)).status,401);
+    assert.equal((await post(path,body,{Cookie:owner.Cookie})).status,403);
+    assert.equal((await post(path,body,{...owner,Origin:"https://wrong.example"})).status,403);
+  }
+  assert.equal(calls,0);
+  const pending=post("/api/author/books/autofill",fill,owner);
+  while (!release) await new Promise(resolve=>setTimeout(resolve,5));
+  assert.equal((await db.prepare("SELECT count(*) AS n FROM book_translations WHERE book_id=?").get(bookId)).n,0);
+  const concurrent=structuredClone(complete);concurrent.metadata.description.fr="Ajout depuis une autre session";
+  assert.equal((await post("/api/author/books/complete",concurrent,owner)).status,200);
+  release();const preview=await pending;assert.equal(preview.status,200);
+  const result=await preview.json();assert.equal(result.author,"Autor guardado");assert.equal(result.metadata.description.fr,concurrent.metadata.description.fr);
+  const saved=await post("/api/author/books/complete",{bookId,metadata:result.metadata},owner);assert.equal(saved.status,200);
+  const repeat=await post("/api/author/books/complete",{bookId,metadata:result.metadata},owner);assert.equal(repeat.status,200);
+  assert.equal((await db.prepare("SELECT count(*) AS n FROM books").get()).n,6);
+  assert.equal((await db.prepare("SELECT count(*) AS n FROM sources WHERE book_id=?").get(bookId)).n,2);
 });

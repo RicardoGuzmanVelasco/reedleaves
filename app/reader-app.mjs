@@ -7,6 +7,7 @@ import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs";
 import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,deckView,reviewView,mascotsView,authorView,authorFormView,loadingView,accountView,escapeHtml} from "./views.mjs";
 import {bookshelfDefaults} from "./bookshelf.mjs";
+import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterBooks} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
 
@@ -85,7 +86,7 @@ export function startReader() {
     const dialog = main.querySelector(".deck-modal");
     if (dialog) {
       dialog.showModal(); const close = ()=>dialog.classList.contains("author-modal") ? closeAuthorForm() : dialog.dataset.book ? closeBookDetails(dialog.dataset.book) : closeDeck(dialog.dataset.version);
-      if (authorForm) dialog.querySelector(authorForm.preview ? "#author-dialog-title" : "input,textarea")?.focus();
+      if (authorForm) dialog.querySelector(authorForm.preview ? "#author-dialog-title" : authorForm.bookId ? '[data-action="autofill-book"]' : "input,textarea")?.focus();
       dialog.addEventListener("cancel",event=>{ event.preventDefault(); close(); });
       dialog.addEventListener("click",event=>{ if (event.target === dialog) close(); });
     }
@@ -152,26 +153,51 @@ export function startReader() {
     const cardId=requestedId;
     history.replaceState({bookOrigin,libraryOrigin},"","#"+mode+"/"+versionId); route(false); restoreAlbumPosition(cardId);
   }
-  function closeAuthorForm() { if (busy) return; const action = authorForm?.kind === "book" ? "create-book" : authorForm?.kind === "deck" ? "create-deck" : authorForm?.kind === "quote" ? "add-quote" : "add-card"; authorForm = null; render(); main.querySelector(`[data-action="${action}"]`)?.focus(); }
+  function closeAuthorForm() {
+    if (busy) return;
+    const form=authorForm,action=form?.kind === "book" ? "create-book" : form?.kind === "deck" ? "create-deck" : form?.kind === "quote" ? "add-quote" : "add-card";
+    authorForm=null;
+    if (form?.bookId && form.returnBookDetails) openBookId=form.bookId;
+    render();
+    if (form?.bookId) {
+      const buttons=[...main.querySelectorAll('[data-action="complete-book"]')].filter(button=>button.dataset.book === form.bookId);
+      (buttons.find(button=>button.closest("dialog")) || buttons[0])?.focus();
+    } else main.querySelector(`[data-action="${action}"]`)?.focus();
+  }
   function openAuthorForm(kind) {
     if (!snapshot.user) return;
     authorForm = {kind,requestId:crypto.randomUUID(),title:kind === "book" ? libraryQuery : "",author:"",body:"",description:"",language:kind === "book" ? "" : kind === "deck" ? catalog.booksById.get(bookId)?.originalLanguage || language : language,parentId:kind === "quote" ? null : requestedId || null};
     openDeckId = null; openBookId = null; render();
   }
+  function openBookCompletion(id) {
+    const book=catalog.booksById.get(id);
+    if (!snapshot.user || book?.creatorUserId !== snapshot.user.id || !missingBookInformation(book).length) return;
+    const metadata=normalizeBookMetadata(book,{completeTranslations:false});
+    authorForm={kind:"book",bookId:id,requestId:crypto.randomUUID(),title:book.originalTitle,author:book.author,language:book.originalLanguage,
+      metadata,originalMetadata:structuredClone(metadata),returnBookDetails:openBookId === id};
+    openBookId=null; openDeckId=null; render();
+  }
   async function saveAuthorForm(form) {
     if (busy || !authorForm) return;
+    if (authorForm.bookId && !authorForm.hasProposal) return;
     const fields = Object.fromEntries([...new FormData(form)].filter(([key])=>!key.startsWith("metadata."))); Object.assign(authorForm,fields);
     const savedForm = authorForm;
-    const input = savedForm.kind === "book" ? {title:savedForm.title,author:savedForm.author,language:savedForm.language,metadata:savedForm.metadata,requestId:savedForm.requestId} : savedForm.kind === "deck" ? {...fields,requestId:savedForm.requestId,bookId} : {...fields,requestId:savedForm.requestId,versionId,parentId:fields.parentId || null,isQuote:savedForm.kind === "quote"};
+    const input = savedForm.bookId ? {bookId:savedForm.bookId,metadata:savedForm.metadata} : savedForm.kind === "book" ? {title:savedForm.title,author:savedForm.author,language:savedForm.language,metadata:savedForm.metadata,requestId:savedForm.requestId} : savedForm.kind === "deck" ? {...fields,requestId:savedForm.requestId,bookId} : {...fields,requestId:savedForm.requestId,versionId,parentId:fields.parentId || null,isQuote:savedForm.kind === "quote"};
     busy = true; syncGeneration++; savedForm.error = null; lockControls();
     try {
-      const result = await api.request(savedForm.kind === "book" ? "/api/author/books" : savedForm.kind === "deck" ? "/api/author/decks" : "/api/author/cards",input);
+      const result = await api.request(savedForm.bookId ? "/api/author/books/complete" : savedForm.kind === "book" ? "/api/author/books" : savedForm.kind === "deck" ? "/api/author/decks" : "/api/author/cards",input);
       catalog = await loadCatalog(); applyState(result.state); authorForm = null; live.textContent = words[language].saved;
       busy = false;
-      if (savedForm.kind === "book") { libraryQuery = ""; bookOrigin = "library"; navigate("#book/"+result.bookId); }
+      if (savedForm.bookId) {
+        if (["library","bookshelf"].includes(mode)) openBookId=result.bookId;
+      }
+      else if (savedForm.kind === "book") { libraryQuery = ""; bookOrigin = "library"; navigate("#book/"+result.bookId); }
       else { if (savedForm.kind === "card") quotesOnly = false; navigate("#author/"+result.versionId); }
     } catch(error) { savedForm.error = error.code || "connectionError"; }
-    finally { busy = false; render({focus:!authorForm}); }
+    finally {
+      busy = false; render({focus:!authorForm});
+      if (savedForm.bookId && !authorForm && !openBookId) [...main.querySelectorAll('[data-action="resume-book"]')].find(button=>button.dataset.book === savedForm.bookId)?.focus();
+    }
   }
   async function autofillBook(form) {
     if (busy || authorForm?.kind !== "book") return;
@@ -181,10 +207,10 @@ export function startReader() {
     busy=true; syncGeneration++; savedForm.error=null; savedForm.autofilling=true;
     live.textContent=words[language].aiLoading; render();
     try {
-      const result=await api.request("/api/author/books/autofill",{title:savedForm.title,author:savedForm.author,language:savedForm.language,metadata:savedForm.metadata});
+      const result=await api.request("/api/author/books/autofill",{bookId:savedForm.bookId,title:savedForm.title,author:savedForm.author,language:savedForm.language,metadata:savedForm.bookId && !savedForm.hasProposal ? undefined : savedForm.metadata});
       savedForm.author=result.author; savedForm.metadata=result.metadata;
       savedForm.language ||= result.metadata.originalLanguage;
-      savedForm.preview=true; live.textContent=words[language].bookPreview;
+      savedForm.preview=true; savedForm.hasProposal=true; live.textContent=words[language].bookPreview;
     } catch(error) { savedForm.error=error.status === 401 ? "sessionExpired" : error.code || "connectionError"; }
     finally {
       busy=false; savedForm.autofilling=false;
@@ -277,7 +303,7 @@ export function startReader() {
     if (action === "logout" && !busy) await mutation("/api/auth/logout",{},()=>{ settings.close(); pendingVersion = null; authReturn = "#home"; navigate("#home"); });
   });
   main.addEventListener("toggle",e=>{ if (e.target.id === "sources") sourcesOpen = e.target.open; },true);
-  function updateBookSearch() { main.querySelector("#book-search-results").innerHTML = libraryResultsMarkup({catalog,language,showOriginalTitles,libraryQuery}); main.querySelector("[data-book-search] button").hidden = !libraryQuery; live.textContent = words[language].searchResults(filterBooks(catalog.books,libraryQuery).length); }
+  function updateBookSearch() { main.querySelector("#book-search-results").innerHTML = libraryResultsMarkup({catalog,language,showOriginalTitles,libraryQuery,userId:snapshot.user?.id}); main.querySelector("[data-book-search] button").hidden = !libraryQuery; live.textContent = words[language].searchResults(filterBooks(catalog.books,libraryQuery).length); }
   main.addEventListener("input",e=>{ if (authorForm && e.target.closest("[data-author-form]")) changeAuthorField(e.target); if (e.target.id === "book-search") { libraryQuery = e.target.value; updateBookSearch(); } });
   main.addEventListener("submit",async e=>{
     if (e.target.matches("[data-book-search]")) { e.preventDefault(); return; }
@@ -311,6 +337,7 @@ export function startReader() {
     const b = e.target.closest("[data-action]"); if (!b || b.disabled || busy || !ready && b.dataset.action !== "retry") return;
     switch(b.dataset.action) {
       case "create-book": openAuthorForm("book"); break;
+      case "complete-book": openBookCompletion(b.dataset.book); break;
       case "create-deck": openAuthorForm("deck"); break;
       case "add-card": openAuthorForm("card"); break;
       case "add-quote": openAuthorForm("quote"); break;

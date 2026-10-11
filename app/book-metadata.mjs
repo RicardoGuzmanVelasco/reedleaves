@@ -1,7 +1,15 @@
-import {isCanonicalLocale} from "./core.mjs";
+import {isCanonicalLocale,LANGUAGES} from "./core.mjs";
 import {bookLinkUrl,BOOK_LINK_PLATFORMS} from "./book-links.mjs";
 
 export const TRANSLATION_FIELDS = {title:240,shortTitle:240,description:2000,editorialNote:500};
+export function missingBookInformation(book) {
+  const missing=[];
+  for (const language of LANGUAGES) for (const field of ["title","shortTitle","description"]) {
+    if (!book[field]?.[language]?.trim()) missing.push({field,language});
+  }
+  if (!book.genres?.length) missing.push({field:"genres"});
+  return missing;
+}
 const object = value => value && typeof value === "object" && !Array.isArray(value);
 function text(value,max) {
   if (typeof value !== "string" || !value.trim() || value.trim().length > max) throw new Error("Invalid book metadata");
