@@ -292,23 +292,23 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .mascot-entry:hover,.mascot-entry:active{box-shadow:none}
 .mascot-collection{position:relative;display:grid;gap:0;margin:4px 0 0;padding:0;list-style:none}
 .mascot-collection::before{position:absolute;top:18px;bottom:18px;left:17px;width:2px;background:#d9ded4;content:""}
-.mascot-stage,.mascot-stage.is-earned{position:relative;min-width:0;display:grid;grid-template-columns:36px 62px minmax(0,1fr);align-items:center;gap:12px;padding:13px 0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.mascot-stage,.mascot-stage.is-earned{position:relative;min-width:0;display:grid;grid-template-columns:36px 88px minmax(0,1fr);align-items:center;gap:12px;padding:13px 0;border:0;border-radius:0;background:transparent;box-shadow:none}
 .mascot-stage-marker{position:relative;z-index:1;display:grid;width:36px;height:36px;place-items:center;border-radius:50%;background:var(--paper)}
 .mascot-stage-number{border:1.5px solid #bdc5b8;color:#7d887c;font-size:10px;font-weight:800;font-variant-numeric:tabular-nums}
 .mascot-check{color:#43a94b}.mascot-check svg{width:29px;height:29px;fill:none;stroke:currentColor;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
 .mascot-stage.is-current .mascot-stage-marker{width:36px;height:36px;background:#58be59;box-shadow:0 0 0 4px #d8edbd;color:#173d2c}
 .mascot-stage.is-current .mascot-check svg{width:25px;height:25px}
 .mascot-stage.is-current .mascot-check{color:#173d2c}
-.mascot-stage-art{width:62px;height:62px;object-fit:contain}
+.mascot-stage-art{width:88px;height:88px;object-fit:contain}
 .mascot-stage.is-mystery .mascot-stage-art{opacity:1;filter:none}
 .mascot-stage-copy{min-width:0;padding:3px 0}
 .mascot-stage-copy h2{font-size:17px;line-height:1.2}
 .mascot-stage-unlock{margin-top:4px;color:#586957;font-size:11px;font-weight:750;line-height:1.35}
-.mascot-stage-motto{margin-top:4px;color:#667365;font-size:12px;font-style:italic;line-height:1.4}
-.mascot-stage-motto.is-locked{color:#828980;font-size:11px}
+.mascot-stage-motto{margin-top:4px;color:#788274;font-size:11px;font-style:italic;line-height:1.4}
+.mascot-stage-motto.is-locked{color:#8a9086;font-size:11px;font-style:italic}
 .mascot-stage.is-current .mascot-stage-copy h2{color:#1e642f;font-weight:900}
-@media(max-width:520px){.review-mascot-callout{width:100%;padding:0}.review-mascot-callout p{font-size:12px}.review-mascot-button{width:60px;height:60px;border-radius:0}.mascot-stage,.mascot-stage.is-earned{grid-template-columns:32px 50px minmax(0,1fr);gap:9px;padding:11px 0}.mascot-collection::before{left:15px}.mascot-stage-marker{width:32px;height:32px}.mascot-stage.is-current .mascot-stage-marker{width:32px;height:32px}.mascot-stage-art{width:50px;height:50px}.mascot-stage-copy h2{font-size:15px}.mascot-stage-unlock{font-size:10px}.mascot-stage-motto{font-size:11px}.mascot-check svg{width:26px;height:26px}}
-@media(max-width:380px){.mascot-stage,.mascot-stage.is-earned{grid-template-columns:28px 42px minmax(0,1fr);gap:7px}.mascot-collection::before{left:13px}.mascot-stage-marker{width:28px;height:28px}.mascot-stage.is-current .mascot-stage-marker{width:28px;height:28px}.mascot-stage-art{width:42px;height:42px}}
+@media(max-width:520px){.review-mascot-callout{width:100%;padding:0}.review-mascot-callout p{font-size:12px}.review-mascot-button{width:60px;height:60px;border-radius:0}.mascot-stage,.mascot-stage.is-earned{grid-template-columns:32px 68px minmax(0,1fr);gap:9px;padding:11px 0}.mascot-collection::before{left:15px}.mascot-stage-marker{width:32px;height:32px}.mascot-stage.is-current .mascot-stage-marker{width:32px;height:32px}.mascot-stage-art{width:68px;height:68px}.mascot-stage-copy h2{font-size:15px}.mascot-stage-unlock{font-size:10px}.mascot-stage-motto{font-size:11px}.mascot-check svg{width:26px;height:26px}}
+@media(max-width:380px){.mascot-stage,.mascot-stage.is-earned{grid-template-columns:28px 56px minmax(0,1fr);gap:7px}.mascot-collection::before{left:13px}.mascot-stage-marker{width:28px;height:28px}.mascot-stage.is-current .mascot-stage-marker{width:28px;height:28px}.mascot-stage-art{width:56px;height:56px}}
 
 /* Three compact attribution rows share the paper's tint. */
 .card-source{display:grid;gap:4px}.card-attribution-row{display:flex;align-items:center;gap:9px;min-width:0}.card-attribution-row bdi{overflow-wrap:anywhere}.attribution-icon{width:17px;height:17px;flex:none;fill:rgb(0 0 0 / 30%)}
