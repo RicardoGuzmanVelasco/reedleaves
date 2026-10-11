@@ -36,8 +36,34 @@ test("Typing reserves complete text, exposes it once to readers, and never split
   const [full,space,ink]=f.body.children;
   assert.equal(full.textContent,f.text); assert.equal(full.className,"sr-only");
   assert.equal(space.textContent,f.text); assert.equal(space.attributes["aria-hidden"],"true"); assert.equal(ink.attributes["aria-hidden"],"true");
-  f.advance(0); f.advance(900); assert.equal(ink.textContent,"e\u0301");
-  f.advance(1800); assert.equal(f.body.textContent,f.text); assert.equal(f.body.children.length,1); assert.equal(f.frames.size,0);
+  f.advance(0); f.advance(183); assert.equal(ink.textContent,"e\u0301");
+  f.advance(190); assert.equal(f.body.textContent,f.text); assert.equal(f.body.children.length,1); assert.equal(f.frames.size,0);
+});
+test("Fast writing pauses after punctuation, with longer pauses at sentence boundaries and newlines",()=>{
+  for (const [punctuation,pause] of [[",",70],[";",70],["-",70],["–",70],["—",70],[".",180],[":",180],["\n",180],["\r\n",180]]) {
+    const f=fixture({text:`a${punctuation}b`}); f.present(f.main);
+    const ink=f.body.children[2]; f.advance(0); f.advance(186);
+    assert.equal(ink.textContent,`a${punctuation}`);
+    f.advance(188+pause); assert.equal(ink.textContent,`a${punctuation}`);
+    f.advance(189+pause); assert.equal(f.body.textContent,f.text); assert.equal(f.frames.size,0);
+  }
+});
+test("Long cards finish within two seconds of writing, with their layout reserved",()=>{
+  const f=fixture({text:"Una frase, con pausa; otra frase.\n".repeat(120)}); f.present(f.main);
+  assert.equal(f.body.children[1].textContent,f.text);
+  f.advance(0); f.advance(2180);
+  assert.equal(f.body.textContent,f.text); assert.equal(f.frames.size,0);
+});
+test("Daily cards arrive with complete text and no typing or reveal control",()=>{
+  const f=fixture(); f.stage.dataset.readingMode="complete";
+  f.stage.querySelector=selector=>({".idea-body":f.body,"#idea-content":f.title})[selector];
+  f.present(f.main);
+  assert.equal(f.doc.body.classList.contains("is-reading"),true);
+  assert.equal(f.stage.classList.contains("is-arriving"),true);
+  assert.equal(f.stage.classList.contains("is-writing"),false);
+  assert.equal(f.body.textContent,f.text); assert.equal(f.frames.size,0);
+  const refreshed=f.scene(); refreshed.stage.dataset.readingMode="complete"; f.main.stage=refreshed.stage; f.present(f.main);
+  assert.equal(refreshed.stage.classList.contains("is-arriving"),false);
 });
 test("Show full text cancels writing immediately and returns focus to the card",()=>{
   const f=fixture(); f.present(f.main); f.advance(0); f.advance(500);
