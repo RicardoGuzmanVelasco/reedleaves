@@ -153,7 +153,7 @@ test("SQLite v11 upgrade keeps account, cards and review state, defaulting to tr
   const before=await readReaderState(db,a,today);
   db.exec("DROP TABLE reader_display_preferences; PRAGMA user_version=11;");
   initializeDatabase(db); initializeDatabase(db);
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version,12);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version,13);
   assert.deepEqual(await readReaderState(db,a,today),before);
   assert.equal((await changePreferences(db,a,{showOriginalTitles:true},today)).showOriginalTitles,true);
 });

@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 4));
-INSERT INTO reed_schema VALUES (4);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 5));
+INSERT INTO reed_schema VALUES (5);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -116,6 +116,13 @@ CREATE TABLE review_unlocks(
   FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
   FOREIGN KEY(card_id,version_id) REFERENCES cards(id,version_id)
 );
+CREATE TABLE card_views (
+  user_id TEXT NOT NULL REFERENCES users(id),
+  card_id TEXT NOT NULL REFERENCES cards(id),
+  first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(user_id,card_id)
+);
+
 CREATE TABLE studies(rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE, user_id TEXT NOT NULL REFERENCES users(id), version_id TEXT NOT NULL REFERENCES deck_versions(id), PRIMARY KEY(user_id,version_id));
 CREATE TABLE deck_selections(
   user_id TEXT NOT NULL REFERENCES users(id), book_id TEXT NOT NULL REFERENCES books(id), version_id TEXT NOT NULL,

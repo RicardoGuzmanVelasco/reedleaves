@@ -1,4 +1,5 @@
 import {authenticate, readSession, revokeSession, checkCsrf, sessionCookie} from "./auth.mjs";
+import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {ApiError} from "./errors.mjs";
 import {readReaderState, selectDeck, openCard, changeReading, changePreferences, dailyIdea} from "./reader-repository.mjs";
 
@@ -34,6 +35,9 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
       ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],
       ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/cards",["POST"]]]);
+    const profileMatch=path.match(/^\/api\/profiles\/([^/]+)$/);
+    if (profileMatch) routes.set(path,["GET","HEAD"]);
+    routes.set("/api/reader/view",["POST"]);
     if (!routes.has(path)) return false;
     response.setHeader("Cache-Control","no-store");
     try {
@@ -55,6 +59,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         send(200,inviteCode === undefined ? state : {...state,inviteRequired:true}); return true;
       }
       if (!session) throw new ApiError(401,"signInRequired");
+      if (profileMatch) { send(200,await readProfile(db,profileMatch[1],session.user_id)); return true; }
       if (request.method === "POST") checkCsrf(session,request.headers["x-csrf-token"]);
       if (path === "/api/auth/logout") {
         await readBody(request); await revokeSession(db,session);
@@ -67,6 +72,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       if (!active) throw new ApiError(401,"signInRequired");
       checkCsrf(active,request.headers["x-csrf-token"]);
       const currentTime = now();
+      if (path === "/api/reader/view") { send(200,await recordCardView(db,active,input,currentTime)); return true; }
       if (path === "/api/author/books/autofill") {
         let search=input;
         if (input.bookId !== undefined) {

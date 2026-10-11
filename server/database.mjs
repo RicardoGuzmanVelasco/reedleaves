@@ -78,13 +78,22 @@ export async function transaction(db, callback) {
 export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
-  if (version === 12) return;
+  if (version === 13) return;
+  if (version === 12) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE IF NOT EXISTS card_views (user_id TEXT NOT NULL REFERENCES users(id),card_id TEXT NOT NULL REFERENCES cards(id),first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(user_id,card_id)) STRICT;
+        INSERT INTO card_views(user_id,card_id,first_seen_at) SELECT user_id,card_id,MIN(unlocked_at) FROM review_unlocks GROUP BY user_id,card_id ON CONFLICT DO NOTHING;
+        PRAGMA user_version=13; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return;
+  }
   if (version === 11) {
     db.exec("BEGIN IMMEDIATE");
     try {
       db.exec("CREATE TABLE reader_display_preferences (user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE, show_original_titles INTEGER NOT NULL CHECK(show_original_titles IN (0,1))) STRICT; PRAGMA user_version=12; COMMIT;");
     } catch(error) { db.exec("ROLLBACK"); throw error; }
-    return;
+    return initializeDatabase(db);
   }
   if (version === 9) {
     const schema = readFileSync(new URL("./schema.sql", import.meta.url),"utf8");
@@ -127,12 +136,22 @@ async function initializePostgresDatabase(db) {
     const tables = await db.prepare("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'").all();
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
-      if (version?.version === 4) return;
+      if (version?.version === 5) return;
+      if (version?.version === 4) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version === 5) return;
+          await db.exec(`CREATE TABLE IF NOT EXISTS card_views (user_id TEXT NOT NULL REFERENCES users(id),card_id TEXT NOT NULL REFERENCES cards(id),first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(user_id,card_id));
+            INSERT INTO card_views(user_id,card_id,first_seen_at) SELECT user_id,card_id,MIN(unlocked_at) FROM review_unlocks GROUP BY user_id,card_id ON CONFLICT DO NOTHING;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=5; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=5);`);
+        });
+        return;
+      }
       if ([1,2,3].includes(version?.version)) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
           const current=(await db.prepare("SELECT version FROM reed_schema").get()).version;
-          if (current === 4) return;
+          if (current >= 4) return;
           if (current === 1) {
             await db.exec("ALTER TABLE cards ADD COLUMN is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1));");
             const schema = readFileSync(new URL("./schema.postgres.sql", import.meta.url),"utf8");
@@ -142,7 +161,7 @@ async function initializePostgresDatabase(db) {
           await db.exec("CREATE TABLE reader_display_preferences (user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE, show_original_titles INTEGER NOT NULL CHECK(show_original_titles IN (0,1)));");
           await db.exec("ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=4; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=4);");
         });
-        return;
+        return initializePostgresDatabase(db);
       }
       throw new Error("Outdated PostgreSQL database. Use a fresh database; no migrations.");
     }

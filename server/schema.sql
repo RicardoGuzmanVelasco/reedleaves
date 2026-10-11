@@ -214,6 +214,13 @@ CREATE TABLE review_unlocks (
   FOREIGN KEY(card_id,version_id) REFERENCES cards(id,version_id)
 ) STRICT;
 
+CREATE TABLE card_views (
+  user_id TEXT NOT NULL REFERENCES users(id),
+  card_id TEXT NOT NULL REFERENCES cards(id),
+  first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(user_id,card_id)
+) STRICT;
+
 CREATE TABLE studies (
   user_id TEXT NOT NULL REFERENCES users(id),
   version_id TEXT NOT NULL REFERENCES deck_versions(id),
@@ -329,4 +336,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 12;
+PRAGMA user_version = 13;

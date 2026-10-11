@@ -6,6 +6,7 @@ import { words } from "./i18n.mjs";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
+import {currentMascotStage} from "./mascot-progress.mjs";
 import {missingBookInformation} from "./book-metadata.mjs";
 
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -23,7 +24,7 @@ function displayedBookTitle(s,book,short = false) {
 }
 
 function completeBookButton(s,book) {
-  if (!s.userId || book.creatorUserId !== s.userId || !missingBookInformation(book).length) return "";
+  if (s.readOnly || !s.userId || book.creatorUserId !== s.userId || !missingBookInformation(book).length) return "";
   const c=words[s.language],label=`${c.incompleteBook}. ${c.completeBook}: ${displayedBookTitle(s,book).text}`;
   return `<button class="book-incomplete" type="button" data-action="complete-book" data-book="${esc(book.id)}" title="${esc(c.incompleteBook+" · "+c.completeBook)}" aria-label="${esc(label)}" aria-haspopup="dialog"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14"/><path d="M12 12a4 4 0 0 1 8 0c0 3-4 3-4 6"/><circle class="book-incomplete-dot" cx="16" cy="23" r="1"/></svg></button>`;
 }
@@ -90,9 +91,9 @@ function bookDetailsMarkup(s,book) {
     ${bookLinksMarkup(s, book)}
     ${book.creatorUserId ? bookSourcesMarkup(s,book) : ""}
     <p class="deck-size">${c.deckCount(choices.length)}</p>${languages.length ? `<p class="book-detail-languages">${esc(languages.join(" · "))}</p>` : ""}
-    <div class="book-detail-status"><label class="book-reading" for="book-status-${esc(book.id)}"><span>${c.bookStatus}</span><select id="book-status-${esc(book.id)}" data-book-status="${esc(book.id)}" ${!s.storageAvailable ? "disabled" : ""}>${[["unread",c.unread],["reading",c.readingStatus],["read",c.readStatus]].map(([value,label]) => `<option value="${value}" ${s.statuses[book.id] === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>
+    <div class="book-detail-status"><label class="book-reading" for="book-status-${esc(book.id)}"><span>${c.bookStatus}</span><select id="book-status-${esc(book.id)}" ${s.readOnly ? "" : `data-book-status="${esc(book.id)}"`} ${!s.storageAvailable || s.readOnly ? "disabled" : ""}>${[["unread",c.unread],["reading",c.readingStatus],["read",c.readStatus]].map(([value,label]) => `<option value="${value}" ${s.statuses[book.id] === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>
     <p class="book-detail-review">${c.reviewStatus}: <strong>${esc(status)}</strong></p></div>
-    <button class="primary" type="button" data-action="open-book" data-book="${esc(book.id)}" ${!choices.length && book.creatorUserId !== s.userId ? "disabled" : ""}>${c.viewDecks}</button>
+    ${s.readOnly ? `<a class="text-button" href="#library/book/${encodeURIComponent(book.id)}">${c.viewBookLibrary} ↗</a>` : `<button class="primary" type="button" data-action="open-book" data-book="${esc(book.id)}" ${!choices.length && book.creatorUserId !== s.userId ? "disabled" : ""}>${c.viewDecks}</button>`}
   </article></dialog>`;
 }
 
@@ -102,7 +103,7 @@ function libraryFiltersMarkup(s) {
   const authors=[...new Set(s.catalog.books.map(book=>book.author))].sort((a,b)=>a.localeCompare(b,s.language));
   const languages=[...new Set(s.catalog.decks.map(deck=>deck.language))].sort();
   const languageName=tag=>{try{return new Intl.DisplayNames([s.language],{type:"language"}).of(tag)||tag;}catch{return tag;}};
-  return `<details class="sources library-filters" ${Object.values(filters).some(Boolean)?"open":""}><summary>${c.filterBooks}</summary><div class="bookshelf-filters">
+  return `<details class="sources library-filters" ${s.libraryFiltersOpen || Object.values(filters).some(Boolean)?"open":""}><summary>${c.filterBooks}</summary><div class="bookshelf-filters">
     ${select("author",c.bookAuthor,authors.map(author=>[author,author]))}
     ${select("genre",c.genre,s.catalog.genres.map(g=>[g.id,g.name[s.language]]))}
     ${select("language",c.deckLanguage,languages.map(tag=>[tag,languageName(tag)]))}
@@ -126,12 +127,15 @@ export function libraryView(s) {
 
 export function bookshelfView(s) {
   const c = words[s.language], filters = s.bookshelfFilters || bookshelfDefaults;
-  const entries = bookshelfBooks(s), all = bookshelfBooks({...s,bookshelfFilters:bookshelfDefaults});
+  const all=s.readOnly ? (s.profileData?.bookshelf || []).map(entry=>({...entry,book:s.catalog.booksById.get(entry.bookId)})).filter(entry=>entry.book) : bookshelfBooks({...s,bookshelfFilters:bookshelfDefaults});
+  const entries=s.readOnly ? all.filter(entry=>(filters.reading === "all" || entry.reading === filters.reading) && (filters.review === "all" || filters.review === "pending" && entry.pending || filters.review === "none" && !entry.hasReviewing && !entry.hasReviewed || filters.review === "reviewed" && entry.hasReviewed)) : bookshelfBooks(s);
+  if (s.readOnly) s={...s,statuses:Object.fromEntries(all.map(entry=>[entry.book.id,entry.reading])),bookReviews:Object.fromEntries(all.map(entry=>[entry.book.id,entry]))};
   const selected = s.catalog.booksById.get(s.openBookId);
   const select = (axis,label,options) => `<label for="bookshelf-${axis}"><span>${label}</span><select id="bookshelf-${axis}" data-bookshelf-filter="${axis}">${options.map(([value,text])=>`<option value="${value}" ${filters[axis] === value ? "selected" : ""}>${text}</option>`).join("")}</select></label>`;
   const groups = [["pending",c.pendingReviews],["none",c.notReviewed],["reviewed",c.completedReviews]];
   return `<section class="bookshelf-screen">
-    <div class="screen-heading bookshelf-heading"><h1 tabindex="-1">${c.bookshelf}</h1><button class="home-add" type="button" data-action="library"><span aria-hidden="true">＋</span>${c.addBook}</button></div>
+    ${s.readOnly ? `<a class="text-button" href="#profile/${encodeURIComponent(s.profileData.profile.id)}">${c.profileBack}</a><p class="bookshelf-owner"><bdi>${esc(s.profileData.profile.name)}</bdi> · ${c.readOnly}</p>` : ""}
+    <div class="screen-heading bookshelf-heading"><h1 tabindex="-1">${c.bookshelf}</h1>${s.readOnly ? "" : `<button class="home-add" type="button" data-action="library"><span aria-hidden="true">＋</span>${c.addBook}</button>`}</div>
     ${all.length ? `<div class="bookshelf-filters" role="group" aria-label="${c.filterBooks}">
       ${select("reading",c.bookStatus,[["all",c.allBooks],["unread",c.unread],["reading",c.readingStatus],["read",c.readStatus]])}
       ${select("review",c.reviewStatus,[["all",c.allBooks],["pending",c.pendingReviews],["none",c.notReviewed],["reviewed",c.completedReviews]])}</div>
@@ -142,7 +146,7 @@ export function bookshelfView(s) {
           return closedBookMarkup(s,item.book,{action:"open-book-details",caption,catalog:true});
         }).join("")}</div></section>` : "";
       }).join("") : `<div class="empty-state"><p>${c.noBookshelfMatches}</p><button class="text-button" type="button" data-action="reset-bookshelf-filters">${c.resetFilters}</button></div>`}
-    ` : `<div class="empty-state"><p>${c.emptyBookshelf}</p></div>`}
+    ` : `<div class="empty-state"><p>${s.readOnly ? c.noUserBookshelf : c.emptyBookshelf}</p></div>`}
     ${selected && all.some(item=>item.book.id === selected.id) ? bookDetailsMarkup(s,selected) : ""}</section>`;
 }
 
@@ -177,7 +181,7 @@ const mascotStages = [
 function mascotState(s,bookId) {
   const g=s.growth?.[bookId] || {added:false,spentDays:0};
   const unlocked=mascotStages.filter(stage=>stage.unlocked?.(g)).map(stage=>stage.id);
-  return {g,unlocked,latest:[...unlocked].reverse().find(id=>id!=="pot") || (unlocked.includes("pot")?"pot":null)};
+  return {g,unlocked,latest:currentMascotStage(g)};
 }
 function mascotImage(s,bookId) {
   const {latest}=mascotState(s,bookId), stage=mascotStages.find(item=>item.id===latest);
@@ -221,7 +225,7 @@ function cardAttribution(s,card,book) {
   return `<div class="card-source">${[
     ["book",title.text,title.language,`#library/book/${encodeURIComponent(book.id)}`],
     ["author",book.author,null,`#library/author/${encodeURIComponent(book.author)}`],
-    ["user",creator?.name,null,null]
+    ["user",creator?.name,null,creator ? `#profile/${encodeURIComponent(creator.userId)}` : null]
   ].filter(([,text])=>text).map(([kind,text,language,href])=>{
     const contents=`${attributionIcon(kind)}<bdi${language ? ` lang="${esc(language)}" dir="auto"` : ""}>${esc(text)}</bdi>${href ? linkArrow : ""}`;
     return href ? `<a class="card-attribution-row" href="${esc(href)}">${contents}</a>` : `<span class="card-attribution-row">${contents}</span>`;
@@ -422,4 +426,26 @@ export function authorFormView(s) {
     </details>` : ""}
     <p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}</p><div class="form-actions"><button class="text-button" type="button" data-action="cancel-author">${c.cancel}</button>${!f.bookId || f.hasProposal ? `<button class="primary" type="submit">${book && !f.bookId ? c.createBook : deck ? c.createDeck : c.save}</button>` : ""}</div>
   </form></article></dialog>`;
+}
+
+
+export function profileView(s) {
+  const c=words[s.language];
+  if (!s.profileData) return profilePendingView(s);
+  const p=s.profileData.profile,counts=p.counts;
+  const metrics=keys=>`<dl class="profile-metrics">${keys.map(key=>`<div><dt>${c[key]}</dt><dd>${new Intl.NumberFormat(s.language).format(counts[key])}</dd></div>`).join("")}</dl>`;
+  const created=new Date(p.createdAt.endsWith("Z") || /[+-]\d\d:\d\d$/.test(p.createdAt) ? p.createdAt : p.createdAt.replace(" ","T")+"Z");
+  const date=Number.isNaN(created.getTime()) ? "—" : new Intl.DateTimeFormat(s.language,{year:"numeric",month:"long",day:"numeric",timeZone:"UTC"}).format(created);
+  return `<section class="profile-screen"><button class="text-button" type="button" data-action="profile-back">${c.mascotsBack}</button>
+    <header class="profile-heading"><div class="profile-avatar" aria-hidden="true">${attributionIcon("user")}</div><div><h1 tabindex="-1"><bdi>${esc(p.name)}</bdi></h1>${p.username && p.username !== p.name ? `<p class="profile-username"><bdi>@${esc(p.username)}</bdi></p>` : ""}<p class="profile-date">${c.memberSince} <time datetime="${esc(Number.isNaN(created.getTime()) ? "" : created.toISOString().slice(0,10))}">${esc(date)}</time></p></div></header>
+    <div class="profile-leaves"><img src="../brand/reed/leaf-token.svg" width="30" height="30" alt=""><span>${c.leavesSpent}</span><strong>${new Intl.NumberFormat(s.language).format(counts.leavesSpent)}</strong></div>
+    <section class="profile-section" aria-labelledby="profile-reader"><div class="profile-section-heading"><h2 id="profile-reader">${c.readerSummary}</h2><a class="text-button" href="${s.userId === p.id ? "#bookshelf" : `#bookshelf/${encodeURIComponent(p.id)}`}">${c.viewBookshelf} →</a></div>
+      ${metrics(["booksRead","booksReading","decksCompleted","decksInProgress","cardsReviewed","cardsViewed"])}<p class="profile-note">${c.distinctCardsNote}</p></section>
+    <section class="profile-section" aria-labelledby="profile-archivist"><h2 id="profile-archivist">${c.archivistSummary}</h2>${metrics(["decksCreated","cardsCreated","quotesCreated"])}</section>
+    <section class="profile-section" aria-labelledby="profile-mascots"><h2 id="profile-mascots">${c.currentMascots}</h2><ul class="profile-mascots">${mascotStages.filter(stage=>stage.unlocked || p.mascots[stage.id]>0).map(stage=>`<li><img src="${stage.image || "../brand/reed/growth/mystery.svg"}" width="60" height="60" alt=""><span>${c[stage.name]}</span><strong>${p.mascots[stage.id]}</strong></li>`).join("")}</ul></section>
+  </section>`;
+}
+export function profilePendingView(s) {
+  const c=words[s.language];
+  return `<section class="profile-screen"><button class="text-button" type="button" data-action="profile-back">${c.mascotsBack}</button><h1 tabindex="-1">${c.profile}</h1><div class="empty-state" ${s.profileError ? 'role="alert"' : 'role="status"'}><p>${s.profileError ? esc(c[s.profileError] || c.connectionError) : c.loading}</p>${s.profileError ? `<button class="text-button" type="button" data-action="retry-profile">${c.retry}</button>` : ""}</div></section>`;
 }

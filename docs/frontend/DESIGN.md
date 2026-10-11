@@ -130,8 +130,12 @@ La UI tendrá español, inglés y francés. Los nombres y metadatos de los libro
 - No usar estética de dashboard empresarial.
 - No usar una pared de tarjetas sin jerarquía.
 - No añadir gamificación que no ayude a leer o recordar.
-- Limitar los destinos a Inicio, Librería, Biblioteca e Idea del día. Inicio es la vista simplificada de los repasos pendientes; Biblioteca contiene la colección personal completa. Ajustes contiene idioma, preferencia de títulos originales, usuario y cerrar sesión. El acceso no introduce otra sección permanente.
+- Los destinos principales son Inicio, Librería, Biblioteca e Idea del día. El Perfil es un destino contextual desde el creador de una tarjeta o la cuenta en Ajustes. Inicio es la vista simplificada de los repasos pendientes; Biblioteca contiene la colección personal completa. Ajustes contiene idioma, preferencia de títulos originales, usuario y cerrar sesión. El acceso no introduce otra sección permanente.
 
 - Atribución de tarjetas: tres filas, libro, autor y usuario creador de la baraja. Cada fila lleva un SVG sencillo relleno, negro al 30 % de opacidad, que toma el matiz del papel. Mismo componente en repaso, autoría e idea diaria.
 
 - Librería combina búsqueda de títulos con filtros por autor, interés e idioma de baraja. La atribución del libro abre su ficha en Librería; la del autor abre Librería filtrada por ese autor. Los enlaces llevan una flecha SVG diagonal.
+
+- Perfil: avatar provisional, nombre, fecha de creación, hojas gastadas y resúmenes de lector y archivista. Tarjetas repasadas y vistas cuentan tarjetas distintas; la idea diaria y consultar contenido propio son vistas sin gastar hojas ni desbloquear el repaso. Las citas creadas forman parte de las tarjetas creadas.
+- Mascotas del perfil: contar solo la etapa actual de cada libro, con el mismo cálculo que sus portadas. No sumar las etapas anteriores desbloqueadas. Mostrar las etapas disponibles de la app.
+- «Ver biblioteca» abre la propia con edición habitual. La ajena identifica al usuario y «Solo lectura», conserva los filtros y permite consultar fichas; no cambia lectura, contenido ni progreso. Los libros y borradores privados conservan sus permisos. Desde una ficha ajena se puede abrir el libro en Librería como contexto propio.

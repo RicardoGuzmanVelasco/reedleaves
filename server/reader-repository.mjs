@@ -9,6 +9,8 @@ import {restoreTreeReview,treeFrontier,bookReviewStates} from "../app/decks.mjs"
 import {dailyPool} from "../app/rhythm.mjs";
 import {LANGUAGES} from "../app/core.mjs";
 
+import {insertCardView} from "./profile-repository.mjs";
+
 const SOURCES=["reading","read","reviewing","reviewed","interests","all"];
 export async function readReaderState(db,session,now=new Date()) {
   return transaction(db,()=>stateInside(db,session,now));
@@ -85,6 +87,7 @@ export async function openCard(db,session,versionId,cardId,now=new Date()) {
     }
     await db.prepare("INSERT INTO review_positions(review_id,user_id,version_id,card_id) VALUES (?,?,?,?) ON CONFLICT(review_id) DO UPDATE SET card_id=excluded.card_id")
       .run(row.id,userId,versionId,cardId);
+    await insertCardView(db,userId,cardId);
     return {state:await stateInside(db,session,now),spent:Number(opened.changes)===1};
   });
 }

@@ -62,3 +62,11 @@ El progreso anónimo antiguo del navegador no se borra ni se importa como verifi
 - Para acceder desde otro dispositivo hace falta una instancia accesible con el mismo servidor y base. No se ha publicado la app ni abierto el puerto local a la red.
 
 Referencias primarias: [contraseñas, OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html), [sesiones, OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html), [CSRF, OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html) y [crypto de Node 24](https://nodejs.org/docs/latest-v24.x/api/crypto.html).
+
+## Perfil y vistas de tarjetas (2026-10-11)
+
+- `GET /api/profiles/:userId` requiere sesión y devuelve solo nombre, usuario público, fecha de alta, estadísticas y resúmenes de los libros visibles para quien consulta. No devuelve credenciales, sesión, monedero, filtros ni tarjetas privadas del otro usuario. Incluye también a los creadores editoriales sin cuenta de acceso.
+- `POST /api/reader/view` requiere origen, sesión y CSRF. Registra una tarjeta distinta por usuario al mostrarse en idea diaria, repaso o autoría. Comprueba la asignación de hoy, el desbloqueo o la propiedad según el contexto. Los reintentos no duplican vistas. No modifica el monedero ni el repaso.
+- `card_views` guarda `user_id`, `card_id` y primera fecha de vista. Esquemas activos SQLite v13 y PostgreSQL v5. Migración transaccional desde v12/v4, encadenada a las anteriores: conserva progreso y rellena vistas con los desbloqueos históricos. Las ideas diarias anteriores solo prueban asignación, no visualización; no se inventa su historial de vistas.
+- Hojas gastadas: total de desbloqueos. Tarjetas repasadas/vistas: IDs distintos. Barajas terminadas: todas las cartas vistas en una versión no vacía; en curso: la misma definición que Inicio, deduplicada por baraja. Libros leídos/leyendo: estados manuales independientes.
+- Mascotas: una etapa actual por libro, compartida con la UI. Totales de creador incluyen sus barajas y tarjetas, con citas como subconjunto. Los agregados del perfil incluyen el trabajo privado, sin publicar su contenido ni sus títulos. La biblioteca ajena filtra además los borradores y libros no visibles para el visitante.
