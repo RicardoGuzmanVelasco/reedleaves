@@ -35,7 +35,7 @@ test("Only incomplete owned books offer completion; optional links do not keep t
   }
   assert.match(libraryView({...reader,openBookId:"mine"}),/book-detail-author-row/);
   assert.equal((libraryView({...reader,openBookId:"mine"}).match(/data-action="complete-book"/g)||[]).length,2);
-  assert.ok(homeView(reader).includes("Ir a mi biblioteca"));
+  assert.ok(homeView(reader).includes("Ir a mi perfil"));
 });
 
 test("Completion reuses the preview but saves to the current book and locks existing fields",()=>{
@@ -45,7 +45,7 @@ test("Completion reuses the preview but saves to the current book and locks exis
   assert.match(initial,/Completar información/);assert.match(initial,/Solo se rellenarán los datos que faltan/);
   assert.match(initial,/name="title"[^>]*readonly/);assert.doesNotMatch(initial,/type="submit"/);
   const preview=authorFormView({...state,authorForm:{...form,preview:true,hasProposal:true}});
-  assert.match(preview,/type="submit">Guardar/);assert.doesNotMatch(preview,/type="submit">Crear libro/);
+  assert.match(preview,/type="submit">Guardar/);assert.doesNotMatch(preview,/type="submit">Añadir libro a la librería/);
   const editing=authorFormView({...state,authorForm:{...form,hasProposal:true}});
   assert.match(editing,/name="metadata.title.en"[^>]*readonly/);
   assert.doesNotMatch(editing,/name="metadata.description.es"[^>]*readonly/);
@@ -60,7 +60,7 @@ test("Book form offers explicit AI loading and retry states; preview escapes all
   const metadata=structuredClone(bookMetadata);metadata.title.es='<script>alert("x")</script>';metadata.description.fr='<img src=x onerror="alert(1)">';
   const preview=authorFormView({...state,authorForm:{...form,author:"Daniel Kahneman",metadata,preview:true}});
   assert.match(preview,/Vista previa del libro/);assert.match(preview,/Traducciones/);assert.match(preview,/Fuentes/);
-  assert.match(preview,/target="_blank" rel="noopener noreferrer"/);assert.match(preview,/type="submit">Crear libro/);
+  assert.match(preview,/target="_blank" rel="noopener noreferrer"/);assert.match(preview,/type="submit">Añadir libro a la librería/);
   assert.doesNotMatch(preview,/<script>|<img src=x|undefined/);
 });
 

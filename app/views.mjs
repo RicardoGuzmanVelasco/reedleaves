@@ -71,7 +71,7 @@ function filters(s) {
 export function libraryResultsMarkup(s) {
   const c = words[s.language], books = filterLibrary(s.catalog, s.libraryQuery, s.libraryFilters);
   if (!s.catalog.books.length) return `<div class="empty-state">${c.noBooks}</div>`;
-  if (!books.length) return `<div class="empty-state book-search-empty"><p>${Object.values(s.libraryFilters || {}).some(Boolean) ? c.noBookshelfMatches : c.noBookMatches}</p><button class="text-button" type="button" data-action="${Object.values(s.libraryFilters || {}).some(Boolean) ? "reset-library-filters" : "clear-book-search"}">${Object.values(s.libraryFilters || {}).some(Boolean) ? c.resetFilters : c.clearSearch}</button></div>`;
+  if (!books.length) return `<div class="empty-state book-search-empty"><p>${Object.values(s.libraryFilters || {}).some(Boolean) ? c.noBookshelfMatches : c.noBookMatches}</p><button class="text-button" type="button" data-action="${Object.values(s.libraryFilters || {}).some(Boolean) ? "reset-library-filters" : "clear-book-search"}">${Object.values(s.libraryFilters || {}).some(Boolean) ? c.resetLibraryFilters : c.clearSearch}</button></div>`;
   return `<div class="study-books book-grid" role="group" aria-label="${c.books}">${books.map(book => closedBookMarkup(s,book,{action:"open-book-details",caption:c.deckCount(availableVersions(s.catalog,book.id).length),genres:bookGenres(s,book),catalog:true})).join("")}</div>`;
 }
 
@@ -108,7 +108,7 @@ function libraryFiltersMarkup(s) {
     ${select("author",c.bookAuthor,authors.map(author=>[author,author]))}
     ${select("genre",c.genre,s.catalog.genres.map(g=>[g.id,g.name[s.language]]))}
     ${select("language",c.deckLanguage,languages.map(tag=>[tag,languageName(tag)]))}
-    <button class="text-button" type="button" data-action="reset-library-filters">${c.resetFilters}</button></div></details>`;
+    <button class="text-button" type="button" data-action="reset-library-filters">${c.resetLibraryFilters}</button></div></details>`;
 }
 
 export function libraryView(s) {
@@ -136,7 +136,7 @@ export function bookshelfView(s) {
   const groups = [["pending",c.pendingReviews],["none",c.notReviewed],["reviewed",c.completedReviews]];
   return `<section class="bookshelf-screen">
     ${s.readOnly ? `<a class="text-button" href="#profile/${encodeURIComponent(s.profileData.profile.id)}">${c.profileBack}</a><p class="bookshelf-owner"><bdi>${esc(s.profileData.profile.name)}</bdi> · ${c.readOnly}</p>` : ""}
-    <div class="screen-heading bookshelf-heading"><h1 tabindex="-1">${c.bookshelf}</h1>${s.readOnly ? "" : `<button class="home-add" type="button" data-action="library"><span aria-hidden="true">＋</span>${c.addBook}</button>`}</div>
+    <div class="screen-heading bookshelf-heading"><h1 tabindex="-1">${c.bookshelf}</h1>${s.readOnly ? "" : `<button class="home-add" type="button" data-action="library">${c.goLibrary}<span aria-hidden="true">→</span></button>`}</div>
     ${all.length ? `<div class="bookshelf-filters" role="group" aria-label="${c.filterBooks}">
       ${select("reading",c.bookStatus,[["all",c.allBooks],["unread",c.unread],["reading",c.readingStatus],["read",c.readStatus]])}
       ${select("review",c.reviewStatus,[["all",c.allBooks],["pending",c.pendingReviews],["none",c.notReviewed],["reviewed",c.completedReviews]])}</div>
@@ -159,12 +159,15 @@ export function homeView(s) {
     groups.get(study.book.id).push(study);
   }
   return `<section class="home-screen"><h1 class="sr-only" tabindex="-1">${c.home}</h1>
+    <nav class="home-actions" aria-label="${c.home}">
+      <button class="home-action" type="button" data-action="profile">${c.goProfile}</button>
+      <button class="home-action primary" type="button" data-action="daily">${c.idea}</button>
+      <button class="home-action" type="button" data-action="library">${c.goLibrary}</button>
+    </nav>
     ${studies.length ? `<div class="study-books">${[...groups.values()].map(items => {
       const book = items[0].book;
       return closedBookMarkup(s,book);
-    }).join("")}</div>` : `<div class="home-empty"><img src="../brand/reed/mascot.svg" width="100" height="100" alt=""><h2>${c.noStudies}</h2>${button(c.books,"library",!s.storageAvailable)}</div>`}
-    <nav class="home-actions" aria-label="${c.home}">${studies.length ? `<button class="home-add" type="button" data-action="library"><span aria-hidden="true">＋</span>${c.addBook}</button>` : ""}<button class="text-button" type="button" data-action="daily">${c.idea} →</button></nav>
-    <button class="text-button home-bookshelf" type="button" data-action="bookshelf">${c.goBookshelf} →</button>
+    }).join("")}</div>` : `<div class="home-empty"><img src="../brand/reed/mascot.svg" width="100" height="100" alt=""><h2>${c.noStudies}</h2></div>`}
   </section>`;
 }
 

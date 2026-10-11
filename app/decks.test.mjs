@@ -96,7 +96,7 @@ test("Deck grid opens a complete modal; review tree exposes valid paths, never l
   assert.match(grid,/class="deck-grid"/); assert.match(grid,/Ideas esenciales/); assert.match(grid,/From the inside out/);
   assert.doesNotMatch(grid,/<dialog/); assert.doesNotMatch(grid,/deck-carousel/);
   const modal = deckView({...base,deckChoices,openDeckId:versionId});
-  assert.match(modal,/<dialog class="deck-modal"/); assert.match(modal,/7 cartas · 2 niveles/);
+  assert.match(modal,/<dialog class="deck-modal"/); assert.match(modal,/7 tarjetas · 2 niveles/);
   assert.match(modal,/Creada por/); assert.match(modal,/inglés/i); assert.match(modal,/Continuar repaso/);
   assert.doesNotMatch(modal,/Más popular/);
 });
@@ -108,16 +108,16 @@ test("Deck albums show total progress; cards open separately only when explicitl
   for (const [mode,view] of [["review",reviewView],["author",authorView]]) {
     const state={...base,mode,userId:deck.creator.userId};
     const album=view(state);
-    assert.match(album,/1 de 7 cartas repasadas/);assert.match(album,/<progress value="1" max="7"/);
+    assert.match(album,/1 de 7 tarjetas repasadas/);assert.match(album,/<progress value="1" max="7"/);
     assert.match(album,/class="tree-map"/);assert.doesNotMatch(album,/idea-card|blockquote|data-action="home"|aria-current="page"|tree-map-legend/);
     const detail=view({...state,requestedId:card.id});
     assert.match(detail,/idea-card/);assert.match(detail,/data-action="deck-album"/);
     assert.ok(detail.includes(escapeHtml(card.body[version.language])));
     assert.doesNotMatch(detail,/tree-map|album-progress|data-action="choose-book"|data-action="home"/);
     const empty=view({...state,reviews:{[versionId]:restoreTreeReview(null,model,versionId)}});
-    assert.match(empty,/0 de 7 cartas repasadas/);assert.doesNotMatch(empty,/idea-card/);
+    assert.match(empty,/0 de 7 tarjetas repasadas/);assert.doesNotMatch(empty,/idea-card/);
     const emptyDeck=view({...state,catalog:{...catalog,versionModels:new Map([[versionId,{...model,cards:[],roots:[]}]])},reviews:{[versionId]:restoreTreeReview(null,model,versionId)}});
-    assert.match(emptyDeck,/0 de 0 cartas repasadas/);assert.match(emptyDeck,/<progress value="0" max="1"/);
+    assert.match(emptyDeck,/0 de 0 tarjetas repasadas/);assert.match(emptyDeck,/<progress value="0" max="1"/);
     assert.doesNotMatch(emptyDeck,/NaN|Infinity|Repaso completo|idea-card/);
     const complete=view({...state,reviews:{[versionId]:{...review,seenIds:model.cards.map(c=>c.id)}}});
     assert.match(complete,/100%/);assert.match(complete,/Repaso completo/);assert.doesNotMatch(complete,/idea-card/);
@@ -157,6 +157,6 @@ test("Home shows one closed book per active book, without exposing trees or spen
   assert.deepEqual(reviews[versionId].seenIds,["inside-out-1"]);
   assert.equal(state.budget.lastUnlockDay,"2026-10-06");
   const empty = homeView({...state,reviews:Object.fromEntries(catalog.versions.map(v => [v.id,restoreTreeReview(null,catalog.versionModels.get(v.id),v.id)])),enrolledIds:[]});
-  assert.match(empty,/Elige tu primer libro/); assert.doesNotMatch(empty,/study-book"/);
-  assert.match(homeView({...state,language:"en"}),/Add a book/);
+  assert.match(empty,/No tienes repasos pendientes/); assert.doesNotMatch(empty,/study-book"/);
+  assert.match(homeView({...state,language:"en"}),/Go to the library/);
 });

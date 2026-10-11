@@ -56,7 +56,7 @@ test("Simple search is labelled, escaped, clearable and recovers from no results
   assert.match(initial,/aria-label="Borrar búsqueda" hidden/);
   const query = '"><script>alert(1)</script>', html = libraryView({...s,libraryQuery:query});
   assert.doesNotMatch(html,/<script/); assert.match(html,/&quot;&gt;&lt;script&gt;/);
-  assert.match(html,/No encontramos ese libro/); assert.match(html,/data-action="clear-book-search">Borrar búsqueda/);
+  assert.match(html,/No hay libros que coincidan con la búsqueda/); assert.match(html,/data-action="clear-book-search">Borrar búsqueda/);
   assert.doesNotMatch(html,/data-action="open-book-details"/);
 });
 

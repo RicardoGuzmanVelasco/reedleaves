@@ -349,11 +349,18 @@ export function startReader() {
     if (snapshot.user) await mutation("/api/reader/preferences",{showOriginalTitles:event.target.checked});
     else { showOriginalTitles = event.target.checked; store.save(keys.originalTitles,showOriginalTitles); render(); }
   });
+  function openOwnProfile() {
+    if (!snapshot.user) return;
+    profileData=null;
+    const target="#profile/"+encodeURIComponent(snapshot.user.id);
+    if (location.hash !== target) profileReturnHash=location.hash || "#home";
+    navigate(target);
+  }
   document.getElementById("open-settings").addEventListener("click",()=>settings.showModal());
   document.getElementById("close-settings").addEventListener("click",()=>settings.close());
   settings.addEventListener("click",async event=>{
     if (event.target === settings) settings.close(); const action = event.target.closest("[data-account-action]")?.dataset.accountAction;
-    if (action === "profile") { settings.close(); profileData=null; const target="#profile/"+encodeURIComponent(snapshot.user.id); if (location.hash !== target) profileReturnHash=location.hash || "#home"; navigate(target); }
+    if (action === "profile") { settings.close(); openOwnProfile(); }
     if (action === "login") { settings.close(); pendingVersion = null; authReturn = "#home"; navigate("#account"); }
     if (action === "logout" && !busy) await mutation("/api/auth/logout",{},()=>{ settings.close(); pendingVersion = null; authReturn = "#home"; navigate("#home"); });
   });
@@ -405,6 +412,7 @@ export function startReader() {
     }
     const b = e.target.closest("[data-action]"); if (!b || b.disabled || busy || !ready && b.dataset.action !== "retry") return;
     switch(b.dataset.action) {
+      case "profile": openOwnProfile(); break;
       case "profile-back": navigate(profileReturnHash || "#home"); break;
       case "retry-profile": profileData=null; profileError=null; loadProfile(true); render(); break;
       case "create-book": openAuthorForm("book"); break;
