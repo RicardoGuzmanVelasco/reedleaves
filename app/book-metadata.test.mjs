@@ -20,7 +20,7 @@ test("Existing metadata survives autofill; invalid translations and unsafe links
 
 test("Only incomplete owned books offer completion; optional links do not keep the indicator visible",()=>{
   const minimal={...normalizeBookMetadata(),id:"mine",creatorUserId:"owner",author:"Daniel Kahneman",originalTitle:bookMetadata.originalTitle,originalLanguage:"en"};
-  assert.equal(missingBookInformation(minimal).length,10);
+  assert.equal(missingBookInformation(minimal).length,6);
   const complete={...minimal,...bookMetadata};
   assert.equal(missingBookInformation(complete).length,0);
   const catalog={...state.catalog,books:[minimal],booksById:new Map([["mine",minimal]]),decks:[],versions:[]};
@@ -65,7 +65,7 @@ test("Book form offers explicit AI loading and retry states; preview escapes all
 });
 
 test("AI errors explain recovery in every interface language and keep the entered book plus its diagnostic reference",()=>{
-  for (const language of ["es","en","fr"]) for (const error of ["aiQuotaExceeded","aiConfigurationError","aiProviderBusy"]) {
+  for (const language of ["es","en"]) for (const error of ["aiQuotaExceeded","aiConfigurationError","aiProviderBusy"]) {
     const html=authorFormView({...state,language,authorForm:{kind:"book",title:"Mi libro",author:"Mi autor",language:"es",error,errorReference:"01234567-89ab-4cde-8fab-0123456789ab"}});
     assert.ok(html.includes(words[language][error]));assert.ok(html.includes(words[language].errorReference));
     assert.match(html,/role="alert"/);assert.match(html,/value="Mi libro"/);assert.match(html,/value="Mi autor"/);
@@ -74,7 +74,7 @@ test("AI errors explain recovery in every interface language and keep the entere
 });
 
 test("Book and deck languages use two named choices while preserving inferred and existing originals",()=>{
-  for (const language of ["es","en","fr"]) for (const kind of ["book","deck"]) {
+  for (const language of ["es","en"]) for (const kind of ["book","deck"]) {
     const html=authorFormView({...state,language,authorForm:{kind,title:"Título",language:"en"}});
     const picker=html.match(/<fieldset class="author-language-picker">[\s\S]*?<\/fieldset>/)[0];
     assert.deepEqual([...picker.matchAll(/type="radio" name="language" value="([^"]+)"/g)].map(match=>match[1]),["es","en"]);

@@ -1,6 +1,6 @@
 # EB Garamond
 
-- EB Garamond regular, peso 400, subconjunto latino para español, inglés y francés.
+- EB Garamond regular, peso 400, subconjunto latino para español e inglés.
 - Archivo sin modificar de `@fontsource/eb-garamond@5.3.0`, obtenido del registro npm: `files/eb-garamond-latin-400-normal.woff2`.
 - Proyecto: https://github.com/octaviopardo/EBGaramond12. Distribución: https://fontsource.org/fonts/eb-garamond.
 - Licencia SIL Open Font License 1.1 incluida en `EB-Garamond-OFL.txt`.

@@ -36,17 +36,16 @@ test("AI separates the Voss mixed heading and subtitles, generates short cover n
   const translations=JSON.parse(extractionResponse().output[0].content[0].text).translations;
   Object.assign(translations.es,{title:"Rompe la barrera del no / Never Split de Difference",alternateTitle:"Never Split de Difference",shortTitle:"Rompe la barrera del no"});
   Object.assign(translations.en,{title:"Never Split the Difference: Negotiating as if Your Life Depended on It",subtitle:"Negotiating as if Your Life Depended on It",shortTitle:"Never Split the Difference"});
-  Object.assign(translations.fr,{title:"Ne coupez jamais la poire en deux : Un manuel redoutable pour négocier gagnant",subtitle:"Un manuel redoutable pour négocier gagnant",shortTitle:"Ne coupez jamais la poire"});
   const response=extractionResponse({originalTitle:translations.en.title,originalSubtitle:translations.en.subtitle,author:"Chris Voss",translations});
   const fake=fakeProvider([researchResponse(),response]);
   const result=await createBookAutofill({apiKey:"key",...fake})("r",{title:"rompe la barrera del no",author:"",language:""},genres);
   assert.equal(result.metadata.originalTitle,"Never Split the Difference");
-  assert.deepEqual(result.metadata.title,{es:"Rompe la barrera del no",en:"Never Split the Difference",fr:"Ne coupez jamais la poire en deux"});
-  assert.equal(result.metadata.shortTitle.fr,"Ne coupez jamais la poire");
+  assert.deepEqual(result.metadata.title,{es:"Rompe la barrera del no",en:"Never Split the Difference"});
   assert.doesNotMatch(JSON.stringify(result.metadata),/Never Split de Difference|Un manuel|Negotiating as/);
-  assert.equal(fake.calls[1].body.text.format.schema.properties.translations.properties.fr.anyOf[0].properties.shortTitle.maxLength,32);
-  const edited=await createBookAutofill({apiKey:"key",...fakeProvider([researchResponse(),response])})("r",{...input,metadata:{title:{es:"Título personal"},shortTitle:{fr:"Mi título breve"}}},genres);
-  assert.equal(edited.metadata.title.es,"Título personal");assert.equal(edited.metadata.shortTitle.fr,"Mi título breve");
+  assert.deepEqual(Object.keys(fake.calls[1].body.text.format.schema.properties.translations.properties).sort(),["en","es"]);
+  assert.equal(fake.calls[1].body.instructions.includes("francés"),false);
+  const edited=await createBookAutofill({apiKey:"key",...fakeProvider([researchResponse(),response])})("r",{...input,metadata:{title:{es:"Título personal"},shortTitle:{fr:"Un titre legacy"}}},genres);
+  assert.equal(edited.metadata.title.es,"Título personal");assert.equal(edited.metadata.shortTitle.fr,"Un titre legacy");
 });
 
 test("AI missing configuration, invalid input, ambiguity, refusal, incomplete responses and invented links are handled",async()=>{

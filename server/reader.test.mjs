@@ -96,8 +96,8 @@ test("Reading, language and daily sources are stored separately from reviews and
   const {db,a} = await fixture(t), before = await readReaderState(db,a,today);
   const reading = await changeReading(db,a,"seven-habits","read",today); assert.equal(reading.statuses["seven-habits"],"read");
   const pref = {filters:{reading:false,read:false,reviewing:false,reviewed:false,interests:true,all:false},genres:["finance"]};
-  const state = await changePreferences(db,a,{language:"fr",preferences:pref},today);
-  assert.equal(state.language,"fr"); assert.deepEqual(state.preferences,pref); assert.deepEqual(state.wallet,before.wallet);
+  const state = await changePreferences(db,a,{language:"en",preferences:pref},today);
+  assert.equal(state.language,"en"); assert.deepEqual(state.preferences,pref); assert.deepEqual(state.wallet,before.wallet);
   assert.deepEqual(state.reviews,{}); await assert.rejects(changePreferences(db,a,{language:"zz",preferences:pref},today));
   await assert.rejects(changeReading(db,a,"missing","read",today));
 });
@@ -141,9 +141,9 @@ test("Original title preference persists across connections, stays per account a
   const restored=await readReaderState(second,a,today);
   assert.deepEqual(restored,{...before,showOriginalTitles:true});
   assert.equal((await readReaderState(db,b,today)).showOriginalTitles,false);
-  assert.equal((await changePreferences(db,a,{language:"fr"},today)).showOriginalTitles,true);
+  assert.equal((await changePreferences(db,a,{language:"en"},today)).showOriginalTitles,true);
   for(const value of ["true",1,null,{}]) await assert.rejects(changePreferences(db,a,{language:"en",showOriginalTitles:value},today),e=>e.code==="invalidRequest");
-  assert.equal((await readReaderState(db,a,today)).language,"fr");
+  assert.equal((await readReaderState(db,a,today)).language,"en");
   assert.equal((await changePreferences(db,a,{showOriginalTitles:false},today)).showOriginalTitles,false);
 });
 

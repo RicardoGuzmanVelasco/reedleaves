@@ -24,7 +24,7 @@ test("One query searches all full and short titles regardless of interface langu
     assert.deepEqual(ids(filterBooks(books,query)),[id]);
   }
   const catalog = prepareCatalog(data);
-  for (const language of ["es","en","fr"]) {
+  for (const language of ["es","en"]) {
     const html = libraryResultsMarkup({catalog,language,libraryQuery:"Atomic Habits"});
     assert.match(html,/data-book="atomic-habits"/);
     assert.ok(html.includes(catalog.booksById.get("atomic-habits").shortTitle[language]));
@@ -62,7 +62,7 @@ test("Simple search is labelled, escaped, clearable and recovers from no results
 
 test("Every book modal always shows original title in its own language, even if the titles coincide", async () => {
   const catalog = prepareCatalog(await fixture());
-  for (const language of ["es","en","fr"]) for (const book of catalog.books) {
+  for (const language of ["es","en"]) for (const book of catalog.books) {
     const html = libraryView({catalog,language,statuses:{},reviews:{},openBookId:book.id,storageAvailable:true});
     assert.ok(html.includes(`<span>${words[language].originalTitle}</span><span lang="en" dir="auto">${book.originalTitle}</span>`));
   }
@@ -97,7 +97,7 @@ test("Library filters intersect author, interest, deck language and title search
   assert.deepEqual(filterLibrary(catalog,"",{language:"ja"}),[]);
   const genre=catalog.books[0].genres[0];
   assert.ok(filterLibrary(catalog,"",{genre}).every(book=>book.genres.includes(genre)));
-  const html=libraryView({catalog,language:"fr",libraryFilters:{author:"Stephen R. Covey"}});
+  const html=libraryView({catalog,language:"en",libraryFilters:{author:"Stephen R. Covey"}});
   assert.match(html,/value="Stephen R. Covey" selected/);
   assert.equal((html.match(/data-action="open-book-details"/g)||[]).length,1);
 });
