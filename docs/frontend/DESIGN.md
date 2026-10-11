@@ -94,7 +94,7 @@ Usar lenguaje técnico simplificado. El texto de interfaz debe ser corto, direct
 - Verde luz: `#B9E877` — superficies y segunda hoja.
 - Salvia: `#779A72` — contorno del libro.
 - Verde sombra: `#1E4C2E` — sombra exterior del libro.
-- Verde de selección: `#2F6B3C` — opción activa de idioma, con texto crema; compartido por Ajustes y formularios.
+- Selectores segmentados: opciones inactivas en verde luz `#B9E877`; opción activa en verde de selección `#2F6B3C` con texto crema. Compartido por idioma en Ajustes y formularios, y por filtros de tarjetas.
 - Melocotón: `#FFE0CB` — superficie de la idea del día.
 - Azul pastel: `#E4EFFB` — citas; borde `#829FBD` y profundidad `#C1D4E8`.
 - Crema: `#FFF9ED` — fondo cálido recomendado.
