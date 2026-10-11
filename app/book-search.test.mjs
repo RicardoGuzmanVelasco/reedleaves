@@ -20,7 +20,7 @@ test("One query searches all full and short titles regardless of interface langu
   for (const book of books) for (const field of ["title", "shortTitle"]) for (const title of Object.values(book[field])) {
     assert.ok(ids(filterBooks(books,title)).includes(book.id),title);
   }
-  for (const [query,id] of [["ATOMIC HABITS","atomic-habits"],["habitos atomicos","atomic-habits"],["pere riche pere pauvre","rich-dad-poor-dad"],["s organiser reussir","getting-things-done"],["  7 HABITS  ","seven-habits"],["efficaces habitudes","seven-habits"]]) {
+  for (const [query,id] of [["ATOMIC HABITS","atomic-habits"],["hábitos atómicos","atomic-habits"],["padre rico padre pobre","rich-dad-poor-dad"],["organizate con eficacia","getting-things-done"],["  7 HABITS  ","seven-habits"],["habitos de la gente","seven-habits"]]) {
     assert.deepEqual(ids(filterBooks(books,query)),[id]);
   }
   const catalog = prepareCatalog(data);

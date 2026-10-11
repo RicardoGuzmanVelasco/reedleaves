@@ -20,7 +20,7 @@ test("Existing metadata survives autofill; invalid translations and unsafe links
 
 test("Only incomplete owned books offer completion; optional links do not keep the indicator visible",()=>{
   const minimal={...normalizeBookMetadata(),id:"mine",creatorUserId:"owner",author:"Daniel Kahneman",originalTitle:bookMetadata.originalTitle,originalLanguage:"en"};
-  assert.equal(missingBookInformation(minimal).length,6);
+  assert.equal(missingBookInformation(minimal).length,7);
   const complete={...minimal,...bookMetadata};
   assert.equal(missingBookInformation(complete).length,0);
   const catalog={...state.catalog,books:[minimal],booksById:new Map([["mine",minimal]]),decks:[],versions:[]};

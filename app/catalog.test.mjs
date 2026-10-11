@@ -126,7 +126,7 @@ test("Mascot collection opens from review album and deck selection, not library,
   assert.match(review,/review-mascot-callout/);assert.match(review,/review-mascot-button/);
   assert.match(review,/data-action="open-mascots" data-book="seven-habits"/);
   assert.match(review,/Ya has plantado la semilla, ahora a regarla cada día/);
-  const english=reviewView({...reviewing,language:"en"});assert.match(english,/You planted the seed/);
+  const english=reviewView({...reviewing,language:"en"});assert.match(english,/Read: plant a seed\./);
   const seedlingReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,spentDays:3}}});
   assert.match(seedlingReview,/growth\/seedling\.svg/);assert.match(seedlingReview,/¡Algo asoma por fin!/);
   const sproutReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,spentDays:5}}});

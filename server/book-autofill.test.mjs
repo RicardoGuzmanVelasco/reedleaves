@@ -176,10 +176,10 @@ test("Existing-book HTTP autofill uses stored identity, enforces ownership and p
   const pending=post("/api/author/books/autofill",fill,owner);
   while (!release) await new Promise(resolve=>setTimeout(resolve,5));
   assert.equal((await db.prepare("SELECT count(*) AS n FROM book_translations WHERE book_id=?").get(bookId)).n,0);
-  const concurrent=structuredClone(complete);concurrent.metadata.description.fr="Ajout depuis une autre session";
+  const concurrent=structuredClone(complete);concurrent.metadata.description.es="Descripción añadida desde otra sesión";
   assert.equal((await post("/api/author/books/complete",concurrent,owner)).status,200);
   release();const preview=await pending;assert.equal(preview.status,200);
-  const result=await preview.json();assert.equal(result.author,"Autor guardado");assert.equal(result.metadata.description.fr,concurrent.metadata.description.fr);
+  const result=await preview.json();assert.equal(result.author,"Autor guardado");assert.equal(result.metadata.description.es,concurrent.metadata.description.es);
   const saved=await post("/api/author/books/complete",{bookId,metadata:result.metadata},owner);assert.equal(saved.status,200);
   const repeat=await post("/api/author/books/complete",{bookId,metadata:result.metadata},owner);assert.equal(repeat.status,200);
   assert.equal((await db.prepare("SELECT count(*) AS n FROM books").get()).n,6);

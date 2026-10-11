@@ -46,7 +46,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal(saved.author,"Autor ya escrito");assert.equal(saved.originalTitle,bookMetadata.originalTitle);assert.equal(saved.originalLanguage,"en");
     for (const field of Object.keys(bookMetadata)) assert.deepEqual(saved[field],bookMetadata[field]);
     assert.equal((await db.prepare("SELECT count(*) AS n FROM books").get()).n,bookCount);
-    assert.equal((await db.prepare("SELECT count(*) AS n FROM book_translations WHERE book_id=?").get(bookId)).n,3);
+    assert.equal((await db.prepare("SELECT count(*) AS n FROM book_translations WHERE book_id=?").get(bookId)).n,2);
     assert.equal((await db.prepare("SELECT count(*) AS n FROM sources WHERE book_id=?").get(bookId)).n,2);
     assert.deepEqual(await readReaderState(db,session),beforeState);
     assert.equal((await readCatalog(db,session.user_id)).cards.find(card=>card.id===cardId).body.es,"Texto propio");
@@ -94,7 +94,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const changed=structuredClone(input);changed.metadata.description.es="Otra descripción";
     await assert.rejects(createBook(db,session,changed),e=>e.status===409);
     const count=(await db.prepare("SELECT count(*) AS n FROM books").get()).n;
-    for (const change of [m=>m.genres.push("unknown-genre"),m=>m.links.goodreads="javascript:alert(1)",m=>delete m.description.fr,m=>m.sources.push({title:"Private",url:"https://localhost/private"})]) {
+    for (const change of [m=>m.genres.push("unknown-genre"),m=>m.links.goodreads="javascript:alert(1)",m=>delete m.description.en,m=>m.sources.push({title:"Private",url:"https://localhost/private"})]) {
       const invalid=structuredClone(input);invalid.requestId=randomUUID();change(invalid.metadata);
       await assert.rejects(createBook(db,session,invalid),e=>e.status===400);
       assert.equal((await db.prepare("SELECT count(*) AS n FROM books").get()).n,count);

@@ -58,10 +58,10 @@ test("The SQL catalog requires Spanish and English book metadata independently f
 test("Spanish and English book previews use their separate short and full title fields", async () => {
   const s = {catalog:await catalog(), language:"en", statuses:{}, bookReviews:{}, reviews:{}, openBookId:"seven-habits", storageAvailable:true};
   const html = libraryView(s);
-  assert.match(html, /Bookshelf/);
+  assert.match(html, /Library/);
   for (const book of s.catalog.books) assert.ok(html.includes(escapeHtml(book.shortTitle.en)));
   assert.match(html, /<h2 id="book-dialog-title"[^>]*>The 7 Habits of Highly Effective People<\/h2>/);
-  assert.match(html, /Personal development/);
+  assert.match(html, /Personal growth/);
   assert.match(html, /Productivity/);
   assert.match(html, /View decks/);
   assert.match(html, /Spanish · English/);
