@@ -10,12 +10,14 @@ export function createReadingPresentation({window: win = window, document: doc =
     if (!stage) { previousKey = null; return; }
     const body = stage.querySelector(".idea-body"), button = stage.querySelector(".reveal-text");
     const text = body.textContent;
-    const key = JSON.stringify([stage.dataset.readingCard, stage.textContent, body.lang]);
+    const key = JSON.stringify([stage.dataset.readingCard, stage.dataset.readingMode, stage.textContent, body.lang]);
     const fresh = key !== previousKey;
     previousKey = key;
     if (!fresh || motion.matches || doc.hidden || !text) { dispose = () => {}; return; }
 
-    stage.classList.add("is-arriving", "is-writing");
+    stage.classList.add("is-arriving");
+    if (stage.dataset.readingMode === "complete") { dispose = () => {}; return; }
+    stage.classList.add("is-writing");
     button.tabIndex = 0;
     // Reserve the final layout and expose the full text once to assistive technology.
     const full = doc.createElement("span"), space = doc.createElement("span"), ink = doc.createElement("span");
@@ -25,7 +27,19 @@ export function createReadingPresentation({window: win = window, document: doc =
     body.replaceChildren(full, space, ink);
     body.classList.add("is-typewriting");
     const characters = typeof Intl.Segmenter === "function" ? [...new Intl.Segmenter(body.lang || undefined, {granularity:"grapheme"}).segment(text)].map(part => part.segment) : Array.from(text);
-    const duration = Math.min(4600, Math.max(1400, characters.length * 18));
+    // Reveal punctuation immediately, then pause before the following grapheme.
+    // Compress very long cards so their writing still finishes within two seconds.
+    let total = 0;
+    const timeline = characters.map((character,index) => {
+      total += 3;
+      const at = total;
+      if (index < characters.length - 1) {
+        total += /[.:\r\n\u2028\u2029]/u.test(character) ? 180 : /[,;\-\u2010-\u2015]/u.test(character) ? 70 : 0;
+      }
+      return at;
+    });
+    const scale = Math.min(1,2000 / total);
+    const duration = total * scale;
     let frame = 0, start = null, finished = false, count = 0;
 
     function finish() {
@@ -39,8 +53,9 @@ export function createReadingPresentation({window: win = window, document: doc =
     }
     function reveal(now) {
       start ??= now;
-      const elapsed = Math.max(0, now - start - 320);
-      const next = Math.min(characters.length, Math.floor(elapsed / duration * characters.length));
+      const elapsed = Math.max(0, now - start - 180);
+      let next = count;
+      while (next < characters.length && timeline[next] * scale <= elapsed) next++;
       if (next !== count) { count = next; ink.textContent = characters.slice(0, count).join(""); }
       if (elapsed >= duration) finish();
       else frame = win.requestAnimationFrame(reveal);

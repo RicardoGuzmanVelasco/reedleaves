@@ -237,18 +237,18 @@ function cardAttribution(s,card,book) {
   }).join("")}</div>`;
 }
 
-function cardMarkup(s, card, heading = "h2") {
+function cardMarkup(s, card, heading = "h2", {typewriter = true} = {}) {
   const c = words[s.language], book = s.catalog.booksById.get(card.bookId), deckLanguage = card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
-  return `<div class="reading-stage${card.isQuote ? " reading-stage--quote" : ""}" data-reading-card="${esc(card.id)}"><article class="idea-card${card.isQuote ? " quote-card" : ""}"><button type="button" class="text-button reveal-text" tabindex="-1">${c.showFullText}</button>${card.isQuote ? `<blockquote lang="${esc(bodyLanguage)}" dir="auto" class="idea-body" id="idea-content" tabindex="-1">${esc(body)}</blockquote>` : `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-content" tabindex="-1">${esc(title)}</${heading}><p lang="${esc(bodyLanguage)}" dir="auto" class="idea-body">${esc(body)}</p>`}
+  return `<div class="reading-stage${card.isQuote ? " reading-stage--quote" : ""}" data-reading-card="${esc(card.id)}"${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${card.isQuote ? " quote-card" : ""}">${typewriter ? `<button type="button" class="text-button reveal-text" tabindex="-1">${c.showFullText}</button>` : ""}${card.isQuote ? `<blockquote lang="${esc(bodyLanguage)}" dir="auto" class="idea-body" id="idea-content" tabindex="-1">${esc(body)}</blockquote>` : `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-content" tabindex="-1">${esc(title)}</${heading}><p lang="${esc(bodyLanguage)}" dir="auto" class="idea-body">${esc(body)}</p>`}
     <footer class="reading-footer">${cardAttribution(s,card,book)}</footer>${card.isQuote ? '<span class="quote-watermark" aria-hidden="true">❞</span>' : ""}</article></div>`;
 }
 
 export function dailyView(s) {
   const c = words[s.language], card = s.daily && s.catalog.cardsById.get(s.daily.id);
   return `<section class="daily-screen"><div class="screen-heading"><h1 tabindex="-1">${c.daily}</h1></div>
-    ${filters(s)}${card ? cardMarkup(s, card) + `<div class="daily-action">${button(c.reviewBook, "enter-review", !s.storageAvailable)}</div>` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p><small>${s.storageAvailable ? c.emptyHint : ""}</small></div>`}
+    ${card ? cardMarkup(s, card, "h2", {typewriter:false}) + `<div class="daily-action">${button(c.reviewBook, "enter-review", !s.storageAvailable)}</div>` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p><small>${s.storageAvailable ? c.emptyHint : ""}</small></div>`}${filters(s)}
     </section>`;
 }
 
