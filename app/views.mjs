@@ -9,6 +9,7 @@ import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
 
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const esc = escapeHtml;
+const deckCreator = (deck,c) => `${esc(c.by)} <bdi>${esc(deck.creator.name)}</bdi>`;
 const button = (text, action, disabled = false) => `<button type="button" class="primary" data-action="${action}" ${disabled ? "disabled" : ""}>${esc(text)}</button>`;
 const safeUrl = value => { try { const u = new URL(value); return u.protocol === "https:" ? u.href : "#"; } catch { return "#"; } };
 
@@ -239,7 +240,7 @@ export function deckView(s) {
     const tagList = tags.length ? tags : ["otherDeck"];
     return `<div class="deck-tags">${tagList.map(tag => `<span>${esc(c[tag])}</span>`).join("")}</div>
       <h2 ${dialog ? 'id="deck-dialog-title"' : ""} lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h2>
-      <p class="deck-creator">${c.by} <strong>${esc(deck.creator.name)}</strong><span class="deck-language" lang="${esc(deck.language)}">${esc(languageName(deck.language))}</span></p>
+      <p class="deck-creator">${deckCreator(deck,c)}<span class="deck-language" lang="${esc(deck.language)}">${esc(languageName(deck.language))}</span></p>
       <p class="deck-description" ${dialog ? 'id="deck-dialog-description"' : ""} lang="${esc(contentLocale(version.description,s.language,version.language))}" dir="auto">${esc(contentText(version.description,s.language,version.language))}</p>
       <p class="deck-size">${c.deckSize(version.cardCount,version.depth)}</p>
       ${metrics.length ? `<p class="deck-metrics">${metrics.map(esc).join(" · ")}</p>` : ""}
@@ -253,9 +254,10 @@ export function deckView(s) {
     ${s.userId ? `<div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
     ${!choices.length ? `<div class="empty-state">${c.noDecks}</div>` : `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${choices.map(item => {
       const {deck,version,tags} = item, tag = tags[0] || "otherDeck";
-      return `<button class="deck-tile" type="button" data-action="open-deck" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(contentText(version.title,s.language,version.language))}, ${esc(c.deckSize(version.cardCount,version.depth))}, ${esc(c[tag])}">
+      return `<button class="deck-tile" type="button" data-action="open-deck" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(contentText(version.title,s.language,version.language))}, ${esc(c.by)} ${esc(deck.creator.name)}, ${esc(c.deckSize(version.cardCount,version.depth))}, ${esc(c[tag])}">
         <span class="deck-tile-copy"><span class="deck-tile-tag">${esc(c[tag])}</span>
         <strong lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</strong>
+        <span class="deck-creator deck-tile-creator">${deckCreator(deck,c)}</span>
         <span class="deck-tile-size">${c.deckSize(version.cardCount,version.depth)}</span>
         <span class="deck-tile-language" lang="${esc(deck.language)}">${esc(languageName(deck.language))}</span></span></button>`;
     }).join("")}</div>`}
@@ -293,7 +295,8 @@ function albumSummary(s,version,deck,model,review) {
   const language=new Intl.DisplayNames([s.language],{type:"language"}).of(deck.language) || deck.language;
   return `<header class="album-heading"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>
     <h1 tabindex="-1" lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h1>
-    <p class="album-meta">${s.userId === deck.creator.userId ? "" : esc(deck.creator.name)+" · "}${esc(language)}</p></header>
+    <p class="deck-creator">${deckCreator(deck,c)}</p>
+    <p class="album-meta">${esc(language)}</p></header>
     <div class="album-progress"><div><p>${c.progress(seen,total)}</p><span aria-hidden="true">${percent}%</span></div><progress value="${seen}" max="${Math.max(total,1)}" aria-label="${esc(c.progress(seen,total))}"></progress></div>`;
 }
 
