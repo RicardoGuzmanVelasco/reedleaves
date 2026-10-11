@@ -65,11 +65,8 @@ export async function readCatalog(db, userId) {
     if(model.cards.some(card=>!card.title[row.language]||!card.body[row.language])) throw new Error("Card is missing text in its deck language");
     versions.push(version);
   }
-  // Books are shared regardless of creator; personal deck drafts remain owner-only.
-  const accountIds = new Set((await db.prepare("SELECT user_id FROM accounts").all()).map(r=>r.user_id));
-  const visible = versions.filter(v=>v.status !== "draft" || !accountIds.has(decks.find(d=>d.id===v.deckId).creator.userId) || decks.find(d=>d.id===v.deckId).creator.userId === userId);
-  const ids = new Set(visible.map(v=>v.id)), deckIds = new Set(visible.map(v=>v.deckId));
-  return {schemaVersion:3,genres,books,decks:decks.filter(d=>deckIds.has(d.id)),versions:visible,cards:cards.filter(c=>ids.has(c.versionId))};
+  // Account-created decks and their cards join the shared catalog as they are saved.
+  return {schemaVersion:3,genres,books,decks,versions,cards};
 }
 
 export async function checkCatalog(db) {

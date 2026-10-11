@@ -59,6 +59,7 @@
 .deck-tile-copy strong{display:-webkit-box;width:100%;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:14px;line-height:1.3;overflow-wrap:anywhere}
 .deck-tile-creator{font-size:12px;margin:2px 0 4px;width:100%}
 .deck-tile-size,.deck-tile-language{font-size:10px;line-height:1.4;color:var(--muted)}
+.deck-tile-reviewing{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:9px;background:#eef3df;font-size:10px;font-weight:800;line-height:1.35;color:var(--ink)}.deck-tile-reviewing svg{width:13px;height:13px;flex:none}
 .deck-modal{position:fixed;inset:0;margin:auto;width:min(540px,calc(100% - 32px));max-width:none;max-height:min(88dvh,760px);padding:0;overflow:auto;border:0;border-radius:29px;background:transparent;color:var(--ink);box-shadow:0 22px 0 rgb(30 76 46 / 20%),0 30px 75px rgb(23 61 44 / 30%)}
 .deck-modal::backdrop{background:rgb(23 61 44 / 54%);backdrop-filter:blur(3px)}
 .deck-modal[open]{animation:deck-pop .2s cubic-bezier(.2,.8,.3,1) both}

@@ -50,8 +50,6 @@ async function knownVersion(db,versionId,userId) {
   if(typeof versionId!=="string") throw new ApiError(400,"invalidRequest");
   const version=await db.prepare("SELECT * FROM deck_versions WHERE id = ?").get(versionId);
   const enrolled=await db.prepare("SELECT 1 FROM studies WHERE user_id = ? AND version_id = ?").get(userId,versionId);
-  const owner = version && await db.prepare("SELECT d.creator_user_id,a.user_id FROM decks d LEFT JOIN accounts a ON a.user_id=d.creator_user_id WHERE d.id=?").get(version.deck_id);
-  if (version?.status === "draft" && owner?.user_id && owner.creator_user_id !== userId) throw new ApiError(404,"deckUnavailable");
   if(!version||(version.status==="archived"&&!enrolled)) throw new ApiError(404,"deckUnavailable");
   return version;
 }

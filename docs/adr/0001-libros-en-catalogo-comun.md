@@ -35,18 +35,17 @@ Cuando se permite explorar sin sesión, estos libros también aparecen ahí.
 
 ## Alcance y consecuencias
 
-- Compartir un libro no publica sus barajas ni sus tarjetas. Los borradores de
-  barajas de cuentas siguen visibles y editables solo por su creador. Las reglas
-  actuales de versiones publicadas o archivadas se mantienen.
+- En la decisión original, compartir un libro no publicaba sus barajas ni sus
+  tarjetas. Esa regla quedó sustituida por [ADR 0002](0002-barajas-en-catalogo-comun.md).
 - La Biblioteca personal sigue reuniendo libros relacionados con cada cuenta;
   el catálogo común no los añade automáticamente a todas las bibliotecas.
   La biblioteca de un perfil ajeno puede mostrar las fichas compartidas asociadas
-  a ese perfil, sin exponer sus borradores de barajas.
+  a ese perfil. La visibilidad de las barajas se define en ADR 0002.
 - Estados de lectura, elecciones, progreso y hojas siguen aislados por cuenta.
   IDs, fuentes, traducciones y repasos existentes se conservan.
 - El catálogo puede contener fichas incompletas y duplicadas. Esta decisión no
   incorpora moderación, deduplicación, publicación de barajas ni edición ajena.
-- No se añade un selector de privacidad ni un paso de publicación al formulario.
+- No se añade un selector de privacidad al formulario de libro.
 
 ## Revisión futura
 
@@ -58,8 +57,7 @@ este ADR; se pospone su diseño.
 
 ## Verificación
 
-Probar en SQLite y PostgreSQL que otra cuenta ve libros manuales y completados
-con IA, puede registrar su lectura y crear una baraja propia, pero no completar
-metadatos ni consultar, seleccionar, editar o abrir borradores ajenos. Comprobar
-que el catálogo arranca con fichas mínimas, conserva libros existentes y permite
-abrir desde Librería un libro sin barajas visibles para crear una propia.
+La verificación original comprobó en SQLite y PostgreSQL la privacidad de los
+borradores. Esa regla quedó sustituida por ADR 0002, que define la visibilidad
+compartida actual. Se conservan las comprobaciones de libros y permisos de
+metadatos descritas en el historial de desarrollo.

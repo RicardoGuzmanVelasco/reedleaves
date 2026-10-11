@@ -15,10 +15,10 @@ export async function insertCardView(db,userId,cardId) {
 export async function recordCardView(db,session,{cardId,context} = {},now=new Date()) {
   if (typeof cardId !== "string" || !["daily","review","author"].includes(context)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
-    const card=await db.prepare(`SELECT c.id,c.version_id,v.status,d.creator_user_id,a.user_id AS account_owner
+    const card=await db.prepare(`SELECT c.id,c.version_id,v.status,d.creator_user_id
       FROM cards c JOIN deck_versions v ON v.id=c.version_id JOIN decks d ON d.id=v.deck_id
-      LEFT JOIN accounts a ON a.user_id=d.creator_user_id WHERE c.id=?`).get(cardId);
-    if (!card || card.status === "draft" && card.account_owner && card.creator_user_id !== session.user_id) throw new ApiError(404,"cardUnavailable");
+      WHERE c.id=?`).get(cardId);
+    if (!card) throw new ApiError(404,"cardUnavailable");
     let allowed=false;
     if (context === "author") allowed=card.creator_user_id === session.user_id && card.status === "draft";
     if (context === "review") allowed=!!await db.prepare("SELECT 1 FROM review_unlocks WHERE user_id=? AND card_id=?").get(session.user_id,cardId);

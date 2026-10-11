@@ -85,11 +85,11 @@ La API entrega `book.links.amazon` y `book.links.goodreads`, sin codificar libro
 
 ## Límites explícitos
 
-El selector, el repaso por versión y la creación autenticada de libros y barajas están implementados. Los libros se comparten al guardarlos; los borradores de barajas de cuentas siguen privados. La publicación de barajas desde la aplicación y los votos siguen fuera de esta entrega.
+El selector, el repaso por versión y la creación autenticada de libros y barajas están implementados. Los libros, las barajas de cuentas y sus tarjetas se comparten al guardarlos. La edición de borradores sigue reservada a su creador; los votos siguen fuera de esta entrega.
 La API de catálogo sigue siendo de lectura; los endpoints de cuenta, repaso y autoría escriben con sesión, origen y CSRF. No hay endpoints de voto ni publicación de barajas.
 El progreso actual guarda cartas por usuario y versión en SQL. Nunca se hereda progreso entre barajas o versiones.
 Las claves locales antiguas se conservan sin borrar, pero no se usan como fuente verificada ni se importan en la cuenta nueva.
-Cambiar la publicación de una baraja no cambia el repaso iniciado: el selector permite retomar la versión con historial.
+Cambiar una versión a archivada no cambia el repaso iniciado: el selector permite retomar la versión con historial.
 
 Cada usuario recibe una hoja al día cuando su saldo está por debajo de tres. Un nuevo monedero empieza con una. Los días ausentes suman hasta tres; las fechas excedentes no se guardan para después. Un ajuste manual puede dejar 100 hojas: se conservan hasta gastarlas, sin recortarlas a tres al pasar los días. El abono diario vuelve cuando el saldo baja de tres. Una carta nueva cuesta una hoja y se pueden gastar varias el mismo día. La hermana siguiente y la primera hija son alternativas.
 Volver a una carta repasada, subir a la madre y cambiar baraja no gasta hojas.
@@ -103,7 +103,7 @@ Se sortea entre las cartas principales de la baraja elegida para cada libro; cam
 Los filtros repasando y repasado agrupan el progreso de todas las barajas de un libro. Un libro puede pertenecer a ambos grupos si tiene una baraja terminada y otra en curso.
 
 La versión 3 del catálogo todavía expone nuestros borradores editoriales para la prueba interna.
-Los borradores de barajas de cuentas se filtran por autor; compartir la ficha de un libro no publica sus barajas ni sus tarjetas. Las versiones publicadas conservan las reglas de validación e inmutabilidad.
+Las barajas y tarjetas creadas por cuentas se incluyen en el catálogo compartido aunque la versión siga como borrador. Compartir el contenido no concede permisos de edición: solo el creador puede añadir tarjetas. Las versiones publicadas o archivadas conservan las reglas de validación e inmutabilidad.
 
 Producción usa PostgreSQL gestionado, `DATABASE_URL`, TLS del proveedor, backups, supervisión y HTTPS. SQLite se conserva para desarrollo y pruebas. `node:sqlite` sigue siendo experimental en el Node 24.11 local; el runtime requerido se fija en `.node-version`.
 
