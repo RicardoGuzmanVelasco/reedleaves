@@ -49,7 +49,7 @@ test("Book grid and modal translate, escape content and count decks rather than 
   book.title.en = '<script>alert("title")</script>';
   book.author = '<img src=x onerror="bad">';
   const html = libraryView(s);
-  assert.match(html,/Add a book/); assert.match(html,/View decks/); assert.match(html,/1 deck/);
+  assert.match(html,/Library/); assert.match(html,/View decks/); assert.match(html,/1 deck/);
   assert.doesNotMatch(html,/<script|<img src=x/);
   assert.match(html,/&lt;script&gt;/); assert.match(html,/&lt;img/);
   const modal = html.slice(html.indexOf('<dialog'));
@@ -61,6 +61,6 @@ test("Library has an empty state; deck selection can return to the catalog", asy
   const s = await state();
   assert.match(libraryView({...s,catalog:{...s.catalog,books:[]}}),/Todavía no hay libros disponibles/);
   const deckState = {...s,bookId:"seven-habits",bookOrigin:"library",deckChoices:featuredDecks(s.catalog,"seven-habits"),openDeckId:null};
-  assert.match(deckView(deckState),/data-action="library">← Libros/);
-  assert.match(deckView({...deckState,bookOrigin:"home"}),/data-action="home">← Inicio/);
+  assert.match(deckView(deckState),/data-action="library">← Librería/);
+  assert.doesNotMatch(deckView({...deckState,bookOrigin:"home"}),/data-action="(?:home|library)"/);
 });

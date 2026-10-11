@@ -17,11 +17,11 @@ Abrir http://127.0.0.1:4173/app/. La primera ejecución crea y carga SQLite; las
 - Sin sesión: entrar o crear cuenta con usuario y contraseña; se pueden explorar los libros sin registrarse. El repaso necesita cuenta.
 - Inicio con sesión muestra los libros con repasos pendientes como libros cerrados: portada, lomo y canto de páginas. Elegir una baraja la añade sin gastar hojas; se recuperan también los repasos ya empezados. El árbol solo aparece al entrar en el repaso.
 - Cabecera: logo, hoja con saldo numérico y ajustes de idioma, títulos originales y cuenta. Sin lemas ni texto del saldo.
-- Libros permite añadir un repaso y consultar los completados. Idea del día queda como acceso secundario, fuera de Inicio.
+- Librería (Library / Librairie) es el catálogo completo. «Ir a mi biblioteca» (Go to my bookshelf) abre Biblioteca (Bookshelf / Bibliothèque), con libros propios, marcados como leyendo o leídos, barajas elegidas e historial de repaso. Dos filtros combinables separan lectura original y repaso; cada libro aparece una sola vez. Idea del día queda como acceso secundario, fuera de Inicio.
 - Una idea aleatoria al día, estable tras recarga, idioma y cambio de filtros.
 - Seis grupos: leyendo, leídos, repasando, repasados, intereses y todos. Unión sin duplicar; Todos sustituye al resto.
 - Géneros recibidos de la base: crecimiento personal, finanzas y productividad.
-- Añadir libro: cuadrícula de libros cerrados con título, autor, intereses y número de barajas. Pulsar abre su ficha modal; ahí se consulta la descripción, se marca la lectura del original y se accede a las barajas. La navegación no gasta hojas ni elige una baraja automáticamente.
+- Librería, accesible desde «Añadir libro»: cuadrícula de libros cerrados con título, autor, intereses y número de barajas. Pulsar abre su ficha modal; ahí se consulta la descripción, se marca la lectura del original y se accede a las barajas. La navegación no gasta hojas ni elige una baraja automáticamente.
 - Elegir una baraja por libro: creador, enfoque, cartas y profundidad. Recomendación del equipo y ganadoras reales, sin duplicados ni premios con cero actividad.
 - Ganar una hoja al día y acumular hasta tres. Se pueden gastar varias el mismo día: hermana siguiente o hija cuestan una hoja si son nuevas. Volver a cartas repasadas es gratis. Los días ausentes suman hasta el máximo, sin guardar un exceso pendiente.
 - Los filtros afectan al siguiente día una vez asignada la idea de hoy, pendiente de confirmación.

@@ -179,3 +179,14 @@
 @media(max-width:520px){.mascots-screen{padding-top:21px}.mascots-heading{margin-bottom:16px}.mascots-heading h1{font-size:27px}.mascots-heading>img{width:67px;height:67px}.mascot-stage{grid-template-columns:22px 52px minmax(0,1fr) auto;gap:8px;padding:9px 10px;border-radius:19px}.mascot-stage-art{width:52px;height:52px}.mascot-stage-copy h2{font-size:15px}.mascot-stage-copy p{font-size:10px}.mascot-earned{padding:5px 7px;font-size:8px}.mascot-entry{width:63px;height:63px;border-radius:21px}}
 @media(max-width:380px){.mascot-stage{grid-template-columns:18px 44px minmax(0,1fr);gap:7px}.mascot-stage-art{width:44px;height:44px}.mascot-earned{grid-column:3;justify-self:start;margin-top:-3px}}
 @media(prefers-reduced-motion:reduce){.mascot-entry{transition:none}}
+
+/* Personal collection: independent reading/review filters and one book per group. */
+.home-bookshelf{display:block;margin:14px auto 0;text-align:center;color:var(--muted)}
+.bookshelf-screen{padding:28px 0 34px}.bookshelf-heading{align-items:center;margin-bottom:25px}.bookshelf-heading h1{font-size:30px}
+.bookshelf-filters{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:28px}
+.bookshelf-filters label{display:flex;flex-direction:column;gap:7px;min-width:0;font-size:12px;font-weight:750}
+.bookshelf-filters select{width:100%;min-width:0;min-height:48px;padding:10px 12px;border:1.5px solid var(--sage);border-radius:13px;background:#eef3df;font-size:14px}
+.bookshelf-group{margin-top:28px}.bookshelf-group h2{font-size:20px;line-height:1.3;margin-bottom:18px}.bookshelf-group .study-book-footer{white-space:normal;line-height:1.5;gap:8px}.bookshelf-group .study-book-footer>span{flex-shrink:0}
+.bookshelf-screen .empty-state .text-button{margin-top:12px}
+@media(max-width:520px){.bookshelf-heading{gap:12px;flex-wrap:wrap}.bookshelf-heading h1{font-size:27px}.bookshelf-heading .home-add{font-size:11px;padding:7px 10px}.bookshelf-filters{gap:12px}.bookshelf-filters select{font-size:13px;padding:10px 8px}.bookshelf-group h2{font-size:19px}}
+@media(max-width:420px){.bookshelf-filters{grid-template-columns:1fr}}
