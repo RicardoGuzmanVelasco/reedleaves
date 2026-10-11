@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 5));
-INSERT INTO reed_schema VALUES (5);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 6));
+INSERT INTO reed_schema VALUES (6);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -106,7 +106,7 @@ CREATE TABLE reviews(
 );
 CREATE INDEX reviews_by_version ON reviews(version_id,user_id);
 CREATE TABLE leaf_wallets(
-  user_id TEXT PRIMARY KEY REFERENCES users(id), balance INTEGER NOT NULL CHECK(balance BETWEEN 0 AND 3),
+  user_id TEXT PRIMARY KEY REFERENCES users(id), balance BIGINT NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991),
   last_accrual_day TEXT NOT NULL CHECK(last_accrual_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(last_accrual_day,'YYYY-MM-DD'),'YYYY-MM-DD') = last_accrual_day)
 );
 CREATE TABLE review_unlocks(

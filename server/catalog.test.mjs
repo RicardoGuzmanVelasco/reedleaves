@@ -30,7 +30,7 @@ test("Real SQLite schema: five books, six authored decks and 42 single-language 
 test("Schema initialization and seed are repeatable without duplicating data", async t => {
   const db = await fixture(t);
   initializeDatabase(db); await seedCatalog(db); await seedCatalog(db);
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 13);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 14);
   assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, versions: 6, cards: 42, genres: 3 });
 });
 test("Foreign keys, source ownership, order and translations are constrained", async t => {
@@ -171,7 +171,7 @@ test("SQL wallets are isolated per user and reject invalid balances and dates", 
   assert.deepEqual(await readLeafWallet(db,"a","2026-10-06"),first);
   assert.equal((await readLeafWallet(db,"a","2026-10-09")).balance,3);
   assert.equal((await readLeafWallet(db,"b","2026-10-09")).balance,1);
-  assert.throws(() => db.prepare("UPDATE leaf_wallets SET balance = 4 WHERE user_id = 'a'").run(),/CHECK/);
+  assert.throws(() => db.prepare("UPDATE leaf_wallets SET balance = -1 WHERE user_id = 'a'").run(),/CHECK/);
   assert.throws(() => db.prepare("UPDATE leaf_wallets SET last_accrual_day = '2026-02-30' WHERE user_id = 'a'").run(),/CHECK/);
   await assert.rejects(readLeafWallet(db,"b","bad"),/Invalid wallet date/);
 });

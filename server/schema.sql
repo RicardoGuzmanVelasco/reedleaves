@@ -196,7 +196,7 @@ CREATE TABLE reviews (
 CREATE INDEX reviews_by_version ON reviews(version_id,user_id);
 CREATE TABLE leaf_wallets (
   user_id TEXT PRIMARY KEY REFERENCES users(id),
-  balance INTEGER NOT NULL CHECK(balance BETWEEN 0 AND 3),
+  balance INTEGER NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991),
   last_accrual_day TEXT NOT NULL CHECK(
     last_accrual_day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND
     date(last_accrual_day,'+0 days') IS last_accrual_day
@@ -287,7 +287,7 @@ CREATE TRIGGER spend_unlock_leaf BEFORE INSERT ON review_unlocks BEGIN
   INSERT INTO leaf_wallets(user_id,balance,last_accrual_day)
     VALUES (NEW.user_id,1,NEW.local_day)
     ON CONFLICT(user_id) DO UPDATE SET
-      balance = min(3,leaf_wallets.balance + CAST(julianday(NEW.local_day) - julianday(leaf_wallets.last_accrual_day) AS INTEGER)),
+      balance = max(leaf_wallets.balance,min(3,leaf_wallets.balance + CAST(julianday(NEW.local_day) - julianday(leaf_wallets.last_accrual_day) AS INTEGER))),
       last_accrual_day = NEW.local_day
     WHERE NEW.local_day > leaf_wallets.last_accrual_day;
   UPDATE leaf_wallets SET balance = balance - 1
@@ -336,4 +336,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 13;
+PRAGMA user_version = 14;

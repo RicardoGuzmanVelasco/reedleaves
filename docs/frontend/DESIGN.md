@@ -20,7 +20,7 @@ Estas reglas aplican a dirección de arte, UX, animaciones, copy y componentes. 
 - Baraja: libro, usuario creador, enfoque y versiones del árbol. Cartas y profundidad se calculan.
 - Carta: versión, padre, título, texto, orden entre hermanas y etiqueta `isQuote`.
 - Quote: carta con tratamiento visual de cita y filtro propio. Puede tener padre. Si no lo tiene, conserva `parentId: null` y aparece dentro de «Quotes sin clasificar», un grupo virtual que no se guarda como carta.
-- Hoja: una unidad de avance; una carta nueva cuesta una hoja, también si es hija. Se gana una al día, con un saldo máximo de tres.
+- Hoja: una unidad de avance; una carta nueva cuesta una hoja, también si es hija. El abono diario acumula hasta tres; un ajuste manual puede superar ese saldo y se conserva hasta gastarlo.
 - `DailyCard`: una idea aleatoria del día, independiente del avance del repaso.
 - Lectura del libro original: sin empezar, leyendo o leído; selección manual.
 - Repaso: cartas vistas por usuario y versión. Termina al recorrer todas, incluidas las hijas.
@@ -59,7 +59,7 @@ La estructura sigue siendo plana, textual y portable. Las cuentas pueden crear b
 - La ficha muestra siempre «Título original» y el título en su idioma original, aunque coincida con el título de la interfaz. Son datos propios del libro; no deducirlos de la traducción inglesa ni del idioma de una baraja. En las portadas pequeñas solo sustituyen al título traducido cuando está activada la preferencia; no mostrar ambos.
 - Las portadas de Inicio, Biblioteca y Librería añaden «…» cuando el título corto es más breve que el título completo del mismo idioma. Es una señal de presentación: no se guarda en los metadatos. Las fichas y etiquetas accesibles conservan el nombre completo. «Mostrar títulos originales» usa el original completo.
 - La ficha de cada libro ofrece dos enlaces secundarios: Amazon para comprar y Goodreads para reseñar. Icono de plataforma, nombre, acción y flecha de enlace externo. Se abren en otra pestaña, sin cambiar progreso ni gastar hojas. «Ver barajas» conserva la prioridad visual; no añadir enlaces dentro de las portadas ni botones de plataformas en el repaso. Las ediciones actuales de Amazon son españolas y la ficha lo indica aunque la interfaz esté en inglés o francés.
-- El saldo de hojas es global entre barajas, con máximo de tres. Los días ausentes suman hasta ese límite; los días excedentes no se guardan para después. Revisitar lo ya repasado es gratis. No introducir compras ni recompensas económicas.
+- El saldo de hojas es global entre barajas. Los abonos diarios solo aumentan saldos menores de tres, hasta ese límite; los días excedentes no se guardan para después. Los saldos mayores concedidos manualmente no se recortan; el abono diario vuelve al bajar de tres. Revisitar lo ya repasado es gratis. No introducir compras ni recompensas económicas.
 - Cuenta, monedero y repaso se guardan en servidor. Durante una petición no se aceptan nuevos clics; una carta se abre solo después de confirmar el gasto. Fallo de red: mensaje breve y reintento, sin progreso provisional. Las actualizaciones de otra sesión no interrumpen campos ni modales abiertos.
 - No mostrar mapas numéricos de tarjetas, marcas de leído, portadas grandes ni un cierre extra.
 - Las cartas de lectura tienen una altura mínima contenida y crecen con el texto. Las citas añaden comillas de cierre grandes y muy translúcidas en la zona inferior derecha, detrás del contenido; son decorativas, no reciben interacción y se ocultan a lectores de pantalla.

@@ -10,6 +10,7 @@
     "db:init": "node server/manage.mjs init",
     "db:seed": "node server/manage.mjs seed",
     "db:check": "node server/manage.mjs check",
+    "db:leaves": "node server/manage.mjs leaves",
     "db:backup": "node server/manage.mjs backup",
     "test": "node --test app/*.test.mjs server/*.test.mjs"
   },

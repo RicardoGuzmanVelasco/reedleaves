@@ -70,7 +70,7 @@ test("SQLite v12 view migration preserves accounts and unlocks, backfills once a
   await openCard(db,a,"seven-habits-editorial-v1","habit-1",day(10));
   db.exec("DROP TABLE card_views; PRAGMA user_version=12;");
   initializeDatabase(db);initializeDatabase(db);
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version,13);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version,14);
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM card_views").get().n,1);
   assert.equal((await readProfile(db,a.user_id,a.user_id)).profile.counts.leavesSpent,1);
 });

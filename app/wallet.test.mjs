@@ -23,6 +23,18 @@ test("A full wallet discards excess days, rather than banking a refill after spe
   assert.equal(restoreWallet(spent,"2026-10-21").balance,3);
 });
 
+test("Manual leaves survive elapsed days; daily accrual resumes below three without banking skipped days", () => {
+  const full = restoreWallet({balance:100,lastAccrualDay:"2026-10-06"},"2026-10-20");
+  assert.deepEqual(full,{balance:100,lastAccrualDay:"2026-10-20"});
+  assert.equal(leafBalance("2026-10-20",full),100);
+  assert.equal(spendLeaf(full,"2026-10-20").wallet.balance,99);
+  const remaining = {...full,balance:2};
+  assert.equal(restoreWallet(remaining,"2026-10-20").balance,2);
+  assert.equal(restoreWallet(remaining,"2026-10-21").balance,3);
+  assert.deepEqual(restoreWallet({balance:Number.MAX_SAFE_INTEGER,lastAccrualDay:"2026-10-06"},"2026-10-20"),
+    {balance:Number.MAX_SAFE_INTEGER,lastAccrualDay:"2026-10-20"});
+});
+
 test("Stored leaves can all be spent on the same date; reloading never restores them", () => {
   let wallet = {balance:3,lastAccrualDay:"2026-10-06"};
   for (const count of [2,1,0]) {
