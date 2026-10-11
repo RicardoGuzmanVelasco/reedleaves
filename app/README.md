@@ -26,7 +26,7 @@ Abrir http://127.0.0.1:4173/app/. La primera ejecución crea y carga SQLite; las
 - Ganar una hoja al día y acumular hasta tres. Se pueden gastar varias el mismo día: hermana siguiente o hija cuestan una hoja si son nuevas. Volver a cartas repasadas es gratis. Los días ausentes suman hasta el máximo, sin guardar un exceso pendiente.
 - Los filtros afectan al siguiente día una vez asignada la idea de hoy, pendiente de confirmación.
 - Crear barajas personales desde las barajas de un libro. Añadir tarjetas o quotes con padre opcional, en el idioma de la baraja. La autoría es gratuita; el repaso mantiene las hojas.
-- Quotes diferenciadas y filtro «Solo quotes». Las sueltas aparecen bajo «Quotes sin clasificar», sin carta ficticia en la base.
+- Quotes en azul pastel y EB Garamond cursiva; fuente WOFF2 local con alternativa serif. Filtro «Solo quotes». Las sueltas aparecen bajo «Quotes sin clasificar», sin carta ficticia en la base.
 - Lectura protagonista: papel elevado por capas, fondo iluminado, entrada breve y texto progresivo. «Mostrar texto completo» permite terminar la escritura inmediatamente. El contenido completo permanece accesible; movimiento reducido omite la animación. La presentación se comparte entre repaso, autoría e idea del día.
 - Sin publicación del contenido personal, rachas ni tareas. El selector y el repaso admiten barajas anidadas.
 
