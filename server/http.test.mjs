@@ -40,7 +40,7 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   assert.equal(faviconHead.status, 200);
   assert.equal(Number(faviconHead.headers.get("content-length")), iconBytes.length);
   assert.equal(await faviconHead.text(), "");
-  const fontPath = "/app/fonts/eb-garamond-latin-400-italic-v5.3.0.woff2";
+  const fontPath = "/app/fonts/eb-garamond-latin-400-normal-v5.3.0.woff2";
   const font = await fetch(base + fontPath);
   assert.equal(font.status, 200); assert.equal(font.headers.get("content-type"), "font/woff2");
   assert.equal(font.headers.get("cache-control"), "public, max-age=31536000, immutable");
