@@ -1,6 +1,6 @@
 # Nombres y lemas de las mascotas
 
-Edita los nombres o sustituye cada `PLACEHOLDER` directamente. **Brote** es la mascota actual y **Retoño** es una etapa distinta, posterior. Las traducciones al inglés son propuestas editables. **Infinito / Infinity** recupera la mascota original **Bucle vivo / Living loop**, con su cara en la posición del spike.
+Edita los nombres o sustituye cada `PLACEHOLDER` directamente. **Brote** es la mascota actual y **Retoño** es una etapa distinta, posterior. Las traducciones al inglés son propuestas editables. **Siempreviva / Evergreen** recupera la mascota original **Bucle vivo / Living loop**, con su cara en la posición del spike.
 
 | Orden | Etapa (ES) | Stage (EN) | Lema (ES) | Motto (EN) |
 | --- | --- | --- | --- | --- |

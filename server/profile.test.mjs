@@ -43,7 +43,7 @@ test("Profile counts one current pet per book rather than all unlocked stages, i
   assert.equal(p.counts.booksRead,1);assert.equal(p.counts.booksReading,1);
   assert.equal(p.counts.decksCompleted,1);assert.equal(p.counts.decksInProgress,1);
   assert.equal(p.counts.leavesSpent,7);assert.equal(p.counts.cardsReviewed,7);
-  assert.deepEqual(p.mascots,{pot:3,seed:0,root:0,seedling:0,sprout:1,stem:0,plant:0,flower:0,infinity:0});
+  assert.deepEqual(p.mascots,{pot:3,seed:0,root:0,seedling:0,sprout:1,sapling:0,stem:0,plant:0,flower:0,infinity:0});
 });
 
 test("Author stats include quotes as a subset; foreign libraries expose neither private books nor draft activity",async t=>{

@@ -171,13 +171,14 @@ export function homeView(s) {
 const mascotStages = [
   {id:"pot",name:"mascotNamePot",milestone:"mascotPot",motto:"mascotMottoPot",image:"../brand/reed/growth/pot.svg",unlocked:g=>g.added},
   {id:"seed",name:"mascotNameSeed",milestone:"mascotSeed",motto:"mascotMottoSeed",image:"../brand/reed/growth/seed.svg",unlocked:g=>g.spentDays>=1},
-  {id:"root",name:"mascotNameRoot"},
+  {id:"root",name:"mascotNameRoot",motto:"mascotMottoRoot"},
   {id:"seedling",name:"mascotNameSeedling",milestone:"mascotSeedling",motto:"mascotMottoSeedling",image:"../brand/reed/growth/seedling.svg",unlocked:g=>g.spentDays>=3},
   {id:"sprout",name:"mascotNameSprout",milestone:"mascotSprout",motto:"mascotMottoSprout",image:"../brand/reed/mascot.svg",unlocked:g=>g.spentDays>=5},
+  {id:"sapling",name:"mascotNameSapling",motto:"mascotMottoSapling"},
   {id:"stem",name:"mascotNameStem"},
   {id:"plant",name:"mascotNamePlant"},
   {id:"flower",name:"mascotNameFlower"},
-  {id:"infinity",name:"mascotNameInfinity"}
+  {id:"infinity",name:"mascotNameInfinity",motto:"mascotMottoInfinity"}
 ];
 function mascotState(s,bookId) {
   const g=s.growth?.[bookId] || {added:false,spentDays:0};

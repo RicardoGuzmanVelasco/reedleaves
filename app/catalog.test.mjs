@@ -96,9 +96,9 @@ test("Views show correct book attribution, genres and only unlocked review text"
 });
 test("Book mascot collection shows earned art, ordered names and a shared unknown for future forms",async()=>{
   const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{"seven-habits":{added:true,spentDays:3}}};
-  const html=mascotsView(state),names=["Maceta","Semilla","Raíz","Plántula","Brote","Tallo","Planta","Flor","Infinito"];
+  const html=mascotsView(state),names=["Maceta","Semilla","Raíz","Plántula","Brote","Retoño","Tallo","Planta","Flor","Siempreviva"];
   assert.deepEqual(names.map(name=>html.indexOf(`<h2>${name}</h2>`)),[...names].map(name=>html.indexOf(`<h2>${name}</h2>`)).sort((a,b)=>a-b));
-  assert.equal((html.match(/\.\.\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,6);
+  assert.equal((html.match(/\.\.\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,7);
   assert.match(html,/\.\.\/brand\/reed\/growth\/pot\.svg/);assert.match(html,/\.\.\/brand\/reed\/growth\/seed\.svg/);assert.match(html,/\.\.\/brand\/reed\/growth\/seedling\.svg/);assert.doesNotMatch(html,/\.\.\/brand\/reed\/mascot\.svg/);
   assert.doesNotMatch(html,/root\.svg|stem\.svg|plant\.svg|flower\.svg|loop\.svg|20\s*%|60\s*%|100\s*%/);
   assert.match(html,/aria-current="step"/);assert.match(html,/role="img" aria-label="Conseguida"/);assert.doesNotMatch(html,/<span class="mascot-earned"/);
@@ -108,8 +108,8 @@ test("Book mascot collection shows earned art, ordered names and a shared unknow
   assert.doesNotMatch(noDays,/class="mascot-stage is-earned is-known"[^>]*>.*?<img class="mascot-stage-art" src="\.\.\/brand\/reed\/growth\/seedling\.svg"/s);
   const fiveDays=mascotsView({...state,growth:{"seven-habits":{added:true,spentDays:5}}});
   assert.match(fiveDays,/class="mascot-stage is-earned is-known"[^>]*>.*?<img class="mascot-stage-art" src="\.\.\/brand\/reed\/mascot\.svg"/s);
-  const empty=mascotsView({...state,growth:{}});assert.equal((empty.match(/\.\.\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,10);
-  assert.equal((empty.match(/\?\?\?/g)||[]).length,5);assert.equal((empty.match(/No desbloqueada/g)||[]).length,9);
+  const empty=mascotsView({...state,growth:{}});assert.equal((empty.match(/\.\.\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,11);
+  assert.equal((empty.match(/\?\?\?/g)||[]).length,6);assert.equal((empty.match(/No desbloqueada/g)||[]).length,10);
   assert.match(mascotsView({...state,language:"en",growth:{}}),/Not unlocked/);
   assert.match(mascotsView({...state,language:"fr",growth:{}}),/Non débloquée/);
 });
