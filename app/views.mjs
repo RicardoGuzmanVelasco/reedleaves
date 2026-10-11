@@ -1,4 +1,4 @@
-import {bookTitle, CONTENT_LANGUAGES} from "./core.mjs";
+import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES} from "./core.mjs";
 import { accessibleCard, canAdvance } from "./rhythm.mjs";
 import { treeFrontier, hasLeaf, studyingDecks, availableVersions } from "./decks.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
@@ -51,8 +51,9 @@ function bookSourcesMarkup(s,book) {
 
 function closedBookMarkup(s,book,{action="resume-book",caption=words[s.language].review,genres=[],catalog=false}={}) {
   const c = words[s.language];
-  const cover=`<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} aria-label="${esc(catalog ? displayedBookTitle(s,book).text + ", " + book.author + ", " + caption : c.resume + ": " + displayedBookTitle(s,book,true).text)}">
-    <span class="study-book-cover"><strong lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</strong><span class="study-book-author">${esc(book.author)}</span>
+  const title=bookCoverTitle(book,s.language,{original:s.showOriginalTitles});
+  const cover=`<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} aria-label="${esc(catalog ? displayedBookTitle(s,book).text + ", " + book.author + ", " + caption : c.resume + ": " + displayedBookTitle(s,book).text)}">
+    <span class="study-book-cover"><strong lang="${esc(title.language)}" dir="auto">${esc(title.text)}</strong><span class="study-book-author">${esc(book.author)}</span>
     ${catalog ? genres.length ? `<span class="book-tile-genres">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</span>` : "" : `<img class="study-book-mark" src="${mascotImage(s,book.id)}" width="64" height="64" alt="">`}
     <span class="study-book-footer">${esc(caption)}<span aria-hidden="true">→</span></span></span></button>`;
   const complete=completeBookButton(s,book);

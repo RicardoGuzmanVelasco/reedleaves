@@ -16,6 +16,10 @@ Cada pulsación realiza una búsqueda web mediante Responses API y una extracci�
 
 La búsqueda devuelve una vista previa; no escribe en la base. Al crear el libro se guardan juntos sus traducciones, intereses, enlaces y fuentes. Mantiene la privacidad del libro personal y no modifica el idioma de ninguna baraja. Las traducciones de títulos sin edición verificada se identifican en la nota sobre la edición. Se dejan vacíos los datos que no se pueden respaldar.
 
+La propuesta usa un título principal por idioma, sin subtítulos ni títulos extranjeros añadidos al encabezado de la fuente. La extracción separa esas adiciones para limpiar solo las identificadas, respetando signos que forman parte del título. El título corto generado tiene como máximo 32 caracteres y no guarda puntos suspensivos; las portadas añaden «…» cuando es más breve que el nombre completo. El formato de los metadatos y el guardado no cambian.
+
+Las pruebas automatizadas y visuales usan respuestas simuladas, sin coste de OpenAI. Solo se realizan búsquedas reales de prueba si el usuario las pide expresamente.
+
 Los fallos de IA distinguen falta de saldo (`insufficient_quota`), configuración o acceso (HTTP 400/401/403/404), saturación y errores del proveedor (429/5xx), y tiempo agotado. Una referencia visible permite localizar el evento `book_autofill_failed` en los logs de Render. El registro incluye fase (`research`, `extraction` o `metadata`), modelo, estado HTTP, código/tipo/parámetro del proveedor, `x-request-id` y motivo de respuesta incompleta cuando existen. No registra claves, usuarios, títulos, mensajes del proveedor ni respuestas generadas. El navegador recibe únicamente el error funcional y la referencia. Los campos permanecen para corregirlos o reintentar.
 
 ## Crear el servicio

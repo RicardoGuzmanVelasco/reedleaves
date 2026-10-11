@@ -40,6 +40,14 @@ export function bookTitle(book, interfaceLanguage, {original = false, short = fa
     language:contentLocale(translations,interfaceLanguage,book.originalLanguage)};
 }
 
+export function bookCoverTitle(book, interfaceLanguage, {original = false} = {}) {
+  const full=bookTitle(book,interfaceLanguage,{original});
+  if (original) return full;
+  const short=book.shortTitle?.[full.language]?.trim() || full.text;
+  const abbreviated=Array.from(short).length < Array.from(full.text).length;
+  return {text:short + (abbreviated && !/(?:…|\.{3})$/u.test(short) ? "…" : ""),language:full.language};
+}
+
 export function validateBook(book, requiredLanguages = ["es", "en"], {requireOriginal = false} = {}) {
   if (!book || book.schemaVersion !== 1 || typeof book.id !== "string" || !book.id.trim() ||
       typeof book.author !== "string" || !book.author.trim()) throw new Error("Invalid book");

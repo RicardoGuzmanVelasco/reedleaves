@@ -14,8 +14,8 @@ export function researchResponse() {
   ]};
 }
 export function extractionResponse(overrides={}) {
-  const value={status:"matched",originalTitle:bookMetadata.originalTitle,originalLanguage:"en",author:"Daniel Kahneman",
-    translations:Object.fromEntries(["es","en","fr"].map(language=>[language,Object.fromEntries(["title","shortTitle","description","editorialNote"].map(field=>[field,bookMetadata[field][language]]))])),
+  const value={status:"matched",originalTitle:bookMetadata.originalTitle,originalSubtitle:null,originalLanguage:"en",author:"Daniel Kahneman",
+    translations:Object.fromEntries(["es","en","fr"].map(language=>[language,{...Object.fromEntries(["title","shortTitle","description","editorialNote"].map(field=>[field,bookMetadata[field][language]])),subtitle:null,alternateTitle:null}])),
     genres:bookMetadata.genres,links:{amazon:null,goodreads:bookMetadata.links.goodreads},...overrides};
   return {status:"completed",output:[{type:"message",content:[{type:"output_text",text:JSON.stringify(value)}]}]};
 }
