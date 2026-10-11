@@ -1,5 +1,6 @@
 export const words = {
   es: {
+    showFullText:"Mostrar texto completo",
     bookshelf:"Biblioteca", goBookshelf:"Ir a mi biblioteca", bookshelfBack:"← Biblioteca", filterBooks:"Filtrar libros", allBooks:"Todos", pendingReviews:"Repasos pendientes", completedReviews:"Repasos terminados", emptyBookshelf:"Todavía no hay libros en tu biblioteca.", noBookshelfMatches:"No hay libros con estos filtros.", resetFilters:"Borrar filtros",
     createBook:"Crear libro", bookTitle:"Título del libro", bookAuthor:"Autor", originalLanguage:"Idioma original", createDeck:"Crear baraja", addCard:"Añadir tarjeta", addQuote:"Añadir quote", editDeck:"Añadir contenido", deckTitle:"Nombre de la baraja", deckDescription:"Enfoque (opcional)", deckLanguage:"Idioma de la baraja", cardTitle:"Título", cardBody:"Texto", quoteBody:"Quote", parentCard:"Dentro de", rootCard:"Nivel principal", unclassifiedQuotes:"Quotes sin clasificar", quotesOnly:"Solo quotes", allCards:"Todas", save:"Guardar", cancel:"Cancelar", personalDeck:"Personal", emptyAuthor:"Todavía no hay tarjetas.", noQuotes:"Todavía no hay quotes.", deckReadOnly:"Esta baraja ya no se puede editar.", invalidParent:"Elige otra tarjeta padre.", bookUnavailable:"Este libro no está disponible.", saved:"Guardado.",
     account:"Cuenta", signIn:"Entrar", signUp:"Crear cuenta", username:"Usuario", password:"Contraseña", signOut:"Cerrar sesión",
@@ -51,6 +52,7 @@ export const words = {
     date: d => new Intl.DateTimeFormat("es", { day: "numeric", month: "long" }).format(d), position: (n, total) => `${n} de ${total}`
   },
   en: {
+    showFullText:"Show full text",
     bookshelf:"Bookshelf", goBookshelf:"Go to my bookshelf", bookshelfBack:"← Bookshelf", filterBooks:"Filter books", allBooks:"All", pendingReviews:"Pending reviews", completedReviews:"Completed reviews", emptyBookshelf:"There are no books on your bookshelf yet.", noBookshelfMatches:"No books match these filters.", resetFilters:"Clear filters",
     createBook:"Create book", bookTitle:"Book title", bookAuthor:"Author", originalLanguage:"Original language", createDeck:"Create deck", addCard:"Add card", addQuote:"Add quote", editDeck:"Add content", deckTitle:"Deck name", deckDescription:"Focus (optional)", deckLanguage:"Deck language", cardTitle:"Title", cardBody:"Text", quoteBody:"Quote", parentCard:"Inside", rootCard:"Top level", unclassifiedQuotes:"Unclassified quotes", quotesOnly:"Quotes only", allCards:"All", save:"Save", cancel:"Cancel", personalDeck:"Personal", emptyAuthor:"No cards yet.", noQuotes:"No quotes yet.", deckReadOnly:"This deck can no longer be edited.", invalidParent:"Choose another parent card.", bookUnavailable:"This book is unavailable.", saved:"Saved.",
     account:"Account", signIn:"Sign in", signUp:"Create account", username:"Username", password:"Password", signOut:"Sign out",
@@ -102,6 +104,7 @@ export const words = {
     date: d => new Intl.DateTimeFormat("en", { day: "numeric", month: "long" }).format(d), position: (n, total) => `${n} of ${total}`
   },
   fr: {
+    showFullText:"Afficher tout le texte",
     bookshelf:"Bibliothèque", goBookshelf:"Aller à ma bibliothèque", bookshelfBack:"← Bibliothèque", filterBooks:"Filtrer les livres", allBooks:"Tous", pendingReviews:"Révisions en attente", completedReviews:"Révisions terminées", emptyBookshelf:"Ta bibliothèque est encore vide.", noBookshelfMatches:"Aucun livre ne correspond à ces filtres.", resetFilters:"Effacer les filtres",
     createBook:"Créer un livre", bookTitle:"Titre du livre", bookAuthor:"Auteur", originalLanguage:"Langue originale", createDeck:"Créer un jeu", addCard:"Ajouter une carte", addQuote:"Ajouter une citation", editDeck:"Ajouter du contenu", deckTitle:"Nom du jeu", deckDescription:"Approche (facultatif)", deckLanguage:"Langue du jeu", cardTitle:"Titre", cardBody:"Texte", quoteBody:"Citation", parentCard:"Dans", rootCard:"Niveau principal", unclassifiedQuotes:"Citations non classées", quotesOnly:"Citations seules", allCards:"Toutes", save:"Enregistrer", cancel:"Annuler", personalDeck:"Personnel", emptyAuthor:"Aucune carte pour le moment.", noQuotes:"Aucune citation pour le moment.", deckReadOnly:"Ce jeu ne peut plus être modifié.", invalidParent:"Choisis une autre carte parente.", bookUnavailable:"Ce livre n’est pas disponible.", saved:"Enregistré.",
     account:"Compte", signIn:"Se connecter", signUp:"Créer un compte", username:"Nom d’utilisateur", password:"Mot de passe", signOut:"Se déconnecter",

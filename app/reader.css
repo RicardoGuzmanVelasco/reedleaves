@@ -168,6 +168,55 @@
 
 #idea-content:focus{outline:none}
 
+/* Reading has its own stage: a lifted sheet, warm light and a short arrival. */
+body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de 53%,#e5ecd8 100%);background-attachment:fixed;min-height:100dvh}
+.is-reading main{width:min(800px,calc(100% - 64px))}
+.is-reading .app-header{border-bottom-color:transparent;background:rgb(243 244 222 / 85%);backdrop-filter:blur(12px);border-radius:0 0 20px 20px}
+.card-screen{min-height:calc(100dvh - 82px);display:flex;flex-direction:column;padding-top:14px}
+.card-screen>.text-button{align-self:flex-start}
+.reading-stage{position:relative;isolation:isolate;width:100%;margin:24px auto 48px;perspective:1100px}
+.card-screen .reading-stage{margin-top:auto;margin-bottom:auto;padding:20px 0 64px}
+.reading-stage::before,.reading-stage::after{content:"";position:absolute;z-index:-1;inset:8px 5px -8px;border:1.5px solid #a1b48a;border-radius:34px;background:#dce9c6;transform:skewY(-1.5deg)}
+.reading-stage::after{inset:7px -2px -6px;background:#ecf2dc;transform:skewY(1deg)}
+.card-screen .reading-stage::before{inset:28px 5px 56px}.card-screen .reading-stage::after{inset:27px -2px 58px}
+.reading-stage .idea-card{min-height:380px;padding:52px 56px 32px;border-color:#6e916a;border-radius:32px;background:linear-gradient(135deg,#fffef9,#fffbed);box-shadow:0 8px 0 #b7c69d,0 24px 32px -16px rgb(30 76 46 / 24%),0 44px 80px -32px rgb(30 76 46 / 20%);overflow:visible}
+.reading-stage .idea-card::before{width:56px;height:18px;top:-2px;left:56px;background:var(--light);border-radius:0 0 8px 8px;border:1.5px solid #95bc69;border-top:0}
+.reading-stage h1,.reading-stage h2{font-size:clamp(32px,4.5vw,46px);line-height:1.14;max-width:640px;margin:10px 0 30px;letter-spacing:-.045em;text-wrap:balance}
+.reading-stage .idea-body{font-size:clamp(19px,2.3vw,23px);line-height:1.75;max-width:none;position:relative}
+.reading-footer{margin-top:36px;padding-top:20px;border-top:1px solid #e1e5d0}
+.reading-footer .card-source{margin:0;overflow-wrap:anywhere;font-size:12px}
+.reveal-text{position:absolute;top:12px;right:26px;max-width:70%;visibility:hidden;font-size:11px;text-decoration:underline;text-underline-offset:4px;text-align:right;padding:0;min-height:44px}
+.is-writing .reveal-text,.reveal-text:focus{visibility:visible}
+.typewriter-space{visibility:hidden}.typewriter-ink{position:absolute;inset:0;white-space:inherit;overflow-wrap:inherit}
+.typewriter-ink::after{content:"";display:inline-block;height:1em;border-inline-end:2px solid var(--sage);margin-inline-start:3px;vertical-align:-.08em;animation:reading-cursor .65s steps(2,jump-none) infinite}
+.reading-stage--quote::before{background:#eac3a4;border-color:#bf9673}.reading-stage--quote::after{background:#f7dcca;border-color:#bf9673}
+.reading-stage .quote-card{padding-top:76px;background:linear-gradient(135deg,#fff3e7,#ffe4cf);border-color:#b88f62;box-shadow:0 8px 0 #d5b193,0 24px 32px -16px rgb(106 68 36 / 24%),0 44px 80px -32px rgb(106 68 36 / 20%)}
+.reading-stage .quote-card::before{width:auto;height:auto;border:0;background:none;top:19px;left:52px;right:auto;font:70px/1 Georgia,serif;color:#b88f62}
+.reading-stage .quote-card blockquote{font-size:clamp(24px,3.3vw,32px);line-height:1.65}
+.reading-stage--quote .reading-footer{border-top-color:#e6cbb5}
+.reading-stage.is-arriving{animation:reading-arrival .72s cubic-bezier(.18,.8,.26,1) both}
+.daily-screen .screen-heading,.daily-screen .sources,.daily-action{max-width:680px;margin-left:auto;margin-right:auto}
+.is-reading .daily-action .primary{width:auto;min-width:240px}.is-reading .daily-action{text-align:center;margin-top:0}
+@keyframes reading-arrival{0%{opacity:0;transform:translateY(45px) rotateX(9deg) scale(.92)}65%{opacity:1;transform:translateY(-7px) rotateX(0) scale(1.01)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes reading-cursor{to{opacity:0}}
+@media(max-width:600px){
+  .is-reading main{width:calc(100% - 40px)}
+  .card-screen{min-height:calc(100dvh - 75px);padding-top:12px}
+  .card-screen .reading-stage{margin-top:16px;margin-bottom:auto;padding:0 0 38px}
+  .reading-stage{margin:24px auto 38px}
+  .reading-stage::before,.reading-stage::after{border-radius:25px;transform:skewY(-1.5deg)}
+  .reading-stage::after{transform:skewY(1deg)}
+  .card-screen .reading-stage::before{inset:8px 5px 30px}.card-screen .reading-stage::after{inset:7px -2px 32px}
+  .reading-stage .idea-card{min-height:360px;padding:56px 25px 24px;border-radius:25px}
+  .reading-stage .idea-card::before{left:25px;width:43px;height:15px}
+  .reading-stage h1,.reading-stage h2{font-size:31px;margin:8px 0 25px}
+  .reading-stage .idea-body{font-size:18px;line-height:1.75}
+  .reading-footer{margin-top:28px;padding-top:16px}
+  .reading-footer .card-source{font-size:11px}
+  .reading-stage .quote-card{padding-top:69px}.reading-stage .quote-card::before{left:23px;font-size:62px}
+  .reading-stage .quote-card blockquote{font-size:24px}
+}
+
 /* Deck overview: one album, with progress above the cards. */
 .album-heading{margin:16px 0 24px}.album-heading h1{font-size:30px;line-height:1.2;overflow-wrap:anywhere}.album-meta{margin-top:9px;font-size:12px;line-height:1.6;color:var(--muted)}
 .album-progress{margin:0 0 22px}.album-progress>div{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:10px;font-size:12px;line-height:1.5}.album-progress>div>span{font-weight:850}
