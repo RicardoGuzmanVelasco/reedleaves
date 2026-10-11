@@ -123,6 +123,8 @@ La UI tendrá español, inglés y francés. Los nombres y metadatos de los libro
 
 ## Límites
 
+- Crear libro incluye «Autorellenar con IA». Con el título y, opcionalmente, autor e idioma original, busca información, muestra un spinner y abre la vista previa. No guardar durante la búsqueda. La propuesta incluye traducciones ES/EN/FR y los metadatos respaldados por fuentes; se conservan los valores escritos y se dejan vacíos los desconocidos. Fuentes clicables visibles y detalle plegado. Traducciones plegadas. «Crear libro» guarda; «Editar» vuelve al formulario sin perder la propuesta y permite corregir metadatos en controles plegados. Cancelar descarta el borrador. Errores y reintentos conservan lo escrito. No añadir portadas comerciales ni generar barajas o cartas en este flujo.
+
 - No usar estética de dashboard empresarial.
 - No usar una pared de tarjetas sin jerarquía.
 - No añadir gamificación que no ayude a leer o recordar.

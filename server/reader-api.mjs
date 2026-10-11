@@ -3,6 +3,7 @@ import {ApiError} from "./errors.mjs";
 import {readReaderState, selectDeck, openCard, changeReading, changePreferences, dailyIdea} from "./reader-repository.mjs";
 
 import {createBook,createDeck,addCard} from "./author-repository.mjs";
+import {createBookAutofill} from "./book-autofill.mjs";
 
 async function readBody(request,maxBytes = 8192) {
   if (request.headers["content-type"]?.split(";")[0].trim() !== "application/json") throw new ApiError(415,"invalidRequest");
@@ -24,7 +25,7 @@ function sameOrigin(request,origin) {
   const allowed = origin ? [origin] : [`http://127.0.0.1:${localPort}`,`http://localhost:${localPort}`];
   if (!allowed.includes(originHeader) || request.headers["sec-fetch-site"] && request.headers["sec-fetch-site"] !== "same-origin") throw new ApiError(403,"invalidRequest");
 }
-export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = false,inviteCode} = {}) {
+export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = false,inviteCode,bookAutofill=createBookAutofill()} = {}) {
   if (origin) {
     const url = new URL(origin);
     if (url.origin !== origin || !["https:","http:"].includes(url.protocol) || url.protocol === "https:" && !secureCookies) throw new Error("Invalid API origin/cookie configuration");
@@ -32,7 +33,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
   return async (request,response,path,send) => {
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
       ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],
-      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/author/books",["POST"]],["/api/author/decks",["POST"]],["/api/author/cards",["POST"]]]);
+      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/decks",["POST"]],["/api/author/cards",["POST"]]]);
     if (!routes.has(path)) return false;
     response.setHeader("Cache-Control","no-store");
     try {
@@ -60,12 +61,21 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         response.setHeader("Set-Cookie",sessionCookie("",secureCookies,true)); send(200,inviteCode === undefined ? {user:null} : {user:null,inviteRequired:true}); return true;
       }
       if (path === "/api/reader/state") { send(200,await readReaderState(db,session,time)); return true; }
-      const input = await readBody(request,path.startsWith("/api/author/") ? 32768 : 8192);
+      const input = await readBody(request,path.startsWith("/api/author/books") ? 65536 : path.startsWith("/api/author/") ? 32768 : 8192);
       // Re-check after awaiting the body: a concurrent logout/expiry must revoke writes.
       const active = await readSession(db,request,now());
       if (!active) throw new ApiError(401,"signInRequired");
       checkCsrf(active,request.headers["x-csrf-token"]);
       const currentTime = now();
+      if (path === "/api/author/books/autofill") {
+        const genres=await db.prepare("SELECT g.id,t.name FROM genres g JOIN genre_translations t ON t.genre_id=g.id WHERE t.language='en' ORDER BY g.id").all();
+        const preview=await bookAutofill(active.user_id,input,genres);
+        // Search can outlive a session: don't return private drafts after logout.
+        const stillActive=await readSession(db,request,now());
+        if (!stillActive) throw new ApiError(401,"signInRequired");
+        checkCsrf(stillActive,request.headers["x-csrf-token"]);
+        send(200,preview); return true;
+      }
       if (path.startsWith("/api/author/")) {
         const result = path.endsWith("books") ? await createBook(db,active,input) : path.endsWith("decks") ? await createDeck(db,active,input) : await addCard(db,active,input);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
