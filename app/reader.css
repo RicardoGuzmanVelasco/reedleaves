@@ -320,3 +320,4 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 
 .error-reference{display:block;margin-top:6px;font-size:11px;overflow-wrap:anywhere}
 .loading-error h1,.empty-state[role="alert"]>p{color:var(--error)}
+img[src$="/growth/root.png"]{mix-blend-mode:multiply}

@@ -174,7 +174,7 @@ export function homeView(s) {
 const mascotStages = [
   {id:"pot",name:"mascotNamePot",milestone:"mascotPot",motto:"mascotMottoPot",image:"../brand/reed/growth/pot.svg",unlocked:g=>g.added},
   {id:"seed",name:"mascotNameSeed",milestone:"mascotSeed",motto:"mascotMottoSeed",image:"../brand/reed/growth/seed.svg",unlocked:g=>g.spentDays>=1},
-  {id:"root",name:"mascotNameRoot",motto:"mascotMottoRoot"},
+  {id:"root",name:"mascotNameRoot",milestone:"mascotRoot",motto:"mascotMottoRoot",image:"../brand/reed/growth/root.png",unlocked:g=>g.spentDays>=2},
   {id:"seedling",name:"mascotNameSeedling",milestone:"mascotSeedling",motto:"mascotMottoSeedling",image:"../brand/reed/growth/seedling.svg",unlocked:g=>g.spentDays>=3},
   {id:"sprout",name:"mascotNameSprout",milestone:"mascotSprout",motto:"mascotMottoSprout",image:"../brand/reed/mascot.svg",unlocked:g=>g.spentDays>=5},
   {id:"sapling",name:"mascotNameSapling",motto:"mascotMottoSapling"},
