@@ -154,6 +154,23 @@
 .author-form{display:flex;flex-direction:column;gap:9px;margin-top:25px}.author-form label{font-size:12px;font-weight:750;margin-top:10px}
 .author-form input,.author-form textarea,.author-form select{font:inherit;color:inherit;min-height:48px;width:100%;padding:12px 14px;border:1.5px solid var(--sage);border-radius:13px;background:var(--paper)}
 .author-form textarea{resize:vertical;line-height:1.6}.author-form textarea:focus-visible{outline:3px solid #8b541e;outline-offset:4px}
+.book-autofill{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:15px;min-height:48px;background:#eef3df;border-color:var(--sage);box-shadow:0 4px 0 #ccd8b9}
+.book-autofill span{font:inherit}.book-autofill:disabled{opacity:1;color:var(--muted)}
+.ai-spinner{width:19px;height:19px;flex:0 0 19px;border:2.5px solid var(--sage);border-top-color:var(--ink);border-radius:50%;animation:ai-spin .8s linear infinite}
+@keyframes ai-spin{to{transform:rotate(360deg)}}
+.preview-label{font-size:12px;font-weight:750;color:var(--ink);margin:0 0 12px}
+.preview-language{font-size:12px;margin-top:8px}.preview-language span{font-weight:750}
+.book-sources,.book-translations{margin:20px 0;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.book-sources summary,.book-translations summary{cursor:pointer;font-weight:750;padding:8px 0;min-height:44px}
+.book-sources ul{padding-left:20px;margin:8px 0}.book-sources li+li{margin-top:8px}
+.book-source-citations a{display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:44px}
+.book-metadata-editor{margin-top:12px;font-size:13px}.book-metadata-editor summary{cursor:pointer;font-weight:750;min-height:44px;padding:10px 0}
+.book-translation-editor{border-top:1px solid var(--line);margin-top:12px;padding-bottom:10px}
+.book-translation-editor label{display:block;margin:10px 0 9px}.book-genre-fields{display:block;margin-top:15px}.book-genre-fields .check-row input{min-height:20px;width:20px;padding:0}
+.book-translations section{border-top:1px solid var(--sage);padding:14px 0}.book-translations h3{font-size:14px;margin:0 0 8px}
+.book-translations p{margin:8px 0;white-space:pre-line}.book-translations small{color:var(--muted)}
+.preview-cancel{align-self:center;min-height:44px}.book-preview-modal .form-actions{margin-top:0}
+@media(prefers-reduced-motion:reduce){.ai-spinner{animation:none}}
 .form-actions{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-top:18px}.deck-card .form-actions .primary{margin:0;width:auto}
 .content-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}.quote-filter{display:inline-flex;gap:3px;padding:4px;border:1px solid var(--line);border-radius:14px;background:#eef3df}
 .quote-filter button{min-height:40px;padding:8px 14px;border:0;border-radius:10px;background:transparent;font-size:12px;font-weight:750}.quote-filter button[aria-pressed=true]{background:var(--ink);color:var(--paper)}

@@ -1,6 +1,8 @@
 import {transaction,isPostgres} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
 import {isCanonicalLocale,quoteExcerpt} from "../app/core.mjs";
+import {normalizeBookMetadata} from "../app/book-metadata.mjs";
+import {isDeepStrictEqual} from "node:util";
 
 function text(value,max,required=true) {
   if (typeof value !== "string" || value.trim().length > max || required && !value.trim()) throw new ApiError(400,"invalidRequest");
@@ -11,18 +13,35 @@ function requestId(value) {
   return value;
 }
 export async function createBook(db,session,input) {
-  const id=requestId(input.requestId),title=text(input.title,240),author=text(input.author,160),language=input.language;
+  let metadata;
+  try { metadata=normalizeBookMetadata(input.metadata); } catch { throw new ApiError(400,"invalidRequest"); }
+  const id=requestId(input.requestId),title=text(metadata.originalTitle || input.title,240),author=text(input.author,160),language=metadata.originalLanguage || input.language;
   if (!isCanonicalLocale(language)) throw new ApiError(400,"invalidRequest");
+  metadata.originalTitle=title; metadata.originalLanguage=language;
+  for (const genre of metadata.genres) if (!await db.prepare("SELECT 1 FROM genres WHERE id=?").get(genre)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     // Serializes catalog positions, including requests from different authors.
     if (isPostgres(db)) await db.exec("LOCK TABLE books IN SHARE ROW EXCLUSIVE MODE;");
     const previous=await db.prepare("SELECT * FROM books WHERE id=?").get(id);
     if (previous) {
       if (previous.creator_user_id !== session.user_id || previous.original_title !== title || previous.author !== author || previous.original_language !== language) throw new ApiError(409,"invalidRequest");
+      const saved={originalTitle:title,originalLanguage:language,title:{},shortTitle:{},description:{},editorialNote:{},
+        genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY genre_id").all(id)).map(row=>row.genre_id),
+        links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id=?").all(id)).map(row=>[row.platform,row.url])),
+        sources:await db.prepare("SELECT title,url FROM sources WHERE book_id=? ORDER BY id").all(id)};
+      for (const row of await db.prepare("SELECT * FROM book_translations WHERE book_id=?").all(id)) {
+        saved.title[row.language]=row.title; saved.shortTitle[row.language]=row.short_title;
+        saved.description[row.language]=row.description; saved.editorialNote[row.language]=row.editorial_note;
+      }
+      if (!isDeepStrictEqual(normalizeBookMetadata(saved),metadata)) throw new ApiError(409,"invalidRequest");
       return {bookId:id};
     }
     const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM books").get();
     await db.prepare("INSERT INTO books(id,author,original_title,original_language,position,creator_user_id) VALUES (?,?,?,?,?,?)").run(id,author,title,language,position,session.user_id);
+    for (const language of Object.keys(metadata.title)) await db.prepare("INSERT INTO book_translations(book_id,language,title,short_title,description,editorial_note) VALUES (?,?,?,?,?,?)").run(id,language,metadata.title[language],metadata.shortTitle[language],metadata.description[language],metadata.editorialNote[language]);
+    for (const genre of metadata.genres) await db.prepare("INSERT INTO book_genres(book_id,genre_id) VALUES (?,?)").run(id,genre);
+    for (const [platform,url] of Object.entries(metadata.links)) await db.prepare("INSERT INTO book_links(book_id,platform,url) VALUES (?,?,?)").run(id,platform,url);
+    for (const [index,source] of metadata.sources.entries()) await db.prepare("INSERT INTO sources(id,book_id,title,url) VALUES (?,?,?,?)").run(`${id}-source-${index}`,id,source.title,source.url);
     await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'reading')").run(session.user_id,id);
     return {bookId:id};
   });

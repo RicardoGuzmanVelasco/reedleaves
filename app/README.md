@@ -33,6 +33,10 @@ Lectura original y repaso son independientes. Una tarjeta aleatoria no desbloque
 
 ## Datos y código
 
+Crear libro ofrece «Autorellenar con IA»: título (autor e idioma original opcionales para la búsqueda), spinner y vista previa. La IA busca fuentes y propone título original, autor, idioma original, títulos completos/cortos, descripciones y notas en español, inglés y francés, intereses del catálogo y enlaces verificados disponibles. La ficha permite consultar traducciones y fuentes; «Editar» conserva el borrador y ofrece los metadatos en controles plegados. Repetir el autorellenado completa huecos sin sustituir valores ya escritos. Solo «Crear libro» persiste la propuesta; cancelar la descarta. La creación manual continúa disponible.
+
+La integración requiere `OPENAI_API_KEY` en el servidor. Ver [configuración](../docs/deployment/render.md). Las pruebas usan un proveedor simulado, sin llamadas de pago. El prompt y el esquema están en `server/book-autofill.mjs`; no se comparte el contexto de esta conversación.
+
 Contenido editable: content/catalog/*.csv. Datos activos: var/catalog.sqlite, con libros, barajas, versiones, árboles y fuentes. SQLite v12 y PostgreSQL v4. La actualización desde v9/v1 conserva cuentas, cartas y progreso; añade quotes, libros personales y la preferencia de títulos originales. HTTP JSON es transporte, no almacenamiento del catálogo.
 
 Backend: server/database.mjs, seed.mjs, catalog-repository.mjs, author-repository.mjs, auth.mjs, reader-repository.mjs, reader-api.mjs y http.mjs.

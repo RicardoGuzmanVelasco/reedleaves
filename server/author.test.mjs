@@ -12,6 +12,7 @@ import {readReaderState as readReaderStateAtDate,selectDeck,openCard,dailyIdea,c
 import {prepareCatalog} from "../app/catalog.mjs";
 import {treeFrontier,restoreTreeReview} from "../app/decks.mjs";
 import {authorView,authorFormView,reviewView,dailyView,libraryView,deckView} from "../app/views.mjs";
+import {bookMetadata} from "./fixtures/book-autofill.mjs";
 
 // Keep wallet accrual independent of the day when this test suite runs.
 const readReaderState=(db,session,now=new Date("2026-10-10T12:00:00Z"))=>readReaderStateAtDate(db,session,now);
@@ -30,6 +31,25 @@ async function fixture(t,dialect) {
   return {db,session,other};
 }
 for (const dialect of ["sqlite","postgres"]) {
+  test(`${dialect}: save the full AI preview atomically, repeat safely and keep it private`,async t=>{
+    const {db,session,other}=await fixture(t,dialect);
+    const metadata=structuredClone(bookMetadata);
+    const input={requestId:randomUUID(),title:"Pensar rápido, pensar despacio",author:"Daniel Kahneman",language:"en",metadata};
+    const {bookId}=await createBook(db,session,input);
+    assert.equal((await createBook(db,session,input)).bookId,bookId);
+    const saved=(await readCatalog(db,session.user_id)).books.find(book=>book.id===bookId);
+    for (const field of Object.keys(bookMetadata)) assert.deepEqual(saved[field],bookMetadata[field]);
+    assert.equal((await readCatalog(db,other.user_id)).books.some(book=>book.id===bookId),false);
+    await assert.rejects(createBook(db,other,input),e=>e.status===409);
+    const changed=structuredClone(input);changed.metadata.description.es="Otra descripción";
+    await assert.rejects(createBook(db,session,changed),e=>e.status===409);
+    const count=(await db.prepare("SELECT count(*) AS n FROM books").get()).n;
+    for (const change of [m=>m.genres.push("unknown-genre"),m=>m.links.goodreads="javascript:alert(1)",m=>delete m.description.fr,m=>m.sources.push({title:"Private",url:"https://localhost/private"})]) {
+      const invalid=structuredClone(input);invalid.requestId=randomUUID();change(invalid.metadata);
+      await assert.rejects(createBook(db,session,invalid),e=>e.status===400);
+      assert.equal((await db.prepare("SELECT count(*) AS n FROM books").get()).n,count);
+    }
+  });
   test(`${dialect}: create a private book without editorial metadata, then a deck and quote`,async t=>{
     const {db,session,other}=await fixture(t,dialect);
     const input={requestId:randomUUID(),title:"  L’Étranger  ",author:" Albert Camus ",language:"fr"};
