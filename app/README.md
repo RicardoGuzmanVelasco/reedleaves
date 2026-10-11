@@ -27,7 +27,7 @@ Abrir http://127.0.0.1:4173/app/. La primera ejecución crea y carga SQLite; las
 - Los filtros afectan al siguiente día una vez asignada la idea de hoy, pendiente de confirmación.
 - Crear barajas personales desde las barajas de un libro. Añadir tarjetas o quotes con padre opcional, en el idioma de la baraja. La autoría es gratuita; el repaso mantiene las hojas.
 - Quotes en azul pastel y EB Garamond regular; fuente WOFF2 local con alternativa serif. Filtro «Solo quotes». Las sueltas aparecen bajo «Quotes sin clasificar», sin carta ficticia en la base.
-- Lectura protagonista: papel elevado por capas, fondo iluminado, entrada breve y texto progresivo. «Mostrar texto completo» permite terminar la escritura inmediatamente. El contenido completo permanece accesible; movimiento reducido omite la animación. La presentación se comparte entre repaso, autoría e idea del día.
+- Lectura protagonista: papel elevado por capas, fondo iluminado, entrada breve y texto progresivo a 4 ms por carácter, con un máximo aproximado de 2,5 segundos. El contenido completo permanece accesible; movimiento reducido omite la animación. La presentación se comparte entre repaso, autoría e idea del día.
 - Sin publicación del contenido personal, rachas ni tareas. El selector y el repaso admiten barajas anidadas.
 
 Lectura original y repaso son independientes. Una tarjeta aleatoria no desbloquea esa posición en el repaso. Los números de tarjetas no están fijados en la interfaz: cada libro usa sus datos de la API.

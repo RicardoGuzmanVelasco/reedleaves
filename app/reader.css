@@ -215,8 +215,6 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .idea-card:not(.quote-card) .idea-body{font-family:Courier,"Courier New",monospace;font-weight:400}
 .reading-footer{margin-top:36px;padding-top:20px;border-top:1px solid #e1e5d0}
 .reading-footer .card-source{margin:0;overflow-wrap:anywhere;font-size:12px}
-.reveal-text{position:absolute;top:12px;right:26px;max-width:70%;visibility:hidden;font-size:11px;text-decoration:underline;text-underline-offset:4px;text-align:right;padding:0;min-height:44px}
-.is-writing .reveal-text,.reveal-text:focus{visibility:visible}
 .typewriter-space{visibility:hidden}.typewriter-ink{position:absolute;inset:0;white-space:inherit;overflow-wrap:inherit;text-align-last:start}
 .typewriter-ink::after{content:"";display:inline-block;height:1em;border-inline-end:2px solid var(--sage);margin-inline-start:3px;vertical-align:-.08em;animation:reading-cursor .65s steps(2,jump-none) infinite}
 .reading-stage--quote::before{background:#cddff2;border-color:var(--quote-edge)}.reading-stage--quote::after{background:#dce9f7;border-color:var(--quote-edge)}
