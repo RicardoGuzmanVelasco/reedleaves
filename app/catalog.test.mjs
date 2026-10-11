@@ -102,7 +102,7 @@ test("Book mascot collection shows earned art, ordered names and a shared unknow
   assert.match(html,/\.\.\/brand\/reed\/growth\/pot\.svg/);assert.match(html,/\.\.\/brand\/reed\/growth\/seed\.svg/);assert.match(html,/\.\.\/brand\/reed\/growth\/root\.png/);assert.match(html,/\.\.\/brand\/reed\/growth\/seedling\.svg/);assert.doesNotMatch(html,/\.\.\/brand\/reed\/mascot\.svg/);
   assert.doesNotMatch(html,/root\.svg|stem\.svg|plant\.svg|flower\.svg|loop\.svg|20\s*%|60\s*%|100\s*%/);
   assert.match(html,/aria-current="step"/);assert.match(html,/role="img" aria-label="Conseguida"/);assert.doesNotMatch(html,/<span class="mascot-earned"/);
-  assert.match(html,/Gastar hojas en tarjetas durante 2 días distintos/);assert.match(html,/Repaso en 3 días distintos/);assert.match(html,/Repaso en 5 días distintos/);
+  assert.match(html,/Gastar hojas en tarjetas durante 2 días distintos/);assert.match(html,/Gastar hojas en tarjetas durante 3 días distintos/);assert.match(html,/Gastar hojas en tarjetas durante 5 días distintos/);
   assert.match(html,/mascot-stage-motto[^>]*>¡Algo asoma por fin!/);
   const noDays=mascotsView({...state,growth:{"seven-habits":{added:true,spentDays:2}}});
   assert.match(noDays,/class="mascot-stage is-earned is-known is-current"[^>]*>.*?<img class="mascot-stage-art" src="\.\.\/brand\/reed\/growth\/root\.png"/s);
