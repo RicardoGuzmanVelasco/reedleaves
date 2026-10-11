@@ -211,7 +211,7 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .reading-stage .idea-card{min-height:320px;padding:52px 56px 32px;border-color:#6e916a;border-radius:32px;background:linear-gradient(135deg,#fffef9,#fffbed);box-shadow:0 8px 0 #b7c69d,0 24px 32px -16px rgb(30 76 46 / 24%),0 44px 80px -32px rgb(30 76 46 / 20%);overflow:visible}
 .reading-stage .idea-card::before{width:56px;height:18px;top:-2px;left:56px;background:var(--light);border-radius:0 0 8px 8px;border:1.5px solid #95bc69;border-top:0}
 .reading-stage h1,.reading-stage h2{font-size:clamp(32px,4.5vw,46px);line-height:1.14;max-width:640px;margin:10px 0 30px;letter-spacing:-.045em;text-wrap:balance}
-.reading-stage .idea-body{font-size:clamp(19px,2.3vw,23px);line-height:1.75;max-width:none;position:relative;white-space:pre-line;text-align:justify;text-align-last:justify;text-justify:inter-word;-webkit-hyphens:auto;hyphens:auto}
+.reading-stage .idea-body{font-size:clamp(19px,2.3vw,23px);line-height:1.75;max-width:none;position:relative;white-space:pre-line;text-align:start;text-align-last:auto;text-justify:auto;-webkit-hyphens:auto;hyphens:auto}
 .idea-card:not(.quote-card) .idea-body{font-family:Courier,"Courier New",monospace;font-weight:400}
 .reading-footer{margin-top:36px;padding-top:20px;border-top:1px solid #e1e5d0}
 .reading-footer .card-source{margin:0;overflow-wrap:anywhere;font-size:12px}
