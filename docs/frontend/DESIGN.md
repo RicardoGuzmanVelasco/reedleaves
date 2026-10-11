@@ -133,3 +133,5 @@ La UI tendrá español, inglés y francés. Los nombres y metadatos de los libro
 - Limitar los destinos a Inicio, Librería, Biblioteca e Idea del día. Inicio es la vista simplificada de los repasos pendientes; Biblioteca contiene la colección personal completa. Ajustes contiene idioma, preferencia de títulos originales, usuario y cerrar sesión. El acceso no introduce otra sección permanente.
 
 - Atribución de tarjetas: tres filas, libro, autor y usuario creador de la baraja. Cada fila lleva un SVG sencillo relleno, negro al 30 % de opacidad, que toma el matiz del papel. Mismo componente en repaso, autoría e idea diaria.
+
+- Librería combina búsqueda de títulos con filtros por autor, interés e idioma de baraja. La atribución del libro abre su ficha en Librería; la del autor abre Librería filtrada por ese autor. Los enlaces llevan una flecha SVG diagonal.

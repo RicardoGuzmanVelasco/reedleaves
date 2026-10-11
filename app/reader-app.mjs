@@ -8,7 +8,7 @@ import {words} from "./i18n.mjs";
 import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,deckView,reviewView,mascotsView,authorView,authorFormView,loadingView,accountView,escapeHtml} from "./views.mjs";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
-import {filterBooks} from "./book-search.mjs";
+import {filterLibrary,libraryDefaults} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
 import {createReadingPresentation} from "./reading-presentation.mjs";
 
@@ -22,13 +22,14 @@ export function startReader() {
   let authorForm = null, quotesOnly = false;
   let albumPosition = null;
   let bookshelfFilters = {...bookshelfDefaults};
+  let libraryFilters = {...libraryDefaults};
   let listPositions = {};
-  let libraryOrigin = "home";
+  let libraryOrigin = "home", appliedAuthorRoute = null;
   let libraryQuery = "", authMode = "login", authReturn = "#home", pendingVersion = null, pendingNavigation = null, busy = false, syncError = null, syncGeneration = 0;
   const hasLocalProgress = () => catalog && (store.read(keys.studies)?.length || catalog.versions.some(v=>store.read(keys.deckReview(v.id))?.seenIds?.length || store.read(keys.review(v.bookId))?.unlockedCount));
 
   function applyState(state) {
-    if (snapshot.user?.id !== state.user?.id) { bookshelfFilters = {...bookshelfDefaults}; listPositions = {}; libraryOrigin = "home"; openBookId = null; }
+    if (snapshot.user?.id !== state.user?.id) { bookshelfFilters = {...bookshelfDefaults}; libraryFilters = {...libraryDefaults}; libraryQuery = ""; listPositions = {}; libraryOrigin = "home"; openBookId = null; }
     snapshot = state;
     if (state.inviteRequired !== undefined) inviteRequired = state.inviteRequired;
     if (state.user) { language = restoreLanguage(state.language); store.save(keys.language,language); showOriginalTitles = state.showOriginalTitles === true; }
@@ -79,13 +80,13 @@ export function startReader() {
     if (!ready) { main.innerHTML = loadingView(language,failed); presentReading(main); return; }
     refreshState(); header();
     const state = {userId:snapshot.user?.id,authorForm,quotesOnly,language,showOriginalTitles,catalog,reviews,budget,preferences,statuses,growth:snapshot.growth||{},daily,bookId,versionId,requestedId,bookReviews,
-      deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,bookshelfFilters,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
+      deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,libraryFilters,bookshelfFilters,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
       storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,hasLocalProgress:hasLocalProgress()};
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
       (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "bookshelf" ? bookshelfView(state) : mode === "daily" ? dailyView(state) : mode === "book" ? deckView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "");
     if (!busy) presentReading(main);
     if (!snapshot.user && mode === "book") main.querySelector('[data-action="select-deck"]')?.removeAttribute("disabled");
-    if (mode === "library" && !authorForm) live.textContent = libraryQuery ? words[language].searchResults(filterBooks(catalog.books,libraryQuery).length) : "";
+    if (mode === "library" && !authorForm) live.textContent = libraryQuery ? words[language].searchResults(filterLibrary(catalog,libraryQuery,libraryFilters).length) : "";
     const dialog = main.querySelector(".deck-modal");
     if (dialog) {
       dialog.showModal(); const close = ()=>dialog.classList.contains("author-modal") ? closeAuthorForm() : dialog.dataset.book ? closeBookDetails(dialog.dataset.book) : closeDeck(dialog.dataset.version);
@@ -102,6 +103,14 @@ export function startReader() {
     if (!ready) return; refreshState();
     if (inviteRequired && !snapshot.user) { if (location.hash && location.hash !== "#account") authReturn = location.hash; mode = "account"; render({focus}); return; }
     const [view,first,second] = location.hash.slice(1).split("/");
+    if (view === "library" && first === "book") {
+      try { const id=decodeURIComponent(second||""); openBookId=catalog.booksById.has(id)?id:null; } catch { openBookId=null; }
+    }
+    if (view === "library" && first === "author" && appliedAuthorRoute !== location.hash) {
+      appliedAuthorRoute=location.hash;
+      try { libraryFilters.author=decodeURIComponent(second||""); libraryQuery=""; libraryFilters.genre=""; libraryFilters.language=""; } catch { libraryFilters.author=""; }
+    }
+    if (view !== "library" || first !== "author") appliedAuthorRoute=null;
     if (view !== "mascots") {
       if (view === "library" && mascotReturnHash === "#library" && mascotReturnBookId) openBookId=mascotReturnBookId;
       mascotReturnHash=null;mascotReturnBookId=null;
@@ -244,7 +253,7 @@ export function startReader() {
     authorForm[input.name]=input.value;
   }
   function closeDeck(id) { openDeckId = null; render(); [...main.querySelectorAll('[data-action="open-deck"]')].find(b=>b.dataset.version === id)?.focus({preventScroll:true}); }
-  function closeBookDetails(id) { openBookId = null; render(); [...main.querySelectorAll('[data-action="open-book-details"]')].find(b=>b.dataset.book === id)?.focus({preventScroll:true}); }
+  function closeBookDetails(id) { if (location.hash.startsWith("#library/book/")) history.replaceState({bookOrigin,libraryOrigin},"","#library"); openBookId = null; render(); [...main.querySelectorAll('[data-action="open-book-details"]')].find(b=>b.dataset.book === id)?.focus({preventScroll:true}); }
   async function mutation(path,input,onSuccess) {
     if (busy) return false; busy = true; syncGeneration++; syncError = null; lockControls();
     try { const result = await api.request(path,input); applyState(result.state || result);
@@ -306,7 +315,7 @@ export function startReader() {
     if (action === "logout" && !busy) await mutation("/api/auth/logout",{},()=>{ settings.close(); pendingVersion = null; authReturn = "#home"; navigate("#home"); });
   });
   main.addEventListener("toggle",e=>{ if (e.target.id === "sources") sourcesOpen = e.target.open; },true);
-  function updateBookSearch() { main.querySelector("#book-search-results").innerHTML = libraryResultsMarkup({catalog,language,showOriginalTitles,libraryQuery,userId:snapshot.user?.id}); main.querySelector("[data-book-search] button").hidden = !libraryQuery; live.textContent = words[language].searchResults(filterBooks(catalog.books,libraryQuery).length); }
+  function updateBookSearch() { main.querySelector("#book-search-results").innerHTML = libraryResultsMarkup({catalog,language,showOriginalTitles,libraryQuery,libraryFilters,userId:snapshot.user?.id}); main.querySelector("[data-book-search] button").hidden = !libraryQuery; live.textContent = words[language].searchResults(filterLibrary(catalog,libraryQuery,libraryFilters).length); }
   main.addEventListener("input",e=>{ if (authorForm && e.target.closest("[data-author-form]")) changeAuthorField(e.target); if (e.target.id === "book-search") { libraryQuery = e.target.value; updateBookSearch(); } });
   main.addEventListener("submit",async e=>{
     if (e.target.matches("[data-book-search]")) { e.preventDefault(); return; }
@@ -327,6 +336,12 @@ export function startReader() {
   main.addEventListener("change",async e=>{
     const input = e.target;
     if (authorForm && input.closest("[data-author-form]")) { changeAuthorField(input); return; }
+    if (input.dataset.libraryFilter) {
+      const axis=input.dataset.libraryFilter;
+      if (Object.hasOwn(libraryDefaults,axis)) libraryFilters[axis]=input.value;
+      if (location.hash.startsWith("#library/author/")) history.replaceState({bookOrigin,libraryOrigin},"","#library");
+      updateBookSearch(); return;
+    }
     if (input.dataset.bookshelfFilter) {
       const axis = input.dataset.bookshelfFilter;
       if (axis === "reading" && ["all","unread","reading","read"].includes(input.value) || axis === "review" && ["all","pending","none","reviewed"].includes(input.value)) bookshelfFilters[axis] = input.value;
@@ -352,6 +367,7 @@ export function startReader() {
       case "deck-album": returnToAlbum(); break;
       case "filter-all": quotesOnly = false; render(); main.querySelector('[data-action="filter-all"]')?.focus(); break;
       case "filter-quotes": quotesOnly = true; render(); main.querySelector('[data-action="filter-quotes"]')?.focus(); break;
+      case "reset-library-filters": libraryFilters={...libraryDefaults}; libraryQuery=""; history.replaceState({bookOrigin,libraryOrigin},"","#library"); render(); main.querySelector("#book-search")?.focus(); break;
       case "clear-book-search": libraryQuery = ""; main.querySelector("#book-search").value = ""; updateBookSearch(); main.querySelector("#book-search").focus(); break;
       case "toggle-auth": authMode = authMode === "login" ? "register" : "login"; render(); main.querySelector("#account-username")?.focus(); break;
       case "sync": sync(true); break;

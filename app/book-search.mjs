@@ -8,3 +8,11 @@ export function filterBooks(books, query = "") {
   return books.filter(book => [book.originalTitle, ...Object.values(book.title || {}), ...Object.values(book.shortTitle || {})]
     .some(title => { const candidate = normalize(title); return terms.every(term => candidate.includes(term)); }));
 }
+
+export const libraryDefaults = {author:"",genre:"",language:""};
+export function filterLibrary(catalog,query = "",filters = libraryDefaults) {
+  return filterBooks(catalog.books,query).filter(book =>
+    (!filters.author || book.author === filters.author) &&
+    (!filters.genre || book.genres.includes(filters.genre)) &&
+    (!filters.language || catalog.decks.some(deck=>deck.bookId === book.id && deck.language === filters.language)));
+}

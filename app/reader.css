@@ -292,3 +292,5 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 
 /* Three compact attribution rows share the paper's tint. */
 .card-source{display:grid;gap:4px}.card-attribution-row{display:flex;align-items:center;gap:9px;min-width:0}.card-attribution-row bdi{overflow-wrap:anywhere}.attribution-icon{width:17px;height:17px;flex:none;fill:rgb(0 0 0 / 30%)}
+
+.card-attribution-row{width:fit-content;max-width:100%}.attribution-arrow{width:13px;height:13px;flex:none;opacity:.6}.card-source a{min-height:28px;border-radius:4px}.library-filters{margin-bottom:24px}.library-filters .bookshelf-filters{margin:8px 0 0}.library-filters summary{font-size:13px}

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {filterBooks} from "./book-search.mjs";
+import {filterBooks,filterLibrary} from "./book-search.mjs";
 import {libraryView, libraryResultsMarkup} from "./views.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {words} from "./i18n.mjs";
@@ -88,4 +88,16 @@ test("Original metadata is mandatory in SQL, imports and current catalog API", a
     assert.equal(book.originalTitle,"Un titre original différent"); assert.equal(book.originalLanguage,"fr");
     assert.notEqual(book.originalTitle,book.title.en);
   } finally { await db.close(); }
+});
+
+test("Library filters intersect author, interest, deck language and title search",async()=>{
+  const catalog=prepareCatalog(await fixture());
+  assert.deepEqual(ids(filterLibrary(catalog,"habits",{author:"Stephen R. Covey",genre:"",language:"en"})),["seven-habits"]);
+  assert.deepEqual(filterLibrary(catalog,"atomic",{author:"Stephen R. Covey"}),[]);
+  assert.deepEqual(filterLibrary(catalog,"",{language:"ja"}),[]);
+  const genre=catalog.books[0].genres[0];
+  assert.ok(filterLibrary(catalog,"",{genre}).every(book=>book.genres.includes(genre)));
+  const html=libraryView({catalog,language:"fr",libraryFilters:{author:"Stephen R. Covey"}});
+  assert.match(html,/value="Stephen R. Covey" selected/);
+  assert.equal((html.match(/data-action="open-book-details"/g)||[]).length,1);
 });

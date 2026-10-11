@@ -4,7 +4,7 @@ import { treeFrontier, hasLeaf, studyingDecks, availableVersions } from "./decks
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import { words } from "./i18n.mjs";
 import { bookLinkUrl } from "./book-links.mjs";
-import { filterBooks } from "./book-search.mjs";
+import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation} from "./book-metadata.mjs";
 
@@ -67,9 +67,9 @@ function filters(s) {
 }
 
 export function libraryResultsMarkup(s) {
-  const c = words[s.language], books = filterBooks(s.catalog.books, s.libraryQuery);
+  const c = words[s.language], books = filterLibrary(s.catalog, s.libraryQuery, s.libraryFilters);
   if (!s.catalog.books.length) return `<div class="empty-state">${c.noBooks}</div>`;
-  if (!books.length) return `<div class="empty-state book-search-empty"><p>${c.noBookMatches}</p><button class="text-button" type="button" data-action="clear-book-search">${c.clearSearch}</button></div>`;
+  if (!books.length) return `<div class="empty-state book-search-empty"><p>${Object.values(s.libraryFilters || {}).some(Boolean) ? c.noBookshelfMatches : c.noBookMatches}</p><button class="text-button" type="button" data-action="${Object.values(s.libraryFilters || {}).some(Boolean) ? "reset-library-filters" : "clear-book-search"}">${Object.values(s.libraryFilters || {}).some(Boolean) ? c.resetFilters : c.clearSearch}</button></div>`;
   return `<div class="study-books book-grid" role="group" aria-label="${c.books}">${books.map(book => closedBookMarkup(s,book,{action:"open-book-details",caption:c.deckCount(availableVersions(s.catalog,book.id).length),genres:bookGenres(s,book),catalog:true})).join("")}</div>`;
 }
 
@@ -96,6 +96,19 @@ function bookDetailsMarkup(s,book) {
   </article></dialog>`;
 }
 
+function libraryFiltersMarkup(s) {
+  const c=words[s.language], filters=s.libraryFilters || libraryDefaults;
+  const select=(key,label,options)=>`<label for="library-${key}"><span>${label}</span><select id="library-${key}" data-library-filter="${key}" aria-controls="book-search-results"><option value="">${c.allBooks}</option>${options.map(([value,text])=>`<option value="${esc(value)}" ${filters[key] === value ? "selected" : ""}>${esc(text)}</option>`).join("")}</select></label>`;
+  const authors=[...new Set(s.catalog.books.map(book=>book.author))].sort((a,b)=>a.localeCompare(b,s.language));
+  const languages=[...new Set(s.catalog.decks.map(deck=>deck.language))].sort();
+  const languageName=tag=>{try{return new Intl.DisplayNames([s.language],{type:"language"}).of(tag)||tag;}catch{return tag;}};
+  return `<details class="sources library-filters" ${Object.values(filters).some(Boolean)?"open":""}><summary>${c.filterBooks}</summary><div class="bookshelf-filters">
+    ${select("author",c.bookAuthor,authors.map(author=>[author,author]))}
+    ${select("genre",c.genre,s.catalog.genres.map(g=>[g.id,g.name[s.language]]))}
+    ${select("language",c.deckLanguage,languages.map(tag=>[tag,languageName(tag)]))}
+    <button class="text-button" type="button" data-action="reset-library-filters">${c.resetFilters}</button></div></details>`;
+}
+
 export function libraryView(s) {
   const c = words[s.language];
   const selected = s.catalog.booksById.get(s.openBookId);
@@ -107,7 +120,7 @@ export function libraryView(s) {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
       <input type="search" id="book-search" placeholder="${c.searchBooks}" value="${esc(s.libraryQuery || "")}" maxlength="200" autocomplete="off" enterkeyhint="search" aria-controls="book-search-results">
       <button type="button" data-action="clear-book-search" aria-label="${c.clearSearch}" ${s.libraryQuery ? "" : "hidden"}>×</button></form>
-    <div id="book-search-results">${libraryResultsMarkup(s)}</div>
+    ${libraryFiltersMarkup(s)}<div id="book-search-results">${libraryResultsMarkup(s)}</div>
     ${selected ? bookDetailsMarkup(s,selected) : ""}</section>`;
 }
 
@@ -200,13 +213,19 @@ const attributionIcons = {
   author: '<path d="M21 2c-9-1-16 5-16 13l4 1c7-2 12-8 12-14ZM3 22l9-12-2 1-9 10 2 1Z"/>',
   user: '<circle cx="12" cy="7" r="5"/><path d="M2 22v-3c0-4 4-6 10-6s10 2 10 6v3H2Z"/>'
 };
+const linkArrow = '<svg class="attribution-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>';
 const attributionIcon = kind => `<svg class="attribution-icon" viewBox="0 0 24 24" aria-hidden="true">${attributionIcons[kind]}</svg>`;
 function cardAttribution(s,card,book) {
   const creator=s.catalog.decksById?.get(card.deckId)?.creator;
   const title=displayedBookTitle(s,book,true);
   return `<div class="card-source">${[
-    ["book",title.text,title.language], ["author",book.author,null], ["user",creator?.name,null]
-  ].filter(([,text])=>text).map(([kind,text,language])=>`<span class="card-attribution-row">${attributionIcon(kind)}<bdi${language ? ` lang="${esc(language)}" dir="auto"` : ""}>${esc(text)}</bdi></span>`).join("")}</div>`;
+    ["book",title.text,title.language,`#library/book/${encodeURIComponent(book.id)}`],
+    ["author",book.author,null,`#library/author/${encodeURIComponent(book.author)}`],
+    ["user",creator?.name,null,null]
+  ].filter(([,text])=>text).map(([kind,text,language,href])=>{
+    const contents=`${attributionIcon(kind)}<bdi${language ? ` lang="${esc(language)}" dir="auto"` : ""}>${esc(text)}</bdi>${href ? linkArrow : ""}`;
+    return href ? `<a class="card-attribution-row" href="${esc(href)}">${contents}</a>` : `<span class="card-attribution-row">${contents}</span>`;
+  }).join("")}</div>`;
 }
 
 function cardMarkup(s, card, heading = "h2") {
