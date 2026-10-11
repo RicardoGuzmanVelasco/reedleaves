@@ -3,4 +3,7 @@
   <path d="M76 57C43 62 30 88 40 117c7 20 30 28 51 20 27-10 42-43 26-65-10-14-23-20-41-15Z" fill="#58BE59"/>
   <path d="M79 65C51 65 30 43 36 19c27-2 49 19 43 46Z" fill="#91D965"/>
   <path d="M81 64c-5-32 11-50 42-49 4 27-14 49-42 49Z" fill="#B9E877"/>
+  <ellipse cx="56" cy="101" rx="3.2" ry="4.4" fill="#173D2C"/>
+  <ellipse cx="104" cy="101" rx="3.2" ry="4.4" fill="#173D2C"/>
+  <path d="M76 114q4 5 8 0" fill="none" stroke="#173D2C" stroke-width="2.7" stroke-linecap="round"/>
 </svg>

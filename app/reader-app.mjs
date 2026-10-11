@@ -5,7 +5,8 @@ import {featuredDecks, restoreTreeReview, bookReviewStates, studyingDecks} from 
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs";
-import {homeView,libraryView,libraryResultsMarkup,dailyView,deckView,reviewView,mascotsView,authorView,authorFormView,loadingView,accountView,escapeHtml} from "./views.mjs";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,deckView,reviewView,mascotsView,authorView,authorFormView,loadingView,accountView,escapeHtml} from "./views.mjs";
+import {bookshelfDefaults} from "./bookshelf.mjs";
 import {filterBooks} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
 
@@ -17,10 +18,14 @@ export function startReader() {
   let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, scrollToCard = false;
   let authorForm = null, quotesOnly = false;
   let albumPosition = null;
+  let bookshelfFilters = {...bookshelfDefaults};
+  let listPositions = {};
+  let libraryOrigin = "home";
   let libraryQuery = "", authMode = "login", authReturn = "#home", pendingVersion = null, pendingNavigation = null, busy = false, syncError = null, syncGeneration = 0;
   const hasLocalProgress = () => catalog && (store.read(keys.studies)?.length || catalog.versions.some(v=>store.read(keys.deckReview(v.id))?.seenIds?.length || store.read(keys.review(v.bookId))?.unlockedCount));
 
   function applyState(state) {
+    if (snapshot.user?.id !== state.user?.id) { bookshelfFilters = {...bookshelfDefaults}; listPositions = {}; libraryOrigin = "home"; openBookId = null; }
     snapshot = state;
     if (state.inviteRequired !== undefined) inviteRequired = state.inviteRequired;
     if (state.user) { language = restoreLanguage(state.language); store.save(keys.language,language); showOriginalTitles = state.showOriginalTitles === true; }
@@ -45,7 +50,7 @@ export function startReader() {
   }
   function header() {
     const c = words[language]; document.documentElement.lang = language;
-    document.title = pageTitle(mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.addBook : mode === "daily" ? c.daily : mode === "book" ? c.chooseDeck : mode === "mascots" ? c.mascots : mode === "author" ? c.editDeck : c.review);
+    document.title = pageTitle(mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.books : mode === "bookshelf" ? c.bookshelf : mode === "daily" ? c.daily : mode === "book" ? c.chooseDeck : mode === "mascots" ? c.mascots : mode === "author" ? c.editDeck : c.review);
     document.querySelector(".brand").setAttribute("aria-label",pageTitle(c.home)); document.querySelector(".skip-link").textContent = c.skip;
     for (const [id,text] of [["settings-title",c.settings],["language-label",c.language],["original-titles-label",c.showOriginalTitles]]) document.getElementById(id).textContent = text;
     document.getElementById("open-settings").setAttribute("aria-label",c.settings); document.getElementById("close-settings").setAttribute("aria-label",c.closeSettings);
@@ -71,10 +76,10 @@ export function startReader() {
     if (!ready) { main.innerHTML = loadingView(language,failed); return; }
     refreshState(); header();
     const state = {userId:snapshot.user?.id,authorForm,quotesOnly,language,showOriginalTitles,catalog,reviews,budget,preferences,statuses,growth:snapshot.growth||{},daily,bookId,versionId,requestedId,bookReviews,
-      deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,bookOrigin,sourcesOpen,enrolledIds,
+      deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,bookshelfFilters,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
       storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,hasLocalProgress:hasLocalProgress()};
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
-      (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "daily" ? dailyView(state) : mode === "book" ? deckView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "");
+      (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "bookshelf" ? bookshelfView(state) : mode === "daily" ? dailyView(state) : mode === "book" ? deckView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "");
     if (!snapshot.user && mode === "book") main.querySelector('[data-action="select-deck"]')?.removeAttribute("disabled");
     if (mode === "library" && !authorForm) live.textContent = libraryQuery ? words[language].searchResults(filterBooks(catalog.books,libraryQuery).length) : "";
     const dialog = main.querySelector(".deck-modal");
@@ -97,9 +102,11 @@ export function startReader() {
       if (view === "library" && mascotReturnHash === "#library" && mascotReturnBookId) openBookId=mascotReturnBookId;
       mascotReturnHash=null;mascotReturnBookId=null;
     }
+    if (["home","bookshelf"].includes(history.state?.libraryOrigin)) libraryOrigin = history.state.libraryOrigin;
     if (!["author","review","mascots"].includes(view)) quotesOnly = false;
-    if (view !== "library") openBookId = null;
-    if ((view === "daily" || ["review","read"].includes(view)) && !snapshot.user) { authReturn = location.hash; mode = "account"; render({focus}); return; }
+    if (!["library","bookshelf"].includes(view)) openBookId = null;
+    if ((["daily","bookshelf","review","read"].includes(view)) && !snapshot.user) { authReturn = location.hash; mode = "account"; render({focus}); return; }
+    if (["book","review","read","author"].includes(view) && ["home","library","bookshelf","daily"].includes(history.state?.bookOrigin)) bookOrigin = history.state.bookOrigin;
     if (view === "book" && catalog.booksById.has(first)) { if (bookId !== first) openDeckId = null; bookId = first; mode = "book"; }
     else if (view === "mascots" && mascotReturnHash && catalog.booksById.has(first)) { bookId=first;openDeckId=null;openBookId=null;mode="mascots"; }
     else if (view === "author" && catalog.versionsById.has(first) && snapshot.user?.id === catalog.decksById.get(catalog.versionsById.get(first).deckId)?.creator.userId && catalog.versionsById.get(first).status === "draft") {
@@ -114,18 +121,28 @@ export function startReader() {
         requestedId = reviews[versionId].seenIds.includes(cardId) ? cardId : null;
         const canonical = "#review/"+versionId+(requestedId ? "/"+requestedId : ""); if (location.hash !== canonical) history.replaceState(null,"",canonical); }
     } else {
-      openDeckId = null; mode = view === "daily" ? "daily" : view === "library" ? "library" : view === "account" && !snapshot.user ? "account" : "home";
+      openDeckId = null; mode = view === "daily" ? "daily" : view === "library" ? "library" : view === "bookshelf" ? "bookshelf" : view === "account" && !snapshot.user ? "account" : "home";
       if (mode === "home" && !snapshot.user) { pendingVersion = null; authReturn = "#home"; }
     }
-    render({focus}); if (mode === "daily" && snapshot.user && !daily) ensureDaily();
+    render({focus});
+    if (focus && ["library","bookshelf"].includes(mode) && listPositions[mode] && !openBookId && !authorForm) {
+      window.scrollTo({top:listPositions[mode].scrollY});
+      [...main.querySelectorAll('[data-action="open-book-details"]')].find(b=>b.dataset.book === listPositions[mode].bookId)?.focus({preventScroll:true});
+    }
+    if (mode === "daily" && snapshot.user && !daily) ensureDaily();
   }
   function navigate(hash) {
     if (busy) { pendingNavigation = hash; return; }
-    if (location.hash !== hash) history.pushState(null,"",hash);
+    if (location.hash !== hash) history.pushState({bookOrigin,libraryOrigin},"",hash);
     route();
   }
-  function openBook(id) { if (!catalog.booksById.has(id)) return; bookOrigin = mode === "library" ? "library" : "home"; bookId = id; openDeckId = null; navigate("#book/"+id); }
-  function resumeBook(id) { const studies = studyingDecks(catalog,reviews,enrolledIds).filter(item=>item.book.id === id); if (studies.length !== 1) { openBook(id); return; } navigate((studies[0].version.cardCount === 0 && studies[0].deck.creator.userId === snapshot.user?.id ? "#author/" : "#review/")+studies[0].version.id); }
+  function openBook(id) {
+    if (!catalog.booksById.has(id)) return;
+    if (["home","library","bookshelf","daily"].includes(mode)) bookOrigin = mode;
+    if (["library","bookshelf"].includes(mode)) listPositions[mode] = {bookId:id,scrollY:window.scrollY};
+    bookId = id; openDeckId = null; navigate("#book/"+id);
+  }
+  function resumeBook(id) { bookOrigin = "home"; const studies = studyingDecks(catalog,reviews,enrolledIds).filter(item=>item.book.id === id); if (studies.length !== 1) { openBook(id); return; } navigate((studies[0].version.cardCount === 0 && studies[0].deck.creator.userId === snapshot.user?.id ? "#author/" : "#review/")+studies[0].version.id); }
   function restoreAlbumPosition(cardId) {
     const position=albumPosition?.versionId === versionId && albumPosition.mode === mode ? albumPosition.scrollY : 0;
     window.scrollTo({top:position});
@@ -133,7 +150,7 @@ export function startReader() {
   }
   function returnToAlbum() {
     const cardId=requestedId;
-    history.replaceState(null,"","#"+mode+"/"+versionId); route(false); restoreAlbumPosition(cardId);
+    history.replaceState({bookOrigin,libraryOrigin},"","#"+mode+"/"+versionId); route(false); restoreAlbumPosition(cardId);
   }
   function closeAuthorForm() { if (busy) return; const action = authorForm?.kind === "book" ? "create-book" : authorForm?.kind === "deck" ? "create-deck" : authorForm?.kind === "quote" ? "add-quote" : "add-card"; authorForm = null; render(); main.querySelector(`[data-action="${action}"]`)?.focus(); }
   function openAuthorForm(kind) {
@@ -229,7 +246,7 @@ export function startReader() {
   }
   async function ensureDaily() { if (!busy) await mutation("/api/reader/daily",{}); }
   async function sync(force = false) {
-    if (!ready || busy || !force && (main.querySelector("[data-account-form]") || document.activeElement?.id === "book-search" || main.querySelector(".deck-modal") || mode === "author" || settings.open)) return;
+    if (!ready || busy || !force && (main.querySelector("[data-account-form]") || document.activeElement?.id === "book-search" || document.activeElement?.matches("[data-bookshelf-filter]") || main.querySelector(".deck-modal") || mode === "author" || settings.open)) return;
     const generation = ++syncGeneration;
     try { const state = await api.request("/api/session"); const updatedCatalog = !inviteRequired || state.user ? await loadCatalog() : null; if (generation !== syncGeneration || busy) return;
       const changed = JSON.stringify(state) !== JSON.stringify(snapshot) || ["books","decks","versions","allCards"].some(key=>JSON.stringify(updatedCatalog?.[key]) !== JSON.stringify(catalog?.[key])); catalog = updatedCatalog; applyState(state); syncError = null; if (changed || force) route(false);
@@ -281,6 +298,11 @@ export function startReader() {
   main.addEventListener("change",async e=>{
     const input = e.target;
     if (authorForm && input.closest("[data-author-form]")) { changeAuthorField(input); return; }
+    if (input.dataset.bookshelfFilter) {
+      const axis = input.dataset.bookshelfFilter;
+      if (axis === "reading" && ["all","unread","reading","read"].includes(input.value) || axis === "review" && ["all","pending","none","reviewed"].includes(input.value)) bookshelfFilters[axis] = input.value;
+      delete listPositions.bookshelf; render(); document.getElementById(input.id)?.focus(); return;
+    }
     if (input.dataset.bookStatus) await mutation("/api/reader/reading",{bookId:input.dataset.bookStatus,status:input.value});
     else if (input.dataset.source || input.dataset.genre) { const next = input.dataset.source ? changeSource(preferences,input.dataset.source,input.checked) : {...preferences,genres:input.checked ? [...new Set([...preferences.genres,input.dataset.genre])] : preferences.genres.filter(g=>g !== input.dataset.genre)}; await mutation("/api/reader/preferences",{preferences:next}); }
     else return; document.getElementById(input.id)?.focus();
@@ -304,8 +326,12 @@ export function startReader() {
       case "toggle-auth": authMode = authMode === "login" ? "register" : "login"; render(); main.querySelector("#account-username")?.focus(); break;
       case "sync": sync(true); break;
       case "retry": load(); break;
-      case "home": navigate("#home"); break;
-      case "library": navigate("#library"); break;
+      case "library":
+        if (mode === "bookshelf") { libraryOrigin = "bookshelf"; listPositions.bookshelf = {scrollY:window.scrollY,bookId:document.activeElement?.dataset.book}; }
+        else if (!["book","review","author"].includes(mode)) libraryOrigin = "home";
+        navigate("#library"); break;
+      case "bookshelf": navigate("#bookshelf"); break;
+      case "reset-bookshelf-filters": bookshelfFilters = {...bookshelfDefaults}; delete listPositions.bookshelf; render(); main.querySelector("#bookshelf-reading")?.focus(); break;
       case "daily": navigate("#daily"); break;
       case "enter-review": if (daily) openBook(daily.bookId); break;
       case "open-book": openBook(b.dataset.book); break;

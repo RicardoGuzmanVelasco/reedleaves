@@ -63,7 +63,7 @@ test("The SQL catalog has short and full titles in ES/EN/FR, independently from 
 test("French book previews and full-title modal use their separate metadata fields", async () => {
   const s = {catalog:await catalog(), language:"fr", statuses:{}, bookReviews:{}, reviews:{}, openBookId:"seven-habits", storageAvailable:true};
   const html = libraryView(s);
-  assert.match(html, /Ajouter un livre/);
+  assert.match(html, /Librairie/);
   for (const book of s.catalog.books) assert.ok(html.includes(escapeHtml(book.shortTitle.fr)));
   assert.match(html, /<h2 id="book-dialog-title"[^>]*>Les 7 habitudes des gens très efficaces<\/h2>/);
   assert.match(html, /Développement personnel/);
