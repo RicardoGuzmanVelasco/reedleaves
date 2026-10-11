@@ -1,4 +1,5 @@
 export const LANGUAGES = ["es", "en", "fr"];
+export const CONTENT_LANGUAGES = ["es", "en"];
 
 export function restoreLanguage(saved) {
   return LANGUAGES.includes(saved) ? saved : "es";

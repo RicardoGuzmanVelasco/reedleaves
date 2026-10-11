@@ -66,6 +66,7 @@ La estructura sigue siendo plana, textual y portable. Las cuentas pueden crear b
 ## Autoría personal para dogfooding
 
 - Entrada: «Crear baraja» en las barajas de un libro existente. Nombre, enfoque opcional e idioma propio; no cambiar el idioma del contenido al cambiar la interfaz.
+- Idioma de libros y barajas: elegir entre «Español» y «English» con el patrón visual de Ajustes, sin texto libre. En libros puede quedar sin elegir para buscar con IA; el guardado manual exige selección. Conservar los idiomas originales ya guardados o identificados por IA, también fuera de estas dos opciones.
 - La baraja nueva es personal, editable y visible solo para su dueño. Aparece en Inicio aunque esté vacía. No implementar publicación, edición de cartas existentes, borrado ni reordenación en este caso de uso.
 - «Añadir contenido» abre la baraja propia. El álbum muestra todas sus cartas y permite abrirlas sin gastar hojas; «Repasar» mantiene el monedero y el progreso habitual.
 - «Añadir tarjeta» exige título y texto. «Añadir quote» solo pide el texto y el padre. No tiene encabezado. Usar un fragmento del texto para identificarla en el árbol y en la selección de padre.
@@ -86,6 +87,7 @@ Usar lenguaje técnico simplificado. El texto de interfaz debe ser corto, direct
 - Verde luz: `#B9E877` — superficies y segunda hoja.
 - Salvia: `#779A72` — contorno del libro.
 - Verde sombra: `#1E4C2E` — sombra exterior del libro.
+- Verde de selección: `#2F6B3C` — opción activa de idioma, con texto crema; compartido por Ajustes y formularios.
 - Melocotón: `#FFE0CB` — superficie de la idea del día.
 - Azul pastel: `#E4EFFB` — citas; borde `#829FBD` y profundidad `#C1D4E8`.
 - Crema: `#FFF9ED` — fondo cálido recomendado.

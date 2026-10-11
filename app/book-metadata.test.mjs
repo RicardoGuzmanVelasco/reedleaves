@@ -72,3 +72,21 @@ test("AI errors explain recovery in every interface language and keep the entere
     assert.match(html,/class="error-reference"/);assert.match(html,/data-action="autofill-book"/);
   }
 });
+
+test("Book and deck languages use two named choices while preserving inferred and existing originals",()=>{
+  for (const language of ["es","en","fr"]) for (const kind of ["book","deck"]) {
+    const html=authorFormView({...state,language,authorForm:{kind,title:"Título",language:"en"}});
+    const picker=html.match(/<fieldset class="author-language-picker">[\s\S]*?<\/fieldset>/)[0];
+    assert.deepEqual([...picker.matchAll(/type="radio" name="language" value="([^"]+)"/g)].map(match=>match[1]),["es","en"]);
+    assert.match(picker,/value="en" checked/);assert.match(picker,/>Español<\/span>/);assert.match(picker,/>English<\/span>/);
+    assert.doesNotMatch(html,/<datalist|name="language"[^>]*maxlength/);
+  }
+  const blank=authorFormView({...state,authorForm:{kind:"book",language:""}});
+  assert.doesNotMatch(blank,/type="radio"[^>]*checked/);assert.match(blank,/type="radio"[^>]*required/);
+  const inferred=authorFormView({...state,authorForm:{kind:"book",language:"ja"}});
+  assert.match(inferred,/type="hidden" name="language" value="ja"/);assert.match(inferred,/japonés/);
+  assert.doesNotMatch(inferred,/type="radio"[^>]*required/);
+  const existing=authorFormView({...state,authorForm:{kind:"book",bookId:"mine",language:"ja"}});
+  assert.match(existing,/value="japonés" readonly/);assert.match(existing,/type="hidden" name="language" value="ja"/);
+  assert.doesNotMatch(existing,/type="radio"/);
+});
