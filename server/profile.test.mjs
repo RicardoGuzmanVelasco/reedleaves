@@ -46,9 +46,9 @@ test("Profile counts one current pet per book rather than all unlocked stages, i
   assert.deepEqual(p.mascots,{pot:3,seed:0,root:0,seedling:0,sprout:1,sapling:0,stem:0,plant:0,flower:0,infinity:0});
 });
 
-test("Author stats include quotes as a subset; foreign libraries expose neither private books nor draft activity",async t=>{
+test("Author stats include quotes as a subset; foreign libraries show shared books without exposing drafts",async t=>{
   const {db,a,b}=await fixture(t);
-  const {bookId}=await createBook(db,a,{requestId:randomUUID(),title:"Secret book",author:"Private author",language:"es"});
+  const {bookId}=await createBook(db,a,{requestId:randomUUID(),title:"Shared book",author:"Book author",language:"es"});
   const {versionId}=await createDeck(db,a,{requestId:randomUUID(),bookId,title:"Private deck",language:"es"});
   const {cardId}=await addCard(db,a,{requestId:randomUUID(),versionId,title:"Personal card",body:"Personal text",parentId:null,isQuote:false});
   await addCard(db,a,{requestId:randomUUID(),versionId,body:"A personal quote",parentId:null,isQuote:true});
@@ -58,8 +58,8 @@ test("Author stats include quotes as a subset; foreign libraries expose neither 
   assert.equal(own.profile.counts.decksCreated,2);assert.equal(own.profile.counts.cardsCreated,2);assert.equal(own.profile.counts.quotesCreated,1);
   assert.equal(own.profile.counts.cardsViewed,1);assert.equal(own.profile.counts.cardsReviewed,0);
   assert.ok(own.bookshelf.some(entry=>entry.bookId===bookId));
-  assert.deepEqual(foreign.bookshelf,[]);
-  assert.doesNotMatch(JSON.stringify(foreign),/Secret book|Hidden draft|Personal text|password|csrf|time_zone|wallet/);
+  assert.deepEqual(foreign.bookshelf,[{bookId,reading:"reading",pending:false,hasReviewing:false,hasReviewed:false,group:"none"}]);
+  assert.doesNotMatch(JSON.stringify(foreign),/Hidden draft|Personal text|password|csrf|time_zone|wallet/);
   await assert.rejects(recordCardView(db,b,{cardId,context:"author"}),{code:"cardUnavailable"});
   await assert.rejects(readProfile(db,"missing",b.user_id),{code:"profileUnavailable"});
   assert.equal((await readProfile(db,"reed-team",b.user_id)).profile.counts.cardsCreated,42);

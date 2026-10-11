@@ -94,7 +94,7 @@ export async function createDeck(db,session,input) {
   const id=requestId(input.requestId),title=text(input.title,160),description=text(input.description ?? "",1000,false),language=input.language;
   if (!isCanonicalLocale(language) || typeof input.bookId !== "string") throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
-    if (!await db.prepare("SELECT 1 FROM books WHERE id=? AND (creator_user_id IS NULL OR creator_user_id=?)").get(input.bookId,session.user_id)) throw new ApiError(404,"bookUnavailable");
+    if (!await db.prepare("SELECT 1 FROM books WHERE id=?").get(input.bookId)) throw new ApiError(404,"bookUnavailable");
     await db.prepare("UPDATE users SET can_create_decks=1 WHERE id=?").run(session.user_id);
     const previous=await db.prepare("SELECT * FROM decks WHERE id=?").get(id);
     if (previous) {

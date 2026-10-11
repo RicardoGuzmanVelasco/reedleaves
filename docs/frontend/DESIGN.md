@@ -66,6 +66,7 @@ La estructura sigue siendo plana, textual y portable. Las cuentas pueden crear b
 
 ## Autoría personal para dogfooding
 
+- Crear libro lo incorpora directamente al catálogo común, también para libros de usuarios ya guardados. Se conserva el creador y solo él puede completar los metadatos. Cualquier cuenta puede registrar su lectura y crear su propia baraja, aunque no haya barajas visibles. No añadir un selector de privacidad ni un paso de publicación. La gestión de libros privados se pospone: ver [ADR 0001](../adr/0001-libros-en-catalogo-comun.md).
 - Entrada: «Crear baraja» en las barajas de un libro existente. Nombre, enfoque opcional e idioma propio; no cambiar el idioma del contenido al cambiar la interfaz.
 - Idioma de libros y barajas: elegir entre «Español» y «English» con el patrón visual de Ajustes, sin texto libre. En libros puede quedar sin elegir para buscar con IA; el guardado manual exige selección. Conservar los idiomas originales ya guardados o identificados por IA, también fuera de estas dos opciones.
 - La baraja nueva es personal, editable y visible solo para su dueño. Aparece en Inicio aunque esté vacía. No implementar publicación, edición de cartas existentes, borrado ni reordenación en este caso de uso.
@@ -143,4 +144,4 @@ La UI tendrá español, inglés y francés. Los nombres y metadatos de los libro
 
 - Perfil: avatar provisional, nombre, fecha de creación, hojas gastadas y resúmenes de lector y archivista. Tarjetas repasadas y vistas cuentan tarjetas distintas; la idea diaria y consultar contenido propio son vistas sin gastar hojas ni desbloquear el repaso. Las citas creadas forman parte de las tarjetas creadas.
 - Mascotas del perfil: contar solo la etapa actual de cada libro, con el mismo cálculo que sus portadas. No sumar las etapas anteriores desbloqueadas. Mostrar las etapas disponibles de la app.
-- «Ver biblioteca» abre la propia con edición habitual. La ajena identifica al usuario y «Solo lectura», conserva los filtros y permite consultar fichas; no cambia lectura, contenido ni progreso. Los libros y borradores privados conservan sus permisos. Desde una ficha ajena se puede abrir el libro en Librería como contexto propio.
+- «Ver biblioteca» abre la propia con edición habitual. La ajena identifica al usuario y «Solo lectura», conserva los filtros y permite consultar fichas de libros compartidos; no cambia lectura, contenido ni progreso. Los borradores de barajas conservan sus permisos. Desde una ficha ajena se puede abrir el libro en Librería como contexto propio.

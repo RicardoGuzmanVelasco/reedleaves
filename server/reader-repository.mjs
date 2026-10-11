@@ -49,8 +49,6 @@ async function stateInside(db,session,now) {
 async function knownVersion(db,versionId,userId) {
   if(typeof versionId!=="string") throw new ApiError(400,"invalidRequest");
   const version=await db.prepare("SELECT * FROM deck_versions WHERE id = ?").get(versionId);
-  const bookOwner=version && await db.prepare("SELECT creator_user_id FROM books WHERE id=?").get(version.book_id);
-  if (bookOwner?.creator_user_id && bookOwner.creator_user_id !== userId) throw new ApiError(404,"deckUnavailable");
   const enrolled=await db.prepare("SELECT 1 FROM studies WHERE user_id = ? AND version_id = ?").get(userId,versionId);
   const owner = version && await db.prepare("SELECT d.creator_user_id,a.user_id FROM decks d LEFT JOIN accounts a ON a.user_id=d.creator_user_id WHERE d.id=?").get(version.deck_id);
   if (version?.status === "draft" && owner?.user_id && owner.creator_user_id !== userId) throw new ApiError(404,"deckUnavailable");
@@ -92,7 +90,7 @@ export async function openCard(db,session,versionId,cardId,now=new Date()) {
   });
 }
 export async function changeReading(db,session,bookId,status,now=new Date()) {
-  if(typeof bookId!=="string"||!["unread","reading","read"].includes(status)||!await db.prepare("SELECT 1 FROM books WHERE id = ? AND (creator_user_id IS NULL OR creator_user_id=?)").get(bookId,session.user_id)) throw new ApiError(400,"invalidRequest");
+  if(typeof bookId!=="string"||!["unread","reading","read"].includes(status)||!await db.prepare("SELECT 1 FROM books WHERE id = ?").get(bookId)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     if(status==="unread") await db.prepare("DELETE FROM book_reading WHERE user_id = ? AND book_id = ?").run(session.user_id,bookId);
     else await db.prepare("INSERT INTO book_reading VALUES (?,?,?) ON CONFLICT(user_id,book_id) DO UPDATE SET status=excluded.status").run(session.user_id,bookId,status);

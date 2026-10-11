@@ -6,6 +6,7 @@ No se simula la base mediante JSON. JSON solo transporta la respuesta HTTP.
 ## Modelo actual
 
 - Libro: autor, título original e idioma original propios, títulos localizados, fuentes e intereses. No contiene un único árbol.
+- Los libros creados por cuentas se incorporan directamente al catálogo común, incluidos los ya guardados. Se conserva `creator_user_id` para atribución y para completar metadatos; no controla visibilidad. Todas las cuentas pueden registrar su lectura y crear su propia baraja sobre ellos. Fichas mínimas sin traducciones, intereses, enlaces o barajas visibles son válidas. Ver [ADR 0001](../adr/0001-libros-en-catalogo-comun.md): la gestión de privacidad de libros queda pospuesta.
 - Enlace de libro: plataforma y URL de su ficha, en `book_links`; único por libro y plataforma. Separado de las fuentes de contenido. Amazon para comprar, Goodreads para reseñar; no ejecutamos esas acciones desde Reedleaves.
 - Baraja: libro, usuario creador autorizado, idioma principal y recomendación opcional.
 - Versión de baraja: título, descripción del enfoque, nota editorial, número de versión y estado.
@@ -84,8 +85,8 @@ La API entrega `book.links.amazon` y `book.links.goodreads`, sin codificar libro
 
 ## Límites explícitos
 
-El selector y el repaso por versión están implementados. La creación pública y los votos siguen fuera de esta entrega.
-La API de catálogo sigue siendo de lectura; los endpoints de cuenta y repaso escriben estado autenticado. No hay endpoints de voto ni creación pública.
+El selector, el repaso por versión y la creación autenticada de libros y barajas están implementados. Los libros se comparten al guardarlos; los borradores de barajas de cuentas siguen privados. La publicación de barajas desde la aplicación y los votos siguen fuera de esta entrega.
+La API de catálogo sigue siendo de lectura; los endpoints de cuenta, repaso y autoría escriben con sesión, origen y CSRF. No hay endpoints de voto ni publicación de barajas.
 El progreso actual guarda cartas por usuario y versión en SQL. Nunca se hereda progreso entre barajas o versiones.
 Las claves locales antiguas se conservan sin borrar, pero no se usan como fuente verificada ni se importan en la cuenta nueva.
 Cambiar la publicación de una baraja no cambia el repaso iniciado: el selector permite retomar la versión con historial.
@@ -102,7 +103,7 @@ Se sortea entre las cartas principales de la baraja elegida para cada libro; cam
 Los filtros repasando y repasado agrupan el progreso de todas las barajas de un libro. Un libro puede pertenecer a ambos grupos si tiene una baraja terminada y otra en curso.
 
 La versión 3 del catálogo todavía expone nuestros borradores editoriales para la prueba interna.
-Antes de aceptar contenido de usuarios, filtrar borradores privados por autor y publicar únicamente versiones completas validadas.
+Los borradores de barajas de cuentas se filtran por autor; compartir la ficha de un libro no publica sus barajas ni sus tarjetas. Las versiones publicadas conservan las reglas de validación e inmutabilidad.
 
 Producción usa PostgreSQL gestionado, `DATABASE_URL`, TLS del proveedor, backups, supervisión y HTTPS. SQLite se conserva para desarrollo y pruebas. `node:sqlite` sigue siendo experimental en el Node 24.11 local; el runtime requerido se fija en `.node-version`.
 

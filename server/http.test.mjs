@@ -113,15 +113,23 @@ test("Author HTTP routes require CSRF and hide personal decks from other account
   const unicodeInput={...cardInput,requestId:randomUUID(),body:"葉".repeat(4000)};
   assert.equal((await post("/api/author/cards",unicodeInput,headers)).status,200);
   const guest=await fetch(base+"/api/catalog").then(r=>r.json());assert.equal(guest.versions.some(v=>v.id===versionId),false);
-  assert.equal(guest.books.some(b=>b.id===bookId),false);
+  assert.equal(guest.books.some(b=>b.id===bookId),true);
   const other=await post("/api/auth/register",{username:"other.http",password:"another local test phrase"});
   const otherCookie=other.headers.get("set-cookie").split(";")[0];
   const hidden=await fetch(base+"/api/catalog",{headers:{Cookie:otherCookie}}).then(r=>r.json());
   assert.equal(hidden.versions.some(v=>v.id===versionId),false);
-  assert.equal(hidden.books.some(b=>b.id===bookId),false);
+  assert.equal(hidden.books.find(b=>b.id===bookId).creatorUserId,state.user.id);
   const otherHeaders={Cookie:otherCookie,"X-CSRF-Token":(await other.json()).csrfToken};
   assert.equal((await post("/api/reader/select",{versionId},otherHeaders)).status,404);
-  assert.equal((await post("/api/author/decks",{...deckInput,requestId:randomUUID()},otherHeaders)).status,404);
+  assert.equal((await post("/api/reader/reading",{bookId,status:"reading"},otherHeaders)).status,200);
+  const ownDeck=await post("/api/author/decks",{...deckInput,requestId:randomUUID()},otherHeaders);
+  assert.equal(ownDeck.status,200);
+  const ownVersion=(await ownDeck.json()).versionId;
+  const otherCatalog=await fetch(base+"/api/catalog",{headers:{Cookie:otherCookie}}).then(r=>r.json());
+  assert.equal(otherCatalog.versions.some(v=>v.id===ownVersion),true);
+  assert.equal(otherCatalog.versions.some(v=>v.id===versionId),false);
+  const creatorCatalog=await fetch(base+"/api/catalog",{headers:{Cookie:headers.Cookie}}).then(r=>r.json());
+  assert.equal(creatorCatalog.versions.some(v=>v.id===ownVersion),false);
 });
 
 test("Profiles require a session and view writes require origin, CSRF and actual access",async t=>{

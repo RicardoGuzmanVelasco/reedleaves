@@ -65,12 +65,11 @@ export async function readCatalog(db, userId) {
     if(model.cards.some(card=>!card.title[row.language]||!card.body[row.language])) throw new Error("Card is missing text in its deck language");
     versions.push(version);
   }
-  // Editorial samples remain public; personal drafts are visible only to their owner.
+  // Books are shared regardless of creator; personal deck drafts remain owner-only.
   const accountIds = new Set((await db.prepare("SELECT user_id FROM accounts").all()).map(r=>r.user_id));
-  const visibleBooks=books.filter(b=>!b.creatorUserId || b.creatorUserId === userId),bookIds=new Set(visibleBooks.map(b=>b.id));
-  const visible = versions.filter(v=>bookIds.has(v.bookId) && (v.status !== "draft" || !accountIds.has(decks.find(d=>d.id===v.deckId).creator.userId) || decks.find(d=>d.id===v.deckId).creator.userId === userId));
+  const visible = versions.filter(v=>v.status !== "draft" || !accountIds.has(decks.find(d=>d.id===v.deckId).creator.userId) || decks.find(d=>d.id===v.deckId).creator.userId === userId);
   const ids = new Set(visible.map(v=>v.id)), deckIds = new Set(visible.map(v=>v.deckId));
-  return {schemaVersion:3,genres,books:visibleBooks,decks:decks.filter(d=>deckIds.has(d.id)),versions:visible,cards:cards.filter(c=>ids.has(c.versionId))};
+  return {schemaVersion:3,genres,books,decks:decks.filter(d=>deckIds.has(d.id)),versions:visible,cards:cards.filter(c=>ids.has(c.versionId))};
 }
 
 export async function checkCatalog(db) {
@@ -80,6 +79,6 @@ export async function checkCatalog(db) {
   } else await db.prepare("SELECT 1").get();
   const catalog = await readCatalog(db), ids = new Set(catalog.genres.map(g=>g.id));
   if(catalog.genres.some(g=>LANGUAGES.some(language=>!g.name[language]?.trim()))) throw new Error("Missing genre translation");
-  for(const book of catalog.books) if(!book.genres.length||book.genres.some(id=>!ids.has(id))) throw new Error("Missing book genre");
+  for(const book of catalog.books) if(!book.creatorUserId && !book.genres.length||book.genres.some(id=>!ids.has(id))) throw new Error("Missing book genre");
   return {books:catalog.books.length,decks:catalog.decks.length,versions:catalog.versions.length,cards:catalog.cards.length,genres:catalog.genres.length};
 }

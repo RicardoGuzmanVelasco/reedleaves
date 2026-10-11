@@ -94,7 +94,7 @@ function bookDetailsMarkup(s,book) {
     <p class="deck-size">${c.deckCount(choices.length)}</p>${languages.length ? `<p class="book-detail-languages">${esc(languages.join(" · "))}</p>` : ""}
     <div class="book-detail-status"><label class="book-reading" for="book-status-${esc(book.id)}"><span>${c.bookStatus}</span><select id="book-status-${esc(book.id)}" ${s.readOnly ? "" : `data-book-status="${esc(book.id)}"`} ${!s.storageAvailable || s.readOnly ? "disabled" : ""}>${[["unread",c.unread],["reading",c.readingStatus],["read",c.readStatus]].map(([value,label]) => `<option value="${value}" ${s.statuses[book.id] === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>
     <p class="book-detail-review">${c.reviewStatus}: <strong>${esc(status)}</strong></p></div>
-    ${s.readOnly ? `<a class="text-button" href="#library/book/${encodeURIComponent(book.id)}">${c.viewBookLibrary} ↗</a>` : `<button class="primary" type="button" data-action="open-book" data-book="${esc(book.id)}" ${!choices.length && book.creatorUserId !== s.userId ? "disabled" : ""}>${c.viewDecks}</button>`}
+    ${s.readOnly ? `<a class="text-button" href="#library/book/${encodeURIComponent(book.id)}">${c.viewBookLibrary} ↗</a>` : `<button class="primary" type="button" data-action="open-book" data-book="${esc(book.id)}" ${!choices.length && !s.userId ? "disabled" : ""}>${c.viewDecks}</button>`}
   </article></dialog>`;
 }
 
