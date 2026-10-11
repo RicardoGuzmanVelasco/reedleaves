@@ -26,7 +26,8 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
     assert.equal(icon.status, 200); assert.match(icon.headers.get("content-type"), /svg/);
   }
   const app = await fetch(base + "/app/");
-  assert.equal(app.status, 200); assert.match(await app.text(), /id="leaf-count"/);
+  const appHtml = await app.text();
+  assert.equal(app.status, 200); assert.match(appHtml, /id="leaf-count"/);
   assert.match(app.headers.get("content-security-policy"), /script-src 'self'/);
   assert.match((await fetch(base + "/app/reader.mjs")).headers.get("content-type"), /javascript/);
   assert.equal((await fetch(base + "/brand/reed/d-compacto.svg")).status, 200);
@@ -40,6 +41,15 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   assert.equal(faviconHead.status, 200);
   assert.equal(Number(faviconHead.headers.get("content-length")), iconBytes.length);
   assert.equal(await faviconHead.text(), "");
+  const touchIconPath = appHtml.match(/<link rel="apple-touch-icon" sizes="180x180" href="([^"]+)"/)[1];
+  const touchIcon = await fetch(base + touchIconPath);
+  assert.equal(touchIcon.status, 200); assert.equal(touchIcon.headers.get("content-type"), "image/png");
+  const touchIconBytes = Buffer.from(await touchIcon.arrayBuffer());
+  assert.deepEqual([...touchIconBytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  assert.equal(touchIconBytes.readUInt32BE(16), 180); assert.equal(touchIconBytes.readUInt32BE(20), 180);
+  const touchIconHead = await fetch(base + touchIconPath, { method: "HEAD" });
+  assert.equal(touchIconHead.status, 200); assert.equal(Number(touchIconHead.headers.get("content-length")), touchIconBytes.length);
+  assert.equal(await touchIconHead.text(), "");
   const fontPath = "/app/fonts/eb-garamond-latin-400-normal-v5.3.0.woff2";
   const font = await fetch(base + fontPath);
   assert.equal(font.status, 200); assert.equal(font.headers.get("content-type"), "font/woff2");
@@ -64,6 +74,7 @@ test("Internal mode protects the book catalog until an invited user signs in", a
   t.after(async()=>{server.closeAllConnections(); await new Promise(resolve=>server.close(resolve)); await db.close();});
   const base = `http://127.0.0.1:${server.address().port}`;
   assert.equal((await fetch(base+"/api/catalog")).status,401);
+  assert.equal((await fetch(base+"/apple-touch-icon.png")).status,200);
   const session = await fetch(base+"/api/session").then(r=>r.json()); assert.equal(session.inviteRequired,true);
   const response = await fetch(base+"/api/auth/register",{method:"POST",headers:{Origin:base,"Content-Type":"application/json"},body:JSON.stringify({username:"team.reader",password:"A private invitation test phrase",inviteCode:"r".repeat(32),language:"es",timeZone:"Europe/Madrid"})});
   assert.equal(response.status,200);

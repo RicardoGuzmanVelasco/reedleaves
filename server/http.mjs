@@ -24,7 +24,8 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
     };
     try {
       const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-      const path = pathname === "/favicon.ico" ? "/brand/reed/favicon.ico" : pathname;
+      const path = pathname === "/favicon.ico" ? "/brand/reed/favicon.ico"
+        : pathname === "/apple-touch-icon.png" ? "/brand/reed/apple-touch-icon.png" : pathname;
       if (await readerApi(request,response,path,send)) return;
       if (!["GET", "HEAD"].includes(request.method)) {
         response.setHeader("Allow", "GET, HEAD");
