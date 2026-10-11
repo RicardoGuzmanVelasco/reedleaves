@@ -1,5 +1,6 @@
 export const words = {
   es: {
+    aiQuotaExceeded:"La IA no tiene saldo disponible. Revisa la facturación de OpenAI; tus datos siguen aquí.", aiConfigurationError:"Hay un problema con la configuración de la IA. Tus datos siguen aquí.", aiProviderBusy:"El servicio de IA está saturado o no está disponible. Vuelve a intentarlo en unos minutos.", errorReference:"Referencia del error",
     profile:"Perfil",myProfile:"Mi perfil",profileBack:"← Perfil",profileUnavailable:"Este usuario no está disponible.",memberSince:"Cuenta creada",leavesSpent:"Hojas gastadas",readerSummary:"Lector",archivistSummary:"Archivista",booksRead:"Libros leídos",booksReading:"Libros leyendo",decksCompleted:"Barajas completadas",decksInProgress:"Barajas en curso",cardsReviewed:"Tarjetas repasadas",cardsViewed:"Tarjetas vistas",decksCreated:"Barajas creadas",cardsCreated:"Tarjetas creadas",quotesCreated:"Citas creadas",viewBookshelf:"Ver biblioteca",viewBookLibrary:"Ver libro en Librería",readOnly:"Solo lectura",currentMascots:"Mascotas actuales",distinctCardsNote:"Cada tarjeta cuenta una vez. La idea del día cuenta como vista, sin avanzar el repaso.",noUserBookshelf:"Todavía no hay libros disponibles en esta biblioteca.",
     completeBook:"Completar información", incompleteBook:"Falta información", completeBookNote:"Solo se rellenarán los datos que faltan.",
     showFullText:"Mostrar texto completo",
@@ -56,6 +57,7 @@ export const words = {
     date: d => new Intl.DateTimeFormat("es", { day: "numeric", month: "long" }).format(d), position: (n, total) => `${n} de ${total}`
   },
   en: {
+    aiQuotaExceeded:"AI has no available credit. Check OpenAI billing; your details are still here.", aiConfigurationError:"There is a problem with the AI configuration. Your details are still here.", aiProviderBusy:"The AI service is busy or unavailable. Try again in a few minutes.", errorReference:"Error reference",
     profile:"Profile",myProfile:"My profile",profileBack:"← Profile",profileUnavailable:"This user is unavailable.",memberSince:"Account created",leavesSpent:"Leaves spent",readerSummary:"Reader",archivistSummary:"Archivist",booksRead:"Books read",booksReading:"Books being read",decksCompleted:"Completed decks",decksInProgress:"Decks in progress",cardsReviewed:"Cards reviewed",cardsViewed:"Cards viewed",decksCreated:"Decks created",cardsCreated:"Cards created",quotesCreated:"Quotes created",viewBookshelf:"View bookshelf",viewBookLibrary:"View book in Library",readOnly:"Read only",currentMascots:"Current pets",distinctCardsNote:"Each card counts once. The daily idea counts as viewed without advancing the review.",noUserBookshelf:"There are no books available in this bookshelf yet.",
     completeBook:"Complete book information", incompleteBook:"Missing information", completeBookNote:"Only missing information will be filled in.",
     showFullText:"Show full text",
@@ -112,6 +114,7 @@ export const words = {
     date: d => new Intl.DateTimeFormat("en", { day: "numeric", month: "long" }).format(d), position: (n, total) => `${n} of ${total}`
   },
   fr: {
+    aiQuotaExceeded:"L’IA n’a plus de crédit disponible. Vérifiez la facturation OpenAI ; vos données sont conservées.", aiConfigurationError:"La configuration de l’IA pose problème. Vos données sont conservées.", aiProviderBusy:"Le service d’IA est saturé ou indisponible. Réessayez dans quelques minutes.", errorReference:"Référence de l’erreur",
     profile:"Profil",myProfile:"Mon profil",profileBack:"← Profil",profileUnavailable:"Cet utilisateur est indisponible.",memberSince:"Compte créé",leavesSpent:"Feuilles dépensées",readerSummary:"Lecteur",archivistSummary:"Archiviste",booksRead:"Livres lus",booksReading:"Livres en cours",decksCompleted:"Paquets terminés",decksInProgress:"Paquets en cours",cardsReviewed:"Cartes révisées",cardsViewed:"Cartes vues",decksCreated:"Paquets créés",cardsCreated:"Cartes créées",quotesCreated:"Citations créées",viewBookshelf:"Voir la bibliothèque",viewBookLibrary:"Voir le livre en librairie",readOnly:"Lecture seule",currentMascots:"Compagnons actuels",distinctCardsNote:"Chaque carte compte une fois. L’idée du jour compte comme vue sans faire avancer la révision.",noUserBookshelf:"Aucun livre disponible dans cette bibliothèque pour le moment.",
     completeBook:"Compléter les informations", incompleteBook:"Informations manquantes", completeBookNote:"Seules les informations manquantes seront complétées.",
     showFullText:"Afficher tout le texte",

@@ -31,3 +31,11 @@ test("Account client serializes changes, sends cookies/CSRF and recovers after f
   assert.equal(calls[2][1].credentials,"same-origin"); assert.equal(calls[2][1].headers["X-CSRF-Token"],"secret");
   const broken = createAccountClient(async()=>{throw new Error("offline");}); await assert.rejects(broken.request("/api/session"),e=>e.code === "connectionError");
 });
+
+test("Account client preserves diagnostic references and rejects unsafe reference values",async()=>{
+  const reference="01234567-89ab-4cde-8fab-0123456789ab";
+  for (const value of [reference,"<script>unsafe</script>"]) {
+    const client=createAccountClient(async()=>({ok:false,status:502,json:async()=>({error:"aiQuotaExceeded",reference:value})}));
+    await assert.rejects(client.request("/api/author/books/autofill",{}),error=>error.code==="aiQuotaExceeded" && error.reference===(value===reference ? value : undefined));
+  }
+});

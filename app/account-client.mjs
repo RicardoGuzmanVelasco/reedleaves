@@ -1,5 +1,7 @@
 export class AccountError extends Error {
-  constructor(code,status = 0) { super(code); this.code = code; this.status = status; }
+  constructor(code,status = 0,reference) { super(code); this.code = code; this.status = status;
+    if (typeof reference === "string" && /^[a-f0-9-]{36}$/.test(reference)) this.reference=reference;
+  }
 }
 export function createAccountClient(fetcher = fetch) {
   let csrfToken = null, queue = Promise.resolve();
@@ -13,7 +15,7 @@ export function createAccountClient(fetcher = fetch) {
       } catch { throw new AccountError("connectionError"); }
       let data;
       try { data = await response.json(); } catch { throw new AccountError("connectionError",response.status); }
-      if (!response.ok) throw new AccountError(data.error || "connectionError",response.status);
+      if (!response.ok) throw new AccountError(data.error || "connectionError",response.status,data.reference);
       const state = data.state || data;
       if (state.user !== undefined) csrfToken = state.user ? state.csrfToken : null;
       return data;

@@ -61,6 +61,50 @@ test("AI enforces one concurrent search and account rate limit; timeout releases
   await assert.rejects(timed("r",input,genres),e=>e.code==="aiTimeout");
 });
 
+test("Provider failures distinguish quota, credentials, request configuration and service availability without exposing private data",async()=>{
+  for (const [status,providerCode,code] of [[429,"insufficient_quota","aiQuotaExceeded"],[401,"invalid_api_key","aiConfigurationError"],
+    [403,"permission_denied","aiConfigurationError"],[404,"model_not_found","aiConfigurationError"],
+    [400,"unsupported_parameter","aiConfigurationError"],[429,"rate_limit_exceeded","aiProviderBusy"],[503,"server_error","aiProviderBusy"]]) {
+    const logs=[];
+    const fill=createBookAutofill({apiKey:"private-test-key",logger:entry=>logs.push(entry),fetcher:async()=>({ok:false,status,
+      headers:new Headers({"x-request-id":"req_provider123"}),json:async()=>({error:{code:providerCode,type:"provider_error",param:"tool_choice",message:"private-test-key, private book title"}})})});
+    let failure;
+    await assert.rejects(fill("private-user",input,genres),error=>{failure=error;return error.code===code && error.status===502;});
+    assert.equal(logs.length,1);assert.equal(logs[0].reference,failure.reference);
+    assert.equal(logs[0].providerStatus,status);assert.equal(logs[0].providerCode,providerCode);
+    assert.equal(logs[0].providerParam,"tool_choice");assert.equal(logs[0].requestId,"req_provider123");assert.equal(logs[0].phase,"research");
+    assert.doesNotMatch(JSON.stringify(logs),/private-test-key|private book title|private-user|Pensar/);
+  }
+});
+
+test("Diagnostics identify extraction truncation and malformed upstream bodies; retry remains available",async()=>{
+  const logs=[],truncated={status:"incomplete",incomplete_details:{reason:"max_output_tokens"},output:[]};
+  const fake=fakeProvider([researchResponse(),truncated,researchResponse(),extractionResponse()]);
+  const fill=createBookAutofill({apiKey:"key",logger:record=>logs.push(record),...fake});
+  await assert.rejects(fill("r",input,genres),error=>error.code==="aiError" && !!error.reference);
+  assert.equal(logs[0].phase,"extraction");assert.equal(logs[0].incompleteReason,"max_output_tokens");
+  assert.ok((await fill("r",input,genres)).metadata.title.es);
+  const broken=createBookAutofill({apiKey:"key",logger:record=>logs.push(record),fetcher:async()=>({ok:false,status:502,json:async()=>{throw new SyntaxError("upstream HTML");}})});
+  await assert.rejects(broken("r",input,genres),error=>error.code==="aiProviderBusy");
+  assert.equal(logs[1].providerStatus,502);
+});
+
+test("Autofill HTTP returns only a safe error and reference; private provider diagnostics stay on the server",async t=>{
+  const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);
+  const logs=[];
+  const server=createCatalogServer(db,undefined,{bookAutofill:createBookAutofill({apiKey:"secret-api-key",logger:record=>logs.push(record),
+    fetcher:async()=>({ok:false,status:401,headers:new Headers({"x-request-id":"req_auth"}),json:async()=>({error:{code:"invalid_api_key",message:"secret-api-key"}})})})});
+  server.listen(0,"127.0.0.1");await once(server,"listening");
+  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const post=(path,body,headers={})=>fetch(base+path,{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify(body)});
+  const signed=await post("/api/auth/register",{username:"diagnostic.reader",password:"a local test password"}),state=await signed.json();
+  const response=await post("/api/author/books/autofill",input,{Cookie:signed.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":state.csrfToken});
+  assert.equal(response.status,502);
+  assert.deepEqual(await response.json(),{error:"aiConfigurationError",reference:logs[0].reference});
+  assert.equal((await db.prepare("SELECT count(*) AS n FROM books").get()).n,5);
+});
+
 test("Autofill HTTP requires session, origin and CSRF; preview never creates a book; logout during search revokes result",async t=>{
   const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);
   let calls=0,release;

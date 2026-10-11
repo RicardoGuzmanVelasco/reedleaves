@@ -262,7 +262,7 @@ function legacyReviewView(s) {
 
 export function loadingView(language, failed) {
   const c = words[language];
-  return `<section class="loading"><img src="../brand/reed/mascot.svg" width="100" height="100" alt=""><h1>${failed ? c.error : c.loading}</h1>${failed ? button(c.retry, "retry") : ""}</section>`;
+  return `<section class="loading${failed ? " loading-error" : ""}"><img src="../brand/reed/mascot.svg" width="100" height="100" alt=""><h1>${failed ? c.error : c.loading}</h1>${failed ? button(c.retry, "retry") : ""}</section>`;
 }
 
 export function accountView(s) {
@@ -410,7 +410,7 @@ export function authorFormView(s) {
       ${description ? `<p class="deck-description" lang="${esc(contentLocale(preview.description,s.language,preview.originalLanguage))}" dir="auto">${esc(description)}</p>` : ""}
       ${bookLinksMarkup(s,preview)}${bookSourcesMarkup(s,preview)}
       ${Object.keys(preview.title).length ? `<details class="book-translations"><summary>${c.bookTranslations}</summary>${Object.keys(preview.title).map(language=>`<section lang="${esc(language)}" dir="auto"><h3>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(language))}</h3><p><strong>${esc(preview.title[language])}</strong></p>${preview.shortTitle[language] !== preview.title[language] ? `<p>${esc(preview.shortTitle[language])}</p>` : ""}<p>${esc(preview.description[language])}</p><small>${esc(preview.editorialNote[language])}</small></section>`).join("")}</details>` : ""}
-      <form class="author-form" data-author-form><p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}</p>
+      <form class="author-form" data-author-form><p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}${f.error && f.errorReference ? `<small class="error-reference">${c.errorReference}: ${esc(f.errorReference)}</small>` : ""}</p>
         <div class="form-actions"><button class="text-button" type="button" data-action="edit-book-preview">${c.editBook}</button><button class="primary" type="submit">${f.bookId ? c.save : c.createBook}</button></div>
         <button class="text-button preview-cancel" type="button" data-action="cancel-author">${c.cancel}</button>
       </form></article></dialog>`;
@@ -424,7 +424,7 @@ export function authorFormView(s) {
       ${Object.keys(f.metadata.title).map(language=>`<details class="book-translation-editor"><summary>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(language))}</summary>${field(`metadata.title.${language}`,c.bookTitle,f.metadata.title[language],240,true)}${field(`metadata.shortTitle.${language}`,c.shortBookTitle,f.metadata.shortTitle[language],240,true)}${field(`metadata.description.${language}`,c.bookDescription,f.metadata.description[language],2000,true,true)}${field(`metadata.editorialNote.${language}`,c.bookEditorialNote,f.metadata.editorialNote[language],500,true,true)}</details>`).join("")}
       ${["amazon","goodreads"].map(platform=>field(`metadata.links.${platform}`,platform === "amazon" ? "Amazon" : "Goodreads",f.metadata.links[platform],2048,false)).join("")}
     </details>` : ""}
-    <p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}</p><div class="form-actions"><button class="text-button" type="button" data-action="cancel-author">${c.cancel}</button>${!f.bookId || f.hasProposal ? `<button class="primary" type="submit">${book && !f.bookId ? c.createBook : deck ? c.createDeck : c.save}</button>` : ""}</div>
+    <p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}${f.error && f.errorReference ? `<small class="error-reference">${c.errorReference}: ${esc(f.errorReference)}</small>` : ""}</p><div class="form-actions"><button class="text-button" type="button" data-action="cancel-author">${c.cancel}</button>${!f.bookId || f.hasProposal ? `<button class="primary" type="submit">${book && !f.bookId ? c.createBook : deck ? c.createDeck : c.save}</button>` : ""}</div>
   </form></article></dialog>`;
 }
 

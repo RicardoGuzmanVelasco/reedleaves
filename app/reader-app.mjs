@@ -229,7 +229,7 @@ export function startReader() {
     const fields = Object.fromEntries([...new FormData(form)].filter(([key])=>!key.startsWith("metadata."))); Object.assign(authorForm,fields);
     const savedForm = authorForm;
     const input = savedForm.bookId ? {bookId:savedForm.bookId,metadata:savedForm.metadata} : savedForm.kind === "book" ? {title:savedForm.title,author:savedForm.author,language:savedForm.language,metadata:savedForm.metadata,requestId:savedForm.requestId} : savedForm.kind === "deck" ? {...fields,requestId:savedForm.requestId,bookId} : {...fields,requestId:savedForm.requestId,versionId,parentId:fields.parentId || null,isQuote:savedForm.kind === "quote"};
-    busy = true; syncGeneration++; savedForm.error = null; lockControls();
+    busy = true; syncGeneration++; savedForm.error = null; savedForm.errorReference = null; lockControls();
     try {
       const result = await api.request(savedForm.bookId ? "/api/author/books/complete" : savedForm.kind === "book" ? "/api/author/books" : savedForm.kind === "deck" ? "/api/author/decks" : "/api/author/cards",input);
       catalog = await loadCatalog(); applyState(result.state); authorForm = null; live.textContent = words[language].saved;
@@ -248,16 +248,16 @@ export function startReader() {
   async function autofillBook(form) {
     if (busy || authorForm?.kind !== "book") return;
     Object.assign(authorForm,Object.fromEntries([...new FormData(form)].filter(([key])=>!key.startsWith("metadata."))));
-    if (!authorForm.title.trim()) { authorForm.error="aiInputRequired"; render(); return; }
+    if (!authorForm.title.trim()) { authorForm.error="aiInputRequired"; authorForm.errorReference=null; render(); return; }
     const savedForm=authorForm;
-    busy=true; syncGeneration++; savedForm.error=null; savedForm.autofilling=true;
+    busy=true; syncGeneration++; savedForm.error=null; savedForm.errorReference=null; savedForm.autofilling=true;
     live.textContent=words[language].aiLoading; render();
     try {
       const result=await api.request("/api/author/books/autofill",{bookId:savedForm.bookId,title:savedForm.title,author:savedForm.author,language:savedForm.language,metadata:savedForm.bookId && !savedForm.hasProposal ? undefined : savedForm.metadata});
       savedForm.author=result.author; savedForm.metadata=result.metadata;
       savedForm.language ||= result.metadata.originalLanguage;
       savedForm.preview=true; savedForm.hasProposal=true; live.textContent=words[language].bookPreview;
-    } catch(error) { savedForm.error=error.status === 401 ? "sessionExpired" : error.code || "connectionError"; }
+    } catch(error) { savedForm.error=error.status === 401 ? "sessionExpired" : error.code || "connectionError"; savedForm.errorReference=error.reference; }
     finally {
       busy=false; savedForm.autofilling=false;
       const next=pendingNavigation; pendingNavigation=null;

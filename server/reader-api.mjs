@@ -106,7 +106,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
     } catch(error) {
       if (!(error instanceof ApiError)) throw error;
       if (error.status === 429) response.setHeader("Retry-After","900");
-      send(error.status,{error:error.code});
+      send(error.status,{error:error.code,...(error.reference ? {reference:error.reference} : {})});
     }
     return true;
   };

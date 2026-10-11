@@ -89,6 +89,7 @@ Usar lenguaje técnico simplificado. El texto de interfaz debe ser corto, direct
 - Melocotón: `#FFE0CB` — superficie de la idea del día.
 - Azul pastel: `#E4EFFB` — citas; borde `#829FBD` y profundidad `#C1D4E8`.
 - Crema: `#FFF9ED` — fondo cálido recomendado.
+- Rojo error: `#B42318` — mensajes de fallo en formularios, ajustes y carga. Mantener texto explicativo y anuncio accesible; el color no es la única señal.
 - Radios grandes, sombras suaves y profundidad por capas.
 
 ## Logo

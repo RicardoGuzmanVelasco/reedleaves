@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {mergeBookMetadata,normalizeBookMetadata,missingBookInformation} from "./book-metadata.mjs";
 import {authorFormView,libraryView,bookshelfView,homeView} from "./views.mjs";
 import {bookMetadata} from "../server/fixtures/book-autofill.mjs";
+import {words} from "./i18n.mjs";
 
 const state={language:"es",catalog:{genres:[{id:"personal-growth",name:{es:"Crecimiento personal"}}],versionsById:new Map(),versionModels:new Map()}};
 test("Existing metadata survives autofill; invalid translations and unsafe links cannot enter the catalog",()=>{
@@ -61,4 +62,13 @@ test("Book form offers explicit AI loading and retry states; preview escapes all
   assert.match(preview,/Vista previa del libro/);assert.match(preview,/Traducciones/);assert.match(preview,/Fuentes/);
   assert.match(preview,/target="_blank" rel="noopener noreferrer"/);assert.match(preview,/type="submit">Crear libro/);
   assert.doesNotMatch(preview,/<script>|<img src=x|undefined/);
+});
+
+test("AI errors explain recovery in every interface language and keep the entered book plus its diagnostic reference",()=>{
+  for (const language of ["es","en","fr"]) for (const error of ["aiQuotaExceeded","aiConfigurationError","aiProviderBusy"]) {
+    const html=authorFormView({...state,language,authorForm:{kind:"book",title:"Mi libro",author:"Mi autor",language:"es",error,errorReference:"01234567-89ab-4cde-8fab-0123456789ab"}});
+    assert.ok(html.includes(words[language][error]));assert.ok(html.includes(words[language].errorReference));
+    assert.match(html,/role="alert"/);assert.match(html,/value="Mi libro"/);assert.match(html,/value="Mi autor"/);
+    assert.match(html,/class="error-reference"/);assert.match(html,/data-action="autofill-book"/);
+  }
 });

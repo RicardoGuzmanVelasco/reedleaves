@@ -16,6 +16,8 @@ Cada pulsación realiza una búsqueda web mediante Responses API y una extracci�
 
 La búsqueda devuelve una vista previa; no escribe en la base. Al crear el libro se guardan juntos sus traducciones, intereses, enlaces y fuentes. Mantiene la privacidad del libro personal y no modifica el idioma de ninguna baraja. Las traducciones de títulos sin edición verificada se identifican en la nota sobre la edición. Se dejan vacíos los datos que no se pueden respaldar.
 
+Los fallos de IA distinguen falta de saldo (`insufficient_quota`), configuración o acceso (HTTP 400/401/403/404), saturación y errores del proveedor (429/5xx), y tiempo agotado. Una referencia visible permite localizar el evento `book_autofill_failed` en los logs de Render. El registro incluye fase (`research`, `extraction` o `metadata`), modelo, estado HTTP, código/tipo/parámetro del proveedor, `x-request-id` y motivo de respuesta incompleta cuando existen. No registra claves, usuarios, títulos, mensajes del proveedor ni respuestas generadas. El navegador recibe únicamente el error funcional y la referencia. Los campos permanecen para corregirlos o reintentar.
+
 ## Crear el servicio
 
 1. Publica el repositorio en GitHub o en otro proveedor compatible y conecta ese repositorio a Render.
