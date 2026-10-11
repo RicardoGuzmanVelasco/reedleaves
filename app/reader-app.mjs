@@ -1,5 +1,5 @@
 import {loadCatalog} from "./catalog.mjs";
-import {localDay, restoreLanguage} from "./core.mjs";
+import {CONTENT_LANGUAGES, localDay, restoreLanguage} from "./core.mjs";
 import {restorePreferences, changeSource} from "./rhythm.mjs";
 import {featuredDecks, restoreTreeReview, bookReviewStates, studyingDecks} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
@@ -212,7 +212,9 @@ export function startReader() {
   }
   function openAuthorForm(kind) {
     if (!snapshot.user) return;
-    authorForm = {kind,requestId:crypto.randomUUID(),title:kind === "book" ? libraryQuery : "",author:"",body:"",description:"",language:kind === "book" ? "" : kind === "deck" ? catalog.booksById.get(bookId)?.originalLanguage || language : language,parentId:kind === "quote" ? null : requestedId || null};
+    const bookLanguage=catalog.booksById.get(bookId)?.originalLanguage;
+    const contentLanguage=CONTENT_LANGUAGES.includes(bookLanguage) ? bookLanguage : CONTENT_LANGUAGES.includes(language) ? language : "es";
+    authorForm = {kind,requestId:crypto.randomUUID(),title:kind === "book" ? libraryQuery : "",author:"",body:"",description:"",language:kind === "book" ? "" : kind === "deck" ? contentLanguage : language,parentId:kind === "quote" ? null : requestedId || null};
     openDeckId = null; openBookId = null; render();
   }
   function openBookCompletion(id) {
@@ -268,6 +270,12 @@ export function startReader() {
   }
   function changeAuthorField(input) {
     if (!authorForm || !input.name) return;
+    if (input.name === "language" && input.type === "radio") {
+      const picker=input.closest(".author-language-picker");
+      picker.querySelector(".inferred-language")?.remove();
+      picker.querySelector('input[type="hidden"]')?.remove();
+      picker.querySelectorAll('input[type="radio"]').forEach(radio=>radio.required=true);
+    }
     if (authorForm.metadata) {
       const metadata=authorForm.metadata;
       if (input.name === "metadata.genres") {
