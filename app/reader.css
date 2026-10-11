@@ -304,7 +304,7 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .mascot-stage-copy{min-width:0;padding:3px 0}
 .mascot-stage-copy h2{font-size:17px;line-height:1.2}
 .mascot-stage-unlock{margin-top:4px;color:#586957;font-size:11px;font-weight:750;line-height:1.35}
-.mascot-stage-motto{margin-top:4px;color:#788274;font-size:11px;font-style:italic;line-height:1.4}
+.mascot-stage-motto{margin-top:4px;color:#788274;font-family:"Avenir Next",system-ui,sans-serif;font-size:11px;font-style:italic;line-height:1.4}
 .mascot-stage-motto.is-locked{color:#8a9086;font-size:11px;font-style:italic}
 .mascot-stage.is-current .mascot-stage-copy h2{color:#1e642f;font-weight:900}
 @media(max-width:520px){.review-mascot-callout{width:100%;padding:0}.review-mascot-callout p{font-size:12px}.review-mascot-button{width:60px;height:60px;border-radius:0}.mascot-stage,.mascot-stage.is-earned{grid-template-columns:32px 68px minmax(0,1fr);gap:9px;padding:11px 0}.mascot-collection::before{left:15px}.mascot-stage-marker{width:32px;height:32px}.mascot-stage.is-current .mascot-stage-marker{width:32px;height:32px}.mascot-stage-art{width:68px;height:68px}.mascot-stage-copy h2{font-size:15px}.mascot-stage-unlock{font-size:10px}.mascot-stage-motto{font-size:11px}.mascot-check svg{width:26px;height:26px}}
