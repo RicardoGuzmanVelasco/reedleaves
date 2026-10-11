@@ -166,13 +166,15 @@ function reviewMascotCallout(s,bookId) {
   return motto ? `<div class="review-mascot-callout">${mascotEntry(s,bookId,"review-mascot-button")}<p lang="${esc(motto.language)}">${esc(motto.text)}</p></div>` : "";
 }
 export function mascotsView(s) {
-  const c=words[s.language],book=s.catalog.booksById.get(s.bookId),{g,unlocked}=mascotState(s,s.bookId);
+  const c=words[s.language],book=s.catalog.booksById.get(s.bookId),{unlocked,latest}=mascotState(s,s.bookId);
   return `<section class="mascots-screen"><button class="text-button" type="button" data-action="close-mascots">${c.mascotsBack}</button>
     <header class="mascots-heading"><div><p class="small-book">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</p><h1 tabindex="-1">${c.mascots}</h1></div><img src="${mascotImage(s,s.bookId)}" width="82" height="82" alt=""></header>
     <ol class="mascot-collection">${mascotStages.map((stage,index)=>{
-      const earned=unlocked.includes(stage.id),implemented=!!stage.unlocked,milestone=implemented?c[stage.milestone]:"";
+      const earned=unlocked.includes(stage.id),implemented=!!stage.unlocked,current=latest===stage.id;
       const image=earned?stage.image:"../brand/reed/growth/mystery.svg";
-      return `<li class="mascot-stage${earned?" is-earned":""}${implemented?" is-known":" is-mystery"}"><span class="mascot-stage-number">${String(index+1).padStart(2,"0")}</span><img class="mascot-stage-art" src="${image}" width="76" height="76" alt=""><div class="mascot-stage-copy"><h2>${c[stage.name]}</h2>${milestone?`<p>${milestone}</p>`:""}</div>${earned?`<span class="mascot-earned">${c.mascotEarned}</span>`:""}</li>`;
+      const marker=earned?`<span class="mascot-stage-marker mascot-check"><svg viewBox="0 0 24 24" role="img" aria-label="${c.mascotEarned}"><path d="m4 12 5 5L20 6"/></svg></span>`:`<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true">${String(index+1).padStart(2,"0")}</span>`;
+      const unlock=implemented?c[stage.milestone]:"???",motto=earned&&stage.motto?c[stage.motto]:c.mascotNotUnlocked;
+      return `<li class="mascot-stage${earned?" is-earned":""}${implemented?" is-known":" is-mystery"}${current?" is-current":""}"${current?' aria-current="step"':""}>${marker}<img class="mascot-stage-art" src="${image}" width="76" height="76" alt=""><div class="mascot-stage-copy"><h2>${c[stage.name]}</h2><p class="mascot-stage-unlock">${esc(unlock)}</p><p class="mascot-stage-motto${earned&&stage.motto?"":" is-locked"}">${esc(motto)}</p></div></li>`;
     }).join("")}</ol>
   </section>`;
 }

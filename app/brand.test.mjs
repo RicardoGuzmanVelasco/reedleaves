@@ -40,3 +40,10 @@ test("Seedling has a friendly face with widely spaced eyes",()=>{
   assert.match(seedling,/cx="56" cy="101"/);assert.match(seedling,/cx="104" cy="101"/);
   assert.match(seedling,/q4 5 8 0/);
 });
+test("Unknown mascot is a neutral silhouette and mascot surfaces have no green backplate",()=>{
+  const mystery=readFileSync(new URL("../brand/reed/growth/mystery.svg",import.meta.url),"utf8"),css=readFileSync(new URL("./reader.css",import.meta.url),"utf8");
+  assert.match(mystery,/fill="#969d96"/);assert.doesNotMatch(mystery,/question|#B9E877|#58BE59/);
+  assert.match(css,/\.mascot-entry\{background:transparent;box-shadow:none/);
+  assert.match(css,/\.review-mascot-callout\{[^}]*background:transparent/);
+  assert.match(css,/\.mascot-stage,\.mascot-stage\.is-earned\{[^}]*background:transparent;box-shadow:none/);
+});
