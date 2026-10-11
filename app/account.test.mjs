@@ -5,7 +5,7 @@ import {createAccountClient} from "./account-client.mjs";
 import {accountView} from "./views.mjs";
 import {words} from "./i18n.mjs";
 test("Account form is minimal, accessible and translated; passwords are not persisted",()=>{
-  for(const language of ["es","en","fr"]) {
+  for(const language of ["es","en"]) {
     const login = accountView({language,mode:"home",authMode:"login",hasLocalProgress:true});
     assert.ok(login.includes(words[language].signIn)); assert.ok(login.includes(words[language].localProgressNote));
     assert.match(login,/autocomplete="current-password"/); assert.match(login,/for="account-username"/); assert.match(login,/minlength="8"/); assert.ok(login.includes(words[language].passwordHint)); assert.match(login,/role="alert" hidden/);

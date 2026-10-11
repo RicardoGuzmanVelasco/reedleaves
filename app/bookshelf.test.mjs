@@ -68,7 +68,7 @@ test("One book with active and finished decks appears once, and matches both rev
 test("Collection filters, empty states, book details and origin navigation translate consistently",async()=>{
   const s=await fixture(); s.statuses={"atomic-habits":"read"};
   s.bookReviews=bookReviewStates(s.catalog,s.reviews);
-  for (const language of ["es","en","fr"]) {
+  for (const language of ["es","en"]) {
     const state={...s,language}; const c=words[language];
     const html=bookshelfView(state);
     assert.ok(html.includes(c.bookshelf)); assert.match(html,/for="bookshelf-reading"/); assert.match(html,/for="bookshelf-review"/);

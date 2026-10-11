@@ -1,4 +1,4 @@
-export const LANGUAGES = ["es", "en", "fr"];
+export const LANGUAGES = ["es", "en"];
 export const CONTENT_LANGUAGES = ["es", "en"];
 
 export function restoreLanguage(saved) {
@@ -67,11 +67,13 @@ export function validateBook(book, requiredLanguages = ["es", "en"], {requireOri
     if (book.sources.some(source => typeof source.title !== "string" || !source.title.trim() || typeof source.url !== "string" || !source.url.startsWith("https://"))) throw new Error("Invalid sources");
     return book;
   }
-  const languages = new Set([...requiredLanguages, ...fields.flatMap(field => Object.keys(book[field] || {}))]);
   for (const field of fields) {
-    for (const language of languages) {
+    for (const language of requiredLanguages) {
       if (!isCanonicalLocale(language)) throw new Error("Invalid book language");
       if (typeof book[field]?.[language] !== "string" || !book[field][language].trim()) throw new Error("Missing book translation");
+    }
+    for (const [language,value] of Object.entries(book[field] || {})) {
+      if (!isCanonicalLocale(language) || typeof value !== "string" || !value.trim()) throw new Error("Invalid book translation");
     }
   }
   if (!Array.isArray(book.sources) || !book.sources.length ||

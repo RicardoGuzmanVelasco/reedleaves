@@ -5,8 +5,8 @@ La app consulta SQLite, no estos archivos. Los CSV son el formato plano de autor
 | Archivo | Una fila representa |
 | --- | --- |
 | `users.csv` | Usuario creador; actualmente el equipo editorial real, sin sesiones ni lectores inventados |
-| `genres.csv` | Un interés con nombre ES/EN/FR |
-| `books.csv` | Un libro con metadatos ES/EN/FR y géneros separados por `|` |
+| `genres.csv` | Un interés con nombre ES/EN |
+| `books.csv` | Un libro con metadatos ES/EN y géneros separados por `|` |
 | `links.csv` | Enlace externo de un libro: plataforma (`amazon` o `goodreads`) y URL HTTPS de su ficha |
 | `decks.csv` | Baraja, creador, libro, idioma principal y versión; enfoque y nota editorial |
 | `cards.csv` | Carta con versión, padre opcional, orden entre hermanas, texto y fuente HTTPS |
@@ -27,7 +27,7 @@ Editar → `npm run db:seed` → `npm run db:check` → `npm test`. La importaci
 | Atomic Habits · James Clear | Crecimiento personal, productividad | 8 | [James Clear](https://jamesclear.com/atomic-habits-summary) |
 | Same as Ever · Morgan Housel | Crecimiento personal, finanzas | 7 | [Morgan Housel](https://collabfund.com/blog/my-new-book-same-as-ever/) |
 
-42 cartas en seis barajas. Los ejemplos alternan inglés y español: cada baraja tiene un solo idioma principal. Los cinco libros y los intereses tienen metadatos en español, inglés y francés, igual que la interfaz. No hay barajas francesas todavía; cambiar la interfaz no traduce ni cambia el idioma de las barajas. El formato admite otros idiomas y traducciones opcionales. La original de Los 7 hábitos sigue siendo plana; «De dentro hacia fuera» agrupa esos hábitos en tres bloques con dos niveles. Cada carta conserva su fuente concreta en `cards.csv` y en su fila SQL. Son selecciones breves, no reproducciones de todos los capítulos. Estado editorial `draft`: revisar antes de publicación pública.
+42 cartas en seis barajas. Los ejemplos alternan inglés y español: cada baraja tiene un solo idioma principal. Los cinco libros y los intereses requieren metadatos en español e inglés. La interfaz está disponible en esos dos idiomas; cambiarla no traduce ni cambia el idioma original de las barajas. El formato admite otros idiomas y traducciones opcionales. La original de Los 7 hábitos sigue siendo plana; «De dentro hacia fuera» agrupa esos hábitos en tres bloques con dos niveles. Cada carta conserva su fuente concreta en `cards.csv` y en su fila SQL. Son selecciones breves, no reproducciones de todos los capítulos. Estado editorial `draft`: revisar antes de publicación pública.
 
 ## Títulos localizados
 

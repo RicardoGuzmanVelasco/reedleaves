@@ -22,7 +22,7 @@ async function state() {
 
 test("Original titles come from the book metadata, including non-English originals; translated short titles remain the default",()=>{
   const book={originalTitle:"原題",originalLanguage:"ja",title:{es:"Traducción",en:"English"},shortTitle:{es:"Corto"}};
-  for (const language of ["es","en","fr"]) for (const short of [false,true]) {
+  for (const language of ["es","en"]) for (const short of [false,true]) {
     assert.deepEqual(bookTitle(book,language,{original:true,short}),{text:"原題",language:"ja"});
   }
   assert.deepEqual(bookTitle(book,"es"),{text:"Traducción",language:"es"});
@@ -50,7 +50,7 @@ test("Cover ellipses compare the short title with the full title in the displaye
 
 test("Closed covers mark shortened names while modal headings and accessible labels retain the full title",async()=>{
   const s=await state(),book=s.catalog.booksById.get(s.bookId),localized={...s,showOriginalTitles:false};
-  for (const language of ["es","en","fr"]) {
+  for (const language of ["es","en"]) {
     book.title[language]="Nombre completo del libro";book.shortTitle[language]="Nombre corto";
     for (const html of [libraryView({...localized,language,openBookId:s.bookId}),homeView({...localized,language})]) {
       assert.ok(html.includes(`<strong lang="${language}" dir="auto">Nombre corto…</strong>`));
@@ -64,7 +64,7 @@ test("Closed covers mark shortened names while modal headings and accessible lab
 test("The preference applies to catalog, search, home, book detail, decks, album and card attribution without changing deck content",async()=>{
   const s=await state(),book=s.catalog.booksById.get(s.bookId);
   book.originalTitle="Le titre original"; book.originalLanguage="fr";
-  for (const language of ["es","en","fr"]) {
+  for (const language of ["es","en"]) {
     const localized={...s,language};
     for (const html of [libraryView({...localized,openBookId:s.bookId}),libraryResultsMarkup({...localized,libraryQuery:"Le titre original"}),
       homeView(localized),deckView(localized),reviewView(localized),reviewView({...localized,requestedId:"habit-1"}),dailyView(localized)]) {

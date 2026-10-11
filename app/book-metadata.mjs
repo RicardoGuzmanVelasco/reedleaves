@@ -43,7 +43,7 @@ export function normalizeBookMetadata(value={}, {completeTranslations=true}={}) 
     }
   }
   // The existing translation tables store complete rows.
-  if (completeTranslations) for (const language of languages) for (const field of Object.keys(TRANSLATION_FIELDS)) {
+  if (completeTranslations) for (const language of LANGUAGES) if (languages.has(language)) for (const field of Object.keys(TRANSLATION_FIELDS)) {
     if (!result[field][language]) throw new Error("Incomplete book translation");
   }
   if (value.genres !== undefined) {

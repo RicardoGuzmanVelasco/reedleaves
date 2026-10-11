@@ -61,7 +61,7 @@ test("API consumers reject missing or untrusted links; changing interface langua
   }
 });
 
-test("Each book modal offers labelled external anchors and platform icons in ES/EN/FR; previews remain simple", async t => {
+test("Each book modal offers labelled external anchors and platform icons in ES/EN; previews remain simple", async t => {
   const db = await fixture(t), catalog = prepareCatalog(await readCatalog(db));
   for (const language of LANGUAGES) for (const book of catalog.books) {
     const s = {catalog,language,statuses:{},bookReviews:{},reviews:{},openBookId:book.id,storageAvailable:true};

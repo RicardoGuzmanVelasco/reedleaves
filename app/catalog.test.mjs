@@ -111,7 +111,7 @@ test("Book mascot collection shows earned art, ordered names and a shared unknow
   const empty=mascotsView({...state,growth:{}});assert.equal((empty.match(/\.\.\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,11);
   assert.equal((empty.match(/\?\?\?/g)||[]).length,6);assert.equal((empty.match(/No desbloqueada/g)||[]).length,10);
   assert.match(mascotsView({...state,language:"en",growth:{}}),/Not unlocked/);
-  assert.match(mascotsView({...state,language:"fr",growth:{}}),/Non débloquée/);
+  assert.match(mascotsView({...state,language:"en",growth:{}}),/Not unlocked/);
 });
 test("Mascot collection opens from review album and deck selection, not library, card detail or authoring",async()=>{
   const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{},reviews:{},bookReviews:{},statuses:{},enrolledIds:[],deckChoices:[],storageAvailable:false};
@@ -126,7 +126,7 @@ test("Mascot collection opens from review album and deck selection, not library,
   assert.match(review,/review-mascot-callout/);assert.match(review,/review-mascot-button/);
   assert.match(review,/data-action="open-mascots" data-book="seven-habits"/);
   assert.match(review,/Ya has plantado la semilla, ahora a regarla cada día/);
-  const french=reviewView({...reviewing,language:"fr"});assert.match(french,/Tu as planté la graine/);
+  const english=reviewView({...reviewing,language:"en"});assert.match(english,/You planted the seed/);
   const seedlingReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,spentDays:3}}});
   assert.match(seedlingReview,/growth\/seedling\.svg/);assert.match(seedlingReview,/¡Algo asoma por fin!/);
   const sproutReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,spentDays:5}}});
