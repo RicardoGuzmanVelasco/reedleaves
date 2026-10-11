@@ -10,10 +10,12 @@ import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterBooks} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
+import {createReadingPresentation} from "./reading-presentation.mjs";
 
 export function startReader() {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
   const settings = document.getElementById("settings");
+  const presentReading = createReadingPresentation();
   let showOriginalTitles = store.read(keys.originalTitles) === true;
   let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, reviews, budget, preferences, statuses, daily, bookId, versionId, requestedId, selections, bookReviews, enrolledIds;
   let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, scrollToCard = false;
@@ -74,13 +76,14 @@ export function startReader() {
   }
   function render({focus = false} = {}) {
     ++renderVersion; header();
-    if (!ready) { main.innerHTML = loadingView(language,failed); return; }
+    if (!ready) { main.innerHTML = loadingView(language,failed); presentReading(main); return; }
     refreshState(); header();
     const state = {userId:snapshot.user?.id,authorForm,quotesOnly,language,showOriginalTitles,catalog,reviews,budget,preferences,statuses,growth:snapshot.growth||{},daily,bookId,versionId,requestedId,bookReviews,
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,bookshelfFilters,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
       storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,hasLocalProgress:hasLocalProgress()};
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
       (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "bookshelf" ? bookshelfView(state) : mode === "daily" ? dailyView(state) : mode === "book" ? deckView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "");
+    if (!busy) presentReading(main);
     if (!snapshot.user && mode === "book") main.querySelector('[data-action="select-deck"]')?.removeAttribute("disabled");
     if (mode === "library" && !authorForm) live.textContent = libraryQuery ? words[language].searchResults(filterBooks(catalog.books,libraryQuery).length) : "";
     const dialog = main.querySelector(".deck-modal");

@@ -8,7 +8,7 @@ import {readSession} from "./auth.mjs";
 
 const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8", ".js": "text/javascript; charset=utf-8",
-  ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp" };
+  ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".woff2": "font/woff2" };
 
 export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
   const readerApi = createReaderApi(db,options);
@@ -52,7 +52,9 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
       if (!file.startsWith(allowed + sep)) { send(404, { error: "Not found" }); return; }
       if (path.startsWith("/app/")) response.setHeader("Content-Security-Policy",
         "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
-      send(200, await readFile(file), type);
+      const bytes = await readFile(file);
+      if (/^\/app\/fonts\/[^/]+-v[\d.]+\.woff2$/.test(path)) response.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      send(200, bytes, type);
     } catch (error) {
       if (error instanceof URIError) { send(400, { error: "Invalid path" }); return; }
       if (["ENOENT", "ENOTDIR", "EISDIR"].includes(error.code)) { send(404, { error: "Not found" }); return; }

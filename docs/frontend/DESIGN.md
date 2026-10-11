@@ -45,6 +45,7 @@ La estructura sigue siendo plana, textual y portable. Las cuentas pueden crear b
 - Recomendación del equipo primero. Más popular = personas que empezaron; preferida = más me gusta; más terminada = personas que terminaron. Deduplicar ganadoras y no conceder etiquetas con cero actividad.
 - Pantalla de baraja: solo el álbum, título, usuario creador, libro, idioma y progreso (cartas repasadas sobre el total y porcentaje). «Creada por» y el nombre del usuario se muestran bajo el título en todas las barajas, también las propias y durante la autoría. Un único regreso a las barajas del libro; Inicio sigue accesible por el logo. Sin tarjeta preseleccionada, vista de lectura incrustada, leyenda, cabecera repetida ni mascota extra. El progreso cuenta todas las cartas, incluidas hijas y quotes, también durante la autoría.
 - Abrir una carta del álbum lleva a una pantalla de lectura con un único regreso «← Baraja», sin repetir álbum ni progreso. Volver conserva el filtro, la posición y el foco en la carta. Entrar, continuar o recargar una baraja abre el álbum; solo los enlaces explícitos a cartas ya repasadas abren su lectura. Guardar contenido vuelve al álbum, sin abrir la nueva carta.
+- Lectura: carta protagonista sobre un fondo iluminado, con papel elevado y capas posteriores. Entrada breve al abrir; después queda quieta para leer. El texto aparece progresivamente, con «Mostrar texto completo» accesible desde arriba durante la animación. Reservar el espacio final, ofrecer el texto completo a lectores de pantalla y omitir la animación con movimiento reducido. Usar la misma presentación en repaso, autoría e idea del día; las quotes usan papel azul pastel y EB Garamond regular. Las actualizaciones de estado no repiten la animación de una carta ya abierta.
 - Repasar: una hoja nueva por fecha local, acumulable hasta tres. Se pueden gastar las acumuladas el mismo día. El árbol completo se despliega de arriba hacia abajo y usa el scroll vertical de la página. Cartas ya repasadas se pueden abrir gratis; las siguientes válidas muestran el coste de una hoja; el resto aparece bloqueado y sin título visible.
 - La divisa «hoja» usa una hoja única grande, sin círculo, rayitas ni cara; distinta de la mascota de dos hojas. En la cabecera aparece junto al saldo numérico, sin texto.
 - No saltar a hijas sin ver su madre ni a hermanas posteriores sin la anterior. El orden no obliga a terminar las hijas antes de pasar al bloque siguiente.
@@ -60,6 +61,7 @@ La estructura sigue siendo plana, textual y portable. Las cuentas pueden crear b
 - El saldo de hojas es global entre barajas, con máximo de tres. Los días ausentes suman hasta ese límite; los días excedentes no se guardan para después. Revisitar lo ya repasado es gratis. No introducir compras ni recompensas económicas.
 - Cuenta, monedero y repaso se guardan en servidor. Durante una petición no se aceptan nuevos clics; una carta se abre solo después de confirmar el gasto. Fallo de red: mensaje breve y reintento, sin progreso provisional. Las actualizaciones de otra sesión no interrumpen campos ni modales abiertos.
 - No mostrar mapas numéricos de tarjetas, marcas de leído, portadas grandes ni un cierre extra.
+- Las cartas de lectura tienen una altura mínima contenida y crecen con el texto. Las citas añaden comillas de cierre grandes y muy translúcidas en la zona inferior derecha, detrás del contenido; son decorativas, no reciben interacción y se ocultan a lectores de pantalla.
 
 ## Autoría personal para dogfooding
 
@@ -70,7 +72,7 @@ La estructura sigue siendo plana, textual y portable. Las cuentas pueden crear b
 - Ambos formularios permiten elegir padre entre las cartas de la misma baraja. Las tarjetas pueden ir en el nivel principal. Las quotes sin padre se muestran dentro de «Quotes sin clasificar».
 - El grupo sin clasificar no cuenta como carta, no se desbloquea ni consume hojas. Sus quotes siguen un orden propio, independiente de las tarjetas principales. Las quotes con padre siguen las mismas reglas de sus hermanas.
 - «Todas / Solo quotes» filtra la autoría y el repaso. Conservar los padres como contexto sin convertirlos en resultados del filtro ni revelar títulos bloqueados.
-- Quotes: papel melocotón, comillas y texto de cita con tipografía serif. Reutilizar el resto de la familia visual. El grupo virtual lleva borde discontinuo y no parece una carta interactiva.
+- Quotes: papel azul pastel `#E4EFFB`, comillas y texto en EB Garamond regular, peso 400. Fuente WOFF2 latina incluida en la app; no depender de fuentes instaladas ni servicios externos. Usar `font-display: swap` y una serif alternativa si no carga. Conservar el melocotón en sus demás usos. Miniaturas, capas y grupo virtual comparten la familia azul; el grupo mantiene borde discontinuo y no parece una carta interactiva.
 - Durante el guardado se bloquean los controles. Los errores conservan los campos; el reintento no duplica el contenido. Añadir una carta reabre un repaso terminado, conservando las cartas ya repasadas.
 
 ## Lenguaje
@@ -85,6 +87,7 @@ Usar lenguaje técnico simplificado. El texto de interfaz debe ser corto, direct
 - Salvia: `#779A72` — contorno del libro.
 - Verde sombra: `#1E4C2E` — sombra exterior del libro.
 - Melocotón: `#FFE0CB` — superficie de la idea del día.
+- Azul pastel: `#E4EFFB` — citas; borde `#829FBD` y profundidad `#C1D4E8`.
 - Crema: `#FFF9ED` — fondo cálido recomendado.
 - Radios grandes, sombras suaves y profundidad por capas.
 

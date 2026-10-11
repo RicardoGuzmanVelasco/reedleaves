@@ -1,6 +1,7 @@
 export const words = {
   es: {
     completeBook:"Completar información", incompleteBook:"Falta información", completeBookNote:"Solo se rellenarán los datos que faltan.",
+    showFullText:"Mostrar texto completo",
     autofillBook:"Autorellenar con IA", aiLoading:"Buscando información…", bookPreview:"Vista previa del libro", editBook:"Editar", bookTranslations:"Traducciones", bookSources:"Fuentes", sourceDetails:"Ver fuentes", bookDetails:"Datos del libro", shortBookTitle:"Título corto", bookDescription:"Descripción", bookEditorialNote:"Nota sobre la edición",
     aiInputRequired:"Escribe el título del libro para buscarlo.", aiUnavailable:"El autorellenado con IA no está disponible. Puedes crear el libro manualmente.", aiError:"No se pudo autorellenar el libro. Reintenta; tus datos siguen aquí.", aiTimeout:"La búsqueda tardó demasiado. Vuelve a intentarlo.", aiNoMatch:"No encontramos información suficiente. Revisa el título y el autor.", aiAmbiguous:"Hay varios libros posibles. Añade o revisa el autor y vuelve a intentarlo.", aiTryLater:"Has hecho varias búsquedas. Vuelve a probar en 15 minutos.",
     bookshelf:"Biblioteca", goBookshelf:"Ir a mi biblioteca", bookshelfBack:"← Biblioteca", filterBooks:"Filtrar libros", allBooks:"Todos", pendingReviews:"Repasos pendientes", completedReviews:"Repasos terminados", emptyBookshelf:"Todavía no hay libros en tu biblioteca.", noBookshelfMatches:"No hay libros con estos filtros.", resetFilters:"Borrar filtros",
@@ -55,6 +56,7 @@ export const words = {
   },
   en: {
     completeBook:"Complete book information", incompleteBook:"Missing information", completeBookNote:"Only missing information will be filled in.",
+    showFullText:"Show full text",
     autofillBook:"Autofill with AI", aiLoading:"Searching for information…", bookPreview:"Book preview", editBook:"Edit", bookTranslations:"Translations", bookSources:"Sources", sourceDetails:"View sources", bookDetails:"Book details", shortBookTitle:"Short title", bookDescription:"Description", bookEditorialNote:"Edition note",
     aiInputRequired:"Enter the book title to search for it.", aiUnavailable:"AI autofill is unavailable. You can create the book manually.", aiError:"We couldn’t autofill the book. Try again; your details are still here.", aiTimeout:"The search took too long. Try again.", aiNoMatch:"We couldn’t find enough information. Check the title and author.", aiAmbiguous:"Several books match. Add or check the author and try again.", aiTryLater:"You’ve made several searches. Try again in 15 minutes.",
     bookshelf:"Bookshelf", goBookshelf:"Go to my bookshelf", bookshelfBack:"← Bookshelf", filterBooks:"Filter books", allBooks:"All", pendingReviews:"Pending reviews", completedReviews:"Completed reviews", emptyBookshelf:"There are no books on your bookshelf yet.", noBookshelfMatches:"No books match these filters.", resetFilters:"Clear filters",
@@ -109,6 +111,7 @@ export const words = {
   },
   fr: {
     completeBook:"Compléter les informations", incompleteBook:"Informations manquantes", completeBookNote:"Seules les informations manquantes seront complétées.",
+    showFullText:"Afficher tout le texte",
     autofillBook:"Remplir avec l’IA", aiLoading:"Recherche d’informations…", bookPreview:"Aperçu du livre", editBook:"Modifier", bookTranslations:"Traductions", bookSources:"Sources", sourceDetails:"Voir les sources", bookDetails:"Informations du livre", shortBookTitle:"Titre court", bookDescription:"Description", bookEditorialNote:"Note sur l’édition",
     aiInputRequired:"Saisis le titre du livre pour le rechercher.", aiUnavailable:"Le remplissage avec l’IA est indisponible. Tu peux créer le livre manuellement.", aiError:"Le livre n’a pas pu être rempli. Réessaie ; tes données sont conservées.", aiTimeout:"La recherche a pris trop de temps. Réessaie.", aiNoMatch:"Nous n’avons pas trouvé assez d’informations. Vérifie le titre et l’auteur.", aiAmbiguous:"Plusieurs livres correspondent. Ajoute ou vérifie l’auteur, puis réessaie.", aiTryLater:"Tu as effectué plusieurs recherches. Réessaie dans 15 minutes.",
     bookshelf:"Bibliothèque", goBookshelf:"Aller à ma bibliothèque", bookshelfBack:"← Bibliothèque", filterBooks:"Filtrer les livres", allBooks:"Tous", pendingReviews:"Révisions en attente", completedReviews:"Révisions terminées", emptyBookshelf:"Ta bibliothèque est encore vide.", noBookshelfMatches:"Aucun livre ne correspond à ces filtres.", resetFilters:"Effacer les filtres",
