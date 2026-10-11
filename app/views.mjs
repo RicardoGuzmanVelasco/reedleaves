@@ -195,12 +195,26 @@ export function mascotsView(s) {
   </section>`;
 }
 
+const attributionIcons = {
+  book: '<path d="M3 4c3-1 6-1 9 1v16c-3-2-6-2-9-1V4Zm10 1c3-2 6-2 9-1v16c-3-1-6-1-9 1V5Z"/>',
+  author: '<path d="M21 2c-9-1-16 5-16 13l4 1c7-2 12-8 12-14ZM3 22l9-12-2 1-9 10 2 1Z"/>',
+  user: '<circle cx="12" cy="7" r="5"/><path d="M2 22v-3c0-4 4-6 10-6s10 2 10 6v3H2Z"/>'
+};
+const attributionIcon = kind => `<svg class="attribution-icon" viewBox="0 0 24 24" aria-hidden="true">${attributionIcons[kind]}</svg>`;
+function cardAttribution(s,card,book) {
+  const creator=s.catalog.decksById?.get(card.deckId)?.creator;
+  const title=displayedBookTitle(s,book,true);
+  return `<div class="card-source">${[
+    ["book",title.text,title.language], ["author",book.author,null], ["user",creator?.name,null]
+  ].filter(([,text])=>text).map(([kind,text,language])=>`<span class="card-attribution-row">${attributionIcon(kind)}<bdi${language ? ` lang="${esc(language)}" dir="auto"` : ""}>${esc(text)}</bdi></span>`).join("")}</div>`;
+}
+
 function cardMarkup(s, card, heading = "h2") {
   const c = words[s.language], book = s.catalog.booksById.get(card.bookId), deckLanguage = card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
   return `<div class="reading-stage${card.isQuote ? " reading-stage--quote" : ""}" data-reading-card="${esc(card.id)}"><article class="idea-card${card.isQuote ? " quote-card" : ""}"><button type="button" class="text-button reveal-text" tabindex="-1">${c.showFullText}</button>${card.isQuote ? `<blockquote lang="${esc(bodyLanguage)}" dir="auto" class="idea-body" id="idea-content" tabindex="-1">${esc(body)}</blockquote>` : `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-content" tabindex="-1">${esc(title)}</${heading}><p lang="${esc(bodyLanguage)}" dir="auto" class="idea-body">${esc(body)}</p>`}
-    <footer class="reading-footer"><div class="card-source" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${card.sourceUrl ? `<a href="${esc(safeUrl(card.sourceUrl))}" target="_blank" rel="noopener noreferrer" aria-label="${c.source}: ${esc(displayedBookTitle(s,book).text)}">${esc(displayedBookTitle(s,book,true).text)} · ${esc(book.author)} ↗</a>` : `<span>${esc(displayedBookTitle(s,book,true).text)} · ${esc(book.author)}</span>`}</div></footer>${card.isQuote ? '<span class="quote-watermark" aria-hidden="true">❞</span>' : ""}</article></div>`;
+    <footer class="reading-footer">${cardAttribution(s,card,book)}</footer>${card.isQuote ? '<span class="quote-watermark" aria-hidden="true">❞</span>' : ""}</article></div>`;
 }
 
 export function dailyView(s) {
