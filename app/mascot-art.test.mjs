@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {mascotMouthWidth,mascotFaceGeometry} from "./mascot-face.mjs";
+import {mascotMouthWidth,mascotMouthPath,mascotFaceGeometry} from "./mascot-face.mjs";
 import {mascotArt,mascotAssets,mascotIcon} from "./mascot-art.mjs";
 
 test("Decorative mascot artwork reserves separate placement and motion layers",()=>{
@@ -75,13 +75,14 @@ test("Mouth widths inherit a general value with independent stage exceptions",()
     assert.equal(mascotMouthWidth(stage,mouth),width);
   }
   assert.match(mascotArt("seedling","",{mouth}),/d="M62 119q20 6 40 0"/);
-  const faceWithoutMouth = html => html.replace(/(<g class="mascot-mouth"><path d=")[^"]*/,"$1");
+  const faceWithoutMouth = html => html.replace(/<g class="mascot-mouth">[\s\S]*?<\/g>/,"<g class=\"mascot-mouth\"></g>");
   for(const stage of ["pot","seed","root","seedling","sprout"]) {
     assert.equal(faceWithoutMouth(mascotArt(stage,"",{mouth})),faceWithoutMouth(mascotArt(stage)));
   }
   assert.equal(mascotMouthWidth("seedling"),5);
   assert.equal(mascotMouthWidth("pot"),5.5);
-  assert.match(mascotArt("pot"),/d="M60 119q22 6 44 0"/);
+  assert.equal(mascotMouthPath("pot"),"M60 119q22 6 44 0");
+  assert.match(mascotArt("pot"),/pot-a-mouth\.png/);
   assert.match(mascotArt("root"),/d="M67 119q15 6 30 0"/);
 });
 

@@ -42,11 +42,38 @@ export function mascotMouthPath(stage, config = mascotMouthConfig) {
 }
 
 const expressions = new Set(["neutral","wink-left","wink-right","blink"]);
+
+// Lossless face crops from reserved A. Together with pot-a-body.png these
+// restore the source artwork, while retaining separate eye-expression layers.
+const potSourceFrame = 340;
+const potSourcePose = {x:81,y:70,scale:1.1};
+const potFacePatches = Object.freeze({
+  left: {file:"left-eye",rect:[92,151,24,30],center:[103.5,166]},
+  right: {file:"right-eye",rect:[227,151,24,30],center:[239.5,166]},
+  mouth: {file:"mouth",rect:[122,192,98,22]}
+});
+const sourceFacePoint = (value,axis) => (value*160/potSourceFrame-potSourcePose[axis])/potSourcePose.scale+({x:82,y:104}[axis]);
+const sourceFaceImage = (patch,origin={x:0,y:0}) => {
+  const [x,y,width,height]=patch.rect;
+  return `<image href="/brand/reed/growth/bodies/pot-a-${patch.file}.png" x="${sourceFacePoint(x,"x")-origin.x}" y="${sourceFacePoint(y,"y")-origin.y}" width="${width*160/potSourceFrame/potSourcePose.scale}" height="${height*160/potSourceFrame/potSourcePose.scale}"/>`;
+};
+function potSourceFace(eyeOffsets,mouth) {
+  const eyes=["left","right"].map(side=>{
+    const patch=potFacePatches[side];
+    const origin={x:sourceFacePoint(patch.center[0],"x"),y:sourceFacePoint(patch.center[1],"y")};
+    const offset=eyeOffsets[side];
+    return `<g class="mascot-eye mascot-eye--${side}" transform="translate(${origin.x+offset.x} ${origin.y+offset.y})"><g class="mascot-eye-expression">${sourceFaceImage(patch,origin)}</g></g>`;
+  }).join("");
+  const originalMouth=mascotMouthWidth("pot",mouth)===5.5;
+  const smile=originalMouth ? sourceFaceImage(potFacePatches.mouth) : `<path d="${mascotMouthPath("pot",mouth)}" stroke="#173D2C" stroke-width="3" stroke-linecap="round" fill="none"/>`;
+  return `${eyes}<g class="mascot-mouth">${smile}</g>`;
+}
 export function mascotFace(stage, expression = "neutral", mouth = mascotMouthConfig, face) {
   const placement = mascotFaceGeometry(stage,face);
   if (!placement) return "";
   const {x,y,rotation,scale,eyeOffsets} = placement;
   const state = expressions.has(expression) ? expression : "neutral";
+  if (stage==="pot") return `<svg class="mascot-face" viewBox="0 0 160 160" aria-hidden="true" focusable="false" data-expression="${state}"><g class="mascot-face-placement" transform="translate(${x} ${y}) rotate(${rotation}) scale(${scale}) translate(-82 -104)">${potSourceFace(eyeOffsets,mouth)}</g></svg>`;
   return `<svg class="mascot-face" viewBox="0 0 160 160" aria-hidden="true" focusable="false" data-expression="${state}"><g class="mascot-face-placement" transform="translate(${x} ${y}) rotate(${rotation}) scale(${scale}) translate(-82 -104)" fill="#173D2C"><g class="mascot-eye mascot-eye--left" transform="translate(${53+eyeOffsets.left.x} ${104+eyeOffsets.left.y})"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-eye mascot-eye--right" transform="translate(${111+eyeOffsets.right.x} ${104+eyeOffsets.right.y})"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-mouth"><path d="${mascotMouthPath(stage,mouth)}" stroke="#173D2C" stroke-width="3" stroke-linecap="round" fill="none"/></g></g></svg>`;
 }
 

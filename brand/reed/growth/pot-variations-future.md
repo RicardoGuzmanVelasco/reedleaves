@@ -13,7 +13,7 @@
 | E · Cuadrada | Frente amplio y esquinas suaves. |
 | F · Jardinera | Recipiente rectangular ancho y bajo, labio redondeado, paredes inclinadas y banda inferior discreta; sigue la referencia aportada por el usuario. |
 
-**Asimétrica queda retirada** y se conserva solo en la primera lámina histórica. F identifica ahora la Jardinera. La forma A se adaptó al SVG activo de la app con la cara compartida y el borde superior corregido.
+**Asimétrica queda retirada** y se conserva solo en la primera lámina histórica. F identifica ahora la Jardinera. La app usa ahora los píxeles de A extraídos de esta misma lámina, sin reinterpretarlos ni regenerarlos. El cuerpo y los recortes originales de ojos y boca se componen como capas independientes.
 
 ## Referencias e historial
 
@@ -27,7 +27,7 @@
 
 Edición con la herramienta integrada de imágenes, sin CLI ni API propia. Referencia de esta última edición: `pot-variations-exploration-v2.png`. Revisada visualmente: el borde de A sobresale del cuerpo por los lados, baja sobre la parte superior del frente y conserva la tierra dentro de la abertura. Las otras cinco propuestas mantienen sus diseños.
 
-Las láminas son exploraciones raster. Una integración futura debe recuperar la cara SVG compartida, las expresiones y la sombra de suelo independiente de la app.
+Las láminas son exploraciones raster. La integración de A conserva sus ojos y sonrisa originales mediante recortes raster dentro de la capa facial SVG, con expresiones y sombra de suelo independiente. El resto de variantes sigue reservado.
 
 ## Prompt de la última revisión
 

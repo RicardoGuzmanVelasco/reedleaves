@@ -7,7 +7,7 @@ import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
 import {currentMascotStage} from "./mascot-progress.mjs";
-import {mascotArt,mascotIcon} from "./mascot-art.mjs";
+import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=pot-a-original";
 import {missingBookInformation} from "./book-metadata.mjs";
 
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
