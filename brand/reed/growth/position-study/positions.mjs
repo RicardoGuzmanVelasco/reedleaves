@@ -1,4 +1,4 @@
-import {mascotArt,mascotAssets} from "/app/mascot-art.mjs?v=pot-a-original";
+import {mascotArt,mascotAssets} from "/app/mascot-art.mjs?v=mascot-icon-image";
 import {playMascotExpression} from "/app/mascot-face.mjs?v=pot-a-original";
 import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=pot-a-original";
 const storageKey="reedleaves:mascot-calibration:v1";
@@ -69,7 +69,7 @@ function buildControls() {
   updateMode();
 }
 function updateMode() {
-  for(const fieldset of controls.querySelectorAll("fieldset")) fieldset.disabled=iconMode.checked && fieldset.dataset.group!=="body";
+  for(const fieldset of controls.querySelectorAll("fieldset")) fieldset.disabled=iconMode.checked;
   document.getElementById("greet-all").disabled=iconMode.checked;
   document.getElementById("wink-all").disabled=iconMode.checked;
 }

@@ -7,7 +7,7 @@ Abrir `/brand/reed/covers/` con el servidor del proyecto. Lee el catálogo comú
 - **Base**: cubierta verde redondeada y tipografía de la interfaz. Título arriba a la izquierda, de 23 px (19 px en móvil), y autor debajo, también a la izquierda.
 - **Entelada**: verde salvia, textura de tela sutil, lomo oscuro y título en EB Garamond. Sin marco interior.
 
-Entelada tiene el autor arriba del título; Base conserva título primero y autor debajo. Todas muestran lomo y canto solo a la derecha. No hay páginas debajo de la cubierta. Inicio no lleva «Repasar» ni flecha; los intereses aparecen solo en la ficha descriptiva. Librería conserva el número de barajas dentro del libro, al pie. Ningún dato de la portada queda fuera del libro. Las mascotas conservan el arte, la escala por etapa y la variante de icono sin cara ni sombra.
+Entelada tiene el autor arriba del título; Base conserva título primero y autor debajo. Todas muestran lomo y canto solo a la derecha. No hay páginas debajo de la cubierta. Inicio no lleva «Repasar» ni flecha; los intereses aparecen solo en la ficha descriptiva. Librería conserva el número de barajas dentro del libro, al pie. Ningún dato de la portada queda fuera del libro. Los iconos muestran directamente la imagen del cuerpo, sin cara ni sombra y sin la escala ni los desplazamientos de la mascota completa.
 
 La comparación usa el mismo ancho máximo de 680 px, columnas y separación entre libros que la app. El contenedor anterior de 860 px ensanchaba las portadas en escritorio y falseaba la comparación de proporciones.
 

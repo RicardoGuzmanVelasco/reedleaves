@@ -97,14 +97,14 @@ test("Invalid mouth widths fall back without injecting SVG attributes",()=>{
 });
 
 
-test("Mascot icons use calibrated bodies without a face; characters retain theirs",()=>{
+test("Mascot icons are direct images without character placement, motion or face",()=>{
   for(const stage of ["pot","seed","root","seedling","sprout","mystery"]) {
     const icon=mascotIcon(stage,"study-book-mark");
-    assert.match(icon,/data-variant="icon"/);
-    assert.doesNotMatch(icon,/mascot-face|mascot-mouth|mascot-eye/);
+    assert.match(icon,/^<img class="mascot-icon study-book-mark"/);
+    assert.doesNotMatch(icon,/<span|<svg|mascot-art|mascot-face|mascot-mouth|mascot-eye|style=|data-mascot/);
     assert.ok(icon.includes(`src="${mascotAssets[stage]}"`));
-    assert.match(icon,/mascot-art-placement"><span class="mascot-art-motion"/);
-    assert.doesNotMatch(mascotArt(stage),/data-variant="icon"/);
+    assert.match(icon,/aria-hidden="true" alt="" draggable="false"/);
+    assert.match(mascotArt(stage),/mascot-art-placement/);
   }
 });
 

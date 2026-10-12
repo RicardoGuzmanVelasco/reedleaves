@@ -29,5 +29,4 @@
 @keyframes mascot-eye-close{0%,100%{transform:scaleY(1)}35%,65%{transform:scaleY(.12)}}
 @media(prefers-reduced-motion:reduce){.mascot-eye-expression{animation:none!important}}
 
-.mascot-art[data-variant="icon"]::before{content:none}
-.mascot-art[data-variant="icon"] .mascot-art-motion{animation:none;transition:none}
+.mascot-icon{display:inline-block;width:100px;height:100px;object-fit:contain;vertical-align:middle;flex:none;pointer-events:none;user-select:none}

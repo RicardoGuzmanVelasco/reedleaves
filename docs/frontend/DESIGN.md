@@ -150,7 +150,7 @@ Calibración corporal de Raíz: x=3,5%, y=−6,5%, escala=0,88. Su cara usa cent
 
 El editor interno de `brand/reed/growth/position-study/` permite elegir una mascota, ajustar los trece parámetros de calibración, incluida la anchura de sombra y verla a 160, 100, 60 y 32 px. Reutiliza el componente de producto y sus valores vigentes. Guarda borradores por mascota en el navegador y permite copiar la configuración; modificar un borrador no cambia el producto. El selector incorpora nuevas etapas cuando tienen cuerpo y metadatos faciales.
 
-Distinguir mascota e icono de mascota. Las portadas que muestran su etapa en Inicio y los contadores de mascotas del perfil utilizan `mascotIcon`: solo el cuerpo, sin cara ni sombra de suelo. En repaso, selección de baraja y colección de mascotas se usa el personaje completo, con cara y sombra. La variante de icono conserva el cuerpo y su colocación compartida, sin crear archivos nuevos.
+Distinguir mascota e icono de mascota. Las portadas que muestran su etapa en Inicio y los contadores de mascotas del perfil utilizan `mascotIcon`: solo el cuerpo, sin cara ni sombra de suelo. En repaso, selección de baraja y colección de mascotas se usa el personaje completo, con cara y sombra. El icono es un `<img>` directo del mismo archivo de cuerpo, con tamaño propio según el contexto. No utiliza el componente de mascota ni hereda su escala, desplazamientos o animaciones; no se crean nuevos archivos de arte.
 
 `brand/reed/growth/` conserva las propuestas visuales completas para trabajo interno; el producto oculta las formas futuras con `mystery.svg`.
 

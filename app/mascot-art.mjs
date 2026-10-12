@@ -16,13 +16,14 @@ export const mascotAssets = Object.freeze({
 const escapeAttribute = value => String(value).replace(/[&<>"']/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character]));
 
 export function mascotArt(stage, className = "", {expression = "neutral", mouth, face, variant = "mascot"} = {}) {
+  if (variant === "icon") return mascotIcon(stage,className);
   const id = Object.hasOwn(mascotAssets, stage) ? stage : "mystery";
-  const icon = variant === "icon";
-  return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}"${icon ? ' data-variant="icon"' : ""} aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${mascotAssets[id]}" width="160" height="160" alt="" draggable="false">${icon ? "" : mascotFace(id,expression,mouth,face)}</span></span></span>`;
+  return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}" aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${mascotAssets[id]}" width="160" height="160" alt="" draggable="false">${mascotFace(id,expression,mouth,face)}</span></span></span>`;
 }
 
 
-// Symbols keep the same calibrated body, without a face or ground shadow.
+// Icons display the body image directly; character calibration belongs to mascotArt.
 export function mascotIcon(stage, className = "") {
-  return mascotArt(stage,className,{variant:"icon"});
+  const id = Object.hasOwn(mascotAssets, stage) ? stage : "mystery";
+  return `<img class="mascot-icon${className ? ` ${escapeAttribute(className)}` : ""}" src="${mascotAssets[id]}" width="160" height="160" aria-hidden="true" alt="" draggable="false">`;
 }

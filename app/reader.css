@@ -356,7 +356,7 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .error-reference{display:block;margin-top:6px;font-size:11px;overflow-wrap:anywhere}
 .loading-error h1,.empty-state[role="alert"]>p{color:var(--error)}
 .mascot-entry>.mascot-art{width:100%;height:100%}
-.profile-mascots .mascot-art{width:60px;height:60px}
+.profile-mascots .mascot-icon{width:60px;height:60px}
 .loading>.initial-mascot{width:130px;height:130px}
 
 /* Shared skin for compact, mutually exclusive segmented choices. */

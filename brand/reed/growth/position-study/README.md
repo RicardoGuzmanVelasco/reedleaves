@@ -1,6 +1,6 @@
 # Editor interno de calibración de mascotas
 
-`index.html` permite elegir una mascota y ajustar sus trece parámetros, con vistas a 160, 100, 60 y 32 px. Reutiliza el componente real, su sombra independiente, saludo, guiño y variante de icono. Mostrar marcos ayuda a evaluar el encuadre. El modo de icono desactiva los controles de sombra y cara y los gestos porque solo muestra el cuerpo.
+`index.html` permite elegir una mascota y ajustar sus trece parámetros, con vistas a 160, 100, 60 y 32 px. Reutiliza el componente real, su sombra independiente, saludo, guiño y variante de icono. Mostrar marcos ayuda a evaluar el encuadre. El modo de icono muestra directamente la imagen del cuerpo, con el tamaño de cada vista previa. Desactiva todos los controles de calibración y los gestos: el icono no hereda la colocación del personaje.
 
 ## Parámetros y fuentes
 
