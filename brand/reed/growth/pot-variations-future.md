@@ -13,7 +13,7 @@
 | E · Cuadrada | Frente amplio y esquinas suaves. |
 | F · Jardinera | Recipiente rectangular ancho y bajo, labio redondeado, paredes inclinadas y banda inferior discreta; sigue la referencia aportada por el usuario. |
 
-**Asimétrica queda retirada** y se conserva solo en la primera lámina histórica. F identifica ahora la Jardinera. La forma A se adaptó al SVG activo de la app con la cara compartida y el borde superior corregido.
+**Asimétrica queda retirada** y se conserva solo en la primera lámina histórica. F identifica ahora la Jardinera. La forma A se adaptó a un cuerpo PNG sin cara ni sombra; la app añade la cara compartida y el borde superior cubre las uniones del cuerpo.
 
 ## Referencias e historial
 

@@ -1,8 +1,8 @@
-import {mascotFace} from "./mascot-face.mjs?v=sprout-calibration";
+import {mascotFace} from "./mascot-face.mjs?v=pot-classic-render";
 
 // Decorative artwork only. Stage availability remains the caller's responsibility.
 export const mascotAssets = Object.freeze({
-  pot: "/brand/reed/growth/bodies/pot-classic.svg",
+  pot: "/brand/reed/growth/bodies/pot-classic.png",
   seed: "/brand/reed/growth/bodies/seed.svg",
   root: "/brand/reed/growth/bodies/root.png",
   seedling: "/brand/reed/growth/bodies/seedling.svg",
