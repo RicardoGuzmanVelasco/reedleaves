@@ -18,6 +18,8 @@ test("Profiles translate, escape names, link own versus foreign shelves and show
     const html=profileView({language,profileData,userId:"other"});
     assert.doesNotMatch(html,/<script>|NaN|undefined|mascot-face/);
     assert.equal((html.match(/<img class="mascot-icon"/g)||[]).length,5);
+    assert.match(html,new RegExp(`<span>${language==="es"?"Brote":"Sprout"}</span><strong>0</strong>`));
+    assert.match(html,new RegExp(`<span>${language==="es"?"Plántula":"Seedling"}</span><strong>1</strong>`));
     for(const key of Object.keys(profileData.profile.counts)) assert.ok(html.includes(words[language][key]),key);
     assert.match(html,/href="#bookshelf\/test-user"/);assert.match(html,/datetime="2026-10-10"/);
     assert.match(profileView({language,profileData,userId:"test-user"}),/href="#bookshelf"/);

@@ -109,7 +109,7 @@ test("Exclusive card votes put dislike left and like right with correctly orient
 });
 test("Book mascot collection shows earned art, ordered names and a shared unknown for future forms",async()=>{
   const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{"seven-habits":{added:true,spentDays:3}}};
-  const html=mascotsView(state),names=["Maceta","Semilla","Raíz","Plántula","Brote","Retoño","Tallo","Planta","Flor","Siempreviva"];
+  const html=mascotsView(state),names=["Maceta","Semilla","Raíz","Brote","Plántula","Retoño","Tallo","Planta","Flor","Siempreviva"];
   assert.deepEqual(names.map(name=>html.indexOf(`<h2>${name}</h2>`)),[...names].map(name=>html.indexOf(`<h2>${name}</h2>`)).sort((a,b)=>a-b));
   assert.equal((html.match(/\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,6);
   assert.match(html,/\/brand\/reed\/growth\/bodies\/pot-a-body\.png/);assert.match(html,/\/brand\/reed\/growth\/bodies\/seed\.svg/);assert.match(html,/\/brand\/reed\/growth\/bodies\/root\.png/);assert.match(html,/\/brand\/reed\/growth\/bodies\/seedling\.svg/);assert.doesNotMatch(html,/\/brand\/reed\/growth\/bodies\/sprout\.svg/);
@@ -144,7 +144,7 @@ test("Mascot collection opens from review album and deck selection, not library,
   const seedlingReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,spentDays:3}}});
   assert.match(seedlingReview,/growth\/bodies\/seedling\.svg/);assert.match(seedlingReview,/¡Algo asoma por fin!/);
   const sproutReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,spentDays:5}}});
-  assert.match(sproutReview,/brand\/reed\/growth\/bodies\/sprout\.svg/);assert.match(sproutReview,/Los brotes verdes son el primer paso/);
+  assert.match(sproutReview,/brand\/reed\/growth\/bodies\/sprout\.svg/);assert.match(sproutReview,/Las hojas verdes son el siguiente paso/);
   for (const html of [reviewView({...reviewing,requestedId:first.id}),authorView({...reviewing,requestedId:first.id})]) {
     const modal=html.match(/<dialog class="exclusive-card-modal"[^>]*>([\s\S]*?)<\/dialog>/)?.[1];
     assert.ok(modal);assert.doesNotMatch(modal,/data-action="open-mascots"/);

@@ -1,6 +1,6 @@
 import {mascotArt} from "/app/mascot-art.mjs?v=mascot-icon-image";
 import {mascotMouthConfig,mascotMouthWidth,mascotMouthPath,playMascotExpression} from "/app/mascot-face.mjs?v=pot-a-original";
-const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Plántula"],["sprout","Brote"]];
+const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Brote"],["sprout","Plántula"]];
 const widths = [1,1.5,2,3,"custom"];
 const format = value => `${String(value).replace(".",",")}×`;
 // Start from the approved product configuration; sliders only change this study.

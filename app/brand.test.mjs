@@ -35,7 +35,7 @@ test("Seed stays a brown body with a separated face and no leaf",()=>{
   assert.doesNotMatch(seed,/fill="#58BE59"|fill="#B9E877"/);
   assert.match(seed,/cx="67" cy="101"/);assert.match(seed,/cx="96" cy="100"/);
 });
-test("Seedling has a friendly face with widely spaced eyes",()=>{
+test("Sprout (legacy seedling.svg) has a friendly face with widely spaced eyes",()=>{
   const seedling=readFileSync(new URL("../brand/reed/growth/seedling.svg",import.meta.url),"utf8");
   assert.match(seedling,/cx="56" cy="101"/);assert.match(seedling,/cx="104" cy="101"/);
   assert.match(seedling,/q4 5 8 0/);

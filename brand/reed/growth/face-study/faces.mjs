@@ -1,6 +1,6 @@
 import {mascotArt} from "/app/mascot-art.mjs?v=mascot-icon-image";
 import {playMascotExpression} from "/app/mascot-face.mjs?v=pot-a-original";
-const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Plántula"],["sprout","Brote · Referencia"]];
+const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Brote"],["sprout","Plántula · Referencia"]];
 const originals = {
   pot:"/brand/reed/growth/pot.svg", seed:"/brand/reed/growth/seed.svg",
   root:"/brand/reed/growth/root-cutout.png", seedling:"/brand/reed/growth/seedling.svg",

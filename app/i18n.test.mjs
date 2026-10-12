@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {LANGUAGES, restoreLanguage, validateBook, contentText, contentLocale} from "./core.mjs";
 import {words} from "./i18n.mjs";
+import {currentMascotStage} from "./mascot-progress.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {libraryView, escapeHtml} from "./views.mjs";
 import {openDatabase, initializeDatabase} from "../server/database.mjs";
@@ -24,6 +25,13 @@ test("All interface languages have the same complete set of messages and types",
       if (typeof value === "string") assert.ok(value.trim());
     }
   }
+});
+
+test("Sprout precedes Seedling in both languages without changing earned stage IDs", () => {
+  const stages=[currentMascotStage({added:true,spentDays:3}),currentMascotStage({added:true,spentDays:5})];
+  assert.deepEqual(stages,["seedling","sprout"]);
+  assert.deepEqual(stages.map(id=>words.es[id==="seedling"?"mascotNameSeedling":"mascotNameSprout"]),["Brote","Plántula"]);
+  assert.deepEqual(stages.map(id=>words.en[id==="seedling"?"mascotNameSeedling":"mascotNameSprout"]),["Sprout","Seedling"]);
 });
 
 test("Only Spanish and English are restored as interface languages", () => {

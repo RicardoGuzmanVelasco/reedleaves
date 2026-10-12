@@ -1,8 +1,12 @@
 # Growth mascot study
 
-This is the art source for the per-book mascot stages used by the app. The existing two-leaf app mascot is the **Sprout** stage. **Root** uses the selected ginger-root concept from `root.png`, composited through the transparent derivative `root-cutout.png`, and unlocks after spending leaves on cards for that book on two distinct local days. **Seedling** uses the green leafy seed from the original Sprout study and unlocks after three distinct review days. **Sprout** follows after five distinct review days. The final **Evergreen** stage restores the original **Living loop / Bucle vivo** mascot as a local asset, including its face placement.
+This is the art source for the per-book mascot stages used by the app. The existing two-leaf app mascot is the **Seedling** stage. **Root** uses the selected ginger-root concept from `root.png`, composited through the transparent derivative `root-cutout.png`, and unlocks after spending leaves on cards for that book on two distinct local days. **Sprout** uses the green leafy seed from the original Sprout study and unlocks after three distinct review days. **Seedling** follows after five distinct review days. The final **Evergreen** stage restores the original **Living loop / Bucle vivo** mascot as a local asset, including its face placement.
 
-The user approved **Flowerpot** and **Seed** as shown, named the existing app mascot **Sprout**, approved the ginger-root **Root** artwork, approved **Seedling** with widely spaced eyes, asked to distinguish **Sprout** from **Sapling**, and asked to restore the original loop symbol. Sapling, Stem, Plant, and Flower remain stage-art proposals for review.
+The user approved **Flowerpot** and **Seed** as shown, initially named the existing app mascot **Sprout** (now **Seedling**), approved the ginger-root **Root** artwork, approved **Sprout** with widely spaced eyes, asked to distinguish **Seedling** from **Sapling**, and asked to restore the original loop symbol. Sapling, Stem, Plant, and Flower remain stage-art proposals for review.
+
+## Current names and preserved identifiers
+
+The displayed sequence is **Flowerpot → Seed → Root → Sprout → Seedling**. Historical IDs and filenames stay unchanged: `seedling` means **Brote / Sprout** at three review days; `sprout` means **Plántula / Seedling** at five. This naming correction preserves artwork, calibration, saved progress and profile counts.
 
 ## Proposed stages
 
@@ -11,15 +15,15 @@ The user approved **Flowerpot** and **Seed** as shown, named the existing app ma
 | Flowerpot | Add a book to the user's shelf. Its original reading status can be `reading` or `read`. | `bodies/pot-a-body.png` (A · Classic; previous body retained in `pot.svg`) |
 | Seed | Open the first review card. | `bodies/seed.svg` (B · Almendrada; previous art: `seed.svg`) |
 | Root | Spend leaves on cards for the book on two distinct local days. | `root-cutout.png` (original: `root.png`) |
-| Seedling | Spend leaves on three distinct local days across any deck for the book. | `seedling.svg` |
-| Sprout | Spend leaves on five distinct local days across any deck for the book. | `../mascot.svg` |
+| Sprout | Spend leaves on three distinct local days across any deck for the book. | `seedling.svg` |
+| Seedling | Spend leaves on five distinct local days across any deck for the book. | `../mascot.svg` |
 | Sapling | TBD; not active in the app. | Hidden silhouette in the app. |
 | Stem | TBD; not active in the app. | Hidden silhouette in the app. |
 | Plant | TBD; not active in the app. | Hidden silhouette in the app. |
 | Flower | TBD; not active in the app. | Hidden silhouette in the app. |
 | Evergreen | TBD; not active in the app. | Hidden silhouette in the app. |
 
-The Root, Seedling, and Sprout day thresholds are active product rules. Other unlock conditions are undecided. Progress is monotonic: switching decks or changing the book's `reading` / `read` status must never downgrade a mascot already earned.
+The Root, Sprout, and Seedling day thresholds are active product rules. Other unlock conditions are undecided. Progress is monotonic: switching decks or changing the book's `reading` / `read` status must never downgrade a mascot already earned.
 
 ## Visual scale
 
@@ -29,7 +33,7 @@ Flowerpot uses the original pixels of reserved **A · Classic / Clásica** from 
 
 `root.png` is the original approved artwork and visual-size reference. Flowerpot and the historical Seed keep their tighter square viewBoxes; removing their shadows did not change their framing, paths or faces. The active almond-shaped Seed uses the shared 160 × 160 frame.
 
-The reusable `app/mascot-art.mjs` and `app/mascot-art.css` component composes full characters. Icons use `mascotIcon`, which outputs a direct body image with context-specific dimensions and no character transforms. The ground ellipse keeps Flowerpot's adjusted baseline and height, with a narrower common width: center at `(50%, 87.5%)`, width `72%`, height `15.384615%`, color `#1E4C2E` at 16% opacity. These values depend only on component size, never on stage placement or animation. Seed uses 94% scale. Seedling uses 90% scale and a -10% vertical offset; Sprout uses a -8% vertical offset. All three float above the ground. Root keeps its existing calibration. Placement and motion use separate nested elements so animation cannot override calibration. The 600 ms greeting combines the left/right rotation with one 8% upward hop and return, without rebound. Separate CSS `translate` and `transform` interpolation keep the vertical arc independent of the rotation; implicit rotation endpoints preserve the underlying hover pose without a snap after landing.
+The reusable `app/mascot-art.mjs` and `app/mascot-art.css` component composes full characters. Icons use `mascotIcon`, which outputs a direct body image with context-specific dimensions and no character transforms. The ground ellipse keeps Flowerpot's adjusted baseline and height, with a narrower common width: center at `(50%, 87.5%)`, width `72%`, height `15.384615%`, color `#1E4C2E` at 16% opacity. These values depend only on component size, never on stage placement or animation. Seed uses 80% scale. Sprout uses 90% scale and a -13% vertical offset; Seedling uses a -8% vertical offset. All three float above the ground. Root keeps its existing calibration. Placement and motion use separate nested elements so animation cannot override calibration. The 600 ms greeting combines the left/right rotation with one 8% upward hop and return, without rebound. Separate CSS `translate` and `transform` interpolation keep the vertical arc independent of the rotation; implicit rotation endpoints preserve the underlying hover pose without a snap after landing.
 
 Ground shadows have been removed from Pot, Seed, Mystery, Stem, Plant and Flower SVGs. Embedded darker parts of the characters are retained. Future stage proposals remain unavailable in the app.
 
@@ -52,7 +56,7 @@ Ground shadows have been removed from Pot, Seed, Mystery, Stem, Plant and Flower
 
 Open `index.html` to review the art. Progress is aggregated across decks for the same book. Motto text is maintained in `mottos.md`.
 
-Names and Spanish/English mottos follow `mottos.md`: **Retoño / Sapling** follows Sprout; **Siempreviva / Evergreen** keeps the existing `infinity.svg` artwork and internal `infinity` ID. Sapling remains locked with a neutral silhouette; no unlock condition has been chosen.
+Names and Spanish/English mottos follow `mottos.md`: **Retoño / Sapling** follows Seedling; **Siempreviva / Evergreen** keeps the existing `infinity.svg` artwork and internal `infinity` ID. Sapling remains locked with a neutral silhouette; no unlock condition has been chosen.
 
 ## Root cutout prompt
 
