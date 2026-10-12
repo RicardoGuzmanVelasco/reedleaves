@@ -37,6 +37,7 @@ export function startReader() {
   let listPositions = {};
   let libraryOrigin = "home", appliedAuthorRoute = null;
   let libraryQuery = "", authMode = "login", authReturn = "#home", pendingVersion = null, pendingNavigation = null, busy = false, syncError = null, syncGeneration = 0;
+  let exclusivePageLock = null;
   const hasLocalProgress = () => catalog && (store.read(keys.studies)?.length || catalog.versions.some(v=>store.read(keys.deckReview(v.id))?.seenIds?.length || store.read(keys.review(v.bookId))?.unlockedCount));
 
   function applyState(state) {
@@ -88,9 +89,30 @@ export function startReader() {
     });
     settings.querySelectorAll("button,input").forEach(control=>control.disabled = busy);
   }
+  function setExclusivePageLock(locked) {
+    const body=document.body,root=document.documentElement;
+    if(locked){
+      if(exclusivePageLock)return;
+      const bodyProperties=["position","top","left","right","width","overflow","padding-right"];
+      const savedBody=Object.fromEntries(bodyProperties.map(property=>[property,[body.style.getPropertyValue(property),body.style.getPropertyPriority(property)]]));
+      const savedRoot=Object.fromEntries(["overflow","scroll-behavior"].map(property=>[property,[root.style.getPropertyValue(property),root.style.getPropertyPriority(property)]]));
+      const scrollY=window.scrollY,scrollbarWidth=Math.max(0,window.innerWidth-root.clientWidth);
+      exclusivePageLock={scrollY,savedBody,savedRoot};
+      body.style.setProperty("position","fixed");body.style.setProperty("top",`-${scrollY}px`);body.style.setProperty("left","0");body.style.setProperty("right","0");body.style.setProperty("width","auto");body.style.setProperty("overflow","hidden");
+      if(scrollbarWidth)body.style.setProperty("padding-right",`${(parseFloat(getComputedStyle(body).paddingRight)||0)+scrollbarWidth}px`);
+      root.style.setProperty("overflow","hidden");root.style.setProperty("scroll-behavior","auto");
+      return;
+    }
+    if(!exclusivePageLock)return;
+    const {scrollY,savedBody,savedRoot}=exclusivePageLock;exclusivePageLock=null;
+    for(const [property,[value,priority]] of Object.entries(savedBody)){if(value)body.style.setProperty(property,value,priority);else body.style.removeProperty(property)}
+    const [rootOverflow,rootOverflowPriority]=savedRoot.overflow;if(rootOverflow)root.style.setProperty("overflow",rootOverflow,rootOverflowPriority);else root.style.removeProperty("overflow");
+    window.scrollTo(0,scrollY);
+    const [scrollBehavior,scrollBehaviorPriority]=savedRoot["scroll-behavior"];if(scrollBehavior)root.style.setProperty("scroll-behavior",scrollBehavior,scrollBehaviorPriority);else root.style.removeProperty("scroll-behavior");
+  }
   function render({focus = false} = {}) {
     ++renderVersion; header();
-    if (!ready) { main.innerHTML = loadingView(language,failed); presentReading(main); return; }
+    if (!ready) { setExclusivePageLock(false);main.innerHTML = loadingView(language,failed); presentReading(main); return; }
     refreshState(); header();
     const state = {userId:snapshot.user?.id,authorForm,quotesOnly,language,showOriginalTitles,catalog,reviews,budget,preferences,statuses,growth:snapshot.growth||{},daily,bookId,versionId,requestedId,cardVotes:cardVotesCardId===requestedId ? cardVotes : null,cardVotesError,bookReviews,
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,libraryFilters,libraryFiltersOpen,bookshelfFilters:mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
@@ -109,6 +131,7 @@ export function startReader() {
     }
     const exclusive=main.querySelector(".exclusive-card-modal");
     if (exclusive) {
+      setExclusivePageLock(true);
       exclusive.showModal();
       exclusive.addEventListener("cancel",event=>{event.preventDefault();closeExclusive();});
       exclusive.addEventListener("click",event=>{if(event.target===exclusive)closeExclusive();});
@@ -118,7 +141,7 @@ export function startReader() {
         closeExclusive();
       });
       if (requestedId && cardVotesCardId!==requestedId) loadCardVotes(requestedId);
-    }
+    } else setExclusivePageLock(false);
     lockControls();
     if (focus) { main.querySelector(requestedId ? ".exclusive-card-modal #idea-content" : "h1")?.focus({preventScroll:true});
       if (mode === "review" && requestedId && scrollToCard) main.querySelector("#idea-content")?.scrollIntoView({block:"start"}); else window.scrollTo({top:0}); }
