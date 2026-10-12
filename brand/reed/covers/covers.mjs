@@ -4,7 +4,7 @@ import {homeView,libraryView,libraryResultsMarkup} from "/app/views.mjs";
 // This study only reads the catalog. Enrollment and growth are local samples.
 const preview=document.querySelector("#cover-preview"),dialogHost=document.querySelector("#study-dialog-host");
 const descriptions={
-  current:"Tapa verde de base, título arriba a la izquierda y autor debajo. Mascota como sello al pie.",
+  current:"Tapa verde de base, título arriba a la izquierda y autor debajo. Sello al pie, borde continuo y sombra verde bosque.",
   cloth:"Tapa entelada sin marco, lomo oscuro y título en serif. Mascota como sello al pie."
 };
 const parameters=[
@@ -39,12 +39,13 @@ function render() {
   template.innerHTML=document.querySelector("#study-surface").value === "home" ? homeView(state) : libraryResultsMarkup(state);
   const grid=template.content.querySelector(".study-books");
   if (!grid) {preview.replaceChildren(template.content);return;}
+  const surface=document.querySelector("#study-surface").value;
   for (const book of grid.querySelectorAll(".study-book")) {
     const sample=document.createElement("div");sample.className="cover-sample";
     book.before(sample);sample.append(book);
   }
   preview.dataset.design=design;
-  preview.dataset.surface=document.querySelector("#study-surface").value;
+  preview.dataset.surface=surface;
   preview.replaceChildren(grid);
   document.querySelector("#study-description").textContent=descriptions[design];
 }
