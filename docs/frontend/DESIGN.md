@@ -94,7 +94,7 @@ Usar lenguaje técnico simplificado. El texto de interfaz debe ser corto, direct
 - Verde luz: `#B9E877` — superficies y segunda hoja.
 - Salvia: `#779A72` — contorno del libro.
 - Verde sombra: `#1E4C2E` — sombra exterior del libro.
-- Selectores segmentados: opciones inactivas en verde luz `#B9E877`; opción activa en verde de selección `#2F6B3C` con texto crema. Compartido por idioma en Ajustes y formularios, y por filtros de tarjetas.
+- Selector segmentado reutilizable: usar `.segmented-selector` para opciones excluyentes presentadas como cápsulas, como idioma y filtros de tarjetas. La pista usa verde luz `#B9E877`, sin borde exterior; las opciones inactivas son transparentes y usan tinta bosque. La opción activa usa verde sombra `#1E4C2E` con texto crema y una sombra suave. Mantener etiquetas accesibles y estado seleccionado semántico (`aria-pressed` o radio nativo). Para listas largas que no caben en una decisión compacta, conservar un `<select>`.
 - Melocotón: `#FFE0CB` — superficie de la idea del día.
 - Azul pastel: `#E4EFFB` — citas; borde `#829FBD` y profundidad `#C1D4E8`.
 - Crema: `#FFF9ED` — fondo cálido recomendado.

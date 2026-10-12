@@ -384,7 +384,7 @@ export function reviewView(s) {
 
 function quoteFilter(s) {
   const c=words[s.language];
-  return `<div class="quote-filter" role="group" aria-label="${c.cardBody}"><button type="button" data-action="filter-all" aria-pressed="${!s.quotesOnly}">${c.allCards}</button><button type="button" data-action="filter-quotes" aria-pressed="${!!s.quotesOnly}">${c.quotesOnly}</button></div>`;
+  return `<div class="segmented-selector" role="group" aria-label="${c.cardBody}"><button type="button" data-action="filter-all" aria-pressed="${!s.quotesOnly}">${c.allCards}</button><button type="button" data-action="filter-quotes" aria-pressed="${!!s.quotesOnly}">${c.quotesOnly}</button></div>`;
 }
 
 export function authorView(s) {
@@ -409,7 +409,7 @@ export function authorFormView(s) {
     if (f.bookId) return `<label for="author-language">${label}</label><input id="author-language" value="${esc(languageName(f.language))}" readonly><input type="hidden" name="language" value="${esc(f.language)}">`;
     // Preserve an original language found by AI, even outside the current manual choices.
     const inferred=book && f.language && !CONTENT_LANGUAGES.includes(f.language);
-    return `<fieldset class="author-language-picker"><legend>${label}</legend>${inferred ? `<p class="inferred-language">${esc(languageName(f.language))}</p><input type="hidden" name="language" value="${esc(f.language)}">` : ""}<div class="languages">${CONTENT_LANGUAGES.map(tag=>`<label><input class="sr-only" type="radio" name="language" value="${tag}" ${f.language === tag ? "checked" : ""} ${inferred ? "" : "required"}><span lang="${tag}">${tag === "es" ? "Español" : "English"}</span></label>`).join("")}</div></fieldset>`;
+    return `<fieldset class="author-language-picker"><legend>${label}</legend>${inferred ? `<p class="inferred-language">${esc(languageName(f.language))}</p><input type="hidden" name="language" value="${esc(f.language)}">` : ""}<div class="segmented-selector">${CONTENT_LANGUAGES.map(tag=>`<label><input class="sr-only" type="radio" name="language" value="${tag}" ${f.language === tag ? "checked" : ""} ${inferred ? "" : "required"}><span lang="${tag}">${tag === "es" ? "Español" : "English"}</span></label>`).join("")}</div></fieldset>`;
   };
   const options=[];
   function walk(cards,depth=0) {
