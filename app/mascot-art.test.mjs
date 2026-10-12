@@ -80,7 +80,7 @@ test("Mouth widths inherit a general value with independent stage exceptions",()
     assert.equal(faceWithoutMouth(mascotArt(stage,"",{mouth})),faceWithoutMouth(mascotArt(stage)));
   }
   assert.equal(mascotMouthWidth("seedling"),5);
-  assert.match(mascotArt("root"),/d="M70 119q12 6 24 0"/);
+  assert.match(mascotArt("root"),/d="M67 119q15 6 30 0"/);
 });
 
 test("Invalid mouth widths fall back without injecting SVG attributes",()=>{
