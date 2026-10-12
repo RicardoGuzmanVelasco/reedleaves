@@ -109,7 +109,7 @@ test("A root eye offset moves only that eye and stays independent of expression"
   const face={eyeOffsets:{left:{x:2,y:-3}}};
   const baseline=mascotArt("root"),adjusted=mascotArt("root","",{face,expression:"wink-left"});
   assert.match(adjusted,/mascot-eye--left" transform="translate\(55 101\)"/);
-  assert.match(adjusted,/mascot-eye--right" transform="translate\(111 104\)"/);
+  assert.equal(adjusted.match(/mascot-eye--right" transform="([^"]*)"/)[1],baseline.match(/mascot-eye--right" transform="([^"]*)"/)[1]);
   assert.equal(adjusted.match(/class="mascot-face-placement" transform="([^"]*)"/)[1],baseline.match(/class="mascot-face-placement" transform="([^"]*)"/)[1]);
   assert.equal(adjusted.match(/class="mascot-mouth">([\s\S]*?)<\/g>/)[1],baseline.match(/class="mascot-mouth">([\s\S]*?)<\/g>/)[1]);
   assert.match(adjusted,/data-expression="wink-left"/);

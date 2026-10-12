@@ -1,5 +1,5 @@
-import {mascotArt} from "/app/mascot-art.mjs?v=eye-positions";
-import {mascotFaceGeometry,playMascotExpression} from "/app/mascot-face.mjs?v=eye-positions";
+import {mascotArt} from "/app/mascot-art.mjs?v=approved-face-positions";
+import {mascotFaceGeometry,playMascotExpression} from "/app/mascot-face.mjs?v=approved-face-positions";
 const baseline={root:mascotFaceGeometry("root"),seed:mascotFaceGeometry("seed")};
 const initial=()=>({root:{eyeOffsets:{left:{...baseline.root.eyeOffsets.left},right:{...baseline.root.eyeOffsets.right}}},seed:{x:baseline.seed.x,y:baseline.seed.y}});
 let adjustments=initial();
