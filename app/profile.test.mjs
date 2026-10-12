@@ -11,7 +11,7 @@ async function fixture() {
   const db=openDatabase(":memory:");initializeDatabase(db);await seedCatalog(db);
   try{return prepareCatalog(await readCatalog(db));}finally{db.close();}
 }
-const profileData={profile:{id:"test-user",name:'<script>Long name</script>',username:"test.user",createdAt:"2026-10-10 12:00:00",counts:{leavesSpent:8,booksRead:2,booksReading:1,decksCompleted:1,decksInProgress:1,cardsReviewed:8,cardsViewed:9,decksCreated:3,cardsCreated:11,quotesCreated:2},mascots:{pot:1,seed:2,seedling:0,sprout:1}},bookshelf:[{bookId:"seven-habits",reading:"read",pending:true,hasReviewing:true,hasReviewed:false,group:"pending"}]};
+const profileData={profile:{id:"test-user",name:'<script>Long name</script>',username:"test.user",createdAt:"2026-10-10 12:00:00",counts:{leavesSpent:8,booksRead:2,booksReading:1,decksCompleted:1,decksInProgress:1,cardsReviewed:8,cardsViewed:9,decksCreated:3,cardsCreated:11,quotesCreated:2},mascots:{pot:1,seed:2,root:0,seedling:0,sprout:1}},bookshelf:[{bookId:"seven-habits",reading:"read",pending:true,hasReviewing:true,hasReviewed:false,group:"pending"}]};
 
 test("Profiles translate, escape names, link own versus foreign shelves and show all requested statistics",async()=>{
   for(const language of ["es","en"]) {

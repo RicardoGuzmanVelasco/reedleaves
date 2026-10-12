@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Planta: el libro está casi repasado">
-  <ellipse cx="80" cy="146" rx="43" ry="7" fill="#1E4C2E" opacity=".14"/>
+
   <path d="M80 137V89" fill="none" stroke="#368540" stroke-width="9" stroke-linecap="round"/>
   <path d="M80 91C45 104 29 81 42 56c19-22 42-9 38 35Z" fill="#58BE59"/>
   <path d="M80 89c-6-34 15-52 41-35 19 22 6 46-41 35Z" fill="#B9E877"/>

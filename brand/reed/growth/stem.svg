@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Tallo: el repaso sigue creciendo">
-  <ellipse cx="80" cy="145" rx="42" ry="7" fill="#1E4C2E" opacity=".14"/>
+
   <path d="M80 137V58" fill="none" stroke="#368540" stroke-width="9" stroke-linecap="round"/>
   <path d="M78 91C53 97 39 84 43 65c20-5 34 5 35 26Z" fill="#58BE59"/>
   <path d="M82 75c1-21 15-31 34-25 1 19-11 29-34 25Z" fill="#B9E877"/>

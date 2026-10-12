@@ -7,6 +7,7 @@ import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
 import {currentMascotStage} from "./mascot-progress.mjs";
+import {mascotArt} from "./mascot-art.mjs";
 import {missingBookInformation} from "./book-metadata.mjs";
 
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -54,7 +55,7 @@ function closedBookMarkup(s,book,{action="resume-book",caption=words[s.language]
   const title=bookCoverTitle(book,s.language,{original:s.showOriginalTitles});
   const cover=`<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} aria-label="${esc(catalog ? displayedBookTitle(s,book).text + ", " + book.author + ", " + caption : c.resume + ": " + displayedBookTitle(s,book).text)}">
     <span class="study-book-cover"><strong lang="${esc(title.language)}" dir="auto">${esc(title.text)}</strong><span class="study-book-author">${esc(book.author)}</span>
-    ${catalog ? genres.length ? `<span class="book-tile-genres">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</span>` : "" : `<img class="study-book-mark" src="${mascotImage(s,book.id)}" width="64" height="64" alt="">`}
+    ${catalog ? genres.length ? `<span class="book-tile-genres">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</span>` : "" : mascotArt(mascotState(s,book.id).latest,"study-book-mark")}
     <span class="study-book-footer">${esc(caption)}<span aria-hidden="true">→</span></span></span></button>`;
   const complete=completeBookButton(s,book);
   return complete ? `<div class="study-book-entry">${cover}${complete}</div>` : cover;
@@ -167,16 +168,16 @@ export function homeView(s) {
     ${studies.length ? `<div class="study-books">${[...groups.values()].map(items => {
       const book = items[0].book;
       return closedBookMarkup(s,book);
-    }).join("")}</div>` : `<div class="home-empty"><img src="../brand/reed/mascot.svg" width="100" height="100" alt=""><h2>${c.noStudies}</h2></div>`}
+    }).join("")}</div>` : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noStudies}</h2></div>`}
   </section>`;
 }
 
 const mascotStages = [
-  {id:"pot",name:"mascotNamePot",milestone:"mascotPot",motto:"mascotMottoPot",image:"../brand/reed/growth/pot.svg",unlocked:g=>g.added},
-  {id:"seed",name:"mascotNameSeed",milestone:"mascotSeed",motto:"mascotMottoSeed",image:"../brand/reed/growth/seed.svg",unlocked:g=>g.spentDays>=1},
-  {id:"root",name:"mascotNameRoot",milestone:"mascotRoot",motto:"mascotMottoRoot",image:"../brand/reed/growth/root.png",unlocked:g=>g.spentDays>=2},
-  {id:"seedling",name:"mascotNameSeedling",milestone:"mascotSeedling",motto:"mascotMottoSeedling",image:"../brand/reed/growth/seedling.svg",unlocked:g=>g.spentDays>=3},
-  {id:"sprout",name:"mascotNameSprout",milestone:"mascotSprout",motto:"mascotMottoSprout",image:"../brand/reed/mascot.svg",unlocked:g=>g.spentDays>=5},
+  {id:"pot",name:"mascotNamePot",milestone:"mascotPot",motto:"mascotMottoPot",unlocked:g=>g.added},
+  {id:"seed",name:"mascotNameSeed",milestone:"mascotSeed",motto:"mascotMottoSeed",unlocked:g=>g.spentDays>=1},
+  {id:"root",name:"mascotNameRoot",milestone:"mascotRoot",motto:"mascotMottoRoot",unlocked:g=>g.spentDays>=2},
+  {id:"seedling",name:"mascotNameSeedling",milestone:"mascotSeedling",motto:"mascotMottoSeedling",unlocked:g=>g.spentDays>=3},
+  {id:"sprout",name:"mascotNameSprout",milestone:"mascotSprout",motto:"mascotMottoSprout",unlocked:g=>g.spentDays>=5},
   {id:"sapling",name:"mascotNameSapling",motto:"mascotMottoSapling"},
   {id:"stem",name:"mascotNameStem"},
   {id:"plant",name:"mascotNamePlant"},
@@ -188,12 +189,8 @@ function mascotState(s,bookId) {
   const unlocked=mascotStages.filter(stage=>stage.unlocked?.(g)).map(stage=>stage.id);
   return {g,unlocked,latest:currentMascotStage(g)};
 }
-function mascotImage(s,bookId) {
-  const {latest}=mascotState(s,bookId), stage=mascotStages.find(item=>item.id===latest);
-  return stage?.image || "../brand/reed/growth/mystery.svg";
-}
 function mascotEntry(s,bookId,className="") {
-  return `<button class="mascot-entry${className ? ` ${esc(className)}` : ""}" type="button" data-action="open-mascots" data-book="${esc(bookId)}" aria-label="${esc(words[s.language].mascots)} · ${esc(contentText(s.catalog.booksById.get(bookId).shortTitle,s.language,s.catalog.booksById.get(bookId).originalLanguage))}"><img src="${mascotImage(s,bookId)}" width="74" height="74" alt=""></button>`;
+  return `<button class="mascot-entry${className ? ` ${esc(className)}` : ""}" type="button" data-action="open-mascots" data-book="${esc(bookId)}" aria-label="${esc(words[s.language].mascots)} · ${esc(contentText(s.catalog.booksById.get(bookId).shortTitle,s.language,s.catalog.booksById.get(bookId).originalLanguage))}">${mascotArt(mascotState(s,bookId).latest)}</button>`;
 }
 function mascotMotto(s,bookId) {
   const current=mascotState(s,bookId).latest, stage=mascotStages.find(item=>item.id===current);
@@ -206,13 +203,12 @@ function reviewMascotCallout(s,bookId) {
 export function mascotsView(s) {
   const c=words[s.language],book=s.catalog.booksById.get(s.bookId),{unlocked,latest}=mascotState(s,s.bookId);
   return `<section class="mascots-screen"><button class="text-button" type="button" data-action="close-mascots">${c.mascotsBack}</button>
-    <header class="mascots-heading"><div><p class="small-book">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</p><h1 tabindex="-1">${c.mascots}</h1></div><img src="${mascotImage(s,s.bookId)}" width="82" height="82" alt=""></header>
+    <header class="mascots-heading"><div><p class="small-book">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</p><h1 tabindex="-1">${c.mascots}</h1></div>${mascotArt(latest)}</header>
     <ol class="mascot-collection">${mascotStages.map((stage,index)=>{
       const earned=unlocked.includes(stage.id),implemented=!!stage.unlocked,current=latest===stage.id;
-      const image=earned?stage.image:"../brand/reed/growth/mystery.svg";
       const marker=earned?`<span class="mascot-stage-marker mascot-check"><svg viewBox="0 0 24 24" role="img" aria-label="${c.mascotEarned}"><path d="m4 12 5 5L20 6"/></svg></span>`:`<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true">${String(index+1).padStart(2,"0")}</span>`;
       const unlock=implemented?c[stage.milestone]:"???",motto=earned&&stage.motto?c[stage.motto]:c.mascotNotUnlocked;
-      return `<li class="mascot-stage${earned?" is-earned":""}${implemented?" is-known":" is-mystery"}${current?" is-current":""}"${current?' aria-current="step"':""}>${marker}<img class="mascot-stage-art" src="${image}" width="76" height="76" alt=""><div class="mascot-stage-copy"><h2>${c[stage.name]}</h2><p class="mascot-stage-unlock">${esc(unlock)}</p><p class="mascot-stage-motto${earned&&stage.motto?"":" is-locked"}">${esc(motto)}</p></div></li>`;
+      return `<li class="mascot-stage${earned?" is-earned":""}${implemented?" is-known":" is-mystery"}${current?" is-current":""}"${current?' aria-current="step"':""}>${marker}${mascotArt(earned?stage.id:"mystery","mascot-stage-art")}<div class="mascot-stage-copy"><h2>${c[stage.name]}</h2><p class="mascot-stage-unlock">${esc(unlock)}</p><p class="mascot-stage-motto${earned&&stage.motto?"":" is-locked"}">${esc(motto)}</p></div></li>`;
     }).join("")}</ol>
   </section>`;
 }
@@ -282,13 +278,13 @@ function legacyReviewView(s) {
 
 export function loadingView(language, failed) {
   const c = words[language];
-  return `<section class="loading${failed ? " loading-error" : ""}"><img src="../brand/reed/mascot.svg" width="100" height="100" alt=""><h1>${failed ? c.error : c.loading}</h1>${failed ? button(c.retry, "retry") : ""}</section>`;
+  return `<section class="loading${failed ? " loading-error" : ""}">${mascotArt("sprout")}<h1>${failed ? c.error : c.loading}</h1>${failed ? button(c.retry, "retry") : ""}</section>`;
 }
 
 export function accountView(s) {
   const c = words[s.language], signup = s.authMode === "register";
   return `<section class="account-screen">
-    <div class="account-welcome"><img src="../brand/reed/mascot.svg" width="100" height="100" alt=""><h1 tabindex="-1">${signup ? c.signUp : c.signIn}</h1></div>
+    <div class="account-welcome">${mascotArt("sprout")}<h1 tabindex="-1">${signup ? c.signUp : c.signIn}</h1></div>
     <form class="account-form" data-account-form>
       <label for="account-username">${c.username}</label><input id="account-username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9][a-zA-Z0-9._\\-]{2,31}" aria-describedby="username-hint"><small id="username-hint">${c.usernameHint}</small>
       ${signup && s.inviteRequired ? `<label for="account-invite">${c.inviteCode}</label><input id="account-invite" name="inviteCode" type="password" autocomplete="off" required minlength="24" maxlength="256">` : ""}
@@ -466,7 +462,7 @@ export function profileView(s) {
     <section class="profile-section" aria-labelledby="profile-reader"><div class="profile-section-heading"><h2 id="profile-reader">${c.readerSummary}</h2><a class="text-button" href="${s.userId === p.id ? "#bookshelf" : `#bookshelf/${encodeURIComponent(p.id)}`}">${c.viewBookshelf} →</a></div>
       ${metrics(["booksRead","booksReading","decksCompleted","decksInProgress","cardsReviewed","cardsViewed"])}<p class="profile-note">${c.distinctCardsNote}</p></section>
     <section class="profile-section" aria-labelledby="profile-archivist"><h2 id="profile-archivist">${c.archivistSummary}</h2>${metrics(["decksCreated","cardsCreated","quotesCreated"])}</section>
-    <section class="profile-section" aria-labelledby="profile-mascots"><h2 id="profile-mascots">${c.currentMascots}</h2><ul class="profile-mascots">${mascotStages.filter(stage=>stage.unlocked || p.mascots[stage.id]>0).map(stage=>`<li><img src="${stage.image || "../brand/reed/growth/mystery.svg"}" width="60" height="60" alt=""><span>${c[stage.name]}</span><strong>${p.mascots[stage.id]}</strong></li>`).join("")}</ul></section>
+    <section class="profile-section" aria-labelledby="profile-mascots"><h2 id="profile-mascots">${c.currentMascots}</h2><ul class="profile-mascots">${mascotStages.filter(stage=>stage.unlocked || p.mascots[stage.id]>0).map(stage=>`<li>${mascotArt(stage.id)}<span>${c[stage.name]}</span><strong>${p.mascots[stage.id]}</strong></li>`).join("")}</ul></section>
   </section>`;
 }
 export function profilePendingView(s) {
