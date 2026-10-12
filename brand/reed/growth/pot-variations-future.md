@@ -1,6 +1,6 @@
-# Macetas reservadas para el futuro
+# Maceta activa y variantes reservadas
 
-12 de octubre de 2026. Colección de seis variantes, conservada por indicación del usuario después de las revisiones. No se ha elegido un nuevo cuerpo de maceta para integrar en la app.
+12 de octubre de 2026. Colección de seis variantes, conservada por indicación del usuario después de las revisiones. A · Clásica, con el borde corregido, se elige como cuerpo activo de la app. B–F quedan como propuestas para el futuro.
 
 ![Seis variantes de maceta](pot-variations-future.png)
 
@@ -13,7 +13,7 @@
 | E · Cuadrada | Frente amplio y esquinas suaves. |
 | F · Jardinera | Recipiente rectangular ancho y bajo, labio redondeado, paredes inclinadas y banda inferior discreta; sigue la referencia aportada por el usuario. |
 
-**Asimétrica queda retirada** y se conserva solo en la primera lámina histórica. F identifica ahora la Jardinera.
+**Asimétrica queda retirada** y se conserva solo en la primera lámina histórica. F identifica ahora la Jardinera. La forma A se adaptó al SVG activo de la app con la cara compartida y el borde superior corregido.
 
 ## Referencias e historial
 
@@ -34,4 +34,3 @@ Las láminas son exploraciones raster. Una integración futura debe recuperar la
 Use case: precise-object-edit. Make a SINGLE localized refinement to the supplied six-flowerpot exploration sheet: ONLY the top rim/collar of A · Clásica in the top-left cell. Keep B · Cuenco, C · Abombada, D · Alta, E · Cuadrada and F · Jardinera completely unchanged. Preserve the entire canvas, layout, background, shadows, all labels, all eyes and smiles, colors and rendering style.
 For A, make its top terracotta rim a clearly separate small OVERHANGING COLLAR. The user wants the upper part to protrude a little beyond the body on both sides and sit a bit LOWER so it covers the awkward sharp joins at the top corners of the tapering body below it. Extend the outer lip by about 10–14 pixels on EACH side at this image scale (roughly 8 percent wider overall). Lower the collar's front lower edge by roughly 14–18 pixels so the collar visibly overlaps and hides the upper shoulder joins and the two upper angular corners of the lighter inset front panel. The front collar should be a softly curved band with smoothly rounded outer corners and a clean lower edge. Its slight side overhang must be unambiguous: below the lip the pot body steps inward gently to the narrower tapering sides. Eliminate the tiny triangular / pointy transition artifacts at the left and right rim-to-body junctions; those areas are covered by the collar, not exposed below it.
 Keep A's existing classical tapered body, bottom, facial geometry and shadow exactly unchanged below this small overlap area. Retain the coherent shallow oval opening and flat recessed dark-brown soil INSIDE the lip from this supplied sheet. Keep the soil enclosed by a thin back edge and the visible front collar, no mound. You may move the oval opening down a few pixels with the collar to keep the perspective coherent, but do not enlarge the soil or dramatically change the opening. The result should be a modest, functional pot lip, not an enormous thick ring or an ornate cap. Match the same terracotta fills and soft broad shading. Do not change the body or face of any other character. No new objects, decorative text, texture, outlines, leaves, limbs or expressions. Deliver the complete edited sheet with ONLY this requested A rim improvement.
-

@@ -8,7 +8,7 @@ The user approved **Flowerpot** and **Seed** as shown, named the existing app ma
 
 | Stage | Proposed trigger | Source |
 | --- | --- | --- |
-| Flowerpot | Add a book to the user's shelf. Its original reading status can be `reading` or `read`. | `pot.svg` |
+| Flowerpot | Add a book to the user's shelf. Its original reading status can be `reading` or `read`. | `bodies/pot-classic.svg` (A · Classic; previous body retained in `pot.svg`) |
 | Seed | Open the first review card. | `bodies/seed.svg` (B · Almendrada; previous art: `seed.svg`) |
 | Root | Spend leaves on cards for the book on two distinct local days. | `root-cutout.png` (original: `root.png`) |
 | Seedling | Spend leaves on three distinct local days across any deck for the book. | `seedling.svg` |
@@ -24,6 +24,8 @@ The Root, Seedling, and Sprout day thresholds are active product rules. Other un
 ## Visual scale
 
 The active Seed now uses the approved **B · Almond-like / Almendrada** silhouette in `bodies/seed.svg`, adapted to SVG with the exact shared face supplied by the app. `seed.svg` remains the previous artwork for historical comparisons. Seed keeps its 94% scale, current facial calibration and floating ground shadow. [Future Seed proposals](seed-variations-future.md) retains A, C, D, F and G, with the requested refinements; E is discarded. Only B is selected for product use.
+
+Flowerpot now uses the corrected **A · Classic / Clásica** silhouette in `bodies/pot-classic.svg`. Its overhanging lower rim covers the angular body joins, and its soil sits coherently inside the oval opening. The previous body in `bodies/pot.svg` is kept as historical artwork. The other five proposals remain available in [the retained variation sheet](pot-variations-future.md).
 
 `root.png` is the original approved artwork and visual-size reference. Flowerpot and the historical Seed keep their tighter square viewBoxes; removing their shadows did not change their framing, paths or faces. The active almond-shaped Seed uses the shared 160 × 160 frame.
 
@@ -42,7 +44,7 @@ Ground shadows have been removed from Pot, Seed, Mystery, Stem, Plant and Flower
 - `root-variations-exploration.png`: rough sheet of three alternate root shapes, saved for future exploration. These are proposals only; the approved Root remains `root.png` and the variants are not used in the app.
 - `pot-variations-exploration.png`: six Flowerpot shape proposals: classic, bowl, round-bellied, tall, square and asymmetrical. No selection yet; the active Flowerpot is unchanged. Reference, review and prompt: `pot-variations-exploration.md`.
 - `pot-variations-exploration-v2.png`: historical Flowerpot revision; A has coherent recessed soil inside an oval opening, and F replaces Asymmetrical with a rectangular planter based on `pot-planter-reference.png`. Review and prompt: `pot-variations-exploration-v2.md`.
-- `pot-variations-future.png`: retained six-variant Flowerpot sheet, with A's slightly wider, lower overhanging collar covering the angular body joins. B, C, D, E and F are preserved. Future reference document and final prompt: `pot-variations-future.md`. No new Flowerpot body selected for the app.
+- `pot-variations-future.png`: retained six-variant Flowerpot sheet, with A's slightly wider, lower overhanging collar covering the angular body joins. A is now the active app body; B, C, D, E and F remain future proposals. Decisions and final prompt: `pot-variations-future.md`.
 - `seed-variations-exploration.png`: three alternate seed silhouettes (round, almond-like, kidney-bean), following the Root exploration format and the current five-mascot family. Proposals only; the approved Seed and app remain unchanged. References and generation prompt are recorded in `seed-variations-exploration.md`.
 - `seed-variations-exploration-v2.png`: four more Seed proposals: two flattened pointed shapes and two coffee-bean shapes with a vertical central groove. References and prompt are recorded in `seed-variations-exploration-v2.md`. Not integrated in the app.
 - `seed-variations-future.png`: consolidated future-only sheet of A, C, D, F and G. D is narrower with softer tips; F and G have subtler central grooves. Decisions and prompt: `seed-variations-future.md`. B is the active app Seed; E is discarded.
