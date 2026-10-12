@@ -42,12 +42,13 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   assert.equal(Number(faviconHead.headers.get("content-length")), iconBytes.length);
   assert.equal(await faviconHead.text(), "");
   const touchIconPath = appHtml.match(/<link rel="apple-touch-icon" sizes="180x180" href="([^"]+)"/)[1];
-  const touchIcon = await fetch(base + touchIconPath);
+  assert.match(touchIconPath, /^data:image\/png;base64,/);
+  const touchIcon = await fetch(touchIconPath);
   assert.equal(touchIcon.status, 200); assert.equal(touchIcon.headers.get("content-type"), "image/png");
   const touchIconBytes = Buffer.from(await touchIcon.arrayBuffer());
   assert.deepEqual([...touchIconBytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
   assert.equal(touchIconBytes.readUInt32BE(16), 180); assert.equal(touchIconBytes.readUInt32BE(20), 180);
-  const touchIconHead = await fetch(base + touchIconPath, { method: "HEAD" });
+  const touchIconHead = await fetch(base + "/apple-touch-icon-v2.png", { method: "HEAD" });
   assert.equal(touchIconHead.status, 200); assert.equal(Number(touchIconHead.headers.get("content-length")), touchIconBytes.length);
   assert.equal(await touchIconHead.text(), "");
   const fontPath = "/app/fonts/eb-garamond-latin-400-normal-v5.3.0.woff2";
@@ -80,6 +81,69 @@ test("Internal mode protects the book catalog until an invited user signs in", a
   assert.equal(response.status,200);
   const cookie = response.headers.get("set-cookie").split(";")[0];
   assert.equal((await fetch(base+"/api/catalog",{headers:{Cookie:cookie}})).status,200);
+});
+
+test("Safari Home Screen metadata and PNG fallbacks are public, with no redirects or SQL access", async t => {
+  const db = { prepare() { throw new Error("Icon discovery must not require a session or database"); } };
+  const server = createCatalogServer(db, undefined, { inviteCode: "r".repeat(32) });
+  server.listen(0, "127.0.0.1"); await once(server, "listening");
+  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const documentUrl = new URL("/app/?saved=iphone#home", base);
+  const html = await fetch(documentUrl).then(response => response.text());
+  const touchUrl = new URL(html.match(/<link rel="apple-touch-icon"[^>]*href="([^"]+)"/)[1], documentUrl);
+  // The native Add to Home Screen sheet receives the PNG with the document;
+  // it does not need a second network request or a previously cached icon URL.
+  assert.equal(touchUrl.protocol, "data:");
+  assert.match(touchUrl.href, /^data:image\/png;base64,/);
+  const embedded = await fetch(touchUrl);
+  assert.equal(embedded.headers.get("content-type"), "image/png");
+  const embeddedBytes = Buffer.from(await embedded.arrayBuffer());
+  const canonicalBytes = Buffer.from(await fetch(base + "/apple-touch-icon-v2.png").then(response => response.arrayBuffer()));
+  assert.deepEqual(embeddedBytes, canonicalBytes, "Inline icon preserves the approved PNG byte for byte");
+  const manifestUrl = new URL(html.match(/<link rel="manifest" href="([^"]+)"/)[1], documentUrl);
+  const manifestResponse = await fetch(manifestUrl, { redirect: "manual" });
+  assert.equal(manifestResponse.status, 200);
+  assert.match(manifestResponse.headers.get("content-type"), /^application\/manifest\+json/);
+  assert.equal(manifestResponse.headers.get("cache-control"), "no-cache");
+  const manifest = await manifestResponse.json();
+  assert.equal(manifest.name, "Reedleaves");
+  assert.equal(manifest.short_name, "Reedleaves");
+  const startUrl = new URL(manifest.start_url, manifestUrl);
+  assert.equal(startUrl.origin, documentUrl.origin);
+  assert.ok(startUrl.pathname.startsWith(manifest.scope));
+  assert.equal((await fetch(startUrl, { redirect: "manual" })).status, 200);
+  const candidates = [[new URL("/apple-touch-icon-v2.png", base), 180]];
+  for (const prefix of ["", "/app"]) {
+    for (const name of ["apple-touch-icon.png", "apple-touch-icon-precomposed.png",
+      "apple-touch-icon-180x180.png", "apple-touch-icon-180x180-precomposed.png"]) {
+      candidates.push([new URL(`${prefix}/${name}`, base), 180]);
+    }
+  }
+  assert.deepEqual(manifest.icons.map(icon => icon.sizes).sort(), ["192x192", "512x512"]);
+  for (const icon of manifest.icons) {
+    assert.equal(icon.type, "image/png");
+    candidates.push([new URL(icon.src, manifestUrl), Number(icon.sizes.split("x")[0])]);
+  }
+  for (const [url, size] of candidates) {
+    const response = await fetch(url, { redirect: "manual" });
+    assert.equal(response.status, 200, url.pathname);
+    assert.equal(response.headers.get("content-type"), "image/png");
+    const bytes = Buffer.from(await response.arrayBuffer());
+    assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+    assert.equal(bytes.readUInt32BE(16), size);
+    assert.equal(bytes.readUInt32BE(20), size);
+    assert.equal(bytes[25], 2, "RGB without transparency");
+    const head = await fetch(url, { method: "HEAD", redirect: "manual" });
+    assert.equal(head.status, 200);
+    assert.equal(Number(head.headers.get("content-length")), bytes.length);
+    assert.equal(await head.text(), "");
+  }
+  const manifestHead = await fetch(manifestUrl, { method: "HEAD" });
+  assert.equal(manifestHead.status, 200);
+  assert.match(manifestHead.headers.get("content-type"), /^application\/manifest\+json/);
+  assert.equal(await manifestHead.text(), "");
+  assert.equal((await fetch(base + "/apple-touch-icon-missing.png")).status, 404);
 });
 
 test("Author HTTP routes require CSRF and hide personal decks from other accounts and guests",async t=>{

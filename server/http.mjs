@@ -7,8 +7,19 @@ import {createReaderApi} from "./reader-api.mjs";
 import {readSession} from "./auth.mjs";
 
 const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
+  ".webmanifest": "application/manifest+json; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".woff2": "font/woff2" };
+
+// Explicit URLs bypass Safari's previous icon URL; conventional names also cover
+// discovery at the origin root and alongside the app document. Keep the allowlist.
+const publicFiles = new Map([["/favicon.ico", "/brand/reed/favicon.ico"]]);
+for (const prefix of ["", "/app"]) {
+  for (const name of ["apple-touch-icon-v2.png", "apple-touch-icon.png", "apple-touch-icon-precomposed.png",
+    "apple-touch-icon-180x180.png", "apple-touch-icon-180x180-precomposed.png"]) {
+    publicFiles.set(`${prefix}/${name}`, "/brand/reed/apple-touch-icon.png");
+  }
+}
 
 export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
   const readerApi = createReaderApi(db,options);
@@ -24,8 +35,7 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
     };
     try {
       const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-      const path = pathname === "/favicon.ico" ? "/brand/reed/favicon.ico"
-        : pathname === "/apple-touch-icon.png" ? "/brand/reed/apple-touch-icon.png" : pathname;
+      const path = publicFiles.get(pathname) || pathname;
       if (await readerApi(request,response,path,send)) return;
       if (!["GET", "HEAD"].includes(request.method)) {
         response.setHeader("Allow", "GET, HEAD");

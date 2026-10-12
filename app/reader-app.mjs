@@ -37,6 +37,7 @@ export function startReader() {
   let listPositions = {};
   let libraryOrigin = "home", appliedAuthorRoute = null;
   let libraryQuery = "", authMode = "login", authReturn = "#home", pendingVersion = null, pendingNavigation = null, busy = false, syncError = null, syncGeneration = 0;
+  let exclusivePageLock = null;
   const hasLocalProgress = () => catalog && (store.read(keys.studies)?.length || catalog.versions.some(v=>store.read(keys.deckReview(v.id))?.seenIds?.length || store.read(keys.review(v.bookId))?.unlockedCount));
 
   function applyState(state) {
@@ -88,9 +89,30 @@ export function startReader() {
     });
     settings.querySelectorAll("button,input").forEach(control=>control.disabled = busy);
   }
+  function setExclusivePageLock(locked) {
+    const body=document.body,root=document.documentElement;
+    if(locked){
+      if(exclusivePageLock)return;
+      const bodyProperties=["position","top","left","right","width","overflow","padding-right"];
+      const savedBody=Object.fromEntries(bodyProperties.map(property=>[property,[body.style.getPropertyValue(property),body.style.getPropertyPriority(property)]]));
+      const savedRoot=Object.fromEntries(["overflow","scroll-behavior"].map(property=>[property,[root.style.getPropertyValue(property),root.style.getPropertyPriority(property)]]));
+      const scrollY=window.scrollY,scrollbarWidth=Math.max(0,window.innerWidth-root.clientWidth);
+      exclusivePageLock={scrollY,savedBody,savedRoot};
+      body.style.setProperty("position","fixed");body.style.setProperty("top",`-${scrollY}px`);body.style.setProperty("left","0");body.style.setProperty("right","0");body.style.setProperty("width","auto");body.style.setProperty("overflow","hidden");
+      if(scrollbarWidth)body.style.setProperty("padding-right",`${(parseFloat(getComputedStyle(body).paddingRight)||0)+scrollbarWidth}px`);
+      root.style.setProperty("overflow","hidden");root.style.setProperty("scroll-behavior","auto");
+      return;
+    }
+    if(!exclusivePageLock)return;
+    const {scrollY,savedBody,savedRoot}=exclusivePageLock;exclusivePageLock=null;
+    for(const [property,[value,priority]] of Object.entries(savedBody)){if(value)body.style.setProperty(property,value,priority);else body.style.removeProperty(property)}
+    const [rootOverflow,rootOverflowPriority]=savedRoot.overflow;if(rootOverflow)root.style.setProperty("overflow",rootOverflow,rootOverflowPriority);else root.style.removeProperty("overflow");
+    window.scrollTo(0,scrollY);
+    const [scrollBehavior,scrollBehaviorPriority]=savedRoot["scroll-behavior"];if(scrollBehavior)root.style.setProperty("scroll-behavior",scrollBehavior,scrollBehaviorPriority);else root.style.removeProperty("scroll-behavior");
+  }
   function render({focus = false} = {}) {
     ++renderVersion; header();
-    if (!ready) { main.innerHTML = loadingView(language,failed); presentReading(main); return; }
+    if (!ready) { setExclusivePageLock(false);main.innerHTML = loadingView(language,failed); presentReading(main); return; }
     refreshState(); header();
     const state = {userId:snapshot.user?.id,authorForm,quotesOnly,language,showOriginalTitles,catalog,reviews,budget,preferences,statuses,growth:snapshot.growth||{},daily,bookId,versionId,requestedId,cardVotes:cardVotesCardId===requestedId ? cardVotes : null,cardVotesError,bookReviews,
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,libraryFilters,libraryFiltersOpen,bookshelfFilters:mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
@@ -109,6 +131,7 @@ export function startReader() {
     }
     const exclusive=main.querySelector(".exclusive-card-modal");
     if (exclusive) {
+      setExclusivePageLock(true);
       exclusive.showModal();
       exclusive.addEventListener("cancel",event=>{event.preventDefault();closeExclusive();});
       exclusive.addEventListener("click",event=>{if(event.target===exclusive)closeExclusive();});
@@ -118,7 +141,7 @@ export function startReader() {
         closeExclusive();
       });
       if (requestedId && cardVotesCardId!==requestedId) loadCardVotes(requestedId);
-    }
+    } else setExclusivePageLock(false);
     lockControls();
     if (focus) { main.querySelector(requestedId ? ".exclusive-card-modal #idea-content" : "h1")?.focus({preventScroll:true});
       if (mode === "review" && requestedId && scrollToCard) main.querySelector("#idea-content")?.scrollIntoView({block:"start"}); else window.scrollTo({top:0}); }
@@ -207,6 +230,34 @@ export function startReader() {
     pendingViews.add(key);
     api.request("/api/reader/view",{cardId,context}).then(()=>{recordedViews.add(key);}).catch(()=>{}).finally(()=>pendingViews.delete(key));
   }
+  function syncCardVotesUI() {
+    const group=main.querySelector(".exclusive-card-modal .card-votes");
+    if(!group||!cardVotesCardId)return;
+    const c=words[language],votes=cardVotes?.cardId===cardVotesCardId?cardVotes:null;
+    const deck=catalog?.decksById.get(catalog.cardsById.get(cardVotesCardId)?.deckId);
+    const own=votes?.isOwn??deck?.creator.userId===snapshot.user?.id;
+    group.setAttribute("aria-label",c.cardFeedback);
+    group.classList.toggle("card-votes--own",!!own);
+    for(const button of group.querySelectorAll(".card-vote")){
+      const value=Number(button.dataset.value),selected=votes?.vote===value;
+      const total=votes?(value===1?votes.likes:votes.dislikes):null;
+      button.disabled=!!own||!votes;
+      button.classList.toggle("is-own-card-vote",!!own);
+      button.classList.toggle("is-selected",selected);
+      button.setAttribute("aria-pressed",String(selected));
+      button.setAttribute("aria-label",`${value===1?c.likeCard:c.dislikeCard}, ${total===null?"…":total}`);
+      const count=button.querySelector("span");if(count)count.textContent=total===null?"…":String(total);
+    }
+    let ownNote=group.querySelector(".card-votes-own-note");
+    if(own&&!ownNote){ownNote=document.createElement("span");ownNote.className="sr-only card-votes-own-note";group.append(ownNote)}
+    if(ownNote){ownNote.textContent=own?c.ownCardVotes:"";ownNote.hidden=!own}
+    let error=group.querySelector(".card-vote-error"),retry=group.querySelector(".card-vote-retry");
+    if(cardVotesError){
+      if(!error){error=document.createElement("span");error.className="card-vote-error";error.setAttribute("role","status");group.append(error)}
+      error.textContent=c[cardVotesError]||c.connectionError;
+      if(!retry){retry=document.createElement("button");retry.className="card-vote-retry";retry.type="button";retry.dataset.action="retry-card-votes";retry.textContent=c.retry;group.append(retry)}
+    }else{error?.remove();retry?.remove()}
+  }
   function openBook(id) {
     if (!catalog.booksById.has(id)) return;
     if (["home","library","bookshelf","daily"].includes(mode)) bookOrigin = mode;
@@ -231,24 +282,24 @@ export function startReader() {
     }
   }
   function loadCardVotes(cardId) {
-    if (!cardId || cardVotesCardId===cardId && cardVotesLoading) return;
+    if (!cardId || cardVotesCardId===cardId && (cardVotesLoading||cardVotes)) return;
     cardVotesCardId=cardId;cardVotes=null;cardVotesError=null;cardVotesLoading=true;
     const generation=++cardVotesGeneration;
     api.request(`/api/cards/${encodeURIComponent(cardId)}/votes`).then(result=>{
       if(generation!==cardVotesGeneration||cardVotesCardId!==cardId)return;
-      cardVotes=result;cardVotesLoading=false;render();
+      cardVotes=result;cardVotesLoading=false;syncCardVotesUI();
     }).catch(error=>{
       if(generation!==cardVotesGeneration||cardVotesCardId!==cardId)return;
-      cardVotesLoading=false;cardVotesError=error.code||"connectionError";render();
+      cardVotesLoading=false;cardVotesError=error.code||"connectionError";syncCardVotesUI();
     });
   }
   async function voteCard(cardId,value) {
     if(busy||!snapshot.user||cardVotes?.cardId!==cardId||cardVotes.isOwn)return;
     const selectedValue=value,storedValue=cardVotes.vote===value?0:value;
-    busy=true;syncGeneration++;lockControls();
+    busy=true;syncGeneration++;main.setAttribute("aria-busy","true");main.querySelectorAll(".card-vote").forEach(control=>control.disabled=true);
     try { cardVotes=await api.request("/api/cards/vote",{cardId,value:storedValue});cardVotesCardId=cardId;cardVotesError=null; }
     catch(error) { cardVotesError=error.code||"connectionError"; }
-    finally { busy=false;render();main.querySelector(`.card-vote[data-value="${selectedValue}"]`)?.focus({preventScroll:true}); }
+    finally { busy=false;main.setAttribute("aria-busy","false");syncCardVotesUI();main.querySelector(`.card-vote[data-value="${selectedValue}"]`)?.focus({preventScroll:true}); }
   }
   function closeAuthorForm() {
     if (busy) return;
