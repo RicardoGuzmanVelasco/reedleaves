@@ -9,9 +9,9 @@ const descriptions={
 };
 const parameters=[
   {id:"cover-height",property:"--cover-height",defaultValue:260,unit:"px"},
-  {id:"cover-width",property:"--cover-width",defaultValue:88,unit:"%"},
+  {id:"cover-width",property:"--cover-width",defaultValue:89,unit:"%"},
   {id:"author-size",property:"--cover-author-size",defaultValue:12,unit:"px"},
-  {id:"stamp-size",property:"--cover-stamp-size",defaultValue:100,unit:"px"},
+  {id:"stamp-size",property:"--cover-stamp-size",defaultValue:95,unit:"px"},
   {id:"stamp-bottom",property:"--cover-stamp-bottom",defaultValue:0,unit:"px"},
   {id:"stamp-opacity",property:"--cover-stamp-opacity",defaultValue:48,unit:"%"}
 ];
