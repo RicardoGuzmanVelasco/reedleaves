@@ -16,6 +16,10 @@ export function dailyCardIdForRoute(daily,view,first) {
   return view === "daily" && daily?.id && first !== "closed" ? daily.id : null;
 }
 
+export function hasSeenCard(reviews,versionId,cardId) {
+  return reviews[versionId]?.seenIds.includes(cardId) === true;
+}
+
 export function startReader() {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
   const settings = document.getElementById("settings");
@@ -349,7 +353,9 @@ export function startReader() {
       if (path === "/api/auth/logout") {
         catalog = null;
         if (!inviteRequired) { try { catalog = await loadCatalog(); } catch { ready = false; failed = true; } }
-      } else if (path === "/api/reader/open") { try { catalog = await loadCatalog(); } catch { /* The committed state remains authoritative if catalog refresh fails. */ } }
+      } else if (path === "/api/reader/open") {
+        loadCatalog().then(updatedCatalog=>{catalog=updatedCatalog;if(!busy)render();}).catch(()=>{});
+      }
       refreshState(); if(path === "/api/reader/daily" && mode === "daily") requestedId=snapshot.daily?.id||null; onSuccess?.(result); return true;
     } catch(error) { syncError = error.status === 401 ? "sessionExpired" : error.code || "connectionError";
       if (error.status === 409) { try { applyState(await api.request("/api/session")); } catch { /* Keep the last known state; retry remains idempotent. */ } }
@@ -366,6 +372,13 @@ export function startReader() {
   }
   async function openCard(id,activeVersion = versionId) {
     albumPosition={versionId:activeVersion,mode:"review",scrollY:window.scrollY};
+    if (hasSeenCard(reviews,activeVersion,id)) {
+      requestedId=id;scrollToCard=true;
+      navigate("#review/"+activeVersion+"/"+id);
+      // Reopening a seen card is free, so show it now and persist the resume position in the background.
+      api.request("/api/reader/open",{versionId:activeVersion,cardId:id}).catch(()=>{});
+      return;
+    }
     await mutation("/api/reader/open",{versionId:activeVersion,cardId:id},result=>{
       if (result.spent) { live.textContent = words[language].leafRemaining(snapshot.wallet.balance); }
       requestedId = id; scrollToCard = true; navigate("#review/"+activeVersion+"/"+id);
