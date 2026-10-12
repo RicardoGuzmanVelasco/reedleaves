@@ -9,7 +9,7 @@ The user approved **Flowerpot** and **Seed** as shown, named the existing app ma
 | Stage | Proposed trigger | Source |
 | --- | --- | --- |
 | Flowerpot | Add a book to the user's shelf. Its original reading status can be `reading` or `read`. | `pot.svg` |
-| Seed | Open the first review card. | `seed.svg` |
+| Seed | Open the first review card. | `bodies/seed.svg` (B · Almendrada; previous art: `seed.svg`) |
 | Root | Spend leaves on cards for the book on two distinct local days. | `root-cutout.png` (original: `root.png`) |
 | Seedling | Spend leaves on three distinct local days across any deck for the book. | `seedling.svg` |
 | Sprout | Spend leaves on five distinct local days across any deck for the book. | `../mascot.svg` |
@@ -23,7 +23,9 @@ The Root, Seedling, and Sprout day thresholds are active product rules. Other un
 
 ## Visual scale
 
-`root.png` is the original approved artwork and visual-size reference. Flowerpot and Seed keep their tighter square viewBoxes; removing their shadows does not change their framing, paths or faces.
+The active Seed now uses the approved **B · Almond-like / Almendrada** silhouette in `bodies/seed.svg`, adapted to SVG with the exact shared face supplied by the app. `seed.svg` remains the previous artwork for historical comparisons. Seed keeps its 94% scale, current facial calibration and floating ground shadow. [Future Seed proposals](seed-variations-future.md) retains A, C, D, F and G, with the requested refinements; E is discarded. Only B is selected for product use.
+
+`root.png` is the original approved artwork and visual-size reference. Flowerpot and the historical Seed keep their tighter square viewBoxes; removing their shadows did not change their framing, paths or faces. The active almond-shaped Seed uses the shared 160 × 160 frame.
 
 The reusable `app/mascot-art.mjs` and `app/mascot-art.css` component composes all stages. The ground ellipse keeps Flowerpot's adjusted baseline and height, with a narrower common width: center at `(50%, 87.5%)`, width `72%`, height `15.384615%`, color `#1E4C2E` at 16% opacity. These values depend only on component size, never on stage placement or animation. Seed uses 94% scale. Seedling uses 90% scale and a -10% vertical offset; Sprout uses a -8% vertical offset. All three float above the ground. Root keeps its existing calibration. Placement and motion use separate nested elements so animation cannot override calibration. The 600 ms greeting combines the left/right rotation with one 8% upward hop and return, without rebound. Separate CSS `translate` and `transform` interpolation keep the vertical arc independent of the rotation; implicit rotation endpoints preserve the underlying hover pose without a snap after landing.
 
@@ -38,6 +40,9 @@ Ground shadows have been removed from Pot, Seed, Mystery, Stem, Plant and Flower
 - `index.html`: visual comparison of all stages.
 - `mottos.md`: edit the Spanish and English motto placeholders here.
 - `root-variations-exploration.png`: rough sheet of three alternate root shapes, saved for future exploration. These are proposals only; the approved Root remains `root.png` and the variants are not used in the app.
+- `seed-variations-exploration.png`: three alternate seed silhouettes (round, almond-like, kidney-bean), following the Root exploration format and the current five-mascot family. Proposals only; the approved Seed and app remain unchanged. References and generation prompt are recorded in `seed-variations-exploration.md`.
+- `seed-variations-exploration-v2.png`: four more Seed proposals: two flattened pointed shapes and two coffee-bean shapes with a vertical central groove. References and prompt are recorded in `seed-variations-exploration-v2.md`. Not integrated in the app.
+- `seed-variations-future.png`: consolidated future-only sheet of A, C, D, F and G. D is narrower with softer tips; F and G have subtler central grooves. Decisions and prompt: `seed-variations-future.md`. B is the active app Seed; E is discarded.
 - `seedling.svg` reuses the original green seed artwork. `infinity.svg` restores the original **Bucle vivo / Living loop** mascot as the **Siempreviva / Evergreen** stage. Its face coordinates come from `faceMarkup` in `brand/sprout/spike.js`: eyes `(23,76)` and `(137,76)`, mouth centered at `(80,96)`. The spike contains the animated expressions.
 
 Open `index.html` to review the art. Progress is aggregated across decks for the same book. Motto text is maintained in `mottos.md`.

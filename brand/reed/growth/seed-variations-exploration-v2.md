@@ -1,0 +1,21 @@
+# Variaciones de Semilla — segunda lámina
+
+12 de octubre de 2026. Segunda exploración visual. Decisión posterior: D, F y G reservadas para el futuro con ajustes; **E descartada**. Ver `seed-variations-future.md` para las versiones refinadas. Ninguna de estas cuatro variantes se integra en la app.
+
+- **D · Achatada:** almendra horizontal, ancha y baja, con dos puntas.
+- **E · Picos curvos:** cuerpo achatado y curvo, con extremos elevados.
+- **F · Café vertical:** óvalo alto con hendidura central vertical.
+- **G · Café ondulado:** óvalo más redondo con hendidura vertical en S.
+
+Lámina: `seed-variations-exploration-v2.png`. Referencia: `seed-variations-exploration.png`. Generación con la herramienta integrada de imágenes, sin CLI ni API propia.
+
+Revisión visual: cuatro variantes diferenciadas, colores y expresión coherentes con la primera lámina. D recoge la combinación de forma achatada y puntas; F y G exploran la división vertical de una semilla de café. Las caras y sombras son parte de esta lámina de concepto; cualquier implementación posterior deberá usar las capas compartidas de la app.
+
+## Prompt utilizado
+
+Use case: stylized-concept. Asset type: a single polished mascot exploration sheet containing FOUR new seed designs in an airy 2 by 2 grid. Reference image is the earlier Reedleaves seed exploration. Closely match its exact warm tan-brown colors #C48A53 and #A86F40, broad darker organic edge, lighter inset front surface, clean simple curves, dark forest-green tiny vertical oval eyes set far apart, and thin wide shallow closed curved smile. Same friendly minimalist family style, flat vector-like illustration with restrained soft shading, warm cream #FFF9ED background. Four different alternatives following these specific requests:
+TOP LEFT D: an extremely squat wide seed, ratio width to height about 2:1, a plump biconvex almond lying horizontally, BOTH left and right ends tapering to distinct pointed tips. Full rounded central belly. This combines the flattened proportions of reference C with the POINTED almond shape of reference B. It must have obvious points, not rounded bean ends.
+TOP RIGHT E: another clearly different squat wide seed with BOTH ends pointed, width to height about 2.2:1, asymmetric and kidney-shaped, one left tip rising slightly, right tip leaning out, very gentle concave dip at upper center and convex lower belly. A flat playful pointed kidney seed. The point locations distinguish it from D. No jagged spikes: only two clean organic tips.
+BOTTOM LEFT F: a coffee-bean seed standing upright, plump broad oval (height to width about 1.3:1), a clearly visible recessed VERTICAL CENTRAL SPLIT / seam running from the very top edge to the very bottom edge dividing the bean into two attached lobes. This central groove is dark brown with a narrow lighter edge for depth, not a horizontal split. Left eye lies on left lobe, right eye on right lobe. ONE smile unites the character across both halves, remains readable in forest green, drawn on top of the groove. Same warm seed colors, NOT dark roasted brown. No two separate characters.
+BOTTOM RIGHT G: a different coffee-bean seed, shorter rounder oval, slightly asymmetrical, with a clearly visible VERTICAL S-CURVED CENTRAL SPLIT / groove running top to bottom, still primarily vertical, recognizable as a coffee bean. Two attached fleshy halves, one tiny oval eye on each side, one smile. Same warm colors and same face. The stronger wavy groove distinguishes it from F.
+Composition: ample spacing and margins, all four similar visual prominence, consistent eye size and same smile treatment. All float with a small visible gap over identical subtle green-gray elliptical ground shadows. Each cell has ONLY its small functional label below it, EXACT text: 'D · Achatada', 'E · Picos curvos', 'F · Café vertical', 'G · Café ondulado'. No headline, no slogans, no extra text. No leaves, stems, roots, arms, feet, cheeks, eyebrows, pupils, highlights, teeth, open mouths, props, patterns, outlines, shiny 3D rendering or realistic surface texture. Preserve family consistency; explore BODY SHAPE and coffee split, not facial expressions. Deliver landscape or near-square sheet with four large clearly inspectable drawings.
