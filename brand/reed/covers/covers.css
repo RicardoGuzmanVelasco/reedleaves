@@ -1,0 +1,48 @@
+.cover-study{width:min(860px,calc(100% - 48px));padding:36px 0 60px}
+.study-heading{display:flex;align-items:center;gap:18px;margin-bottom:28px}
+.study-heading h1{font-size:28px;line-height:1.2}
+.study-heading p{margin-top:7px;color:var(--muted);font-size:12px}
+.study-heading a{flex:none;border-radius:12px}
+.study-controls{display:grid;gap:18px}
+.study-controls .segmented-selector{width:fit-content}
+.study-options{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.study-options label{font-size:12px}
+.study-options select{margin-left:6px;padding:8px;border:1px solid var(--sage);border-radius:9px;background:#fffdf6}
+.study-options .check-row{margin:0}
+.study-settings{max-width:620px;border-top:1px solid var(--line);padding-top:12px}
+.study-settings summary{width:fit-content;padding:8px 0;cursor:pointer;font-size:13px;font-weight:750}
+.study-sliders{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 28px;padding:15px 0 8px}
+.study-sliders label{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:9px;font-size:12px;line-height:1.4}
+.study-sliders output{color:var(--muted);font-variant-numeric:tabular-nums}
+.study-sliders input{grid-column:1/-1;width:100%;min-height:28px;margin:0;accent-color:var(--shadow)}
+.study-settings .text-button{color:var(--ink)}
+.study-description{font-size:13px;line-height:1.5;color:var(--muted);margin:22px 0 28px;max-width:650px;min-height:40px}
+#cover-preview .study-books{grid-template-columns:repeat(3,minmax(0,1fr));gap:32px 28px}
+.cover-sample{min-width:0;display:flex;flex-direction:column;align-items:stretch}
+.cover-sample .study-book{flex:1;width:100%;min-height:var(--cover-height);border:1px solid var(--cover-edge);border-radius:7px 4px 4px 7px;background:var(--cover-paper);box-shadow:1px 3px 0 var(--cover-edge),4px 6px 12px rgb(23 61 44 / 12%);color:var(--ink)}
+/* Fore-edge only: the pages stay between the top and bottom of the cover. */
+.cover-sample .study-book::before{top:5px;right:-7px;bottom:5px;left:auto;width:7px;border:1px solid #c4bda9;border-radius:0 2px 2px 0;background:repeating-linear-gradient(0deg,#fffdf6 0 2px,#dcd5c3 2px 3px);box-shadow:1px 0 0 #b8b09a}
+.cover-sample .study-book::after{width:17px;border-right:1px solid rgb(0 0 0 / 20%);border-radius:6px 0 0 6px;background:var(--cover-spine);box-shadow:inset 3px 0 3px rgb(255 255 255 / 20%),inset -3px 0 5px rgb(0 0 0 / 12%)}
+.cover-sample .study-book-cover{position:relative;align-items:center;width:100%;padding:24px 23px var(--cover-stamp-bottom) 36px;border-radius:6px 3px 3px 6px;background:var(--cover-paper);text-align:center}
+.cover-sample .study-book-cover>strong{font-family:"EB Garamond",Georgia,serif;font-size:31px;font-weight:400;line-height:1.04;letter-spacing:-.025em;z-index:1}
+.cover-sample .study-book-author{order:-1;color:var(--ink);font-size:var(--cover-author-size);line-height:1.4;letter-spacing:.03em;margin:0 0 15px!important;z-index:1}
+.cover-sample .study-book-mark{width:min(100%,var(--cover-stamp-size));height:auto;aspect-ratio:1;margin:20px 0 0;flex:none;z-index:1;opacity:var(--cover-stamp-opacity)}
+.cover-sample .study-book-cover:has(.study-book-mark)>strong{margin-bottom:auto}
+.cover-sample .study-book-footer{margin-top:auto;padding:20px 0 12px;border:0;font-size:11px;font-weight:750;color:var(--muted);justify-content:flex-start}
+.cover-sample .study-book:hover{transform:translateY(-3px);box-shadow:1px 6px 0 var(--cover-edge),4px 9px 16px rgb(23 61 44 / 15%)}
+.cover-sample .study-book:active{transform:translateY(3px);box-shadow:1px 1px 0 var(--cover-edge)}
+[data-design="current"]{--cover-paper:#e4f0cc;--cover-edge:#779a72;--cover-spine:#9fca82}
+[data-design="current"] .study-book{border-radius:16px 12px 12px 16px}
+[data-design="current"] .study-book-cover{align-items:flex-start;padding:22px 18px var(--cover-stamp-bottom) 28px;border-radius:15px 11px 11px 15px;text-align:left}
+[data-design="current"] .study-book::after{border-radius:15px 0 0 15px}
+[data-design="current"] .study-book-cover>strong{font-family:inherit;font-weight:800;font-size:23px;line-height:1.16;letter-spacing:-.04em}
+[data-design="current"] .study-book-cover:has(.study-book-mark)>strong{margin-bottom:0}
+[data-design="current"] .study-book-author{order:0;margin:9px 0 20px!important;letter-spacing:0}
+[data-design="current"] .study-book-mark{margin:auto 0 0}
+[data-design="cloth"]{--cover-paper:#d6e3c7;--cover-edge:#688362;--cover-spine:#517458}
+[data-design="cloth"] .study-book-cover{background-image:repeating-linear-gradient(0deg,transparent 0 2px,rgb(23 61 44 / 3%) 2px 3px),repeating-linear-gradient(90deg,transparent 0 2px,rgb(255 255 255 / 14%) 2px 3px)}
+#study-book-dialog .deck-card{padding-top:42px}
+@media(max-width:600px){.cover-study{width:calc(100% - 38px);padding-top:23px}.study-heading{gap:12px}.study-heading h1{font-size:23px}.study-options{gap:8px 14px}.study-controls .segmented-selector{width:100%}.study-controls .segmented-selector button{padding:10px 8px;font-size:11px}#cover-preview .study-books{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 23px}.cover-sample .study-book{min-height:calc(var(--cover-height)*.83)}.cover-sample .study-book-cover{padding:21px 15px var(--cover-stamp-bottom) 29px}.cover-sample .study-book-cover>strong{font-size:25px}.cover-sample .study-book-author{font-size:calc(var(--cover-author-size) - 1px)}.cover-sample .study-book-mark{width:min(100%,calc(var(--cover-stamp-size)*.83))}[data-design="current"] .study-book-cover>strong{font-size:19px}.study-description{margin:18px 0 24px}}
+@media(max-width:600px){[data-design="current"] .study-book-cover{padding:18px 13px var(--cover-stamp-bottom) 25px}}
+@media(max-width:350px){#cover-preview .study-books{grid-template-columns:minmax(0,210px);justify-content:center}}
+@media(prefers-reduced-motion:reduce){.cover-sample .study-book{transition:none}}

@@ -50,13 +50,12 @@ function bookSourcesMarkup(s,book) {
   return book.sources?.length ? `<div class="book-sources"><p class="book-source-citations">${words[s.language].bookSources}: ${book.sources.map((source,index)=>`<a href="${esc(safeUrl(source.url))}" target="_blank" rel="noopener noreferrer" title="${esc(source.title)}" aria-label="${esc(words[s.language].source+": "+source.title)}">[${index+1}]</a>`).join(" ")}</p><details><summary>${words[s.language].sourceDetails}</summary><ul>${book.sources.map(source=>`<li><a href="${esc(safeUrl(source.url))}" target="_blank" rel="noopener noreferrer">${esc(source.title)} ↗</a></li>`).join("")}</ul></details></div>` : "";
 }
 
-function closedBookMarkup(s,book,{action="resume-book",caption=words[s.language].review,genres=[],catalog=false}={}) {
+function closedBookMarkup(s,book,{action="resume-book",caption=words[s.language].review,catalog=false}={}) {
   const c = words[s.language];
   const title=bookCoverTitle(book,s.language,{original:s.showOriginalTitles});
   const cover=`<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} aria-label="${esc(catalog ? displayedBookTitle(s,book).text + ", " + book.author + ", " + caption : c.resume + ": " + displayedBookTitle(s,book).text)}">
     <span class="study-book-cover"><strong lang="${esc(title.language)}" dir="auto">${esc(title.text)}</strong><span class="study-book-author">${esc(book.author)}</span>
-    ${catalog ? genres.length ? `<span class="book-tile-genres">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</span>` : "" : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}
-    <span class="study-book-footer">${esc(caption)}<span aria-hidden="true">→</span></span></span></button>`;
+    ${catalog ? `<span class="study-book-footer">${esc(caption)}</span>` : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}</span></button>`;
   const complete=completeBookButton(s,book);
   return complete ? `<div class="study-book-entry">${cover}${complete}</div>` : cover;
 }
@@ -73,7 +72,7 @@ export function libraryResultsMarkup(s) {
   const c = words[s.language], books = filterLibrary(s.catalog, s.libraryQuery, s.libraryFilters);
   if (!s.catalog.books.length) return `<div class="empty-state">${c.noBooks}</div>`;
   if (!books.length) return `<div class="empty-state book-search-empty"><p>${Object.values(s.libraryFilters || {}).some(Boolean) ? c.noBookshelfMatches : c.noBookMatches}</p><button class="text-button" type="button" data-action="${Object.values(s.libraryFilters || {}).some(Boolean) ? "reset-library-filters" : "clear-book-search"}">${Object.values(s.libraryFilters || {}).some(Boolean) ? c.resetLibraryFilters : c.clearSearch}</button></div>`;
-  return `<div class="study-books book-grid" role="group" aria-label="${c.books}">${books.map(book => closedBookMarkup(s,book,{action:"open-book-details",caption:c.deckCount(availableVersions(s.catalog,book.id).length),genres:bookGenres(s,book),catalog:true})).join("")}</div>`;
+  return `<div class="study-books book-grid" role="group" aria-label="${c.books}">${books.map(book => closedBookMarkup(s,book,{action:"open-book-details",caption:c.deckCount(availableVersions(s.catalog,book.id).length),catalog:true})).join("")}</div>`;
 }
 
 function bookDetailsMarkup(s,book) {

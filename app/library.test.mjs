@@ -5,7 +5,7 @@ import {seedCatalog} from "../server/seed.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {featuredDecks} from "./decks.mjs";
-import {libraryView,deckView} from "./views.mjs";
+import {libraryView,libraryResultsMarkup,deckView} from "./views.mjs";
 
 async function state() {
   const db = openDatabase(":memory:");
@@ -23,7 +23,7 @@ test("Add book lists the whole catalog as closed books, with essential data and 
   }
   assert.match(html,/catalog-book/); assert.match(html,/aria-haspopup="dialog"/);
   assert.match(html,/2 barajas/); assert.match(html,/1 baraja/);
-  assert.match(html,/Finanzas/); assert.match(html,/Productividad/);
+  assert.doesNotMatch(libraryResultsMarkup(s),/book-tile-genres|Finanzas|Productividad/);
   assert.doesNotMatch(html,/<dialog|data-book-status|book-row|tree-node|From the inside out|Ideas esenciales/);
   assert.deepEqual(s.budget,before);
 });
@@ -31,6 +31,7 @@ test("Add book lists the whole catalog as closed books, with essential data and 
 test("A book modal has full title, author, description, interests, deck languages and independent reading status", async () => {
   const s = {...await state(),openBookId:"seven-habits"}, book = s.catalog.booksById.get(s.openBookId), html = libraryView(s);
   assert.match(html,/<dialog class="deck-modal book-modal"/);
+  assert.match(html,/Crecimiento personal/); assert.match(html,/Productividad/);
   assert.ok(html.includes(book.title.es)); assert.ok(html.includes(book.description.es));
   assert.match(html,/aria-labelledby="book-dialog-title"/); assert.match(html,/aria-describedby="book-dialog-description"/);
   assert.equal((html.match(/data-book-status=/g) || []).length,1);

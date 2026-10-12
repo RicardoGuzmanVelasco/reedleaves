@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Reedleaves · Propuestas de portada</title>
+  <link rel="stylesheet" href="/app/mascot-art.css">
+  <link rel="stylesheet" href="/app/reader.css">
+  <link rel="stylesheet" href="covers.css">
+  <script type="module" src="covers.mjs"></script>
+</head>
+<body>
+  <main class="cover-study">
+    <header class="study-heading"><a href="/app/#home"><img src="../d-compacto.svg" width="48" height="48" alt="Reedleaves"></a><div><h1>Propuestas de portada</h1><p>Base activa · Entelada guardada como alternativa</p></div></header>
+    <div class="study-controls">
+      <div class="segmented-selector" role="group" aria-label="Diseño">
+        <button type="button" data-design="current" aria-pressed="true">Base</button>
+        <button type="button" data-design="cloth" aria-pressed="false">Entelada</button>
+      </div>
+      <div class="study-options">
+        <label>Idioma <select id="study-language"><option value="es">Español</option><option value="en">English</option></select></label>
+        <label>Vista <select id="study-surface"><option value="home">Inicio</option><option value="library">Librería</option></select></label>
+        <label class="check-row"><input id="study-original" type="checkbox"> Títulos originales</label>
+      </div>
+      <details class="study-settings">
+        <summary>Ajustes de portada</summary>
+        <div class="study-sliders">
+          <label for="cover-height">Altura mínima <output for="cover-height" id="cover-height-value">270 px</output><input type="range" id="cover-height" min="220" max="340" step="5" value="270"></label>
+          <label for="author-size">Tamaño del autor <output for="author-size" id="author-size-value">13 px</output><input type="range" id="author-size" min="11" max="17" step="1" value="13"></label>
+          <label for="stamp-size">Tamaño del sello <output for="stamp-size" id="stamp-size-value">100 px</output><input type="range" id="stamp-size" min="70" max="130" step="5" value="100"></label>
+          <label for="stamp-bottom">Distancia al borde inferior <output for="stamp-bottom" id="stamp-bottom-value">6 px</output><input type="range" id="stamp-bottom" min="0" max="30" step="1" value="6"></label>
+          <label for="stamp-opacity">Opacidad del sello <output for="stamp-opacity" id="stamp-opacity-value">68 %</output><input type="range" id="stamp-opacity" min="35" max="100" step="1" value="68"></label>
+        </div>
+        <button class="text-button" type="button" id="study-reset">Restablecer ajustes</button>
+      </details>
+    </div>
+    <p class="study-description" id="study-description">Tapa verde de base, título arriba a la izquierda y autor debajo. Mascota como sello al pie.</p>
+    <div id="cover-preview" data-design="current" aria-live="polite"><p role="status">Cargando libros…</p></div>
+    <div id="study-dialog-host"></div>
+  </main>
+</body>
+</html>
