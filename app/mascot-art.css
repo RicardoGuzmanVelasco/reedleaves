@@ -15,3 +15,15 @@
 /* Translation has one apex. Implicit rotation endpoints preserve the hover pose. */
 @keyframes mascot-art-greet{0%,100%{translate:0 0}35%{transform:rotate(-7deg)}50%{translate:0 -8%}70%{transform:rotate(6deg)}}
 @media(prefers-reduced-motion:reduce){.mascot-art-motion{animation:none!important;transition:none!important}}
+
+/* Face placement is an SVG transform. Only the inner eye groups express emotion. */
+.mascot-face{position:absolute;inset:0;display:block;width:100%;height:100%;overflow:visible;pointer-events:none}
+.mascot-eye-expression{transform-origin:0 0}
+.mascot-face[data-expression="wink-left"] .mascot-eye--left .mascot-eye-expression,
+.mascot-face[data-expression="wink-right"] .mascot-eye--right .mascot-eye-expression,
+.mascot-face[data-expression="blink"] .mascot-eye-expression{transform:scaleY(.12)}
+.mascot-art.is-winking-left .mascot-eye--left .mascot-eye-expression,
+.mascot-art.is-winking-right .mascot-eye--right .mascot-eye-expression,
+.mascot-art.is-blinking .mascot-eye-expression{animation:mascot-eye-close 480ms ease-in-out}
+@keyframes mascot-eye-close{0%,100%{transform:scaleY(1)}35%,65%{transform:scaleY(.12)}}
+@media(prefers-reduced-motion:reduce){.mascot-eye-expression{animation:none!important}}
