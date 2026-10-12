@@ -111,6 +111,8 @@ El logo con libro no lleva ojos ni boca. La cara se reserva para la hoja cuando 
 
 El usuario ha elegido la forma **D · Compacto** con el color **B · Salvia** (`#779A72`) en contorno y pliegue. Se recuperan exactamente las hojas del B original: sin separación adicional, sin estrecharlas y con sus sombras originales. Únicamente la sombra exterior del libro cambia de `#369247` a `#1E4C2E`. Mantener todos los trazados, proporciones y transformaciones del B original. La prueba actual está en `brand/reed/refinement.html`; los ajustes descartados quedan como historial.
 
+Prueba de color solicitada el 12 de octubre de 2026: papel del libro en verde claro `#E8F3DF`, sustituyendo su crema original `#FFF9ED`. Se aplica al logo activo y a sus iconos para comparar; conserva las hojas, el contorno, la sombra y el fondo crema de los iconos. Pendiente de confirmar como decisión definitiva.
+
 El símbolo elegido debe funcionar en tres niveles:
 
 1. Icono plano y reconocible a 24 px.

@@ -30,7 +30,7 @@ function inside(p,poly){
   }
   return hit;
 }
-const pageTag=[...svg.matchAll(/<path[^>]+>/g)].map(m=>m[0]).find(s=>s.includes('fill="#FFF9ED"'));
+const pageTag=svg.match(/<g id="book">[\s\S]*?(<path[^>]+stroke-width="7"[^>]*>)/)[1];
 const page=polygon(pageTag.match(/d="([^"]+)"/)[1]);
 const border=Number(pageTag.match(/stroke-width="([^"]+)"/)[1])/2;
 const outer=svg.match(/id="leaf" transform="translate\(([-\d.]+) ([-\d.]+)\) scale\(([-\d.]+)\)"/);
@@ -46,7 +46,9 @@ assert.ok(contour>=3.9,"Margen insuficiente con el contorno");
 assert.equal((svg.match(/fill="#1E4C2E"/g)||[]).length,1,"Solo la sombra exterior del libro es oscura");
 const original=readFileSync(new URL("./colors/salvia.svg",import.meta.url),"utf8");
 const normalize=s=>s.replace(/aria-label="[^"]*"/,'aria-label="normalized"').trim();
-assert.equal(normalize(svg),normalize(original.replace('fill="#369247"','fill="#1E4C2E"')),"Solo debe cambiar el color de la sombra exterior del libro");
+// Prueba de papel verde claro solicitada por el usuario: geometría y hojas intactas.
+const expected=original.replace('fill="#369247"','fill="#1E4C2E"').replace('fill="#FFF9ED"','fill="#E8F3DF"');
+assert.equal(normalize(svg),normalize(expected),"Solo deben cambiar los colores de la sombra exterior y del papel del libro");
 assert.equal((svg.match(/stroke="#779A72"/g)||[]).length,2,"Contorno y pliegue deben usar B Salvia");
 assert.ok(!svg.includes('id="face"'));
 console.log(JSON.stringify({sampledPoints:points.length,outside,contourClearance:+contour.toFixed(2),foldClearance:+fold.toFixed(2)}));
