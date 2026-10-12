@@ -21,7 +21,7 @@
 #cover-preview[data-surface="library"] .study-books{gap:25px 23px;width:100%}
 .cover-sample{min-width:0;display:flex;flex-direction:column;align-items:stretch}
 .cover-sample .study-book{flex:1;width:var(--cover-width,100%);align-self:center;min-height:var(--cover-height);border:1px solid var(--cover-edge);border-radius:7px 4px 4px 7px;background:var(--cover-paper);box-shadow:1px 3px 0 var(--cover-edge),4px 6px 12px rgb(23 61 44 / 12%);color:var(--ink)}
-/* Fore-edge only: the pages stay between the top and bottom of the cover. */
+/* Entelada keeps its fore-edge pages; Base uses a continuous cover edge. */
 .cover-sample .study-book::before{top:5px;right:-7px;bottom:5px;left:auto;width:7px;border:1px solid #c4bda9;border-radius:0 2px 2px 0;background:repeating-linear-gradient(0deg,#fffdf6 0 2px,#dcd5c3 2px 3px);box-shadow:1px 0 0 #b8b09a}
 .cover-sample .study-book::after{width:17px;border-right:1px solid rgb(0 0 0 / 20%);border-radius:6px 0 0 6px;background:var(--cover-spine);box-shadow:inset 3px 0 3px rgb(255 255 255 / 20%),inset -3px 0 5px rgb(0 0 0 / 12%)}
 [data-design="current"] .study-book::after{width:14px;border-right:1.5px solid #779a72;border-radius:13px 0 0 13px;background:var(--cover-spine);box-shadow:inset 4px 0 0 rgb(255 255 255 / 22%)}
@@ -35,6 +35,10 @@
 .cover-sample .study-book:active{transform:translateY(3px);box-shadow:1px 1px 0 var(--cover-edge)}
 [data-design="current"]{--cover-paper:#e4f0cc;--cover-edge:#779a72;--cover-spine:#9fca82}
 [data-design="current"] .study-book{border-radius:16px 12px 12px 16px}
+[data-design="current"] .study-book::before{display:none}
+[data-design="current"] .study-book{box-shadow:1px 3px 0 var(--shadow),4px 6px 12px rgb(23 61 44 / 12%)}
+[data-design="current"] .study-book:hover{box-shadow:1px 6px 0 var(--shadow),4px 9px 16px rgb(23 61 44 / 15%)}
+[data-design="current"] .study-book:active{box-shadow:1px 1px 0 var(--shadow)}
 [data-design="current"] .study-book-cover{align-items:flex-start;padding:22px 18px var(--cover-stamp-bottom) 28px;border-radius:15px 11px 11px 15px;text-align:left}
 [data-design="cloth"] .study-book::after{width:17px;border-right:1px solid rgb(0 0 0 / 20%);border-radius:15px 0 0 15px;box-shadow:inset 3px 0 3px rgb(255 255 255 / 20%),inset -3px 0 5px rgb(0 0 0 / 12%)}
 [data-design="current"] .study-book-cover>strong{font-family:inherit;font-weight:800;font-size:23px;line-height:1.16;letter-spacing:-.04em}
