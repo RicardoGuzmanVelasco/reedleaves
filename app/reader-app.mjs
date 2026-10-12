@@ -207,6 +207,34 @@ export function startReader() {
     pendingViews.add(key);
     api.request("/api/reader/view",{cardId,context}).then(()=>{recordedViews.add(key);}).catch(()=>{}).finally(()=>pendingViews.delete(key));
   }
+  function syncCardVotesUI() {
+    const group=main.querySelector(".exclusive-card-modal .card-votes");
+    if(!group||!cardVotesCardId)return;
+    const c=words[language],votes=cardVotes?.cardId===cardVotesCardId?cardVotes:null;
+    const deck=catalog?.decksById.get(catalog.cardsById.get(cardVotesCardId)?.deckId);
+    const own=votes?.isOwn??deck?.creator.userId===snapshot.user?.id;
+    group.setAttribute("aria-label",c.cardFeedback);
+    group.classList.toggle("card-votes--own",!!own);
+    for(const button of group.querySelectorAll(".card-vote")){
+      const value=Number(button.dataset.value),selected=votes?.vote===value;
+      const total=votes?(value===1?votes.likes:votes.dislikes):null;
+      button.disabled=!!own||!votes;
+      button.classList.toggle("is-own-card-vote",!!own);
+      button.classList.toggle("is-selected",selected);
+      button.setAttribute("aria-pressed",String(selected));
+      button.setAttribute("aria-label",`${value===1?c.likeCard:c.dislikeCard}, ${total===null?"…":total}`);
+      const count=button.querySelector("span");if(count)count.textContent=total===null?"…":String(total);
+    }
+    let ownNote=group.querySelector(".card-votes-own-note");
+    if(own&&!ownNote){ownNote=document.createElement("span");ownNote.className="sr-only card-votes-own-note";group.append(ownNote)}
+    if(ownNote){ownNote.textContent=own?c.ownCardVotes:"";ownNote.hidden=!own}
+    let error=group.querySelector(".card-vote-error"),retry=group.querySelector(".card-vote-retry");
+    if(cardVotesError){
+      if(!error){error=document.createElement("span");error.className="card-vote-error";error.setAttribute("role","status");group.append(error)}
+      error.textContent=c[cardVotesError]||c.connectionError;
+      if(!retry){retry=document.createElement("button");retry.className="card-vote-retry";retry.type="button";retry.dataset.action="retry-card-votes";retry.textContent=c.retry;group.append(retry)}
+    }else{error?.remove();retry?.remove()}
+  }
   function openBook(id) {
     if (!catalog.booksById.has(id)) return;
     if (["home","library","bookshelf","daily"].includes(mode)) bookOrigin = mode;
@@ -231,24 +259,24 @@ export function startReader() {
     }
   }
   function loadCardVotes(cardId) {
-    if (!cardId || cardVotesCardId===cardId && cardVotesLoading) return;
+    if (!cardId || cardVotesCardId===cardId && (cardVotesLoading||cardVotes)) return;
     cardVotesCardId=cardId;cardVotes=null;cardVotesError=null;cardVotesLoading=true;
     const generation=++cardVotesGeneration;
     api.request(`/api/cards/${encodeURIComponent(cardId)}/votes`).then(result=>{
       if(generation!==cardVotesGeneration||cardVotesCardId!==cardId)return;
-      cardVotes=result;cardVotesLoading=false;render();
+      cardVotes=result;cardVotesLoading=false;syncCardVotesUI();
     }).catch(error=>{
       if(generation!==cardVotesGeneration||cardVotesCardId!==cardId)return;
-      cardVotesLoading=false;cardVotesError=error.code||"connectionError";render();
+      cardVotesLoading=false;cardVotesError=error.code||"connectionError";syncCardVotesUI();
     });
   }
   async function voteCard(cardId,value) {
     if(busy||!snapshot.user||cardVotes?.cardId!==cardId||cardVotes.isOwn)return;
     const selectedValue=value,storedValue=cardVotes.vote===value?0:value;
-    busy=true;syncGeneration++;lockControls();
+    busy=true;syncGeneration++;main.setAttribute("aria-busy","true");main.querySelectorAll(".card-vote").forEach(control=>control.disabled=true);
     try { cardVotes=await api.request("/api/cards/vote",{cardId,value:storedValue});cardVotesCardId=cardId;cardVotesError=null; }
     catch(error) { cardVotesError=error.code||"connectionError"; }
-    finally { busy=false;render();main.querySelector(`.card-vote[data-value="${selectedValue}"]`)?.focus({preventScroll:true}); }
+    finally { busy=false;main.setAttribute("aria-busy","false");syncCardVotesUI();main.querySelector(`.card-vote[data-value="${selectedValue}"]`)?.focus({preventScroll:true}); }
   }
   function closeAuthorForm() {
     if (busy) return;
