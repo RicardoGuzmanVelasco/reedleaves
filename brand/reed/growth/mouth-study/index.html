@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Reedleaves · Prueba de bocas</title>
+  <link rel="stylesheet" href="/app/mascot-art.css">
+  <link rel="stylesheet" href="../composition.css">
+  <link rel="stylesheet" href="mouths.css?v=per-mascot-widths">
+  <script type="module" src="mouths.mjs?v=per-mascot-widths"></script>
+</head>
+<body><main>
+  <a href="../face-study/index.html">← Prueba de caras</a>
+  <h1>Prueba de bocas</h1>
+  <p class="study-note">Misma altura, grosor y posición. Solo cambia la anchura.</p>
+  <div class="preview-controls">
+    <button type="button" id="greet-all">Saludar</button>
+    <button type="button" id="wink-all">Guiñar</button>
+    <label for="mouth-width">Anchura general <input id="mouth-width" type="range" min="0.75" max="5" step="0.125" value="4.5"><output id="width-value" for="mouth-width">4,5×</output></label>
+  </div>
+  <div id="mouth-trials"></div>
+</main></body>
+</html>

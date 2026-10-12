@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
+import {mascotMouthWidth} from "./mascot-face.mjs";
 import {mascotArt,mascotAssets} from "./mascot-art.mjs";
 
 test("Decorative mascot artwork reserves separate placement and motion layers",()=>{
@@ -65,4 +66,29 @@ test("Expression input is constrained and independent of the root face pose",()=
   }
   assert.match(mascotArt("root","",{expression:'x" onload="alert(1)'}),/data-expression="neutral"/);
   assert.doesNotMatch(mascotArt("root","",{expression:'x" onload="alert(1)'}),/onload/);
+});
+
+
+test("Mouth widths inherit a general value with independent stage exceptions",()=>{
+  const mouth={width:4.5,overrides:{root:3,sprout:2,seedling:5}};
+  for(const [stage,width] of [["pot",4.5],["seed",4.5],["root",3],["sprout",2],["seedling",5]]) {
+    assert.equal(mascotMouthWidth(stage,mouth),width);
+  }
+  assert.match(mascotArt("seedling","",{mouth}),/d="M62 119q20 6 40 0"/);
+  const faceWithoutMouth = html => html.replace(/(<g class="mascot-mouth"><path d=")[^"]*/,"$1");
+  for(const stage of ["pot","seed","root","seedling","sprout"]) {
+    assert.equal(faceWithoutMouth(mascotArt(stage,"",{mouth})),faceWithoutMouth(mascotArt(stage)));
+  }
+  assert.equal(mascotMouthWidth("seedling"),1);
+  assert.match(mascotArt("root"),/d="M78 119q4 6 8 0"/);
+});
+
+test("Invalid mouth widths fall back without injecting SVG attributes",()=>{
+  for(const width of [NaN,Infinity,-2,0,7,'4" onload="alert(1)']) {
+    assert.equal(mascotMouthWidth("root",{width,overrides:{}}),1);
+    const mouth={width:4.5,overrides:{root:width}};
+    assert.equal(mascotMouthWidth("root",mouth),4.5);
+    assert.doesNotMatch(mascotArt("root","",{mouth}),/onload=/);
+  }
+  assert.equal(mascotMouthWidth("root",{width:4.5,overrides:Object.create({root:3})}),4.5);
 });

@@ -1,0 +1,58 @@
+import {mascotArt} from "/app/mascot-art.mjs?v=mouth-widths";
+import {mascotMouthWidth,mascotMouthPath,playMascotExpression} from "/app/mascot-face.mjs?v=mouth-widths";
+const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Plántula"],["sprout","Brote"]];
+const widths = [1,1.5,2,3,"custom"];
+const format = value => `${String(value).replace(".",",")}×`;
+// Proposed widths are confined to this study; the shared renderer resolves inheritance.
+const trialMouth = {width:4.5,overrides:{root:3,sprout:2,seedling:5}};
+function sample(stage,factor,className="") {
+  const mouth = factor === "custom" ? trialMouth : {width:factor};
+  return mascotArt(stage,className,{mouth});
+}
+function caption(stage) {
+  const inherited = !Object.hasOwn(trialMouth.overrides,stage);
+  return `${inherited ? "General" : "Propia"} · ${format(mascotMouthWidth(stage,trialMouth))}`;
+}
+document.getElementById("mouth-trials").innerHTML=stages.map(([stage,name])=>{
+  const factor=mascotMouthWidth(stage,trialMouth),inherited=!Object.hasOwn(trialMouth.overrides,stage);
+  return `<section class="mouth-trial" data-stage="${stage}"><h2>${name}</h2><div class="mouth-calibration"><label><input type="checkbox" data-inherit ${inherited?"checked":""}> Usar anchura general</label><label for="width-${stage}">Anchura <input id="width-${stage}" type="range" min="0.75" max="5" step="0.125" value="${factor}" ${inherited?"disabled":""}><output for="width-${stage}">${format(factor)}</output></label></div><div class="mouth-row">${widths.map(width=>`<figure class="mouth-sample" data-width="${width}"><figcaption>${width==="custom"?caption(stage):width===1?"Actual · 1×":format(width)}</figcaption>${sample(stage,width)}${sample(stage,width,"mouth-small")}</figure>`).join("")}</div></section>`;
+}).join("");
+function update() {
+  document.getElementById("width-value").textContent=format(trialMouth.width);
+  for(const section of document.querySelectorAll(".mouth-trial")) {
+    const stage=section.dataset.stage,factor=mascotMouthWidth(stage,trialMouth),inherited=!Object.hasOwn(trialMouth.overrides,stage);
+    const slider=section.querySelector('input[type="range"]');
+    slider.disabled=inherited;
+    slider.value=factor;
+    section.querySelector("output").textContent=format(factor);
+    const sample=section.querySelector('[data-width="custom"]');
+    sample.querySelector("figcaption").textContent=caption(stage);
+    for(const mouth of sample.querySelectorAll(".mascot-mouth path")) mouth.setAttribute("d",mascotMouthPath(stage,trialMouth));
+  }
+}
+document.getElementById("mouth-width").addEventListener("input",event=>{
+  trialMouth.width=Number(event.target.value);
+  update();
+});
+for(const section of document.querySelectorAll(".mouth-trial")) {
+  const stage=section.dataset.stage,slider=section.querySelector('input[type="range"]');
+  section.querySelector("[data-inherit]").addEventListener("change",event=>{
+    if(event.target.checked) delete trialMouth.overrides[stage];
+    else trialMouth.overrides[stage]=Number(slider.value);
+    update();
+  });
+  slider.addEventListener("input",event=>{
+    trialMouth.overrides[stage]=Number(event.target.value);
+    update();
+  });
+}
+document.getElementById("greet-all").addEventListener("click",()=>{
+  for(const art of document.querySelectorAll(".mascot-art")) {
+    art.classList.remove("is-greeting");
+    void art.offsetWidth;
+    art.classList.add("is-greeting");
+  }
+});
+document.getElementById("wink-all").addEventListener("click",()=>{
+  for(const art of document.querySelectorAll(".mascot-art")) playMascotExpression(art,"wink-right");
+});
