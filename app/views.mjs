@@ -237,18 +237,33 @@ function cardAttribution(s,card,book) {
   }).join("")}</div>`;
 }
 
-function cardMarkup(s, card, heading = "h2", {typewriter = true} = {}) {
+function cardVoteMarkup(s,card) {
+  const c=words[s.language],votes=s.cardVotes?.cardId === card.id ? s.cardVotes : null;
+  const deck=s.catalog.decksById.get(card.deckId),own=votes?.isOwn ?? deck?.creator.userId === s.userId;
+  const count=votes ? value=>String(value) : ()=>"…";
+  const button=(value,label,icon,total)=>`<button class="card-vote${votes?.vote === value ? " is-selected" : ""}${own ? " is-own-card-vote" : ""}" type="button" data-action="vote-card" data-card="${esc(card.id)}" data-value="${value}" aria-label="${label}, ${count(total)}" aria-pressed="${votes?.vote === value}" ${own || !votes ? "disabled" : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg><span>${count(total)}</span></button>`;
+  const down='<path d="M7 10v11H4V10h3Zm0 0 5-7c1.2 0 2 1 1.7 2.2L13 10h5.6a2 2 0 0 1 1.9 2.6l-2.3 7a2 2 0 0 1-1.9 1.4H7"/>';
+  const up='<path d="M7 14V3H4v11h3Zm0 0 5 7c1.2 0 2-1 1.7-2.2L13 14h5.6a2 2 0 0 0 1.9-2.6l-2.3-7A2 2 0 0 0 16.3 3H7"/>';
+  return `<div class="card-votes${own ? " card-votes--own" : ""}" role="group" aria-label="${c.cardFeedback}">${button(-1,c.dislikeCard,down,votes?.dislikes)}${button(1,c.likeCard,up,votes?.likes)}${own ? `<span class="sr-only">${c.ownCardVotes}</span>` : ""}${s.cardVotesError ? `<span class="card-vote-error" role="status">${esc(c[s.cardVotesError]||c.connectionError)}</span><button class="card-vote-retry" type="button" data-action="retry-card-votes">${c.retry}</button>` : ""}</div>`;
+}
+
+function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false} = {}) {
   const book = s.catalog.booksById.get(card.bookId), deckLanguage = card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
   return `<div class="reading-stage${card.isQuote ? " reading-stage--quote" : ""}" data-reading-card="${esc(card.id)}"${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${card.isQuote ? " quote-card" : ""}">${card.isQuote ? `<blockquote lang="${esc(bodyLanguage)}" dir="auto" class="idea-body" id="idea-content" tabindex="-1">${esc(body)}</blockquote>` : `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-content" tabindex="-1">${esc(title)}</${heading}><p lang="${esc(bodyLanguage)}" dir="auto" class="idea-body">${esc(body)}</p>`}
-    <footer class="reading-footer">${cardAttribution(s,card,book)}</footer>${card.isQuote ? '<span class="quote-watermark" aria-hidden="true">❞</span>' : ""}</article></div>`;
+    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book)}</div>${exclusive ? cardVoteMarkup(s,card) : ""}</footer>${card.isQuote ? '<span class="quote-watermark" aria-hidden="true">❞</span>' : ""}</article></div>`;
+}
+
+function exclusiveCardMarkup(s,card,position="") {
+  const c=words[s.language];
+  return `<dialog class="exclusive-card-modal" aria-label="${c.exclusiveCard}"><div class="exclusive-card-shell"><div class="exclusive-card-controls"><span>${esc(position)}</span><button class="exclusive-card-close" type="button" data-action="close-exclusive" aria-label="${c.closeCard}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>${card.isQuote ? `<h1 class="sr-only">${c.quoteBody}</h1>` : ""}${cardMarkup(s,card,"h1",{exclusive:true})}</div></dialog>`;
 }
 
 export function dailyView(s) {
   const c = words[s.language], card = s.daily && s.catalog.cardsById.get(s.daily.id);
   return `<section class="daily-screen"><div class="screen-heading"><h1 tabindex="-1">${c.daily}</h1></div>
-    ${card ? cardMarkup(s, card, "h2", {typewriter:false}) + `<div class="daily-action">${button(c.reviewBook, "enter-review", !s.storageAvailable)}</div>` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p><small>${s.storageAvailable ? c.emptyHint : ""}</small></div>`}${filters(s)}
+    ${card ? cardMarkup(s, card, "h2", {typewriter:false}) + `<div class="daily-action">${button(c.reviewBook, "enter-review", !s.storageAvailable)}</div>` + (s.requestedId === card.id ? exclusiveCardMarkup(s,card) : "") : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p><small>${s.storageAvailable ? c.emptyHint : ""}</small></div>`}${filters(s)}
     </section>`;
 }
 
@@ -260,8 +275,8 @@ function legacyReviewView(s) {
   if (!card) return `<section class="review-screen"><button class="text-button" data-action="daily" type="button">${c.back}</button>${mascot}<div class="review-intro"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.review}</h1><p ${allowed ? "" : 'id="daily-limit"'}>${allowed ? c.emptyReview : c.tomorrow}</p>${allowed ? button(c.start, "advance") : ""}</div></section>`;
   const i = model.roots.findIndex(root => root.id === card.id), hasNext = i + 1 < review.unlockedCount, finished = review.unlockedCount === model.roots.length;
   return `<section class="review-screen"><div class="review-heading"><button class="text-button" data-action="daily" type="button">${c.back}</button><span>${c.review} · ${c.position(i + 1, model.roots.length)}</span></div>${mascot}
-    ${cardMarkup(s, card, "h1")}<div class="review-actions"><button type="button" class="text-button" data-action="previous" ${i === 0 ? "disabled" : ""}>${c.previous}</button>
-    ${hasNext ? button(c.next, "next") : allowed ? button(c.unlock, "advance") : finished ? `<span class="limit-note">${c.complete}</span>` : `<span class="limit-note" id="daily-limit">${c.tomorrow}</span>`}</div>
+    <div class="review-actions"><button type="button" class="text-button" data-action="previous" ${i === 0 ? "disabled" : ""}>${c.previous}</button>
+    ${hasNext ? button(c.next, "next") : allowed ? button(c.unlock, "advance") : finished ? `<span class="limit-note">${c.complete}</span>` : `<span class="limit-note" id="daily-limit">${c.tomorrow}</span>`}</div>${exclusiveCardMarkup(s,card,c.position(i+1,model.roots.length))}
     </section>`;
 }
 
@@ -361,24 +376,17 @@ function albumSummary(s,version,deck,model,review,mascot="") {
     <div class="album-progress"><div><p>${c.progress(seen,total)}</p><span aria-hidden="true">${percent}%</span></div><progress value="${seen}" max="${Math.max(total,1)}" aria-label="${esc(c.progress(seen,total))}"></progress></div>`;
 }
 
-function cardView(s,card) {
-  const c=words[s.language];
-  return `<section class="review-screen card-screen"><button class="text-button" type="button" data-action="deck-album">${c.albumBack}</button>
-    ${card.isQuote ? `<h1 class="sr-only" tabindex="-1">${c.quoteBody}</h1>` : ""}${cardMarkup(s,card,"h1")}</section>`;
-}
-
 export function reviewView(s) {
   if (!s.versionId) return legacyReviewView(s);
   const c=words[s.language],version=s.catalog.versionsById.get(s.versionId),deck=s.catalog.decksById.get(version.deckId),
     model=s.catalog.versionModels.get(s.versionId),review=s.reviews[s.versionId];
   const card=review.seenIds.includes(s.requestedId) ? model.byId.get(s.requestedId) : null;
-  if (card) return cardView(s,card);
   const leaf=hasLeaf(s.today,s.budget) && s.storageAvailable,finished=model.cards.length > 0 && review.seenIds.length === model.cards.length;
   return `<section class="review-screen album-screen"><button class="text-button" type="button" data-action="choose-book">${c.deckBack}</button>
     ${albumSummary(s,version,deck,model,review,reviewMascotCallout(s,version.bookId))}
     ${finished ? `<p class="complete-note">${c.complete}</p>` : model.cards.length && !leaf ? `<p class="limit-note daily-limit" id="daily-limit">${c.tomorrow}</p>` : ""}
     <div class="content-tools">${model.cards.length ? quoteFilter(s) : ""}${s.userId === deck.creator.userId && version.status === "draft" ? `<button class="text-button" type="button" data-action="author-deck" data-version="${esc(version.id)}">${c.editDeck} →</button>` : ""}</div>
-    ${model.cards.length ? treeMapMarkup(s,model,review,version,leaf) : `<div class="empty-state">${c.emptyAuthor}</div>`}
+    ${model.cards.length ? treeMapMarkup(s,model,review,version,leaf) : `<div class="empty-state">${c.emptyAuthor}</div>`}${card ? exclusiveCardMarkup(s,card,c.position(model.cards.findIndex(item=>item.id===card.id)+1,model.cards.length)) : ""}
     ${s.quotesOnly && model.cards.length && !model.cards.some(card=>card.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}</section>`;
 }
 
@@ -390,13 +398,12 @@ function quoteFilter(s) {
 export function authorView(s) {
   const c=words[s.language],version=s.catalog.versionsById.get(s.versionId),deck=s.catalog.decksById.get(version.deckId),model=s.catalog.versionModels.get(s.versionId),review=s.reviews[version.id];
   const card=model.byId.get(s.requestedId);
-  if (card) return cardView(s,card);
   return `<section class="author-screen album-screen"><div class="review-heading"><button type="button" class="text-button" data-action="choose-book">${c.deckBack}</button><button type="button" class="text-button" data-action="select-deck" data-version="${esc(version.id)}" ${!model.cards.length ? "disabled" : ""}>${c.review} →</button></div>
     ${albumSummary(s,version,deck,model,review)}
     ${model.cards.length && review.seenIds.length === model.cards.length ? `<p class="complete-note">${c.complete}</p>` : ""}
     <div class="author-actions">${button(c.addCard,"add-card")}<button class="secondary" type="button" data-action="add-quote"><span aria-hidden="true">❝</span> ${c.addQuote}</button></div>
     ${model.cards.length ? quoteFilter(s)+treeMapMarkup(s,model,review,version,true) : `<div class="empty-state">${c.emptyAuthor}</div>`}
-    ${s.quotesOnly && model.cards.length && !model.cards.some(c=>c.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}</section>`;
+    ${s.quotesOnly && model.cards.length && !model.cards.some(c=>c.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}${card ? exclusiveCardMarkup(s,card,c.position(model.cards.findIndex(item=>item.id===card.id)+1,model.cards.length)) : ""}</section>`;
 }
 
 export function authorFormView(s) {

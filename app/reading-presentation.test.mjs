@@ -36,22 +36,22 @@ test("Typing reserves complete text, exposes it once to readers, and never split
   const [full,space,ink]=f.body.children;
   assert.equal(full.textContent,f.text); assert.equal(full.className,"sr-only");
   assert.equal(space.textContent,f.text); assert.equal(space.attributes["aria-hidden"],"true"); assert.equal(ink.attributes["aria-hidden"],"true");
-  f.advance(0); f.advance(184); assert.equal(ink.textContent,"e\u0301");
-  f.advance(196); assert.equal(f.body.textContent,f.text); assert.equal(f.body.children.length,1); assert.equal(f.frames.size,0);
+  f.advance(0); f.advance(198); assert.equal(ink.textContent,"e\u0301");
+  f.advance(234); assert.equal(f.body.textContent,f.text); assert.equal(f.body.children.length,1); assert.equal(f.frames.size,0);
 });
-test("Fast writing pauses after punctuation, with longer pauses at sentence boundaries and newlines",()=>{
-  for (const [punctuation,pause] of [[",",70],[";",70],["-",70],["–",70],["—",70],[".",180],[":",180],["\n",180],["\r\n",180]]) {
+test("Deliberate writing pauses after punctuation, with longer pauses at sentence boundaries and newlines",()=>{
+  for (const [punctuation,pause] of [[",",220],[";",220],["-",220],["–",220],["—",220],[".",520],["!",520],["?",520],[":",520],["\n",520],["\r\n",520]]) {
     const f=fixture({text:`a${punctuation}b`}); f.present(f.main);
-    const ink=f.body.children[2]; f.advance(0); f.advance(189);
+    const ink=f.body.children[2]; f.advance(0); f.advance(216);
     assert.equal(ink.textContent,`a${punctuation}`);
-    f.advance(191+pause); assert.equal(ink.textContent,`a${punctuation}`);
-    f.advance(192+pause); assert.equal(f.body.textContent,f.text); assert.equal(f.frames.size,0);
+    f.advance(233+pause); assert.equal(ink.textContent,`a${punctuation}`);
+    f.advance(234+pause); assert.equal(f.body.textContent,f.text); assert.equal(f.frames.size,0);
   }
 });
-test("Long cards finish within 2.5 seconds of writing, with their layout reserved",()=>{
+test("Long cards finish within six seconds of writing, with their layout reserved",()=>{
   const f=fixture({text:"Una frase, con pausa; otra frase.\n".repeat(120)}); f.present(f.main);
   assert.equal(f.body.children[1].textContent,f.text);
-  f.advance(0); f.advance(2680);
+  f.advance(0); f.advance(6180);
   assert.equal(f.body.textContent,f.text); assert.equal(f.frames.size,0);
 });
 test("Daily cards arrive with complete text and no typing control",()=>{

@@ -30,7 +30,7 @@ test("Real SQLite schema: five books, six authored decks and 42 single-language 
 test("Schema initialization and seed are repeatable without duplicating data", async t => {
   const db = await fixture(t);
   initializeDatabase(db); await seedCatalog(db); await seedCatalog(db);
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 14);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 15);
   assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, versions: 6, cards: 42, genres: 3 });
 });
 test("Foreign keys, source ownership, order and translations are constrained", async t => {

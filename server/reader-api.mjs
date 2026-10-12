@@ -5,6 +5,7 @@ import {readReaderState, selectDeck, openCard, changeReading, changePreferences,
 
 import {createBook,createDeck,addCard,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
 import {createBookAutofill} from "./book-autofill.mjs";
+import {readCardVotes,setCardVote} from "./card-votes.mjs";
 
 async function readBody(request,maxBytes = 8192) {
   if (request.headers["content-type"]?.split(";")[0].trim() !== "application/json") throw new ApiError(415,"invalidRequest");
@@ -36,7 +37,10 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],
       ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/cards",["POST"]]]);
     const profileMatch=path.match(/^\/api\/profiles\/([^/]+)$/);
+    const cardVotesMatch=path.match(/^\/api\/cards\/([^/]+)\/votes$/);
     if (profileMatch) routes.set(path,["GET","HEAD"]);
+    if (cardVotesMatch) routes.set(path,["GET","HEAD"]);
+    routes.set("/api/cards/vote",["POST"]);
     routes.set("/api/reader/view",["POST"]);
     if (!routes.has(path)) return false;
     response.setHeader("Cache-Control","no-store");
@@ -60,6 +64,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       }
       if (!session) throw new ApiError(401,"signInRequired");
       if (profileMatch) { send(200,await readProfile(db,profileMatch[1],session.user_id)); return true; }
+      if (cardVotesMatch) { send(200,await readCardVotes(db,session,decodeURIComponent(cardVotesMatch[1]))); return true; }
       if (request.method === "POST") checkCsrf(session,request.headers["x-csrf-token"]);
       if (path === "/api/auth/logout") {
         await readBody(request); await revokeSession(db,session);
@@ -73,6 +78,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       checkCsrf(active,request.headers["x-csrf-token"]);
       const currentTime = now();
       if (path === "/api/reader/view") { send(200,await recordCardView(db,active,input,currentTime)); return true; }
+      if (path === "/api/cards/vote") { send(200,await setCardVote(db,active,input)); return true; }
       if (path === "/api/author/books/autofill") {
         let search=input;
         if (input.bookId !== undefined) {

@@ -132,8 +132,10 @@ test("Mascot collection opens from review album and deck selection, not library,
   assert.match(seedlingReview,/growth\/seedling\.svg/);assert.match(seedlingReview,/¡Algo asoma por fin!/);
   const sproutReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,spentDays:5}}});
   assert.match(sproutReview,/brand\/reed\/mascot\.svg/);assert.match(sproutReview,/Los brotes verdes son el primer paso/);
-  assert.doesNotMatch(reviewView({...reviewing,requestedId:first.id}),/data-action="open-mascots"/);
-  assert.doesNotMatch(authorView({...reviewing,requestedId:first.id}),/data-action="open-mascots"/);
+  for (const html of [reviewView({...reviewing,requestedId:first.id}),authorView({...reviewing,requestedId:first.id})]) {
+    const modal=html.match(/<dialog class="exclusive-card-modal"[^>]*>([\s\S]*?)<\/dialog>/)?.[1];
+    assert.ok(modal);assert.doesNotMatch(modal,/data-action="open-mascots"/);
+  }
 });
 test("Home book cover uses that book's earned mascot",async()=>{
   const catalog=prepareCatalog(await payload()),version=catalog.versions[0],bookId=version.bookId;

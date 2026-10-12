@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 6));
-INSERT INTO reed_schema VALUES (6);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 7));
+INSERT INTO reed_schema VALUES (7);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -95,6 +95,12 @@ CREATE TABLE deck_votes(
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(user_id,deck_id)
 );
 CREATE INDEX votes_by_deck ON deck_votes(deck_id,value);
+CREATE TABLE card_votes(
+  user_id TEXT NOT NULL REFERENCES users(id), card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  value INTEGER NOT NULL CHECK(value IN (-1,1)), updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(user_id,card_id)
+);
+CREATE INDEX votes_by_card ON card_votes(card_id,value);
 CREATE TABLE book_reading(
   user_id TEXT NOT NULL REFERENCES users(id), book_id TEXT NOT NULL REFERENCES books(id),
   status TEXT NOT NULL CHECK(status IN ('reading','read')), PRIMARY KEY(user_id,book_id)
