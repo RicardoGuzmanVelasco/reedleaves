@@ -1,7 +1,7 @@
 // Coordinates belong to the character's 160 × 160 frame, before its body motion.
 // One uniform transform preserves the canonical eye spacing and mouth proportions.
 export const mascotFacePlacement = Object.freeze(Object.fromEntries(Object.entries({
-  pot: {x:80,y:83,rotation:0,scale:1},
+  pot: {x:81,y:70,rotation:0,scale:1.1},
   seed: {x:82,y:82,rotation:8.5,scale:.9,eyeOffsets:{left:{x:2.5,y:0},right:{x:-1,y:0}}},
   root: {x:94,y:65.5,rotation:16.5,scale:.82,eyeOffsets:{left:{x:10.5,y:-2},right:{x:-10.5,y:-4.5}}},
   seedling: {x:80,y:101,rotation:0,scale:1},
@@ -28,7 +28,7 @@ export function mascotFaceGeometry(stage, override) {
 
 // Width is a multiplier of the canonical 8-unit mouth. An absent override inherits.
 // Approved widths: common 4.5×, with a few character-specific exceptions.
-export const mascotMouthConfig = Object.freeze({width:4.5,overrides:Object.freeze({root:3.75,sprout:2,seedling:5})});
+export const mascotMouthConfig = Object.freeze({width:4.5,overrides:Object.freeze({pot:5.5,root:3.75,sprout:2,seedling:5})});
 const validMouthWidth = width => typeof width === "number" && Number.isFinite(width) && width > 0 && width <= 6;
 export function mascotMouthWidth(stage, config = mascotMouthConfig) {
   const general = validMouthWidth(config?.width) ? config.width : mascotMouthConfig.width;

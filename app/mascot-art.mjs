@@ -1,4 +1,4 @@
-import {mascotFace} from "./mascot-face.mjs?v=seed-calibration";
+import {mascotFace} from "./mascot-face.mjs?v=pot-calibration";
 
 // Decorative artwork only. Stage availability remains the caller's responsibility.
 export const mascotAssets = Object.freeze({

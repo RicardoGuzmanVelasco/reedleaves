@@ -1,6 +1,6 @@
-import {mascotArt,mascotAssets} from "/app/mascot-art.mjs?v=seed-calibration";
-import {playMascotExpression} from "/app/mascot-face.mjs?v=seed-calibration";
-import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=seed-calibration";
+import {mascotArt,mascotAssets} from "/app/mascot-art.mjs?v=pot-calibration";
+import {playMascotExpression} from "/app/mascot-face.mjs?v=pot-calibration";
+import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=pot-calibration";
 const storageKey="reedleaves:mascot-calibration:v1";
 const names={pot:"Maceta",seed:"Semilla",root:"Raíz",seedling:"Plántula",sprout:"Brote"};
 const groups={body:"Personaje",shadow:"Sombra",face:"Cara y boca",leftEye:"Ojo izquierdo",rightEye:"Ojo derecho"};

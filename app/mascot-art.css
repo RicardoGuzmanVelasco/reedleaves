@@ -7,6 +7,7 @@
 .mascot-art-motion{transform-origin:50% 88%;transition:transform .15s ease}
 .mascot-art img{display:block;width:100%;height:100%;margin:0;object-fit:contain;user-select:none}
 /* Artwork calibration, shared by every surface. Seed, Seedling and Sprout float. */
+.mascot-art[data-mascot="pot"]{--mascot-y:5%;--mascot-scale:.88;--mascot-shadow-width:68.5%}
 .mascot-art[data-mascot="seed"]{--mascot-scale:.8;--mascot-shadow-width:39%}
 .mascot-art[data-mascot="root"]{--mascot-x:3.5%;--mascot-y:-6.5%;--mascot-scale:.88}
 .mascot-art[data-mascot="seedling"]{--mascot-y:-10%;--mascot-scale:.9}
