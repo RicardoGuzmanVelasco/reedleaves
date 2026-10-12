@@ -8,16 +8,17 @@ const descriptions={
   cloth:"Tapa entelada sin marco, lomo oscuro y título en serif. Mascota como sello al pie."
 };
 const parameters=[
-  {id:"cover-height",property:"--cover-height",defaultValue:270,unit:"px"},
-  {id:"author-size",property:"--cover-author-size",defaultValue:13,unit:"px"},
+  {id:"cover-height",property:"--cover-height",defaultValue:260,unit:"px"},
+  {id:"cover-width",property:"--cover-width",defaultValue:88,unit:"%"},
+  {id:"author-size",property:"--cover-author-size",defaultValue:12,unit:"px"},
   {id:"stamp-size",property:"--cover-stamp-size",defaultValue:100,unit:"px"},
-  {id:"stamp-bottom",property:"--cover-stamp-bottom",defaultValue:6,unit:"px"},
-  {id:"stamp-opacity",property:"--cover-stamp-opacity",defaultValue:68,unit:"%"}
+  {id:"stamp-bottom",property:"--cover-stamp-bottom",defaultValue:0,unit:"px"},
+  {id:"stamp-opacity",property:"--cover-stamp-opacity",defaultValue:48,unit:"%"}
 ];
 function updateParameters() {
   for (const parameter of parameters) {
     const value=Number(document.getElementById(parameter.id).value);
-    preview.style.setProperty(parameter.property,parameter.unit === "%" ? String(value/100) : `${value}px`);
+    preview.style.setProperty(parameter.property,parameter.id === "stamp-opacity" ? String(value/100) : `${value}${parameter.unit}`);
     document.getElementById(`${parameter.id}-value`).value=`${value} ${parameter.unit}`;
   }
 }
@@ -43,6 +44,7 @@ function render() {
     book.before(sample);sample.append(book);
   }
   preview.dataset.design=design;
+  preview.dataset.surface=document.querySelector("#study-surface").value;
   preview.replaceChildren(grid);
   document.querySelector("#study-description").textContent=descriptions[design];
 }
