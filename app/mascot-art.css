@@ -10,7 +10,7 @@
 .mascot-art[data-mascot="pot"]{--mascot-y:5%;--mascot-scale:.88;--mascot-shadow-width:68.5%}
 .mascot-art[data-mascot="seed"]{--mascot-scale:.8;--mascot-shadow-width:39%}
 .mascot-art[data-mascot="root"]{--mascot-x:3.5%;--mascot-y:-6.5%;--mascot-scale:.88}
-.mascot-art[data-mascot="seedling"]{--mascot-y:-10%;--mascot-scale:.9}
+.mascot-art[data-mascot="seedling"]{--mascot-y:-13%;--mascot-scale:.9;--mascot-shadow-width:34%}
 .mascot-art[data-mascot="sprout"]{--mascot-y:-8%}
 .mascot-art.is-greeting .mascot-art-motion{animation:mascot-art-greet 600ms ease-in-out}
 /* Translation has one apex. Implicit rotation endpoints preserve the hover pose. */

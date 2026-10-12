@@ -139,6 +139,8 @@ Calibración de Maceta: cuerpo x=0%, y=5%, escala=0,88; sombra del 68,5% del mar
 
 Calibración corporal de Semilla: x=0%, y=0%, escala=0,8; sombra del 39% del marco y boca de 4,5×.
 
+Calibración corporal de Plántula: x=0%, y=−13%, escala=0,9; sombra del 34% del marco. Mantiene boca de 5×, cara en (80, 101), giro 0°, escala facial 1 y ambos ojos sin desplazamiento local.
+
 Calibración corporal de Raíz: x=3,5%, y=−6,5%, escala=0,88. Su cara usa centro (94, 65,5), giro 16,5° y escala 0,82.
 
 El editor interno de `brand/reed/growth/position-study/` permite elegir una mascota, ajustar los trece parámetros de calibración, incluida la anchura de sombra y verla a 160, 100, 60 y 32 px. Reutiliza el componente de producto y sus valores vigentes. Guarda borradores por mascota en el navegador y permite copiar la configuración; modificar un borrador no cambia el producto. El selector incorpora nuevas etapas cuando tienen cuerpo y metadatos faciales.
