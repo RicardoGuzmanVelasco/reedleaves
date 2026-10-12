@@ -3,10 +3,28 @@
 export const mascotFacePlacement = Object.freeze(Object.fromEntries(Object.entries({
   pot: {x:80,y:83,rotation:0,scale:1},
   seed: {x:82,y:81,rotation:0,scale:1},
-  root: {x:95,y:66,rotation:12,scale:.8},
+  root: {x:95,y:66,rotation:12,scale:.8,eyeOffsets:{left:{x:0,y:0},right:{x:0,y:0}}},
   seedling: {x:80,y:101,rotation:0,scale:1},
   sprout: {x:82,y:104,rotation:0,scale:1}
-}).map(([stage,placement]) => [stage,Object.freeze(placement)])));
+}).map(([stage,placement]) => [stage,Object.freeze({...placement,
+  ...(placement.eyeOffsets ? {eyeOffsets:Object.freeze(Object.fromEntries(Object.entries(placement.eyeOffsets).map(([side,offset])=>[side,Object.freeze(offset)])))} : {})
+})])));
+
+const numberOr = (value,fallback) => typeof value === "number" && Number.isFinite(value) ? value : fallback;
+// Eye offsets use local face coordinates, before the shared face rotation/scale.
+export function mascotFaceGeometry(stage, override) {
+  if (!Object.hasOwn(mascotFacePlacement,stage)) return null;
+  const base=mascotFacePlacement[stage];
+  const eyeOffsets=Object.fromEntries(["left","right"].map(side=>{
+    const defaults=base.eyeOffsets?.[side];
+    const offset=override?.eyeOffsets?.[side];
+    return [side,{x:numberOr(offset?.x,defaults?.x ?? 0),y:numberOr(offset?.y,defaults?.y ?? 0)}];
+  }));
+  return {x:numberOr(override?.x,base.x),y:numberOr(override?.y,base.y),
+    rotation:numberOr(override?.rotation,base.rotation),
+    scale:typeof override?.scale === "number" && Number.isFinite(override.scale) && override.scale>0 ? override.scale : base.scale,
+    eyeOffsets};
+}
 
 // Width is a multiplier of the canonical 8-unit mouth. An absent override inherits.
 // Approved widths: common 4.5×, with a few character-specific exceptions.
@@ -24,12 +42,12 @@ export function mascotMouthPath(stage, config = mascotMouthConfig) {
 }
 
 const expressions = new Set(["neutral","wink-left","wink-right","blink"]);
-export function mascotFace(stage, expression = "neutral", mouth = mascotMouthConfig) {
-  const placement = Object.hasOwn(mascotFacePlacement,stage) ? mascotFacePlacement[stage] : null;
+export function mascotFace(stage, expression = "neutral", mouth = mascotMouthConfig, face) {
+  const placement = mascotFaceGeometry(stage,face);
   if (!placement) return "";
-  const {x,y,rotation,scale} = placement;
+  const {x,y,rotation,scale,eyeOffsets} = placement;
   const state = expressions.has(expression) ? expression : "neutral";
-  return `<svg class="mascot-face" viewBox="0 0 160 160" aria-hidden="true" focusable="false" data-expression="${state}"><g class="mascot-face-placement" transform="translate(${x} ${y}) rotate(${rotation}) scale(${scale}) translate(-82 -104)" fill="#173D2C"><g class="mascot-eye mascot-eye--left" transform="translate(53 104)"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-eye mascot-eye--right" transform="translate(111 104)"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-mouth"><path d="${mascotMouthPath(stage,mouth)}" stroke="#173D2C" stroke-width="3" stroke-linecap="round" fill="none"/></g></g></svg>`;
+  return `<svg class="mascot-face" viewBox="0 0 160 160" aria-hidden="true" focusable="false" data-expression="${state}"><g class="mascot-face-placement" transform="translate(${x} ${y}) rotate(${rotation}) scale(${scale}) translate(-82 -104)" fill="#173D2C"><g class="mascot-eye mascot-eye--left" transform="translate(${53+eyeOffsets.left.x} ${104+eyeOffsets.left.y})"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-eye mascot-eye--right" transform="translate(${111+eyeOffsets.right.x} ${104+eyeOffsets.right.y})"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-mouth"><path d="${mascotMouthPath(stage,mouth)}" stroke="#173D2C" stroke-width="3" stroke-linecap="round" fill="none"/></g></g></svg>`;
 }
 
 

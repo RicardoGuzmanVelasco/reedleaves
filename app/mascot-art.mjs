@@ -1,4 +1,4 @@
-import {mascotFace} from "./mascot-face.mjs?v=mascot-icons";
+import {mascotFace} from "./mascot-face.mjs?v=eye-positions";
 
 // Decorative artwork only. Stage availability remains the caller's responsibility.
 export const mascotAssets = Object.freeze({
@@ -15,10 +15,10 @@ export const mascotAssets = Object.freeze({
 });
 const escapeAttribute = value => String(value).replace(/[&<>"']/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character]));
 
-export function mascotArt(stage, className = "", {expression = "neutral", mouth, variant = "mascot"} = {}) {
+export function mascotArt(stage, className = "", {expression = "neutral", mouth, face, variant = "mascot"} = {}) {
   const id = Object.hasOwn(mascotAssets, stage) ? stage : "mystery";
   const icon = variant === "icon";
-  return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}"${icon ? ' data-variant="icon"' : ""} aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${mascotAssets[id]}" width="160" height="160" alt="" draggable="false">${icon ? "" : mascotFace(id,expression,mouth)}</span></span></span>`;
+  return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}"${icon ? ' data-variant="icon"' : ""} aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${mascotAssets[id]}" width="160" height="160" alt="" draggable="false">${icon ? "" : mascotFace(id,expression,mouth,face)}</span></span></span>`;
 }
 
 

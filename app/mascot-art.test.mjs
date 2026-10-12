@@ -104,3 +104,27 @@ test("Mascot icons use calibrated bodies without a face; characters retain their
     assert.doesNotMatch(mascotArt(stage),/data-variant="icon"/);
   }
 });
+
+test("A root eye offset moves only that eye and stays independent of expression",()=>{
+  const face={eyeOffsets:{left:{x:2,y:-3}}};
+  const baseline=mascotArt("root"),adjusted=mascotArt("root","",{face,expression:"wink-left"});
+  assert.match(adjusted,/mascot-eye--left" transform="translate\(55 101\)"/);
+  assert.match(adjusted,/mascot-eye--right" transform="translate\(111 104\)"/);
+  assert.equal(adjusted.match(/class="mascot-face-placement" transform="([^"]*)"/)[1],baseline.match(/class="mascot-face-placement" transform="([^"]*)"/)[1]);
+  assert.equal(adjusted.match(/class="mascot-mouth">([\s\S]*?)<\/g>/)[1],baseline.match(/class="mascot-mouth">([\s\S]*?)<\/g>/)[1]);
+  assert.match(adjusted,/data-expression="wink-left"/);
+  assert.equal(mascotArt("seed"),mascotArt("seed","",{face:{eyeOffsets:{left:{x:0,y:0},right:{x:0,y:0}}}}));
+});
+
+test("Seed face placement moves the whole face and preserves its internal geometry",()=>{
+  const baseline=mascotArt("seed"),adjusted=mascotArt("seed","",{face:{x:86,y:78}});
+  assert.match(adjusted,/translate\(86 78\) rotate\(0\) scale\(1\) translate\(-82 -104\)/);
+  const withoutPose=html=>html.replace(/(class="mascot-face-placement" transform=")[^"]*/,"$1");
+  assert.equal(withoutPose(adjusted),withoutPose(baseline));
+});
+
+test("Invalid face geometry inherits safe defaults without changing icon variants",()=>{
+  const face={x:'1" onload="alert(1)',y:NaN,rotation:Infinity,scale:-1,eyeOffsets:{left:{x:"10",y:NaN},right:{x:Infinity,y:null}}};
+  assert.equal(mascotArt("root","",{face}),mascotArt("root"));
+  assert.equal(mascotArt("root","",{face,variant:"icon"}),mascotIcon("root"));
+});
