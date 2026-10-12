@@ -2,16 +2,31 @@
 <html lang="es">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Reedleaves · Posición de la cara</title>
+  <title>Reedleaves · Calibración de mascotas</title>
   <link rel="stylesheet" href="/app/mascot-art.css">
   <link rel="stylesheet" href="../composition.css">
-  <link rel="stylesheet" href="positions.css">
-  <script type="module" src="positions.mjs?v=approved-face-positions"></script>
+  <link rel="stylesheet" href="positions.css?v=calibration-editor-final">
+  <script type="module" src="positions.mjs?v=calibration-editor-final"></script>
 </head>
 <body><main>
   <a href="../face-study/index.html">← Prueba de caras</a>
-  <h1>Posición de la cara</h1>
-  <div class="preview-controls"><button type="button" id="greet-all">Saludar</button><button type="button" id="wink-all">Guiñar</button><button type="button" id="reset-all">Reiniciar ajustes</button></div>
-  <div id="position-trials"></div>
+  <h1>Calibración de mascotas</h1>
+  <div class="editor-toolbar">
+    <div class="mascot-picker"><label for="mascot-select">Mascota</label><select id="mascot-select"></select></div>
+    <button type="button" id="reset-all">Restablecer mascota</button>
+    <button type="button" id="copy-config">Copiar configuración</button>
+  </div>
+  <p class="editor-note">Los ajustes se guardan en este navegador. Para aplicarlos a la web, copia la configuración.</p>
+  <div class="editor-layout">
+    <section class="preview-panel" aria-labelledby="preview-title">
+      <div class="preview-heading"><h2 id="preview-title">Vista previa</h2><span id="draft-status" role="status"></span></div>
+      <div class="preview-options"><label><input type="checkbox" id="icon-mode"> Mostrar como icono</label><label><input type="checkbox" id="show-frames"> Mostrar marcos</label></div>
+      <div class="preview-gallery" id="preview-gallery"></div>
+      <div class="preview-controls"><button type="button" id="greet-all">Saludar</button><button type="button" id="wink-all">Guiñar</button></div>
+      <p class="copy-status" id="copy-status" role="status"></p>
+      <details id="configuration"><summary>Configuración</summary><textarea id="configuration-text" readonly spellcheck="false" aria-label="Configuración de la mascota"></textarea></details>
+    </section>
+    <form id="calibration-controls" class="calibration-controls" aria-label="Parámetros de calibración"></form>
+  </div>
 </main></body>
 </html>

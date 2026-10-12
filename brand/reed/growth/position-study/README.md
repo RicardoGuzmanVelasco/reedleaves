@@ -1,13 +1,21 @@
-# Posición de ojos y cara
+# Editor interno de calibración de mascotas
 
-La raíz admite `eyeOffsets.left` y `eyeOffsets.right`, cada uno con `x` e `y`, dentro de `mascotFacePlacement.root`. Son desplazamientos locales desde los centros comunes (53, 104) y (111, 104), anteriores al giro y la escala de la cara. Los valores elegidos son: ojo izquierdo x=10, y=-2; ojo derecho x=-10,5, y=-4,5. Otras mascotas pueden añadir estas mismas propiedades cuando haga falta; su ausencia equivale a cero.
+`index.html` permite elegir una mascota y ajustar sus doce parámetros, con vistas a 160, 100, 60 y 32 px. Reutiliza el componente real, su sombra fija, saludo, guiño y variante de icono. Mostrar marcos ayuda a evaluar el encuadre. El modo de icono desactiva los controles faciales y los gestos porque solo muestra el cuerpo.
 
-La semilla mantiene la posición de toda la cara en `mascotFacePlacement.seed`: x=85,5, y=69. Cambiar ese centro mueve los ojos y la boca juntos. No tiene excepciones individuales de ojos.
+## Parámetros y fuentes
 
-El componente admite `mascotArt(stage, className, {face: {x, y, rotation, scale, eyeOffsets}})` para ajustes locales. Solo se aceptan números finitos y escala positiva; el resto hereda los metadatos. El guiño usa un grupo interior independiente del desplazamiento del ojo.
+- Personaje: x/y en porcentaje del marco y escala uniforme. Los valores iniciales se leen de las variables CSS del componente real, sin una segunda tabla.
+- Cara y boca: anchura de boca, x/y de la cara en el marco de 160, giro en grados y escala uniforme. Sus valores proceden de `mascot-face.mjs`.
+- Cada ojo: x/y locales desde los centros canónicos, antes del giro y la escala facial. Los ajustes de la raíz y la semilla elegidos por el usuario siguen siendo los valores actuales de partida.
 
-La prueba ofrece controles para los ojos de la raíz y la cara de la semilla, con comparación Actual/Ajuste a 160 y 60 px. Reiniciar recupera los metadatos actuales. Los controles modifican únicamente esta vista. La posición inicial coincide con el producto hasta que se elijan otros valores.
+Cada control admite arrastre y entrada numérica. El borrador de cada mascota se conserva al cambiar de selección y recargar, con `localStorage`. Restablecer mascota borra solo ese borrador. Si cambian los metadatos de producto, los borradores basados en la calibración anterior se descartan; si el navegador no permite almacenamiento, se puede trabajar y copiar la configuración igualmente.
 
-## Parámetros de calibración
+Copiar configuración produce un JSON con etapa, cuerpo, boca y cara. También está disponible en el detalle Configuración como alternativa si falla el portapapeles. Las modificaciones son locales: no escriben archivos ni cambian cuentas o datos del producto. Para incorporarlas al componente, trasladar cuerpo a `--mascot-x`, `--mascot-y`, `--mascot-scale` en CSS; boca a `mascotMouthConfig`; cara y ojos a `mascotFacePlacement`.
 
-Los ocho parámetros principales son posición vertical del cuerpo, anchura de boca, x/y de la cara y x/y de cada ojo. El modelo también contempla posición horizontal y escala del cuerpo, y giro y escala uniforme de la cara: doce ajustes de calibración en total. El tamaño del componente, la variante icono/personaje y las animaciones son opciones de presentación independientes de esta calibración.
+## Añadir mascotas futuras
+
+1. Añadir un cuerpo sin cara ni sombra a `mascotAssets` y su geometría facial a `mascotFacePlacement`.
+2. Añadir la calibración corporal en CSS cuando difiera de los valores comunes.
+3. La mascota aparecerá automáticamente en el selector. Puede añadirse su nombre a `names` en `positions.mjs`; sin nombre específico se muestra su identificador.
+
+La página se mantiene en `brand/` como herramienta interna. No desbloquea propuestas futuras ni modifica las reglas del producto.
