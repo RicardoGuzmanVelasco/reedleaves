@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="28 54 104 104" role="img" aria-label="Maceta clásica: inicio de un libro">
+  <path d="M40 66h80l-10 70c-1 7-7 11-14 11H64c-7 0-13-4-14-11Z" fill="#D98B62"/>
+  <path d="M46 77h68l-9 57c-1 5-4 8-10 8H65c-6 0-9-3-10-8Z" fill="#E8A078"/>
+  <path d="M44 63c3-6 17-9 36-9s33 3 36 9v5c-1 8-14 13-36 13S45 76 44 68Z" fill="#B96E4D"/>
+  <path fill="#D98B62" fill-rule="evenodd" d="M37 63c0-5 4-8 9-8h68c5 0 9 3 9 8v8c0 5-4 8-9 8H46c-5 0-9-3-9-8Zm11 0c4-4 16-6 32-6s28 2 32 6c-4 4-16 7-32 7s-28-3-32-7Z"/>
+  <path d="M39 64q2 8 7 9h68q5-1 7-9v7q0 7-8 8H47q-8-1-8-8Z" fill="#B96E4D" opacity=".6"/>
+  <path d="M50 63c4-3 15-5 30-5s26 2 30 5c-4 3-15 5-30 5s-26-2-30-5Z" fill="#73513B"/>
+</svg>

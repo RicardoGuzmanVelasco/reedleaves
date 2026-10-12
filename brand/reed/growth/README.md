@@ -8,7 +8,7 @@ The user approved **Flowerpot** and **Seed** as shown, named the existing app ma
 
 | Stage | Proposed trigger | Source |
 | --- | --- | --- |
-| Flowerpot | Add a book to the user's shelf. Its original reading status can be `reading` or `read`. | `bodies/pot-classic.png` (A · Classic; previous body retained in `pot.svg`) |
+| Flowerpot | Add a book to the user's shelf. Its original reading status can be `reading` or `read`. | `bodies/pot-classic.svg` (A · Classic; previous body retained in `pot.svg`) |
 | Seed | Open the first review card. | `bodies/seed.svg` (B · Almendrada; previous art: `seed.svg`) |
 | Root | Spend leaves on cards for the book on two distinct local days. | `root-cutout.png` (original: `root.png`) |
 | Seedling | Spend leaves on three distinct local days across any deck for the book. | `seedling.svg` |
@@ -25,7 +25,7 @@ The Root, Seedling, and Sprout day thresholds are active product rules. Other un
 
 The active Seed now uses the approved **B · Almond-like / Almendrada** silhouette in `bodies/seed.svg`, adapted to SVG with the exact shared face supplied by the app. `seed.svg` remains the previous artwork for historical comparisons. Seed keeps its 94% scale, current facial calibration and floating ground shadow. [Future Seed proposals](seed-variations-future.md) retains A, C, D, F and G, with the requested refinements; E is discarded. Only B is selected for product use.
 
-Flowerpot now uses the approved **A · Classic / Clásica** body in `bodies/pot-classic.png`, extracted without its original face or ground shadow so the app can add both independently. It preserves the sheet's soft terracotta modeling, overhanging lower rim and shallow oval soil opening. Its face is calibrated to the chosen composition; `bodies/pot.svg` remains the previous app body as historical artwork. The other five proposals remain available in [the retained variation sheet](pot-variations-future.md).
+Flowerpot now uses the corrected **A · Classic / Clásica** silhouette in `bodies/pot-classic.svg`. Its overhanging lower rim covers the angular body joins, and its soil sits coherently inside the oval opening. The previous body in `bodies/pot.svg` is kept as historical artwork. The other five proposals remain available in [the retained variation sheet](pot-variations-future.md).
 
 `root.png` is the original approved artwork and visual-size reference. Flowerpot and the historical Seed keep their tighter square viewBoxes; removing their shadows did not change their framing, paths or faces. The active almond-shaped Seed uses the shared 160 × 160 frame.
 
