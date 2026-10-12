@@ -235,10 +235,13 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .exclusive-card-modal .reading-stage .idea-card{min-height:min(66dvh,680px);display:flex;flex-direction:column;padding:58px clamp(28px,6vw,72px) 30px}
 .exclusive-card-modal .reading-footer{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:18px}
 .reading-attribution{min-width:0;flex:1}
-.card-votes{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto}
-.card-vote{min-width:60px;min-height:50px;display:flex;align-items:center;justify-content:center;gap:6px;padding:5px 9px;border:1px solid transparent;border-radius:15px;background:rgb(255 249 237 / 68%);color:var(--ink);font-size:13px;font-weight:800;transition:transform .16s,background .16s,border-color .16s}
+.card-votes{display:flex;flex-direction:row;direction:ltr;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto}
+.card-vote{min-width:66px;min-height:56px;display:flex;align-items:center;justify-content:center;gap:2px;padding:4px 6px;border:1px solid transparent;border-radius:15px;background:rgb(255 249 237 / 68%);color:var(--ink);font-size:10px;font-weight:800;transition:transform .16s,background .16s,border-color .16s}
+.card-vote[data-value="-1"]{order:0}
+.card-vote[data-value="1"]{order:1}
 .card-vote:hover:not(:disabled){transform:translateY(-2px);background:#fff}
-.card-vote svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.card-vote svg{width:38px;height:38px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.card-vote span{font-size:10px;line-height:1;min-width:1ch}
 .card-vote.is-selected{background:#dff2c7;border-color:#58be59;box-shadow:0 3px 0 #b9d99a}
 .card-vote.is-selected svg{fill:#58be59;stroke:#173d2c}
 .card-vote.is-own-card-vote{border:1.5px dashed #779a72;background:transparent;box-shadow:none;color:#577257}
@@ -266,8 +269,8 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
   .exclusive-card-modal .reading-footer{align-items:flex-end;gap:8px}
   .reading-footer .reading-attribution{min-width:0}
   .card-votes{gap:4px}
-  .card-vote{min-width:48px;min-height:46px;gap:3px;padding:4px 6px;border-radius:13px;font-size:12px}
-  .card-vote svg{width:21px;height:21px}
+  .card-vote{min-width:58px;min-height:52px;gap:1px;padding:3px 4px;border-radius:13px}
+  .card-vote svg{width:34px;height:34px}
   .is-reading main{width:calc(100% - 40px)}
   .card-screen{min-height:calc(100dvh - 75px);padding-top:12px}
   .card-screen .reading-stage{margin-top:16px;margin-bottom:auto;padding:0 0 38px}

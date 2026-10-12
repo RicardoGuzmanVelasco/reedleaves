@@ -94,6 +94,19 @@ test("Views show correct book attribution, genres and only unlocked review text"
   assert.match(reviewView(state), /lang="en"/);
   assert.doesNotMatch(reviewView(state), /Vuelve tras un fallo/);
 });
+test("Exclusive card votes put dislike left and like right with correctly oriented icons",async()=>{
+  const catalog=prepareCatalog(await payload()),card=catalog.cards[0];
+  const html=dailyView({catalog,language:"es",daily:{id:card.id},requestedId:card.id,
+    cardVotes:{cardId:card.id,isOwn:false,dislikes:4,likes:12,vote:null},
+    preferences:{filters:{},genres:[]},storageAvailable:true});
+  const modal=html.match(/<dialog class="exclusive-card-modal"[^>]*>([\s\S]*?)<\/dialog>/)?.[1];
+  const buttons=[...modal.matchAll(/<button class="card-vote[^\"]*\"[^>]*data-value="(-?1)"[^>]*>([\s\S]*?)<\/button>/g)];
+  assert.deepEqual(buttons.map(([,value])=>value),["-1","1"]);
+  assert.match(buttons[0][2],/M7 14V3/);
+  assert.match(buttons[1][2],/M7 10v11/);
+  assert.match(buttons[0][2],/>4<\/span>/);
+  assert.match(buttons[1][2],/>12<\/span>/);
+});
 test("Book mascot collection shows earned art, ordered names and a shared unknown for future forms",async()=>{
   const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{"seven-habits":{added:true,spentDays:3}}};
   const html=mascotsView(state),names=["Maceta","Semilla","Raíz","Plántula","Brote","Retoño","Tallo","Planta","Flor","Siempreviva"];
