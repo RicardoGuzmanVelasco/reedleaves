@@ -11,7 +11,7 @@
 .mascot-art[data-mascot="seed"]{--mascot-scale:.8;--mascot-shadow-width:39%}
 .mascot-art[data-mascot="root"]{--mascot-x:3.5%;--mascot-y:-6.5%;--mascot-scale:.88}
 .mascot-art[data-mascot="seedling"]{--mascot-y:-13%;--mascot-scale:.9;--mascot-shadow-width:34%}
-.mascot-art[data-mascot="sprout"]{--mascot-y:-8%}
+.mascot-art[data-mascot="sprout"]{--mascot-y:-8%;--mascot-shadow-width:65%}
 .mascot-art.is-greeting .mascot-art-motion{animation:mascot-art-greet 600ms ease-in-out}
 /* Translation has one apex. Implicit rotation endpoints preserve the hover pose. */
 @keyframes mascot-art-greet{0%,100%{translate:0 0}35%{transform:rotate(-7deg)}50%{translate:0 -8%}70%{transform:rotate(6deg)}}

@@ -1,5 +1,5 @@
-import {mascotArt} from "/app/mascot-art.mjs?v=pot-calibration";
-import {playMascotExpression} from "/app/mascot-face.mjs?v=pot-calibration";
+import {mascotArt} from "/app/mascot-art.mjs?v=sprout-calibration";
+import {playMascotExpression} from "/app/mascot-face.mjs?v=sprout-calibration";
 const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Plántula"],["sprout","Brote · Referencia"]];
 const originals = {
   pot:"/brand/reed/growth/pot.svg", seed:"/brand/reed/growth/seed.svg",
