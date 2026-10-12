@@ -1,7 +1,7 @@
-/* The ground keeps the pot's baseline and height, with a narrower shared width.
-   Only the overall component size scales it; stage placement never does. */
-.mascot-art{--mascot-x:0%;--mascot-y:0%;--mascot-scale:1;position:relative;display:inline-block;isolation:isolate;width:100px;height:100px;aspect-ratio:1;vertical-align:middle;flex:none;pointer-events:none}
-.mascot-art::before{content:"";position:absolute;z-index:0;left:14%;top:79.807692%;width:72%;height:15.384615%;border-radius:50%;background:rgb(30 76 46 / 16%)}
+/* The ground keeps a shared center, baseline, height and color. Its width can
+   vary by stage; body placement and motion never affect it. */
+.mascot-art{--mascot-x:0%;--mascot-y:0%;--mascot-scale:1;--mascot-shadow-width:72%;position:relative;display:inline-block;isolation:isolate;width:100px;height:100px;aspect-ratio:1;vertical-align:middle;flex:none;pointer-events:none}
+.mascot-art::before{content:"";position:absolute;z-index:0;left:calc((100% - var(--mascot-shadow-width)) / 2);top:79.807692%;width:var(--mascot-shadow-width);height:15.384615%;border-radius:50%;background:rgb(30 76 46 / 16%)}
 .mascot-art-placement,.mascot-art-motion{position:absolute;inset:0;display:block}
 .mascot-art-placement{z-index:1;transform:translate(var(--mascot-x),var(--mascot-y)) scale(var(--mascot-scale));transform-origin:50% 50%}
 .mascot-art-motion{transform-origin:50% 88%;transition:transform .15s ease}

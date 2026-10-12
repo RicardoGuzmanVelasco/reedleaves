@@ -1,9 +1,9 @@
-import {mascotArt,mascotAssets} from "/app/mascot-art.mjs?v=root-calibration";
-import {playMascotExpression} from "/app/mascot-face.mjs?v=root-calibration";
-import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=root-calibration";
+import {mascotArt,mascotAssets} from "/app/mascot-art.mjs?v=shadow-calibration";
+import {playMascotExpression} from "/app/mascot-face.mjs?v=shadow-calibration";
+import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=shadow-calibration";
 const storageKey="reedleaves:mascot-calibration:v1";
 const names={pot:"Maceta",seed:"Semilla",root:"Raíz",seedling:"Plántula",sprout:"Brote"};
-const groups={body:"Personaje",face:"Cara y boca",leftEye:"Ojo izquierdo",rightEye:"Ojo derecho"};
+const groups={body:"Personaje",shadow:"Sombra",face:"Cara y boca",leftEye:"Ojo izquierdo",rightEye:"Ojo derecho"};
 const stages=calibrationStages.filter(stage=>Object.hasOwn(mascotAssets,stage));
 const select=document.getElementById("mascot-select"),gallery=document.getElementById("preview-gallery");
 const controls=document.getElementById("calibration-controls"),iconMode=document.getElementById("icon-mode");
@@ -22,7 +22,8 @@ function readBaseline(id) {
   document.body.append(probe);
   const style=getComputedStyle(probe.firstElementChild);
   const body={x:parseFloat(style.getPropertyValue("--mascot-x")),y:parseFloat(style.getPropertyValue("--mascot-y")),scale:parseFloat(style.getPropertyValue("--mascot-scale"))};
-  probe.remove();return currentCalibration(id,body);
+  const shadow={width:parseFloat(style.getPropertyValue("--mascot-shadow-width"))};
+  probe.remove();return currentCalibration(id,body,shadow);
 }
 function save() {
   storage.selected=stage;
@@ -38,6 +39,7 @@ function applyBody(art) {
   art.style.setProperty("--mascot-x",`${values.bodyX}%`);
   art.style.setProperty("--mascot-y",`${values.bodyY}%`);
   art.style.setProperty("--mascot-scale",values.bodyScale);
+  art.style.setProperty("--mascot-shadow-width",`${values.shadowWidth}%`);
 }
 function buildPreview() {
   gallery.innerHTML=[160,100,60,32].map(size=>`<figure><figcaption>${size} px</figcaption>${mascotArt(stage,`preview-${size}`,options())}</figure>`).join("");
@@ -46,7 +48,7 @@ function buildPreview() {
 function updatePreview(key) {
   for(const art of gallery.querySelectorAll(".mascot-art")) {
     applyBody(art);
-    if(!iconMode.checked && !key.startsWith("body")) {
+    if(!iconMode.checked && !key.startsWith("body") && key!=="shadowWidth") {
       const template=document.createElement("template");template.innerHTML=mascotArt(stage,"",options());
       art.querySelector(".mascot-face").replaceWith(template.content.querySelector(".mascot-face"));
     }
