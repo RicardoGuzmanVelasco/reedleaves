@@ -62,3 +62,9 @@ Names and Spanish/English mottos follow `mottos.md`: **Retoño / Sapling** follo
 ## Root cutout prompt
 
 Built-in image tool, transparent background: “Background extraction only. Make a clean transparent PNG cutout of the supplied ginger root mascot, retaining its original exact artwork, gradients, tan and green colors, face, pose, silhouette, and framing. Subject pixels must stay fully opaque; transparency is only outside the character with smooth anti-aliased edges. Completely remove the original white textured background. No leftover specks or islands outside the silhouette, no red/yellow pixels or colored edge fringes, no white halo, no new shadow. Do not redesign or redraw anything. Use true alpha transparency, no checkerboard baked into image.” The result was inspected at actual UI sizes on cream, green, peach and blue backgrounds.
+
+## Known artwork across books
+
+The collection uses the account-wide maximum from the existing per-book growth snapshot. Earned stages stay in color. A locked stage at or below that maximum uses its real illustration in muted grayscale; its numbered marker and locked text remain. Higher stages keep the generic unknown silhouette. No unlock threshold, artwork asset, progress key, motto visibility or account data changes.
+
+[Sprout shape proposals](brote-variations-exploration.md) retains A as the current reference and B–F as unselected flat-vector alternatives.

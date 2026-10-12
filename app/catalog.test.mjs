@@ -130,6 +130,33 @@ test("Book mascot collection shows earned art, ordered names and a shared unknow
   assert.ok(english.indexOf("<h2>Fruit</h2>")<english.indexOf("<h2>Evergreen</h2>"));
   assert.match(empty,/<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true">10<\/span>[\s\S]*?<h2>Fruto<\/h2><p class="mascot-stage-unlock">\?\?\?<\/p><p class="mascot-stage-motto is-locked">No desbloqueada<\/p>/);
 });
+test("Locked stages show known artwork up to the user's maximum in other books",async()=>{
+  const catalog=prepareCatalog(await payload());
+  for (const {localDays,otherDays,knownLocked,unknownFrom} of [
+    {localDays:1,otherDays:3,knownLocked:[[2,"root.png"],[3,"seedling.svg"]],unknownFrom:4},
+    {localDays:2,otherDays:5,knownLocked:[[3,"seedling.svg"],[4,"sprout.svg"]],unknownFrom:5}
+  ]) {
+    const growth={"seven-habits":{added:true,spentDays:localDays},"atomic-habits":{added:true,spentDays:otherDays},"same-as-ever":{added:true,spentDays:0}};
+    const before=structuredClone(growth);
+    const html=mascotsView({catalog,language:"es",bookId:"seven-habits",growth});
+    const rows=html.match(/<li class="mascot-stage[^\"]*"[^>]*>[\s\S]*?<\/li>/g);
+    for (const [index,asset] of knownLocked) {
+      assert.match(rows[index],/class="mascot-stage is-known is-locked"/);
+      assert.ok(rows[index].includes(`/brand/reed/growth/bodies/${asset}`));
+      assert.match(rows[index],/mascot-stage-number/);
+      assert.match(rows[index],/mascot-stage-motto is-locked">No desbloqueada/);
+      assert.doesNotMatch(rows[index],/is-earned|aria-current|mascot-check/);
+    }
+    for (const row of rows.slice(unknownFrom)) {
+      assert.match(row,/class="mascot-stage is-mystery is-locked"/);
+      assert.match(row,/growth\/mystery\.svg/);
+    }
+    const currentIndex=localDays===1?1:2;
+    assert.match(rows[currentIndex],/is-earned is-known is-current/);
+    assert.deepEqual(growth,before);
+  }
+});
+
 test("Mascot collection opens from review album and deck selection, not library, card detail or authoring",async()=>{
   const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{},reviews:{},bookReviews:{},statuses:{},enrolledIds:[],deckChoices:[],storageAvailable:false};
   assert.doesNotMatch(libraryView({...state,openBookId:"seven-habits"}),/data-action="open-mascots"/);

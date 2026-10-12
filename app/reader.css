@@ -336,6 +336,7 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .mascot-stage.is-current .mascot-check{color:#173d2c}
 .mascot-stage-art{width:88px;height:88px;object-fit:contain}
 .mascot-stage.is-mystery .mascot-stage-art{opacity:1;filter:none}
+.mascot-stage.is-known.is-locked .mascot-stage-art{filter:grayscale(1);opacity:.42}
 .mascot-stage-copy{min-width:0;padding:3px 0}
 .mascot-stage-copy h2{font-size:17px;line-height:1.2}
 .mascot-stage-unlock{margin-top:4px;color:#586957;font-size:11px;font-weight:750;line-height:1.35}
