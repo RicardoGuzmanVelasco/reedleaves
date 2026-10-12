@@ -1,6 +1,8 @@
 # Variaciones de Brote
 
-13 de octubre de 2026. Propuestas; no sustituyen el arte activo.
+13 de octubre de 2026. Primera ronda. El usuario descarta las propuestas B–F por resultar demasiado parecidas. A conserva la referencia vigente.
+
+La segunda ronda explora cinco conceptos de germinación en [Brote · Cinco direcciones](brote-directions-exploration.md).
 
 Brote es la etapa de tres días, entre Raíz y Plántula. Conserva el identificador histórico seedling. La referencia A procede exactamente de bodies/seedling.svg y de la cara común vigente.
 
