@@ -16,7 +16,8 @@ const profileData={profile:{id:"test-user",name:'<script>Long name</script>',use
 test("Profiles translate, escape names, link own versus foreign shelves and show all requested statistics",async()=>{
   for(const language of ["es","en"]) {
     const html=profileView({language,profileData,userId:"other"});
-    assert.doesNotMatch(html,/<script>|NaN|undefined/);
+    assert.doesNotMatch(html,/<script>|NaN|undefined|mascot-face/);
+    assert.equal((html.match(/data-variant="icon"/g)||[]).length,5);
     for(const key of Object.keys(profileData.profile.counts)) assert.ok(html.includes(words[language][key]),key);
     assert.match(html,/href="#bookshelf\/test-user"/);assert.match(html,/datetime="2026-10-10"/);
     assert.match(profileView({language,profileData,userId:"test-user"}),/href="#bookshelf"/);

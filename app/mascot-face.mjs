@@ -9,8 +9,8 @@ export const mascotFacePlacement = Object.freeze(Object.fromEntries(Object.entri
 }).map(([stage,placement]) => [stage,Object.freeze(placement)])));
 
 // Width is a multiplier of the canonical 8-unit mouth. An absent override inherits.
-// Current product widths stay at 1× until an art proposal is chosen.
-export const mascotMouthConfig = Object.freeze({width:1,overrides:Object.freeze({})});
+// Approved widths: common 4.5×, with a few character-specific exceptions.
+export const mascotMouthConfig = Object.freeze({width:4.5,overrides:Object.freeze({root:3,sprout:2,seedling:5})});
 const validMouthWidth = width => typeof width === "number" && Number.isFinite(width) && width > 0 && width <= 6;
 export function mascotMouthWidth(stage, config = mascotMouthConfig) {
   const general = validMouthWidth(config?.width) ? config.width : mascotMouthConfig.width;

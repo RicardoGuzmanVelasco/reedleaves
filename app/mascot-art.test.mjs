@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {mascotMouthWidth} from "./mascot-face.mjs";
-import {mascotArt,mascotAssets} from "./mascot-art.mjs";
+import {mascotArt,mascotAssets,mascotIcon} from "./mascot-art.mjs";
 
 test("Decorative mascot artwork reserves separate placement and motion layers",()=>{
   for (const stage of ["pot","seed","root","seedling","sprout","mystery"]) {
@@ -79,16 +79,28 @@ test("Mouth widths inherit a general value with independent stage exceptions",()
   for(const stage of ["pot","seed","root","seedling","sprout"]) {
     assert.equal(faceWithoutMouth(mascotArt(stage,"",{mouth})),faceWithoutMouth(mascotArt(stage)));
   }
-  assert.equal(mascotMouthWidth("seedling"),1);
-  assert.match(mascotArt("root"),/d="M78 119q4 6 8 0"/);
+  assert.equal(mascotMouthWidth("seedling"),5);
+  assert.match(mascotArt("root"),/d="M70 119q12 6 24 0"/);
 });
 
 test("Invalid mouth widths fall back without injecting SVG attributes",()=>{
   for(const width of [NaN,Infinity,-2,0,7,'4" onload="alert(1)']) {
-    assert.equal(mascotMouthWidth("root",{width,overrides:{}}),1);
+    assert.equal(mascotMouthWidth("root",{width,overrides:{}}),4.5);
     const mouth={width:4.5,overrides:{root:width}};
     assert.equal(mascotMouthWidth("root",mouth),4.5);
     assert.doesNotMatch(mascotArt("root","",{mouth}),/onload=/);
   }
   assert.equal(mascotMouthWidth("root",{width:4.5,overrides:Object.create({root:3})}),4.5);
+});
+
+
+test("Mascot icons use calibrated bodies without a face; characters retain theirs",()=>{
+  for(const stage of ["pot","seed","root","seedling","sprout","mystery"]) {
+    const icon=mascotIcon(stage,"study-book-mark");
+    assert.match(icon,/data-variant="icon"/);
+    assert.doesNotMatch(icon,/mascot-face|mascot-mouth|mascot-eye/);
+    assert.ok(icon.includes(`src="${mascotAssets[stage]}"`));
+    assert.match(icon,/mascot-art-placement"><span class="mascot-art-motion"/);
+    assert.doesNotMatch(mascotArt(stage),/data-variant="icon"/);
+  }
 });

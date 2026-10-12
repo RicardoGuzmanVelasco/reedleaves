@@ -150,9 +150,11 @@ test("Mascot collection opens from review album and deck selection, not library,
     assert.ok(modal);assert.doesNotMatch(modal,/data-action="open-mascots"/);
   }
 });
-test("Home book cover uses that book's earned mascot",async()=>{
+test("Home book cover uses that book's earned mascot as a body-only icon",async()=>{
   const catalog=prepareCatalog(await payload()),version=catalog.versions[0],bookId=version.bookId;
   const state={catalog,language:"es",reviews:{},enrolledIds:[version.id],growth:{[bookId]:{added:true,spentDays:1}}};
+  assert.doesNotMatch(homeView(state),/mascot-face/);
+  assert.match(homeView(state),/data-variant="icon"/);
   assert.match(homeView(state),/class="mascot-art study-book-mark"[^>]*>.*?<img src="\/brand\/reed\/growth\/bodies\/seed\.svg"/);
   assert.match(homeView({...state,growth:{[bookId]:{added:true,spentDays:2}}}),/class="mascot-art study-book-mark"[^>]*>.*?<img src="\/brand\/reed\/growth\/bodies\/root\.png"/);
   assert.match(homeView({...state,growth:{[bookId]:{added:true,spentDays:3}}}),/class="mascot-art study-book-mark"[^>]*>.*?<img src="\/brand\/reed\/growth\/bodies\/seedling\.svg"/);

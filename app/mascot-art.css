@@ -27,3 +27,6 @@
 .mascot-art.is-blinking .mascot-eye-expression{animation:mascot-eye-close 480ms ease-in-out}
 @keyframes mascot-eye-close{0%,100%{transform:scaleY(1)}35%,65%{transform:scaleY(.12)}}
 @media(prefers-reduced-motion:reduce){.mascot-eye-expression{animation:none!important}}
+
+.mascot-art[data-variant="icon"]::before{content:none}
+.mascot-art[data-variant="icon"] .mascot-art-motion{animation:none;transition:none}

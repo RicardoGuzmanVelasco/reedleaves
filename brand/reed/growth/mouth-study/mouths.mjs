@@ -1,10 +1,10 @@
-import {mascotArt} from "/app/mascot-art.mjs?v=mouth-widths";
-import {mascotMouthWidth,mascotMouthPath,playMascotExpression} from "/app/mascot-face.mjs?v=mouth-widths";
+import {mascotArt} from "/app/mascot-art.mjs?v=mascot-icons";
+import {mascotMouthConfig,mascotMouthWidth,mascotMouthPath,playMascotExpression} from "/app/mascot-face.mjs?v=mascot-icons";
 const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Plántula"],["sprout","Brote"]];
 const widths = [1,1.5,2,3,"custom"];
 const format = value => `${String(value).replace(".",",")}×`;
-// Proposed widths are confined to this study; the shared renderer resolves inheritance.
-const trialMouth = {width:4.5,overrides:{root:3,sprout:2,seedling:5}};
+// Start from the approved product configuration; sliders only change this study.
+const trialMouth = {...mascotMouthConfig,overrides:{...mascotMouthConfig.overrides}};
 function sample(stage,factor,className="") {
   const mouth = factor === "custom" ? trialMouth : {width:factor};
   return mascotArt(stage,className,{mouth});
@@ -15,7 +15,7 @@ function caption(stage) {
 }
 document.getElementById("mouth-trials").innerHTML=stages.map(([stage,name])=>{
   const factor=mascotMouthWidth(stage,trialMouth),inherited=!Object.hasOwn(trialMouth.overrides,stage);
-  return `<section class="mouth-trial" data-stage="${stage}"><h2>${name}</h2><div class="mouth-calibration"><label><input type="checkbox" data-inherit ${inherited?"checked":""}> Usar anchura general</label><label for="width-${stage}">Anchura <input id="width-${stage}" type="range" min="0.75" max="5" step="0.125" value="${factor}" ${inherited?"disabled":""}><output for="width-${stage}">${format(factor)}</output></label></div><div class="mouth-row">${widths.map(width=>`<figure class="mouth-sample" data-width="${width}"><figcaption>${width==="custom"?caption(stage):width===1?"Actual · 1×":format(width)}</figcaption>${sample(stage,width)}${sample(stage,width,"mouth-small")}</figure>`).join("")}</div></section>`;
+  return `<section class="mouth-trial" data-stage="${stage}"><h2>${name}</h2><div class="mouth-calibration"><label><input type="checkbox" data-inherit ${inherited?"checked":""}> Usar anchura general</label><label for="width-${stage}">Anchura <input id="width-${stage}" type="range" min="0.75" max="5" step="0.125" value="${factor}" ${inherited?"disabled":""}><output for="width-${stage}">${format(factor)}</output></label></div><div class="mouth-row">${widths.map(width=>`<figure class="mouth-sample" data-width="${width}"><figcaption>${width==="custom"?caption(stage):width===1?"Referencia · 1×":format(width)}</figcaption>${sample(stage,width)}${sample(stage,width,"mouth-small")}</figure>`).join("")}</div></section>`;
 }).join("");
 function update() {
   document.getElementById("width-value").textContent=format(trialMouth.width);

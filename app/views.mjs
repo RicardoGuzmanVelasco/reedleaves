@@ -7,7 +7,7 @@ import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
 import {currentMascotStage} from "./mascot-progress.mjs";
-import {mascotArt} from "./mascot-art.mjs";
+import {mascotArt,mascotIcon} from "./mascot-art.mjs";
 import {missingBookInformation} from "./book-metadata.mjs";
 
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -55,7 +55,7 @@ function closedBookMarkup(s,book,{action="resume-book",caption=words[s.language]
   const title=bookCoverTitle(book,s.language,{original:s.showOriginalTitles});
   const cover=`<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} aria-label="${esc(catalog ? displayedBookTitle(s,book).text + ", " + book.author + ", " + caption : c.resume + ": " + displayedBookTitle(s,book).text)}">
     <span class="study-book-cover"><strong lang="${esc(title.language)}" dir="auto">${esc(title.text)}</strong><span class="study-book-author">${esc(book.author)}</span>
-    ${catalog ? genres.length ? `<span class="book-tile-genres">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</span>` : "" : mascotArt(mascotState(s,book.id).latest,"study-book-mark")}
+    ${catalog ? genres.length ? `<span class="book-tile-genres">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</span>` : "" : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}
     <span class="study-book-footer">${esc(caption)}<span aria-hidden="true">→</span></span></span></button>`;
   const complete=completeBookButton(s,book);
   return complete ? `<div class="study-book-entry">${cover}${complete}</div>` : cover;
@@ -462,7 +462,7 @@ export function profileView(s) {
     <section class="profile-section" aria-labelledby="profile-reader"><div class="profile-section-heading"><h2 id="profile-reader">${c.readerSummary}</h2><a class="text-button" href="${s.userId === p.id ? "#bookshelf" : `#bookshelf/${encodeURIComponent(p.id)}`}">${c.viewBookshelf} →</a></div>
       ${metrics(["booksRead","booksReading","decksCompleted","decksInProgress","cardsReviewed","cardsViewed"])}<p class="profile-note">${c.distinctCardsNote}</p></section>
     <section class="profile-section" aria-labelledby="profile-archivist"><h2 id="profile-archivist">${c.archivistSummary}</h2>${metrics(["decksCreated","cardsCreated","quotesCreated"])}</section>
-    <section class="profile-section" aria-labelledby="profile-mascots"><h2 id="profile-mascots">${c.currentMascots}</h2><ul class="profile-mascots">${mascotStages.filter(stage=>stage.unlocked || p.mascots[stage.id]>0).map(stage=>`<li>${mascotArt(stage.id)}<span>${c[stage.name]}</span><strong>${p.mascots[stage.id]}</strong></li>`).join("")}</ul></section>
+    <section class="profile-section" aria-labelledby="profile-mascots"><h2 id="profile-mascots">${c.currentMascots}</h2><ul class="profile-mascots">${mascotStages.filter(stage=>stage.unlocked || p.mascots[stage.id]>0).map(stage=>`<li>${mascotIcon(stage.id)}<span>${c[stage.name]}</span><strong>${p.mascots[stage.id]}</strong></li>`).join("")}</ul></section>
   </section>`;
 }
 export function profilePendingView(s) {
