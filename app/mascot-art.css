@@ -1,14 +1,17 @@
-/* The ground is calibrated from the approved pot's 104-unit frame.
+/* The ground keeps the pot's baseline and height, with a narrower shared width.
    Only the overall component size scales it; stage placement never does. */
 .mascot-art{--mascot-x:0%;--mascot-y:0%;--mascot-scale:1;position:relative;display:inline-block;isolation:isolate;width:100px;height:100px;aspect-ratio:1;vertical-align:middle;flex:none;pointer-events:none}
-.mascot-art::before{content:"";position:absolute;z-index:0;left:3.846154%;top:79.807692%;width:92.307692%;height:15.384615%;border-radius:50%;background:rgb(30 76 46 / 16%)}
+.mascot-art::before{content:"";position:absolute;z-index:0;left:14%;top:79.807692%;width:72%;height:15.384615%;border-radius:50%;background:rgb(30 76 46 / 16%)}
 .mascot-art-placement,.mascot-art-motion{position:absolute;inset:0;display:block}
 .mascot-art-placement{z-index:1;transform:translate(var(--mascot-x),var(--mascot-y)) scale(var(--mascot-scale));transform-origin:50% 50%}
 .mascot-art-motion{transform-origin:50% 88%;transition:transform .15s ease}
 .mascot-art img{display:block;width:100%;height:100%;margin:0;object-fit:contain;user-select:none}
-/* Artwork calibration, shared by every surface. The seed deliberately floats. */
+/* Artwork calibration, shared by every surface. Seed, Seedling and Sprout float. */
+.mascot-art[data-mascot="seed"]{--mascot-scale:.94}
 .mascot-art[data-mascot="root"]{--mascot-y:-4.5%;--mascot-scale:.9}
-.mascot-art[data-mascot="seedling"]{--mascot-y:-3.8%}
-.mascot-art.is-greeting .mascot-art-motion{animation:mascot-art-greet 500ms cubic-bezier(.2,.7,.3,1)}
-@keyframes mascot-art-greet{0%,100%{transform:translateY(0) rotate(0)}35%{transform:translateY(-2%) rotate(-7deg)}70%{transform:translateY(-1%) rotate(6deg)}}
+.mascot-art[data-mascot="seedling"]{--mascot-y:-10%;--mascot-scale:.9}
+.mascot-art[data-mascot="sprout"]{--mascot-y:-8%}
+.mascot-art.is-greeting .mascot-art-motion{animation:mascot-art-greet 600ms ease-in-out}
+/* Translation has one apex. Implicit rotation endpoints preserve the hover pose. */
+@keyframes mascot-art-greet{0%,100%{translate:0 0}35%{transform:rotate(-7deg)}50%{translate:0 -8%}70%{transform:rotate(6deg)}}
 @media(prefers-reduced-motion:reduce){.mascot-art-motion{animation:none!important;transition:none!important}}
