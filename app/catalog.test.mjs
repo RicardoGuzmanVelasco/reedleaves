@@ -1,4 +1,5 @@
 import test from "node:test";
+import { words } from "./i18n.mjs";
 import assert from "node:assert/strict";
 import { openDatabase, initializeDatabase } from "../server/database.mjs";
 import { seedCatalog } from "../server/seed.mjs";
@@ -130,26 +131,29 @@ test("Book mascot collection shows earned art, ordered names and a shared unknow
   assert.ok(english.indexOf("<h2>Fruit</h2>")<english.indexOf("<h2>Evergreen</h2>"));
   assert.match(empty,/<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true">10<\/span>[\s\S]*?<h2>Fruto<\/h2><p class="mascot-stage-unlock">\?\?\?<\/p><p class="mascot-stage-motto is-locked">No desbloqueada<\/p>/);
 });
-test("Locked stages show known artwork up to the user's maximum in other books",async()=>{
+test("Locked stages show known artwork and mottos up to the user's maximum in other books",async()=>{
   const catalog=prepareCatalog(await payload());
   for (const {localDays,otherDays,knownLocked,unknownFrom} of [
     {localDays:1,otherDays:3,knownLocked:[[2,"root.png"],[3,"seedling.svg"]],unknownFrom:4},
     {localDays:2,otherDays:5,knownLocked:[[3,"seedling.svg"],[4,"sprout.svg"]],unknownFrom:5}
-  ]) {
+  ]) for (const language of ["es","en"]) {
     const growth={"seven-habits":{added:true,spentDays:localDays},"atomic-habits":{added:true,spentDays:otherDays},"same-as-ever":{added:true,spentDays:0}};
     const before=structuredClone(growth);
-    const html=mascotsView({catalog,language:"es",bookId:"seven-habits",growth});
+    const html=mascotsView({catalog,language,bookId:"seven-habits",growth});
     const rows=html.match(/<li class="mascot-stage[^\"]*"[^>]*>[\s\S]*?<\/li>/g);
     for (const [index,asset] of knownLocked) {
       assert.match(rows[index],/class="mascot-stage is-known is-locked"/);
       assert.ok(rows[index].includes(`/brand/reed/growth/bodies/${asset}`));
       assert.match(rows[index],/mascot-stage-number/);
-      assert.match(rows[index],/mascot-stage-motto is-locked">No desbloqueada/);
+      const mottoKey={2:"mascotMottoRoot",3:"mascotMottoSeedling",4:"mascotMottoSprout"}[index];
+      assert.ok(rows[index].includes(`<p class="mascot-stage-motto">${words[language][mottoKey]}</p>`));
+      assert.ok(!rows[index].includes(words[language].mascotNotUnlocked));
       assert.doesNotMatch(rows[index],/is-earned|aria-current|mascot-check/);
     }
     for (const row of rows.slice(unknownFrom)) {
       assert.match(row,/class="mascot-stage is-mystery is-locked"/);
       assert.match(row,/growth\/mystery\.svg/);
+      assert.ok(row.includes(`<p class="mascot-stage-motto is-locked">${words[language].mascotNotUnlocked}</p>`));
     }
     const currentIndex=localDays===1?1:2;
     assert.match(rows[currentIndex],/is-earned is-known is-current/);
