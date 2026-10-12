@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {mascotMouthWidth} from "./mascot-face.mjs";
+import {mascotMouthWidth,mascotFaceGeometry} from "./mascot-face.mjs";
 import {mascotArt,mascotAssets,mascotIcon} from "./mascot-art.mjs";
 
 test("Decorative mascot artwork reserves separate placement and motion layers",()=>{
@@ -113,12 +113,13 @@ test("A root eye offset moves only that eye and stays independent of expression"
   assert.equal(adjusted.match(/class="mascot-face-placement" transform="([^"]*)"/)[1],baseline.match(/class="mascot-face-placement" transform="([^"]*)"/)[1]);
   assert.equal(adjusted.match(/class="mascot-mouth">([\s\S]*?)<\/g>/)[1],baseline.match(/class="mascot-mouth">([\s\S]*?)<\/g>/)[1]);
   assert.match(adjusted,/data-expression="wink-left"/);
-  assert.equal(mascotArt("seed"),mascotArt("seed","",{face:{eyeOffsets:{left:{x:0,y:0},right:{x:0,y:0}}}}));
+  assert.equal(mascotArt("seed"),mascotArt("seed","",{face:{eyeOffsets:mascotFaceGeometry("seed").eyeOffsets}}));
 });
 
 test("Seed face placement moves the whole face and preserves its internal geometry",()=>{
   const baseline=mascotArt("seed"),adjusted=mascotArt("seed","",{face:{x:86,y:78}});
-  assert.match(adjusted,/translate\(86 78\) rotate\(0\) scale\(1\) translate\(-82 -104\)/);
+  const seedFace=mascotFaceGeometry("seed");
+  assert.ok(adjusted.includes(`translate(86 78) rotate(${seedFace.rotation}) scale(${seedFace.scale}) translate(-82 -104)`));
   const withoutPose=html=>html.replace(/(class="mascot-face-placement" transform=")[^"]*/,"$1");
   assert.equal(withoutPose(adjusted),withoutPose(baseline));
 });

@@ -1,4 +1,4 @@
-import {mascotArt} from "/app/mascot-art.mjs?v=root-calibration";
+import {mascotArt} from "/app/mascot-art.mjs?v=seed-calibration";
 const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Plántula"],["sprout","Brote"],["mystery","Sin desbloquear"]];
 for (const id of ["large-mascots","small-mascots"]) {
   document.getElementById(id).innerHTML = stages.map(([stage,name]) => `<li><button type="button" class="preview-mascot-button" aria-label="Saludar: ${name}">${mascotArt(stage)}</button><span>${name}</span></li>`).join("");

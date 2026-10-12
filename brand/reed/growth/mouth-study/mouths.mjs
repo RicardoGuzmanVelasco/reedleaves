@@ -1,5 +1,5 @@
-import {mascotArt} from "/app/mascot-art.mjs?v=root-calibration";
-import {mascotMouthConfig,mascotMouthWidth,mascotMouthPath,playMascotExpression} from "/app/mascot-face.mjs?v=root-calibration";
+import {mascotArt} from "/app/mascot-art.mjs?v=seed-calibration";
+import {mascotMouthConfig,mascotMouthWidth,mascotMouthPath,playMascotExpression} from "/app/mascot-face.mjs?v=seed-calibration";
 const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Plántula"],["sprout","Brote"]];
 const widths = [1,1.5,2,3,"custom"];
 const format = value => `${String(value).replace(".",",")}×`;

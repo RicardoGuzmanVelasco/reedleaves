@@ -2,7 +2,7 @@
 // One uniform transform preserves the canonical eye spacing and mouth proportions.
 export const mascotFacePlacement = Object.freeze(Object.fromEntries(Object.entries({
   pot: {x:80,y:83,rotation:0,scale:1},
-  seed: {x:85.5,y:69,rotation:0,scale:1},
+  seed: {x:82,y:82,rotation:8.5,scale:.9,eyeOffsets:{left:{x:2.5,y:0},right:{x:-1,y:0}}},
   root: {x:94,y:65.5,rotation:16.5,scale:.82,eyeOffsets:{left:{x:10.5,y:-2},right:{x:-10.5,y:-4.5}}},
   seedling: {x:80,y:101,rotation:0,scale:1},
   sprout: {x:82,y:104,rotation:0,scale:1}
