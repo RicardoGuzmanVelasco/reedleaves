@@ -129,7 +129,7 @@ test("Book mascot collection shows earned art, ordered names and a shared unknow
   const english=mascotsView({...state,language:"en",growth:{}});
   assert.ok(english.indexOf("<h2>Flower</h2>")<english.indexOf("<h2>Fruit</h2>"));
   assert.ok(english.indexOf("<h2>Fruit</h2>")<english.indexOf("<h2>Evergreen</h2>"));
-  assert.match(empty,/<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true">10<\/span>[\s\S]*?<h2>Fruto<\/h2><p class="mascot-stage-unlock">\?\?\?<\/p><p class="mascot-stage-motto is-locked">No desbloqueada<\/p>/);
+  assert.match(empty,/<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true"><\/span>[\s\S]*?<h2>Fruto<\/h2><p class="mascot-stage-unlock">\?\?\?<\/p><p class="mascot-stage-motto is-locked">No desbloqueada<\/p>/);
 });
 test("Locked stages show known artwork and mottos up to the user's maximum in other books",async()=>{
   const catalog=prepareCatalog(await payload());
@@ -144,7 +144,7 @@ test("Locked stages show known artwork and mottos up to the user's maximum in ot
     for (const [index,asset] of knownLocked) {
       assert.match(rows[index],/class="mascot-stage is-known is-locked"/);
       assert.ok(rows[index].includes(`/brand/reed/growth/bodies/${asset}`));
-      assert.match(rows[index],/mascot-stage-number/);
+      assert.match(rows[index],/<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true"><\/span>/);
       const mottoKey={2:"mascotMottoRoot",3:"mascotMottoSeedling",4:"mascotMottoSprout"}[index];
       assert.ok(rows[index].includes(`<p class="mascot-stage-motto">${words[language][mottoKey]}</p>`));
       assert.ok(!rows[index].includes(words[language].mascotNotUnlocked));

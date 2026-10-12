@@ -210,7 +210,7 @@ export function mascotsView(s) {
     <ol class="mascot-collection">${mascotStages.map((stage,index)=>{
       const earned=unlocked.includes(stage.id),implemented=!!stage.unlocked,current=latest===stage.id;
       const knownArtwork=earned || index<=maximumKnown;
-      const marker=earned?`<span class="mascot-stage-marker mascot-check"><svg viewBox="0 0 24 24" role="img" aria-label="${c.mascotEarned}"><path d="m4 12 5 5L20 6"/></svg></span>`:`<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true">${String(index+1).padStart(2,"0")}</span>`;
+      const marker=earned?`<span class="mascot-stage-marker mascot-check"><svg viewBox="0 0 24 24" role="img" aria-label="${c.mascotEarned}"><path d="m4 12 5 5L20 6"/></svg></span>`:`<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true"></span>`;
       const showMotto=knownArtwork&&!!stage.motto;
       const unlock=implemented?c[stage.milestone]:"???",motto=showMotto?c[stage.motto]:c.mascotNotUnlocked;
       return `<li class="mascot-stage${earned?" is-earned":""}${knownArtwork?" is-known":" is-mystery"}${!earned?" is-locked":""}${current?" is-current":""}"${current?' aria-current="step"':""}>${marker}${mascotArt(knownArtwork?stage.id:"mystery","mascot-stage-art")}<div class="mascot-stage-copy"><h2>${c[stage.name]}</h2><p class="mascot-stage-unlock">${esc(unlock)}</p><p class="mascot-stage-motto${showMotto?"":" is-locked"}">${esc(motto)}</p></div></li>`;
