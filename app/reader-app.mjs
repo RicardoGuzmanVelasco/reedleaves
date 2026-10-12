@@ -75,7 +75,9 @@ export function startReader() {
   }
   function lockControls() {
     main.setAttribute("aria-busy",String(busy));
-    if (busy) main.querySelectorAll("button,input,select,textarea").forEach(control=>control.disabled = true);
+    if (busy) main.querySelectorAll("button,input,select,textarea").forEach(control=>{
+      if (!control.matches(".exclusive-card-close")) control.disabled = true;
+    });
     settings.querySelectorAll("button,input").forEach(control=>control.disabled = busy);
   }
   function render({focus = false} = {}) {
@@ -102,6 +104,11 @@ export function startReader() {
       exclusive.showModal();
       exclusive.addEventListener("cancel",event=>{event.preventDefault();closeExclusive();});
       exclusive.addEventListener("click",event=>{if(event.target===exclusive)closeExclusive();});
+      exclusive.querySelector(".exclusive-card-close")?.addEventListener("click",event=>{
+        event.preventDefault();event.stopPropagation();
+        if(exclusive.open) exclusive.close();
+        closeExclusive();
+      });
       if (requestedId && cardVotesCardId!==requestedId) loadCardVotes(requestedId);
     }
     lockControls();
@@ -210,7 +217,10 @@ export function startReader() {
   }
   function closeExclusive() {
     if (["review","author"].includes(mode) && versionId) { returnToAlbum(); return; }
-    if (mode === "daily") navigate("#daily/closed");
+    if (mode === "daily") {
+      history.pushState({bookOrigin,libraryOrigin,profileReturnHash},"","#daily/closed");
+      route();
+    }
   }
   function loadCardVotes(cardId) {
     if (!cardId || cardVotesCardId===cardId && cardVotesLoading) return;
@@ -459,7 +469,6 @@ export function startReader() {
       case "author-deck": authorForm = null; quotesOnly = false; navigate("#author/"+b.dataset.version); break;
       case "inspect-card": albumPosition={versionId,mode:"author",scrollY:window.scrollY}; navigate("#author/"+versionId+"/"+b.dataset.card); break;
       case "deck-album": returnToAlbum(); break;
-      case "close-exclusive": closeExclusive(); break;
       case "retry-card-votes": loadCardVotes(requestedId); break;
       case "vote-card": voteCard(b.dataset.card,Number(b.dataset.value)); break;
       case "filter-all": quotesOnly = false; render(); main.querySelector('[data-action="filter-all"]')?.focus(); break;
