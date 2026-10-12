@@ -12,6 +12,10 @@ import {filterLibrary,libraryDefaults} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
 import {createReadingPresentation} from "./reading-presentation.mjs";
 
+export function dailyCardIdForRoute(daily,view,first) {
+  return view === "daily" && daily?.id && first !== "closed" ? daily.id : null;
+}
+
 export function startReader() {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
   const settings = document.getElementById("settings");
@@ -158,7 +162,7 @@ export function startReader() {
         const canonical = "#review/"+versionId+(requestedId ? "/"+requestedId : ""); if (location.hash !== canonical) history.replaceState(null,"",canonical); }
     } else {
       openDeckId = null; mode = view === "daily" ? "daily" : view === "library" ? "library" : view === "bookshelf" ? "bookshelf" : view === "account" && !snapshot.user ? "account" : "home";
-      requestedId = mode === "daily" && daily?.id && second !== "closed" ? daily.id : null;
+      requestedId = dailyCardIdForRoute(daily,view,first);
       if (mode === "home" && !snapshot.user) { pendingVersion = null; authReturn = "#home"; }
     }
     render({focus});
