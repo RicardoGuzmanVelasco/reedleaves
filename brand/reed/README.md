@@ -33,9 +33,11 @@ Los SVG contienen grupos `book`, `spine` y `leaf`, y el eje opcional en `data-ax
 
 ### Icono de inicio en iPhone
 
-`apple-touch-icon.png` es un PNG opaco de 180 × 180 px, enlazado desde `app/index.html` y servido también en `/apple-touch-icon.png`. Usa el logo aprobado de `d-compacto.svg` sobre crema `#FFF9ED`. El encuadre cuadrado `viewBox="14 38 228 228"` centra el libro y deja el símbolo con aproximadamente el 89 % del ancho. Los trazados, colores y proporciones se conservan. Las esquinas se dejan al sistema.
+`apple-touch-icon.png` es un PNG opaco de 180 × 180 px, enlazado desde `app/index.html` mediante `/apple-touch-icon-v2.png`: una ruta nueva para que Safari vuelva a buscar la imagen. Se conserva `/apple-touch-icon.png` y las variantes `-precomposed`, `-180x180` y `-180x180-precomposed` en la raíz y en `/app/` para la búsqueda automática. Todas sirven el PNG directamente, sin sesión ni redirecciones. Usa el logo aprobado de `d-compacto.svg` sobre crema `#FFF9ED`. El encuadre cuadrado `viewBox="14 38 228 228"` centra el libro y deja el símbolo con aproximadamente el 89 % del ancho. Los trazados, colores y proporciones se conservan. Las esquinas se dejan al sistema.
 
-Para regenerarlo, copiar el SVG aprobado a un archivo temporal, aplicar ese `viewBox` e insertar antes del grupo `book` un fondo `<rect x="14" y="38" width="228" height="228" fill="#FFF9ED"/>`. Rasterizar con `rsvg-convert --width 180 --height 180 --output brand/reed/apple-touch-icon.png archivo-temporal.svg` (requiere librsvg). No modificar el SVG del logo aprobado.
+`app-icon-192-v2.png` y `app-icon-512-v2.png` son las versiones opacas de 192 y 512 px del mismo SVG y encuadre. `app/manifest.webmanifest` las declara como respaldo. El manifiesto conserva la apertura en navegador (`display: browser`); este cambio solo configura la identidad y los iconos al guardar el acceso.
+
+Para regenerarlo, copiar el SVG aprobado a un archivo temporal, aplicar ese `viewBox` e insertar antes del grupo `book` un fondo `<rect x="14" y="38" width="228" height="228" fill="#FFF9ED"/>`. Rasterizar con `rsvg-convert --width 180 --height 180 --output brand/reed/apple-touch-icon.png archivo-temporal.svg` (requiere librsvg). Repetir a 192 y 512 px para los iconos del manifiesto y guardar todos como RGB sin canal alfa. No modificar el SVG del logo aprobado. Si cambia el arte, actualizar también las URLs versionadas para solicitar una imagen nueva.
 
 Tras desplegar, comprobar «Añadir a pantalla de inicio» en un iPhone. Si el acceso existente conserva el icono anterior, eliminarlo y añadirlo de nuevo.
 

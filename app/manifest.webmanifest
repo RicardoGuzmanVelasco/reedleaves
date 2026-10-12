@@ -1,0 +1,25 @@
+{
+  "id": "/app/",
+  "name": "Reedleaves",
+  "short_name": "Reedleaves",
+  "lang": "es",
+  "start_url": "/app/#home",
+  "scope": "/app/",
+  "display": "browser",
+  "background_color": "#FFF9ED",
+  "theme_color": "#FFF9ED",
+  "icons": [
+    {
+      "src": "/brand/reed/app-icon-192-v2.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/reed/app-icon-512-v2.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
