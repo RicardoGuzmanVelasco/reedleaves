@@ -109,9 +109,9 @@ test("Exclusive card votes put dislike left and like right with correctly orient
 });
 test("Book mascot collection shows earned art, ordered names and a shared unknown for future forms",async()=>{
   const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{"seven-habits":{added:true,spentDays:3}}};
-  const html=mascotsView(state),names=["Maceta","Semilla","Raíz","Brote","Plántula","Retoño","Tallo","Planta","Flor","Siempreviva"];
+  const html=mascotsView(state),names=["Maceta","Semilla","Raíz","Brote","Plántula","Retoño","Tallo","Planta","Flor","Fruto","Siempreverde"];
   assert.deepEqual(names.map(name=>html.indexOf(`<h2>${name}</h2>`)),[...names].map(name=>html.indexOf(`<h2>${name}</h2>`)).sort((a,b)=>a-b));
-  assert.equal((html.match(/\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,6);
+  assert.equal((html.match(/\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,7);
   assert.match(html,/\/brand\/reed\/growth\/bodies\/pot-a-body\.png/);assert.match(html,/\/brand\/reed\/growth\/bodies\/seed\.svg/);assert.match(html,/\/brand\/reed\/growth\/bodies\/root\.png/);assert.match(html,/\/brand\/reed\/growth\/bodies\/seedling\.svg/);assert.doesNotMatch(html,/\/brand\/reed\/growth\/bodies\/sprout\.svg/);
   assert.doesNotMatch(html,/root\.svg|stem\.svg|plant\.svg|flower\.svg|loop\.svg|20\s*%|60\s*%|100\s*%/);
   assert.match(html,/aria-current="step"/);assert.match(html,/role="img" aria-label="Conseguida"/);assert.doesNotMatch(html,/<span class="mascot-earned"/);
@@ -122,10 +122,13 @@ test("Book mascot collection shows earned art, ordered names and a shared unknow
   assert.doesNotMatch(noDays,/class="mascot-stage is-earned is-known"[^>]*>.*?<span class="mascot-art mascot-stage-art"[^>]*>.*?<img src="\/brand\/reed\/growth\/bodies\/seedling\.svg"/s);
   const fiveDays=mascotsView({...state,growth:{"seven-habits":{added:true,spentDays:5}}});
   assert.match(fiveDays,/class="mascot-stage is-earned is-known"[^>]*>.*?<span class="mascot-art mascot-stage-art"[^>]*>.*?<img src="\/brand\/reed\/growth\/bodies\/sprout\.svg"/s);
-  const empty=mascotsView({...state,growth:{}});assert.equal((empty.match(/\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,11);
-  assert.equal((empty.match(/\?\?\?/g)||[]).length,5);assert.equal((empty.match(/No desbloqueada/g)||[]).length,10);
+  const empty=mascotsView({...state,growth:{}});assert.equal((empty.match(/\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,12);
+  assert.equal((empty.match(/\?\?\?/g)||[]).length,6);assert.equal((empty.match(/No desbloqueada/g)||[]).length,11);
   assert.match(mascotsView({...state,language:"en",growth:{}}),/Not unlocked/);
-  assert.match(mascotsView({...state,language:"en",growth:{}}),/Not unlocked/);
+  const english=mascotsView({...state,language:"en",growth:{}});
+  assert.ok(english.indexOf("<h2>Flower</h2>")<english.indexOf("<h2>Fruit</h2>"));
+  assert.ok(english.indexOf("<h2>Fruit</h2>")<english.indexOf("<h2>Evergreen</h2>"));
+  assert.match(empty,/<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true">10<\/span>[\s\S]*?<h2>Fruto<\/h2><p class="mascot-stage-unlock">\?\?\?<\/p><p class="mascot-stage-motto is-locked">No desbloqueada<\/p>/);
 });
 test("Mascot collection opens from review album and deck selection, not library, card detail or authoring",async()=>{
   const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{},reviews:{},bookReviews:{},statuses:{},enrolledIds:[],deckChoices:[],storageAvailable:false};

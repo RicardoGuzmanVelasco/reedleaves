@@ -1,6 +1,6 @@
 # Nombres y lemas de las mascotas
 
-Edita los nombres o sustituye cada `PLACEHOLDER` directamente. **Plántula** es la mascota actual y **Retoño** es una etapa distinta, posterior. Las traducciones al inglés son propuestas editables. **Siempreviva / Evergreen** recupera la mascota original **Bucle vivo / Living loop**, con su cara en la posición del spike.
+Edita los nombres o sustituye cada `PLACEHOLDER` directamente. **Plántula** es la mascota actual y **Retoño** es una etapa distinta, posterior. Las traducciones al inglés son propuestas editables. **Siempreverde / Evergreen** recupera la mascota original **Bucle vivo / Living loop**, con su cara en la posición del spike.
 
 | Orden | Etapa (ES) | Stage (EN) | Lema (ES) | Motto (EN) |
 | --- | --- | --- | --- | --- |
@@ -13,4 +13,5 @@ Edita los nombres o sustituye cada `PLACEHOLDER` directamente. **Plántula** es 
 | 7 | Tallo | Stem | PLACEHOLDER | PLACEHOLDER |
 | 8 | Planta | Plant | PLACEHOLDER | PLACEHOLDER |
 | 9 | Flor | Flower | PLACEHOLDER | PLACEHOLDER |
-| 10 | Siempreviva | Evergreen | Vuelve en el futuro a ideas pasadas. Déjalas crecer. | Always return to a past idea. Let it grow in the meantime |
+| 10 | Fruto | Fruit | PLACEHOLDER | PLACEHOLDER |
+| 11 | Siempreverde | Evergreen | Vuelve en el futuro a ideas pasadas. Déjalas crecer. | Always return to a past idea. Let it grow in the meantime |

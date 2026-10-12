@@ -2,7 +2,7 @@ import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES, LANGUAGES} from "./core.mj
 import { accessibleCard, canAdvance } from "./rhythm.mjs";
 import { treeFrontier, hasLeaf, studyingDecks, availableVersions } from "./decks.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
-import { words } from "./i18n.mjs?v=growth-stage-names";
+import { words } from "./i18n.mjs?v=growth-stage-list";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
@@ -181,6 +181,7 @@ const mascotStages = [
   {id:"stem",name:"mascotNameStem"},
   {id:"plant",name:"mascotNamePlant"},
   {id:"flower",name:"mascotNameFlower"},
+  {id:"fruit",name:"mascotNameFruit"},
   {id:"infinity",name:"mascotNameInfinity",motto:"mascotMottoInfinity"}
 ];
 function mascotState(s,bookId) {

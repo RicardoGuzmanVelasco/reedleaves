@@ -34,6 +34,20 @@ test("Sprout precedes Seedling in both languages without changing earned stage I
   assert.deepEqual(stages.map(id=>words.en[id==="seedling"?"mascotNameSeedling":"mascotNameSprout"]),["Sprout","Seedling"]);
 });
 
+test("Mascot names and approved mottos match the editable reference document", () => {
+  const reference=readFileSync(new URL("../brand/reed/growth/mottos.md",import.meta.url),"utf8");
+  const rows=reference.split("\n").filter(line=>/^\|\s*\d+\s*\|/.test(line)).map(line=>line.split("|").slice(1,-1).map(cell=>cell.trim()));
+  const keys=["Pot","Seed","Root","Seedling","Sprout","Sapling","Stem","Plant","Flower","Fruit","Infinity"];
+  assert.equal(rows.length,keys.length);
+  for (const [index,key] of keys.entries()) {
+    assert.equal(Number(rows[index][0]),index+1);
+    for (const [language,nameColumn,mottoColumn] of [["es",1,3],["en",2,4]]) {
+      assert.equal(words[language][`mascotName${key}`],rows[index][nameColumn]);
+      if (rows[index][mottoColumn]!=="PLACEHOLDER") assert.equal(words[language][`mascotMotto${key}`],rows[index][mottoColumn]);
+    }
+  }
+});
+
 test("Only Spanish and English are restored as interface languages", () => {
   for (const language of LANGUAGES) assert.equal(restoreLanguage(language), language);
   for (const invalid of [null, undefined, "fr", "de", "FR", {}, []]) assert.equal(restoreLanguage(invalid), "es");

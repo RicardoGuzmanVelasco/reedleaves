@@ -59,7 +59,7 @@ export async function readProfile(db,userId,viewerId) {
     const completed=new Set(progress.filter(v=>Number(v.total)>0 && Number(v.seen)===Number(v.total)).map(v=>v.deck_id));
     const active=new Set(progress.filter(v=>(Number(v.seen)<Number(v.total) || v.status === "draft" && Number(v.total)===0) && (Number(v.seen)>0 || Number(v.enrolled)>0)).map(v=>v.deck_id));
     const days=new Map((await db.prepare("SELECT v.book_id,COUNT(DISTINCT u.local_day) AS n FROM review_unlocks u JOIN deck_versions v ON v.id=u.version_id WHERE u.user_id=? GROUP BY v.book_id").all(userId)).map(r=>[r.book_id,Number(r.n)]));
-    const mascots={pot:0,seed:0,root:0,seedling:0,sprout:0,sapling:0,stem:0,plant:0,flower:0,infinity:0};
+    const mascots={pot:0,seed:0,root:0,seedling:0,sprout:0,sapling:0,stem:0,plant:0,flower:0,fruit:0,infinity:0};
     const added=new Set([...Object.keys(statuses),...(await db.prepare("SELECT v.book_id FROM studies s JOIN deck_versions v ON v.id=s.version_id WHERE s.user_id=?").all(userId)).map(row=>row.book_id)]);
     for (const bookId of new Set([...added,...days.keys()])) {
       const stage=currentMascotStage({spentDays:days.get(bookId)||0,added:added.has(bookId)});
