@@ -13,6 +13,7 @@
   --card-tab-edge:#95bc69;
   --card-divider:#e1e5d0;
   --card-body-font:Courier,"Courier New",monospace;
+  --card-body-weight:400;
   --card-body-size:clamp(19px,2.3vw,23px);
   --card-body-size-mobile:18px;
   --card-body-leading:1.75;
@@ -45,7 +46,8 @@
   --card-tab:#cbdced;
   --card-tab-edge:#9ab3cb;
   --card-divider:#cbdced;
-  --card-body-font:"EB Garamond",Garamond,"Baskerville","Times New Roman",serif;
+  --card-body-font:"Cormorant Garamond","EB Garamond",Garamond,"Baskerville","Times New Roman",serif;
+  --card-body-weight:300;
   --card-body-size:clamp(24px,3.3vw,32px);
   --card-body-size-mobile:24px;
   --card-body-leading:1.65;
