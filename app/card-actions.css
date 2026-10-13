@@ -6,7 +6,12 @@
 .card-actions .action-divider{fill:none;stroke:var(--actions-edge);stroke-width:1.5;opacity:.55}
 .card-actions [data-thumb]{stroke:var(--actions-ink);fill:none;stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round}
 .card-actions[data-vote="-1"] [data-thumb="-1"],.card-actions[data-vote="1"] [data-thumb="1"]{fill:var(--actions-accent)}
-.card-actions .is-own [data-thumb]{fill:none;stroke-dasharray:3 2}
+.card-actions .is-own .action-plate-body{fill-opacity:.45;stroke-opacity:.55;stroke-dasharray:5 3}
+.card-actions .is-own .action-plate-shadow{opacity:.18}
+.card-actions .is-own .action-divider{opacity:.25;stroke-dasharray:3 3}
+.card-actions .is-own [data-thumb]{fill:none;stroke-dasharray:3 2;opacity:.5}
+.card-actions .is-own .vote-target{cursor:not-allowed}
+.card-actions .is-own [data-counter]{opacity:1;font-weight:700}
 .card-actions [data-counter]{fill:var(--actions-counter);font-family:Arial,sans-serif;font-size:12px;text-anchor:middle}
 .card-actions .vote-target{position:absolute;top:2px;width:56.5px;height:64px;border:0;background:transparent;border-radius:18px;padding:0;cursor:pointer}
 .card-actions .vote-target[data-value="-1"]{left:0}.card-actions .vote-target[data-value="1"]{left:56.5px}

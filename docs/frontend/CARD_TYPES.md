@@ -16,6 +16,8 @@ El contrato actual del catálogo usa `isQuote`; `cardTypeFor` concentra su tradu
 
 Se conserva `blockquote` para las citas y `p` para las ideas. La ausencia de título visual en citas mantiene un encabezado accesible traducido. El fondo es decorativo y no captura clics. Paletas, tipografía y configuración de contenido no duplican recorridos de votos, guardado o repaso.
 
+En tarjetas propias, la placa y los pulgares de voto tienen contorno discontinuo. Se atenúan relleno, borde, sombra, separador y pulgares por separado; los contadores conservan opacidad completa y refuerzan su peso. Los botones de voto siguen deshabilitados y usan cursor `not-allowed`. El guardado permanece disponible con su presentación habitual.
+
 ## Revisión visual
 
 Revisadas ideas y citas en móvil y escritorio. En escritorio ambas tienen padding `58px 72px 30px`, radio `32px` y la misma altura mínima; en móvil comparten padding `54px 22px 21px` y radio `25px`. Se conservan Courier/Garamond y las paletas Salvia/azul. Las comillas siguen completas y las cintas pueden sobresalir. Capturas locales en `var/shared-cards-qa/`, fuera de Git.
