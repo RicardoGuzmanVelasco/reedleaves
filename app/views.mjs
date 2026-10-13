@@ -190,7 +190,7 @@ function mascotState(s,bookId) {
   return {g,unlocked,latest:currentMascotStage(g)};
 }
 function mascotEntry(s,bookId,className="") {
-  return `<button class="mascot-entry${className ? ` ${esc(className)}` : ""}" type="button" data-action="open-mascots" data-book="${esc(bookId)}" aria-label="${esc(words[s.language].mascots)} · ${esc(contentText(s.catalog.booksById.get(bookId).shortTitle,s.language,s.catalog.booksById.get(bookId).originalLanguage))}">${mascotArt(mascotState(s,bookId).latest)}</button>`;
+  return `<button class="mascot-entry${className ? ` ${esc(className)}` : ""}" type="button" data-action="open-mascots" data-book="${esc(bookId)}" aria-label="${esc(words[s.language].mascotProgress)} · ${esc(contentText(s.catalog.booksById.get(bookId).shortTitle,s.language,s.catalog.booksById.get(bookId).originalLanguage))}">${mascotArt(mascotState(s,bookId).latest)}</button>`;
 }
 function mascotMotto(s,bookId) {
   const current=mascotState(s,bookId).latest, stage=mascotStages.find(item=>item.id===current);
