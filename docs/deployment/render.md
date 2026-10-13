@@ -8,7 +8,7 @@ Render configura `NODE_ENV=production` y proporciona `PORT` y `RENDER_EXTERNAL_U
 
 `DATABASE_URL` se introduce como secreto en Render; no debe guardarse en Git. `REED_INVITE_CODE` lo genera Render. Compártelo solo con las personas autorizadas para crear cuentas.
 
-Para activar «Autorellenar con IA», configura `OPENAI_API_KEY` como secreto del servicio. `OPENAI_BOOK_MODEL` es opcional; por defecto se usa `gpt-5.4-mini`. La clave nunca se envía al navegador. Sin clave, el guardado manual sigue disponible y el botón explica que el autorellenado no está disponible.
+Para activar «Rellenar con IA», configura `OPENAI_API_KEY` como secreto del servicio. `OPENAI_BOOK_MODEL` es opcional; por defecto se usa `gpt-5.4-mini`. La clave nunca se envía al navegador. Sin clave, el guardado manual sigue disponible y el botón explica que no se puede rellenar el libro con IA.
 
 En local, copia `.env.example` a `.env`, introduce la clave y arranca con `node --env-file=.env server/index.mjs`. `npm start` utiliza las variables ya exportadas en el entorno; no carga `.env` automáticamente.
 

@@ -27,6 +27,31 @@ test("All interface languages have the same complete set of messages and types",
   }
 });
 
+test("Spanish interface calls review items tarjetas, never cartas", () => {
+  const dynamicSamples = Object.entries(words.es).flatMap(([key, value]) => {
+    if (typeof value !== "function") return [];
+    const args = key === "date" ? [new Date(2026,0,1)] : key === "deckSize" ? [2,2] : key === "progress" || key === "position" ? [2,3] : [2];
+    return [value(...args)];
+  });
+  for (const message of [...Object.values(words.es).filter(value => typeof value === "string"), ...dynamicSamples]) {
+    assert.doesNotMatch(message, /\bcartas?\b/i);
+    assert.doesNotMatch(message, /tarjeta madre/i);
+  }
+  assert.equal(words.es.parentCard, "Colocar debajo de (opcional)");
+});
+
+test("English interface uses Practice and avoids review wording", () => {
+  const dynamicSamples = Object.entries(words.en).flatMap(([key, value]) => {
+    if (typeof value !== "function") return [];
+    const args = key === "date" ? [new Date(2026,0,1)] : key === "deckSize" ? [2,2] : key === "progress" || key === "position" ? [2,3] : [2];
+    return [value(...args)];
+  });
+  for (const message of [...Object.values(words.en).filter(value => typeof value === "string"), ...dynamicSamples]) {
+    assert.doesNotMatch(message, /\breview(?:s|ed|ing)?\b/i);
+  }
+  assert.equal(words.en.review, "Practice");
+});
+
 test("Sprout precedes Seedling in both languages without changing earned stage IDs", () => {
   const stages=[currentMascotStage({added:true,spentDays:3}),currentMascotStage({added:true,spentDays:5})];
   assert.deepEqual(stages,["seedling","sprout"]);
