@@ -217,7 +217,16 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .typewriter-ink::after{content:"";display:inline-block;height:1em;border-inline-end:2px solid var(--sage);margin-inline-start:3px;vertical-align:-.08em;animation:reading-cursor .65s steps(2,jump-none) infinite}
 .reading-stage--quote::before{background:#cddff2;border-color:var(--quote-edge)}.reading-stage--quote::after{background:#dce9f7;border-color:var(--quote-edge)}
 .reading-stage .quote-card{padding-top:76px;background:linear-gradient(135deg,#f1f7fd,var(--quote-paper));border-color:var(--quote-edge);box-shadow:0 8px 0 var(--quote-shadow),0 24px 32px -16px rgb(57 89 126 / 24%),0 44px 80px -32px rgb(57 89 126 / 20%);isolation:isolate;overflow:hidden}
-.quote-watermark{position:absolute;right:8%;bottom:-.1em;z-index:-1;font:clamp(190px,28vw,300px)/.75 Georgia,serif;color:var(--quote-edge);opacity:.13;pointer-events:none;user-select:none}
+.reading-content{position:relative;isolation:isolate;padding-bottom:36px}
+.reading-content>h1,.reading-content>h2,.reading-content>.idea-body{position:relative;z-index:1}
+.idea-card{--watermark-ink:var(--actions-ink,#6e916a);--watermark-opacity:.09}
+.quote-card{--watermark-ink:var(--quote-edge);--watermark-opacity:.13}
+.card-watermark{position:absolute;inset:0;overflow:hidden;display:flex;align-items:flex-end;justify-content:flex-end;color:var(--watermark-ink);opacity:var(--watermark-opacity);pointer-events:none;user-select:none;z-index:0}
+.quote-watermark{width:100%;height:100%;fill:currentColor;overflow:visible}
+.idea-watermark{width:min(78%,400px);height:100%;max-height:440px;fill:currentColor;align-self:flex-end}
+.reading-content+.reading-footer{margin-top:0}
+.exclusive-card-modal .reading-content{flex:1}
+.exclusive-card-modal .reading-content+.reading-footer{margin-top:0}
 .reading-stage .quote-card::before{width:auto;height:auto;border:0;background:none;top:19px;left:52px;right:auto;font:70px/1 Georgia,serif;color:var(--quote-edge)}
 .reading-stage .quote-card blockquote{font-size:clamp(24px,3.3vw,32px);line-height:1.65;text-align:justify;text-align-last:start;text-justify:inter-word}
 .reading-stage--quote .reading-footer{border-top-color:#cbdced}.quote-card .typewriter-ink::after{border-color:var(--quote-edge)}

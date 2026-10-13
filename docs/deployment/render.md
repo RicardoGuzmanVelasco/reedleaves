@@ -2,7 +2,7 @@
 
 ## Configuración incluida
 
-El Blueprint `render.yaml` crea un servicio web Node gratuito. Instala con `npm ci`, arranca con `npm start` y verifica `/api/health`.
+El Blueprint `render.yaml` crea un servicio web Node gratuito. Instala y compila con `npm ci && npm run build:ui`, arranca con `npm start` y verifica `/api/health`. React y las acciones de tarjeta se sirven desde el módulo generado localmente en `/app/generated/card-features.js`.
 
 Render configura `NODE_ENV=production` y proporciona `PORT` y `RENDER_EXTERNAL_URL`. La app usa la URL de Render al principio para validar el origen y activar cookies seguras. Cuando se conecte el dominio propio, define `REED_ORIGIN` en el servicio con la URL final, por ejemplo `https://reedleaves.com`.
 
@@ -54,6 +54,10 @@ Para repetir o revisar la configuración:
 Verificación del 11 de octubre de 2026: `/api/health` y `/api/session` responden HTTP 200; `www` devuelve HTTP 301 al dominio principal; la app abre su pantalla de entrada. El inicio de sesión con una cuenta y el guardado no se han probado en esta comprobación. La URL de Render permanece habilitada, pero las operaciones POST solo aceptan el dominio principal configurado en `REED_ORIGIN`.
 
 Referencia: [DNS de Cloudflare en Render](https://render.com/docs/configure-cloudflare-dns).
+
+## Verificación de Guardadas
+
+Verificación del 13 de octubre de 2026: Guardadas y acciones optimistas desplegadas desde `ce40727`, despliegue `dep-db72voa6192c73dker10` activo. Salud, app, módulo generado y paletas responden HTTP 200; Guardadas sin sesión devuelve 401. La versión integrada pasó 216/216 pruebas antes de publicar. Los logs de arranque no muestran errores. El incremento posterior de marcas de agua permanece en local para revisión.
 
 ## Límites del plan gratuito
 

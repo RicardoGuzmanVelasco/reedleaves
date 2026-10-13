@@ -243,12 +243,18 @@ function cardVoteMarkup(s,card) {
   return `<div class="card-actions-host" data-card-actions="${esc(card.id)}"></div>`;
 }
 
+function cardWatermark(card) {
+  const quote='M78 0H24C10 0 0 10 0 24c0 23 16 40 40 40 9 0 17-2 23-5-7 25-23 42-51 49l5 16c41-8 67-42 67-91 0-12-2-23-6-33Z';
+  const symbol=card.isQuote ? `<svg class="quote-watermark" viewBox="0 0 184 124" preserveAspectRatio="xMaxYMax meet" focusable="false"><path d="${quote}"/><path d="${quote}" transform="translate(100)"/></svg>` : '<svg class="idea-watermark" viewBox="0 0 160 180" preserveAspectRatio="xMidYMax meet" focusable="false"><path d="M80 9c-32 0-57 24-57 56 0 22 10 36 24 49 7 7 10 14 10 23h46c0-9 3-16 10-23 14-13 24-27 24-49 0-32-25-56-57-56Z"/><path d="M56 148h48v7c0 12-10 22-24 22s-24-10-24-22Z"/></svg>';
+  return `<span class="card-watermark" aria-hidden="true">${symbol}</span>`;
+}
+
 function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false} = {}) {
   const book = s.catalog.booksById.get(card.bookId), deckLanguage = card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
-  return `<div class="reading-stage${card.isQuote ? " reading-stage--quote" : ""}" data-reading-card="${esc(card.id)}"${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${card.isQuote ? " quote-card" : ""}">${card.isQuote ? `<blockquote lang="${esc(bodyLanguage)}" dir="auto" class="idea-body" id="idea-content" tabindex="-1">${esc(body)}</blockquote>` : `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-content" tabindex="-1">${esc(title)}</${heading}><p lang="${esc(bodyLanguage)}" dir="auto" class="idea-body">${esc(body)}</p>`}
-    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book)}</div>${exclusive ? cardVoteMarkup(s,card) : ""}</footer>${card.isQuote ? '<span class="quote-decoration" aria-hidden="true"><span class="quote-watermark">❞</span></span>' : ""}</article></div>`;
+  return `<div class="reading-stage${card.isQuote ? " reading-stage--quote" : ""}" data-reading-card="${esc(card.id)}"${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${card.isQuote ? " quote-card" : ""}"><div class="reading-content">${cardWatermark(card)}${card.isQuote ? `<blockquote lang="${esc(bodyLanguage)}" dir="auto" class="idea-body" id="idea-content" tabindex="-1">${esc(body)}</blockquote>` : `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-content" tabindex="-1">${esc(title)}</${heading}><p lang="${esc(bodyLanguage)}" dir="auto" class="idea-body">${esc(body)}</p>`}</div>
+    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book)}</div>${exclusive ? cardVoteMarkup(s,card) : ""}</footer></article></div>`;
 }
 
 function exclusiveCardMarkup(s,card,position="") {
