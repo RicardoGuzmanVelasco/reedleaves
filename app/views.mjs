@@ -88,6 +88,7 @@ function bookDetailsMarkup(s,book) {
     <div class="deck-tags">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</div>
     <h2 id="book-dialog-title" lang="${esc(displayedBookTitle(s,book).language)}" dir="auto">${esc(displayedBookTitle(s,book).text)}</h2><div class="book-detail-author-row"><p class="book-detail-author">${esc(book.author)}</p>${completeBookButton(s,book)}</div>
     <p class="book-original-title"><span>${c.originalTitle}</span><span lang="${esc(book.originalLanguage)}" dir="auto">${esc(book.originalTitle)}</span></p>
+    ${book.creatorName ? `<p class="book-added-by"><span>${c.bookAddedBy}</span><span><bdi>${esc(book.creatorName)}</bdi></span></p>` : ""}
     ${contentText(book.description,s.language,book.originalLanguage) ? `<p class="deck-description" id="book-dialog-description" lang="${esc(contentLocale(book.description,s.language,book.originalLanguage))}" dir="auto">${esc(contentText(book.description,s.language,book.originalLanguage))}</p>` : ""}
     ${bookLinksMarkup(s, book)}
     ${book.creatorUserId ? bookSourcesMarkup(s,book) : ""}

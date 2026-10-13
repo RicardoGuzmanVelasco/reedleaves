@@ -137,6 +137,8 @@
 .settings-account{margin-top:24px;padding-top:16px;border-top:1px solid var(--line)}.settings-account p{font-size:14px;font-weight:750;overflow-wrap:anywhere}.settings-account .text-button{margin-top:8px}.sync-note{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;line-height:1.5;color:var(--error);background:#f7ead2;border-radius:14px;padding:12px 16px;margin-top:18px}.sync-note .text-button{color:var(--ink)}
 .book-original-title{display:grid;gap:4px;margin-top:15px;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
 .book-original-title>span:first-child{font-size:11px;color:var(--muted)}
+.book-added-by{display:grid;gap:4px;margin-top:12px;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.book-added-by>span:first-child{font-size:11px;color:var(--muted)}
 .book-detail-languages{font-size:11px;color:var(--muted);line-height:1.5;margin-top:7px}
 .book-external-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:20px}
 .book-external-link{display:grid;grid-template-columns:22px minmax(0,1fr) 14px;gap:8px;align-items:center;min-height:60px;padding:10px;border:1px solid #b4cba0;border-radius:14px;background:#fffdf5;color:var(--ink);text-decoration:none;box-shadow:0 2px 0 #c9d7b8;transition:background .15s,transform .15s}
