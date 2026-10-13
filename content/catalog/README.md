@@ -9,11 +9,11 @@ La app consulta SQLite, no estos archivos. Los CSV son el formato plano de autor
 | `books.csv` | Un libro con metadatos ES/EN y géneros separados por `|` |
 | `links.csv` | Enlace externo de un libro: plataforma (`amazon` o `goodreads`) y URL HTTPS de su ficha |
 | `decks.csv` | Baraja, creador, libro, idioma principal y versión; enfoque y nota editorial |
-| `cards.csv` | Carta con versión, padre opcional, orden entre hermanas, texto y fuente HTTPS |
+| `cards.csv` | Tarjeta con versión, padre opcional, orden entre hermanas, texto y fuente HTTPS |
 
-`decks.csv` declara una etiqueta de idioma BCP 47 en `language`, por ejemplo `fr`, `pt-BR` o `zh-Hant`. Esa columna fija el idioma original de la baraja. Las columnas traducidas usan sufijos de idioma, por ejemplo `title_fr` y `body_fr`. Añade una columna y rellénala solo si quieres ofrecer esa traducción; cada carta siempre debe tener título y texto en el idioma principal.
+`decks.csv` declara una etiqueta de idioma BCP 47 en `language`, por ejemplo `fr`, `pt-BR` o `zh-Hant`. Esa columna fija el idioma original de la baraja. Las columnas traducidas usan sufijos de idioma, por ejemplo `title_fr` y `body_fr`. Añade una columna y rellénala solo si quieres ofrecer esa traducción; cada tarjeta siempre debe tener título y texto en el idioma principal.
 
-Comas, saltos de línea y comillas dentro de un campo siguen CSV estándar: rodear el campo con comillas y duplicar las interiores. No incluir citas largas ni transcribir capítulos. Mantener IDs y orden estables. Cada carta tiene `version_id` y `parent_id`; el orden es entre hermanas. Para cambios de contenido publicado, crear otra versión con nuevos IDs.
+Comas, saltos de línea y comillas dentro de un campo siguen CSV estándar: rodear el campo con comillas y duplicar las interiores. No incluir citas largas ni transcribir capítulos. Mantener IDs y orden estables. Cada tarjeta tiene `version_id` y `parent_id`; el orden es entre hermanas. Para cambios de contenido publicado, crear otra versión con nuevos IDs.
 
 Editar → `npm run db:seed` → `npm run db:check` → `npm test`. La importación es transaccional y repetible; rechaza datos incompletos, referencias ausentes y cambios de posición de tarjetas existentes. Los libros y tarjetas no se borran por omitirlos del CSV.
 
@@ -27,7 +27,7 @@ Editar → `npm run db:seed` → `npm run db:check` → `npm test`. La importaci
 | Atomic Habits · James Clear | Crecimiento personal, productividad | 8 | [James Clear](https://jamesclear.com/atomic-habits-summary) |
 | Same as Ever · Morgan Housel | Crecimiento personal, finanzas | 7 | [Morgan Housel](https://collabfund.com/blog/my-new-book-same-as-ever/) |
 
-42 cartas en seis barajas. Los ejemplos alternan inglés y español: cada baraja tiene un solo idioma principal. Los cinco libros y los intereses requieren metadatos en español e inglés. La interfaz está disponible en esos dos idiomas; cambiarla no traduce ni cambia el idioma original de las barajas. El formato admite otros idiomas y traducciones opcionales. La original de Los 7 hábitos sigue siendo plana; «De dentro hacia fuera» agrupa esos hábitos en tres bloques con dos niveles. Cada carta conserva su fuente concreta en `cards.csv` y en su fila SQL. Son selecciones breves, no reproducciones de todos los capítulos. Estado editorial `draft`: revisar antes de publicación pública.
+42 tarjetas en seis barajas. Los ejemplos alternan inglés y español: cada baraja tiene un solo idioma principal. Los cinco libros y los intereses requieren metadatos en español e inglés. La interfaz está disponible en esos dos idiomas; cambiarla no traduce ni cambia el idioma original de las barajas. El formato admite otros idiomas y traducciones opcionales. La original de Los 7 hábitos sigue siendo plana; «De dentro hacia fuera» agrupa esos hábitos en tres bloques con dos niveles. Cada tarjeta conserva su fuente concreta en `cards.csv` y en su fila SQL. Son selecciones breves, no reproducciones de todos los capítulos. Estado editorial `draft`: revisar antes de publicación pública.
 
 ## Títulos localizados
 

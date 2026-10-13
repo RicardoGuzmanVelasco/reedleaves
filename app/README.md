@@ -1,6 +1,6 @@
 # Reedleaves
 
-Catálogo real: cinco libros, seis barajas y 42 cartas. Cada baraja tiene un idioma original y puede añadir traducciones. Reedleaves es el nombre oficial del proyecto, la web y la app; logo y mascota aprobados sin cambios. Lemas: «Read. Plant a seed.» y «De hoja a hoja».
+Catálogo real: cinco libros, seis barajas y 42 tarjetas. Cada baraja tiene un idioma original y puede añadir traducciones. Reedleaves es el nombre oficial del proyecto, la web y la app; logo y mascota aprobados sin cambios. Lemas: «Read. Plant a seed.» y «De hoja a hoja».
 
 ## Ejecutar
 
@@ -22,11 +22,11 @@ Abrir http://127.0.0.1:4173/app/. La primera ejecución crea y carga SQLite; las
 - Seis grupos: leyendo, leídos, repasando, repasados, intereses y todos. Unión sin duplicar; Todos sustituye al resto.
 - Géneros recibidos de la base: crecimiento personal, finanzas y productividad.
 - Librería, accesible desde «Ir a la librería»: cuadrícula de libros cerrados con título, autor, intereses y número de barajas. Pulsar abre su ficha modal; ahí se consulta la descripción, se marca la lectura del original y se accede a las barajas. La navegación no gasta hojas ni elige una baraja automáticamente.
-- Elegir una baraja por libro: creador, enfoque, cartas y profundidad. Recomendación del equipo y ganadoras reales, sin duplicados ni premios con cero actividad.
-- Ganar una hoja al día y acumular hasta tres. Se pueden gastar varias el mismo día: hermana siguiente o hija cuestan una hoja si son nuevas. Volver a cartas repasadas es gratis. Los días ausentes suman hasta el máximo, sin guardar un exceso pendiente.
+- Elegir una baraja por libro: creador, enfoque, tarjetas y profundidad. Recomendación del equipo y ganadoras reales, sin duplicados ni premios con cero actividad.
+- Ganar una hoja al día y acumular hasta tres. Se pueden gastar varias el mismo día: hermana siguiente o hija cuestan una hoja si son nuevas. Volver a tarjetas repasadas es gratis. Los días ausentes suman hasta el máximo, sin guardar un exceso pendiente.
 - Los filtros afectan al siguiente día una vez asignada la idea de hoy, pendiente de confirmación.
 - Crear barajas personales desde las barajas de un libro. Añadir tarjetas o quotes con padre opcional, en el idioma de la baraja. La autoría es gratuita; el repaso mantiene las hojas.
-- Quotes en azul pastel y EB Garamond regular; fuente WOFF2 local con alternativa serif. Filtro «Solo quotes». Las sueltas aparecen bajo «Quotes sin clasificar», sin carta ficticia en la base.
+- Citas en azul pastel y EB Garamond regular; fuente WOFF2 local con alternativa serif. Filtro «Solo citas». Las sueltas aparecen bajo «Citas sin clasificar», sin tarjeta ficticia en la base.
 - Lectura protagonista: papel elevado por capas, fondo iluminado, entrada breve y texto progresivo a 4 ms por carácter, con un máximo aproximado de 2,5 segundos. El contenido completo permanece accesible; movimiento reducido omite la animación. La presentación se comparte entre repaso, autoría e idea del día.
 - Sin publicación del contenido personal, rachas ni tareas. El selector y el repaso admiten barajas anidadas.
 
@@ -34,13 +34,13 @@ Lectura original y repaso son independientes. Una tarjeta aleatoria no desbloque
 
 ## Datos y código
 
-Crear libro ofrece «Autorellenar con IA»: título (autor e idioma original opcionales para la búsqueda), spinner y vista previa. La IA busca fuentes y propone título original, autor, idioma original, títulos completos/cortos, descripciones y notas en español e inglés, intereses del catálogo y enlaces verificados disponibles. La ficha permite consultar traducciones y fuentes; «Editar» conserva el borrador y ofrece los metadatos en controles plegados. Repetir el autorellenado completa huecos sin sustituir valores ya escritos. Solo «Crear libro» persiste la propuesta; cancelar la descarta. La creación manual continúa disponible.
+Crear libro ofrece «Rellenar con IA»: título (autor e idioma original opcionales para la búsqueda), indicador de carga y vista previa. La IA busca fuentes y propone título original, autor, idioma original, títulos completos/cortos, descripciones y notas en español e inglés, intereses del catálogo y enlaces verificados disponibles. La ficha permite consultar traducciones y fuentes; «Editar» conserva el borrador y ofrece los metadatos en controles plegados. Repetir la búsqueda con IA completa huecos sin sustituir valores ya escritos. Solo «Crear libro» persiste la propuesta; cancelar la descarta. La creación manual continúa disponible.
 
 La integración requiere `OPENAI_API_KEY` en el servidor. Ver [configuración](../docs/deployment/render.md). Las pruebas usan un proveedor simulado, sin llamadas de pago. El prompt y el esquema están en `server/book-autofill.mjs`; no se comparte el contexto de esta conversación.
 
 Los libros propios ya creados muestran un icono de información pendiente en Inicio, Librería, Biblioteca y la ficha si faltan títulos completos/cortos o descripciones ES/EN, o intereses. Pulsarlo abre «Completar información», reutiliza la búsqueda y vista previa, y ofrece «Guardar» para completar el mismo libro. Identidad y datos previos son de solo lectura; los campos nuevos se pueden corregir. El servidor combina la propuesta con los datos más recientes bajo bloqueo y conserva los valores existentes, también si otra sesión ha completado el libro. Los reintentos no duplican datos ni alteran barajas, progreso o saldo. Enlaces, fuentes y notas opcionales no mantienen el indicador. Solo el creador puede completar sus libros; no hay migración.
 
-Contenido editable: content/catalog/*.csv. Datos activos: var/catalog.sqlite, con libros, barajas, versiones, árboles y fuentes. SQLite v12 y PostgreSQL v4. La actualización desde v9/v1 conserva cuentas, cartas y progreso; añade quotes, libros personales y la preferencia de títulos originales. HTTP JSON es transporte, no almacenamiento del catálogo.
+Contenido editable: content/catalog/*.csv. Datos activos: var/catalog.sqlite, con libros, barajas, versiones, árboles y fuentes. SQLite v12 y PostgreSQL v4. La actualización desde v9/v1 conserva cuentas, tarjetas y progreso; añade citas, libros personales y la preferencia de títulos originales. HTTP JSON es transporte, no almacenamiento del catálogo.
 
 Backend: server/database.mjs, seed.mjs, catalog-repository.mjs, author-repository.mjs, auth.mjs, reader-repository.mjs, reader-api.mjs y http.mjs.
 
@@ -60,7 +60,7 @@ Pruebas automatizadas: integridad SQL, persistencia, backup, rollback, API, form
 
 ## Límites actuales
 
-El backend guarda saldo, progreso, posición, lectura original, preferencias e idea diaria por cuenta. La fecha y el gasto se validan en servidor. Dobles clics, reintentos y dos sesiones no duplican gasto. Volver a entrar recupera el repaso; completarlo exige todas las cartas, incluidas las hijas.
+El backend guarda saldo, progreso, posición, lectura original, preferencias e idea diaria por cuenta. La fecha y el gasto se validan en servidor. Dobles clics, reintentos y dos sesiones no duplican gasto. Volver a entrar recupera el repaso; completarlo exige todas las tarjetas, incluidas las hijas.
 
 La cuenta nueva empieza limpia. El progreso de la antigua prueba anónima se conserva en el navegador, sin borrarlo ni importarlo como verificado. El idioma sigue escribiéndose localmente. Sin sesión, también se conserva la preferencia de títulos originales en el navegador; con sesión se usa la preferencia de la cuenta.
 

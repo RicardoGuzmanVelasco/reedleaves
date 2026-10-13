@@ -52,7 +52,7 @@ test("Completion reuses the preview but saves to the current book and locks exis
 });
 test("Book form offers explicit AI loading and retry states; preview escapes all content and has translations, sources and save",()=>{
   const form={kind:"book",title:"Pensar rápido",author:"",language:""};
-  assert.match(authorFormView({...state,authorForm:form}),/Autorellenar con IA/);
+  assert.match(authorFormView({...state,authorForm:form}),/Rellenar con IA/);
   const loading=authorFormView({...state,authorForm:{...form,autofilling:true}});
   assert.match(loading,/class="ai-spinner" aria-hidden="true"/);assert.match(loading,/role="status">Buscando información/);
   const failed=authorFormView({...state,authorForm:{...form,error:"aiAmbiguous"}});
