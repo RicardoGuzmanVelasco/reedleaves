@@ -7,6 +7,8 @@ import { Pool, types } from "pg";
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
+export const SQLITE_SCHEMA_VERSION = 16;
+export const POSTGRES_SCHEMA_VERSION = 8;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -78,7 +80,19 @@ export async function transaction(db, callback) {
 export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
-  if (version === 15) return;
+  if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 15) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE IF NOT EXISTS card_saves (
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+        saved_at TEXT NOT NULL, PRIMARY KEY(user_id,card_id)
+      ) STRICT; CREATE INDEX IF NOT EXISTS saves_by_reader ON card_saves(user_id,saved_at,card_id);
+      PRAGMA user_version=16; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return;
+  }
   if (version === 14) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -88,7 +102,7 @@ export function initializeDatabase(db) {
         PRIMARY KEY(user_id,card_id)
       ) STRICT; CREATE INDEX IF NOT EXISTS votes_by_card ON card_votes(card_id,value); PRAGMA user_version=15; COMMIT;`);
     } catch(error) { db.exec("ROLLBACK"); throw error; }
-    return;
+    return initializeDatabase(db);
   }
   if (version === 13) {
     const schema = readFileSync(new URL("./schema.sql", import.meta.url),"utf8");
@@ -101,7 +115,7 @@ export function initializeDatabase(db) {
       if (db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("Migration broke database references");
       db.exec("PRAGMA user_version=14; COMMIT;");
     } catch(error) { db.exec("ROLLBACK"); throw error; }
-    return;
+    return initializeDatabase(db);
   }
   if (version === 12) {
     db.exec("BEGIN IMMEDIATE");
@@ -160,11 +174,25 @@ async function initializePostgresDatabase(db) {
     const tables = await db.prepare("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'").all();
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
-      if (version?.version === 7) return;
+      if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 7) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= POSTGRES_SCHEMA_VERSION) return;
+          await db.exec(`CREATE TABLE IF NOT EXISTS card_saves (
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+            saved_at TIMESTAMPTZ NOT NULL, PRIMARY KEY(user_id,card_id)
+          ); CREATE INDEX IF NOT EXISTS saves_by_reader ON card_saves(user_id,saved_at,card_id);
+          ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+          UPDATE reed_schema SET version=8; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=8);`);
+        });
+        return;
+      }
       if (version?.version === 6) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
-          if ((await db.prepare("SELECT version FROM reed_schema").get()).version === 7) return;
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 7) return;
           await db.exec(`CREATE TABLE IF NOT EXISTS card_votes (
             user_id TEXT NOT NULL REFERENCES users(id), card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
             value INTEGER NOT NULL CHECK(value IN (-1,1)), updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -173,7 +201,7 @@ async function initializePostgresDatabase(db) {
           ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
           UPDATE reed_schema SET version=7; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=7);`);
         });
-        return;
+        return initializePostgresDatabase(db);
       }
       if (version?.version === 5) {
         await transaction(db,async()=>{

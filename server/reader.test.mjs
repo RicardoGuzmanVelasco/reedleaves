@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {mkdtempSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
-import {openDatabase,initializeDatabase} from "./database.mjs";
+import {openDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION} from "./database.mjs";
 import {seedCatalog,readSeed} from "./seed.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {readReaderState,selectDeck,openCard,changeReading,changePreferences,dailyIdea} from "./reader-repository.mjs";
@@ -153,7 +153,7 @@ test("SQLite v11 upgrade keeps account, cards and review state, defaulting to tr
   const before=await readReaderState(db,a,today);
   db.exec("DROP TABLE reader_display_preferences; PRAGMA user_version=11;");
   initializeDatabase(db); initializeDatabase(db);
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version,15);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
   assert.deepEqual(await readReaderState(db,a,today),before);
   assert.equal((await changePreferences(db,a,{showOriginalTitles:true},today)).showOriginalTitles,true);
 });

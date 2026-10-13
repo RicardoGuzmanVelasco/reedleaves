@@ -4,13 +4,16 @@ Catálogo real: cinco libros, seis barajas y 42 cartas. Cada baraja tiene un idi
 
 ## Ejecutar
 
-Node 24.15 o superior (rama 24), sin dependencias externas:
+Usar Node 24.21.0, fijado en `.node-version`. Instalar las dependencias del lockfile:
 
 ```sh
+npm ci
 npm start
 ```
 
 Abrir http://127.0.0.1:4173/app/. La primera ejecución crea y carga SQLite; las siguientes conservan los datos existentes. El servidor estático de Python ya no basta: la interfaz necesita la API.
+
+`npm start` y `npm test` compilan primero el frontend. React/React DOM 19.3 gestionan las acciones de tarjeta y la colección personal; esbuild genera `app/generated/card-features.js`, ignorado en Git. Para editar JSX con recompilación continua, ejecutar `npm run watch:ui` en otra terminal. El build de Render también genera este módulo local.
 
 ## Recorrido
 
@@ -27,6 +30,8 @@ Abrir http://127.0.0.1:4173/app/. La primera ejecución crea y carga SQLite; las
 - Los filtros afectan al siguiente día una vez asignada la idea de hoy, pendiente de confirmación.
 - Crear barajas personales desde las barajas de un libro. Añadir tarjetas o quotes con padre opcional, en el idioma de la baraja. La autoría es gratuita; el repaso mantiene las hojas.
 - Quotes en azul pastel y EB Garamond regular; fuente WOFF2 local con alternativa serif. Filtro «Solo quotes». Las sueltas aparecen bajo «Quotes sin clasificar», sin carta ficticia en la base.
+- Guardar o quitar una tarjeta desde su vista exclusiva. «Guardadas» en las barajas del libro abre una selección privada de tarjetas y citas de distintas barajas, más recientes primero. Mantiene el filtro de citas y permite reabrir gratuitamente las guardadas desde Idea del día. Guardar y abrir no gastan hojas ni desbloquean posiciones del repaso.
+- Me gusta, no me gusta y guardar tienen respuesta optimista con React `useOptimistic` y Actions. El servidor confirma destinos absolutos; ante errores se recupera el estado confirmado y se ofrece reintento. La autoría propia permite guardar, pero no votar.
 - Lectura protagonista: papel elevado por capas, fondo iluminado, entrada breve y texto progresivo a 4 ms por carácter, con un máximo aproximado de 2,5 segundos. El contenido completo permanece accesible; movimiento reducido omite la animación. La presentación se comparte entre repaso, autoría e idea del día.
 - Sin publicación del contenido personal, rachas ni tareas. El selector y el repaso admiten barajas anidadas.
 
@@ -40,11 +45,11 @@ La integración requiere `OPENAI_API_KEY` en el servidor. Ver [configuración](.
 
 Los libros propios ya creados muestran un icono de información pendiente en Inicio, Librería, Biblioteca y la ficha si faltan títulos completos/cortos o descripciones ES/EN, o intereses. Pulsarlo abre «Completar información», reutiliza la búsqueda y vista previa, y ofrece «Guardar» para completar el mismo libro. Identidad y datos previos son de solo lectura; los campos nuevos se pueden corregir. El servidor combina la propuesta con los datos más recientes bajo bloqueo y conserva los valores existentes, también si otra sesión ha completado el libro. Los reintentos no duplican datos ni alteran barajas, progreso o saldo. Enlaces, fuentes y notas opcionales no mantienen el indicador. Solo el creador puede completar sus libros; no hay migración.
 
-Contenido editable: content/catalog/*.csv. Datos activos: var/catalog.sqlite, con libros, barajas, versiones, árboles y fuentes. SQLite v12 y PostgreSQL v4. La actualización desde v9/v1 conserva cuentas, cartas y progreso; añade quotes, libros personales y la preferencia de títulos originales. HTTP JSON es transporte, no almacenamiento del catálogo.
+Contenido editable: content/catalog/*.csv. Datos activos: var/catalog.sqlite, con libros, barajas, versiones, árboles y fuentes. SQLite v16 y PostgreSQL v8. Las migraciones conservan cuentas, cartas y progreso; la última añade guardadas privadas en `card_saves`. HTTP JSON es transporte, no almacenamiento del catálogo.
 
 Backend: server/database.mjs, seed.mjs, catalog-repository.mjs, author-repository.mjs, auth.mjs, reader-repository.mjs, reader-api.mjs y http.mjs.
 
-Frontend: catalog.mjs (API), account-client.mjs (sesión y cambios confirmados), rhythm.mjs (reglas de filtros y compatibilidad antigua), wallet.mjs (reglas de saldo compartidas con servidor), decks.mjs (selección y árbol), storage.mjs (idioma y lectura del estado antiguo, sin progreso actual), views.mjs (HTML), i18n.mjs (copy), reader-app.mjs (interacción) y reader.mjs (entrada).
+Frontend: catalog.mjs (API), account-client.mjs (sesión y colas de peticiones), card-features.jsx (acciones y guardadas mediante portales React), card-interactions.mjs (reducer optimista y transporte), card-action-themes.css (paletas por tipo), rhythm.mjs (filtros y compatibilidad antigua), wallet.mjs (saldo compartido con servidor), decks.mjs (selección y árbol), storage.mjs (idioma y lectura antigua), views.mjs (HTML), i18n.mjs (copy), reader-app.mjs (interacción) y reader.mjs (entrada).
 
 La base y los CSV no se sirven por HTTP. Los JSON/NDJSON antiguos se conservan solo en fixtures de pruebas.
 

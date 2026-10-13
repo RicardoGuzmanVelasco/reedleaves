@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="670" viewBox="0 0 900 670" role="img" aria-labelledby="title desc">
+  <title id="title">Colores · Tierra · Muñecas enfrentadas y pestaña de guardar</title>
+  <desc id="desc">Tarjeta ficticia. La placa asimétrica conserva los pulgares de B: las muñecas quedan juntas junto al separador central. El contador negativo aparece encima del pulgar izquierdo; el positivo debajo del derecho. La pestaña independiente conserva la forma de B y usa un signo más; cuando está guardada muestra un tick verde.</desc>
+  <defs>
+    <filter id="shadow" x="-15%" y="-20%" width="140%" height="155%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#173D2C" flood-opacity=".09"/></filter>
+    <g id="thumb" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M10 15h3l4-7 1-5c.2-2 2.6-2.3 4-.7 2.3 2.5 1.6 6.7-.4 10.7H28c3 0 4 2.1 3.2 4.8L28.7 28c-.6 2.1-2 3-4.3 3h-9.1c-2.2 0-3.8-1.1-5.3-3z"/>
+      <rect x="2" y="15" width="8" height="16" rx="2.3"/>
+    </g>
+    <g id="plate">
+      <rect x="0" y="5" width="108" height="64" rx="21" fill="#C9CFB2"/>
+      <rect width="108" height="64" rx="21" fill="#F0F1DC" stroke="#AA9C87" stroke-width="2"/>
+      <path d="M54 13v38" stroke="#AA9C87" stroke-width="1.5" opacity=".19"/>
+    </g>
+    <g id="down"><use href="#thumb" transform="translate(14.9 21) scale(1.1) rotate(180 16.5 16.5)"/></g>
+    <g id="up"><use href="#thumb" transform="translate(56.8 6.7) scale(1.1)"/></g>
+    <g id="tab">
+      <path d="M0 11Q0 0 11 0h34q11 0 11 11v102L28 97 0 113z" fill="#D4D7BD" transform="translate(0 5)"/>
+      <path d="M0 11Q0 0 11 0h34q11 0 11 11v102L28 97 0 113z" fill="#FFF9ED" stroke="#AA9C87" stroke-width="2"/>
+      <path d="M11 10h34" stroke="#AA9C87" stroke-width="1.5" opacity=".2"/>
+    </g>
+    <path id="plus" d="M20 48h16m-8-8v16" fill="none" stroke="#8C7B65" stroke-width="3.2" stroke-linecap="round"/>
+    <path id="tick" d="m19 47 6 6 13-14" fill="none" stroke="#58BE59" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </defs>
+  <rect width="900" height="670" fill="#F1F2E8"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#173D2C">
+    <text x="70" y="43" font-size="19" font-weight="700">Colores · Tierra</text>
+    <text x="830" y="43" font-size="13" text-anchor="end" opacity=".65">Propuesta</text>
+  </g>
+  <rect x="78" y="91" width="746" height="446" rx="24" fill="#E4E5D6" transform="rotate(-1 450 305)"/>
+  <rect x="70" y="80" width="760" height="450" rx="25" fill="#FFF9ED" filter="url(#shadow)"/>
+  <g fill="#173D2C" font-family="Courier New, Courier, monospace">
+    <text x="119" y="163" font-size="30" font-weight="700">Título de la tarjeta</text>
+    <text x="119" y="215" font-size="20">Contenido de ejemplo.</text>
+  </g>
+  <g fill="#173D2C" opacity=".105">
+    <rect x="119" y="248" width="590" height="9" rx="4.5"/><rect x="119" y="277" width="545" height="9" rx="4.5"/>
+    <rect x="119" y="306" width="585" height="9" rx="4.5"/><rect x="119" y="335" width="438" height="9" rx="4.5"/>
+  </g>
+  <g fill="#173D2C" font-family="Arial, Helvetica, sans-serif" font-size="12" opacity=".5">
+    <text x="119" y="461">Libro de ejemplo</text><text x="119" y="480">Autor · Usuario</text>
+  </g>
+  <g transform="translate(609 442) rotate(-2 54 32)">
+    <use href="#plate"/>
+    <use href="#down" fill="none" stroke="#8C7B65"/>
+    <use href="#up" fill="none" stroke="#8C7B65"/>
+    <g font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#51654C" text-anchor="middle">
+      <text x="28" y="18">2</text><text x="80" y="57">18</text>
+    </g>
+  </g>
+  <g transform="translate(751 424) rotate(2 28 53)"><use href="#tab"/><use href="#plus"/></g>
+  <text x="70" y="589" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#173D2C" opacity=".65">Me gusta y guardada</text>
+  <g transform="translate(602.4 560) scale(.85) rotate(-2 54 32)">
+    <use href="#plate"/>
+    <use href="#down" fill="none" stroke="#8C7B65"/>
+    <use href="#up" fill="#58BE59" stroke="#8C7B65"/>
+    <g font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#51654C" text-anchor="middle">
+      <text x="28" y="18">2</text><text x="80" y="57">19</text>
+    </g>
+  </g>
+  <g transform="translate(751 544.7) scale(.85) rotate(2 28 53)"><use href="#tab"/><use href="#tick"/></g>
+</svg>

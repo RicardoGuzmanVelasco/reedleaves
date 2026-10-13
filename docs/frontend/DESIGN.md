@@ -24,6 +24,7 @@ Estas reglas aplican a dirección de arte, UX, animaciones, copy y componentes. 
 - `DailyCard`: una idea aleatoria del día, independiente del avance del repaso.
 - Lectura del libro original: sin empezar, leyendo o leído; selección manual.
 - Repaso: cartas vistas por usuario y versión. Termina al recorrer todas, incluidas las hijas.
+- Guardadas: selección privada de tarjetas por cuenta y libro. Combina barajas, conserva el origen y no modifica el repaso.
 
 La estructura sigue siendo plana, textual y portable. Las cuentas pueden crear barajas personales y añadir contenido mientras leen.
 
@@ -161,6 +162,16 @@ Distinguir mascota e icono de mascota. Las portadas que muestran su etapa en Ini
 La UI y los metadatos editoriales de libros e intereses tendrán español e inglés. Con títulos traducidos, cada portada usa un título corto editorial y la ficha, el título completo. Con la preferencia de originales, ambas usan el título original del libro. El idioma original de cada libro o baraja es independiente de la interfaz y se muestra tal cual, incluso si es francés. No presentar traducciones inexistentes como disponibles. Los libros personales se crean desde «Librería → Añadir libro a la librería» con título, autor e idioma original; muestran ese título como alternativa cuando no hay traducción. No requieren metadatos editoriales ni enlaces. Tras guardarlos se abre la selección de barajas para crear la primera. La plataforma (web, móvil o ambas) sigue sin decidir. Mantener los prototipos adaptables hasta resolverlo.
 
 La Semilla activa usa la variante **B · Almendrada**, elegida el 12 de octubre de 2026: cuerpo marrón alto y asimétrico, con punta superior suave. Su cuerpo SVG está en `brand/reed/growth/bodies/seed.svg`; mantiene la cara común, su calibración, la escala del 80%, la flotación y las expresiones. `seed.svg` conserva el arte anterior como referencia. A · Redonda, C · Arriñonada, D · Achatada, F · Café vertical y G · Café ondulado se reservan para el futuro en `brand/reed/growth/seed-variations-future.md`, con D más estrecha y de puntas suaves y las grietas de F y G más discretas. E queda descartada.
+
+## Acciones de tarjeta y Guardadas
+
+Diseño aprobado el 13 de octubre de 2026: pareja de pulgares sobre una placa estrecha y asimétrica, muñecas próximas al separador con espacio para respirar. Contador negativo encima y positivo debajo. Guardar usa una pestaña de papel independiente, corta e inclinada dentro del borde. Al guardar cambia de color, sustituye el + por un tick y se despliega recta por debajo de la tarjeta; quitar revierte el movimiento. Respetar movimiento reducido.
+
+El grupo flota en el extremo inferior derecho, con escala visual inicial de 0,78 y zonas pulsables de al menos 44 × 44 px. Los colores se parametrizan mediante variables semánticas en `app/card-action-themes.css`: Salvia en el papel normal y azul en citas. Los tipos futuros heredan la geometría y las acciones, definiendo solo su paleta. Ningún SVG fija colores. Las citas recortan sus comillas en una capa decorativa, permitiendo que cuelgue la cinta.
+
+Votar y guardar responden inmediatamente mediante estado optimista. Los errores recuperan el estado del servidor y ofrecen Reintentar junto al grupo. Confirmar y sincronizar no recrea el papel ni roba el foco. El saldo y los desbloqueos siguen requiriendo confirmación del servidor. Las tarjetas propias pueden guardarse; sus controles de voto están deshabilitados.
+
+Guardadas aparece como acceso con contador al explorar las barajas del libro. Abre una lista plana de tarjetas y citas, recientes primero, con origen y filtro de citas. El detalle reutiliza la vista exclusiva. Cerrar conserva filtro y posición; quitar una tarjeta mantiene el detalle abierto y devuelve el foco a una tarjeta restante o al encabezado. No añade un destino global. Abrir una guardada de Idea del día es gratis y registra una vista; la posición original sigue bloqueada. La selección solo se muestra a su cuenta. Un libro con guardadas puede aparecer en su Biblioteca sin atribuirle progreso ficticio.
 
 ## Límites
 

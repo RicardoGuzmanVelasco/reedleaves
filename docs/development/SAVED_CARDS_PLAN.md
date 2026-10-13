@@ -1,7 +1,7 @@
 # Plan de implementación · Tarjetas guardadas y acciones optimistas
 
 Fecha: 13 de octubre de 2026.
-Estado: P1 resuelta; base de pruebas limpia (204/204); implementación autorizada.
+Estado: implementado en producción y disponible en local. Base previa corregida: 204/204. Resultado final: 214/214, más verificación de navegador en escritorio y móvil.
 
 ## Resultado esperado
 
@@ -9,7 +9,7 @@ Un lector guarda o quita una tarjeta desde su vista exclusiva. Sus guardadas for
 
 Me gusta, no me gusta y guardar responden de inmediato. El servidor confirma cada acción; ante un error, la interfaz recupera el estado correcto y ofrece reintento. La selección personal se mantiene entre sesiones y dispositivos.
 
-## Código actual y consecuencias
+## Código analizado antes de implementar
 
 - `app/reader-app.mjs` controla rutas, sesión y render mediante `main.innerHTML`. No hay React ni compilación de frontend.
 - `app/views.mjs` genera la vista exclusiva y `cardVoteMarkup`. Los votos se cargan al abrir una tarjeta; `voteCard` espera la respuesta y utiliza `busy` global.
@@ -22,7 +22,7 @@ Me gusta, no me gusta y guardar responden de inmediato. El servidor confirma cad
 - Las citas usan papel azul y `.quote-card` recorta su contenido con `overflow:hidden`; habrá que recortar solo la decoración para permitir que cuelgue la cinta.
 - El servidor sirve módulos locales bajo `/app/` y aplica CSP sin scripts remotos. `render.yaml` compila hoy solo mediante `npm ci`.
 
-## Decisión pendiente
+## Decisión resuelta
 
 **P1 resuelta por el usuario.** Una tarjeta guardada desde Idea del día podrá abrirse gratis desde Guardadas, manteniendo bloqueada su posición original. Abrirla así registra una vista, sin gasto de hojas ni avance del repaso. En otra entrega futura la Idea del día costará una hoja; ese cambio queda fuera de esta implementación.
 
@@ -91,7 +91,7 @@ La arquitectura de Node, API, sesiones y rutas hash continúa sirviendo esta ent
 
 ## Optimismo y concurrencia
 
-- `useOptimistic` presenta la intención inmediatamente sobre el último estado confirmado. `useActionState`/Actions gestionan resultado y pendiente; las acciones capturan los errores y devuelven un estado recuperable.
+- `useOptimistic` presenta la intención inmediatamente sobre el último estado confirmado. Actions con `startTransition` gestionan las escrituras asíncronas; las acciones capturan errores y permiten reintentos. Las colas por tarjeta/tipo conservan las intenciones rápidas sin serializar guardar y votar entre sí.
 - El reducer de voto resta el voto previo del recuento correspondiente y añade el nuevo. Guardado actualiza pertenencia y contador de forma coherente. Las respuestas de servidor sustituyen el estado confirmado, sin sumar deltas dos veces.
 - Enviar destinos absolutos, no operaciones toggle, tanto para votar como para guardar. El reintento repite ese destino.
 - Ordenar las escrituras por cuenta, tarjeta y tipo de acción. Los cambios rápidos deben terminar con la última intención, aunque una petición anterior falle. Guardar y votar pueden avanzar de forma independiente.
@@ -133,3 +133,11 @@ Trasladar el diseño aprobado desde el estudio a un componente de producción, r
 - Probar compilación limpia, arranque local y bundle servido con CSP. Todos los proveedores de IA de las pruebas serán simulados.
 
 Referencia previa al cambio: `npm test` con Node 24.21.0 da **196/204**, con ocho fallos existentes: álbum, invitación, cuatro casos de autoría, API de autoría y perfil. Sus expectativas se contrastarán con las decisiones vigentes; no se atribuirán al nuevo caso de uso ni se ocultarán desactivando pruebas. Los nuevos casos deben pasar y el resultado global debe quedar documentado.
+
+## Resultado de la implementación
+
+- SQLite 16 y PostgreSQL 8, migraciones verificadas en ambos motores. Persistencia y API privadas completas, manteniendo el endpoint de voto anterior.
+- React/React DOM 19.3 y esbuild 0.28.2 fijados. Raíz persistente y portales sobre las vistas actuales; paletas CSS por tipo, geometría compacta y animación reversible.
+- Guardadas por libro, filtro de citas, origen, rutas propias y foco al volver. Los libros guardados se incorporan a Biblioteca sin alterar lectura o repaso.
+- Suite completa: 214/214. Pruebas HTTP, motores SQL, migraciones, React renderizado y reducer/transporte. Verificación de navegador: respuesta antes del servidor, clics rápidos, rollback y reintento, respuesta perdida tras commit, otra sesión, cierre de sesión, autoría, cita azul, recarga y móvil. Sin errores de JavaScript inesperados.
+- Arranque local con base de prueba independiente en `var/saved-cards-local.sqlite`; las capturas y sesiones de QA permanecen ignoradas. Sin llamadas reales a proveedores de IA.

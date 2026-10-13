@@ -1,0 +1,23 @@
+/* A new card type only overrides these semantic colors on its card container. */
+.idea-card {
+  --actions-ink:#6e916a;
+  --actions-edge:#8fa38a;
+  --actions-counter:#51654c;
+  --actions-surface:#f0f1dc;
+  --actions-shadow:#c9cfb2;
+  --actions-ribbon:#fff9ed;
+  --actions-ribbon-shadow:#d4d7bd;
+  --actions-ribbon-saved:#e8f3df;
+  --actions-accent:#58be59;
+}
+.quote-card {
+  --actions-ink:#6686a3;
+  --actions-edge:#9ab3cb;
+  --actions-counter:#516a82;
+  --actions-surface:#e5edf7;
+  --actions-shadow:#bed0e2;
+  --actions-ribbon:#f1f7fd;
+  --actions-ribbon-shadow:#c1d4e8;
+  --actions-ribbon-saved:#d8e7f6;
+  --actions-accent:#5c87ab;
+}

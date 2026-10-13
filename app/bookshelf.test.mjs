@@ -53,6 +53,14 @@ test("Reading and review filters intersect, preserving read books without a revi
   assert.deepEqual(filter("unread","all"),[]);
 });
 
+test("Saved-only books belong to the personal bookshelf without inventing reading or review progress",async()=>{
+  const s=await fixture();s.cardSaves=[{cardId:"habit-1",bookId:"seven-habits",savedAt:"2026-10-13T12:00:00Z"}];
+  const entries=bookshelfBooks(s);
+  assert.deepEqual(ids(entries),["seven-habits"]);assert.equal(entries[0].reading,"unread");assert.equal(entries[0].group,"none");assert.equal(entries[0].hasReviewing,false);
+  assert.deepEqual(s.reviews,{});assert.deepEqual(s.enrolledIds,[]);
+  assert.deepEqual(bookshelfBooks({...s,cardSaves:[]}),[]);
+});
+
 test("One book with active and finished decks appears once, and matches both review states",async()=>{
   const s=await fixture();
   reviewed(s,"seven-habits-editorial-v1",true);

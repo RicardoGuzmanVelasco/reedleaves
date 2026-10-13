@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {PGlite} from "@electric-sql/pglite";
-import {openDatabase,PostgresDatabase,initializeDatabase} from "./database.mjs";
+import {openDatabase,PostgresDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION,POSTGRES_SCHEMA_VERSION} from "./database.mjs";
 import {readLeafWallet,setLeafBalance} from "./leaf-wallet-repository.mjs";
 import {readFileSync} from "node:fs";
 import {seedCatalog} from "./seed.mjs";
@@ -22,8 +22,8 @@ async function fixture(t,dialect,legacy = false) {
   if (legacy) {
     let schema = readFileSync(new URL(dialect === "postgres" ? "./schema.postgres.sql" : "./schema.sql",import.meta.url),"utf8")
       .replaceAll("balance BETWEEN 0 AND 9007199254740991","balance BETWEEN 0 AND 3");
-    schema = dialect === "postgres" ? schema.replace("CHECK(version = 7)","CHECK(version = 5)").replace("reed_schema VALUES (7)","reed_schema VALUES (5)").replace("balance BIGINT NOT NULL","balance INTEGER NOT NULL") :
-      schema.replace("user_version = 15","user_version = 13").replace("max(leaf_wallets.balance,min(3,leaf_wallets.balance + CAST(julianday(NEW.local_day) - julianday(leaf_wallets.last_accrual_day) AS INTEGER)))","min(3,leaf_wallets.balance + CAST(julianday(NEW.local_day) - julianday(leaf_wallets.last_accrual_day) AS INTEGER))");
+    schema = dialect === "postgres" ? schema.replace(/CHECK\(version = \d+\)/,"CHECK(version = 5)").replace(/reed_schema VALUES \(\d+\)/,"reed_schema VALUES (5)").replace("balance BIGINT NOT NULL","balance INTEGER NOT NULL") :
+      schema.replace(/user_version = \d+/,"user_version = 13").replace("max(leaf_wallets.balance,min(3,leaf_wallets.balance + CAST(julianday(NEW.local_day) - julianday(leaf_wallets.last_accrual_day) AS INTEGER)))","min(3,leaf_wallets.balance + CAST(julianday(NEW.local_day) - julianday(leaf_wallets.last_accrual_day) AS INTEGER))");
     await db.exec(schema);
   } else await initializeDatabase(db);
   await db.exec("INSERT INTO users(id,display_name) VALUES ('reader','Reader'),('other','Other');");
@@ -89,7 +89,7 @@ for (const dialect of ["sqlite","postgres"]) {
         .run("reader",versionId);
       assert.equal((await readLeafWallet(db,"reader","2026-10-14")).balance,98);
       assert.equal(db.prepare("PRAGMA foreign_key_check").all().length,0);
-      assert.equal(db.prepare("PRAGMA user_version").get().user_version,15);
-    } else assert.equal((await db.prepare("SELECT version FROM reed_schema").get()).version,7);
+      assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
+    } else assert.equal((await db.prepare("SELECT version FROM reed_schema").get()).version,POSTGRES_SCHEMA_VERSION);
   });
 }

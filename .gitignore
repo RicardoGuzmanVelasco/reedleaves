@@ -1,5 +1,6 @@
 # Dependencias, compilación y pruebas locales
 node_modules/
+app/generated/
 dist/
 build/
 coverage/

@@ -16,6 +16,8 @@ No se simula la base mediante JSON. JSON solo transporta la respuesta HTTP.
 - Repaso: usuario y versión elegida. Las cartas desbloqueadas pertenecen a ese repaso.
 - Monedero de hojas: usuario, saldo entero no negativo y última fecha de abono. Los abonos diarios acumulan hasta tres; los ajustes manuales pueden superar ese saldo.
 - Voto: usuario y baraja; +1, -1 o ausencia de fila. Un único voto, modificable y retirable.
+- Valoración de tarjeta: usuario y tarjeta en `card_votes`, con destino −1, 0 o 1; no se permite votar contenido propio.
+- Tarjeta guardada: usuario, tarjeta y fecha en `card_saves`. Selección privada por libro, independiente de votos y repaso. La clave compuesta impide duplicados; el origen y el libro proceden de la tarjeta, sin copiar contenido.
 
 Número de cartas y profundidad se calculan a partir del árbol; una baraja plana tiene profundidad 1.
 No guardar contadores editables ni duplicar el árbol en una columna JSON.
@@ -77,7 +79,7 @@ El esquema v8 añadió `books.original_title` y `books.original_language`, oblig
 
 El esquema v9 añadió cuentas, sesiones, límites de acceso, barajas elegidas, posiciones, filtros, intereses e idea diaria por usuario. Añade comprobación SQL del recorrido y finalización con todas las cartas. La base v8 y su original están archivados antes del cambio; ver `ACCOUNTS.md`. No se migra progreso anónimo del navegador.
 
-El esquema actual es SQLite v14 / PostgreSQL v6. La migración de monederos elimina el tope de tres del saldo total, conservando cuentas, fechas, saldos y progreso. PostgreSQL usa `BIGINT`; ambos motores limitan la representación a enteros exactos de JavaScript. El máximo de tres solo afecta al abono diario.
+El esquema actual es SQLite v16 / PostgreSQL v8. Las migraciones anteriores de monederos eliminan el tope de tres del saldo total, conservando cuentas, fechas, saldos y progreso. PostgreSQL usa `BIGINT`; ambos motores limitan la representación a enteros exactos de JavaScript. El máximo de tres solo afecta al abono diario. La migración de guardadas añade `card_saves` con claves foráneas y un índice por cuenta/fecha; conserva votos y desbloqueos.
 
 `app/book-search.mjs` filtra el catálogo recibido de la API por todos los títulos originales, completos y cortos, sin idioma activo como filtro. La consulta es estado temporal de la vista: no se escribe en SQLite ni en localStorage. Para este catálogo pequeño se consulta localmente el resultado SQL ya cargado; no hay una base simulada en JSON. Cuando el volumen requiera paginación, habrá que trasladar esa búsqueda a un endpoint con índices SQL, conservando las mismas reglas de coincidencia.
 
@@ -85,8 +87,8 @@ La API entrega `book.links.amazon` y `book.links.goodreads`, sin codificar libro
 
 ## Límites explícitos
 
-El selector, el repaso por versión y la creación autenticada de libros y barajas están implementados. Los libros, las barajas de cuentas y sus tarjetas se comparten al guardarlos. La edición de borradores sigue reservada a su creador; los votos siguen fuera de esta entrega.
-La API de catálogo sigue siendo de lectura; los endpoints de cuenta, repaso y autoría escriben con sesión, origen y CSRF. No hay endpoints de voto ni publicación de barajas.
+El selector, el repaso por versión, la creación autenticada de libros y barajas, los votos de tarjeta y las guardadas están implementados. Los libros, las barajas de cuentas y sus tarjetas se comparten al guardarlos. La edición de borradores sigue reservada a su creador.
+La API de catálogo sigue siendo de lectura. Los endpoints de cuenta, repaso, autoría y acciones escriben con sesión, origen y CSRF. `/api/cards/vote` y `/api/cards/save` aceptan destinos absolutos idempotentes; `/api/cards/:cardId/actions` y `/api/reader/saved/:bookId` leen las acciones y la selección propia. Guardadas no aparece en perfiles ni bibliotecas ajenas.
 El progreso actual guarda cartas por usuario y versión en SQL. Nunca se hereda progreso entre barajas o versiones.
 Las claves locales antiguas se conservan sin borrar, pero no se usan como fuente verificada ni se importan en la cuenta nueva.
 Cambiar una versión a archivada no cambia el repaso iniciado: el selector permite retomar la versión con historial.

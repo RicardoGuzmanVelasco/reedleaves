@@ -239,13 +239,7 @@ function cardAttribution(s,card,book) {
 }
 
 function cardVoteMarkup(s,card) {
-  const c=words[s.language],votes=s.cardVotes?.cardId === card.id ? s.cardVotes : null;
-  const deck=s.catalog.decksById.get(card.deckId),own=votes?.isOwn ?? deck?.creator.userId === s.userId;
-  const count=votes ? value=>String(value) : ()=>"…";
-  const button=(value,label,icon,total)=>`<button class="card-vote${votes?.vote === value ? " is-selected" : ""}${own ? " is-own-card-vote" : ""}" type="button" data-action="vote-card" data-card="${esc(card.id)}" data-value="${value}" aria-label="${label}, ${count(total)}" aria-pressed="${votes?.vote === value}" ${own || !votes ? "disabled" : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg><span>${count(total)}</span></button>`;
-  const down='<path d="M7 14V3H4v11h3Zm0 0 5 7c1.2 0 2-1 1.7-2.2L13 14h5.6a2 2 0 0 0 1.9-2.6l-2.3-7A2 2 0 0 0 16.3 3H7"/>';
-  const up='<path d="M7 10v11H4V10h3Zm0 0 5-7c1.2 0 2 1 1.7 2.2L13 10h5.6a2 2 0 0 1 1.9 2.6l-2.3 7a2 2 0 0 1-1.9 1.4H7"/>';
-  return `<div class="card-votes${own ? " card-votes--own" : ""}" role="group" aria-label="${c.cardFeedback}">${button(-1,c.dislikeCard,down,votes?.dislikes)}${button(1,c.likeCard,up,votes?.likes)}${own ? `<span class="sr-only card-votes-own-note">${c.ownCardVotes}</span>` : ""}${s.cardVotesError ? `<span class="card-vote-error" role="status">${esc(c[s.cardVotesError]||c.connectionError)}</span><button class="card-vote-retry" type="button" data-action="retry-card-votes">${c.retry}</button>` : ""}</div>`;
+  return `<div class="card-actions-host" data-card-actions="${esc(card.id)}"></div>`;
 }
 
 function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false} = {}) {
@@ -253,7 +247,7 @@ function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = fal
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
   return `<div class="reading-stage${card.isQuote ? " reading-stage--quote" : ""}" data-reading-card="${esc(card.id)}"${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${card.isQuote ? " quote-card" : ""}">${card.isQuote ? `<blockquote lang="${esc(bodyLanguage)}" dir="auto" class="idea-body" id="idea-content" tabindex="-1">${esc(body)}</blockquote>` : `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-content" tabindex="-1">${esc(title)}</${heading}><p lang="${esc(bodyLanguage)}" dir="auto" class="idea-body">${esc(body)}</p>`}
-    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book)}</div>${exclusive ? cardVoteMarkup(s,card) : ""}</footer>${card.isQuote ? '<span class="quote-watermark" aria-hidden="true">❞</span>' : ""}</article></div>`;
+    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book)}</div>${exclusive ? cardVoteMarkup(s,card) : ""}</footer>${card.isQuote ? '<span class="quote-decoration" aria-hidden="true"><span class="quote-watermark">❞</span></span>' : ""}</article></div>`;
 }
 
 function exclusiveCardMarkup(s,card,position="") {
@@ -326,7 +320,7 @@ export function deckView(s) {
   return `<section class="deck-screen">${["library","bookshelf","daily"].includes(s.bookOrigin) ? `<button type="button" class="text-button" data-action="${s.bookOrigin}">${s.bookOrigin === "library" ? c.booksBack : s.bookOrigin === "bookshelf" ? c.bookshelfBack : c.back}</button>` : ""}
     <div class="screen-heading deck-heading"><div><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.chooseDeck}</h1></div>
     ${mascotEntry(s,s.bookId)}</div>
-    ${s.userId ? `<div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
+    ${s.userId ? `<div data-saved-cards-entry></div><div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
     ${!choices.length ? `<div class="empty-state">${c.noDecks}</div>` : `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${choices.map(item => {
       const {deck,version,tags} = item, tag = tags[0] || "otherDeck";
       const reviewing = Math.max(0,deck.metrics.startedBy - deck.metrics.completedBy);
@@ -389,6 +383,14 @@ export function reviewView(s) {
     <div class="content-tools">${model.cards.length ? quoteFilter(s) : ""}${s.userId === deck.creator.userId && version.status === "draft" ? `<button class="text-button" type="button" data-action="author-deck" data-version="${esc(version.id)}">${c.editDeck} →</button>` : ""}</div>
     ${model.cards.length ? treeMapMarkup(s,model,review,version,leaf) : `<div class="empty-state">${c.emptyAuthor}</div>`}${card ? exclusiveCardMarkup(s,card,c.position(model.cards.findIndex(item=>item.id===card.id)+1,model.cards.length)) : ""}
     ${s.quotesOnly && model.cards.length && !model.cards.some(card=>card.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}</section>`;
+}
+
+export function savedCardsView(s) {
+  const c=words[s.language],book=s.catalog.booksById.get(s.bookId),card=s.catalog.cardsById.get(s.requestedId);
+  return `<section class="saved-screen album-screen"><button type="button" class="text-button" data-action="choose-book">${c.deckBack}</button>
+    <div class="screen-heading"><div><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.savedCards}</h1></div></div>
+    ${quoteFilter(s)}<div data-saved-cards-list></div>
+    ${card?.bookId===s.bookId ? exclusiveCardMarkup(s,card) : ""}</section>`;
 }
 
 function quoteFilter(s) {

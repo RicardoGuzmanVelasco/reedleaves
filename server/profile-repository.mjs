@@ -13,7 +13,7 @@ export async function insertCardView(db,userId,cardId) {
 
 // Views are distinct cards actually displayed, independent of paid review unlocks.
 export async function recordCardView(db,session,{cardId,context} = {},now=new Date()) {
-  if (typeof cardId !== "string" || !["daily","review","author"].includes(context)) throw new ApiError(400,"invalidRequest");
+  if (typeof cardId !== "string" || !["daily","review","author","saved"].includes(context)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     const card=await db.prepare(`SELECT c.id,c.version_id,v.status,d.creator_user_id
       FROM cards c JOIN deck_versions v ON v.id=c.version_id JOIN decks d ON d.id=v.deck_id
@@ -22,6 +22,7 @@ export async function recordCardView(db,session,{cardId,context} = {},now=new Da
     let allowed=false;
     if (context === "author") allowed=card.creator_user_id === session.user_id && card.status === "draft";
     if (context === "review") allowed=!!await db.prepare("SELECT 1 FROM review_unlocks WHERE user_id=? AND card_id=?").get(session.user_id,cardId);
+    if (context === "saved") allowed=!!await db.prepare("SELECT 1 FROM card_saves WHERE user_id=? AND card_id=?").get(session.user_id,cardId);
     if (context === "daily") {
       const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id);
       allowed=!!account && !!await db.prepare("SELECT 1 FROM daily_ideas WHERE user_id=? AND local_day=? AND card_id=?").get(session.user_id,serverDay(account.time_zone,now),cardId);

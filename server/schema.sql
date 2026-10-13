@@ -186,6 +186,14 @@ CREATE TABLE card_votes (
 ) STRICT;
 CREATE INDEX votes_by_card ON card_votes(card_id,value);
 
+CREATE TABLE card_saves (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  saved_at TEXT NOT NULL,
+  PRIMARY KEY(user_id,card_id)
+) STRICT;
+CREATE INDEX saves_by_reader ON card_saves(user_id,saved_at,card_id);
+
 CREATE TABLE book_reading (
   user_id TEXT NOT NULL REFERENCES users(id),
   book_id TEXT NOT NULL REFERENCES books(id),
@@ -345,4 +353,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 15;
+PRAGMA user_version = 16;

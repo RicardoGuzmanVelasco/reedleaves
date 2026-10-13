@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="640" viewBox="0 0 900 640" role="img" aria-labelledby="title desc">
+  <title id="title">Propuesta A: botones con volumen</title>
+  <desc id="desc">Tarjeta falsa con la pareja no me gusta y me gusta dentro de una cápsula, y guardar separado como ficha melocotón. Debajo se muestran me gusta seleccionado y tarjeta guardada.</desc>
+  <defs>
+    <symbol id="thumb" viewBox="0 0 36 36">
+      <path d="M12 15 18 5c1-2 5-1 5 2l-1 7h7c2 0 3 2 2.5 4L28 29H12Z" stroke-width="2.6" stroke-linejoin="round"/>
+      <rect x="4" y="15" width="7" height="14" rx="2" stroke-width="2.6"/>
+    </symbol>
+    <symbol id="bookmark" viewBox="0 0 36 36">
+      <path d="M10 5h16a2 2 0 0 1 2 2v24l-10-7-10 7V7a2 2 0 0 1 2-2Z" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+
+  <rect width="900" height="640" fill="#F1F2E8"/>
+  <rect x="83" y="49" width="744" height="450" rx="30" fill="#173D2C" opacity=".08"/>
+  <rect x="77" y="44" width="752" height="450" rx="30" fill="#E6E1D4"/>
+  <rect x="70" y="38" width="760" height="450" rx="30" fill="#FFF9ED" stroke="#DDDCCE" stroke-width="1.5"/>
+
+  <g fill="#173D2C">
+    <text x="116" y="113" font-family="Georgia,serif" font-size="32" font-weight="700">Título de la tarjeta</text>
+    <g font-family="Courier New,monospace" font-size="21">
+      <text x="116" y="167">Este es el contenido de una tarjeta</text>
+      <text x="116" y="202">de ejemplo. El texto puede ocupar</text>
+      <text x="116" y="237">varias líneas.</text>
+    </g>
+  </g>
+  <text x="116" y="443" font-family="Arial,sans-serif" font-size="14" fill="#173D2C" opacity=".52">Libro de ejemplo · Autor</text>
+
+  <!-- Una superficie común relaciona los votos. Guardar tiene forma y distancia propias. -->
+  <g transform="translate(553 386)">
+    <rect y="4" width="162" height="70" rx="30" fill="#173D2C" opacity=".08"/>
+    <rect width="162" height="70" rx="30" fill="#E6EDD9"/>
+    <g transform="translate(8 6)">
+      <rect y="5" width="69" height="53" rx="23" fill="#A3AD94"/>
+      <rect width="69" height="53" rx="23" fill="#FFF9ED"/>
+      <use href="#thumb" x="8" y="9" width="34" height="34" transform="rotate(180 25 26)" fill="none" stroke="#173D2C"/>
+      <text x="52" y="33" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#173D2C" opacity=".65">2</text>
+    </g>
+    <g transform="translate(85 6)">
+      <rect y="5" width="69" height="53" rx="23" fill="#A3AD94"/>
+      <rect width="69" height="53" rx="23" fill="#FFF9ED"/>
+      <use href="#thumb" x="7" y="9" width="34" height="34" fill="none" stroke="#173D2C"/>
+      <text x="53" y="33" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#173D2C" opacity=".65">18</text>
+    </g>
+  </g>
+  <g transform="translate(739 386)">
+    <rect y="6" width="66" height="64" rx="22" fill="#CBA98C"/>
+    <rect width="66" height="64" rx="22" fill="#FFE0CB"/>
+    <path d="M13 11h14" stroke="#FFF9ED" stroke-width="4" stroke-linecap="round" opacity=".7"/>
+    <use href="#bookmark" x="15" y="14" width="36" height="36" fill="none" stroke="#173D2C"/>
+  </g>
+
+  <path d="M70 527h760" stroke="#173D2C" opacity=".12"/>
+  <text x="70" y="578" fill="#173D2C" font-family="Arial,sans-serif" font-size="17">Me gusta + guardada</text>
+  <g transform="translate(553 548)">
+    <rect width="162" height="70" rx="30" fill="#E6EDD9"/>
+    <g transform="translate(8 6)">
+      <rect y="5" width="69" height="53" rx="23" fill="#A3AD94"/>
+      <rect width="69" height="53" rx="23" fill="#FFF9ED"/>
+      <use href="#thumb" x="8" y="9" width="34" height="34" transform="rotate(180 25 26)" fill="none" stroke="#173D2C"/>
+      <text x="52" y="33" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#173D2C" opacity=".65">2</text>
+    </g>
+    <g transform="translate(85 10)">
+      <rect y="1" width="69" height="53" rx="23" fill="#2B6335"/>
+      <rect width="69" height="51" rx="23" fill="#58BE59"/>
+      <use href="#thumb" x="7" y="7" width="34" height="34" fill="#173D2C" stroke="#173D2C"/>
+      <text x="53" y="31" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#173D2C">19</text>
+    </g>
+  </g>
+  <g transform="translate(739 553)">
+    <rect y="1" width="66" height="64" rx="22" fill="#2B6335"/>
+    <rect width="66" height="62" rx="22" fill="#B9E877"/>
+    <use href="#bookmark" x="15" y="12" width="36" height="36" fill="#173D2C" stroke="#173D2C"/>
+    <path d="m28 28 4 4 7-8" fill="none" stroke="#B9E877" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { openDatabase, initializeDatabase, backupDatabase } from "./database.mjs";
+import { openDatabase, initializeDatabase, backupDatabase ,SQLITE_SCHEMA_VERSION} from "./database.mjs";
 import { seedCatalog, readSeed } from "./seed.mjs";
 import { readCatalog, checkCatalog } from "./catalog-repository.mjs";
 import { parseCsv } from "./csv.mjs";
@@ -30,7 +30,7 @@ test("Real SQLite schema: five books, six authored decks and 42 single-language 
 test("Schema initialization and seed are repeatable without duplicating data", async t => {
   const db = await fixture(t);
   initializeDatabase(db); await seedCatalog(db); await seedCatalog(db);
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 15);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
   assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, versions: 6, cards: 42, genres: 3 });
 });
 test("Foreign keys, source ownership, order and translations are constrained", async t => {

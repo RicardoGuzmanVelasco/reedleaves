@@ -22,3 +22,9 @@ Referencia inicial: Node 24.21.0, 196/204 pruebas correctas. Se revisaron los oc
 - No se cambia el producto para recuperar una regla de privacidad ya descartada.
 
 Los cinco archivos afectados pasan sus 36 pruebas tras la corrección. La suite completa posterior pasa **204/204** con Node 24.21.0, antes de empezar la implementación de Guardadas.
+
+## Adaptaciones durante la implementación
+
+- La prueba que comparaba fragmentos de trazados de pulgares dentro del HTML antiguo se sustituye por pruebas de render real del componente React. Comprueban la pareja de votos, los recuentos accesibles, el guardado independiente, ES/EN y la prohibición de votar contenido propio. Las coordenadas SVG no son un contrato funcional.
+- Los fixtures de migración usan las constantes del esquema vigente en lugar de repetir su versión. Conservan las comprobaciones de datos migrados y de idempotencia.
+- Resultado tras añadir Guardadas: **214/214**, sin pruebas desactivadas ni casos omitidos.

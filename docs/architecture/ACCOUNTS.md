@@ -17,7 +17,7 @@ La zona horaria se valida y se fija al crear la cuenta. La fecha se calcula con 
 
 ## Persistencia
 
-SQLite local o PostgreSQL en producción guarda, por usuario: barajas elegidas, cartas vistas, última carta abierta, lectura del original, idioma, filtros, intereses, idea diaria y monedero.
+SQLite local o PostgreSQL en producción guarda, por usuario: barajas elegidas, cartas vistas, última carta abierta, lectura del original, idioma, filtros, intereses, idea diaria, monedero, votos y tarjetas guardadas.
 
 Elegir baraja no gasta hojas ni aumenta «más popular». Abrir la primera carta crea el repaso y cuenta como una persona que empezó. Una persona se cuenta una vez por baraja, aunque use varias versiones.
 
@@ -26,6 +26,10 @@ Cada carta nueva, también hija, cuesta una hoja. Se recibe una por día, con m�
 El desbloqueo y el gasto se confirman en una transacción SQL. La clave única de carta por repaso hace los reintentos seguros: un doble clic, una respuesta perdida o dos sesiones no cobran dos veces la misma carta. El esquema SQL comprueba también el recorrido. El repaso termina solo al desbloquear todas las cartas, incluidas las hijas.
 
 La idea del día se fija por usuario y fecha, sin gastar ni desbloquear cartas. Cambiar filtros, idioma o baraja no reemplaza la idea ya asignada hoy.
+
+Las guardadas se consultan por cuenta y libro, sin aparecer en perfiles o bibliotecas ajenas. Guardar exige acceso legítimo a la tarjeta: vista registrada, desbloqueo, asignación diaria vigente, guardado previo o autoría propia. Repetir el mismo destino conserva la fecha; quitar y volver a guardar crea una nueva. Abrir desde Guardadas valida pertenencia y registra contexto `saved`, sin hojas ni desbloqueos. La cuenta propia incluye `cardSaves`; esa relación permite incorporar el libro a Biblioteca sin cambiar su estado de lectura o repaso.
+
+Votos y guardadas usan React `useOptimistic` y Actions: selección y contador cambian antes de la respuesta. Cada cuenta/tarjeta/tipo tiene su cola, con destinos absolutos y relectura tras una respuesta perdida. Guardar no bloquea votar. Los cambios de sesión invalidan peticiones antiguas y desmontan el estado privado. La sincronización actualiza las acciones de un modal sin reemplazarlo. Esta respuesta optimista no se aplica al gasto de hojas ni a desbloqueos.
 
 El navegador muestra el estado confirmado y consulta cambios al volver al primer plano y cada 30 segundos mientras está visible. No sustituye formularios, búsquedas o modales abiertos con una actualización en segundo plano. Ante un fallo de red conserva el último estado y ofrece reintento; no concede progreso local provisional.
 

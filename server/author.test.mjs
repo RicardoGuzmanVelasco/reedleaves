@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {randomUUID} from "node:crypto";
 import {readFileSync} from "node:fs";
-import {openDatabase,initializeDatabase,PostgresDatabase} from "./database.mjs";
+import {openDatabase,initializeDatabase,PostgresDatabase,SQLITE_SCHEMA_VERSION} from "./database.mjs";
 import {PGlite} from "@electric-sql/pglite";
 import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
@@ -238,7 +238,7 @@ for (const dialect of ["sqlite","postgres"]) {
 
 test("SQLite upgrade from v9 preserves content, accounts and progress and runs once",async t=>{
   const db=openDatabase(":memory:");t.after(()=>db.close());
-  const old=readFileSync(new URL("./schema.sql",import.meta.url),"utf8").replace('  is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),\n','').replace('      AND (c.parent_id IS NOT NULL OR sibling.is_quote = c.is_quote)\n','').replace('user_version = 15','user_version = 9').replace(/CREATE TABLE card_votes \([\s\S]*?;\nCREATE INDEX votes_by_card ON card_votes\(card_id,value\);\n/, '').replace(/CREATE TABLE reader_display_preferences \([\s\S]*?;\n/, '').replace("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);", "").replace("source_id TEXT,", "source_id TEXT NOT NULL,");
+  const old=readFileSync(new URL("./schema.sql",import.meta.url),"utf8").replace('  is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),\n','').replace('      AND (c.parent_id IS NOT NULL OR sibling.is_quote = c.is_quote)\n','').replace(/user_version = \d+/,'user_version = 9').replace(/CREATE TABLE card_votes \([\s\S]*?;\nCREATE INDEX votes_by_card ON card_votes\(card_id,value\);\n/, '').replace(/CREATE TABLE reader_display_preferences \([\s\S]*?;\n/, '').replace("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);", "").replace("source_id TEXT,", "source_id TEXT NOT NULL,");
   db.exec(old);
   db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
   await seedCatalog(db);db.exec("ALTER TABLE books DROP COLUMN creator_user_id;");
@@ -250,7 +250,7 @@ test("SQLite upgrade from v9 preserves content, accounts and progress and runs o
   await initializeDatabase(db);await initializeDatabase(db);
   assert.equal((await readCatalog(db)).cards.length,42);
   assert.equal((await readReaderState(db,session)).reviews['seven-habits-editorial-v1'].seenIds[0],'habit-1');
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version,15);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
 });
 
 for (const dialect of ["sqlite","postgres"]) {

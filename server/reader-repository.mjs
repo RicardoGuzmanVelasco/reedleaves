@@ -10,6 +10,7 @@ import {dailyPool} from "../app/rhythm.mjs";
 import {LANGUAGES} from "../app/core.mjs";
 
 import {insertCardView} from "./profile-repository.mjs";
+import {cardSavesInside} from "./card-saves.mjs";
 
 const SOURCES=["reading","read","reviewing","reviewed","interests","all"];
 export async function readReaderState(db,session,now=new Date()) {
@@ -38,7 +39,7 @@ async function stateInside(db,session,now) {
   for(const bookId of addedBooks) growth[bookId]={spentDays:growth[bookId]?.spentDays||0,added:true};
   for(const value of Object.values(growth)) value.added=!!value.added;
   const idea=await db.prepare("SELECT d.local_day,c.id,c.book_id FROM daily_ideas d JOIN cards c ON c.id=d.card_id WHERE d.user_id = ? AND d.local_day = ?").get(userId,today);
-  return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,showOriginalTitles:display?.show_original_titles === 1,today,wallet,reviews,growth,
+  return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,showOriginalTitles:display?.show_original_titles === 1,today,wallet,reviews,growth,cardSaves:await cardSavesInside(db,userId),
     statuses:Object.fromEntries((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])),
     enrolledIds:(await db.prepare("SELECT version_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.version_id),
     selections:Object.fromEntries((await db.prepare("SELECT book_id,version_id FROM deck_selections WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.version_id])),
