@@ -1,6 +1,6 @@
 # Fondo del cuerpo de tarjetas
 
-Estado: fondo aprobado y publicado en `main` desde `5d849cf`. La composición compartida posterior está disponible en local para revisión; ver `CARD_TYPES.md`.
+Estado: fondo aprobado y publicado en `main` desde `5d849cf`. La composición compartida posterior también está aprobada para producción; ver `CARD_TYPES.md`.
 
 La petición es dar más presencia a las comillas finales de las citas como un fondo muy tenue del cuerpo de la tarjeta, anclado al separador de la atribución. Para las ideas normales se propone una bombilla de silueta redondeada, sin rayos.
 

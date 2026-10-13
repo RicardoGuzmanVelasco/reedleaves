@@ -1,6 +1,6 @@
 # Presentación compartida de tarjetas
 
-Estado: incremento local solicitado después de publicar el fondo de tarjetas; pendiente de revisión del usuario.
+Estado: composición y tipografía aprobadas el 13 de octubre de 2026 para producción.
 
 Ideas y citas comparten el renderer de `views.mjs` y todas las reglas de geometría de `reader.css`: papel, pestaña superior, capas, bordes, sombras, márgenes, separador, atribución, icono de fondo y acciones. Debajo de la pestaña hay un espacio común para un icono: comilla pequeña en las citas y vacío en las ideas normales. Las diferencias se expresan como parámetros.
 
@@ -20,6 +20,6 @@ Se conserva `blockquote` para las citas y `p` para las ideas. La ausencia de tí
 
 Revisadas ideas y citas en móvil y escritorio. En escritorio ambas tienen padding `58px 72px 30px`, radio `32px` y la misma altura mínima; en móvil comparten padding `54px 22px 21px` y radio `25px`. Se conservan Courier/Garamond y las paletas Salvia/azul. Las comillas siguen completas y las cintas pueden sobresalir. Capturas locales en `var/shared-cards-qa/`, fuera de Git.
 
-Prueba tipográfica posterior solicitada por el usuario: Cormorant Garamond Light 300 en citas, servida como WOFF2 local. Se mantienen tamaño, interlineado y composición. Peso parametrizado con `--card-body-weight`; las ideas usan 400. EB Garamond permanece como alternativa. Pendiente de elección definitiva.
+Tipografía aprobada: Cormorant Garamond Light 300 en citas, servida como WOFF2 desde la app. Peso parametrizado con `--card-body-weight`; las ideas usan Courier 400. EB Garamond permanece como alternativa.
 
 Ajuste posterior: tamaño de citas reducido 1 px en todo el rango responsive, a 23 px en móvil y un máximo de 31 px en escritorio. El tamaño de las ideas no cambia.
