@@ -195,6 +195,41 @@
 
 #idea-content:focus{outline:none}
 
+/* A deck can be browsed as paper thumbnails without changing its learning path. */
+.deck-display-toggle{min-height:44px}
+.deck-preview{margin:18px 0 30px}
+.deck-preview-tools{display:flex;align-items:center;gap:12px;margin-bottom:24px;font-size:12px;font-weight:750}
+.deck-preview-tools input{width:min(190px,50%);height:44px;accent-color:var(--shadow);cursor:pointer}
+.deck-preview-tools output{min-width:22px;text-align:center;font-variant-numeric:tabular-nums}
+.deck-preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 16px;list-style:none;padding:0 4px 0 0;margin:0}
+.deck-preview-grid[data-columns="1"]{grid-template-columns:minmax(0,1fr)}
+.deck-preview-grid[data-columns="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}
+.deck-preview-grid[data-columns="4"]{grid-template-columns:repeat(4,minmax(0,1fr))}
+.deck-preview-item{position:relative;min-width:0;container-type:inline-size}
+.deck-preview-item .reading-stage{margin:0;perspective:none}
+.deck-preview-item .reading-stage::before,.deck-preview-item .reading-stage::after{inset:1.5cqw 1cqw -1.5cqw;border-width:.3cqw;border-radius:4.5cqw}
+.deck-preview-item .reading-stage::after{inset:1cqw -.5cqw -1cqw}
+.deck-preview-item .reading-stage .idea-card{--card-marker-left:8cqw;--card-marker-width:9cqw;display:flex;flex-direction:column;aspect-ratio:1.55;min-height:0;padding:12cqw 7cqw 5cqw;border-width:.35cqw;border-radius:4.5cqw;box-shadow:0 1.5cqw 0 var(--card-shadow),0 4cqw 5cqw -3cqw rgb(var(--card-shadow-rgb) / 18%)}
+.deck-preview-item .reading-stage .idea-card::before{height:3cqw;border-width:.3cqw;border-top:0;border-radius:0 0 1.4cqw 1.4cqw;top:-.35cqw}
+.deck-preview-item .card-header-icon{top:3.5cqw;height:6cqw;font-size:8cqw}
+.deck-preview-item .reading-content{flex:1;min-height:0;overflow:hidden;padding-bottom:3cqw}
+.deck-preview-item .reading-stage h2{font-size:5.8cqw;line-height:1.17;margin:0 0 3cqw;letter-spacing:-.035em;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-wrap:initial}
+.deck-preview-item .reading-stage .idea-body{font-size:3.2cqw;line-height:1.55;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:5;overflow:hidden;text-align:start}
+.deck-preview-item .reading-stage[data-card-type="quote"] .idea-body{font-size:5cqw;line-height:1.35;-webkit-line-clamp:6}
+.deck-preview-item .reading-footer{display:flex;align-items:center;justify-content:space-between;gap:3cqw;margin-top:0;padding-top:3cqw;border-top-width:.3cqw;font-size:2.6cqw;line-height:1.3;font-weight:750}
+.deck-preview-item .reading-footer>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.preview-card-state{display:flex;align-items:center;gap:1cqw;white-space:nowrap;flex-shrink:0;color:var(--card-edge)}
+.preview-card-state svg{width:3cqw;height:3cqw;fill:none;stroke:currentColor;stroke-width:1.8}
+.preview-hidden-title,.preview-hidden-body{position:relative;z-index:1;display:grid;gap:2cqw;opacity:.3}
+.preview-hidden-title{margin-bottom:4cqw;gap:2.5cqw}
+.preview-hidden-title i,.preview-hidden-body i{display:block;height:1.2cqw;border-radius:1cqw;background:var(--card-edge)}
+.preview-hidden-title i{height:3cqw;width:77%}.preview-hidden-title i:last-child{width:52%}
+.preview-hidden-body i:nth-child(2){width:93%}.preview-hidden-body i:last-child{width:65%}
+.preview-card-open{position:absolute;z-index:2;inset:0;width:100%;height:100%;min-height:44px;padding:0;border:0;border-radius:4.5cqw;background:transparent;cursor:pointer}
+.preview-card-open:hover{box-shadow:0 0 0 2px var(--sage)}
+.preview-card-open:focus-visible{outline:3px solid var(--ink);outline-offset:5px}
+@media(max-width:520px){.deck-preview-grid{gap:18px 10px}.deck-preview-tools{margin-bottom:17px}}
+
 /* Reading has its own stage: a lifted sheet, warm light and a short arrival. */
 body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de 53%,#e5ecd8 100%);background-attachment:fixed;min-height:100dvh}
 .is-reading main{width:min(800px,calc(100% - 64px))}

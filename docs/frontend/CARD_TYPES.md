@@ -25,3 +25,9 @@ Revisadas ideas y citas en móvil y escritorio. En escritorio ambas tienen paddi
 Tipografía aprobada: Cormorant Garamond Light 300 en citas, servida como WOFF2 desde la app. Peso parametrizado con `--card-body-weight`; las ideas usan Courier 400. EB Garamond permanece como alternativa.
 
 Ajuste posterior: tamaño de citas reducido 1 px en todo el rango responsive, a 23 px en móvil y un máximo de 31 px en escritorio. El tamaño de las ideas no cambia.
+
+## Preview de baraja
+
+Vista alternativa al árbol, disponible desde «Ver preview» en repaso y autoría. Usa las mismas paletas, tipografías e iconos por tipo, en miniaturas apaisadas. Arranca con dos columnas en cualquier pantalla y un slider permite elegir de una a cuatro. El tamaño, filtro y vista se conservan al abrir y cerrar una tarjeta durante la sesión; otra baraja arranca de nuevo con el árbol y dos columnas.
+
+Las tarjetas repasadas pueden abrirse en la vista exclusiva. En autoría se puede inspeccionar todo el contenido propio. En repaso, la siguiente conserva el título o extracto que ya muestra el árbol, pero oculta el cuerpo; las bloqueadas omiten título y cuerpo del HTML. La preview no desbloquea ni gasta hojas. Las miniaturas no incluyen acciones de voto/guardado ni registran lecturas: estas siguen en la tarjeta completa.
