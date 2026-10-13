@@ -146,7 +146,7 @@ test("Safari Home Screen metadata and PNG fallbacks are public, with no redirect
   assert.equal((await fetch(base + "/apple-touch-icon-missing.png")).status, 404);
 });
 
-test("Author HTTP routes require CSRF and hide personal decks from other accounts and guests",async t=>{
+test("Author HTTP routes require CSRF and share content while reserving edits to its creator",async t=>{
   const {randomUUID}=await import("node:crypto");
   const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);
   const server=createCatalogServer(db);server.listen(0,"127.0.0.1");await once(server,"listening");
@@ -167,7 +167,8 @@ test("Author HTTP routes require CSRF and hide personal decks from other account
   const deckResponse=await post("/api/author/decks",deckInput,headers);assert.equal(deckResponse.status,200);
   const {versionId}=await deckResponse.json();
   const cardInput={requestId:randomUUID(),versionId,isQuote:true,parentId:null,body:"Citation personnelle"};
-  assert.equal((await post("/api/author/cards",cardInput,headers)).status,200);
+  const createdCard=await post("/api/author/cards",cardInput,headers);assert.equal(createdCard.status,200);
+  const {cardId}=await createdCard.json();
   assert.equal((await post("/api/author/cards",cardInput,headers)).status,200);
   const owned=await fetch(base+"/api/catalog",{headers:{Cookie:headers.Cookie}}).then(r=>r.json());
   assert.equal(owned.cards.filter(c=>c.versionId===versionId).length,1);
@@ -176,24 +177,30 @@ test("Author HTTP routes require CSRF and hide personal decks from other account
   assert.equal(owned.books.find(b=>b.id===bookId).originalTitle,"Mon livre");
   const unicodeInput={...cardInput,requestId:randomUUID(),body:"葉".repeat(4000)};
   assert.equal((await post("/api/author/cards",unicodeInput,headers)).status,200);
-  const guest=await fetch(base+"/api/catalog").then(r=>r.json());assert.equal(guest.versions.some(v=>v.id===versionId),false);
+  const guest=await fetch(base+"/api/catalog").then(r=>r.json());assert.equal(guest.versions.some(v=>v.id===versionId),true);
+  assert.equal(guest.cards.some(card=>card.id===cardId),true);
   assert.equal(guest.books.some(b=>b.id===bookId),true);
   const other=await post("/api/auth/register",{username:"other.http",password:"another local test phrase"});
   const otherCookie=other.headers.get("set-cookie").split(";")[0];
-  const hidden=await fetch(base+"/api/catalog",{headers:{Cookie:otherCookie}}).then(r=>r.json());
-  assert.equal(hidden.versions.some(v=>v.id===versionId),false);
-  assert.equal(hidden.books.find(b=>b.id===bookId).creatorUserId,state.user.id);
+  const shared=await fetch(base+"/api/catalog",{headers:{Cookie:otherCookie}}).then(r=>r.json());
+  assert.equal(shared.versions.some(v=>v.id===versionId),true);
+  assert.equal(shared.books.find(b=>b.id===bookId).creatorUserId,state.user.id);
   const otherHeaders={Cookie:otherCookie,"X-CSRF-Token":(await other.json()).csrfToken};
-  assert.equal((await post("/api/reader/select",{versionId},otherHeaders)).status,404);
+  assert.equal((await post("/api/reader/select",{versionId},otherHeaders)).status,200);
+  assert.equal((await post("/api/author/cards",{...cardInput,requestId:randomUUID()},otherHeaders)).status,404);
+  const otherOpen=await post("/api/reader/open",{versionId,cardId},otherHeaders);
+  assert.equal(otherOpen.status,200);assert.equal((await otherOpen.json()).spent,true);
+  const creatorState=await fetch(base+"/api/reader/state",{headers:{Cookie:headers.Cookie}}).then(r=>r.json());
+  assert.equal(creatorState.reviews[versionId],undefined);
   assert.equal((await post("/api/reader/reading",{bookId,status:"reading"},otherHeaders)).status,200);
   const ownDeck=await post("/api/author/decks",{...deckInput,requestId:randomUUID()},otherHeaders);
   assert.equal(ownDeck.status,200);
   const ownVersion=(await ownDeck.json()).versionId;
   const otherCatalog=await fetch(base+"/api/catalog",{headers:{Cookie:otherCookie}}).then(r=>r.json());
   assert.equal(otherCatalog.versions.some(v=>v.id===ownVersion),true);
-  assert.equal(otherCatalog.versions.some(v=>v.id===versionId),false);
+  assert.equal(otherCatalog.versions.some(v=>v.id===versionId),true);
   const creatorCatalog=await fetch(base+"/api/catalog",{headers:{Cookie:headers.Cookie}}).then(r=>r.json());
-  assert.equal(creatorCatalog.versions.some(v=>v.id===ownVersion),false);
+  assert.equal(creatorCatalog.versions.some(v=>v.id===ownVersion),true);
 });
 
 test("Profiles require a session and view writes require origin, CSRF and actual access",async t=>{

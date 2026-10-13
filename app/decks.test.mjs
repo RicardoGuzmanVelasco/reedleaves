@@ -111,9 +111,12 @@ test("Deck albums show total progress; cards open separately only when explicitl
     assert.match(album,/1 de 7 tarjetas repasadas/);assert.match(album,/<progress value="1" max="7"/);
     assert.match(album,/class="tree-map"/);assert.doesNotMatch(album,/idea-card|blockquote|data-action="home"|aria-current="page"|tree-map-legend/);
     const detail=view({...state,requestedId:card.id});
-    assert.match(detail,/idea-card/);assert.match(detail,/data-action="deck-album"/);
-    assert.ok(detail.includes(escapeHtml(card.body[version.language])));
-    assert.doesNotMatch(detail,/tree-map|album-progress|data-action="choose-book"|data-action="home"/);
+    const modal=detail.match(/<dialog\b[^>]*class="exclusive-card-modal"[\s\S]*?<\/dialog>/)?.[0];
+    assert.ok(modal,"An explicitly opened card has its own exclusive dialog");
+    assert.ok(modal.includes(escapeHtml(card.body[version.language])));
+    assert.match(modal,/data-action="close-exclusive"/);
+    assert.doesNotMatch(modal,/tree-map|album-progress|data-action="choose-book"|data-action="home"/);
+    assert.match(detail,/1 de 7 tarjetas repasadas/,"The album stays behind the dialog");
     const empty=view({...state,reviews:{[versionId]:restoreTreeReview(null,model,versionId)}});
     assert.match(empty,/0 de 7 tarjetas repasadas/);assert.doesNotMatch(empty,/idea-card/);
     const emptyDeck=view({...state,catalog:{...catalog,versionModels:new Map([[versionId,{...model,cards:[],roots:[]}]])},reviews:{[versionId]:restoreTreeReview(null,model,versionId)}});

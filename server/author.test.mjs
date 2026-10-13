@@ -100,7 +100,7 @@ for (const dialect of ["sqlite","postgres"]) {
       assert.equal((await db.prepare("SELECT count(*) AS n FROM books").get()).n,count);
     }
   });
-  test(`${dialect}: share a minimal book, preserve its creator and isolate drafts, metadata permissions and reader progress`,async t=>{
+  test(`${dialect}: share a minimal book and its decks while preserving authorship, metadata permissions and reader progress`,async t=>{
     const {db,session,other}=await fixture(t,dialect);
     const input={requestId:randomUUID(),title:"  L’Étranger  ",author:" Albert Camus ",language:"fr"};
     const {bookId}=await createBook(db,session,input);
@@ -153,36 +153,38 @@ for (const dialect of ["sqlite","postgres"]) {
     await openCard(db,session,versionId,cardId,new Date("2026-10-10T12:00:00Z"));
     for (const userId of [undefined,other.user_id]) {
       const shared=prepareCatalog(await readCatalog(db,userId));
-      assert.equal(shared.versionsById.has(versionId),false);
-      assert.equal(shared.cardsById.has(cardId),false);
+      assert.equal(shared.versionsById.has(versionId),true);
+      assert.equal(shared.cardsById.has(cardId),true);
     }
-    assert.equal((await readCatalog(db,session.user_id)).cards.some(c=>c.id===foreignCard.cardId),false);
-    assert.equal((await readCatalog(db,other.user_id)).cards.some(c=>c.id===cardId),false);
-    await assert.rejects(selectDeck(db,other,versionId),e=>e.status===404);
-    await assert.rejects(openCard(db,other,versionId,cardId),e=>e.status===404);
-    await assert.rejects(recordCardView(db,other,{cardId,context:"author"}),e=>e.status===404);
+    assert.equal((await readCatalog(db,session.user_id)).cards.some(c=>c.id===foreignCard.cardId),true);
+    assert.equal((await readCatalog(db,other.user_id)).cards.some(c=>c.id===cardId),true);
+    await selectDeck(db,other,versionId,new Date("2026-10-10T12:00:00Z"));
+    const firstOpen=await openCard(db,other,versionId,cardId,new Date("2026-10-10T12:00:00Z"));
+    assert.equal(firstOpen.spent,true);
+    assert.equal((await readReaderState(db,session)).reviews[versionId].seenIds.length,1);
+    await assert.rejects(recordCardView(db,other,{cardId,context:"author"}),e=>e.code==="cardLocked");
     await assert.rejects(addCard(db,other,{requestId:randomUUID(),versionId,isQuote:true,parentId:null,body:"Ajena"}),e=>e.status===404);
     const idea=await dailyIdea(db,other,new Date("2026-10-10T12:00:00Z"));
-    assert.notEqual(idea.daily.id,cardId);
-    // Publication still depends on the deck version, independently of the book creator.
+    assert.ok(prepareCatalog(await readCatalog(db,other.user_id)).cardsById.has(idea.daily.id));
+    // Changing editorial status does not transfer ownership or duplicate a paid unlock.
     await db.prepare("UPDATE deck_versions SET status='published' WHERE id=?").run(versionId);
     assert.equal(prepareCatalog(await readCatalog(db)).cardsById.has(cardId),true);
     await selectDeck(db,other,versionId,new Date("2026-10-10T12:00:00Z"));
     const opened=await openCard(db,other,versionId,cardId,new Date("2026-10-10T12:00:00Z"));
-    assert.equal(opened.spent,true);
+    assert.equal(opened.spent,false);
     await recordCardView(db,other,{cardId,context:"review"},new Date("2026-10-10T12:00:00Z"));
   });
-  test(`${dialect}: personal decks, parents, quotes and repeat-safe authoring preserve review and privacy`,async t=>{
+  test(`${dialect}: shared decks, parents, quotes and repeat-safe authoring preserve review and author permissions`,async t=>{
     const {db,session,other}=await fixture(t,dialect);
     const input={requestId:randomUUID(),bookId:"seven-habits",language:"fr",title:"Mes notes",description:"Lecture personnelle"};
     const {versionId}=await createDeck(db,session,input);
     assert.equal((await createDeck(db,session,input)).versionId,versionId);
-    assert.equal((await readCatalog(db)).versions.some(v=>v.id===versionId),false);
-    assert.equal((await readCatalog(db,other.user_id)).versions.some(v=>v.id===versionId),false);
+    assert.equal((await readCatalog(db)).versions.some(v=>v.id===versionId),true);
+    assert.equal((await readCatalog(db,other.user_id)).versions.some(v=>v.id===versionId),true);
     let catalog=prepareCatalog(await readCatalog(db,session.user_id));
     assert.equal(catalog.versionsById.get(versionId).cardCount,0);
     assert.equal((await readReaderState(db,session,new Date("2026-10-10T12:00:00Z"))).enrolledIds.includes(versionId),true);
-    await assert.rejects(selectDeck(db,other,versionId),e=>e.status===404);
+    await selectDeck(db,other,versionId,new Date("2026-10-10T12:00:00Z"));
     await assert.rejects(addCard(db,other,{requestId:randomUUID(),versionId,title:"x",body:"x",parentId:null,isQuote:false}),e=>e.status===404);
     const add=(title,parentId=null,isQuote=false)=>({requestId:randomUUID(),versionId,title,body:"Texte à mémoriser\nDeuxième ligne",parentId,isQuote});
     const root=await addCard(db,session,add("Principe"));
@@ -213,7 +215,8 @@ for (const dialect of ["sqlite","postgres"]) {
     await addCard(db,session,add("Plus tard"));
     assert.equal((await readReaderState(db,session)).reviews[versionId].completed,false);
     const otherDaily=await dailyIdea(db,other,now);
-    assert.equal(catalog.cardsById.get(otherDaily.daily.id)?.versionId===versionId,false);
+    assert.ok(prepareCatalog(await readCatalog(db,other.user_id)).cardsById.has(otherDaily.daily.id));
+    assert.deepEqual((await readReaderState(db,other,now)).reviews,{});
     await assert.rejects(addCard(db,session,{...add("x"),versionId:"seven-habits-editorial-v1"}),e=>e.status===404);
     const ui={catalog,versionId,bookId:"seven-habits",language:"es",userId:session.user_id,reviews:{[versionId]:review},mode:"author",requestedId:quote.cardId,budget:state.wallet,today:state.today,storageAvailable:true};
     assert.match(authorView({...ui,requestedId:null}),/Citas sin clasificar/); assert.match(authorView(ui),/<blockquote/);
