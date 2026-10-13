@@ -205,8 +205,9 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .reading-stage::before,.reading-stage::after{--layer-skew:-1.5deg;content:"";position:absolute;z-index:-1;inset:8px 5px -8px;border:1.5px solid var(--card-layer-edge);border-radius:34px;background:var(--card-layer-back);transform:skewY(var(--layer-skew))}
 .reading-stage::after{--layer-skew:1deg;inset:7px -2px -6px;background:var(--card-layer-front)}
 .card-screen .reading-stage::before{inset:28px 5px 56px}.card-screen .reading-stage::after{inset:27px -2px 58px}
-.reading-stage .idea-card{min-height:320px;padding:52px 56px 32px;color:var(--card-ink);border-color:var(--card-edge);border-radius:32px;background:linear-gradient(135deg,var(--card-paper-start),var(--card-paper-end));box-shadow:0 8px 0 var(--card-shadow),0 24px 32px -16px rgb(var(--card-shadow-rgb) / 24%),0 44px 80px -32px rgb(var(--card-shadow-rgb) / 20%);overflow:visible}
-.reading-stage .idea-card::before{width:56px;height:18px;top:-2px;left:56px;background:var(--card-tab);border-radius:0 0 8px 8px;border:1.5px solid var(--card-tab-edge);border-top:0}
+.reading-stage .idea-card{--card-marker-left:56px;--card-marker-width:56px;min-height:320px;padding:52px 56px 32px;color:var(--card-ink);border-color:var(--card-edge);border-radius:32px;background:linear-gradient(135deg,var(--card-paper-start),var(--card-paper-end));box-shadow:0 8px 0 var(--card-shadow),0 24px 32px -16px rgb(var(--card-shadow-rgb) / 24%),0 44px 80px -32px rgb(var(--card-shadow-rgb) / 20%);overflow:visible}
+.reading-stage .idea-card::before{width:var(--card-marker-width);height:18px;top:-2px;left:var(--card-marker-left);background:var(--card-tab);border-radius:0 0 8px 8px;border:1.5px solid var(--card-tab-edge);border-top:0}
+.card-header-icon{position:absolute;top:22px;left:var(--card-marker-left);width:var(--card-marker-width);height:32px;font:48px/1 Georgia,serif;color:var(--card-edge);text-align:center;pointer-events:none;user-select:none}
 .reading-stage h1,.reading-stage h2{font-size:clamp(32px,4.5vw,46px);line-height:1.14;max-width:640px;margin:10px 0 30px;letter-spacing:-.045em;text-wrap:balance}
 .reading-stage .idea-body{margin:0;font-family:var(--card-body-font);font-style:normal;font-weight:400;font-size:var(--card-body-size);line-height:var(--card-body-leading);max-width:none;position:relative;white-space:pre-line;text-align:var(--card-body-align);text-align-last:start;text-justify:inter-word;-webkit-hyphens:auto;hyphens:auto}
 .reading-footer{margin-top:36px;padding-top:20px;border-top:1px solid var(--card-divider)}
@@ -261,8 +262,9 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
   .reading-stage::before,.reading-stage::after{border-radius:25px;transform:skewY(-1.5deg)}
   .reading-stage::after{transform:skewY(1deg)}
   .card-screen .reading-stage::before{inset:8px 5px 30px}.card-screen .reading-stage::after{inset:7px -2px 32px}
-  .reading-stage .idea-card{min-height:300px;padding:56px 25px 24px;border-radius:25px}
-  .reading-stage .idea-card::before{left:25px;width:43px;height:15px}
+  .reading-stage .idea-card{--card-marker-left:25px;--card-marker-width:43px;min-height:300px;padding:56px 25px 24px;border-radius:25px}
+  .reading-stage .idea-card::before{height:15px}
+  .card-header-icon{top:20px;font-size:42px}
   .reading-stage h1,.reading-stage h2{font-size:31px;margin:8px 0 25px}
   .reading-stage .idea-body{font-size:var(--card-body-size-mobile)}
   .reading-footer{margin-top:28px;padding-top:16px}

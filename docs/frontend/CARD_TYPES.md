@@ -2,13 +2,13 @@
 
 Estado: incremento local solicitado después de publicar el fondo de tarjetas; pendiente de revisión del usuario.
 
-Ideas y citas comparten el renderer de `views.mjs` y todas las reglas de geometría de `reader.css`: papel, pestaña superior, capas, bordes, sombras, márgenes, separador, atribución, icono de fondo y acciones. La comilla pequeña superior se sustituye por la misma pestaña, en azul. Las diferencias se expresan como parámetros.
+Ideas y citas comparten el renderer de `views.mjs` y todas las reglas de geometría de `reader.css`: papel, pestaña superior, capas, bordes, sombras, márgenes, separador, atribución, icono de fondo y acciones. Debajo de la pestaña hay un espacio común para un icono: comilla pequeña en las citas y vacío en las ideas normales. Las diferencias se expresan como parámetros.
 
 ## Configuración
 
 | Archivo | Parámetros |
 | --- | --- |
-| `app/card-types.mjs` | Identificador, título visible, etiqueta del cuerpo, encabezado accesible e icono SVG de fondo. |
+| `app/card-types.mjs` | Identificador, título visible, etiqueta del cuerpo, encabezado accesible, icono superior opcional e icono SVG de fondo. |
 | `app/card-themes.css` | Papel, texto, borde, sombras, capas, pestaña, separador, familia/tamaño/interlineado/alineación del cuerpo, fondo y colores de las acciones. |
 | `app/reader.css` | Una sola composición responsive y animación para todos los tipos. |
 
