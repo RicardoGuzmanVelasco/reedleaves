@@ -48,8 +48,8 @@
   --card-divider:#cbdced;
   --card-body-font:"Cormorant Garamond","EB Garamond",Garamond,"Baskerville","Times New Roman",serif;
   --card-body-weight:300;
-  --card-body-size:clamp(24px,3.3vw,32px);
-  --card-body-size-mobile:24px;
+  --card-body-size:clamp(23px,calc(3.3vw - 1px),31px);
+  --card-body-size-mobile:23px;
   --card-body-leading:1.65;
   --card-body-align:justify;
   --watermark-opacity:.13;
