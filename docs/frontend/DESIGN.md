@@ -146,6 +146,8 @@ Calibración corporal de Brote: x=0%, y=−13%, escala=0,9; sombra del 34% del m
 
 Calibración de Plántula: posición horizontal de la cara en 79 (vertical 104) y sombra del 65% del marco. Conserva los demás valores, incluida la boca de 2×.
 
+Variante de Plántula **A · Tierra**, aprobada el 13 de octubre de 2026 y reservada en `brand/reed/growth/plantula-variations-a-tierra-v3.png`: dos hojas redondeadas con brillos blancos y una sola sombra verde, sin tallo visible, con cara en un montículo de tierra. La v3 recorta la franja exterior más oscura de ambas hojas. Es una variante aprobada para conservar; no sustituye todavía el arte activo ni su calibración. **B · Cotiledones** se conserva como propuesta pendiente de aprobación.
+
 Calibración corporal de Raíz: x=3,5%, y=−6,5%, escala=0,88. Su cara usa centro (94, 65,5), giro 16,5° y escala 0,82.
 
 Los identificadores y archivos conservan sus nombres históricos: `seedling` corresponde a **Brote / Sprout** (tres días) y `sprout` a **Plántula / Seedling** (cinco días). Los nombres visibles están corregidos; no se intercambian los dibujos, calibraciones, claves de borradores ni recuentos existentes.

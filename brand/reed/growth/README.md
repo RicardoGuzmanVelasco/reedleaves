@@ -44,6 +44,8 @@ Ground shadows have been removed from Pot, Seed, Mystery, Stem, Plant and Flower
 
 ## Files
 
+- [Variantes de Plántula](plantula-variations-exploration.md): **A · Tierra v3**, aprobada y reservada, con la franja exterior oscura de las hojas recortada; **B · Cotiledones**, propuesta pendiente. Imágenes completas guardadas como exploraciones; el arte activo de la app se conserva.
+
 - `index.html`: visual comparison of all stages.
 - `mottos.md`: edit the Spanish and English motto placeholders here.
 - `root-variations-exploration.png`: rough sheet of three alternate root shapes, saved for future exploration. These are proposals only; the approved Root remains `root.png` and the variants are not used in the app.
