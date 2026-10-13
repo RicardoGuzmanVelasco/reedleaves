@@ -222,7 +222,7 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .idea-card{--watermark-ink:var(--actions-ink,#6e916a);--watermark-opacity:.09}
 .quote-card{--watermark-ink:var(--quote-edge);--watermark-opacity:.13}
 .card-watermark{position:absolute;inset:0;overflow:hidden;display:flex;align-items:flex-end;justify-content:flex-end;color:var(--watermark-ink);opacity:var(--watermark-opacity);pointer-events:none;user-select:none;z-index:0}
-.quote-watermark{width:100%;height:100%;fill:currentColor;overflow:visible}
+.quote-watermark{width:min(82%,430px);height:82%;max-height:280px;fill:currentColor;flex:none}
 .idea-watermark{width:min(78%,400px);height:100%;max-height:440px;fill:currentColor;align-self:flex-end}
 .reading-content+.reading-footer{margin-top:0}
 .exclusive-card-modal .reading-content{flex:1}

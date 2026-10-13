@@ -244,8 +244,8 @@ function cardVoteMarkup(s,card) {
 }
 
 function cardWatermark(card) {
-  const quote='M78 0H24C10 0 0 10 0 24c0 23 16 40 40 40 9 0 17-2 23-5-7 25-23 42-51 49l5 16c41-8 67-42 67-91 0-12-2-23-6-33Z';
-  const symbol=card.isQuote ? `<svg class="quote-watermark" viewBox="0 0 184 124" preserveAspectRatio="xMaxYMax meet" focusable="false"><path d="${quote}"/><path d="${quote}" transform="translate(100)"/></svg>` : '<svg class="idea-watermark" viewBox="0 0 160 180" preserveAspectRatio="xMidYMax meet" focusable="false"><path d="M80 9c-32 0-57 24-57 56 0 22 10 36 24 49 7 7 10 14 10 23h46c0-9 3-16 10-23 14-13 24-27 24-49 0-32-25-56-57-56Z"/><path d="M56 148h48v7c0 12-10 22-24 22s-24-10-24-22Z"/></svg>';
+  const quote='M42 0C19 0 0 18 0 42s18 42 42 42c10 0 19-3 26-9-7 26-25 44-53 54l7 15c43-13 67-46 67-92C89 21 70 0 42 0Z';
+  const symbol=card.isQuote ? `<svg class="quote-watermark" viewBox="-6 -6 207 156" preserveAspectRatio="xMaxYMax meet" focusable="false"><path d="${quote}"/><path d="${quote}" transform="translate(106)"/></svg>` : '<svg class="idea-watermark" viewBox="0 0 160 180" preserveAspectRatio="xMidYMax meet" focusable="false"><path d="M80 9c-32 0-57 24-57 56 0 22 10 36 24 49 7 7 10 14 10 23h46c0-9 3-16 10-23 14-13 24-27 24-49 0-32-25-56-57-56Z"/><path d="M56 148h48v7c0 12-10 22-24 22s-24-10-24-22Z"/></svg>';
   return `<span class="card-watermark" aria-hidden="true">${symbol}</span>`;
 }
 
