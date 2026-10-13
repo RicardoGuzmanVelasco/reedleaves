@@ -45,3 +45,13 @@ Ajuste del Supertupé: su comienzo comparte un punto y la tangente del contorno 
 El usuario aprueba Tupé como segunda variante reservada y lo sitúa en el puesto 5, sustituyendo a Espiral. Espiral conserva solo sus archivos históricos y queda retirada de la lámina y del estudio activos.
 
 Tercer ajuste del Gancho: recuperación de la curva más marcada y del volumen de la idea inicial. El extremo se recoge algo más hacia la cabeza y mantiene una sola punta; sin hojas. Cabeza y cara conservadas.
+
+Cuarto ajuste del Gancho: base en verde hoja `#58BE59`, frente al verde claro del Tupé. Cara algo más baja y a la izquierda: x=56, y=76, giro=−8°, escala=0,78. Se conservan la curva del gancho, el cuerpo, los ojos y la sonrisa comunes, y la sombra. No se modifica el Tupé reservado.
+
+Quinto ajuste del Gancho: gancho en verde claro `#91D965`, con borde de verde hoja `#58BE59`. La curva se acerca a la base, con escala de 0,82 horizontal y 0,94 vertical alrededor de su arranque (58, 64). La base, la cara y la sombra permanecen iguales.
+
+El usuario aprueba Gancho como tercera variante y se guarda por separado en Variantes reservadas.
+
+## Refinamiento de la 3 · Capucha
+
+Se retira el saliente derecho. La hoja izquierda y el borde inferior comparten segmentos exactos del contorno de la capucha, eliminando los desajustes. Se conservan la cara, la abertura clara y la sombra. Sigue en revisión.
