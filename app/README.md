@@ -49,7 +49,7 @@ Contenido editable: content/catalog/*.csv. Datos activos: var/catalog.sqlite, co
 
 Backend: server/database.mjs, seed.mjs, catalog-repository.mjs, author-repository.mjs, auth.mjs, reader-repository.mjs, reader-api.mjs y http.mjs.
 
-Frontend: catalog.mjs (API), account-client.mjs (sesión y colas de peticiones), card-features.jsx (acciones y guardadas mediante portales React), card-interactions.mjs (reducer optimista y transporte), card-action-themes.css (paletas por tipo), rhythm.mjs (filtros y compatibilidad antigua), wallet.mjs (saldo compartido con servidor), decks.mjs (selección y árbol), storage.mjs (idioma y lectura antigua), views.mjs (HTML), i18n.mjs (copy), reader-app.mjs (interacción) y reader.mjs (entrada).
+Frontend: catalog.mjs (API), account-client.mjs (sesión y colas de peticiones), card-features.jsx (acciones y guardadas mediante portales React), card-interactions.mjs (reducer optimista y transporte), card-types.mjs (título, semántica e icono por tipo), card-themes.css (paleta y tipografía, incluidas las acciones), rhythm.mjs (filtros y compatibilidad antigua), wallet.mjs (saldo compartido con servidor), decks.mjs (selección y árbol), storage.mjs (idioma y lectura antigua), views.mjs (render común), i18n.mjs (copy), reader-app.mjs (interacción) y reader.mjs (entrada).
 
 La base y los CSV no se sirven por HTTP. Los JSON/NDJSON antiguos se conservan solo en fixtures de pruebas.
 

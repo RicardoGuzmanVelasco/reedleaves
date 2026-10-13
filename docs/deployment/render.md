@@ -57,7 +57,9 @@ Referencia: [DNS de Cloudflare en Render](https://render.com/docs/configure-clou
 
 ## Verificación de Guardadas
 
-Verificación del 13 de octubre de 2026: Guardadas y acciones optimistas desplegadas desde `ce40727`, despliegue `dep-db72voa6192c73dker10` activo. Salud, app, módulo generado y paletas responden HTTP 200; Guardadas sin sesión devuelve 401. La versión integrada pasó 216/216 pruebas antes de publicar. Los logs de arranque no muestran errores. El incremento posterior de marcas de agua permanece en local para revisión.
+Verificación del 13 de octubre de 2026: Guardadas y acciones optimistas desplegadas desde `ce40727`, despliegue `dep-db72voa6192c73dker10` activo. Salud, app, módulo generado y paletas responden HTTP 200; Guardadas sin sesión devuelve 401. La versión integrada pasó 216/216 pruebas antes de publicar. Los logs de arranque no muestran errores.
+
+Las marcas de agua y comillas reducidas están publicadas desde `5d849cf`; Render confirma activo `dep-db73c7ojo6nc738d8qp0`. Salud y stylesheet responden 200 y la versión servida contiene el tamaño reducido. La unificación posterior de tipos de tarjeta permanece en local para revisión.
 
 ## Límites del plan gratuito
 

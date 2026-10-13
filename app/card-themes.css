@@ -1,0 +1,63 @@
+/* Shared geometry lives in reader.css. A card type supplies only these tokens. */
+.reading-stage {
+  --card-ink:var(--ink);
+  --card-paper-start:#fffef9;
+  --card-paper-end:#fffbed;
+  --card-edge:#6e916a;
+  --card-shadow:#b7c69d;
+  --card-shadow-rgb:30 76 46;
+  --card-layer-back:#dce9c6;
+  --card-layer-front:#ecf2dc;
+  --card-layer-edge:#a1b48a;
+  --card-tab:#b9e877;
+  --card-tab-edge:#95bc69;
+  --card-divider:#e1e5d0;
+  --card-body-font:Courier,"Courier New",monospace;
+  --card-body-size:clamp(19px,2.3vw,23px);
+  --card-body-size-mobile:18px;
+  --card-body-leading:1.75;
+  --card-body-align:start;
+  --watermark-ink:var(--card-edge);
+  --watermark-opacity:.09;
+  --watermark-width:82%;
+  --watermark-max-width:430px;
+  --watermark-height:82%;
+  --watermark-max-height:280px;
+  --actions-ink:#6e916a;
+  --actions-edge:#8fa38a;
+  --actions-counter:#51654c;
+  --actions-surface:#f0f1dc;
+  --actions-shadow:#c9cfb2;
+  --actions-ribbon:#fff9ed;
+  --actions-ribbon-shadow:#d4d7bd;
+  --actions-ribbon-saved:#e8f3df;
+  --actions-accent:#58be59;
+}
+.reading-stage[data-card-type="quote"] {
+  --card-paper-start:#f1f7fd;
+  --card-paper-end:var(--quote-paper);
+  --card-edge:var(--quote-edge);
+  --card-shadow:var(--quote-shadow);
+  --card-shadow-rgb:57 89 126;
+  --card-layer-back:#cddff2;
+  --card-layer-front:#dce9f7;
+  --card-layer-edge:var(--quote-edge);
+  --card-tab:#cbdced;
+  --card-tab-edge:#9ab3cb;
+  --card-divider:#cbdced;
+  --card-body-font:"EB Garamond",Garamond,"Baskerville","Times New Roman",serif;
+  --card-body-size:clamp(24px,3.3vw,32px);
+  --card-body-size-mobile:24px;
+  --card-body-leading:1.65;
+  --card-body-align:justify;
+  --watermark-opacity:.13;
+  --actions-ink:#6686a3;
+  --actions-edge:#9ab3cb;
+  --actions-counter:#516a82;
+  --actions-surface:#e5edf7;
+  --actions-shadow:#bed0e2;
+  --actions-ribbon:#f1f7fd;
+  --actions-ribbon-shadow:#c1d4e8;
+  --actions-ribbon-saved:#d8e7f6;
+  --actions-accent:#5c87ab;
+}

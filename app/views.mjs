@@ -2,6 +2,7 @@ import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES, LANGUAGES} from "./core.mj
 import { accessibleCard, canAdvance } from "./rhythm.mjs";
 import { treeFrontier, hasLeaf, studyingDecks, availableVersions } from "./decks.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
+import {cardTypeFor} from "./card-types.mjs";
 import { words } from "./i18n.mjs?v=growth-stage-list";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
@@ -239,27 +240,26 @@ function cardAttribution(s,card,book) {
   }).join("")}</div>`;
 }
 
-function cardVoteMarkup(s,card) {
+function cardActionsHost(card) {
   return `<div class="card-actions-host" data-card-actions="${esc(card.id)}"></div>`;
 }
 
-function cardWatermark(card) {
-  const quote='M42 0C19 0 0 18 0 42s18 42 42 42c10 0 19-3 26-9-7 26-25 44-53 54l7 15c43-13 67-46 67-92C89 21 70 0 42 0Z';
-  const symbol=card.isQuote ? `<svg class="quote-watermark" viewBox="-6 -6 207 156" preserveAspectRatio="xMaxYMax meet" focusable="false"><path d="${quote}"/><path d="${quote}" transform="translate(106)"/></svg>` : '<svg class="idea-watermark" viewBox="0 0 160 180" preserveAspectRatio="xMidYMax meet" focusable="false"><path d="M80 9c-32 0-57 24-57 56 0 22 10 36 24 49 7 7 10 14 10 23h46c0-9 3-16 10-23 14-13 24-27 24-49 0-32-25-56-57-56Z"/><path d="M56 148h48v7c0 12-10 22-24 22s-24-10-24-22Z"/></svg>';
-  return `<span class="card-watermark" aria-hidden="true">${symbol}</span>`;
+function cardWatermark(type) {
+  return `<span class="card-watermark" aria-hidden="true"><svg class="card-watermark-symbol" viewBox="${type.watermark.viewBox}" preserveAspectRatio="xMaxYMax meet" focusable="false">${type.watermark.paths}</svg></span>`;
 }
 
 function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false} = {}) {
   const book = s.catalog.booksById.get(card.bookId), deckLanguage = card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
-  return `<div class="reading-stage${card.isQuote ? " reading-stage--quote" : ""}" data-reading-card="${esc(card.id)}"${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${card.isQuote ? " quote-card" : ""}"><div class="reading-content">${cardWatermark(card)}${card.isQuote ? `<blockquote lang="${esc(bodyLanguage)}" dir="auto" class="idea-body" id="idea-content" tabindex="-1">${esc(body)}</blockquote>` : `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-content" tabindex="-1">${esc(title)}</${heading}><p lang="${esc(bodyLanguage)}" dir="auto" class="idea-body">${esc(body)}</p>`}</div>
-    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book)}</div>${exclusive ? cardVoteMarkup(s,card) : ""}</footer></article></div>`;
+  const type=cardTypeFor(card),bodyTag=type.bodyTag;
+  return `<div class="reading-stage reading-stage--${type.id}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${type.className ? ' '+type.className : ''}"><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-content" tabindex="-1">${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : ' id="idea-content" tabindex="-1"'}>${esc(body)}</${bodyTag}></div>
+    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book)}</div>${exclusive ? cardActionsHost(card) : ""}</footer></article></div>`;
 }
 
 function exclusiveCardMarkup(s,card,position="") {
-  const c=words[s.language];
-  return `<dialog class="exclusive-card-modal" aria-label="${c.exclusiveCard}"><div class="exclusive-card-shell"><div class="exclusive-card-controls"><span>${esc(position)}</span><button class="exclusive-card-close" type="button" data-action="close-exclusive" aria-label="${c.closeCard}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>${card.isQuote ? `<h1 class="sr-only">${c.quoteBody}</h1>` : ""}${cardMarkup(s,card,"h1",{exclusive:true})}</div></dialog>`;
+  const c=words[s.language],type=cardTypeFor(card);
+  return `<dialog class="exclusive-card-modal" aria-label="${c.exclusiveCard}"><div class="exclusive-card-shell"><div class="exclusive-card-controls"><span>${esc(position)}</span><button class="exclusive-card-close" type="button" data-action="close-exclusive" aria-label="${c.closeCard}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>${type.accessibleHeading ? `<h1 class="sr-only">${c[type.accessibleHeading]}</h1>` : ""}${cardMarkup(s,card,"h1",{exclusive:true})}</div></dialog>`;
 }
 
 export function dailyView(s) {
