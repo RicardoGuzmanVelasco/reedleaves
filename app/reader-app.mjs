@@ -459,7 +459,8 @@ export function startReader({createCardFeatures} = {}) {
     if (e.target.id === "preview-columns") {
       previewColumns=Math.max(1,Math.min(4,Math.round(Number(e.target.value)||2)));
       main.querySelector("#deck-preview-grid").dataset.columns=String(previewColumns);
-      main.querySelector("#preview-column-count").value=String(previewColumns);
+      main.querySelector(".deck-preview-tools").dataset.columns=String(previewColumns);
+      main.querySelector("#preview-column-count").title=words[language].previewColumnCount(previewColumns);
       e.target.setAttribute("aria-valuetext",words[language].previewColumnCount(previewColumns));
       return;
     }
