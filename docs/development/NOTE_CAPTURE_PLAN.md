@@ -42,7 +42,7 @@ Desde Inicio con el libro visible: una pulsación hasta el editor. Desde fuera d
 
 ### Derivados del recorrido y de las interrupciones discutidas
 
-- El libro no tiene una baraja propia elegible: definir cómo crearla o elegir un destino.
+- El libro no tiene una baraja propia elegible: implementado en local: Crear baraja → Tomar nota automático; pendiente de revisión y publicación.
 - La app se recupera en otra pantalla: contemplar el acceso a Inicio y el coste real de llegar al «+».
 - El libro no está marcado leyendo o ya se ha terminado: decidir desde dónde se toma una nota fuera de Inicio.
 - Inicio no tiene libros leyendo: definir la entrada al primer libro.
@@ -56,7 +56,7 @@ Este incremento reutiliza el editor actual. No incluye un nuevo ciclo de vida de
 
 ## Implementación local
 
-- «+» visible por libro. Cero destinos propios editables mantiene el botón deshabilitado. Una única versión `draft` propia abre directamente el editor; varias abren el popover de elección.
+- «+» disponible por libro: cero destinos abre Crear baraja; una única versión `draft` propia abre directamente el editor; varias abren el popover de elección.
 - Destino fijado en el formulario; una nota nueva empieza en el nivel principal, sin heredar otra tarjeta.
 - Orden por la última nota creada en cualquiera de las barajas propias de ese libro. Editar, votar, guardar tarjetas ajenas y repasar no cuentan como creación de notas.
 - Migraciones SQLite 17→18 y PostgreSQL 9→10: fecha nullable e índice por versión/fecha. Se conserva el contenido histórico.
@@ -92,3 +92,15 @@ Revisión manual en copia aislada (4174): ida/vuelta Idea–Cita conserva el bor
 - Dos pulsaciones desde Inicio para empezar a escribir en un destino reciente (frente a una con un único destino). La lista completa añade una pulsación. Guardar sigue siendo explícito.
 - La fecha por baraja se añade al estado privado de la cuenta, manteniendo el orden por libro. Se reutiliza created_at e índice existente, sin migración. Guardar una nota actualiza ambas recencias; votar, guardar tarjetas ajenas o repasar no cuentan.
 - Revisado manualmente en copia aislada: destinos reales, lista completa, orden después de guardar/recargar, privacidad, cierre/foco y tamaños de pantalla. Publicación aprobada.
+
+## Tercer escenario alternativo: cero barajas editables — local
+
+1. El usuario pulsa «+» en su libro Leyendo; se abre Crear baraja.
+2. Completa nombre, enfoque opcional e idioma en el formulario existente y confirma Crear baraja.
+3. Se abre automáticamente Tomar nota en la nueva versión, como Idea y en nivel principal. Puede cambiar a Cita.
+4. Guardar o cancelar devuelve a Inicio. La primera nota guardada actualiza el orden del libro.
+
+- Cancelar antes de crear no añade barajas. Cancelar la nota conserva la baraja recién creada: la siguiente entrada ya usa el happy path.
+- Libro y versión nueva quedan fijados. La creación utiliza su identificador idempotente; la nota tiene un identificador distinto. Un error conserva el formulario para corregir/reintentar.
+- No cambia el ciclo de vida de las barajas ni el esquema. La creación sigue siendo explícita y conserva las opciones del editor de barajas vigente.
+- Revisado manualmente en la copia local: cancelación, error, creación única, apertura automática, guardado en el destino correcto, orden y tamaños de pantalla. Pendiente de producción.

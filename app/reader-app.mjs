@@ -313,7 +313,10 @@ export function startReader({createCardFeatures} = {}) {
   function openHomeNote(id) {
     if (!snapshot.user || mode !== "home" || statuses[id] !== "reading") return;
     const versions=editableNoteVersions(catalog,id,snapshot.user.id);
-    if (!versions.length) return;
+    if (!versions.length) {
+      bookId=id;versionId=null;requestedId=null;bookOrigin="home";noteDestination=null;
+      openAuthorForm("deck",{origin:"home",noteBookId:id,startNoteAfterCreate:true});return;
+    }
     if (versions.length > 1) { noteDestination={bookId:id,all:false};render();return; }
     openHomeNoteVersion(id,versions[0].id);
   }
@@ -364,7 +367,7 @@ export function startReader({createCardFeatures} = {}) {
     if (authorForm.bookId && !authorForm.hasProposal) return;
     const fields = Object.fromEntries([...new FormData(form)].filter(([key])=>!key.startsWith("metadata."))); Object.assign(authorForm,fields);
     const savedForm = authorForm;
-    const input = savedForm.bookId ? {bookId:savedForm.bookId,metadata:savedForm.metadata} : savedForm.kind === "book" ? {title:savedForm.title,author:savedForm.author,language:savedForm.language,metadata:savedForm.metadata,requestId:savedForm.requestId} : savedForm.kind === "deck" ? {...fields,requestId:savedForm.requestId,bookId} : {...fields,requestId:savedForm.requestId,versionId:savedForm.noteVersionId || versionId,parentId:fields.parentId || null,isQuote:savedForm.kind === "quote"};
+    const input = savedForm.bookId ? {bookId:savedForm.bookId,metadata:savedForm.metadata} : savedForm.kind === "book" ? {title:savedForm.title,author:savedForm.author,language:savedForm.language,metadata:savedForm.metadata,requestId:savedForm.requestId} : savedForm.kind === "deck" ? {...fields,requestId:savedForm.requestId,bookId:savedForm.noteBookId || bookId} : {...fields,requestId:savedForm.requestId,versionId:savedForm.noteVersionId || versionId,parentId:fields.parentId || null,isQuote:savedForm.kind === "quote"};
     busy = true; syncGeneration++; savedForm.error = null; savedForm.errorReference = null; lockControls();
     try {
       const result = await api.request(savedForm.bookId ? "/api/author/books/complete" : savedForm.kind === "book" ? "/api/author/books" : savedForm.kind === "deck" ? "/api/author/decks" : "/api/author/cards",input);
@@ -373,12 +376,14 @@ export function startReader({createCardFeatures} = {}) {
       if (savedForm.bookId) {
         if (["library","bookshelf"].includes(mode)) openBookId=result.bookId;
       }
+      else if (savedForm.startNoteAfterCreate && savedForm.kind === "deck") openHomeNoteVersion(savedForm.noteBookId,result.versionId);
       else if (savedForm.origin === "home") navigate("#home");
       else if (savedForm.kind === "book") { libraryQuery = ""; bookOrigin = "library"; navigate("#book/"+result.bookId); }
       else { if (savedForm.kind === "card") quotesOnly = false; navigate("#author/"+result.versionId); }
     } catch(error) {
       savedForm.error=error.code || "connectionError";
       if (["card","quote"].includes(savedForm.kind) && error.code === "invalidRequest") savedForm.error=savedForm.kind === "quote" ? "invalidQuoteNote" : "invalidNote";
+      if (savedForm.kind === "deck" && error.code === "invalidRequest") savedForm.error="invalidDeck";
     }
     finally {
       busy = false; render({focus:!authorForm});
