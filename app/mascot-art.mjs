@@ -17,11 +17,11 @@ export const mascotAssets = Object.freeze({
 export const mascotIdlePatterns = Object.freeze({seed:"float",seedling:"float",sprout:"float",mystery:"float"});
 const escapeAttribute = value => String(value).replace(/[&<>"']/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character]));
 
-export function mascotArt(stage, className = "", {expression = "neutral", mouth, face, variant = "mascot"} = {}) {
+export function mascotArt(stage, className = "", {expression = "neutral", mouth, face, variant = "mascot", idle = true} = {}) {
   if (variant === "icon") return mascotIcon(stage,className);
   const id = Object.hasOwn(mascotAssets, stage) ? stage : "mystery";
-  const idle = mascotIdlePatterns[id] ?? "hop";
-  return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}" data-idle="${idle}" aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${mascotAssets[id]}" width="160" height="160" alt="" draggable="false">${mascotFace(id,expression,mouth,face)}</span></span></span>`;
+  const pattern = idle ? (mascotIdlePatterns[id] ?? "hop") : "none";
+  return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}" data-idle="${pattern}" aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${mascotAssets[id]}" width="160" height="160" alt="" draggable="false">${mascotFace(id,expression,mouth,face)}</span></span></span>`;
 }
 
 // Restart body and ground together in the preview tools without touching eye gestures.

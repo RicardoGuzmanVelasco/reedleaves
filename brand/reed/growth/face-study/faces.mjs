@@ -1,4 +1,4 @@
-import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=mascot-idle-expressive";
+import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=mascot-idle-timeline";
 import {playMascotExpression} from "/app/mascot-face.mjs?v=pot-a-original";
 const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Brote"],["sprout","Plántula · Referencia"]];
 const originals = {

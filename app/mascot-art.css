@@ -15,6 +15,7 @@
 .mascot-art[data-idle="float"]{--mascot-idle-duration:2800ms}
 .mascot-art[data-idle="float"] .mascot-art-motion{animation-name:mascot-art-float}
 .mascot-art[data-idle="float"]::before{animation-name:mascot-shadow-float}
+.mascot-art[data-idle="none"] .mascot-art-motion,.mascot-art[data-idle="none"]::before,
 .mascot-art.is-idle-reset .mascot-art-motion,.mascot-art.is-idle-reset::before{animation:none}
 /* The former 600 ms greeting is now a hop, followed by a 1200 ms rest.
    Independent translate/rotate/scale keep hover transforms and calibration intact.
