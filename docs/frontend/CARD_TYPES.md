@@ -30,6 +30,8 @@ Ajuste posterior: tamaño de citas reducido 1 px en todo el rango responsive, a 
 
 Vista alternativa al árbol, disponible en repaso y autoría desde un selector segmentado a la izquierda: iconos de listado anidado y cuadrícula, con nombres accesibles y tooltip ES/EN. El filtro «Todas / Citas» («All / Quotes») queda a la derecha, siempre en una línea. Ambos comparten estilo y altura táctil.
 
+El selector segmentado genérico mide 38 px de alto, con opciones de 32 px y padding exterior de 3 px. Estas medidas se reutilizan también en los selectores de idioma de ajustes y formularios. Los iconos de vista miden 18 px; el listado representa viñetas con sangría.
+
 La preview usa las mismas paletas, tipografías e iconos por tipo, en miniaturas apaisadas. Arranca con dos columnas en cualquier pantalla y un slider permite elegir de una a cuatro. El tamaño, filtro y vista se conservan al abrir y cerrar una tarjeta durante la sesión; otra baraja arranca de nuevo con el árbol y dos columnas.
 
 Las tarjetas repasadas pueden abrirse en la vista exclusiva. En autoría se puede inspeccionar todo el contenido propio. En repaso, la siguiente conserva el título o extracto que ya muestra el árbol, pero desenfoca el cuerpo; las bloqueadas desenfocan título (si corresponde al tipo) y cuerpo. Se usa el texto real para conservar su composición, con blur proporcional a la tipografía y opacidad reducida. Esta ocultación es visual: el contenido permanece en el HTML, sin selección ni exposición a lectores de pantalla. La preview no desbloquea ni gasta hojas. Las miniaturas no incluyen acciones de voto/guardado ni registran lecturas: estas siguen en la tarjeta completa.
