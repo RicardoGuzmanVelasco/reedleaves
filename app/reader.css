@@ -135,6 +135,7 @@
 .book-note-add svg{width:18px;height:18px}.book-note-add:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 5px 0 #b7c8a8}.book-note-add:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #b7c8a8}
 .book-note-add:disabled{opacity:.45;box-shadow:none;cursor:default}.study-book-entry--notes .study-book-mark{margin-inline:auto;margin-bottom:24px;transform:translateX(-8px)}
 .note-book-context{margin:8px 0 20px;color:var(--muted);font-size:14px;line-height:1.4}
+.note-draft-status{margin:0 0 12px;color:var(--muted);font-size:12px;line-height:1.4}
 .note-deck-context{display:block;margin-top:4px;color:var(--ink);font-size:12px;font-weight:750}
 .note-type-selector{align-self:flex-start;width:fit-content;margin-bottom:8px}
 .note-type-selector>button{gap:5px}.note-type-icon{display:block;width:var(--segmented-text-icon-size);height:var(--segmented-text-icon-size);flex:none;fill:currentColor}

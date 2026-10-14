@@ -23,7 +23,7 @@ Desde Inicio con el libro visible: una pulsación hasta el editor. Desde fuera d
 
 - Ya existe el estado manual del libro `reading`. Inicio pasa a usar ese estado de lectura, independiente de las barajas con repaso pendiente.
 - El progreso de repaso y la posibilidad de añadir contenido son independientes. Se puede escribir únicamente en versiones `draft` de barajas propias. No existe todavía un estado independiente de escritura «en progreso / cerrada».
-- El formulario vigente de idea exige título y cuerpo, y guarda mediante una acción explícita. Su borrador vive en memoria: no hay autosave ni recuperación tras recarga. Las citas no exigen título.
+- El formulario vigente de idea exige título y cuerpo, y guarda mediante una acción explícita. Las notas guardan un borrador local por cuenta, libro y versión, recuperable tras recarga con el aviso «Borrador recuperado». Las citas no exigen título.
 - Las nuevas notas registran `created_at`. La actividad de creación se agrega por libro y propietario de la baraja en el estado privado de la cuenta. Las notas antiguas mantienen NULL: no se inventa una fecha histórica.
 
 ## Decisiones aprobadas — primera ronda
@@ -47,12 +47,12 @@ Desde Inicio con el libro visible: una pulsación hasta el editor. Desde fuera d
 - El libro no está marcado leyendo o ya se ha terminado: decidir desde dónde se toma una nota fuera de Inicio.
 - Inicio no tiene libros leyendo: definir la entrada al primer libro.
 - Hay libros leyendo sin notas, o notas antiguas sin fecha: resuelto en este incremento: después de la actividad conocida, con el orden estable del catálogo.
-- El móvil se bloquea, cambia la app activa o se cierra/recarga: recuperar la captura sin perder texto ni destino.
+- El móvil se bloquea, cambia la app activa o se cierra/recarga: recuperación local implementada con aviso explícito; pendiente de publicación. Sin sincronización de borradores entre dispositivos.
 - Caduca la sesión o falla la conexión al guardar: conservar el texto y permitir reintentar sin duplicar la nota.
 
 ## Límites
 
-Este incremento reutiliza el editor actual. No incluye un nuevo ciclo de vida de barajas, autosave, publicación de notas, accesos desde la pantalla bloqueada ni el rediseño del editor.
+Este incremento reutiliza el editor actual. No incluye un nuevo ciclo de vida de barajas, sincronización de borradores entre dispositivos, publicación automática de notas, accesos desde la pantalla bloqueada ni el rediseño del editor. El guardado local automático se limita a notas de idea/cita; Crear libro y Crear baraja conservan sus formularios en memoria.
 
 ## Implementación local
 
@@ -60,7 +60,7 @@ Este incremento reutiliza el editor actual. No incluye un nuevo ciclo de vida de
 - Destino fijado en el formulario; una nota nueva empieza en el nivel principal, sin heredar otra tarjeta.
 - Orden por la última nota creada en cualquiera de las barajas propias de ese libro. Editar, votar, guardar tarjetas ajenas y repasar no cuentan como creación de notas.
 - Migraciones SQLite 17→18 y PostgreSQL 9→10: fecha nullable e índice por versión/fecha. Se conserva el contenido histórico.
-- Un fallo conserva el formulario en memoria y el identificador de petición para reintentar. Cerrar o recargar sigue sin recuperar el borrador.
+- Un fallo conserva el formulario y el identificador de petición para reintentar. El borrador local de la nota permite recuperar texto y destino tras cerrar o recargar.
 - Revisión manual en copia aislada: captura en una pulsación, guardado en la versión correcta y nivel principal, vuelta a Inicio, orden persistente tras recarga, cancelación sin creación y rechazo del servidor con texto conservado. Sin ejecutar la suite.
 
 ## Primer escenario alternativo: tomar una cita — publicación aprobada
@@ -104,3 +104,13 @@ Revisión manual en copia aislada (4174): ida/vuelta Idea–Cita conserva el bor
 - Libro y versión nueva quedan fijados. La creación utiliza su identificador idempotente; la nota tiene un identificador distinto. Un error conserva el formulario para corregir/reintentar.
 - No cambia el ciclo de vida de las barajas ni el esquema. La creación sigue siendo explícita y conserva las opciones del editor de barajas vigente.
 - Revisado manualmente en la copia local: cancelación, error, creación única, apertura automática, guardado en el destino correcto, orden y tamaños de pantalla. Pendiente de producción.
+
+## Cuarto escenario alternativo: interrupción de la nota — local
+
+- Idea y Cita guardan localmente título, texto, tipo, libro, versión, relación e identificador idempotente mientras se escribe. Se refuerza la captura al ocultar o abandonar la página, sin depender de ese último evento para conservar lo ya escrito.
+- Un borrador por versión, bajo una clave de cuenta/libro. Inicio recupera el más reciente del libro al pulsar «+», antes de ofrecer destinos. Añadir contenido recupera solo el borrador de esa versión. El acceso actual determina dónde se vuelve al terminar.
+- El editor muestra «Borrador recuperado» / «Draft restored» y, desde Inicio, la baraja del borrador. No se abre automáticamente al arrancar la app.
+- Guardar con confirmación del servidor o cancelar descarta ese borrador. Los errores conservan texto e identificador. Si el catálogo confirma que la tarjeta ya existe con ese identificador en esa versión, no se recupera como pendiente.
+- Cambiar o cerrar sesión retira el formulario visible y conserva el borrador bajo su cuenta original. No hay sincronización entre dispositivos, navegadores u orígenes. Si el almacenamiento local falla, se informa; el respaldo en memoria sirve solo para la sesión actual.
+- Si el destino deja de ser editable, se recupera el contenido con aviso y se impide guardar en ese destino; no se mueve la nota automáticamente.
+- Revisión manual en copia aislada: recuperación tras recarga con título/cuerpo, cambio Idea/Cita y relación conservados; recuperación directa en libro con varias barajas; recuperación del mismo borrador desde autoría; guardado y cancelación seguidos de una nota nueva vacía. Móvil 320 px sin desbordamiento y escritorio. Sintaxis/build/diff correctos; sin añadir ni ejecutar la suite. Sin cambios de backend ni esquema. Pendiente de producción.

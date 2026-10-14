@@ -3,6 +3,7 @@ import {CONTENT_LANGUAGES, localDay, restoreLanguage} from "./core.mjs";
 import {restorePreferences, changeSource} from "./rhythm.mjs";
 import {featuredDecks, restoreTreeReview, bookReviewStates, studyingDecks} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
+import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=growth-row";
 import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,profileView,profilePendingView,loadingView,accountView,escapeHtml} from "./views.mjs?v=mascot-empty-milestones";
@@ -24,6 +25,7 @@ export function hasSeenCard(reviews,versionId,cardId) {
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
+  const noteDrafts = createNoteDrafts(store);
   const settings = document.getElementById("settings");
   const presentReading = createReadingPresentation();
   let showOriginalTitles = store.read(keys.originalTitles) === true;
@@ -58,7 +60,9 @@ export function startReader({createCardFeatures} = {}) {
   const hasLocalProgress = () => catalog && (store.read(keys.studies)?.length || catalog.versions.some(v=>store.read(keys.deckReview(v.id))?.seenIds?.length || store.read(keys.review(v.bookId))?.unlockedCount));
 
   function applyState(state) {
-    if (snapshot.user?.id !== state.user?.id) noteDestination=null;
+    if (snapshot.user?.id !== state.user?.id) {
+      persistNoteDraft(); authorForm=null; noteDestination=null;
+    }
     if (snapshot.user?.id !== state.user?.id) { deckPreview=false;previewColumns=2;previewVersionId=null; }
     if (snapshot.user?.id !== state.user?.id) { bookshelfFilters = {...bookshelfDefaults}; publicBookshelfFilters={...bookshelfDefaults}; libraryFilters = {...libraryDefaults}; libraryQuery = ""; listPositions = {}; profileId=null; profileError=null; profileData=null; profileRequest=null; profileGeneration++; recordedViews.clear(); pendingViews.clear(); libraryOrigin = "home"; openBookId = null; }
     snapshot = state;
@@ -295,9 +299,27 @@ export function startReader({createCardFeatures} = {}) {
       route();
     }
   }
+  function persistNoteDraft() {
+    if (!["card","quote"].includes(authorForm?.kind)) return;
+    const form=main.querySelector("[data-author-form]");
+    if (form) Object.assign(authorForm,Object.fromEntries(new FormData(form)));
+    authorForm.draftStorageUnavailable=!noteDrafts.save(authorForm);
+    const warning=main.querySelector("[data-note-draft-storage-error]");
+    if (warning) warning.hidden=!authorForm.draftStorageUnavailable;
+  }
+  function findNoteDraft(id,targetVersionId) {
+    for (const draft of noteDrafts.list(snapshot.user?.id,id)) {
+      if (targetVersionId && draft.noteVersionId !== targetVersionId) continue;
+      const saved=catalog.cardsById.get(draft.requestId);
+      if (saved?.versionId === draft.noteVersionId) { noteDrafts.remove(draft); continue; }
+      return draft;
+    }
+    return null;
+  }
   function closeAuthorForm() {
     if (busy) return;
     const form=authorForm,action=form?.kind === "book" ? "create-book" : form?.kind === "deck" ? "create-deck" : "add-content";
+    if (["card","quote"].includes(form?.kind)) noteDrafts.remove(form);
     authorForm=null;
     if (form?.origin === "home") { navigate("#home"); focusHomeNote(form.noteBookId); return; }
     if (form?.bookId && form.returnBookDetails) openBookId=form.bookId;
@@ -312,6 +334,11 @@ export function startReader({createCardFeatures} = {}) {
   }
   function openHomeNote(id) {
     if (!snapshot.user || mode !== "home" || statuses[id] !== "reading") return;
+    const draft=findNoteDraft(id);
+    if (draft) {
+      bookId=id;versionId=draft.noteVersionId;requestedId=null;bookOrigin="home";noteDestination=null;
+      openAuthorForm(draft.kind,{origin:"home",noteBookId:id,noteVersionId:draft.noteVersionId});return;
+    }
     const versions=editableNoteVersions(catalog,id,snapshot.user.id);
     if (!versions.length) {
       bookId=id;versionId=null;requestedId=null;bookOrigin="home";noteDestination=null;
@@ -343,7 +370,7 @@ export function startReader({createCardFeatures} = {}) {
     if (busy || !["card","quote"].includes(authorForm?.kind) || !["card","quote"].includes(kind) || authorForm.kind === kind) return;
     Object.assign(authorForm,Object.fromEntries(new FormData(main.querySelector("[data-author-form]"))));
     authorForm.kind=kind; authorForm.error=null;
-    render();
+    persistNoteDraft(); render();
     main.querySelector(`[data-action="note-kind"][data-kind="${kind}"]`)?.focus();
   }
   function openAuthorForm(kind,options={}) {
@@ -351,7 +378,15 @@ export function startReader({createCardFeatures} = {}) {
     const bookLanguage=catalog.booksById.get(bookId)?.originalLanguage;
     const contentLanguage=CONTENT_LANGUAGES.includes(bookLanguage) ? bookLanguage : CONTENT_LANGUAGES.includes(language) ? language : "es";
     authorForm = {kind,requestId:crypto.randomUUID(),title:kind === "book" ? libraryQuery : "",author:"",body:"",description:"",language:kind === "book" ? "" : kind === "deck" ? contentLanguage : language,parentId:kind === "quote" ? null : requestedId || null,...options};
-    if (["card","quote"].includes(kind)) { authorForm.noteBookId ??= bookId; authorForm.noteVersionId ??= versionId; }
+    if (["card","quote"].includes(kind)) {
+      authorForm.noteUserId=snapshot.user.id;authorForm.noteBookId ??= bookId;authorForm.noteVersionId ??= versionId;
+      const draft=findNoteDraft(authorForm.noteBookId,authorForm.noteVersionId);
+      if (draft) {
+        Object.assign(authorForm,draft,{draftRecovered:true});
+        authorForm.draftDestinationUnavailable=!editableNoteVersions(catalog,draft.noteBookId,snapshot.user.id).some(version=>version.id === draft.noteVersionId);
+      }
+      authorForm.draftStorageUnavailable=!store.available;
+    }
     openDeckId = null; openBookId = null; render();
   }
   function openBookCompletion(id) {
@@ -364,13 +399,15 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function saveAuthorForm(form) {
     if (busy || !authorForm) return;
-    if (authorForm.bookId && !authorForm.hasProposal) return;
+    if ((authorForm.bookId && !authorForm.hasProposal) || authorForm.draftDestinationUnavailable) return;
     const fields = Object.fromEntries([...new FormData(form)].filter(([key])=>!key.startsWith("metadata."))); Object.assign(authorForm,fields);
+    persistNoteDraft();
     const savedForm = authorForm;
     const input = savedForm.bookId ? {bookId:savedForm.bookId,metadata:savedForm.metadata} : savedForm.kind === "book" ? {title:savedForm.title,author:savedForm.author,language:savedForm.language,metadata:savedForm.metadata,requestId:savedForm.requestId} : savedForm.kind === "deck" ? {...fields,requestId:savedForm.requestId,bookId:savedForm.noteBookId || bookId} : {...fields,requestId:savedForm.requestId,versionId:savedForm.noteVersionId || versionId,parentId:fields.parentId || null,isQuote:savedForm.kind === "quote"};
     busy = true; syncGeneration++; savedForm.error = null; savedForm.errorReference = null; lockControls();
     try {
       const result = await api.request(savedForm.bookId ? "/api/author/books/complete" : savedForm.kind === "book" ? "/api/author/books" : savedForm.kind === "deck" ? "/api/author/decks" : "/api/author/cards",input);
+      if (["card","quote"].includes(savedForm.kind)) noteDrafts.remove(savedForm);
       catalog = await loadCatalog(); applyState(result.state); authorForm = null; live.textContent = words[language].saved;
       busy = false;
       if (savedForm.bookId) {
@@ -382,6 +419,7 @@ export function startReader({createCardFeatures} = {}) {
       else { if (savedForm.kind === "card") quotesOnly = false; navigate("#author/"+result.versionId); }
     } catch(error) {
       savedForm.error=error.code || "connectionError";
+      if (["card","quote"].includes(savedForm.kind) && ["deckReadOnly","deckUnavailable"].includes(error.code)) savedForm.draftDestinationUnavailable=true;
       if (["card","quote"].includes(savedForm.kind) && error.code === "invalidRequest") savedForm.error=savedForm.kind === "quote" ? "invalidQuoteNote" : "invalidNote";
       if (savedForm.kind === "deck" && error.code === "invalidRequest") savedForm.error="invalidDeck";
     }
@@ -437,6 +475,7 @@ export function startReader({createCardFeatures} = {}) {
       if (input.name === "language") { if (input.value) metadata.originalLanguage=input.value; else delete metadata.originalLanguage; }
     }
     authorForm[input.name]=input.value;
+    persistNoteDraft();
   }
   function closeDeck(id) { openDeckId = null; render(); [...main.querySelectorAll('[data-action="open-deck"]')].find(b=>b.dataset.version === id)?.focus({preventScroll:true}); }
   function closeBookDetails(id) { if (location.hash.startsWith("#library/book/")) history.replaceState({bookOrigin,libraryOrigin},"","#library"); openBookId = null; render(); [...main.querySelectorAll('[data-action="open-book-details"]')].find(b=>b.dataset.book === id)?.focus({preventScroll:true}); }
@@ -650,8 +689,9 @@ export function startReader({createCardFeatures} = {}) {
   });
   window.addEventListener("hashchange",()=>{
     const cardId=requestedId,returning=cardId && location.hash === "#"+mode+"/"+(mode === "saved" ? bookId : versionId);
-    authorForm = null; route(!returning); if (returning) restoreAlbumPosition(cardId);
-  }); document.addEventListener("visibilitychange",()=>{ if (!document.hidden) { recordDisplayedCard(); sync(); } });
+    persistNoteDraft(); authorForm = null; route(!returning); if (returning) restoreAlbumPosition(cardId);
+  }); document.addEventListener("visibilitychange",()=>{ if (document.hidden) persistNoteDraft(); else { recordDisplayedCard(); sync(); } });
+  window.addEventListener("pagehide",persistNoteDraft);
   window.addEventListener("resize",positionNoteDestination);window.addEventListener("scroll",positionNoteDestination,{passive:true});
   window.addEventListener("focus",()=>sync()); window.addEventListener("online",()=>sync()); setInterval(()=>{ if (!document.hidden) sync(); },30000); load();
 }
