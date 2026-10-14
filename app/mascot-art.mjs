@@ -1,4 +1,7 @@
-import {mascotFace} from "./mascot-face.mjs?v=pot-a-original";
+import {mascotFace} from "./mascot-face.mjs?v=mascot-random-blink";
+import {startMascotBlinking} from "./mascot-blink.mjs?v=mascot-random-blink";
+
+if (typeof document !== "undefined") startMascotBlinking(document);
 
 // Decorative artwork only. Stage availability remains the caller's responsibility.
 export const mascotAssets = Object.freeze({

@@ -1,5 +1,5 @@
-import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=mascot-idle-timeline";
-import {playMascotExpression} from "/app/mascot-face.mjs?v=pot-a-original";
+import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=mascot-random-blink";
+import {playMascotExpression} from "/app/mascot-face.mjs?v=mascot-random-blink";
 const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Brote"],["sprout","Plántula · Referencia"]];
 const originals = {
   pot:"/brand/reed/growth/pot.svg", seed:"/brand/reed/growth/seed.svg",

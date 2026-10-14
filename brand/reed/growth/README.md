@@ -40,6 +40,8 @@ Every full mascot runs its selected idle pattern in an infinite loop by default.
 
 Ground shadows have been removed from Pot, Seed, Mystery, Stem, Plant and Flower SVGs. Embedded darker parts of the characters are retained. Future stage proposals remain unavailable in the app.
 
+The shared browser component also installs automatic blinking: both eyes close and reopen in 160 ms, with a new independent random wait of 3–7 seconds for each mascot. It only animates eye-expression layers, preserving body/shadow loops and giving manual gestures priority. Timeline rows (`idle:false`), icons and faceless artwork do not blink. The controller follows inserted/removed markup, clears timers on navigation, and pauses for hidden tabs or reduced motion.
+
 `root-cutout.png` is the transparent web derivative produced with the built-in image tool. The original opaque `root.png` remains unchanged. The component uses the derivative with normal compositing, without `multiply`.
 
 [Composition comparison](composition.html) checks all five available stages plus Mystery at large and small sizes, their idle loops, frame boundaries and Root on three backgrounds. The brand study and app share the same component.

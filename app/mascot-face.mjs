@@ -84,7 +84,7 @@ const expressionMotion = Object.freeze({
 // Restart the eye gesture without cancelling the body's idle loop.
 export function playMascotExpression(art, expression = "wink-right") {
   if (!Object.hasOwn(expressionMotion,expression) || !art?.querySelector(".mascot-face")) return false;
-  art.classList.remove(...Object.values(expressionMotion));
+  art.classList.remove("is-auto-blinking",...Object.values(expressionMotion));
   void art.offsetWidth;
   art.classList.add(expressionMotion[expression]);
   return true;

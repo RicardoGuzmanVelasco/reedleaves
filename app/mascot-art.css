@@ -33,8 +33,10 @@
 .mascot-face[data-expression="wink-right"] .mascot-eye--right .mascot-eye-expression,
 .mascot-face[data-expression="blink"] .mascot-eye-expression{transform:scaleY(.12)}
 .mascot-art.is-winking-left .mascot-eye--left .mascot-eye-expression,
-.mascot-art.is-winking-right .mascot-eye--right .mascot-eye-expression,
-.mascot-art.is-blinking .mascot-eye-expression{animation:mascot-eye-close 480ms ease-in-out}
+.mascot-art.is-winking-right .mascot-eye--right .mascot-eye-expression{animation:mascot-eye-close 480ms ease-in-out}
+.mascot-art.is-auto-blinking .mascot-eye-expression,
+.mascot-art.is-blinking .mascot-eye-expression{animation:mascot-eye-blink 160ms ease-in-out}
+@keyframes mascot-eye-blink{0%,100%{transform:scaleY(1)}45%,55%{transform:scaleY(.08)}}
 @keyframes mascot-eye-close{0%,100%{transform:scaleY(1)}35%,65%{transform:scaleY(.12)}}
 @media(prefers-reduced-motion:reduce){.mascot-eye-expression{animation:none!important}}
 
