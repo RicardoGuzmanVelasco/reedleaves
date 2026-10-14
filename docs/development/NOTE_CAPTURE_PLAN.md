@@ -1,6 +1,6 @@
 # Tomar nota de un libro desde Inicio
 
-Estado: happy path aprobado e implementado en local el 14 de octubre de 2026. Revisado por el usuario; publicación aprobada tras compactar el botón y separar la mascota. La prioridad es llegar rápidamente a escribir sobre un libro concreto.
+Estado: happy path aprobado el 14 de octubre de 2026 e integrado para publicación en main tras compactar el botón y separar la mascota. La prioridad es llegar rápidamente a escribir sobre un libro concreto.
 
 ## Propuesta confirmada por el usuario
 

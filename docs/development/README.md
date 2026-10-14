@@ -4,7 +4,7 @@ Read the newest dated entry when recent progress, deployment state, or project h
 
 - [Ajustar hojas manualmente](LEAVES.md): SQL para Supabase y comando administrativo.
 - [Decisiones de arquitectura y producto](../adr/README.md): acuerdos vigentes y cuestiones pospuestas.
-- [Tomar nota desde Inicio](NOTE_CAPTURE_PLAN.md): happy path local, decisiones aprobadas y escenarios alternativos.
+- [Tomar nota desde Inicio](NOTE_CAPTURE_PLAN.md): happy path de captura rápida, decisiones aprobadas y escenarios alternativos.
 
 - [2026-10-14 — Mascotas y controles de baraja](2026-10-14.md)
 - [2026-10-13 — Maceta clásica activa](2026-10-13.md)
