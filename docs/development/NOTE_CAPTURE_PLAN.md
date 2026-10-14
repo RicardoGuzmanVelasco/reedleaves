@@ -38,7 +38,7 @@ Desde Inicio con el libro visible: una pulsación hasta el editor. Desde fuera d
 
 - Más de una baraja propia en progreso para el libro: resolver la elección de destino.
 - La baraja no está en progreso: definir el estado de escritura cerrado y qué ocurre al intentar añadir contenido.
-- El usuario quiere una cita: implementado en local con selector Idea / Cita dentro del editor; pendiente de revisión y publicación.
+- El usuario quiere una cita: implementado en local con selector Idea / Cita dentro del editor; publicación aprobada.
 
 ### Derivados del recorrido y de las interrupciones discutidas
 
@@ -63,7 +63,7 @@ Este incremento reutiliza el editor actual. No incluye un nuevo ciclo de vida de
 - Un fallo conserva el formulario en memoria y el identificador de petición para reintentar. Cerrar o recargar sigue sin recuperar el borrador.
 - Revisión manual en copia aislada: captura en una pulsación, guardado en la versión correcta y nivel principal, vuelta a Inicio, orden persistente tras recarga, cancelación sin creación y rechazo del servidor con texto conservado. Sin ejecutar la suite.
 
-## Primer escenario alternativo: tomar una cita — local
+## Primer escenario alternativo: tomar una cita — publicación aprobada
 
 1. El usuario pulsa «+» en el libro. El editor sigue entrando como Idea.
 2. Pulsa Cita en el selector compartido. Es una pulsación adicional respecto al happy path.
@@ -71,14 +71,14 @@ Este incremento reutiliza el editor actual. No incluye un nuevo ciclo de vida de
 4. Guarda mediante el endpoint existente, con `isQuote:true`. El servidor deriva el título del texto como en la captura de citas actual; no se añade migración ni nuevo modelo.
 5. Vuelve a Inicio, con el libro primero. Cancelar regresa sin crear tarjetas. Cada nota nueva vuelve a comenzar como Idea.
 
-Revisión manual en copia aislada (4174): ida/vuelta Idea–Cita conserva el borrador; guardado de cita sin título en la versión correcta, como cita sin clasificar; fecha y orden de Inicio actualizados, sin gasto de hojas. Validación de texto vacío con mensaje específico y borrador conservado. Selector con teclado y tamaños 320/1280 px, sin desbordamiento. Sintaxis y build correctos; sin ejecutar la suite. Publicación pendiente.
+Revisión manual en copia aislada (4174): ida/vuelta Idea–Cita conserva el borrador; guardado de cita sin título en la versión correcta, como cita sin clasificar; fecha y orden de Inicio actualizados, sin gasto de hojas. Validación de texto vacío con mensaje específico y borrador conservado. Selector con teclado y tamaños 320/1280 px, sin desbordamiento. Sintaxis y build correctos; sin ejecutar la suite. Publicación aprobada.
 
-## Editor compartido con autoría de barajas — local
+## Editor compartido con autoría de barajas — publicación aprobada
 
 - Una única acción «Añadir contenido» sustituye a las dos acciones separadas de tarjeta/cita en la baraja.
 - Reutiliza el mismo formulario y selector Idea / Cita de Inicio. El destino queda fijado al abrir también en autoría; cambiar el tipo conserva texto, título y relación elegida.
 - El origen determina el regreso: Inicio → Inicio; baraja → misma baraja. Cancelar en autoría devuelve el foco al botón común.
 - La validación de idea/cita es común. Crear libro y baraja conservan sus formularios propios.
-- Revisado manualmente en la base de demostración; pendiente de publicación.
+- Revisado manualmente en la base de demostración; publicación aprobada.
 
 - Ajuste visual posterior: selector compartido de 34 px e iconos de 14 px. Idea/Cita ajusta el ancho a su contenido; comparte medidas con vista/filtro de baraja y ajustes. Slider de columnas conserva la alineación con la misma altura.
