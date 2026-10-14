@@ -1,4 +1,4 @@
-import {mascotArt,mascotAssets,restartMascotIdle} from "/app/mascot-art.mjs?v=mascot-idle-loop";
+import {mascotArt,mascotAssets,restartMascotIdle} from "/app/mascot-art.mjs?v=mascot-idle-expressive";
 import {playMascotExpression} from "/app/mascot-face.mjs?v=pot-a-original";
 import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=pot-a-original";
 const storageKey="reedleaves:mascot-calibration:v1";

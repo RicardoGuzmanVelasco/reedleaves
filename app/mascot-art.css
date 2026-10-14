@@ -17,11 +17,12 @@
 .mascot-art[data-idle="float"]::before{animation-name:mascot-shadow-float}
 .mascot-art.is-idle-reset .mascot-art-motion,.mascot-art.is-idle-reset::before{animation:none}
 /* The former 600 ms greeting is now a hop, followed by a 1200 ms rest.
-   Independent translate/rotate keep hover transforms and calibration intact. */
-@keyframes mascot-art-hop{0%,33.333333%,100%{translate:0 0;rotate:0deg}11.666667%{rotate:-7deg}16.666667%{translate:0 -8%}23.333333%{rotate:6deg}}
-@keyframes mascot-shadow-hop{0%,33.333333%,100%{transform:scaleX(1)}16.666667%{transform:scaleX(.78)}}
-@keyframes mascot-art-float{0%,100%{translate:0 0}50%{translate:0 -4%}}
-@keyframes mascot-shadow-float{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.82)}}
+   Independent translate/rotate/scale keep hover transforms and calibration intact.
+   A little squash before takeoff/landing and stretch in flight add elastic weight. */
+@keyframes mascot-art-hop{0%,33.333333%,100%{translate:0 0;rotate:0deg;scale:1 1}5%{translate:0 0;scale:1.06 .94}11.666667%{rotate:-7deg;scale:.97 1.04}16.666667%{translate:0 -8%;scale:.99 1.02}23.333333%{rotate:6deg;scale:1 1}30%{scale:1.05 .95}}
+@keyframes mascot-shadow-hop{0%,5%,33.333333%,100%{transform:scaleX(1)}16.666667%{transform:scaleX(.78)}}
+@keyframes mascot-art-float{0%,100%{translate:0 0}50%{translate:0 -10%}}
+@keyframes mascot-shadow-float{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.70)}}
 @media(prefers-reduced-motion:reduce){.mascot-art-motion,.mascot-art::before{animation:none!important;transition:none!important}}
 
 /* Face placement is an SVG transform. Only the inner eye groups express emotion. */

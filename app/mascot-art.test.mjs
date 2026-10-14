@@ -23,14 +23,14 @@ test("Unavailable stages have neutral artwork and attribute values are escaped",
   assert.doesNotMatch(mascotArt("pot",'x" onclick="alert(1)'),/ onclick="/);
 });
 
-test("Full mascots select their idle pattern; future and unknown stages hop by default",()=>{
+test("Full mascots select their idle pattern; mystery floats and future artwork hops by default",()=>{
   for (const stage of Object.keys(mascotAssets)) {
-    const idle=["seed","seedling","sprout"].includes(stage)?"float":"hop";
+    const idle=["seed","seedling","sprout","mystery"].includes(stage)?"float":"hop";
     assert.ok(mascotArt(stage).includes(`data-idle="${idle}"`));
     assert.doesNotMatch(mascotIcon(stage),/data-idle|mascot-art-motion/);
   }
   for (const stage of [null,"sapling","__proto__"]) {
-    assert.match(mascotArt(stage),/data-mascot="mystery" data-idle="hop"/);
+    assert.match(mascotArt(stage),/data-mascot="mystery" data-idle="float"/);
   }
 });
 

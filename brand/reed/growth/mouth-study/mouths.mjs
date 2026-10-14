@@ -1,4 +1,4 @@
-import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=mascot-idle-loop";
+import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=mascot-idle-expressive";
 import {mascotMouthConfig,mascotMouthWidth,mascotMouthPath,playMascotExpression} from "/app/mascot-face.mjs?v=pot-a-original";
 const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Brote"],["sprout","Plántula"]];
 const widths = [1,1.5,2,3,"custom"];
