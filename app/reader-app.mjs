@@ -309,6 +309,13 @@ export function startReader({createCardFeatures} = {}) {
     bookId=id; versionId=versions[0].id; requestedId=null; bookOrigin="home";
     openAuthorForm("card",{origin:"home",noteBookId:id,noteVersionId:versionId,parentId:null});
   }
+  function changeHomeNoteKind(kind) {
+    if (busy || authorForm?.origin !== "home" || !["card","quote"].includes(kind) || authorForm.kind === kind) return;
+    Object.assign(authorForm,Object.fromEntries(new FormData(main.querySelector("[data-author-form]"))));
+    authorForm.kind=kind; authorForm.error=null;
+    render();
+    main.querySelector(`[data-action="note-kind"][data-kind="${kind}"]`)?.focus();
+  }
   function openAuthorForm(kind,options={}) {
     if (!snapshot.user) return;
     const bookLanguage=catalog.booksById.get(bookId)?.originalLanguage;
@@ -341,7 +348,10 @@ export function startReader({createCardFeatures} = {}) {
       else if (savedForm.origin === "home") navigate("#home");
       else if (savedForm.kind === "book") { libraryQuery = ""; bookOrigin = "library"; navigate("#book/"+result.bookId); }
       else { if (savedForm.kind === "card") quotesOnly = false; navigate("#author/"+result.versionId); }
-    } catch(error) { savedForm.error = savedForm.origin === "home" && error.code === "invalidRequest" ? "invalidNote" : error.code || "connectionError"; }
+    } catch(error) {
+      savedForm.error=error.code || "connectionError";
+      if (savedForm.origin === "home" && error.code === "invalidRequest") savedForm.error=savedForm.kind === "quote" ? "invalidQuoteNote" : "invalidNote";
+    }
     finally {
       busy = false; render({focus:!authorForm});
       if (savedForm.origin === "home" && !authorForm) focusHomeNote(savedForm.noteBookId);
@@ -560,6 +570,7 @@ export function startReader({createCardFeatures} = {}) {
       case "create-deck": openAuthorForm("deck"); break;
       case "add-card": openAuthorForm("card"); break;
       case "take-note": openHomeNote(b.dataset.book); break;
+      case "note-kind": changeHomeNoteKind(b.dataset.kind); break;
       case "add-quote": openAuthorForm("quote"); break;
       case "cancel-author": closeAuthorForm(); break;
       case "autofill-book": autofillBook(b.closest("form")); break;

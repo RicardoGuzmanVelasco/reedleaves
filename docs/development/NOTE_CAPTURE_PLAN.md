@@ -38,7 +38,7 @@ Desde Inicio con el libro visible: una pulsación hasta el editor. Desde fuera d
 
 - Más de una baraja propia en progreso para el libro: resolver la elección de destino.
 - La baraja no está en progreso: definir el estado de escritura cerrado y qué ocurre al intentar añadir contenido.
-- El usuario quiere una cita: permitir cambiar el tipo de nota o acceder a la captura de cita.
+- El usuario quiere una cita: implementado en local con selector Idea / Cita dentro del editor; pendiente de revisión y publicación.
 
 ### Derivados del recorrido y de las interrupciones discutidas
 
@@ -62,3 +62,13 @@ Este incremento reutiliza el editor actual. No incluye un nuevo ciclo de vida de
 - Migraciones SQLite 17→18 y PostgreSQL 9→10: fecha nullable e índice por versión/fecha. Se conserva el contenido histórico.
 - Un fallo conserva el formulario en memoria y el identificador de petición para reintentar. Cerrar o recargar sigue sin recuperar el borrador.
 - Revisión manual en copia aislada: captura en una pulsación, guardado en la versión correcta y nivel principal, vuelta a Inicio, orden persistente tras recarga, cancelación sin creación y rechazo del servidor con texto conservado. Sin ejecutar la suite.
+
+## Primer escenario alternativo: tomar una cita — local
+
+1. El usuario pulsa «+» en el libro. El editor sigue entrando como Idea.
+2. Pulsa Cita en el selector compartido. Es una pulsación adicional respecto al happy path.
+3. El título deja de exigirse y se oculta. Texto, título previo, relación elegida y destino libro/versión permanecen en memoria al alternar tipos.
+4. Guarda mediante el endpoint existente, con `isQuote:true`. El servidor deriva el título del texto como en la captura de citas actual; no se añade migración ni nuevo modelo.
+5. Vuelve a Inicio, con el libro primero. Cancelar regresa sin crear tarjetas. Cada nota nueva vuelve a comenzar como Idea.
+
+Revisión manual en copia aislada (4174): ida/vuelta Idea–Cita conserva el borrador; guardado de cita sin título en la versión correcta, como cita sin clasificar; fecha y orden de Inicio actualizados, sin gasto de hojas. Validación de texto vacío con mensaje específico y borrador conservado. Selector con teclado y tamaños 320/1280 px, sin desbordamiento. Sintaxis y build correctos; sin ejecutar la suite. Publicación pendiente.
