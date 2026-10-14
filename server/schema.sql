@@ -134,6 +134,7 @@ CREATE TABLE cards (
   position INTEGER NOT NULL CHECK(position > 0),
   source_id TEXT,
   is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),
+  created_at TEXT,
   UNIQUE(id,version_id),
   FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id),
   FOREIGN KEY(parent_id,version_id) REFERENCES cards(id,version_id) DEFERRABLE INITIALLY DEFERRED,
@@ -143,6 +144,7 @@ CREATE TABLE cards (
 CREATE UNIQUE INDEX root_order ON cards(version_id,position) WHERE parent_id IS NULL;
 CREATE UNIQUE INDEX sibling_order ON cards(version_id,parent_id,position) WHERE parent_id IS NOT NULL;
 CREATE INDEX cards_by_version ON cards(version_id,parent_id,position);
+CREATE INDEX cards_by_note_date ON cards(version_id,created_at DESC) WHERE created_at IS NOT NULL;
 CREATE TABLE card_translations (
   card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
@@ -364,4 +366,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 17;
+PRAGMA user_version = 18;

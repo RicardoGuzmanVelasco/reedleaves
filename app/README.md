@@ -18,7 +18,7 @@ Abrir http://127.0.0.1:4173/app/. La primera ejecución crea y carga SQLite; las
 ## Recorrido
 
 - Sin sesión: entrar o crear cuenta con usuario y contraseña; se pueden explorar los libros sin registrarse. El repaso necesita cuenta.
-- Inicio con sesión muestra los libros con repasos pendientes como libros cerrados: portada, lomo y canto de páginas. Elegir una baraja la añade sin gastar hojas; se recuperan también los repasos ya empezados. El árbol solo aparece al entrar en el repaso.
+- Inicio con sesión muestra solo los libros marcados Leyendo, ordenados por la última nota creada en una baraja propia (sin fecha: orden estable del catálogo), como libros cerrados: portada, lomo y canto de páginas. El «+» abre directamente el editor de idea si existe una única versión draft propia; título, texto y guardado explícito. Guardar o cancelar vuelve a Inicio. Elegir una baraja la añade sin gastar hojas; se recuperan también los repasos ya empezados. El árbol solo aparece al entrar en el repaso.
 - Cabecera: logo, hoja con saldo numérico y ajustes de idioma, títulos originales y cuenta. Sin lemas ni texto del saldo.
 - Librería (Library / Librairie) es el catálogo completo. «Ver biblioteca» desde el perfil abre Biblioteca (Bookshelf / Bibliothèque), con libros propios, marcados como leyendo o leídos, barajas elegidas e historial de repaso. Dos filtros combinables separan lectura original y repaso; cada libro aparece una sola vez. Inicio muestra una fila de tres botones encima de los libros: «Ir a mi perfil», «Idea del día» e «Ir a la librería», con este último en verde como acción principal.
 - Una idea aleatoria al día, estable tras recarga, idioma y cambio de filtros.
@@ -45,7 +45,7 @@ La integración requiere `OPENAI_API_KEY` en el servidor. Ver [configuración](.
 
 Los libros propios ya creados muestran un icono de información pendiente en Inicio, Librería, Biblioteca y la ficha si faltan títulos completos/cortos o descripciones ES/EN, o intereses. Pulsarlo abre «Completar información», reutiliza la búsqueda y vista previa, y ofrece «Guardar» para completar el mismo libro. Identidad y datos previos son de solo lectura; los campos nuevos se pueden corregir. El servidor combina la propuesta con los datos más recientes bajo bloqueo y conserva los valores existentes, también si otra sesión ha completado el libro. Los reintentos no duplican datos ni alteran barajas, progreso o saldo. Enlaces, fuentes y notas opcionales no mantienen el indicador. Solo el creador puede completar sus libros; no hay migración.
 
-Contenido editable: content/catalog/*.csv. Datos activos: var/catalog.sqlite, con libros, barajas, versiones, árboles y fuentes. SQLite v16 y PostgreSQL v8. Las migraciones conservan cuentas, tarjetas y progreso; la última añade guardadas privadas en `card_saves`. HTTP JSON es transporte, no almacenamiento del catálogo.
+Contenido editable: content/catalog/*.csv. Datos activos: var/catalog.sqlite, con libros, barajas, versiones, árboles y fuentes. SQLite v18 y PostgreSQL v10. Las migraciones conservan cuentas, tarjetas y progreso; la última añade `cards.created_at` nullable e índice de actividad de notas. Las notas históricas mantienen fecha desconocida. HTTP JSON es transporte, no almacenamiento del catálogo.
 
 Backend: server/database.mjs, seed.mjs, catalog-repository.mjs, author-repository.mjs, auth.mjs, reader-repository.mjs, reader-api.mjs y http.mjs.
 

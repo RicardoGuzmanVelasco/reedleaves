@@ -1,6 +1,7 @@
 import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES, LANGUAGES} from "./core.mjs";
 import { accessibleCard, canAdvance } from "./rhythm.mjs";
-import { treeFrontier, hasLeaf, studyingDecks, availableVersions } from "./decks.mjs";
+import { treeFrontier, hasLeaf, availableVersions } from "./decks.mjs";
+import {readingBooks,editableNoteVersions} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
 import { words } from "./i18n.mjs?v=growth-stage-list";
@@ -51,14 +52,17 @@ function bookSourcesMarkup(s,book) {
   return book.sources?.length ? `<div class="book-sources"><p class="book-source-citations">${words[s.language].bookSources}: ${book.sources.map((source,index)=>`<a href="${esc(safeUrl(source.url))}" target="_blank" rel="noopener noreferrer" title="${esc(source.title)}" aria-label="${esc(words[s.language].source+": "+source.title)}">[${index+1}]</a>`).join(" ")}</p><details><summary>${words[s.language].sourceDetails}</summary><ul>${book.sources.map(source=>`<li><a href="${esc(safeUrl(source.url))}" target="_blank" rel="noopener noreferrer">${esc(source.title)} ↗</a></li>`).join("")}</ul></details></div>` : "";
 }
 
-function closedBookMarkup(s,book,{action="resume-book",caption=words[s.language].review,catalog=false}={}) {
+function closedBookMarkup(s,book,{action="resume-book",caption=words[s.language].review,catalog=false,note=false}={}) {
   const c = words[s.language];
   const title=bookCoverTitle(book,s.language,{original:s.showOriginalTitles});
   const cover=`<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} aria-label="${esc(catalog ? displayedBookTitle(s,book).text + ", " + book.author + ", " + caption : c.resume + ": " + displayedBookTitle(s,book).text)}">
     <span class="study-book-cover"><strong lang="${esc(title.language)}" dir="auto">${esc(title.text)}</strong><span class="study-book-author">${esc(book.author)}</span>
     ${catalog ? `<span class="study-book-footer">${esc(caption)}</span>` : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}</span></button>`;
   const complete=completeBookButton(s,book);
-  return complete ? `<div class="study-book-entry">${cover}${complete}</div>` : cover;
+  const canTakeNote=note && editableNoteVersions(s.catalog,book.id,s.userId).length === 1;
+  const noteLabel=`${c.takeNote}: ${displayedBookTitle(s,book).text}`;
+  const addNote=note ? `<button class="book-note-add" type="button" data-action="take-note" data-book="${esc(book.id)}" aria-haspopup="dialog" aria-label="${esc(noteLabel)}" title="${esc(canTakeNote ? noteLabel : c.noteDestinationUnavailable)}" ${canTakeNote ? "" : `disabled aria-describedby="note-unavailable-${esc(book.id)}"`}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>${!canTakeNote ? `<span class="sr-only" id="note-unavailable-${esc(book.id)}">${esc(c.noteDestinationUnavailable)}</span>` : ""}` : "";
+  return complete || note ? `<div class="study-book-entry${note ? " study-book-entry--notes" : ""}">${cover}${complete}${addNote}</div>` : cover;
 }
 
 function filters(s) {
@@ -154,22 +158,14 @@ export function bookshelfView(s) {
 }
 
 export function homeView(s) {
-  const c = words[s.language], studies = studyingDecks(s.catalog,s.reviews,s.enrolledIds);
-  const groups = new Map();
-  for (const study of studies) {
-    if (!groups.has(study.book.id)) groups.set(study.book.id,[]);
-    groups.get(study.book.id).push(study);
-  }
+  const c = words[s.language], books = readingBooks(s.catalog,s.statuses,s.noteActivity);
   return `<section class="home-screen"><h1 class="sr-only" tabindex="-1">${c.home}</h1>
     <nav class="home-actions" aria-label="${c.home}">
       <button class="home-action" type="button" data-action="profile">${c.goProfile}</button>
       <button class="home-action primary" type="button" data-action="daily">${c.idea}</button>
       <button class="home-action" type="button" data-action="library">${c.goLibrary}</button>
     </nav>
-    ${studies.length ? `<div class="study-books">${[...groups.values()].map(items => {
-      const book = items[0].book;
-      return closedBookMarkup(s,book);
-    }).join("")}</div>` : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noStudies}</h2></div>`}
+    ${books.length ? `<div class="study-books">${books.map(book=>closedBookMarkup(s,book,{note:true})).join("")}</div>` : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
   </section>`;
 }
 
@@ -458,7 +454,7 @@ export function authorView(s) {
 }
 
 export function authorFormView(s) {
-  const f=s.authorForm,c=words[s.language],book=f.kind === "book",deck=f.kind === "deck",quote=f.kind === "quote",version=s.catalog.versionsById.get(s.versionId),model=s.catalog.versionModels.get(s.versionId);
+  const f=s.authorForm,c=words[s.language],book=f.kind === "book",deck=f.kind === "deck",quote=f.kind === "quote",version=s.catalog.versionsById.get(f.noteVersionId || s.versionId),model=s.catalog.versionModels.get(f.noteVersionId || s.versionId);
   const locked=name=>!!f.bookId && (!name.startsWith("metadata.") || (()=>{ const [,key,language]=name.split("."); return !!f.originalMetadata?.[key]?.[language]; })());
   const field=(name,label,value,max,required,area=false)=>`<label for="author-${name}">${label}</label>${area ? `<textarea id="author-${name}" name="${name}" rows="${name === "body" ? 6 : 3}" maxlength="${max}" ${required ? "required" : ""} ${locked(name) ? "readonly" : ""}>${esc(value || "")}</textarea>` : `<input id="author-${name}" name="${name}" value="${esc(value || "")}" maxlength="${max}" ${required ? "required" : ""} ${locked(name) ? "readonly" : ""}>`}`;
   const languagePicker=()=>{
@@ -490,7 +486,8 @@ export function authorFormView(s) {
         <button class="text-button preview-cancel" type="button" data-action="cancel-author">${c.cancel}</button>
       </form></article></dialog>`;
   }
-  return `<dialog class="deck-modal author-modal" aria-labelledby="author-dialog-title"><article class="deck-card"><h2 id="author-dialog-title">${f.bookId ? c.completeBook : book ? c.createBook : deck ? c.createDeck : quote ? c.addQuote : c.addCard}</h2>${f.bookId ? `<p class="book-completion-note">${c.completeBookNote}</p>` : ""}<form class="author-form" data-author-form>
+  const noteBook=s.catalog.booksById.get(f.noteBookId);
+  return `<dialog class="deck-modal author-modal" aria-labelledby="author-dialog-title" ${noteBook ? 'aria-describedby="note-book-context"' : ""}><article class="deck-card"><h2 id="author-dialog-title">${f.origin === "home" ? c.takeNote : f.bookId ? c.completeBook : book ? c.createBook : deck ? c.createDeck : quote ? c.addQuote : c.addCard}</h2>${noteBook ? `<p class="note-book-context" id="note-book-context" lang="${esc(displayedBookTitle(s,noteBook).language)}" dir="auto">${esc(displayedBookTitle(s,noteBook).text)}</p>` : ""}${f.bookId ? `<p class="book-completion-note">${c.completeBookNote}</p>` : ""}<form class="author-form" data-author-form>
     ${quote ? "" : field("title",book ? c.bookTitle : deck ? c.deckTitle : c.cardTitle,f.title,book ? 240 : 160,true)}
     ${deck || book ? `${book ? field("author",c.bookAuthor,f.author,160,true) : field("description",c.deckDescription,f.description,1000,false,true)}${languagePicker()}` : `${field("body",quote ? c.quoteBody : c.cardBody,f.body,4000,true,true)}<label for="author-parentId">${c.parentCard}</label><select id="author-parentId" name="parentId"><option value="" ${!f.parentId ? "selected" : ""}>${quote ? c.unclassifiedQuotes : c.rootCard}</option>${options.join("")}</select>`}
     ${book ? `<button class="secondary book-autofill" type="button" data-action="autofill-book" ${f.autofilling ? 'disabled aria-busy="true"' : ""}>${f.autofilling ? `<span class="ai-spinner" aria-hidden="true"></span><span role="status">${c.aiLoading}</span>` : c.autofillBook}</button>` : ""}

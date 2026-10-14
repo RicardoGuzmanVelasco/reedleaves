@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 9));
-INSERT INTO reed_schema VALUES (9);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 10));
+INSERT INTO reed_schema VALUES (10);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -78,7 +78,7 @@ CREATE TABLE deck_version_translations(
 );
 CREATE TABLE cards(
   id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0), version_id TEXT NOT NULL, book_id TEXT NOT NULL, parent_id TEXT,
-  position INTEGER NOT NULL CHECK(position > 0), source_id TEXT, is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)), UNIQUE(id,version_id),
+  position INTEGER NOT NULL CHECK(position > 0), source_id TEXT, is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)), created_at TIMESTAMPTZ, UNIQUE(id,version_id),
   FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id),
   FOREIGN KEY(parent_id,version_id) REFERENCES cards(id,version_id) DEFERRABLE INITIALLY DEFERRED,
   FOREIGN KEY(source_id,book_id) REFERENCES sources(id,book_id), CHECK(parent_id IS NULL OR parent_id <> id)
@@ -86,6 +86,7 @@ CREATE TABLE cards(
 CREATE UNIQUE INDEX root_order ON cards(version_id,position) WHERE parent_id IS NULL;
 CREATE UNIQUE INDEX sibling_order ON cards(version_id,parent_id,position) WHERE parent_id IS NOT NULL;
 CREATE INDEX cards_by_version ON cards(version_id,parent_id,position);
+CREATE INDEX cards_by_note_date ON cards(version_id,created_at DESC) WHERE created_at IS NOT NULL;
 CREATE TABLE card_translations(
   card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE, language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
   title TEXT NOT NULL CHECK(length(btrim(title)) > 0), body TEXT NOT NULL CHECK(length(btrim(body)) > 0), PRIMARY KEY(card_id,language)
