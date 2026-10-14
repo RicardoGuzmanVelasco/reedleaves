@@ -80,3 +80,5 @@ Revisión manual en copia aislada (4174): ida/vuelta Idea–Cita conserva el bor
 - El origen determina el regreso: Inicio → Inicio; baraja → misma baraja. Cancelar en autoría devuelve el foco al botón común.
 - La validación de idea/cita es común. Crear libro y baraja conservan sus formularios propios.
 - Revisado manualmente en la base de demostración; pendiente de publicación.
+
+- Ajuste visual posterior: selector compartido de 34 px e iconos de 14 px. Idea/Cita ajusta el ancho a su contenido; comparte medidas con vista/filtro de baraja y ajustes. Slider de columnas conserva la alineación con la misma altura.
