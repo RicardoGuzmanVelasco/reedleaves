@@ -5,7 +5,7 @@ Read the newest dated entry when recent progress, deployment state, or project h
 - [Ajustar hojas manualmente](LEAVES.md): SQL para Supabase y comando administrativo.
 - [Decisiones de arquitectura y producto](../adr/README.md): acuerdos vigentes y cuestiones pospuestas.
 
-- [2026-10-14 — Idle de mascotas en bucle](2026-10-14.md)
+- [2026-10-14 — Mascotas y controles de baraja](2026-10-14.md)
 - [2026-10-13 — Maceta clásica activa](2026-10-13.md)
 - [2026-10-12 — Selector segmentado reutilizable](2026-10-12.md)
 - [2026-10-11 — Perfiles, Biblioteca, IA y dominio propio](2026-10-11.md)

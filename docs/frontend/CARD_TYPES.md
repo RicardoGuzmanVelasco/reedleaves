@@ -25,3 +25,17 @@ Revisadas ideas y citas en móvil y escritorio. En escritorio ambas tienen paddi
 Tipografía aprobada: Cormorant Garamond Light 300 en citas, servida como WOFF2 desde la app. Peso parametrizado con `--card-body-weight`; las ideas usan Courier 400. EB Garamond permanece como alternativa.
 
 Ajuste posterior: tamaño de citas reducido 1 px en todo el rango responsive, a 23 px en móvil y un máximo de 31 px en escritorio. El tamaño de las ideas no cambia.
+
+## Preview de baraja
+
+Vista alternativa al árbol, disponible en repaso y autoría desde un selector segmentado a la izquierda: iconos de listado anidado y cuadrícula, con nombres accesibles y tooltip ES/EN. El filtro «Todas / Citas» («All / Quotes») queda a la derecha, siempre en una línea. Ambos comparten estilo y altura táctil.
+
+El selector segmentado genérico mide 38 px de alto, con opciones de 32 px y padding exterior de 3 px. Estas medidas se reutilizan también en los selectores de idioma de ajustes y formularios. Los iconos de vista miden 18 px; el listado representa viñetas con sangría.
+
+Selector y cápsula del slider comparten el fondo verde pastel `--control-surface` (`#f0f3e5`). La opción seleccionada del selector conserva el verde bosque para distinguirla.
+
+La preview usa las mismas paletas, tipografías e iconos por tipo, en miniaturas apaisadas. Arranca con dos columnas en cualquier pantalla y un slider permite elegir de una a cuatro. El tamaño, filtro y vista se conservan al abrir y cerrar una tarjeta durante la sesión; otra baraja arranca de nuevo con el árbol y dos columnas.
+
+El slider conserva el control nativo de rango con pista y tirador personalizados en la paleta de la app. Cuatro marcas indican sus posiciones y un icono de panel dividido a la izquierda sustituye el número visual. El control mide 90–114 px de ancho y 38 px de alto, entre vista y filtro en la misma fila (desde 320 px). Por debajo de 310 px pasa a una segunda fila. «Columnas» se mantiene como etiqueta accesible, sin texto visible. El número sigue en `aria-valuetext` y en el tooltip; pista, icono y cuadrícula usan el mismo estado de columnas y cambian juntos, sin estilos inline.
+
+Las tarjetas repasadas pueden abrirse en la vista exclusiva. En autoría se puede inspeccionar todo el contenido propio. En repaso, la siguiente conserva el título o extracto que ya muestra el árbol, pero desenfoca el cuerpo; las bloqueadas desenfocan título (si corresponde al tipo) y cuerpo. Se usa el texto real para conservar su composición, con blur proporcional a la tipografía y opacidad reducida. Esta ocultación es visual: el contenido permanece en el HTML, sin selección ni exposición a lectores de pantalla. La preview no desbloquea ni gasta hojas. Las miniaturas no incluyen acciones de voto/guardado ni registran lecturas: estas siguen en la tarjeta completa.
