@@ -1,6 +1,6 @@
-import {mascotArt,mascotAssets} from "/app/mascot-art.mjs?v=mascot-icon-image";
-import {playMascotExpression} from "/app/mascot-face.mjs?v=pot-a-original";
-import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=pot-a-original";
+import {mascotArt,mascotAssets,restartMascotIdle} from "/app/mascot-art.mjs?v=mascot-random-blink";
+import {playMascotExpression} from "/app/mascot-face.mjs?v=mascot-random-blink";
+import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=mascot-random-blink";
 const storageKey="reedleaves:mascot-calibration:v1";
 const names={pot:"Maceta",seed:"Semilla",root:"Raíz",seedling:"Brote",sprout:"Plántula"};
 const groups={body:"Personaje",shadow:"Sombra",face:"Cara y boca",leftEye:"Ojo izquierdo",rightEye:"Ojo derecho"};
@@ -70,7 +70,7 @@ function buildControls() {
 }
 function updateMode() {
   for(const fieldset of controls.querySelectorAll("fieldset")) fieldset.disabled=iconMode.checked;
-  document.getElementById("greet-all").disabled=iconMode.checked;
+  document.getElementById("restart-idle").disabled=iconMode.checked;
   document.getElementById("wink-all").disabled=iconMode.checked;
 }
 function choose() {
@@ -93,8 +93,8 @@ controls.addEventListener("focusout",event=>{
 iconMode.addEventListener("change",()=>{buildPreview();updateMode();});
 document.getElementById("show-frames").addEventListener("change",event=>gallery.classList.toggle("show-frames",event.target.checked));
 document.getElementById("reset-all").addEventListener("click",()=>{values={...baseline};save();buildControls();buildPreview();updateStatus();});
-document.getElementById("greet-all").addEventListener("click",()=>{
-  for(const art of gallery.querySelectorAll(".mascot-art")) {art.classList.remove("is-greeting");void art.offsetWidth;art.classList.add("is-greeting");}
+document.getElementById("restart-idle").addEventListener("click",()=>{
+  for(const art of gallery.querySelectorAll(".mascot-art")) {restartMascotIdle(art);}
 });
 document.getElementById("wink-all").addEventListener("click",()=>{for(const art of gallery.querySelectorAll(".mascot-art")) playMascotExpression(art,"wink-right");});
 document.getElementById("configuration").addEventListener("toggle",event=>document.querySelector(".preview-panel").classList.toggle("configuration-open",event.target.open));

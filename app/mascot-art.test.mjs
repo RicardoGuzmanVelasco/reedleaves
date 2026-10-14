@@ -23,6 +23,17 @@ test("Unavailable stages have neutral artwork and attribute values are escaped",
   assert.doesNotMatch(mascotArt("pot",'x" onclick="alert(1)'),/ onclick="/);
 });
 
+test("Full mascots select their idle pattern; mystery floats and future artwork hops by default",()=>{
+  for (const stage of Object.keys(mascotAssets)) {
+    const idle=["seed","seedling","sprout","mystery"].includes(stage)?"float":"hop";
+    assert.ok(mascotArt(stage).includes(`data-idle="${idle}"`));
+    assert.doesNotMatch(mascotIcon(stage),/data-idle|mascot-art-motion/);
+  }
+  for (const stage of [null,"sapling","__proto__"]) {
+    assert.match(mascotArt(stage),/data-mascot="mystery" data-idle="float"/);
+  }
+});
+
 test("Ground shadows are removed from active and proposed SVG artwork without removing faces",()=>{
   for (const stage of ["pot","seed","mystery","stem","plant","flower"]) {
     const svg=readFileSync(new URL(`../brand/reed/growth/${stage}.svg`,import.meta.url),"utf8");

@@ -98,6 +98,8 @@ test("Views show correct book attribution, genres and only unlocked review text"
 test("Book mascot collection shows earned art, ordered names and a shared unknown for future forms",async()=>{
   const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{"seven-habits":{added:true,spentDays:3}}};
   const html=mascotsView(state),names=["Maceta","Semilla","Raíz","Brote","Plántula","Retoño","Tallo","Planta","Flor","Fruto","Siempreverde"];
+  assert.equal((html.match(/data-idle="none"/g)||[]).length,11);
+  assert.match(html,/<header class="mascots-heading">[\s\S]*?data-mascot="seedling" data-idle="float"[\s\S]*?<\/header>/);
   assert.deepEqual(names.map(name=>html.indexOf(`<h2>${name}</h2>`)),[...names].map(name=>html.indexOf(`<h2>${name}</h2>`)).sort((a,b)=>a-b));
   assert.equal((html.match(/\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,7);
   assert.match(html,/\/brand\/reed\/growth\/bodies\/pot-a-body\.png/);assert.match(html,/\/brand\/reed\/growth\/bodies\/seed\.svg/);assert.match(html,/\/brand\/reed\/growth\/bodies\/root\.png/);assert.match(html,/\/brand\/reed\/growth\/bodies\/seedling\.svg/);assert.doesNotMatch(html,/\/brand\/reed\/growth\/bodies\/sprout\.svg/);

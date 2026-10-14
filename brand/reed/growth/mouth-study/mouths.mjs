@@ -1,5 +1,5 @@
-import {mascotArt} from "/app/mascot-art.mjs?v=mascot-icon-image";
-import {mascotMouthConfig,mascotMouthWidth,mascotMouthPath,playMascotExpression} from "/app/mascot-face.mjs?v=pot-a-original";
+import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=mascot-random-blink";
+import {mascotMouthConfig,mascotMouthWidth,mascotMouthPath,playMascotExpression} from "/app/mascot-face.mjs?v=mascot-random-blink";
 const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Brote"],["sprout","Plántula"]];
 const widths = [1,1.5,2,3,"custom"];
 const format = value => `${String(value).replace(".",",")}×`;
@@ -46,11 +46,9 @@ for(const section of document.querySelectorAll(".mouth-trial")) {
     update();
   });
 }
-document.getElementById("greet-all").addEventListener("click",()=>{
+document.getElementById("restart-idle").addEventListener("click",()=>{
   for(const art of document.querySelectorAll(".mascot-art")) {
-    art.classList.remove("is-greeting");
-    void art.offsetWidth;
-    art.classList.add("is-greeting");
+    restartMascotIdle(art);
   }
 });
 document.getElementById("wink-all").addEventListener("click",()=>{
