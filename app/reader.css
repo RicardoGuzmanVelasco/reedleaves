@@ -129,9 +129,11 @@
 .book-grid{gap:25px 23px;padding:0 9px 9px 2px}
 .book-detail-author{font-size:14px;color:var(--muted);margin-top:11px;line-height:1.5}
 .study-book-entry{position:relative;display:flex;min-width:0}.study-book-entry>.study-book{width:92%;margin-inline:auto}.study-book-entry .study-book-cover>strong{padding-right:10px}
-.book-note-add{position:absolute;right:calc(4% + 9px);bottom:9px;display:grid;place-items:center;width:44px;height:44px;padding:10px;border:1.5px solid #71896b;border-radius:15px;background:var(--control-surface,#f0f3e5);color:var(--forest);box-shadow:0 3px 0 #b7c8a8;transition:transform .12s,box-shadow .12s}
-.book-note-add svg{width:22px;height:22px}.book-note-add:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 5px 0 #b7c8a8}.book-note-add:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #b7c8a8}
-.book-note-add:disabled{opacity:.45;border-style:dashed;box-shadow:none;cursor:default}.study-book-entry--notes .study-book-mark{margin-inline:auto}
+.book-note-add{position:absolute;right:calc(4% + 9px);bottom:9px;display:grid;place-items:center;width:36px;height:36px;padding:7px;border:1.5px solid #71896b;border-radius:12px;background:var(--control-surface,#f0f3e5);color:var(--forest);box-shadow:0 3px 0 #b7c8a8;transition:transform .12s,box-shadow .12s}
+/* Keep a 44px touch target around the smaller visible plate. */
+.book-note-add::after{content:"";position:absolute;inset:-4px}
+.book-note-add svg{width:18px;height:18px}.book-note-add:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 5px 0 #b7c8a8}.book-note-add:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #b7c8a8}
+.book-note-add:disabled{opacity:.45;border-style:dashed;box-shadow:none;cursor:default}.study-book-entry--notes .study-book-mark{margin-inline:auto;margin-bottom:24px;transform:translateX(-8px)}
 .note-book-context{margin:8px 0 20px;color:var(--muted);font-size:14px;line-height:1.4}
 .book-incomplete{display:grid;place-items:center;flex-shrink:0;width:44px;height:44px;padding:6px;border:0;border-radius:50%;background:transparent;color:#80562d}
 .book-incomplete svg{width:32px;height:32px;overflow:visible}.book-incomplete svg>circle:first-child{fill:#fff0d7;stroke:#b88f62;stroke-width:1.5}.book-incomplete path{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.book-incomplete-dot{fill:currentColor}
