@@ -10,3 +10,11 @@ export function readingBooks(catalog,statuses,noteActivity={}) {
   // Stable sorting preserves catalog order for unknown dates and ties.
   return catalog.books.filter(book=>statuses[book.id] === "reading").sort((a,b)=>date(b)-date(a));
 }
+
+export function recentNoteVersions(catalog,bookId,userId,noteDeckActivity={}) {
+  const date=version=>Date.parse(noteDeckActivity[version.deckId]) || 0;
+  const seen=new Set();
+  return editableNoteVersions(catalog,bookId,userId).filter(version=>date(version)>0)
+    .sort((a,b)=>date(b)-date(a) || b.number-a.number)
+    .filter(version=>{if(seen.has(version.deckId))return false;seen.add(version.deckId);return true}).slice(0,2);
+}

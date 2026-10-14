@@ -1,7 +1,7 @@
 import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES, LANGUAGES} from "./core.mjs";
 import { accessibleCard, canAdvance } from "./rhythm.mjs";
 import { treeFrontier, hasLeaf, availableVersions } from "./decks.mjs";
-import {readingBooks,editableNoteVersions} from "./notes.mjs";
+import {readingBooks,editableNoteVersions,recentNoteVersions} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
 import { words } from "./i18n.mjs?v=growth-stage-list";
@@ -59,9 +59,10 @@ function closedBookMarkup(s,book,{action="resume-book",caption=words[s.language]
     <span class="study-book-cover"><strong lang="${esc(title.language)}" dir="auto">${esc(title.text)}</strong><span class="study-book-author">${esc(book.author)}</span>
     ${catalog ? `<span class="study-book-footer">${esc(caption)}</span>` : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}</span></button>`;
   const complete=completeBookButton(s,book);
-  const canTakeNote=note && editableNoteVersions(s.catalog,book.id,s.userId).length === 1;
+  const noteVersions=note ? editableNoteVersions(s.catalog,book.id,s.userId) : [];
+  const canTakeNote=noteVersions.length > 0;
   const noteLabel=`${c.takeNote}: ${displayedBookTitle(s,book).text}`;
-  const addNote=note ? `<button class="book-note-add" type="button" data-action="take-note" data-book="${esc(book.id)}" aria-haspopup="dialog" aria-label="${esc(noteLabel)}" title="${esc(canTakeNote ? noteLabel : c.noteDestinationUnavailable)}" ${canTakeNote ? "" : `disabled aria-describedby="note-unavailable-${esc(book.id)}"`}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>${!canTakeNote ? `<span class="sr-only" id="note-unavailable-${esc(book.id)}">${esc(c.noteDestinationUnavailable)}</span>` : ""}` : "";
+  const addNote=note ? `<button class="book-note-add" type="button" data-action="take-note" data-book="${esc(book.id)}" aria-haspopup="dialog" ${noteVersions.length > 1 ? `aria-expanded="${s.noteDestination?.bookId === book.id}" aria-controls="note-destination-dialog"` : ""} aria-label="${esc(noteLabel)}" title="${esc(canTakeNote ? noteLabel : c.noteDestinationUnavailable)}" ${canTakeNote ? "" : `disabled aria-describedby="note-unavailable-${esc(book.id)}"`}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>${!canTakeNote ? `<span class="sr-only" id="note-unavailable-${esc(book.id)}">${esc(c.noteDestinationUnavailable)}</span>` : ""}` : "";
   return complete || note ? `<div class="study-book-entry${note ? " study-book-entry--notes" : ""}">${cover}${complete}${addNote}</div>` : cover;
 }
 
@@ -166,7 +167,18 @@ export function homeView(s) {
       <button class="home-action" type="button" data-action="library">${c.goLibrary}</button>
     </nav>
     ${books.length ? `<div class="study-books">${books.map(book=>closedBookMarkup(s,book,{note:true})).join("")}</div>` : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
+    ${s.noteDestination ? noteDestinationMarkup(s) : ""}
   </section>`;
+}
+
+function noteDestinationMarkup(s) {
+  const {bookId,all}=s.noteDestination,c=words[s.language],book=s.catalog.booksById.get(bookId);
+  const eligible=editableNoteVersions(s.catalog,bookId,s.userId);
+  const choices=all ? eligible : recentNoteVersions(s.catalog,bookId,s.userId,s.noteDeckActivity);
+  return `<dialog class="deck-modal note-destination-dialog" id="note-destination-dialog" data-note-book="${esc(bookId)}" aria-labelledby="note-destination-title"><h2 class="sr-only" id="note-destination-title">${esc(c.changeDeck+": "+displayedBookTitle(s,book).text)}</h2><div class="note-destination-options">${choices.map(version=>{
+    const title=contentText(version.title,s.language,version.language),duplicates=eligible.filter(item=>item.deckId === version.deckId).length > 1;
+    return `<button type="button" class="note-destination-option" data-action="choose-note-deck" data-version="${esc(version.id)}"><span lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(title)}${duplicates ? ` · v${version.number}` : ""}</span></button>`;
+  }).join("")}</div>${all ? "" : `<button type="button" class="note-destination-all" data-action="all-note-decks">${esc(c.viewAllNoteDecks)}<span aria-hidden="true">→</span></button>`}</dialog>`;
 }
 
 const mascotStages = [
@@ -492,7 +504,8 @@ export function authorFormView(s) {
       </form></article></dialog>`;
   }
   const noteBook=s.catalog.booksById.get(f.noteBookId);
-  return `<dialog class="deck-modal author-modal" aria-labelledby="author-dialog-title" ${noteBook ? 'aria-describedby="note-book-context"' : ""}><article class="deck-card"><h2 id="author-dialog-title">${f.origin === "home" ? c.takeNote : f.bookId ? c.completeBook : book ? c.createBook : deck ? c.createDeck : c.editDeck}</h2>${noteBook ? `<p class="note-book-context" id="note-book-context" lang="${esc(displayedBookTitle(s,noteBook).language)}" dir="auto">${esc(displayedBookTitle(s,noteBook).text)}</p>` : ""}${f.bookId ? `<p class="book-completion-note">${c.completeBookNote}</p>` : ""}<form class="author-form" data-author-form>
+  const showNoteDeck=f.origin === "home" && noteBook && version && editableNoteVersions(s.catalog,noteBook.id,s.userId).length > 1;
+  return `<dialog class="deck-modal author-modal" aria-labelledby="author-dialog-title" ${noteBook ? 'aria-describedby="note-book-context"' : ""}><article class="deck-card"><h2 id="author-dialog-title">${f.origin === "home" ? c.takeNote : f.bookId ? c.completeBook : book ? c.createBook : deck ? c.createDeck : c.editDeck}</h2>${noteBook ? `<p class="note-book-context" id="note-book-context" lang="${esc(displayedBookTitle(s,noteBook).language)}" dir="auto">${esc(displayedBookTitle(s,noteBook).text)}${showNoteDeck ? `<span class="note-deck-context" lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</span>` : ""}</p>` : ""}${f.bookId ? `<p class="book-completion-note">${c.completeBookNote}</p>` : ""}<form class="author-form" data-author-form>
     ${!book && !deck ? `<div class="segmented-selector note-type-selector" role="group" aria-label="${esc(c.noteType)}">${[["card",c.noteIdea],["quote",c.noteQuote]].map(([kind,label])=>`<button type="button" data-action="note-kind" data-kind="${kind}" aria-pressed="${f.kind === kind}">${noteTypeIcon(kind)}<span>${esc(label)}</span></button>`).join("")}</div>` : ""}
     ${quote ? "" : field("title",book ? c.bookTitle : deck ? c.deckTitle : c.cardTitle,f.title,book ? 240 : 160,true)}
     ${deck || book ? `${book ? field("author",c.bookAuthor,f.author,160,true) : field("description",c.deckDescription,f.description,1000,false,true)}${languagePicker()}` : `${field("body",quote ? c.quoteBody : c.cardBody,f.body,4000,true,true)}<label for="author-parentId">${c.parentCard}</label><select id="author-parentId" name="parentId"><option value="" ${!f.parentId ? "selected" : ""}>${quote ? c.unclassifiedQuotes : c.rootCard}</option>${options.join("")}</select>`}

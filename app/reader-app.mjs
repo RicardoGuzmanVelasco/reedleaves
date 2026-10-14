@@ -30,6 +30,7 @@ export function startReader({createCardFeatures} = {}) {
   let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, reviews, budget, preferences, statuses, daily, bookId, versionId, requestedId, selections, bookReviews, enrolledIds;
   let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, scrollToCard = false;
   let authorForm = null, quotesOnly = false, deckPreview = false, previewColumns = 2, previewVersionId = null;
+  let noteDestination=null;
   let profileId=null,profileData=null,profileError=null,profileReturnHash="#home",profileRequest=null,profileGeneration=0;
   const recordedViews=new Set(),pendingViews=new Set();
   let albumPosition = null;
@@ -57,6 +58,7 @@ export function startReader({createCardFeatures} = {}) {
   const hasLocalProgress = () => catalog && (store.read(keys.studies)?.length || catalog.versions.some(v=>store.read(keys.deckReview(v.id))?.seenIds?.length || store.read(keys.review(v.bookId))?.unlockedCount));
 
   function applyState(state) {
+    if (snapshot.user?.id !== state.user?.id) noteDestination=null;
     if (snapshot.user?.id !== state.user?.id) { deckPreview=false;previewColumns=2;previewVersionId=null; }
     if (snapshot.user?.id !== state.user?.id) { bookshelfFilters = {...bookshelfDefaults}; publicBookshelfFilters={...bookshelfDefaults}; libraryFilters = {...libraryDefaults}; libraryQuery = ""; listPositions = {}; profileId=null; profileError=null; profileData=null; profileRequest=null; profileGeneration++; recordedViews.clear(); pendingViews.clear(); libraryOrigin = "home"; openBookId = null; }
     snapshot = state;
@@ -142,7 +144,7 @@ export function startReader({createCardFeatures} = {}) {
     if (!ready) { setExclusivePageLock(false);main.innerHTML = loadingView(language,failed); presentReading(main); updateCardFeatures();return; }
     refreshState(); header();
     if (["review","author"].includes(mode) && previewVersionId !== versionId) { deckPreview=false;previewColumns=2;previewVersionId=versionId; }
-    const state = {userId:snapshot.user?.id,authorForm,quotesOnly,deckPreview,previewColumns,language,showOriginalTitles,catalog,reviews,budget,preferences,statuses,noteActivity:snapshot.noteActivity||{},growth:snapshot.growth||{},daily,bookId,versionId,requestedId,cardSaves:snapshot.cardSaves||[],bookReviews,
+    const state = {userId:snapshot.user?.id,authorForm,noteDestination,quotesOnly,deckPreview,previewColumns,language,showOriginalTitles,catalog,reviews,budget,preferences,statuses,noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily,bookId,versionId,requestedId,cardSaves:snapshot.cardSaves||[],bookReviews,
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,libraryFilters,libraryFiltersOpen,bookshelfFilters:mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
       profileData,profileError,readOnly:mode === "public-bookshelf",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,hasLocalProgress:hasLocalProgress()};
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
@@ -152,10 +154,16 @@ export function startReader({createCardFeatures} = {}) {
     if (mode === "library" && !authorForm) live.textContent = libraryQuery ? words[language].searchResults(filterLibrary(catalog,libraryQuery,libraryFilters).length) : "";
     const dialog = main.querySelector(".deck-modal");
     if (dialog) {
-      dialog.showModal(); const close = ()=>dialog.classList.contains("author-modal") ? closeAuthorForm() : dialog.dataset.book ? closeBookDetails(dialog.dataset.book) : closeDeck(dialog.dataset.version);
+      dialog.showModal(); const isNoteDestination=dialog.classList.contains("note-destination-dialog");
+      const close = ()=>isNoteDestination ? closeNoteDestination() : dialog.classList.contains("author-modal") ? closeAuthorForm() : dialog.dataset.book ? closeBookDetails(dialog.dataset.book) : closeDeck(dialog.dataset.version);
+      if (isNoteDestination) { positionNoteDestination();dialog.querySelector("button")?.focus({preventScroll:true}); }
       if (authorForm) dialog.querySelector(authorForm.preview ? "#author-dialog-title" : authorForm.bookId ? '[data-action="autofill-book"]' : "input,textarea")?.focus();
       dialog.addEventListener("cancel",event=>{ event.preventDefault(); close(); });
-      dialog.addEventListener("click",event=>{ if (event.target === dialog) close(); });
+      dialog.addEventListener("click",event=>{
+        if (event.target !== dialog) return;
+        if (isNoteDestination) {const rect=dialog.getBoundingClientRect();if(event.clientX>=rect.left && event.clientX<=rect.right && event.clientY>=rect.top && event.clientY<=rect.bottom)return;}
+        close();
+      });
     }
     const exclusive=main.querySelector(".exclusive-card-modal");
     if (exclusive) {
@@ -176,7 +184,7 @@ export function startReader({createCardFeatures} = {}) {
     scrollToCard = false;
   }
   function route(focus = true) {
-    if (!ready) return; refreshState();
+    if (!ready) return; noteDestination=null;refreshState();
     if (inviteRequired && !snapshot.user) { if (location.hash && location.hash !== "#account") authReturn = location.hash; mode = "account"; render({focus}); return; }
     const [view,first,second] = location.hash.slice(1).split("/");
     if (view === "library" && first === "book") {
@@ -305,9 +313,28 @@ export function startReader({createCardFeatures} = {}) {
   function openHomeNote(id) {
     if (!snapshot.user || mode !== "home" || statuses[id] !== "reading") return;
     const versions=editableNoteVersions(catalog,id,snapshot.user.id);
-    if (versions.length !== 1) return;
-    bookId=id; versionId=versions[0].id; requestedId=null; bookOrigin="home";
+    if (!versions.length) return;
+    if (versions.length > 1) { noteDestination={bookId:id,all:false};render();return; }
+    openHomeNoteVersion(id,versions[0].id);
+  }
+  function openHomeNoteVersion(id,targetVersionId) {
+    if (!snapshot.user || mode !== "home" || statuses[id] !== "reading") return;
+    if (!editableNoteVersions(catalog,id,snapshot.user.id).some(version=>version.id === targetVersionId)) return;
+    bookId=id; versionId=targetVersionId; requestedId=null; bookOrigin="home";noteDestination=null;
     openAuthorForm("card",{origin:"home",noteBookId:id,noteVersionId:versionId,parentId:null});
+  }
+  function closeNoteDestination() {
+    const id=noteDestination?.bookId;noteDestination=null;render();focusHomeNote(id);
+  }
+  function positionNoteDestination() {
+    const dialog=main.querySelector(".note-destination-dialog");
+    const anchor=[...main.querySelectorAll('[data-action="take-note"]')].find(button=>button.dataset.book === noteDestination?.bookId);
+    if (!dialog || !anchor) return;
+    const rect=anchor.getBoundingClientRect(),width=dialog.offsetWidth,height=dialog.offsetHeight;
+    const viewportWidth=document.documentElement.clientWidth,viewportHeight=window.innerHeight;
+    const left=Math.max(12,Math.min(rect.right-width,viewportWidth-width-12));
+    const below=rect.bottom+8,top=below+height<=viewportHeight-12 ? below : rect.top-height-8;
+    dialog.style.left=left+"px";dialog.style.top=Math.max(12,Math.min(top,viewportHeight-height-12))+"px";
   }
   function changeNoteKind(kind) {
     if (busy || !["card","quote"].includes(authorForm?.kind) || !["card","quote"].includes(kind) || authorForm.kind === kind) return;
@@ -571,6 +598,8 @@ export function startReader({createCardFeatures} = {}) {
       case "create-deck": openAuthorForm("deck"); break;
       case "add-content": openAuthorForm("card"); break;
       case "take-note": openHomeNote(b.dataset.book); break;
+      case "choose-note-deck": if (noteDestination) openHomeNoteVersion(noteDestination.bookId,b.dataset.version); break;
+      case "all-note-decks": if (noteDestination) {noteDestination.all=true;render();} break;
       case "note-kind": changeNoteKind(b.dataset.kind); break;
       case "cancel-author": closeAuthorForm(); break;
       case "autofill-book": autofillBook(b.closest("form")); break;
@@ -618,5 +647,6 @@ export function startReader({createCardFeatures} = {}) {
     const cardId=requestedId,returning=cardId && location.hash === "#"+mode+"/"+(mode === "saved" ? bookId : versionId);
     authorForm = null; route(!returning); if (returning) restoreAlbumPosition(cardId);
   }); document.addEventListener("visibilitychange",()=>{ if (!document.hidden) { recordDisplayedCard(); sync(); } });
+  window.addEventListener("resize",positionNoteDestination);window.addEventListener("scroll",positionNoteDestination,{passive:true});
   window.addEventListener("focus",()=>sync()); window.addEventListener("online",()=>sync()); setInterval(()=>{ if (!document.hidden) sync(); },30000); load();
 }

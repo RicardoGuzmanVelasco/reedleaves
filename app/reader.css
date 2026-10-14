@@ -135,8 +135,14 @@
 .book-note-add svg{width:18px;height:18px}.book-note-add:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 5px 0 #b7c8a8}.book-note-add:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #b7c8a8}
 .book-note-add:disabled{opacity:.45;border-style:dashed;box-shadow:none;cursor:default}.study-book-entry--notes .study-book-mark{margin-inline:auto;margin-bottom:24px;transform:translateX(-8px)}
 .note-book-context{margin:8px 0 20px;color:var(--muted);font-size:14px;line-height:1.4}
+.note-deck-context{display:block;margin-top:4px;color:var(--ink);font-size:12px;font-weight:750}
 .note-type-selector{align-self:flex-start;width:fit-content;margin-bottom:8px}
 .note-type-selector>button{gap:5px}.note-type-icon{display:block;width:var(--segmented-text-icon-size);height:var(--segmented-text-icon-size);flex:none;fill:currentColor}
+.deck-modal.note-destination-dialog{inset:auto;margin:0;width:min(280px,calc(100% - 24px));max-height:calc(100dvh - 24px);padding:7px;border:1px solid #c6d2b8;border-radius:17px;background:var(--paper);box-shadow:0 4px 0 #cdd8bd,0 10px 25px rgb(23 61 44 / 18%)}
+.note-destination-dialog[open]{animation:none}.note-destination-dialog::backdrop{background:transparent;backdrop-filter:none}
+.note-destination-options{display:grid;gap:3px}.note-destination-option,.note-destination-all{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:10px 12px;border:0;border-radius:10px;background:transparent;text-align:left;color:var(--ink);font-size:13px;font-weight:750;line-height:1.35;overflow-wrap:anywhere}
+.note-destination-option:hover,.note-destination-option:focus-visible,.note-destination-all:hover{background:var(--control-surface)}
+.note-destination-all{justify-content:space-between;margin-top:5px;border-top:1px solid var(--line);border-radius:0 0 10px 10px;font-size:12px}
 .book-incomplete{display:grid;place-items:center;flex-shrink:0;width:44px;height:44px;padding:6px;border:0;border-radius:50%;background:transparent;color:#80562d}
 .book-incomplete svg{width:32px;height:32px;overflow:visible}.book-incomplete svg>circle:first-child{fill:#fff0d7;stroke:#b88f62;stroke-width:1.5}.book-incomplete path{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.book-incomplete-dot{fill:currentColor}
 .book-incomplete:hover svg>circle:first-child{fill:#ffe0b3}.study-book-entry>.book-incomplete{position:absolute;top:-17px;right:-13px;z-index:1}

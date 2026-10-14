@@ -36,7 +36,7 @@ Desde Inicio con el libro visible: una pulsación hasta el editor. Desde fuera d
 
 ### Indicados por el usuario
 
-- Más de una baraja propia en progreso para el libro: resolver la elección de destino.
+- Más de una baraja propia en progreso para el libro: implementado en local con popover de accesos recientes y «Ver todas»; pendiente de revisión y publicación.
 - La baraja no está en progreso: definir el estado de escritura cerrado y qué ocurre al intentar añadir contenido.
 - El usuario quiere una cita: implementado en local con selector Idea / Cita dentro del editor; publicación aprobada.
 
@@ -56,7 +56,7 @@ Este incremento reutiliza el editor actual. No incluye un nuevo ciclo de vida de
 
 ## Implementación local
 
-- «+» visible por libro. Solo se habilita con una única versión `draft` propia; cero o varios destinos quedan pendientes, con explicación accesible.
+- «+» visible por libro. Cero destinos propios editables mantiene el botón deshabilitado. Una única versión `draft` propia abre directamente el editor; varias abren el popover de elección.
 - Destino fijado en el formulario; una nota nueva empieza en el nivel principal, sin heredar otra tarjeta.
 - Orden por la última nota creada en cualquiera de las barajas propias de ese libro. Editar, votar, guardar tarjetas ajenas y repasar no cuentan como creación de notas.
 - Migraciones SQLite 17→18 y PostgreSQL 9→10: fecha nullable e índice por versión/fecha. Se conserva el contenido histórico.
@@ -82,3 +82,13 @@ Revisión manual en copia aislada (4174): ida/vuelta Idea–Cita conserva el bor
 - Revisado manualmente en la base de demostración; publicación aprobada.
 
 - Ajuste visual posterior: selector compartido de 34 px e iconos de 14 px. Idea/Cita ajusta el ancho a su contenido; comparte medidas con vista/filtro de baraja y ajustes. Slider de columnas conserva la alineación con la misma altura.
+
+## Segundo escenario alternativo: varias barajas — local
+
+- Popover anclado al «+», con los títulos de las dos barajas propias editables donde el usuario añadió notas más recientemente y «Ver todas» abajo. Sin pantalla intermedia ni selección arbitraria.
+- Los accesos requieren fecha de nota conocida. Barajas sin notas y notas históricas sin fecha siguen accesibles en la lista completa. La actividad de cualquier versión de la baraja determina su recencia; se ofrece una sola entrada reciente por baraja.
+- «Ver todas» muestra todos los destinos propios editables del libro en el mismo popover; si una baraja tiene varios borradores, la lista completa muestra también el número de versión.
+- Al elegir se fija el destino, se abre una idea en nivel principal y se muestra el nombre de la baraja. Idea/Cita comparten el editor; guardar o cancelar vuelve a Inicio. Escape/toque fuera cierra el popover y devuelve el foco al «+».
+- Dos pulsaciones desde Inicio para empezar a escribir en un destino reciente (frente a una con un único destino). La lista completa añade una pulsación. Guardar sigue siendo explícito.
+- La fecha por baraja se añade al estado privado de la cuenta, manteniendo el orden por libro. Se reutiliza created_at e índice existente, sin migración. Guardar una nota actualiza ambas recencias; votar, guardar tarjetas ajenas o repasar no cuentan.
+- Revisado manualmente en copia aislada: destinos reales, lista completa, orden después de guardar/recargar, privacidad, cierre/foco y tamaños de pantalla. Pendiente de producción.
