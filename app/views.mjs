@@ -244,6 +244,11 @@ function cardWatermark(type) {
   return `<span class="card-watermark" aria-hidden="true"><svg class="card-watermark-symbol" viewBox="${type.watermark.viewBox}" preserveAspectRatio="xMaxYMax meet" focusable="false">${type.watermark.paths}</svg></span>`;
 }
 
+function noteTypeIcon(kind) {
+  const {watermark}=cardTypeFor({isQuote:kind === "quote"});
+  return `<svg class="note-type-icon" viewBox="${watermark.viewBox}" aria-hidden="true" focusable="false">${watermark.paths}</svg>`;
+}
+
 function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false} = {}) {
   const book = s.catalog.booksById.get(card.bookId), deckLanguage = card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
@@ -488,7 +493,7 @@ export function authorFormView(s) {
   }
   const noteBook=s.catalog.booksById.get(f.noteBookId);
   return `<dialog class="deck-modal author-modal" aria-labelledby="author-dialog-title" ${noteBook ? 'aria-describedby="note-book-context"' : ""}><article class="deck-card"><h2 id="author-dialog-title">${f.origin === "home" ? c.takeNote : f.bookId ? c.completeBook : book ? c.createBook : deck ? c.createDeck : c.editDeck}</h2>${noteBook ? `<p class="note-book-context" id="note-book-context" lang="${esc(displayedBookTitle(s,noteBook).language)}" dir="auto">${esc(displayedBookTitle(s,noteBook).text)}</p>` : ""}${f.bookId ? `<p class="book-completion-note">${c.completeBookNote}</p>` : ""}<form class="author-form" data-author-form>
-    ${!book && !deck ? `<div class="segmented-selector note-type-selector" role="group" aria-label="${esc(c.noteType)}">${[["card",c.noteIdea],["quote",c.noteQuote]].map(([kind,label])=>`<button type="button" data-action="note-kind" data-kind="${kind}" aria-pressed="${f.kind === kind}">${esc(label)}</button>`).join("")}</div>` : ""}
+    ${!book && !deck ? `<div class="segmented-selector note-type-selector" role="group" aria-label="${esc(c.noteType)}">${[["card",c.noteIdea],["quote",c.noteQuote]].map(([kind,label])=>`<button type="button" data-action="note-kind" data-kind="${kind}" aria-pressed="${f.kind === kind}">${noteTypeIcon(kind)}<span>${esc(label)}</span></button>`).join("")}</div>` : ""}
     ${quote ? "" : field("title",book ? c.bookTitle : deck ? c.deckTitle : c.cardTitle,f.title,book ? 240 : 160,true)}
     ${deck || book ? `${book ? field("author",c.bookAuthor,f.author,160,true) : field("description",c.deckDescription,f.description,1000,false,true)}${languagePicker()}` : `${field("body",quote ? c.quoteBody : c.cardBody,f.body,4000,true,true)}<label for="author-parentId">${c.parentCard}</label><select id="author-parentId" name="parentId"><option value="" ${!f.parentId ? "selected" : ""}>${quote ? c.unclassifiedQuotes : c.rootCard}</option>${options.join("")}</select>`}
     ${book ? `<button class="secondary book-autofill" type="button" data-action="autofill-book" ${f.autofilling ? 'disabled aria-busy="true"' : ""}>${f.autofilling ? `<span class="ai-spinner" aria-hidden="true"></span><span role="status">${c.aiLoading}</span>` : c.autofillBook}</button>` : ""}
