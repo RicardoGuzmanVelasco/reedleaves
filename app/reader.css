@@ -196,9 +196,9 @@
 #idea-content:focus{outline:none}
 
 /* A deck can be browsed as paper thumbnails without changing its learning path. */
-.deck-content-tools{display:grid;grid-template-columns:max-content minmax(90px,114px) max-content;justify-content:space-between;gap:8px}
+.deck-content-tools{display:grid;grid-template-columns:max-content minmax(90px,114px) minmax(max-content,1fr);gap:8px}
 .deck-content-tools .segmented-selector{flex-shrink:0}
-.deck-content-tools .card-filter-selector{grid-column:3}
+.deck-content-tools .card-filter-selector{grid-column:3;justify-self:end}
 .segmented-selector.card-filter-selector>button{white-space:nowrap}
 .deck-content-edit{grid-column:1/-1;text-align:right}
 .segmented-selector.deck-display-selector>button{min-width:36px;padding:6px 8px}
@@ -251,7 +251,7 @@
 .preview-card-open:focus-visible{outline:3px solid var(--ink);outline-offset:5px}
 @media(max-width:520px){.deck-preview-grid{gap:18px 10px}}
 @media(max-width:360px){.deck-content-tools{gap:6px}.segmented-selector.deck-display-selector>button{min-width:32px;padding-inline:6px}.deck-content-tools .card-filter-selector>button{padding-inline:8px}}
-@media(max-width:310px){.deck-content-tools{grid-template-columns:max-content max-content}.deck-content-tools .card-filter-selector{grid-column:2}.deck-content-tools .deck-preview-tools{grid-column:1/-1;grid-row:2;width:114px;justify-self:center}}
+@media(max-width:310px){.deck-content-tools{grid-template-columns:max-content max-content}.deck-content-tools .card-filter-selector{grid-column:2}.deck-content-tools .deck-preview-tools{grid-column:1/-1;grid-row:2;width:114px;justify-self:start}}
 
 /* Reading has its own stage: a lifted sheet, warm light and a short arrival. */
 body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de 53%,#e5ecd8 100%);background-attachment:fixed;min-height:100dvh}
