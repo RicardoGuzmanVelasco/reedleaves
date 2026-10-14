@@ -1,7 +1,7 @@
 import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES, LANGUAGES} from "./core.mjs";
 import { accessibleCard, canAdvance } from "./rhythm.mjs";
 import { treeFrontier, hasLeaf, availableVersions } from "./decks.mjs";
-import {readingBooks,editableNoteVersions,recentNoteVersions} from "./notes.mjs";
+import {homeBooks,editableNoteVersions,recentNoteVersions} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
 import { words } from "./i18n.mjs?v=growth-stage-list";
@@ -55,7 +55,7 @@ function bookSourcesMarkup(s,book) {
 function closedBookMarkup(s,book,{action="resume-book",caption=words[s.language].review,catalog=false,note=false}={}) {
   const c = words[s.language];
   const title=bookCoverTitle(book,s.language,{original:s.showOriginalTitles});
-  const cover=`<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} aria-label="${esc(catalog ? displayedBookTitle(s,book).text + ", " + book.author + ", " + caption : c.resume + ": " + displayedBookTitle(s,book).text)}">
+  const cover=`<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} ${note ? `aria-describedby="home-book-state-${esc(book.id)}"` : ""} aria-label="${esc(catalog ? displayedBookTitle(s,book).text + ", " + book.author + ", " + caption : c.resume + ": " + displayedBookTitle(s,book).text)}">
     <span class="study-book-cover"><strong lang="${esc(title.language)}" dir="auto">${esc(title.text)}</strong><span class="study-book-author">${esc(book.author)}</span>
     ${catalog ? `<span class="study-book-footer">${esc(caption)}</span>` : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}</span></button>`;
   const complete=completeBookButton(s,book);
@@ -158,14 +158,14 @@ export function bookshelfView(s) {
 }
 
 export function homeView(s) {
-  const c = words[s.language], books = readingBooks(s.catalog,s.statuses,s.noteActivity);
+  const c = words[s.language], books = homeBooks(s.catalog,s.statuses,s.noteActivity,s.userId);
   return `<section class="home-screen"><h1 class="sr-only" tabindex="-1">${c.home}</h1>
     <nav class="home-actions" aria-label="${c.home}">
       <button class="home-action" type="button" data-action="profile">${c.goProfile}</button>
       <button class="home-action primary" type="button" data-action="daily">${c.idea}</button>
       <button class="home-action" type="button" data-action="library">${c.goLibrary}</button>
     </nav>
-    ${books.length ? `<div class="study-books">${books.map(book=>closedBookMarkup(s,book,{note:true})).join("")}</div>` : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
+    ${books.length ? `<div class="study-books">${books.map(book=>`<div class="home-book-item">${closedBookMarkup(s,book,{note:true})}<p class="home-book-state" id="home-book-state-${esc(book.id)}">${s.statuses[book.id] === "reading" ? c.readingStatus : [s.statuses[book.id] === "read" ? c.readStatus : "",c.notesInProgress].filter(Boolean).join(" · ")}</p></div>`).join("")}</div>` : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
     ${s.noteDestination ? noteDestinationMarkup(s) : ""}
   </section>`;
 }
@@ -331,6 +331,12 @@ export function deckCompletionView(s) {
   </article></dialog>`;
 }
 
+function bookReadingControls(s,book) {
+  if (!s.userId) return "";
+  const c=words[s.language],status=s.statuses[book.id] || "unread",reading=status === "reading";
+  return `<div class="book-reading-actions" role="group" aria-label="${esc(c.bookStatus)}"><span class="book-reading-state">${reading ? c.readingStatus : status === "read" ? c.readStatus : c.unread}</span><button class="text-button" type="button" data-action="set-book-reading" data-book="${esc(book.id)}" data-status="${reading ? "read" : "reading"}">${reading ? c.markBookRead : c.markBookReading}</button></div>`;
+}
+
 export function deckView(s) {
   const c = words[s.language], book = s.catalog.booksById.get(s.bookId), choices = s.deckChoices;
   const languageName = tag => { try { return new Intl.DisplayNames([s.language],{type:"language"}).of(tag) || tag; } catch { return tag; } };
@@ -358,6 +364,7 @@ export function deckView(s) {
   return `<section class="deck-screen">${["library","bookshelf","daily"].includes(s.bookOrigin) ? `<button type="button" class="text-button" data-action="${s.bookOrigin}">${s.bookOrigin === "library" ? c.booksBack : s.bookOrigin === "bookshelf" ? c.bookshelfBack : c.back}</button>` : ""}
     <div class="screen-heading deck-heading"><div><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.chooseDeck}</h1></div>
     ${mascotEntry(s,s.bookId)}</div>
+    ${bookReadingControls(s,book)}
     ${s.userId ? `<div data-saved-cards-entry></div><div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
     ${!choices.length ? `<div class="empty-state">${c.noDecks}</div>` : `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${choices.map(item => {
       const {deck,version,tags} = item, tag = tags[0] || "otherDeck";

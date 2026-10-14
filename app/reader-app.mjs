@@ -13,7 +13,7 @@ import {filterLibrary,libraryDefaults} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
 import {createReadingPresentation} from "./reading-presentation.mjs";
 import {updateSavedReferences} from "./card-interactions.mjs";
-import {editableNoteVersions} from "./notes.mjs";
+import {editableNoteVersions,isHomeBook} from "./notes.mjs";
 
 export function dailyCardIdForRoute(daily,view,first) {
   return view === "daily" && daily?.id && first !== "closed" ? daily.id : null;
@@ -336,7 +336,7 @@ export function startReader({createCardFeatures} = {}) {
     requestAnimationFrame(()=>[...main.querySelectorAll('[data-action="take-note"]')].find(button=>button.dataset.book === id)?.focus({preventScroll:true}));
   }
   function openHomeNote(id) {
-    if (!snapshot.user || mode !== "home" || statuses[id] !== "reading") return;
+    if (!snapshot.user || mode !== "home" || !isHomeBook(catalog,statuses,id,snapshot.user.id)) return;
     const draft=findNoteDraft(id);
     if (draft) {
       bookId=id;versionId=draft.noteVersionId;requestedId=null;bookOrigin="home";noteDestination=null;
@@ -351,7 +351,7 @@ export function startReader({createCardFeatures} = {}) {
     openHomeNoteVersion(id,versions[0].id);
   }
   function openHomeNoteVersion(id,targetVersionId) {
-    if (!snapshot.user || mode !== "home" || statuses[id] !== "reading") return;
+    if (!snapshot.user || mode !== "home" || !isHomeBook(catalog,statuses,id,snapshot.user.id)) return;
     if (!editableNoteVersions(catalog,id,snapshot.user.id).some(version=>version.id === targetVersionId)) return;
     bookId=id; versionId=targetVersionId; requestedId=null; bookOrigin="home";noteDestination=null;
     openAuthorForm("card",{origin:"home",noteBookId:id,noteVersionId:versionId,parentId:null});
@@ -526,6 +526,11 @@ export function startReader({createCardFeatures} = {}) {
       if (next) navigate(next); else render();
     }
   }
+  async function setBookReading(id,status) {
+    if (!snapshot.user || !catalog.booksById.has(id) || !["reading","read"].includes(status)) return;
+    await mutation("/api/reader/reading",{bookId:id,status},()=>{live.textContent=words[language][status === "read" ? "bookMarkedRead" : "bookMarkedReading"];});
+    main.querySelector('[data-action="set-book-reading"]')?.focus({preventScroll:true});
+  }
   async function enterDeck(id) {
     if (!snapshot.user) { pendingVersion = id; authReturn = "#review/"+id; navigate("#account"); return; }
     await mutation("/api/reader/select",{versionId:id},()=>{ openDeckId = null; navigate("#review/"+id); });
@@ -663,6 +668,7 @@ export function startReader({createCardFeatures} = {}) {
     const b = e.target.closest("[data-action]"); if (!b || b.disabled || busy || !ready && b.dataset.action !== "retry") return;
     switch(b.dataset.action) {
       case "profile": openOwnProfile(); break;
+      case "set-book-reading": setBookReading(b.dataset.book,b.dataset.status); break;
       case "profile-back": navigate(profileReturnHash || "#home"); break;
       case "retry-profile": profileData=null; profileError=null; loadProfile(true); render(); break;
       case "create-book": openAuthorForm("book"); break;

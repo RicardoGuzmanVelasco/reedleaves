@@ -445,3 +445,9 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .finish-deck-hint{margin:-14px 0 24px;color:var(--muted);font-size:12px;line-height:1.5}
 .deck-completion-warning{margin:16px 0 22px;line-height:1.6;font-size:15px;color:var(--ink)}
 .deck-completion-modal .form-actions{gap:12px;align-items:center}.deck-completion-modal .form-actions .primary{font-size:13px;max-width:70%;white-space:normal;line-height:1.35}
+
+.book-reading-actions{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 14px;margin:-6px 0 20px}
+.book-reading-state{display:inline-flex;padding:4px 9px;border:1px solid #c3d1b6;border-radius:9px;background:var(--control-surface);color:var(--forest);font-size:12px;font-weight:750;line-height:1.4}
+.book-reading-actions .text-button{font-size:12px;color:var(--forest)}
+
+.home-book-item{min-width:0}.home-book-state{margin:10px 4px 0;color:var(--muted);font-size:11px;font-weight:750;line-height:1.45;text-align:center}

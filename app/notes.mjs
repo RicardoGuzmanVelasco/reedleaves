@@ -5,10 +5,15 @@ export function editableNoteVersions(catalog,bookId,userId) {
   return catalog.versions.filter(version=>deckIds.has(version.deckId) && version.status === "draft");
 }
 
-export function readingBooks(catalog,statuses,noteActivity={}) {
+// Home keeps active reading or writing, including an empty draft owned by this account.
+export function isHomeBook(catalog,statuses,bookId,userId) {
+  return statuses[bookId] === "reading" || editableNoteVersions(catalog,bookId,userId).length > 0;
+}
+
+export function homeBooks(catalog,statuses,noteActivity={},userId) {
   const date=book=>Date.parse(noteActivity[book.id]) || 0;
   // Stable sorting preserves catalog order for unknown dates and ties.
-  return catalog.books.filter(book=>statuses[book.id] === "reading").sort((a,b)=>date(b)-date(a));
+  return catalog.books.filter(book=>isHomeBook(catalog,statuses,book.id,userId)).sort((a,b)=>date(b)-date(a));
 }
 
 export function recentNoteVersions(catalog,bookId,userId,noteDeckActivity={}) {

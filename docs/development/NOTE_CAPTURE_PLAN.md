@@ -4,7 +4,7 @@ Estado: happy path aprobado el 14 de octubre de 2026 e integrado para publicaci�
 
 ## Propuesta confirmada por el usuario
 
-- Inicio muestra únicamente los libros que el usuario está leyendo.
+- Inicio muestra los libros que el usuario está leyendo o para los que mantiene alguna baraja propia en progreso, incluidas las vacías (ampliación acordada después del happy path).
 - Los libros se ordenan por la nota añadida más recientemente: el último libro al que se añadió una nota aparece primero.
 - Cada libro ofrece un botón con icono «+» para iniciar una nota.
 - Happy path: existe exactamente una baraja propia en progreso para ese libro. El sistema resuelve el destino y abre directamente la pantalla de añadir una idea.
@@ -21,7 +21,7 @@ Desde Inicio con el libro visible: una pulsación hasta el editor. Desde fuera d
 
 ## Hechos del modelo actual
 
-- Ya existe el estado manual del libro `reading`. Inicio pasa a usar ese estado de lectura, independiente de las barajas con repaso pendiente.
+- La lectura del libro usa `unread` / `reading` / `read` y es personal. Inicio conserva los libros `reading` o con alguna versión `draft` propia, incluso vacía. El repaso pendiente es independiente y no decide esta lista.
 - El progreso de repaso y la posibilidad de añadir contenido son independientes. Se puede escribir únicamente en versiones `draft` de barajas propias. Los estados existentes de versión se presentan como «En progreso» (`draft`) y «Terminada» (`published`). Terminar congela la versión y es irreversible; el creador lo confirma explícitamente.
 - El formulario vigente de idea exige título y cuerpo, y guarda mediante una acción explícita. Las notas guardan un borrador local por cuenta, libro y versión, recuperable tras recarga con el aviso «Borrador recuperado». Las citas no exigen título.
 - Las nuevas notas registran `created_at`. La actividad de creación se agrega por libro y propietario de la baraja en el estado privado de la cuenta. Las notas antiguas mantienen NULL: no se inventa una fecha histórica.
@@ -124,3 +124,24 @@ Revisión manual en copia aislada (4174): ida/vuelta Idea–Cita conserva el bor
 - POST `/api/author/decks/finish`, con sesión/CSRF y validación de propiedad en servidor. Transacción y mismo bloqueo de versión que añadir tarjeta; reintento de una versión ya publicada devuelve éxito. Se reutilizan los triggers de inmutabilidad de SQLite/PostgreSQL, sin migración. No modifica tarjetas, repasos ni saldo.
 - Tras confirmar se pasa a repaso, se ocultan controles de edición y se excluye la versión de destinos de notas. Los enlaces antiguos de autoría de una versión publicada llevan al repaso. Si falla la recarga del catálogo después de la confirmación, se conserva localmente el estado publicado confirmado y se muestra el error de conexión.
 - Revisión manual en copia aislada 4174: estado en catálogo/ficha/autoría/repaso, cancelación y foco, finalización real persistida tras recarga, ausencia en recientes y lista completa del «+», nota local pendiente, versión vacía y enlace antiguo de autoría. Móvil 320 px y escritorio, sin desbordamiento. Sintaxis/build/diff correctos; sin añadir ni ejecutar la suite. Pendiente de publicación.
+
+## Lectura del libro y trabajo pendiente — local
+
+Regla única de Inicio: **leyendo el libro O alguna baraja propia en `draft`**. El usuario elige explícitamente contar también las barajas vacías.
+
+| Lectura | Versiones propias en progreso | Inicio |
+| --- | --- | --- |
+| Leyendo | Ninguna o todas terminadas | Permanece |
+| Leyendo | Una o varias | Permanece |
+| Leído | Una o varias, incluso vacías | Permanece por sus notas |
+| Leído | Ninguna o todas terminadas | Sale |
+| Sin empezar | Alguna | Aparece por sus notas |
+| Sin empezar | Ninguna | No aparece |
+
+- «Marcar como leído» en la pantalla de barajas reutiliza el estado personal y el endpoint existentes. Es una acción explícita, reversible con «Marcar como leyendo» o el selector de la ficha. Sin confirmación irreversible ni cambios de esquema. ES/EN y anuncio accesible.
+- Marcar leído no termina ninguna baraja. Terminar una baraja no cambia la lectura. Terminar la última versión en progreso solo retira el libro si ya no está leyendo. No se deduce haber leído el original por completar notas o repasar.
+- Solo cuentan versiones propias `draft`. Las barajas ajenas, las publicadas/archivadas, las guardadas y el progreso de repaso no retienen el libro. Salir de Inicio conserva el libro en Biblioteca y su contenido/repasos. Crear una nueva baraja propia lo hace volver y no cambia automáticamente un libro leído a Leyendo.
+- Inicio explica la presencia con «Leyendo» o «Leído · Notas en progreso» (solo «Notas en progreso» si no está empezado). Los guardas de entrada del «+» usan la misma regla de visibilidad, por lo que se puede seguir escribiendo sobre un libro leído.
+- Orden por la última nota creada, sin moverlo por cambiar la lectura o terminar una baraja. Con un libro Leyendo sin destinos propios abiertos, «+» conserva Crear baraja → Tomar nota.
+- Arista pendiente: una baraja vacía retiene el libro pero no se puede publicar vacía. Se propone resolver el descarte de una baraja vacía como otro caso de uso; no se descarta automáticamente ni se cambia la decisión del usuario.
+- Revisión manual en copia aislada: marcar Leído/revertir, persistencia tras recarga, conservar leído con notas y abrir editor desde «+», terminar única baraja sin cambiar Leyendo, cero destinos abre Crear baraja, marcar Leído sin destinos propios retira de Inicio aunque haya barajas ajenas draft, crear una propia vacía devuelve el libro leído y abre su editor. Móvil 320 px sin desbordamiento. Build/sintaxis/diff correctos; sin añadir ni ejecutar la suite. Pendiente de producción.
