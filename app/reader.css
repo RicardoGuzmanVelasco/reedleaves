@@ -196,7 +196,13 @@
 #idea-content:focus{outline:none}
 
 /* A deck can be browsed as paper thumbnails without changing its learning path. */
-.deck-display-toggle{min-height:44px}
+.deck-content-tools{gap:12px}
+.deck-content-tools .segmented-selector{flex-shrink:0}
+.deck-content-tools .card-filter-selector{margin-left:auto}
+.segmented-selector.card-filter-selector>button{white-space:nowrap;min-height:44px}
+.deck-content-edit{flex-basis:100%;text-align:right}
+.segmented-selector.deck-display-selector>button{min-width:44px;min-height:44px;padding:10px 12px}
+.deck-display-selector svg{display:block;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .deck-preview{margin:18px 0 30px}
 .deck-preview-tools{display:flex;align-items:center;gap:12px;margin-bottom:24px;font-size:12px;font-weight:750}
 .deck-preview-tools input{width:min(190px,50%);height:44px;accent-color:var(--shadow);cursor:pointer}
@@ -220,11 +226,7 @@
 .deck-preview-item .reading-footer>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .preview-card-state{display:flex;align-items:center;gap:1cqw;white-space:nowrap;flex-shrink:0;color:var(--card-edge)}
 .preview-card-state svg{width:3cqw;height:3cqw;fill:none;stroke:currentColor;stroke-width:1.8}
-.preview-hidden-title,.preview-hidden-body{position:relative;z-index:1;display:grid;gap:2cqw;opacity:.3}
-.preview-hidden-title{margin-bottom:4cqw;gap:2.5cqw}
-.preview-hidden-title i,.preview-hidden-body i{display:block;height:1.2cqw;border-radius:1cqw;background:var(--card-edge)}
-.preview-hidden-title i{height:3cqw;width:77%}.preview-hidden-title i:last-child{width:52%}
-.preview-hidden-body i:nth-child(2){width:93%}.preview-hidden-body i:last-child{width:65%}
+.deck-preview-item .preview-obscured{filter:blur(.4em);opacity:.55;user-select:none;pointer-events:none}
 .preview-card-open{position:absolute;z-index:2;inset:0;width:100%;height:100%;min-height:44px;padding:0;border:0;border-radius:4.5cqw;background:transparent;cursor:pointer}
 .preview-card-open:hover{box-shadow:0 0 0 2px var(--sage)}
 .preview-card-open:focus-visible{outline:3px solid var(--ink);outline-offset:5px}

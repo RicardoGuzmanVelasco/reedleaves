@@ -524,7 +524,9 @@ export function startReader({createCardFeatures} = {}) {
       case "edit-book-preview": authorForm.title=authorForm.metadata.originalTitle; authorForm.preview=false; render(); break;
       case "author-deck": authorForm = null; quotesOnly = false; navigate("#author/"+b.dataset.version); break;
       case "inspect-card": albumPosition={versionId,mode:"author",scrollY:window.scrollY}; navigate("#author/"+versionId+"/"+b.dataset.card); break;
-      case "toggle-deck-preview": deckPreview=!deckPreview;render();main.querySelector('[data-action="toggle-deck-preview"]')?.focus({preventScroll:true});break;
+      case "view-deck-tree":
+      case "view-deck-preview":
+        deckPreview=b.dataset.action === "view-deck-preview";render();main.querySelector(`[data-action="${b.dataset.action}"]`)?.focus({preventScroll:true});break;
       case "open-preview-card":
         if (!catalog.versionModels.get(versionId)?.byId.has(b.dataset.card)) break;
         if (mode === "author") { albumPosition={versionId,mode,scrollY:window.scrollY};navigate("#author/"+versionId+"/"+b.dataset.card); }
