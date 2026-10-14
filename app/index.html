@@ -13,7 +13,7 @@
   <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="/favicon.ico">
   <link rel="icon" type="image/svg+xml" sizes="any" href="../brand/reed/d-compacto.svg">
   <link rel="stylesheet" href="mascot-art.css?v=mascot-icon-image">
-  <link rel="stylesheet" href="reader.css?v=known-mascot-art">
+  <link rel="stylesheet" href="reader.css?v=growth-row">
   <link rel="stylesheet" href="card-themes.css?v=shared-card-types">
   <link rel="stylesheet" href="card-actions.css?v=saved-cards">
   <script type="module" src="reader.mjs"></script>
@@ -36,6 +36,18 @@
     <label class="check-row settings-title-preference" for="original-titles"><input type="checkbox" id="original-titles"><span id="original-titles-label">Mostrar títulos originales</span></label>
     <p id="settings-error" class="settings-error" role="alert" hidden></p>
     <div id="account-controls" class="settings-account"></div>
+    <button type="button" class="text-button" id="open-feedback" aria-haspopup="dialog">Enviar comentarios</button>
+  </dialog>
+  <dialog class="settings-modal feedback-modal" id="feedback" aria-labelledby="feedback-title">
+    <form id="feedback-form">
+      <div class="settings-heading"><h2 id="feedback-title">Enviar comentarios</h2><button class="icon-button" id="close-feedback" type="button" aria-label="Cerrar comentarios">×</button></div>
+      <p id="feedback-sign-in" hidden>Entra en tu cuenta para enviar comentarios.</p>
+      <label for="feedback-message" id="feedback-label">Comentario</label>
+      <textarea id="feedback-message" name="message" rows="6" maxlength="5000" required></textarea>
+      <p id="feedback-error" class="settings-error" role="alert" hidden></p>
+      <button id="feedback-sign-in-button" class="text-button" type="button" hidden>Entrar</button>
+      <button id="feedback-submit" class="primary" type="submit">Enviar</button>
+    </form>
   </dialog>
   <noscript><p class="noscript-note">Activa JavaScript para ver la idea del día y repasar.</p></noscript>
 </body>

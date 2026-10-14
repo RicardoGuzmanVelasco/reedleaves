@@ -146,6 +146,23 @@ test("Safari Home Screen metadata and PNG fallbacks are public, with no redirect
   assert.equal((await fetch(base + "/apple-touch-icon-missing.png")).status, 404);
 });
 
+test("Feedback requires a session and CSRF, then stores the account and current page",async t=>{
+  const db=openDatabase(":memory:");initializeDatabase(db);await seedCatalog(db);
+  const server=createCatalogServer(db);server.listen(0,"127.0.0.1");await once(server,"listening");
+  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const post=(input,headers={})=>fetch(base+"/api/feedback",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify(input)});
+  const input={message:"Añadir una búsqueda a esta página",page:"/app/#library",language:"es"};
+  assert.equal((await post(input)).status,401);
+  const login=await fetch(base+"/api/auth/register",{method:"POST",headers:{Origin:base,"Content-Type":"application/json"},body:JSON.stringify({username:"feedback.reader",password:"a local feedback test phrase"})});
+  const state=await login.json(),cookie=login.headers.get("set-cookie").split(";")[0],headers={Cookie:cookie,"X-CSRF-Token":state.csrfToken};
+  assert.equal((await post(input,{Cookie:cookie})).status,403);
+  assert.equal((await post({...input,message:"   "},headers)).status,400);
+  const saved=await post(input,headers);assert.equal(saved.status,200);
+  const row=db.prepare("SELECT user_id,username,message,page,language FROM feedback_submissions").get();
+  assert.deepEqual({...row},{user_id:state.user.id,username:"feedback.reader",message:input.message,page:input.page,language:"es"});
+});
+
 test("Author HTTP routes require CSRF and share content while reserving edits to its creator",async t=>{
   const {randomUUID}=await import("node:crypto");
   const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);

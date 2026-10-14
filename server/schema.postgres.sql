@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 8));
-INSERT INTO reed_schema VALUES (8);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 9));
+INSERT INTO reed_schema VALUES (9);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -152,6 +152,13 @@ CREATE TABLE reader_filters(
 );
 CREATE TABLE reader_interests(user_id TEXT NOT NULL REFERENCES users(id), genre_id TEXT NOT NULL REFERENCES genres(id), PRIMARY KEY(user_id,genre_id));
 CREATE TABLE daily_ideas(user_id TEXT NOT NULL REFERENCES users(id), local_day TEXT NOT NULL, card_id TEXT NOT NULL REFERENCES cards(id), PRIMARY KEY(user_id,local_day));
+CREATE TABLE feedback_submissions(
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  username TEXT NOT NULL, message TEXT NOT NULL CHECK(length(btrim(message)) BETWEEN 1 AND 5000),
+  page TEXT NOT NULL CHECK(length(page) BETWEEN 1 AND 512),
+  language TEXT NOT NULL CHECK(language IN ('es','en')), created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
 CREATE FUNCTION reed_check_deck_author() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN

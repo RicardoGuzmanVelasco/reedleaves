@@ -4,7 +4,7 @@ import {restorePreferences, changeSource} from "./rhythm.mjs";
 import {featuredDecks, restoreTreeReview, bookReviewStates, studyingDecks} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=growth-stage-list";
+import {words} from "./i18n.mjs?v=growth-row";
 import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,profileView,profilePendingView,loadingView,accountView,escapeHtml} from "./views.mjs?v=mascot-empty-milestones";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
@@ -86,6 +86,16 @@ export function startReader({createCardFeatures} = {}) {
     document.querySelector(".brand").setAttribute("aria-label",pageTitle(c.home)); document.querySelector(".skip-link").textContent = c.skip;
     for (const [id,text] of [["settings-title",c.settings],["language-label",c.language],["original-titles-label",c.showOriginalTitles]]) document.getElementById(id).textContent = text;
     document.getElementById("open-settings").setAttribute("aria-label",c.settings); document.getElementById("close-settings").setAttribute("aria-label",c.closeSettings);
+    document.getElementById("open-feedback").textContent=c.feedback;
+    document.getElementById("feedback-title").textContent=c.feedback;
+    document.getElementById("close-feedback").setAttribute("aria-label",c.closeFeedback);
+    document.getElementById("feedback-label").textContent=c.feedbackLabel;
+    document.getElementById("feedback-sign-in").textContent=c.feedbackSignIn;
+    document.getElementById("feedback-submit").textContent=c.feedbackSend;
+    document.getElementById("feedback-sign-in-button").textContent=c.signIn;
+    document.getElementById("feedback-sign-in").hidden=!!snapshot.user;
+    document.getElementById("feedback-sign-in-button").hidden=!!snapshot.user;
+    document.getElementById("feedback-submit").hidden=!snapshot.user;
     document.getElementById("original-titles").checked = showOriginalTitles;
     const settingsError = document.getElementById("settings-error");
     settingsError.hidden = !syncError; settingsError.textContent = syncError ? c[syncError] || c.connectionError : "";
@@ -103,7 +113,7 @@ export function startReader({createCardFeatures} = {}) {
     if (busy) main.querySelectorAll("button,input,select,textarea").forEach(control=>{
       if (!control.matches(".exclusive-card-close")) control.disabled = true;
     });
-    settings.querySelectorAll("button,input").forEach(control=>control.disabled = busy);
+    settings.querySelectorAll("button,input,textarea").forEach(control=>control.disabled = busy);
   }
   function setExclusivePageLock(locked) {
     const body=document.body,root=document.documentElement;
@@ -447,6 +457,22 @@ export function startReader({createCardFeatures} = {}) {
   }
   document.getElementById("open-settings").addEventListener("click",()=>settings.showModal());
   document.getElementById("close-settings").addEventListener("click",()=>settings.close());
+  const feedback=document.getElementById("feedback"),feedbackForm=document.getElementById("feedback-form"),feedbackError=document.getElementById("feedback-error");
+  document.getElementById("open-feedback").addEventListener("click",()=>feedback.showModal());
+  document.getElementById("close-feedback").addEventListener("click",()=>feedback.close());
+  document.getElementById("feedback-sign-in-button").addEventListener("click",()=>{feedback.close();settings.close();authReturn=location.hash || "#home";navigate("#account")});
+  feedback.addEventListener("click",event=>{if(event.target===feedback)feedback.close()});
+  feedbackForm.addEventListener("submit",async event=>{
+    event.preventDefault(); if(!snapshot.user || busy)return;
+    const submit=document.getElementById("feedback-submit");submit.disabled=true;feedbackError.hidden=true;
+    try {
+      await api.request("/api/feedback",{message:feedbackForm.elements.message.value,page:location.pathname+location.hash,language});
+      feedbackForm.reset();feedback.close();live.textContent=words[language].feedbackSent;
+    } catch(error) {
+      feedbackError.textContent=words[language][error.status===401?"signInRequired":error.code] || words[language].connectionError;
+      feedbackError.hidden=false;
+    } finally {submit.disabled=false}
+  });
   settings.addEventListener("click",async event=>{
     if (event.target === settings) settings.close(); const action = event.target.closest("[data-account-action]")?.dataset.accountAction;
     if (action === "profile") { settings.close(); openOwnProfile(); }
