@@ -22,7 +22,7 @@ Desde Inicio con el libro visible: una pulsación hasta el editor. Desde fuera d
 ## Hechos del modelo actual
 
 - Ya existe el estado manual del libro `reading`. Inicio pasa a usar ese estado de lectura, independiente de las barajas con repaso pendiente.
-- El progreso de repaso y la posibilidad de añadir contenido son independientes. Se puede escribir únicamente en versiones `draft` de barajas propias. No existe todavía un estado independiente de escritura «en progreso / cerrada».
+- El progreso de repaso y la posibilidad de añadir contenido son independientes. Se puede escribir únicamente en versiones `draft` de barajas propias. Los estados existentes de versión se presentan como «En progreso» (`draft`) y «Terminada» (`published`). Terminar congela la versión y es irreversible; el creador lo confirma explícitamente.
 - El formulario vigente de idea exige título y cuerpo, y guarda mediante una acción explícita. Las notas guardan un borrador local por cuenta, libro y versión, recuperable tras recarga con el aviso «Borrador recuperado». Las citas no exigen título.
 - Las nuevas notas registran `created_at`. La actividad de creación se agrega por libro y propietario de la baraja en el estado privado de la cuenta. Las notas antiguas mantienen NULL: no se inventa una fecha histórica.
 
@@ -37,7 +37,7 @@ Desde Inicio con el libro visible: una pulsación hasta el editor. Desde fuera d
 ### Indicados por el usuario
 
 - Más de una baraja propia en progreso para el libro: implementado con popover de accesos recientes y «Ver todas»; publicación aprobada.
-- La baraja no está en progreso: definir el estado de escritura cerrado y qué ocurre al intentar añadir contenido.
+- La baraja no está en progreso: implementado en local con `draft` → `published`, visible como En progreso → Terminada. Se excluye de los destinos del «+»; si no quedan destinos se ofrece Crear baraja. Pendiente de publicación.
 - El usuario quiere una cita: implementado en local con selector Idea / Cita dentro del editor; publicación aprobada.
 
 ### Derivados del recorrido y de las interrupciones discutidas
@@ -52,7 +52,7 @@ Desde Inicio con el libro visible: una pulsación hasta el editor. Desde fuera d
 
 ## Límites
 
-Este incremento reutiliza el editor actual. No incluye un nuevo ciclo de vida de barajas, sincronización de borradores entre dispositivos, publicación automática de notas, accesos desde la pantalla bloqueada ni el rediseño del editor. El guardado local automático se limita a notas de idea/cita; Crear libro y Crear baraja conservan sus formularios en memoria.
+Este incremento reutiliza el editor actual. Reutiliza los estados existentes de versión para terminar una baraja. No incluye reapertura, creación de nuevas versiones desde la interfaz, sincronización de borradores entre dispositivos, publicación automática de notas, accesos desde la pantalla bloqueada ni el rediseño del editor. El guardado local automático se limita a notas de idea/cita; Crear libro y Crear baraja conservan sus formularios en memoria.
 
 ## Implementación local
 
@@ -114,3 +114,13 @@ Revisión manual en copia aislada (4174): ida/vuelta Idea–Cita conserva el bor
 - Cambiar o cerrar sesión retira el formulario visible y conserva el borrador bajo su cuenta original. No hay sincronización entre dispositivos, navegadores u orígenes. Si el almacenamiento local falla, se informa; el respaldo en memoria sirve solo para la sesión actual.
 - Si el destino deja de ser editable, se recupera el contenido con aviso y se impide guardar en ese destino; no se mueve la nota automáticamente.
 - Revisión manual en copia aislada: recuperación tras recarga con título/cuerpo, cambio Idea/Cita y relación conservados; recuperación directa en libro con varias barajas; recuperación del mismo borrador desde autoría; guardado y cancelación seguidos de una nota nueva vacía. Móvil 320 px sin desbordamiento y escritorio. Sintaxis/build/diff correctos; sin añadir ni ejecutar la suite. Sin cambios de backend ni esquema. Pendiente de producción.
+
+## Quinto escenario alternativo: baraja terminada — local
+
+- Decisión del usuario: `draft` es En progreso y `published` es Terminada. La versión se congela definitivamente; no hay reapertura. El estado pertenece a la creación del contenido y es independiente de cuánto haya repasado cada cuenta.
+- Copy aprobado: «Baraja en progreso» y «Sus tarjetas podrían cambiar», sin atribuir el aviso al creador. Se muestra en la ficha, edición y repaso; las piezas del catálogo muestran el estado compacto. Las versiones publicadas muestran «Terminada». ES/EN.
+- El propietario dispone de «Marcar como terminada» en la vista de autoría. Confirmación con foco inicial en Cancelar y advertencia de irreversibilidad. Cancelar, Escape o toque exterior vuelve a la acción.
+- No se puede terminar una versión vacía. Si hay una nota local pendiente de esa versión, se pide guardarla o cancelarla antes. Se vuelve a comprobar justo antes de confirmar. Los borradores pendientes en otros dispositivos conservan la recuperación con destino ya no editable.
+- POST `/api/author/decks/finish`, con sesión/CSRF y validación de propiedad en servidor. Transacción y mismo bloqueo de versión que añadir tarjeta; reintento de una versión ya publicada devuelve éxito. Se reutilizan los triggers de inmutabilidad de SQLite/PostgreSQL, sin migración. No modifica tarjetas, repasos ni saldo.
+- Tras confirmar se pasa a repaso, se ocultan controles de edición y se excluye la versión de destinos de notas. Los enlaces antiguos de autoría de una versión publicada llevan al repaso. Si falla la recarga del catálogo después de la confirmación, se conserva localmente el estado publicado confirmado y se muestra el error de conexión.
+- Revisión manual en copia aislada 4174: estado en catálogo/ficha/autoría/repaso, cancelación y foco, finalización real persistida tras recarga, ausencia en recientes y lista completa del «+», nota local pendiente, versión vacía y enlace antiguo de autoría. Móvil 320 px y escritorio, sin desbordamiento. Sintaxis/build/diff correctos; sin añadir ni ejecutar la suite. Pendiente de publicación.

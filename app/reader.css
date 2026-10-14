@@ -434,3 +434,14 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .settings-modal .segmented-selector{display:flex;width:100%}
 .settings-modal .segmented-selector>button{font-size:13px}
 @media(max-width:520px){.segmented-selector>button,.segmented-selector>label>span{padding:var(--segmented-padding-block) 10px}}
+
+/* Creation status is independent of each reader's practice progress. */
+.deck-writing-status{margin-top:14px;display:flex;align-items:flex-start;flex-direction:column;gap:5px}
+.deck-writing-badge{display:inline-flex;align-items:center;max-width:100%;padding:4px 9px;border:1px dashed #a3b494;border-radius:9px;background:var(--control-surface);color:var(--forest);font-size:11px;font-weight:750;line-height:1.4}
+.deck-writing-badge--finished{border-style:solid;border-color:#c3d1b6}
+.deck-writing-status>p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
+.deck-writing-status--compact{margin-top:8px}.deck-writing-status--compact .deck-writing-badge{padding:3px 7px;font-size:10px}
+.finish-deck-action{color:var(--muted);font-size:12px}.finish-deck-action:disabled{opacity:.5;cursor:default}
+.finish-deck-hint{margin:-14px 0 24px;color:var(--muted);font-size:12px;line-height:1.5}
+.deck-completion-warning{margin:16px 0 22px;line-height:1.6;font-size:15px;color:var(--ink)}
+.deck-completion-modal .form-actions{gap:12px;align-items:center}.deck-completion-modal .form-actions .primary{font-size:13px;max-width:70%;white-space:normal;line-height:1.35}

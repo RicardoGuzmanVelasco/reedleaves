@@ -313,6 +313,24 @@ export function accountView(s) {
     ${s.hasLocalProgress ? `<p class="legacy-progress-note">${c.localProgressNote}</p>` : ""}</section>`;
 }
 
+function deckStatusMarkup(s,version,{compact=false}={}) {
+  if (!["draft","published"].includes(version.status)) return "";
+  const c=words[s.language],inProgress=version.status === "draft";
+  return `<${compact ? "span" : "div"} class="deck-writing-status${compact ? " deck-writing-status--compact" : ""}"><span class="deck-writing-badge${inProgress ? "" : " deck-writing-badge--finished"}">${inProgress ? c.deckInProgress : c.deckFinished}</span>${inProgress && !compact ? `<p>${c.deckMayChange}</p>` : ""}</${compact ? "span" : "div"}>`;
+}
+
+export function deckCompletionView(s) {
+  const c=words[s.language],f=s.deckCompletion,version=s.catalog.versionsById.get(f.versionId);
+  return `<dialog class="deck-modal deck-completion-modal" aria-labelledby="deck-completion-title" aria-describedby="deck-completion-warning"><article class="deck-card">
+    <h2 id="deck-completion-title">${c.finishDeckTitle}</h2>
+    <p class="note-book-context" lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</p>
+    <p id="deck-completion-warning" class="deck-completion-warning">${c.finishDeckWarning}</p>
+    ${s.hasPendingNoteDraft ? `<p class="account-error" role="alert">${c.pendingNoteBeforeFinish}</p>` : ""}
+    ${f.error ? `<p class="account-error" role="alert">${esc(c[f.error] || c.connectionError)}</p>` : ""}
+    <div class="form-actions"><button class="text-button" type="button" data-action="cancel-finish-deck" autofocus>${c.cancel}</button><button class="primary" type="button" data-action="confirm-finish-deck" ${s.hasPendingNoteDraft || f.saving ? "disabled" : ""}>${f.saving ? c.finishingDeck : c.finishDeck}</button></div>
+  </article></dialog>`;
+}
+
 export function deckView(s) {
   const c = words[s.language], book = s.catalog.booksById.get(s.bookId), choices = s.deckChoices;
   const languageName = tag => { try { return new Intl.DisplayNames([s.language],{type:"language"}).of(tag) || tag; } catch { return tag; } };
@@ -330,6 +348,7 @@ export function deckView(s) {
       <h2 ${dialog ? 'id="deck-dialog-title"' : ""} lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h2>
       <p class="deck-creator">${deckCreator(deck,c)}<span class="deck-language" lang="${esc(deck.language)}">${esc(languageName(deck.language))}</span></p>
       <p class="deck-description" ${dialog ? 'id="deck-dialog-description"' : ""} lang="${esc(contentLocale(version.description,s.language,version.language))}" dir="auto">${esc(contentText(version.description,s.language,version.language))}</p>
+      ${deckStatusMarkup(s,version)}
       <p class="deck-size">${c.deckSize(version.cardCount,version.depth)}</p>
       ${metrics.length ? `<p class="deck-metrics">${metrics.map(esc).join(" · ")}</p>` : ""}
       ${started ? `<p class="deck-progress">${c.progress(review.seenIds.length,version.cardCount)}</p>` : ""}
@@ -343,11 +362,12 @@ export function deckView(s) {
     ${!choices.length ? `<div class="empty-state">${c.noDecks}</div>` : `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${choices.map(item => {
       const {deck,version,tags} = item, tag = tags[0] || "otherDeck";
       const reviewing = Math.max(0,deck.metrics.startedBy - deck.metrics.completedBy);
-      return `<button class="deck-tile" type="button" data-action="open-deck" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(contentText(version.title,s.language,version.language))}, ${esc(c.by)} ${esc(deck.creator.name)}, ${esc(c.deckSize(version.cardCount,version.depth))}, ${esc(c.reviewingCount(reviewing))}, ${esc(c[tag])}">
+      return `<button class="deck-tile" type="button" data-action="open-deck" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(contentText(version.title,s.language,version.language))}, ${esc(c.by)} ${esc(deck.creator.name)}, ${esc(c.deckSize(version.cardCount,version.depth))}, ${esc(c.reviewingCount(reviewing))}, ${esc(c[tag])}, ${esc(version.status === "draft" ? c.deckInProgress : c.deckFinished)}">
         <span class="deck-tile-copy"><span class="deck-tile-tag">${esc(c[tag])}</span>
         <strong lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</strong>
         <span class="deck-creator deck-tile-creator">${deckCreator(deck,c)}</span>
         <span class="deck-tile-size">${c.deckSize(version.cardCount,version.depth)}</span>
+        ${deckStatusMarkup(s,version,{compact:true})}
         <span class="deck-tile-reviewing" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><span>${reviewing}</span></span>
         <span class="deck-tile-language" lang="${esc(deck.language)}">${esc(languageName(deck.language))}</span></span></button>`;
     }).join("")}</div>`}
@@ -427,7 +447,7 @@ function albumSummary(s,version,deck,model,review,mascot="") {
   return `<header class="album-heading${mascot ? " album-heading--mascot" : ""}"><div class="album-heading-copy"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>
     <h1 tabindex="-1" lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h1>
     <p class="deck-creator">${deckCreator(deck,c)}</p>
-    <p class="album-meta">${esc(language)}</p></div>${mascot}</header>
+    <p class="album-meta">${esc(language)}</p>${deckStatusMarkup(s,version)}</div>${mascot}</header>
     <div class="album-progress"><div><p>${c.progress(seen,total)}</p><span aria-hidden="true">${percent}%</span></div><progress value="${seen}" max="${Math.max(total,1)}" aria-label="${esc(c.progress(seen,total))}"></progress></div>`;
 }
 
@@ -464,7 +484,8 @@ export function authorView(s) {
   return `<section class="author-screen album-screen"><div class="review-heading"><button type="button" class="text-button" data-action="choose-book">${c.deckBack}</button><button type="button" class="text-button" data-action="select-deck" data-version="${esc(version.id)}" ${!model.cards.length ? "disabled" : ""}>${c.review} →</button></div>
     ${albumSummary(s,version,deck,model,review)}
     ${model.cards.length && review.seenIds.length === model.cards.length ? `<p class="complete-note">${c.complete}</p>` : ""}
-    <div class="author-actions">${button(c.editDeck,"add-content")}</div>
+    <div class="author-actions">${button(c.editDeck,"add-content")}<button class="text-button finish-deck-action" type="button" data-action="finish-deck" ${!model.cards.length || s.hasPendingNoteDraft ? 'disabled aria-describedby="finish-deck-hint"' : ""}>${c.finishDeck}</button></div>
+    ${!model.cards.length || s.hasPendingNoteDraft ? `<p class="finish-deck-hint" id="finish-deck-hint">${s.hasPendingNoteDraft ? c.pendingNoteBeforeFinish : c.emptyDeckCannotFinish}</p>` : ""}
     ${model.cards.length ? `<div class="content-tools deck-content-tools">${deckBrowsingControls(s)}</div>`+deckContentMarkup(s,model,review,version,true) : `<div class="empty-state">${c.emptyAuthor}</div>`}
     ${s.quotesOnly && model.cards.length && !model.cards.some(c=>c.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}${card ? exclusiveCardMarkup(s,card,c.position(model.cards.findIndex(item=>item.id===card.id)+1,model.cards.length)) : ""}</section>`;
 }

@@ -39,6 +39,8 @@ Lectura original y repaso son independientes. Una tarjeta aleatoria no desbloque
 
 ## Datos y código
 
+Las versiones `draft` se presentan como «Baraja en progreso» / «Sus tarjetas podrían cambiar» y las `published` como «Terminada». El propietario puede marcar como terminada una versión no vacía desde autoría, con confirmación explícita e irreversible. La versión queda protegida por los triggers existentes; no se reabre. Con una nota local pendiente se pide guardarla o cancelarla antes de terminar. El endpoint `/api/author/decks/finish` verifica sesión, CSRF, propiedad y contenido, serializa contra añadir tarjetas y admite reintentos. Conserva repasos/saldo. La versión terminada sigue en el catálogo y el repaso, deja de ser destino del «+» y los enlaces antiguos de autoría llevan al repaso. Sin migración.
+
 Crear libro ofrece «Rellenar con IA»: título (autor e idioma original opcionales para la búsqueda), indicador de carga y vista previa. La IA busca fuentes y propone título original, autor, idioma original, títulos completos/cortos, descripciones y notas en español e inglés, intereses del catálogo y enlaces verificados disponibles. La ficha permite consultar traducciones y fuentes; «Editar» conserva el borrador y ofrece los metadatos en controles plegados. Repetir la búsqueda con IA completa huecos sin sustituir valores ya escritos. Solo «Crear libro» persiste la propuesta; cancelar la descarta. La creación manual continúa disponible.
 
 La integración requiere `OPENAI_API_KEY` en el servidor. Ver [configuración](../docs/deployment/render.md). Las pruebas usan un proveedor simulado, sin llamadas de pago. El prompt y el esquema están en `server/book-autofill.mjs`; no se comparte el contexto de esta conversación.

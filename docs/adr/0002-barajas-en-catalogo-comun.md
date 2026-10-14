@@ -31,6 +31,19 @@ repaso y las cuentas siguen aislados por usuario.
 - No se añade un selector de privacidad ni un flujo de publicación.
 - La privacidad y la moderación del contenido permanecen pendientes de diseño.
 
+## Estado de creación — decisión del 14 de octubre de 2026
+
+La interfaz presenta `draft` como **En progreso** y `published` como **Terminada**.
+El creador puede marcar una versión no vacía como terminada mediante confirmación
+explícita; queda congelada por las protecciones existentes y no se puede reabrir.
+Ambos estados conservan la visibilidad compartida de esta decisión. Terminar no
+cambia el progreso de repaso ni las hojas de las cuentas.
+
+Las versiones en progreso muestran «Baraja en progreso» y «Sus tarjetas podrían
+cambiar» antes de elegirlas y en el repaso. Las terminadas dejan de ser destinos
+para añadir notas desde Inicio. Esta acción expresa finalización del contenido;
+no introduce un paso de publicación para hacerlo visible.
+
 ## Evolución pendiente: ampliar una baraja ya repasada
 
 Una baraja compartida puede crecer después de que otras personas la hayan

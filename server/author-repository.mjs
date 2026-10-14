@@ -134,3 +134,19 @@ export async function addCard(db,session,input) {
     return {versionId:version.id,cardId:id};
   });
 }
+
+// Finishing freezes this version. Existing database triggers enforce immutability.
+export async function finishDeck(db,session,input) {
+  if (typeof input.versionId !== "string" || !input.versionId || input.versionId.length > 256) throw new ApiError(400,"invalidRequest");
+  return transaction(db,async()=>{
+    // Shares addCard's version lock: adding a note and finishing cannot race.
+    const version=await db.prepare(`SELECT v.*,d.creator_user_id FROM deck_versions v JOIN decks d ON d.id=v.deck_id WHERE v.id=?${isPostgres(db) ? " FOR UPDATE OF v" : ""}`).get(input.versionId);
+    if (!version || version.creator_user_id !== session.user_id) throw new ApiError(404,"deckUnavailable");
+    if (version.status === "published") return {versionId:version.id,status:"published"};
+    if (version.status !== "draft") throw new ApiError(409,"deckReadOnly");
+    const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE version_id=?").get(version.id);
+    if (!total) throw new ApiError(409,"emptyDeckCannotFinish");
+    await db.prepare("UPDATE deck_versions SET status='published' WHERE id=? AND status='draft'").run(version.id);
+    return {versionId:version.id,status:"published"};
+  });
+}
