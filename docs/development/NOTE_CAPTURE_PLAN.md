@@ -36,7 +36,7 @@ Desde Inicio con el libro visible: una pulsación hasta el editor. Desde fuera d
 
 ### Indicados por el usuario
 
-- Más de una baraja propia en progreso para el libro: implementado en local con popover de accesos recientes y «Ver todas»; pendiente de revisión y publicación.
+- Más de una baraja propia en progreso para el libro: implementado con popover de accesos recientes y «Ver todas»; publicación aprobada.
 - La baraja no está en progreso: definir el estado de escritura cerrado y qué ocurre al intentar añadir contenido.
 - El usuario quiere una cita: implementado en local con selector Idea / Cita dentro del editor; publicación aprobada.
 
@@ -83,7 +83,7 @@ Revisión manual en copia aislada (4174): ida/vuelta Idea–Cita conserva el bor
 
 - Ajuste visual posterior: selector compartido de 34 px e iconos de 14 px. Idea/Cita ajusta el ancho a su contenido; comparte medidas con vista/filtro de baraja y ajustes. Slider de columnas conserva la alineación con la misma altura.
 
-## Segundo escenario alternativo: varias barajas — local
+## Segundo escenario alternativo: varias barajas — publicación aprobada
 
 - Popover anclado al «+», con los títulos de las dos barajas propias editables donde el usuario añadió notas más recientemente y «Ver todas» abajo. Sin pantalla intermedia ni selección arbitraria.
 - Los accesos requieren fecha de nota conocida. Barajas sin notas y notas históricas sin fecha siguen accesibles en la lista completa. La actividad de cualquier versión de la baraja determina su recencia; se ofrece una sola entrada reciente por baraja.
@@ -91,4 +91,4 @@ Revisión manual en copia aislada (4174): ida/vuelta Idea–Cita conserva el bor
 - Al elegir se fija el destino, se abre una idea en nivel principal y se muestra el nombre de la baraja. Idea/Cita comparten el editor; guardar o cancelar vuelve a Inicio. Escape/toque fuera cierra el popover y devuelve el foco al «+».
 - Dos pulsaciones desde Inicio para empezar a escribir en un destino reciente (frente a una con un único destino). La lista completa añade una pulsación. Guardar sigue siendo explícito.
 - La fecha por baraja se añade al estado privado de la cuenta, manteniendo el orden por libro. Se reutiliza created_at e índice existente, sin migración. Guardar una nota actualiza ambas recencias; votar, guardar tarjetas ajenas o repasar no cuentan.
-- Revisado manualmente en copia aislada: destinos reales, lista completa, orden después de guardar/recargar, privacidad, cierre/foco y tamaños de pantalla. Pendiente de producción.
+- Revisado manualmente en copia aislada: destinos reales, lista completa, orden después de guardar/recargar, privacidad, cierre/foco y tamaños de pantalla. Publicación aprobada.
