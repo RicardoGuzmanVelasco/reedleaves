@@ -4,7 +4,7 @@ import {restorePreferences, changeSource} from "./rhythm.mjs";
 import {featuredDecks, restoreTreeReview, bookReviewStates, studyingDecks} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=feedback-modal";
+import {words} from "./i18n.mjs?v=growth-row";
 import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,profileView,profilePendingView,loadingView,accountView,escapeHtml} from "./views.mjs?v=mascot-empty-milestones";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
