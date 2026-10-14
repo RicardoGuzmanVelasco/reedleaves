@@ -72,3 +72,11 @@ Este incremento reutiliza el editor actual. No incluye un nuevo ciclo de vida de
 5. Vuelve a Inicio, con el libro primero. Cancelar regresa sin crear tarjetas. Cada nota nueva vuelve a comenzar como Idea.
 
 Revisión manual en copia aislada (4174): ida/vuelta Idea–Cita conserva el borrador; guardado de cita sin título en la versión correcta, como cita sin clasificar; fecha y orden de Inicio actualizados, sin gasto de hojas. Validación de texto vacío con mensaje específico y borrador conservado. Selector con teclado y tamaños 320/1280 px, sin desbordamiento. Sintaxis y build correctos; sin ejecutar la suite. Publicación pendiente.
+
+## Editor compartido con autoría de barajas — local
+
+- Una única acción «Añadir contenido» sustituye a las dos acciones separadas de tarjeta/cita en la baraja.
+- Reutiliza el mismo formulario y selector Idea / Cita de Inicio. El destino queda fijado al abrir también en autoría; cambiar el tipo conserva texto, título y relación elegida.
+- El origen determina el regreso: Inicio → Inicio; baraja → misma baraja. Cancelar en autoría devuelve el foco al botón común.
+- La validación de idea/cita es común. Crear libro y baraja conservan sus formularios propios.
+- Revisado manualmente en la base de demostración; pendiente de publicación.
