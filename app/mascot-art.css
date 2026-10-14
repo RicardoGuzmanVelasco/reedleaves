@@ -1,10 +1,10 @@
-/* The ground keeps a shared center, baseline, height and color. Its width can
-   vary by stage; body placement and motion never affect it. */
-.mascot-art{--mascot-x:0%;--mascot-y:0%;--mascot-scale:1;--mascot-shadow-width:72%;position:relative;display:inline-block;isolation:isolate;width:100px;height:100px;aspect-ratio:1;vertical-align:middle;flex:none;pointer-events:none}
-.mascot-art::before{content:"";position:absolute;z-index:0;left:calc((100% - var(--mascot-shadow-width)) / 2);top:79.807692%;width:var(--mascot-shadow-width);height:15.384615%;border-radius:50%;background:rgb(30 76 46 / 16%)}
+/* Ground calibration stays independent of placement. Only its width responds
+   to idle motion, using the body's duration and easing. */
+.mascot-art{--mascot-x:0%;--mascot-y:0%;--mascot-scale:1;--mascot-shadow-width:72%;--mascot-idle-duration:1800ms;--mascot-idle-easing:ease-in-out;position:relative;display:inline-block;isolation:isolate;width:100px;height:100px;aspect-ratio:1;vertical-align:middle;flex:none;pointer-events:none}
+.mascot-art::before{content:"";position:absolute;z-index:0;left:calc((100% - var(--mascot-shadow-width)) / 2);top:79.807692%;width:var(--mascot-shadow-width);height:15.384615%;border-radius:50%;background:rgb(30 76 46 / 16%);transform-origin:center;animation:mascot-shadow-hop var(--mascot-idle-duration) var(--mascot-idle-easing) infinite}
 .mascot-art-placement,.mascot-art-motion{position:absolute;inset:0;display:block}
 .mascot-art-placement{z-index:1;transform:translate(var(--mascot-x),var(--mascot-y)) scale(var(--mascot-scale));transform-origin:50% 50%}
-.mascot-art-motion{transform-origin:50% 88%;transition:transform .15s ease}
+.mascot-art-motion{transform-origin:50% 88%;transition:transform .15s ease;animation:mascot-art-hop var(--mascot-idle-duration) var(--mascot-idle-easing) infinite}
 .mascot-art img{display:block;width:100%;height:100%;margin:0;object-fit:contain;user-select:none}
 /* Artwork calibration, shared by every surface. Seed, Sprout (seedling ID) and Seedling (sprout ID) float. */
 .mascot-art[data-mascot="pot"]{--mascot-y:5%;--mascot-scale:.88;--mascot-shadow-width:68.5%}
@@ -12,10 +12,17 @@
 .mascot-art[data-mascot="root"]{--mascot-x:3.5%;--mascot-y:-6.5%;--mascot-scale:.88}
 .mascot-art[data-mascot="seedling"]{--mascot-y:-13%;--mascot-scale:.9;--mascot-shadow-width:34%}
 .mascot-art[data-mascot="sprout"]{--mascot-y:-8%;--mascot-shadow-width:65%}
-.mascot-art.is-greeting .mascot-art-motion{animation:mascot-art-greet 600ms ease-in-out}
-/* Translation has one apex. Implicit rotation endpoints preserve the hover pose. */
-@keyframes mascot-art-greet{0%,100%{translate:0 0}35%{transform:rotate(-7deg)}50%{translate:0 -8%}70%{transform:rotate(6deg)}}
-@media(prefers-reduced-motion:reduce){.mascot-art-motion{animation:none!important;transition:none!important}}
+.mascot-art[data-idle="float"]{--mascot-idle-duration:2800ms}
+.mascot-art[data-idle="float"] .mascot-art-motion{animation-name:mascot-art-float}
+.mascot-art[data-idle="float"]::before{animation-name:mascot-shadow-float}
+.mascot-art.is-idle-reset .mascot-art-motion,.mascot-art.is-idle-reset::before{animation:none}
+/* The former 600 ms greeting is now a hop, followed by a 1200 ms rest.
+   Independent translate/rotate keep hover transforms and calibration intact. */
+@keyframes mascot-art-hop{0%,33.333333%,100%{translate:0 0;rotate:0deg}11.666667%{rotate:-7deg}16.666667%{translate:0 -8%}23.333333%{rotate:6deg}}
+@keyframes mascot-shadow-hop{0%,33.333333%,100%{transform:scaleX(1)}16.666667%{transform:scaleX(.78)}}
+@keyframes mascot-art-float{0%,100%{translate:0 0}50%{translate:0 -4%}}
+@keyframes mascot-shadow-float{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.82)}}
+@media(prefers-reduced-motion:reduce){.mascot-art-motion,.mascot-art::before{animation:none!important;transition:none!important}}
 
 /* Face placement is an SVG transform. Only the inner eye groups express emotion. */
 .mascot-face{position:absolute;inset:0;display:block;width:100%;height:100%;overflow:visible;pointer-events:none}

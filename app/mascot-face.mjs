@@ -81,7 +81,7 @@ export function mascotFace(stage, expression = "neutral", mouth = mascotMouthCon
 const expressionMotion = Object.freeze({
   "wink-left":"is-winking-left", "wink-right":"is-winking-right", blink:"is-blinking"
 });
-// Restart the eye gesture without cancelling a simultaneous body greeting.
+// Restart the eye gesture without cancelling the body's idle loop.
 export function playMascotExpression(art, expression = "wink-right") {
   if (!Object.hasOwn(expressionMotion,expression) || !art?.querySelector(".mascot-face")) return false;
   art.classList.remove(...Object.values(expressionMotion));

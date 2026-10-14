@@ -8,7 +8,7 @@ Comparación local de las cinco mascotas disponibles. La cara común se ha integ
 
 Prompt usado (fondo transparente): “Precise object edit for a quick mascot face study. REMOVE ONLY THE EXISTING TWO DARK GREEN EYES AND THE SMALL DARK GREEN SMILING MOUTH. Seamlessly fill those three tiny areas with the surrounding tan body gradient/shading, so the character is completely faceless. Keep every other part unchanged: exact root silhouette and branches, pose, tan colors and gradients, two green leaves, orientation, square canvas framing and margins. Preserve actual background alpha transparency. Do not draw any new eyes or mouth; those will be overlaid from an exact shared SVG later. Do not redraw or simplify the body. Do not add any ground shadow, background, speckles, colored artifacts or text.”
 
-Revisar Actual / Cara de la plántula a tamaño grande y pequeño, y el saludo. La columna Cara común usa el componente real de la web; Guiñar y Parpadear permiten comprobar las capas de ojos.
+Revisar Actual / Cara de la plántula a tamaño grande y pequeño, y el idle en bucle. La columna Cara común usa el componente real de la web; Guiñar y Parpadear permiten comprobar las capas de ojos.
 
 ## Revisión visual
 

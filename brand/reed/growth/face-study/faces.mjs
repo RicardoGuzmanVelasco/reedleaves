@@ -1,4 +1,4 @@
-import {mascotArt} from "/app/mascot-art.mjs?v=mascot-icon-image";
+import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=mascot-idle-loop";
 import {playMascotExpression} from "/app/mascot-face.mjs?v=pot-a-original";
 const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Brote"],["sprout","Plántula · Referencia"]];
 const originals = {
@@ -15,14 +15,7 @@ function original(stage) {
   return template.innerHTML;
 }
 document.getElementById("face-trials").innerHTML=stages.map(([stage,name])=>`<section class="face-trial"><h2>${name}</h2><div class="face-pair"><figure><figcaption>Anterior</figcaption>${original(stage)}</figure><figure><figcaption>Cara común</figcaption>${mascotArt(stage)}</figure></div><div class="face-pair face-pair--small"><figure>${original(stage)}</figure><figure>${mascotArt(stage)}</figure></div></section>`).join("");
-function play(className) {
-  for(const art of document.querySelectorAll(".mascot-art")) {
-    art.classList.remove(className);
-    void art.offsetWidth;
-    art.classList.add(className);
-  }
-}
-document.getElementById("greet-all").addEventListener("click",()=>play("is-greeting"));
+document.getElementById("restart-idle").addEventListener("click",()=>document.querySelectorAll(".mascot-art").forEach(restartMascotIdle));
 for (const [id,expression] of [["wink-all","wink-right"],["blink-all","blink"]]) {
   document.getElementById(id).addEventListener("click",()=>{
     for (const art of document.querySelectorAll(".mascot-art")) playMascotExpression(art,expression);

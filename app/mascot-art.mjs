@@ -13,14 +13,23 @@ export const mascotAssets = Object.freeze({
   flower: "/brand/reed/growth/flower.svg",
   infinity: "/brand/reed/growth/infinity.svg"
 });
+// New stages hop by default. The historical seedling/sprout IDs name Sprout/Seedling.
+export const mascotIdlePatterns = Object.freeze({seed:"float",seedling:"float",sprout:"float"});
 const escapeAttribute = value => String(value).replace(/[&<>"']/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character]));
 
 export function mascotArt(stage, className = "", {expression = "neutral", mouth, face, variant = "mascot"} = {}) {
   if (variant === "icon") return mascotIcon(stage,className);
   const id = Object.hasOwn(mascotAssets, stage) ? stage : "mystery";
-  return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}" aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${mascotAssets[id]}" width="160" height="160" alt="" draggable="false">${mascotFace(id,expression,mouth,face)}</span></span></span>`;
+  const idle = mascotIdlePatterns[id] ?? "hop";
+  return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}" data-idle="${idle}" aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${mascotAssets[id]}" width="160" height="160" alt="" draggable="false">${mascotFace(id,expression,mouth,face)}</span></span></span>`;
 }
 
+// Restart body and ground together in the preview tools without touching eye gestures.
+export function restartMascotIdle(art) {
+  art.classList.add("is-idle-reset");
+  void art.offsetWidth;
+  art.classList.remove("is-idle-reset");
+}
 
 // Icons display the body image directly; character calibration belongs to mascotArt.
 export function mascotIcon(stage, className = "") {

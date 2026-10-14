@@ -1,11 +1,11 @@
 # Editor interno de calibración de mascotas
 
-`index.html` permite elegir una mascota y ajustar sus trece parámetros, con vistas a 160, 100, 60 y 32 px. Reutiliza el componente real, su sombra independiente, saludo, guiño y variante de icono. Mostrar marcos ayuda a evaluar el encuadre. El modo de icono muestra directamente la imagen del cuerpo, con el tamaño de cada vista previa. Desactiva todos los controles de calibración y los gestos: el icono no hereda la colocación del personaje.
+`index.html` permite elegir una mascota y ajustar sus trece parámetros, con vistas a 160, 100, 60 y 32 px. Reutiliza el componente real, su sombra independiente, idle en bucle, guiño y variante de icono. Mostrar marcos ayuda a evaluar el encuadre. El modo de icono muestra directamente la imagen del cuerpo, con el tamaño de cada vista previa. Desactiva todos los controles de calibración y los gestos: el icono no hereda la colocación del personaje.
 
 ## Parámetros y fuentes
 
 - Personaje: x/y en porcentaje del marco y escala uniforme. Los valores iniciales se leen de las variables CSS del componente real, sin una segunda tabla.
-- Sombra: anchura en porcentaje del marco (10–100%, valor común actual 72%). Mantiene centro, altura, posición vertical, color y transparencia; no sigue al cuerpo ni al saludo. Se lee de `--mascot-shadow-width` y puede tener una excepción en CSS por mascota.
+- Sombra: anchura en porcentaje del marco (10–100%, valor común actual 72%). Mantiene centro, altura, posición vertical, color y transparencia; no se desplaza con el cuerpo; solo su anchura se anima de forma sincronizada con el idle. Se lee de `--mascot-shadow-width` y puede tener una excepción en CSS por mascota.
 - Cara y boca: anchura de boca, x/y de la cara en el marco de 160, giro en grados y escala uniforme. Sus valores proceden de `mascot-face.mjs`.
 - Cada ojo: x/y locales desde los centros canónicos, antes del giro y la escala facial. Los ajustes de la raíz y la semilla elegidos por el usuario siguen siendo los valores actuales de partida.
 
