@@ -7,8 +7,8 @@ import { Pool, types } from "pg";
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 16;
-export const POSTGRES_SCHEMA_VERSION = 8;
+export const SQLITE_SCHEMA_VERSION = 17;
+export const POSTGRES_SCHEMA_VERSION = 9;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -81,6 +81,23 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 16) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE IF NOT EXISTS feedback_submissions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        username TEXT NOT NULL,
+        message TEXT NOT NULL CHECK(length(trim(message)) BETWEEN 1 AND 5000),
+        page TEXT NOT NULL CHECK(length(page) BETWEEN 1 AND 512),
+        language TEXT NOT NULL CHECK(language IN ('es','en')),
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      ) STRICT;
+      CREATE INDEX IF NOT EXISTS feedback_by_date ON feedback_submissions(created_at DESC);
+      PRAGMA user_version=17; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return;
+  }
   if (version === 15) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -175,6 +192,24 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 8) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 9) return;
+          await db.exec(`CREATE TABLE IF NOT EXISTS feedback_submissions (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            username TEXT NOT NULL,
+            message TEXT NOT NULL CHECK(length(btrim(message)) BETWEEN 1 AND 5000),
+            page TEXT NOT NULL CHECK(length(page) BETWEEN 1 AND 512),
+            language TEXT NOT NULL CHECK(language IN ('es','en')),
+            created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+          ); CREATE INDEX IF NOT EXISTS feedback_by_date ON feedback_submissions(created_at DESC);
+          ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+          UPDATE reed_schema SET version=9; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=9);`);
+        });
+        return;
+      }
       if (version?.version === 7) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");

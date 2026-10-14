@@ -108,6 +108,7 @@
 .daily-screen>.text-button{margin-bottom:14px}.daily-screen .screen-heading h1{font-size:28px}
 .settings-modal{width:min(360px,calc(100% - 32px));max-height:85dvh;overflow:auto;padding:23px;border:2px solid var(--sage);border-radius:26px;background:var(--paper);color:var(--ink);box-shadow:0 6px 0 var(--shadow),0 20px 60px rgb(23 61 44 / 25%)}
 .settings-modal::backdrop{background:rgb(23 61 44 / 45%);backdrop-filter:blur(3px)}
+.feedback-modal{width:min(460px,calc(100% - 32px))}.feedback-modal form{display:grid;gap:11px}.feedback-modal label{font-size:12px;font-weight:800}.feedback-modal textarea{font:inherit;line-height:1.55;min-height:150px;width:100%;padding:12px 14px;border:1.5px solid var(--sage);border-radius:13px;background:#fffdf6;resize:vertical}.feedback-modal textarea:focus-visible{outline:3px solid #8b541e;outline-offset:4px}.feedback-modal .primary{width:100%}.settings-modal>#open-feedback{margin-top:14px}
 .settings-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:22px}.settings-heading h2{font-size:25px}
 .settings-modal>p{font-size:12px;font-weight:800;margin-bottom:10px}
 .idea-card h1{scroll-margin-top:105px}

@@ -1,3 +1,4 @@
+import {randomUUID} from "node:crypto";
 import {authenticate, readSession, revokeSession, checkCsrf, sessionCookie} from "./auth.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {ApiError} from "./errors.mjs";
@@ -37,6 +38,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
       ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],
       ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/cards",["POST"]]]);
+    routes.set("/api/feedback",["POST"]);
     const profileMatch=path.match(/^\/api\/profiles\/([^/]+)$/);
     const cardVotesMatch=path.match(/^\/api\/cards\/([^/]+)\/votes$/);
     const cardActionsMatch=path.match(/^\/api\/cards\/([^/]+)\/actions$/);
@@ -78,12 +80,22 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         response.setHeader("Set-Cookie",sessionCookie("",secureCookies,true)); send(200,inviteCode === undefined ? {user:null} : {user:null,inviteRequired:true}); return true;
       }
       if (path === "/api/reader/state") { send(200,await readReaderState(db,session,time)); return true; }
-      const input = await readBody(request,path.startsWith("/api/author/books") ? 65536 : path.startsWith("/api/author/") ? 32768 : 8192);
+      const input = await readBody(request,path === "/api/feedback" ? 24576 : path.startsWith("/api/author/books") ? 65536 : path.startsWith("/api/author/") ? 32768 : 8192);
       // Re-check after awaiting the body: a concurrent logout/expiry must revoke writes.
       const active = await readSession(db,request,now());
       if (!active) throw new ApiError(401,"signInRequired");
       checkCsrf(active,request.headers["x-csrf-token"]);
       const currentTime = now();
+      if (path === "/api/feedback") {
+        const message=typeof input.message === "string" ? input.message.trim() : "",page=input.page;
+        if (!message || message.length > 5000 || typeof page !== "string" || !/^\/[A-Za-z0-9/_%.-]*(?:#[A-Za-z0-9/_%.-]*)?$/.test(page) || page.length > 512 || !["es","en"].includes(input.language)) throw new ApiError(400,"invalidFeedback");
+        const account=await db.prepare("SELECT username FROM accounts WHERE user_id=?").get(active.user_id);
+        if (!account) throw new ApiError(401,"signInRequired");
+        const id=randomUUID();
+        await db.prepare("INSERT INTO feedback_submissions(id,user_id,username,message,page,language) VALUES (?,?,?,?,?,?)")
+          .run(id,active.user_id,account.username,message,page,input.language);
+        send(200,{saved:true,id}); return true;
+      }
       if (path === "/api/reader/view") { send(200,await recordCardView(db,active,input,currentTime)); return true; }
       if (path === "/api/cards/vote") { send(200,await setCardVote(db,active,input)); return true; }
       if (path === "/api/cards/save") { send(200,await setCardSave(db,active,input,currentTime)); return true; }

@@ -275,6 +275,17 @@ CREATE TABLE daily_ideas (
   PRIMARY KEY(user_id,local_day)
 ) STRICT;
 
+CREATE TABLE feedback_submissions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  username TEXT NOT NULL,
+  message TEXT NOT NULL CHECK(length(trim(message)) BETWEEN 1 AND 5000),
+  page TEXT NOT NULL CHECK(length(page) BETWEEN 1 AND 512),
+  language TEXT NOT NULL CHECK(language IN ('es','en')),
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+) STRICT;
+CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
+
 CREATE TRIGGER check_unlock_path BEFORE INSERT ON review_unlocks BEGIN
   SELECT RAISE(ABORT,'Parent card is locked') WHERE EXISTS (
     SELECT 1 FROM cards c WHERE c.id = NEW.card_id AND c.version_id = NEW.version_id
@@ -353,4 +364,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 16;
+PRAGMA user_version = 17;
