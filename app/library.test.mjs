@@ -12,7 +12,7 @@ async function state() {
   let catalog;
   try { initializeDatabase(db); await seedCatalog(db); catalog = prepareCatalog(await readCatalog(db)); }
   finally { await db.close(); }
-  return {catalog,language:"es",statuses:{"seven-habits":"read"},bookReviews:{"seven-habits":{hasReviewing:true,hasReviewed:true}},reviews:{},openBookId:null,storageAvailable:true,budget:{balance:2,lastAccrualDay:"2026-10-06"}};
+  return {catalog,language:"es",statuses:{"seven-habits":"read"},bookReviews:{"seven-habits":{hasReviewing:true,hasReviewed:true}},reviews:{},openBookId:null,storageAvailable:true,userId:"reader",budget:{balance:2,lastAccrualDay:"2026-10-06"}};
 }
 
 test("Add book lists the whole catalog as closed books, with essential data and no forms or deck content", async () => {
@@ -28,18 +28,24 @@ test("Add book lists the whole catalog as closed books, with essential data and 
   assert.deepEqual(s.budget,before);
 });
 
-test("A book modal has full title, author, description, interests, deck languages and independent reading status", async () => {
-  const s = {...await state(),openBookId:"seven-habits"}, book = s.catalog.booksById.get(s.openBookId), html = libraryView(s);
-  assert.match(html,/<dialog class="deck-modal book-modal"/);
-  assert.match(html,/Crecimiento personal/); assert.match(html,/Productividad/);
-  assert.ok(html.includes(book.title.es)); assert.ok(html.includes(book.description.es));
-  assert.match(html,/aria-labelledby="book-dialog-title"/); assert.match(html,/aria-describedby="book-dialog-description"/);
-  assert.equal((html.match(/data-book-status=/g) || []).length,1);
-  assert.match(html,/value="read" selected/); assert.match(html,/Repasando · Repasado/);
-  assert.match(html,/español · inglés/); assert.match(html,/Ver barajas/);
-  assert.match(html,/data-action="open-book" data-book="seven-habits"/);
+test("A book modal shows metadata, three reading choices and one explicit deck action", async () => {
+  const s = {...await state(),openBookId:"seven-habits"}, book = s.catalog.booksById.get(s.openBookId);
+  const html = libraryView(s), modal = html.match(/<dialog\b[\s\S]*?<\/dialog>/)[0];
+  assert.ok(modal.includes(book.title.es)); assert.ok(modal.includes(book.description.es));
+  assert.match(modal,/Crecimiento personal/); assert.match(modal,/Productividad/);
+  assert.match(modal,/aria-labelledby="book-dialog-title"/); assert.match(modal,/aria-describedby="book-dialog-description"/);
+  const controls=[...modal.matchAll(/<button[^>]*data-action="set-book-reading"[^>]*>/g)].map(match=>match[0]);
+  assert.equal(controls.length,3);
+  for (const [index,status] of ["unread","reading","read"].entries()) {
+    assert.ok(controls[index].includes(`data-status="${status}"`));
+    assert.ok(controls[index].includes(`aria-pressed="${status === "read"}"`));
+    assert.doesNotMatch(controls[index],/disabled/);
+  }
+  assert.match(modal,/data-action="open-book" data-book="seven-habits"[^>]*>Ver barajas · 2<\/button>/);
   assert.doesNotMatch(libraryView({...s,openBookId:"missing"}),/<dialog/);
-  assert.match(libraryView({...s,storageAvailable:false}),/data-book-status="seven-habits" disabled/);
+  const unavailable=libraryView({...s,storageAvailable:false});
+  const disabled=[...unavailable.matchAll(/<button[^>]*data-action="set-book-reading"[^>]*>/g)];
+  assert.equal(disabled.length,3); assert.ok(disabled.every(([tag])=>tag.includes("disabled")));
 });
 
 test("Book grid and modal translate, escape content and count decks rather than published versions", async () => {
@@ -55,7 +61,7 @@ test("Book grid and modal translate, escape content and count decks rather than 
   assert.match(html,/&lt;script&gt;/); assert.match(html,/&lt;img/);
   const modal = html.slice(html.indexOf('<dialog'));
   assert.doesNotMatch(modal,/2 decks/);
-  assert.match(modal,/English/);
+  assert.match(modal,/data-action="open-book"[^>]*>View decks · 1<\/button>/);
 });
 
 test("Library has an empty state; deck selection can return to the catalog", async () => {

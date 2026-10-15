@@ -1,17 +1,17 @@
+import {historicalDatabase,historicalReader,historicalUnlock,migrationData} from "../test-support/historical-database.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {randomUUID} from "node:crypto";
-import {readFileSync} from "node:fs";
 import {openDatabase,initializeDatabase,PostgresDatabase,SQLITE_SCHEMA_VERSION} from "./database.mjs";
 import {PGlite} from "@electric-sql/pglite";
 import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
-import {createBook,createDeck,addCard,completeBook,ownedBookInformation} from "./author-repository.mjs";
+import {createBook,createDeck,addCard,completeBook,ownedBookInformation,takeFirstNote,finishNoteDecks} from "./author-repository.mjs";
 import {readCatalog,checkCatalog} from "./catalog-repository.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {readReaderState as readReaderStateAtDate,selectDeck,openCard,dailyIdea,changeReading} from "./reader-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
-import {treeFrontier,restoreTreeReview} from "../app/decks.mjs";
+import {treeFrontier,restoreTreeReview,featuredDecks} from "../app/decks.mjs";
 import {authorView,authorFormView,reviewView,dailyView,libraryView,deckView} from "../app/views.mjs";
 import {bookMetadata} from "./fixtures/book-autofill.mjs";
 
@@ -32,6 +32,61 @@ async function fixture(t,dialect) {
   return {db,session,other};
 }
 for (const dialect of ["sqlite","postgres"]) {
+  test(`${dialect}: first note creates one default deck atomically, retries safely and preserves leaves`,async t=>{
+    const {db,session,other}=await fixture(t,dialect);
+    const before=await readReaderState(db,session),counts=await checkCatalog(db);
+    const input={requestId:randomUUID(),bookId:"seven-habits",language:"es",isQuote:false,title:"Una idea",body:"Mi primera nota"};
+    const saved=await takeFirstNote(db,session,input);
+    assert.deepEqual(await takeFirstNote(db,session,input),saved);
+    const catalog=await readCatalog(db),deck=catalog.decks.find(deck=>deck.id===input.requestId);
+    const version=catalog.versions.find(version=>version.id===saved.versionId),card=catalog.cards.find(card=>card.id===saved.cardId);
+    assert.equal(catalog.decks.length,counts.decks+1);assert.equal(catalog.cards.length,counts.cards+1);
+    assert.equal(deck.creator.userId,session.user_id);assert.equal(deck.language,"es");
+    assert.equal(version.title.es,"Notas de lectura");assert.equal(version.status,"draft");
+    assert.equal(card.body.es,input.body);assert.equal(card.parentId,null);
+    const after=await readReaderState(db,session);
+    assert.deepEqual(after.wallet,before.wallet);assert.deepEqual(after.reviews,before.reviews);
+    assert.deepEqual(after.statuses,before.statuses);assert.ok(after.noteActivity[input.bookId]);
+    await assert.rejects(takeFirstNote(db,other,input),{code:"invalidRequest"});
+    await assert.rejects(takeFirstNote(db,session,{...input,body:"Otro texto"}),{code:"invalidRequest"});
+    // Fail the final write, after the deck and card have been inserted.
+    const prepare=db.prepare.bind(db);
+    db.prepare=sql=>sql.startsWith("INSERT INTO card_translations") ? {run:async()=>{throw new Error("simulated storage failure");}} : prepare(sql);
+    try { await assert.rejects(takeFirstNote(db,session,{...input,requestId:randomUUID()}),/simulated storage failure/); }
+    finally { db.prepare=prepare; }
+    assert.deepEqual(await checkCatalog(db),{...counts,decks:counts.decks+1,versions:counts.versions+1,cards:counts.cards+1});
+  });
+
+  test(`${dialect}: notes closure validates the whole batch, preserves ownership and archives empty drafts`,async t=>{
+    const {db,session,other}=await fixture(t,dialect),bookId="seven-habits";
+    const create=(owner,bookId)=>createDeck(db,owner,{requestId:randomUUID(),bookId,title:"Notas",language:"es"});
+    const full=await create(session,bookId),empty=await create(session,bookId),foreign=await create(other,bookId),differentBook=await create(session,"atomic-habits");
+    const note={requestId:randomUUID(),versionId:full.versionId,title:"Idea",body:"Texto conservado",isQuote:false,parentId:null};
+    await addCard(db,session,note);
+    const before=await readReaderState(db,session),drafts=await db.prepare("SELECT id,status FROM deck_versions ORDER BY id").all();
+    const versions=[{versionId:full.versionId,cardCount:1},{versionId:empty.versionId,cardCount:0}];
+    for (const [rows,code] of [
+      [[versions[0],{...versions[1],cardCount:1}],"noteDecksChanged"],
+      [[versions[0],{versionId:foreign.versionId,cardCount:0}],"deckUnavailable"],
+      [[versions[0],{versionId:differentBook.versionId,cardCount:0}],"deckUnavailable"],
+      [[versions[0],versions[0]],"invalidRequest"]
+    ]) {
+      await assert.rejects(finishNoteDecks(db,session,{bookId,versions:rows}),{code});
+      assert.deepEqual(await db.prepare("SELECT id,status FROM deck_versions ORDER BY id").all(),drafts);
+    }
+    const finished=await finishNoteDecks(db,session,{bookId,versions});
+    assert.deepEqual(await finishNoteDecks(db,session,{bookId,versions}),finished);
+    const catalog=prepareCatalog(await readCatalog(db));
+    assert.equal(catalog.versionsById.get(full.versionId).status,"published");
+    assert.equal(catalog.versionsById.get(empty.versionId).status,"archived");
+    assert.equal(catalog.versionsById.get(foreign.versionId).status,"draft");
+    assert.equal(catalog.cardsById.get(note.requestId).body.es,note.body);
+    assert.ok(!featuredDecks(catalog,bookId).some(choice=>choice.version.id===empty.versionId));
+    await assert.rejects(addCard(db,session,{...note,requestId:randomUUID()}),{code:"deckReadOnly"});
+    const after=await readReaderState(db,session);
+    assert.deepEqual(after.wallet,before.wallet);assert.deepEqual(after.reviews,before.reviews);assert.deepEqual(after.statuses,before.statuses);
+  });
+
   test(`${dialect}: complete an existing book without duplicates, identity changes or loss of decks and review progress`,async t=>{
     const {db,session,other}=await fixture(t,dialect);
     const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:bookMetadata.originalTitle,author:"Autor ya escrito",language:"en"});
@@ -237,17 +292,11 @@ for (const dialect of ["sqlite","postgres"]) {
 }
 
 test("SQLite upgrade from v9 preserves content, accounts and progress and runs once",async t=>{
-  const db=openDatabase(":memory:");t.after(()=>db.close());
-  const old=readFileSync(new URL("./schema.sql",import.meta.url),"utf8").replace('  is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),\n','').replace('      AND (c.parent_id IS NOT NULL OR sibling.is_quote = c.is_quote)\n','').replace(/user_version = \d+/,'user_version = 9').replace(/CREATE TABLE card_votes \([\s\S]*?;\nCREATE INDEX votes_by_card ON card_votes\(card_id,value\);\n/, '').replace(/CREATE TABLE reader_display_preferences \([\s\S]*?;\n/, '').replace("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);", "").replace("source_id TEXT,", "source_id TEXT NOT NULL,");
-  db.exec(old);
-  db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
-  await seedCatalog(db);db.exec("ALTER TABLE books DROP COLUMN creator_user_id;");
-  await authenticate(db,"register",{username:"migrate",password:"password long enough"});
-  const session={user_id:db.prepare("SELECT user_id FROM accounts WHERE username='migrate'").get().user_id,csrf_token:"test"};
-  // readCatalog v10 expects the new column; the existing row can still be unlocked directly before migration.
-  db.prepare("INSERT INTO reviews(id,user_id,version_id) VALUES ('old-review',?,'seven-habits-editorial-v1')").run(session.user_id);
-  db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) VALUES ('old-review',?,'seven-habits-editorial-v1','habit-1','2026-10-10')").run(session.user_id);
+  const db=await historicalDatabase(t,"sqlite",9),session=await historicalReader(db);
+  await historicalUnlock(db,session);
+  const before=await migrationData(db);
   await initializeDatabase(db);await initializeDatabase(db);
+  assert.deepEqual(await migrationData(db),before);
   assert.equal((await readCatalog(db)).cards.length,42);
   assert.equal((await readReaderState(db,session)).reviews['seven-habits-editorial-v1'].seenIds[0],'habit-1');
   assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
@@ -255,31 +304,26 @@ test("SQLite upgrade from v9 preserves content, accounts and progress and runs o
 
 for (const dialect of ["sqlite","postgres"]) {
   test(`${dialect}: upgrade the deployed schema without losing quotes, translations or unlocks`,async t=>{
-    const {db,session}=await fixture(t,dialect);
-    const {versionId}=await createDeck(db,session,{requestId:randomUUID(),bookId:"seven-habits",title:"Avant migration",language:"fr"});
-    const {cardId}=await addCard(db,session,{requestId:randomUUID(),versionId,isQuote:true,parentId:null,body:"Citation conservée"});
-    await openCard(db,session,versionId,cardId,new Date("2026-10-10T12:00:00Z"));
-    await db.prepare("UPDATE deck_versions SET status='published' WHERE id=?").run(versionId);
-    const before=await readCatalog(db,session.user_id),state=await readReaderState(db,session);
-    await db.exec("ALTER TABLE books DROP COLUMN creator_user_id;");
-    if (dialect === "postgres") {
-      await db.exec("DROP TABLE reader_display_preferences; ALTER TABLE cards ALTER COLUMN source_id SET NOT NULL; ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=2; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=2);");
-    } else {
-      // Rebuild just this fixture into the old table definition.
-      const triggers=db.prepare("SELECT name,sql FROM sqlite_master WHERE type='trigger'").all();
-      const indexes=db.prepare("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='cards' AND sql IS NOT NULL").all();
-      db.exec("PRAGMA foreign_keys=OFF;");
-      for (const trigger of triggers) db.exec(`DROP TRIGGER ${trigger.name};`);
-      const schema=readFileSync(new URL("./schema.sql",import.meta.url),"utf8");
-      db.exec(schema.slice(schema.indexOf("CREATE TABLE cards ("),schema.indexOf("CREATE UNIQUE INDEX root_order")).replace("CREATE TABLE cards (","CREATE TABLE cards_old (").replace("source_id TEXT,","source_id TEXT NOT NULL,"));
-      db.exec("INSERT INTO cards_old SELECT * FROM cards; DROP TABLE cards; ALTER TABLE cards_old RENAME TO cards;");
-      for (const index of indexes) db.exec(index.sql);
-      for (const trigger of triggers) db.exec(trigger.sql);
-      db.exec("DROP TABLE reader_display_preferences; PRAGMA user_version=10; PRAGMA foreign_keys=ON;");
-    }
+    const db=await historicalDatabase(t,dialect,dialect === "postgres" ? 2 : 10),session=await historicalReader(db);
+    const sourceId=(await db.prepare("SELECT id FROM sources WHERE book_id='seven-habits' ORDER BY id").get()).id;
+    // v10/v2 quotes required a source. Store one with its translation and a
+    // published version so the upgrade also protects quote type and immutability.
+    const versionId="legacy-quotes-v1",cardId="legacy-quote";
+    await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language) VALUES ('legacy-quotes','seven-habits',?,'fr')").run(session.user_id);
+    await db.exec(`INSERT INTO deck_versions(id,deck_id,book_id,version) VALUES ('legacy-quotes-v1','legacy-quotes','seven-habits',1);
+      INSERT INTO deck_version_translations VALUES ('legacy-quotes-v1','fr','Avant migration','Description','Note');`);
+    await db.prepare("INSERT INTO cards(id,version_id,book_id,parent_id,position,source_id,is_quote) VALUES (? ,?,'seven-habits',NULL,1,?,1)").run(cardId,versionId,sourceId);
+    await db.prepare("INSERT INTO card_translations VALUES (?,'fr','Citation','Citation conservée')").run(cardId);
+    await db.exec("UPDATE deck_versions SET status='published' WHERE id='legacy-quotes-v1';");
+    await historicalUnlock(db,session,{versionId,cardId});
+    const state=await migrationData(db);
     await initializeDatabase(db);await initializeDatabase(db);
-    assert.deepEqual(await readCatalog(db,session.user_id),before);
-    assert.deepEqual(await readReaderState(db,session),state);
+    assert.deepEqual(await migrationData(db),state);
+    const migrated=await readCatalog(db,session.user_id),quote=migrated.cards.find(card=>card.id===cardId);
+    assert.equal(migrated.cards.length,43);assert.equal(quote.isQuote,true);
+    assert.equal(quote.body.fr,"Citation conservée");
+    assert.deepEqual((await readReaderState(db,session)).reviews[versionId].seenIds,[cardId]);
+    assert.equal((await db.prepare("SELECT created_at FROM cards WHERE id=?").get(cardId)).created_at,null);
     await assert.rejects(async()=>db.prepare("UPDATE cards SET position=99 WHERE id=?").run(cardId),/immutable/);
     const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:"Après migration",author:"Auteur",language:"fr"});
     const next=await createDeck(db,session,{requestId:randomUUID(),bookId,title:"Notes",language:"fr"});

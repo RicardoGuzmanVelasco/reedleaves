@@ -30,10 +30,12 @@ test("Profiles translate, escape names, link own versus foreign shelves and show
 test("Foreign shelf shows target reading/review states without mutation controls or private metadata actions",async()=>{
   const catalog=await fixture(),s={catalog,language:"es",readOnly:true,profileData,userId:"other",openBookId:"seven-habits",bookshelfFilters:{reading:"all",review:"all"}};
   const html=bookshelfView(s);
-  assert.match(html,/Solo lectura/);assert.match(html,/value="read" selected/);
+  assert.match(html,/Solo lectura/);assert.match(html,/data-status="read" aria-pressed="true" disabled/);
   assert.match(html,/Repasando/);assert.match(html,/href="#profile\/test-user"/);
-  assert.match(html,/href="#library\/book\/seven-habits"/);
-  assert.doesNotMatch(html,/data-book-status|data-action="(?:library|open-book|complete-book|create-book)"/);
+  assert.match(html,/data-action="open-book" data-book="seven-habits"/);
+  const controls=[...html.matchAll(/<button[^>]*data-action="set-book-reading"[^>]*>/g)];
+  assert.equal(controls.length,3); assert.ok(controls.every(([tag])=>tag.includes("disabled")));
+  assert.doesNotMatch(html,/data-book-status|data-action="(?:library|complete-book|create-book)"/);
   assert.match(bookshelfView({...s,openBookId:null,bookshelfFilters:{reading:"reading",review:"all"}}),/No hay libros con estos filtros/);
 });
 

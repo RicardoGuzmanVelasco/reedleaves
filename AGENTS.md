@@ -9,6 +9,8 @@
 - Las exploraciones en `brand/` son propuestas; no convertirlas en decisiones aprobadas.
 - El primer logo de tarjetas y estrella está descartado.
 - Entorno Node: usar la versión de `.node-version`; al abrir un worktree nuevo, ejecutar `npm ci` si falta `node_modules` antes de iniciar la app o las pruebas.
+- Verificación: antes de cerrar un hito o publicar cambios de código, ejecutar `npm test` completo con la versión de `.node-version` y exigir salida 0. El comando incluye el build. Las pruebas relacionadas sirven durante la iteración; no sustituyen la suite al cerrar. Un fallo previo no se considera aceptado: corregirlo o informar del bloqueo sin declarar la verificación completa.
+- Pruebas: reutilizar `test-support/reader-state.mjs` para estados base de vistas. Comprobar contratos funcionales y accesibles en su contexto, sin fijar envoltorios, SVG o copy incidental. En migraciones, usar esquemas históricos inmutables de `server/fixtures/migrations/`; no construir versiones antiguas mediante reemplazos del SQL actual ni rebajar solo su número de versión.
 - Pruebas de IA: usar proveedores simulados. No hacer llamadas reales a OpenAI para comprobar el autorrelleno salvo petición expresa del usuario; consumen su saldo.
 - Cuando haga falta contexto de avances recientes o estado operativo, leer `docs/development/README.md` y la entrada más reciente del diario. El código y la configuración del repo son la fuente de verdad técnica.
 - Render: usar el workspace **RGV** (`tea-db59i2nlk1mc73978ao0`) para los servicios de este proyecto. La base de producción está en Supabase, no como instancia PostgreSQL de Render.

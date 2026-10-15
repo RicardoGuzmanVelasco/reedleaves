@@ -40,14 +40,14 @@ test("Spanish interface calls review items tarjetas, never cartas", () => {
   assert.equal(words.es.parentCard, "Colocar debajo de (opcional)");
 });
 
-test("English interface uses Practice and avoids review wording", () => {
-  const dynamicSamples = Object.entries(words.en).flatMap(([key, value]) => {
-    if (typeof value !== "function") return [];
-    const args = key === "date" ? [new Date(2026,0,1)] : key === "deckSize" ? [2,2] : key === "progress" || key === "position" ? [2,3] : [2];
-    return [value(...args)];
-  });
-  for (const message of [...Object.values(words.en).filter(value => typeof value === "string"), ...dynamicSamples]) {
-    assert.doesNotMatch(message, /\breview(?:s|ed|ing)?\b/i);
+test("English practice labels use Practice; ordinary instructions may use review", () => {
+  const practiceKeys=["review","reviewed","reviewing","reviewedStatus","notReviewed","reviewStatus","reviewBook","emptyReview",
+    "pendingReviews","completedReviews","reviewedCards","reviewingCount","decksCompleted","decksInProgress","cardsReviewed"];
+  for (const key of practiceKeys) {
+    const value=words.en[key];
+    assert.ok(value,key);
+    const message=typeof value === "function" ? value(2) : value;
+    assert.doesNotMatch(message,/\breview(?:s|ed|ing)?\b/i,key);
   }
   assert.equal(words.en.review, "Practice");
 });
@@ -111,7 +111,7 @@ test("Spanish and English book previews use their separate short and full title 
   assert.match(html, /Personal growth/);
   assert.match(html, /Productivity/);
   assert.match(html, /View decks/);
-  assert.match(html, /Spanish · English/);
+  assert.match(html, /data-action="open-book"[^>]*>View decks · 2<\/button>/);
   assert.doesNotMatch(html, /undefined|Français/);
 });
 

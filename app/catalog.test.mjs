@@ -86,7 +86,7 @@ test("Views show correct book attribution, genres and only unlocked review text"
   assert.match(daily, /Robert T\. Kiyosaki/); assert.match(daily, /genre-finance/); assert.match(daily, /genre-productivity/);
   assert.doesNotMatch(daily,/data-book-status=/);
   assert.doesNotMatch(libraryView(state),/data-book-status=/);
-  assert.equal((libraryView({...state,openBookId:"atomic-habits"}).match(/data-book-status=/g) || []).length, 1);
+  assert.equal((libraryView({...state,openBookId:"atomic-habits"}).match(/data-action="set-book-reading"/g) || []).length, 3);
   assert.doesNotMatch(reviewView(state), /Vuelve tras un fallo/);
   state.budget = { lastUnlockDay: state.today };
   assert.doesNotMatch(reviewView(state), /data-action="advance"/);

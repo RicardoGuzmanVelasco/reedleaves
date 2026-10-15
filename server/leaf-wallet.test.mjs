@@ -1,14 +1,13 @@
+import {historicalDatabase,historicalReader,historicalUnlock,migrationData,migrationNow} from "../test-support/historical-database.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION,POSTGRES_SCHEMA_VERSION} from "./database.mjs";
 import {readLeafWallet,setLeafBalance} from "./leaf-wallet-repository.mjs";
-import {readFileSync} from "node:fs";
-import {seedCatalog} from "./seed.mjs";
 import {readReaderState,openCard} from "./reader-repository.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 
-async function fixture(t,dialect,legacy = false) {
+async function fixture(t,dialect) {
   let db;
   if (dialect === "postgres") {
     const engine = new PGlite();
@@ -19,13 +18,7 @@ async function fixture(t,dialect,legacy = false) {
     db = new PostgresDatabase("",{query,connect:async() => ({query,release() {}}),end:() => engine.close(),on() {}});
   } else db = openDatabase(":memory:");
   t.after(() => db.close());
-  if (legacy) {
-    let schema = readFileSync(new URL(dialect === "postgres" ? "./schema.postgres.sql" : "./schema.sql",import.meta.url),"utf8")
-      .replaceAll("balance BETWEEN 0 AND 9007199254740991","balance BETWEEN 0 AND 3");
-    schema = dialect === "postgres" ? schema.replace(/CHECK\(version = \d+\)/,"CHECK(version = 5)").replace(/reed_schema VALUES \(\d+\)/,"reed_schema VALUES (5)").replace("balance BIGINT NOT NULL","balance INTEGER NOT NULL") :
-      schema.replace(/user_version = \d+/,"user_version = 13").replace("max(leaf_wallets.balance,min(3,leaf_wallets.balance + CAST(julianday(NEW.local_day) - julianday(leaf_wallets.last_accrual_day) AS INTEGER)))","min(3,leaf_wallets.balance + CAST(julianday(NEW.local_day) - julianday(leaf_wallets.last_accrual_day) AS INTEGER))");
-    await db.exec(schema);
-  } else await initializeDatabase(db);
+  await initializeDatabase(db);
   await db.exec("INSERT INTO users(id,display_name) VALUES ('reader','Reader'),('other','Other');");
   await db.prepare("INSERT INTO accounts(user_id,username,password_hash,time_zone,language) VALUES (?,?,?,?,?)")
     .run("reader","reader.name","unused","Europe/Madrid","es");
@@ -68,16 +61,16 @@ for (const dialect of ["sqlite","postgres"]) {
   });
 
   test(`${dialect}: legacy wallet migration preserves catalog, accounts and reviews and permits manual credit`,async t => {
-    const db = await fixture(t,dialect,true);
-    await seedCatalog(db);
-    const now = new Date("2026-10-11T12:00:00Z"), session = {user_id:"reader",csrf_token:"test"}, versionId = "seven-habits-editorial-v1";
-    await setLeafBalance(db,"reader.name",3,now);
-    await openCard(db,session,versionId,"habit-1",now);
-    const before = await readReaderState(db,session,now), catalog = await readCatalog(db);
+    const db=await historicalDatabase(t,dialect,dialect === "postgres" ? 5 : 13),session=await historicalReader(db,"reader");
+    const now=migrationNow,versionId="seven-habits-editorial-v1";
+    await historicalUnlock(db,session);
+    const before=await migrationData(db),catalog=await readCatalog(db);
+    await assert.rejects(async()=>db.prepare("UPDATE leaf_wallets SET balance=100 WHERE user_id='reader'").run(),/CHECK|check/i);
     await initializeDatabase(db);await initializeDatabase(db);
-    assert.deepEqual(await readReaderState(db,session,now),before);
+    assert.deepEqual(await migrationData(db),before);
+    assert.equal((await readReaderState(db,session,now)).wallet.balance,2);
     assert.deepEqual(await readCatalog(db),catalog);
-    await setLeafBalance(db,"reader.name",100,now);
+    await setLeafBalance(db,"reader",100,now);
     const nextDay = new Date("2026-10-12T12:00:00Z");
     const result = await openCard(db,session,versionId,"habit-2",nextDay);
     assert.equal(result.state.wallet.balance,99);

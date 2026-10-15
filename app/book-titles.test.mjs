@@ -14,7 +14,7 @@ async function state() {
     initializeDatabase(db); await seedCatalog(db);
     const catalog=prepareCatalog(await readCatalog(db)),versionId="seven-habits-editorial-v1";
     return {catalog,versionId,bookId:"seven-habits",language:"es",showOriginalTitles:true,
-      statuses:{},bookReviews:{},reviews:{[versionId]:restoreTreeReview({seenIds:["habit-1"]},catalog.versionModels.get(versionId),versionId)},
+      statuses:{"seven-habits":"reading"},bookReviews:{},reviews:{[versionId]:restoreTreeReview({seenIds:["habit-1"]},catalog.versionModels.get(versionId),versionId)},
       enrolledIds:[versionId],storageAvailable:true,budget:{balance:1},preferences:{filters:{},genres:[]},daily:{id:"habit-1"},
       deckChoices:featuredDecks(catalog,"seven-habits")};
   } finally { db.close(); }
@@ -68,7 +68,7 @@ test("The preference applies to catalog, search, home, book detail, decks, album
     const localized={...s,language};
     for (const html of [libraryView({...localized,openBookId:s.bookId}),libraryResultsMarkup({...localized,libraryQuery:"Le titre original"}),
       homeView(localized),deckView(localized),reviewView(localized),reviewView({...localized,requestedId:"habit-1"}),dailyView(localized)]) {
-      assert.match(html,/lang="fr" dir="auto">(?:<a[^>]*>)?Le titre original/);
+      assert.match(html,/lang="fr" dir="auto">Le titre original/);
     }
     assert.ok(dailyView(localized).includes(s.catalog.cardsById.get("habit-1").body.es));
     assert.ok(libraryView({...localized,showOriginalTitles:false}).includes(book.shortTitle[language]));

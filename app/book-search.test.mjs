@@ -8,6 +8,8 @@ import {openDatabase, initializeDatabase} from "../server/database.mjs";
 import {readSeed, seedCatalog, validateSeed} from "../server/seed.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
 
+import {readerState} from "../test-support/reader-state.mjs";
+
 async function fixture() {
   const db = openDatabase(":memory:");
   try { initializeDatabase(db); await seedCatalog(db); return await readCatalog(db); }
@@ -25,7 +27,7 @@ test("One query searches all full and short titles regardless of interface langu
   }
   const catalog = prepareCatalog(data);
   for (const language of ["es","en"]) {
-    const html = libraryResultsMarkup({catalog,language,libraryQuery:"Atomic Habits"});
+    const html = libraryResultsMarkup(readerState(catalog,{language,libraryQuery:"Atomic Habits"}));
     assert.match(html,/data-book="atomic-habits"/);
     assert.ok(html.includes(catalog.booksById.get("atomic-habits").shortTitle[language]));
     assert.equal((html.match(/data-action="open-book-details"/g)||[]).length,1);
@@ -97,7 +99,7 @@ test("Library filters intersect author, interest, deck language and title search
   assert.deepEqual(filterLibrary(catalog,"",{language:"ja"}),[]);
   const genre=catalog.books[0].genres[0];
   assert.ok(filterLibrary(catalog,"",{genre}).every(book=>book.genres.includes(genre)));
-  const html=libraryView({catalog,language:"en",libraryFilters:{author:"Stephen R. Covey"}});
+  const html=libraryView(readerState(catalog,{language:"en",libraryFilters:{author:"Stephen R. Covey"}}));
   assert.match(html,/value="Stephen R. Covey" selected/);
   assert.equal((html.match(/data-action="open-book-details"/g)||[]).length,1);
 });

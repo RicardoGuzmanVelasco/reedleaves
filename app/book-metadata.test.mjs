@@ -4,8 +4,9 @@ import {mergeBookMetadata,normalizeBookMetadata,missingBookInformation} from "./
 import {authorFormView,libraryView,bookshelfView,homeView} from "./views.mjs";
 import {bookMetadata} from "../server/fixtures/book-autofill.mjs";
 import {words} from "./i18n.mjs";
+import {readerState,emptyCatalog} from "../test-support/reader-state.mjs";
 
-const state={language:"es",catalog:{genres:[{id:"personal-growth",name:{es:"Crecimiento personal"}}],versionsById:new Map(),versionModels:new Map()}};
+const state=readerState({...emptyCatalog(),genres:[{id:"personal-growth",name:{es:"Crecimiento personal"}}]});
 test("Existing metadata survives autofill; invalid translations and unsafe links cannot enter the catalog",()=>{
   const current=structuredClone(bookMetadata);current.title.es="Título escrito";current.genres=["productivity"];
   const merged=mergeBookMetadata(current,bookMetadata);

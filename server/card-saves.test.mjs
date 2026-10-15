@@ -1,3 +1,4 @@
+import {historicalDatabase,historicalReader,historicalUnlock,migrationData} from "../test-support/historical-database.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {PGlite} from "@electric-sql/pglite";
@@ -50,12 +51,11 @@ for(const dialect of ['sqlite','postgres']){
   });
 
   test(`${dialect}: upgrade previous schema keeps votes and unlocks, orders saves by date, and reinitializes safely`,async t=>{
-    const {db,a}=await fixture(t,dialect);
-    await openCard(db,a,'seven-habits-editorial-v1','habit-1',now);await setCardVote(db,a,{cardId:'habit-1',value:-1});
-    await db.exec('DROP TABLE card_saves;');
-    if(dialect==='postgres')await db.exec('ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;UPDATE reed_schema SET version=7;ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=7);');
-    else db.exec('PRAGMA user_version=15;');
+    const db=await historicalDatabase(t,dialect,dialect === "postgres" ? 7 : 15),a=await historicalReader(db);
+    await historicalUnlock(db,a);await setCardVote(db,a,{cardId:'habit-1',value:-1});
+    const before=await migrationData(db);
     await initializeDatabase(db);await initializeDatabase(db);
+    assert.deepEqual(await migrationData(db),before);
     const version=dialect==='postgres'?(await db.prepare('SELECT version FROM reed_schema').get()).version:db.prepare('PRAGMA user_version').get().user_version;
     assert.equal(version,dialect==='postgres'?POSTGRES_SCHEMA_VERSION:SQLITE_SCHEMA_VERSION);
     assert.equal((await readCardActions(db,a,'habit-1')).vote,-1);

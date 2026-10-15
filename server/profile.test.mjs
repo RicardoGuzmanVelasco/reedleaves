@@ -1,3 +1,4 @@
+import {historicalDatabase,historicalReader,historicalUnlock,migrationData} from "../test-support/historical-database.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {randomUUID} from "node:crypto";
@@ -91,10 +92,11 @@ test("Author stats include quotes as a subset; shared libraries expose content b
 });
 
 test("SQLite v12 view migration preserves accounts and unlocks, backfills once and is repeatable",async t=>{
-  const {db,a}=await fixture(t);
-  await openCard(db,a,"seven-habits-editorial-v1","habit-1",day(10));
-  db.exec("DROP TABLE card_views; PRAGMA user_version=12;");
+  const db=await historicalDatabase(t,"sqlite",12),a=await historicalReader(db);
+  await historicalUnlock(db,a);
+  const before=await migrationData(db);
   initializeDatabase(db);initializeDatabase(db);
+  assert.deepEqual(await migrationData(db),before);
   assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM card_views").get().n,1);
   assert.equal((await readProfile(db,a.user_id,a.user_id)).profile.counts.leavesSpent,1);

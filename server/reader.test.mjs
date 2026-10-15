@@ -1,3 +1,4 @@
+import {historicalDatabase,historicalReader,historicalUnlock,migrationData,migrationNow} from "../test-support/historical-database.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {mkdtempSync,rmSync} from "node:fs";
@@ -148,12 +149,14 @@ test("Original title preference persists across connections, stays per account a
 });
 
 test("SQLite v11 upgrade keeps account, cards and review state, defaulting to translated titles",async t=>{
-  const {db,a}=await fixture(t);
-  await openCard(db,a,version,"habit-1",today);
-  const before=await readReaderState(db,a,today);
-  db.exec("DROP TABLE reader_display_preferences; PRAGMA user_version=11;");
+  const db=await historicalDatabase(t,"sqlite",11),a=await historicalReader(db);
+  await historicalUnlock(db,a);
+  const before=await migrationData(db);
   initializeDatabase(db); initializeDatabase(db);
   assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
-  assert.deepEqual(await readReaderState(db,a,today),before);
+  assert.deepEqual(await migrationData(db),before);
+  const state=await readReaderState(db,a,migrationNow);
+  assert.equal(state.showOriginalTitles,false);
+  assert.deepEqual(state.reviews[version].seenIds,["habit-1"]);
   assert.equal((await changePreferences(db,a,{showOriginalTitles:true},today)).showOriginalTitles,true);
 });
