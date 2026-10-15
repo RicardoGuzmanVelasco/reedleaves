@@ -75,11 +75,18 @@ Revisión manual en copia aislada (4174): ida/vuelta Idea–Cita conserva el bor
 
 ## Editor compartido con autoría de barajas — publicación aprobada
 
-- Una única acción «Añadir contenido» sustituye a las dos acciones separadas de tarjeta/cita en la baraja.
+- Una única acción «Tomar nota» sustituye a las dos acciones separadas de tarjeta/cita en la baraja.
 - Reutiliza el mismo formulario y selector Idea / Cita de Inicio. El destino queda fijado al abrir también en autoría; cambiar el tipo conserva texto, título y relación elegida.
 - El origen determina el regreso: Inicio → Inicio; baraja → misma baraja. Cancelar en autoría devuelve el foco al botón común.
 - La validación de idea/cita es común. Crear libro y baraja conservan sus formularios propios.
 - Revisado manualmente en la base de demostración; publicación aprobada.
+
+### Acceso directo desde una baraja — aprobado el 15 de octubre
+
+- «Tomar nota» desde el detalle de baraja, su repaso o gestión abre directamente el editor compartido. La baraja y versión ya están fijadas. Se valida que sea propia y esté en progreso, y se recupera su borrador local si existe. Una nota nueva comienza como Idea y en nivel principal.
+- Guardar o cancelar mantiene la ruta de origen, restaura el detalle si estaba abierto y conserva árbol/preview, columnas, filtro, posición y foco en la acción. El editor muestra libro y baraja de destino. El retorno es propio de la entrada actual y no se guarda como parte del borrador.
+- «Gestionar baraja» conserva el recorrido a las notas propias y a marcar la baraja como terminada. Esta navegación tiene un nombre distinto a la captura.
+- La ficha del libro conserva solo «Ver barajas · N»; añadir allí «Tomar nota» queda expresamente pospuesto por el usuario.
 
 - Ajuste visual posterior: selector compartido de 34 px e iconos de 14 px. Idea/Cita ajusta el ancho a su contenido; comparte medidas con vista/filtro de baraja y ajustes. Slider de columnas conserva la alineación con la misma altura.
 
@@ -108,7 +115,7 @@ Revisión manual en copia aislada (4174): ida/vuelta Idea–Cita conserva el bor
 ## Cuarto escenario alternativo: interrupción de la nota — local
 
 - Idea y Cita guardan localmente título, texto, tipo, libro, versión, relación e identificador idempotente mientras se escribe. Se refuerza la captura al ocultar o abandonar la página, sin depender de ese último evento para conservar lo ya escrito.
-- Un borrador por versión, bajo una clave de cuenta/libro. Inicio recupera el más reciente del libro al pulsar «+», antes de ofrecer destinos. Añadir contenido recupera solo el borrador de esa versión. El acceso actual determina dónde se vuelve al terminar.
+- Un borrador por versión, bajo una clave de cuenta/libro. Inicio recupera el más reciente del libro al pulsar «+», antes de ofrecer destinos. Tomar nota recupera solo el borrador de esa versión. El acceso actual determina dónde se vuelve al terminar.
 - El editor muestra «Borrador recuperado» / «Draft restored» y, desde Inicio, la baraja del borrador. No se abre automáticamente al arrancar la app.
 - Guardar con confirmación del servidor o cancelar descarta ese borrador. Los errores conservan texto e identificador. Si el catálogo confirma que la tarjeta ya existe con ese identificador en esa versión, no se recupera como pendiente.
 - Cambiar o cerrar sesión retira el formulario visible y conserva el borrador bajo su cuenta original. No hay sincronización entre dispositivos, navegadores u orígenes. Si el almacenamiento local falla, se informa; el respaldo en memoria sirve solo para la sesión actual.

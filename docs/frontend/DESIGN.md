@@ -39,11 +39,16 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 | Texto citado | Cita | Quote |
 | Relación entre tarjetas | Colocar debajo de | Place under |
 | Actividad de aprendizaje | Repaso / repasar | Practice / practice |
+| Capturar una idea o cita | Tomar nota | Take a note |
 | Recompensa diaria | Hoja | Leaf |
 | Contenido creado por usuarios | Contribuciones | Contributions |
 | Progreso de una persona en un libro | Crecimiento | Growth |
 
 En castellano, llamar **tarjeta** a cada unidad de contenido; no usar **carta** como sinónimo. **Hoja** conserva el juego intencional entre página y hoja de planta. **Cita** se refiere a un texto citado dentro del contexto de tarjetas. Usar **Practice** para la actividad de aprendizaje en inglés.
+
+Para iniciar la captura de una idea o cita, usar siempre **Tomar nota / Take a note**, incluidos botones, nombres accesibles, encabezados del editor y título de página. Reutilizar la clave de traducción `takeNote`. Evitar las variantes «Añadir contenido», «Añadir tarjeta» y «Añadir cita» para esta acción. Idea / Cita identifica el tipo dentro del editor; Tarjeta sigue nombrando la unidad de lectura y repaso.
+
+«Tomar nota» abre el editor directamente cuando la baraja ya está determinada. Guardar o cancelar devuelve al punto de partida, conservando vista, filtros, posición y foco. «Gestionar baraja / Manage deck» es el acceso a revisar las notas propias y marcar la baraja como terminada; no es un paso previo para tomar una nota.
 
 ## Cómo usarla
 
