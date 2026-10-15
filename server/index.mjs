@@ -3,6 +3,7 @@ import { seedCatalog } from "./seed.mjs";
 import { checkCatalog } from "./catalog-repository.mjs";
 import { createCatalogServer } from "./http.mjs";
 import { APP_NAME } from "../app/brand.mjs";
+import {requireProductionInviteCode} from "./auth.mjs";
 
 const production = process.env.NODE_ENV === "production";
 if (production && !process.env.DATABASE_URL) throw new Error("Production requires DATABASE_URL (PostgreSQL)");
@@ -12,8 +13,7 @@ if ((await db.prepare("SELECT count(*) AS total FROM books").get()).total === 0)
 const counts = await checkCatalog(db);
 const origin = process.env.REED_ORIGIN || process.env.RENDER_EXTERNAL_URL;
 if (production && (!origin?.startsWith("https://"))) throw new Error("Production requires an HTTPS public origin");
-const inviteCode = process.env.REED_INVITE_CODE;
-if (production && (!inviteCode || inviteCode.length < 24)) throw new Error("Production requires a REED_INVITE_CODE of at least 24 characters");
+const inviteCode = production ? requireProductionInviteCode(process.env.REED_INVITE_CODE) : process.env.REED_INVITE_CODE;
 const mcpToken = process.env.REED_MCP_TOKEN;
 if (mcpToken && mcpToken.length < 32) throw new Error("REED_MCP_TOKEN must contain at least 32 characters");
 const server = createCatalogServer(db,undefined,{origin,secureCookies:production || origin?.startsWith("https://"),inviteCode,

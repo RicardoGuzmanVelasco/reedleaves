@@ -8,7 +8,7 @@ El build falla si una prueba falla. `autoDeployTrigger: checksPass` exige ademá
 
 Render configura `NODE_ENV=production` y proporciona `PORT` y `RENDER_EXTERNAL_URL`. La app usa la URL de Render al principio para validar el origen y activar cookies seguras. Cuando se conecte el dominio propio, define `REED_ORIGIN` en el servicio con la URL final, por ejemplo `https://reedleaves.com`.
 
-`DATABASE_URL` se introduce como secreto en Render; no debe guardarse en Git. `REED_INVITE_CODE` lo genera Render. Compártelo solo con las personas autorizadas para crear cuentas.
+`DATABASE_URL` se introduce como secreto en Render; no debe guardarse en Git. `REED_INVITE_CODE` admite un mínimo de 12 caracteres; Render lo genera por defecto. Compártelo solo con las personas autorizadas para crear cuentas.
 
 Para activar «Rellenar con IA», configura `OPENAI_API_KEY` como secreto del servicio. `OPENAI_BOOK_MODEL` es opcional; por defecto se usa `gpt-5.4-mini`. La clave nunca se envía al navegador. Sin clave, el guardado manual sigue disponible y el botón explica que no se puede rellenar el libro con IA.
 
