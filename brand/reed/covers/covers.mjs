@@ -8,10 +8,10 @@ const descriptions={
   cloth:"Tapa entelada sin marco, lomo oscuro y título en serif. Mascota como sello al pie."
 };
 const parameters=[
-  {id:"cover-height",property:"--cover-height",defaultValue:260,unit:"px"},
-  {id:"cover-width",property:"--cover-width",defaultValue:89,unit:"%"},
+  {id:"cover-height",property:"--cover-height",defaultValue:280,unit:"px"},
+  {id:"cover-width",property:"--cover-width",defaultValue:100,unit:"%"},
   {id:"author-size",property:"--cover-author-size",defaultValue:12,unit:"px"},
-  {id:"stamp-size",property:"--cover-stamp-size",defaultValue:95,unit:"px"},
+  {id:"stamp-size",property:"--cover-stamp-size",defaultValue:50,unit:"px"},
   {id:"stamp-bottom",property:"--cover-stamp-bottom",defaultValue:0,unit:"px"},
   {id:"stamp-opacity",property:"--cover-stamp-opacity",defaultValue:48,unit:"%"}
 ];
@@ -33,7 +33,7 @@ function render() {
   if (!catalog) return;
   const language=document.querySelector("#study-language").value;
   state={catalog,language,showOriginalTitles:document.querySelector("#study-original").checked,
-    statuses:{},reviews:{},enrolledIds:[...catalog.selectedVersions.values()],
+    statuses:Object.fromEntries(catalog.books.map(book=>[book.id,"reading"])),reviews:{},enrolledIds:[...catalog.selectedVersions.values()],
     growth:Object.fromEntries(catalog.books.map((book,index)=>[book.id,{added:true,spentDays:[0,1,2,3,5][index%5]}]))};
   const template=document.createElement("template");
   template.innerHTML=document.querySelector("#study-surface").value === "home" ? homeView(state) : libraryResultsMarkup(state);
@@ -41,8 +41,9 @@ function render() {
   if (!grid) {preview.replaceChildren(template.content);return;}
   const surface=document.querySelector("#study-surface").value;
   for (const book of grid.querySelectorAll(".study-book")) {
-    const sample=document.createElement("div");sample.className="cover-sample";
-    book.before(sample);sample.append(book);
+    const entry=book.closest(".study-book-entry");
+    if (entry) entry.classList.add("cover-sample");
+    else {const sample=document.createElement("div");sample.className="cover-sample";book.before(sample);sample.append(book);}
   }
   preview.dataset.design=design;
   preview.dataset.surface=surface;

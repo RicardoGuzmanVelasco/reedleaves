@@ -17,8 +17,8 @@
 .study-sliders input{grid-column:1/-1;width:100%;min-height:28px;margin:0;accent-color:var(--shadow)}
 .study-settings .text-button{color:var(--ink)}
 .study-description{font-size:13px;line-height:1.5;color:var(--muted);margin:22px 0 28px;max-width:650px;min-height:40px}
-#cover-preview .study-books{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 25px;width:calc(100% - 10px);margin-inline:auto}
-#cover-preview[data-surface="library"] .study-books{gap:25px 23px;width:100%}
+#cover-preview .study-books{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;width:calc(100% - 10px);margin-inline:auto}
+#cover-preview[data-surface="library"] .study-books{gap:24px;width:100%}
 .cover-sample{min-width:0;display:flex;flex-direction:column;align-items:stretch}
 .cover-sample .study-book{flex:1;width:var(--cover-width,100%);align-self:center;min-height:var(--cover-height);border:1px solid var(--cover-edge);border-radius:7px 4px 4px 7px;background:var(--cover-paper);box-shadow:1px 3px 0 var(--cover-edge),4px 6px 12px rgb(23 61 44 / 12%);color:var(--ink)}
 /* Entelada keeps its fore-edge pages; Base uses a continuous cover edge. */
@@ -39,9 +39,9 @@
 [data-design="current"] .study-book{box-shadow:1px 3px 0 var(--shadow),4px 6px 12px rgb(23 61 44 / 12%)}
 [data-design="current"] .study-book:hover{box-shadow:1px 6px 0 var(--shadow),4px 9px 16px rgb(23 61 44 / 15%)}
 [data-design="current"] .study-book:active{box-shadow:1px 1px 0 var(--shadow)}
-[data-design="current"] .study-book-cover{align-items:flex-start;padding:22px 18px var(--cover-stamp-bottom) 28px;border-radius:15px 11px 11px 15px;text-align:left}
+[data-design="current"] .study-book-cover{align-items:flex-start;padding:18px 18px var(--cover-stamp-bottom) 28px;border-radius:15px 11px 11px 15px;text-align:left}
 [data-design="cloth"] .study-book::after{width:17px;border-right:1px solid rgb(0 0 0 / 20%);border-radius:15px 0 0 15px;box-shadow:inset 3px 0 3px rgb(255 255 255 / 20%),inset -3px 0 5px rgb(0 0 0 / 12%)}
-[data-design="current"] .study-book-cover>strong{font-family:inherit;font-weight:800;font-size:23px;line-height:1.16;letter-spacing:-.04em}
+[data-design="current"] .study-book-cover>strong{font-family:inherit;font-weight:800;font-size:23px;line-height:1.07;letter-spacing:-.04em}
 [data-design="current"] .study-book-cover:has(.study-book-mark)>strong{margin-bottom:0}
 [data-design="current"] .study-book-author{order:0;margin:9px 0 20px!important;letter-spacing:0}
 [data-design="current"] .study-book-mark{margin:auto 0 0}
@@ -51,7 +51,11 @@
 @media(min-width:600px){#cover-preview .study-books{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:720px){.cover-study{width:calc(100% - 36px)}}
 @media(max-width:600px){.cover-study{padding-top:23px}.study-heading{gap:12px}.study-heading h1{font-size:23px}.study-options{gap:8px 14px}.study-controls .segmented-selector{width:100%}.study-controls .segmented-selector button{padding:10px 8px;font-size:11px}.cover-sample .study-book{min-height:calc(var(--cover-height)*.83)}.cover-sample .study-book-cover{padding:21px 15px var(--cover-stamp-bottom) 29px}.cover-sample .study-book-cover>strong{font-size:25px}.cover-sample .study-book-author{font-size:calc(var(--cover-author-size) - 1px)}.cover-sample .study-book-mark{width:min(100%,calc(var(--cover-stamp-size)*.83))}[data-design="current"] .study-book-cover>strong{font-size:19px}.study-description{margin:18px 0 24px}}
-@media(max-width:600px){[data-design="current"] .study-book-cover{padding:18px 13px var(--cover-stamp-bottom) 25px}}
-@media(max-width:520px){#cover-preview .study-books{gap:24px 22px;width:calc(100% - 8px)}#cover-preview[data-surface="library"] .study-books{gap:23px 22px;width:100%}}
+@media(max-width:600px){[data-design="current"] .study-book-cover{padding:14px 13px var(--cover-stamp-bottom) 25px}}
+@media(max-width:520px){#cover-preview .study-books{gap:24px;width:calc(100% - 8px)}#cover-preview[data-surface="library"] .study-books{gap:24px;width:100%}}
 @media(max-width:350px){#cover-preview .study-books{grid-template-columns:minmax(0,190px)}}
 @media(prefers-reduced-motion:reduce){.cover-sample .study-book{transition:none}}
+
+/* Base follows the active proportions; the sliders remain local exploration controls. */
+[data-design="current"] .study-book-entry--notes .study-book-mark{margin-bottom:52px}
+@media(max-width:600px){[data-design="current"] .study-book{min-height:calc(var(--cover-height) * 6 / 7)}[data-design="current"] .study-book-mark{width:min(100%,var(--cover-stamp-size))}}

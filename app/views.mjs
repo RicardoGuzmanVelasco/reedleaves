@@ -55,11 +55,12 @@ function bookSourcesMarkup(s,book) {
 function closedBookMarkup(s,book,{action="resume-book",caption=words[s.language].review,catalog=false,note=false}={}) {
   const c = words[s.language];
   const title=bookCoverTitle(book,s.language,{original:s.showOriginalTitles});
+  const noteVersions=note ? editableNoteVersions(s.catalog,book.id,s.userId) : [];
+  const statusLines=note ? [s.statuses[book.id] === "reading" ? c.readingStatus : s.statuses[book.id] === "read" ? c.readStatus : "",noteVersions.length ? c.notesInProgress : ""].filter(Boolean) : [];
   const cover=`<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} ${note ? `aria-describedby="home-book-state-${esc(book.id)}"` : ""} aria-label="${esc(catalog ? displayedBookTitle(s,book).text + ", " + book.author + ", " + caption : c.resume + ": " + displayedBookTitle(s,book).text)}">
     <span class="study-book-cover"><strong lang="${esc(title.language)}" dir="auto">${esc(title.text)}</strong><span class="study-book-author">${esc(book.author)}</span>
-    ${catalog ? `<span class="study-book-footer">${esc(caption)}</span>` : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}</span></button>`;
+    ${catalog ? `<span class="study-book-footer">${esc(caption)}</span>` : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}${note ? `<span class="home-book-state" id="home-book-state-${esc(book.id)}">${statusLines.map(line=>`<span>${esc(line)}</span>`).join("")}</span>` : ""}</span></button>`;
   const complete=completeBookButton(s,book);
-  const noteVersions=note ? editableNoteVersions(s.catalog,book.id,s.userId) : [];
   const noteLabel=`${c.takeNote}: ${displayedBookTitle(s,book).text}`;
   const addNote=note ? `<button class="book-note-add" type="button" data-action="take-note" data-book="${esc(book.id)}" aria-haspopup="dialog" ${noteVersions.length > 1 ? `aria-expanded="${s.noteDestination?.bookId === book.id}" aria-controls="note-destination-dialog"` : ""} aria-label="${esc(noteLabel)}" title="${esc(noteLabel)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>` : "";
   return complete || note ? `<div class="study-book-entry${note ? " study-book-entry--notes" : ""}">${cover}${complete}${addNote}</div>` : cover;
@@ -165,7 +166,7 @@ export function homeView(s) {
       <button class="home-action primary" type="button" data-action="daily">${c.idea}</button>
       <button class="home-action" type="button" data-action="library">${c.goLibrary}</button>
     </nav>
-    ${books.length ? `<div class="study-books">${books.map(book=>`<div class="home-book-item">${closedBookMarkup(s,book,{note:true})}<p class="home-book-state" id="home-book-state-${esc(book.id)}">${s.statuses[book.id] === "reading" ? c.readingStatus : [s.statuses[book.id] === "read" ? c.readStatus : "",c.notesInProgress].filter(Boolean).join(" · ")}</p></div>`).join("")}</div>` : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
+    ${books.length ? `<div class="study-books">${books.map(book=>closedBookMarkup(s,book,{note:true})).join("")}</div>` : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
     ${s.noteDestination ? noteDestinationMarkup(s) : ""}
   </section>`;
 }
