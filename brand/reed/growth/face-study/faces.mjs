@@ -1,5 +1,5 @@
-import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=stem-carnoso";
-import {playMascotExpression} from "/app/mascot-face.mjs?v=stem-carnoso";
+import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=stem-shadow-calibration";
+import {playMascotExpression} from "/app/mascot-face.mjs?v=stem-shadow-calibration";
 const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Brote"],["sprout","Plántula · Referencia"]];
 const originals = {
   pot:"/brand/reed/growth/pot.svg", seed:"/brand/reed/growth/seed.svg",

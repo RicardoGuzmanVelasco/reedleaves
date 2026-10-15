@@ -1,4 +1,4 @@
-import {mascotFace} from "./mascot-face.mjs?v=stem-carnoso";
+import {mascotFace} from "./mascot-face.mjs?v=stem-shadow-calibration";
 import {startMascotBlinking} from "./mascot-blink.mjs?v=mascot-random-blink";
 
 if (typeof document !== "undefined") startMascotBlinking(document);
