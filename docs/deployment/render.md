@@ -4,7 +4,7 @@
 
 El Blueprint `render.yaml` crea un servicio web Node gratuito. Instala las dependencias de build y pruebas con `npm ci --include=dev` y ejecuta `npm test` (compilación más suite completa), arranca con `npm start` y verifica `/api/health`. React y las acciones de tarjeta se sirven desde el módulo generado localmente en `/app/generated/card-features.js`.
 
-El build preparado falla si una prueba falla. Las pruebas usan SQLite en memoria y PostgreSQL local con PGlite; no necesitan `DATABASE_URL` ni un proveedor de IA real. `npm test` bloquea `fetch` externo. La configuración solo entra en vigor al integrar y sincronizar el Blueprint; comprobar en Render que el Build Command activo coincide. GitHub ejecuta la misma suite en PR y push a `main` con el Node de `.node-version`.
+El build falla si una prueba falla. `autoDeployTrigger: checksPass` exige además CI correcta antes de desplegar. Las pruebas usan SQLite en memoria y PostgreSQL local con PGlite; no necesitan `DATABASE_URL` ni un proveedor de IA real. `npm test` bloquea `fetch` externo. La configuración solo entra en vigor al integrar y sincronizar el Blueprint; comprobar en Render que el Build Command activo coincide. GitHub ejecuta la misma suite en PR y push a `main` con el Node de `.node-version`.
 
 Render configura `NODE_ENV=production` y proporciona `PORT` y `RENDER_EXTERNAL_URL`. La app usa la URL de Render al principio para validar el origen y activar cookies seguras. Cuando se conecte el dominio propio, define `REED_ORIGIN` en el servicio con la URL final, por ejemplo `https://reedleaves.com`.
 
