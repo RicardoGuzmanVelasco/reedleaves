@@ -52,6 +52,8 @@ Para iniciar la captura de una idea o cita, usar siempre **Tomar nota / Take a n
 
 «Tomar nota» abre el editor directamente cuando la baraja ya está determinada. Guardar o cancelar devuelve al punto de partida, conservando vista, filtros, posición y foco. «Gestionar baraja / Manage deck» es el acceso a revisar las notas propias y marcar la baraja como terminada; no es un paso previo para tomar una nota.
 
+Si el «+» de Inicio no tiene una baraja propia en progreso, abre el editor de nota directamente. Se avisa de que se creará «Notas de lectura» / «Reading notes». La baraja nace al guardar la primera nota, con el idioma elegido para la app al abrir el editor, independiente del idioma original del libro. No se pide configurar nombre o idioma. Cancelar no crea una baraja vacía.
+
 ## Cómo usarla
 
 Aplicar estos criterios con juicio en cada cambio; no asumir que describen la interfaz actual ni que anticipan decisiones futuras. Para entender el comportamiento vigente, consultar la implementación. Para conocer el arte vigente, consultar los recursos usados por la aplicación. Los archivos de exploración de marca son propuestas salvo confirmación explícita.

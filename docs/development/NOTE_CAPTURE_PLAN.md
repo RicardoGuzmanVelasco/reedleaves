@@ -26,6 +26,15 @@ Desde Inicio con el libro visible: una pulsación hasta el editor. Desde fuera d
 - El formulario vigente de idea exige título y cuerpo, y guarda mediante una acción explícita. Las notas guardan un borrador local por cuenta, libro y versión, recuperable tras recarga con el aviso «Borrador recuperado». Las citas no exigen título.
 - Las nuevas notas registran `created_at`. La actividad de creación se agrega por libro y propietario de la baraja en el estado privado de la cuenta. Las notas antiguas mantienen NULL: no se inventa una fecha histórica.
 
+### Primera nota sin configurar una baraja — incremento 1, aprobado el 15 de octubre
+
+- Sustituye el paso previo Crear baraja cuando el «+» de Inicio no tiene ninguna versión propia draft. Abre Tomar nota directamente, inicialmente Idea, con aviso «Se creará una baraja con el nombre predeterminado «Notas de lectura»». Nombre localizado en el idioma de la app (Reading notes en inglés), compartido por cliente y servidor.
+- La baraja y la primera nota se crean al guardar, en una única transacción. Cancelar no crea registros. La primera nota queda en nivel principal; no se pregunta dónde colocarla porque aún no hay tarjetas. Idea/Cita conserva el funcionamiento común.
+- El idioma se toma de la app al abrir esta nota y se conserva con el borrador. No se infiere del idioma original del libro ni se añade un selector nuevo en este incremento.
+- El borrador local conserva la creación pendiente y una referencia futura de versión derivada del identificador de petición. Puede recuperarse antes de existir la baraja, con el mismo texto, tipo, idioma e identidad para reintentar. Los borradores antiguos siguen siendo válidos.
+- POST `/api/author/notes` reutiliza las escrituras de baraja y tarjeta dentro de una transacción; los endpoints manuales mantienen sus transacciones independientes. Sesión/CSRF, validación de libro/idioma/contenido y reintentos por identidad. No hay migraciones ni gasto de hojas. Al guardar, vuelve a Inicio y la siguiente nota reutiliza la baraja creada.
+- El atajo de tomar nota tras marcar Leyendo/Leído desde Librería queda para el incremento 2, por petición expresa de abordar los casos por separado.
+
 ## Decisiones aprobadas — primera ronda
 
 1. Se confirma que «baraja en progreso» significa aquí una baraja propia abierta a añadir notas y que, para esta entrega, su correspondencia técnica es una versión `draft`, independiente del progreso de repaso.
