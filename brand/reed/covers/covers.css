@@ -58,4 +58,4 @@
 
 /* Base follows the active proportions; the sliders remain local exploration controls. */
 [data-design="current"] .study-book-entry--notes .study-book-mark{margin-bottom:52px}
-@media(max-width:600px){[data-design="current"] .study-book{min-height:calc(var(--cover-height) * 6 / 7)}[data-design="current"] .study-book-mark{width:min(100%,var(--cover-stamp-size))}}
+@media(max-width:600px){[data-design="current"] .study-book{min-height:calc(var(--cover-height) * 5 / 6)}[data-design="current"] .study-book-mark{width:min(100%,var(--cover-stamp-size))}}

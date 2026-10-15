@@ -52,14 +52,21 @@ function bookSourcesMarkup(s,book) {
   return book.sources?.length ? `<div class="book-sources"><p class="book-source-citations">${words[s.language].bookSources}: ${book.sources.map((source,index)=>`<a href="${esc(safeUrl(source.url))}" target="_blank" rel="noopener noreferrer" title="${esc(source.title)}" aria-label="${esc(words[s.language].source+": "+source.title)}">[${index+1}]</a>`).join(" ")}</p><details><summary>${words[s.language].sourceDetails}</summary><ul>${book.sources.map(source=>`<li><a href="${esc(safeUrl(source.url))}" target="_blank" rel="noopener noreferrer">${esc(source.title)} ↗</a></li>`).join("")}</ul></details></div>` : "";
 }
 
+function bookReadingIcon(status) {
+  const path=status === "reading"
+    ? '<path d="M10 5.5C7.4 3.7 4.6 3.3 2 4v11.5c2.6-.7 5.4-.3 8 1.5 2.6-1.8 5.4-2.2 8-1.5V4c-2.6-.7-5.4-.3-8 1.5Z"/><path d="M10 5.5V17"/>'
+    : status === "read" ? '<path d="M5 2.5h10.5v15H5a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2Z"/><path d="M3 14h12.5M7 8l2 2 3.5-4"/>' : "";
+  return path ? `<svg class="reading-status-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>` : "";
+}
+
 function closedBookMarkup(s,book,{action="resume-book",caption=words[s.language].review,catalog=false,note=false}={}) {
   const c = words[s.language];
   const title=bookCoverTitle(book,s.language,{original:s.showOriginalTitles});
   const noteVersions=note ? editableNoteVersions(s.catalog,book.id,s.userId) : [];
-  const statusLines=note ? [s.statuses[book.id] === "reading" ? c.readingStatus : s.statuses[book.id] === "read" ? c.readStatus : "",noteVersions.length ? c.notesInProgress : ""].filter(Boolean) : [];
+  const status=s.statuses[book.id],statusLines=note ? [{label:status === "reading" ? c.readingStatus : status === "read" ? c.readStatus : "",icon:bookReadingIcon(status)},{label:noteVersions.length ? c.notesInProgress : ""}].filter(row=>row.label) : [];
   const cover=`<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="${action}" data-book="${esc(book.id)}" ${catalog ? 'aria-haspopup="dialog"' : ""} ${note ? `aria-describedby="home-book-state-${esc(book.id)}"` : ""} aria-label="${esc(catalog ? displayedBookTitle(s,book).text + ", " + book.author + ", " + caption : c.resume + ": " + displayedBookTitle(s,book).text)}">
     <span class="study-book-cover"><strong lang="${esc(title.language)}" dir="auto">${esc(title.text)}</strong><span class="study-book-author">${esc(book.author)}</span>
-    ${catalog ? `<span class="study-book-footer">${esc(caption)}</span>` : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}${note ? `<span class="home-book-state" id="home-book-state-${esc(book.id)}">${statusLines.map(line=>`<span>${esc(line)}</span>`).join("")}</span>` : ""}</span></button>`;
+    ${catalog ? `<span class="study-book-footer">${esc(caption)}</span>` : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}${note ? `<span class="home-book-state" id="home-book-state-${esc(book.id)}">${statusLines.map(row=>`<span>${row.icon || ""}${esc(row.label)}</span>`).join("")}</span>` : ""}</span></button>`;
   const complete=completeBookButton(s,book);
   const noteLabel=`${c.takeNote}: ${displayedBookTitle(s,book).text}`;
   const addNote=note ? `<button class="book-note-add" type="button" data-action="take-note" data-book="${esc(book.id)}" aria-haspopup="dialog" ${noteVersions.length > 1 ? `aria-expanded="${s.noteDestination?.bookId === book.id}" aria-controls="note-destination-dialog"` : ""} aria-label="${esc(noteLabel)}" title="${esc(noteLabel)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>` : "";
@@ -335,7 +342,7 @@ export function deckCompletionView(s) {
 function bookReadingControls(s,book) {
   if (!s.userId) return "";
   const c=words[s.language],status=s.statuses[book.id] || "unread",reading=status === "reading";
-  return `<div class="book-reading-actions" role="group" aria-label="${esc(c.bookStatus)}"><span class="book-reading-state">${reading ? c.readingStatus : status === "read" ? c.readStatus : c.unread}</span><button class="text-button" type="button" data-action="set-book-reading" data-book="${esc(book.id)}" data-status="${reading ? "read" : "reading"}">${reading ? c.markBookRead : c.markBookReading}</button></div>`;
+  return `<div class="book-reading-actions" role="group" aria-label="${esc(c.bookStatus)}"><span class="book-reading-state">${bookReadingIcon(status)}${reading ? c.readingStatus : status === "read" ? c.readStatus : c.unread}</span><button class="text-button" type="button" data-action="set-book-reading" data-book="${esc(book.id)}" data-status="${reading ? "read" : "reading"}">${reading ? c.markBookRead : c.markBookReading}</button></div>`;
 }
 
 export function deckView(s) {

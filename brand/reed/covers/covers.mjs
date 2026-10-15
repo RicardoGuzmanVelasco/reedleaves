@@ -8,7 +8,7 @@ const descriptions={
   cloth:"Tapa entelada sin marco, lomo oscuro y título en serif. Mascota como sello al pie."
 };
 const parameters=[
-  {id:"cover-height",property:"--cover-height",defaultValue:280,unit:"px"},
+  {id:"cover-height",property:"--cover-height",defaultValue:270,unit:"px"},
   {id:"cover-width",property:"--cover-width",defaultValue:100,unit:"%"},
   {id:"author-size",property:"--cover-author-size",defaultValue:12,unit:"px"},
   {id:"stamp-size",property:"--cover-stamp-size",defaultValue:50,unit:"px"},
