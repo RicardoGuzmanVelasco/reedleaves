@@ -45,6 +45,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
       PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
     steps:
       # Only merge the tested head. GitHub still enforces branch protection
       # and refuses a stale/conflicting PR. This job never checks out PR code.
@@ -56,3 +57,13 @@ jobs:
       # Dispatch main explicitly so it gets checked before Render deploys.
       - name: Validate main for deployment
         run: gh workflow run tests.yml --repo "$GH_REPO" --ref main
+      - name: Delete the merged branch
+        run: |
+          # GitHub's repository setting can leave the branch behind. Make
+          # cleanup explicit; a branch already deleted by GitHub is also OK.
+          if ! result=$(gh api --method DELETE "repos/$GH_REPO/git/refs/heads/$PR_HEAD_REF" 2>&1); then
+            if [[ "$result" != *"(HTTP 404)"* ]]; then
+              printf '%s\n' "$result"
+              exit 1
+            fi
+          fi
