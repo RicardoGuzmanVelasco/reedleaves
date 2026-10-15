@@ -4,7 +4,7 @@ import { treeFrontier, hasLeaf, availableVersions } from "./decks.mjs";
 import {homeBooks,editableNoteVersions,recentNoteVersions} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=direct-note";
+import { words } from "./i18n.mjs?v=book-notes-close";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
@@ -347,11 +347,11 @@ export function notesCompletionView(s) {
     <p class="notes-completion-description" id="notes-completion-description">${c.finishNotesExplanation}</p>
     <ul class="notes-completion-list">${f.versions.map(entry=>{
       const version=s.catalog.versionsById.get(entry.versionId);
-      return `<li><div><strong lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</strong><span>${entry.cardCount ? c.noteCardsCount(entry.cardCount) : c.emptyNoteDeckDiscard}</span></div>${pending.includes(entry.versionId) ? `<button class="text-button" type="button" data-action="take-version-note" data-version="${esc(entry.versionId)}">${c.resumeNoteDraft}</button>` : ""}</li>`;
+      return `<li${entry.cardCount ? "" : ' class="is-empty"'}><div><strong lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</strong><span>${entry.cardCount ? c.noteCardsCount(entry.cardCount) : c.emptyNoteDeckDiscard}</span></div>${pending.includes(entry.versionId) ? `<button class="text-button" type="button" data-action="take-version-note" data-version="${esc(entry.versionId)}">${c.resumeNoteDraft}</button>` : ""}</li>`;
     }).join("")}</ul>
     ${pending.length ? `<p class="account-error" role="status">${c.pendingNotesBeforeFinish}</p>` : ""}
     ${f.error && !(pending.length && f.error === "pendingNotesBeforeFinish") ? `<p class="account-error" role="alert">${esc(c[f.error] || c.connectionError)}</p>` : ""}
-    <div class="form-actions"><button class="text-button" type="button" data-action="keep-note-decks" autofocus ${f.saving ? "disabled" : ""}>${c.keepNoteDecks}</button><button class="primary" type="button" data-action="confirm-note-decks" ${f.saving || pending.length || !f.versions.length ? "disabled" : ""}>${f.saving ? c.finishingDeck : c.confirmNoteDecks}</button></div>
+    <div class="form-actions"><button class="secondary secondary--subtle" type="button" data-action="keep-note-decks" autofocus ${f.saving ? "disabled" : ""}>${c.keepNoteDecks}</button><button class="primary" type="button" data-action="confirm-note-decks" ${f.saving || pending.length || !f.versions.length ? "disabled" : ""}>${f.saving ? c.finishingDeck : c.confirmNoteDecks}</button></div>
   </article></dialog>`;
 }
 

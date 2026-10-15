@@ -173,6 +173,7 @@
 .deck-author-action{margin:0 0 25px}.author-actions{display:flex;flex-wrap:wrap;gap:14px;margin:24px 0 28px}
 .secondary{min-height:53px;padding:12px 20px;border:2px solid #99754d;border-radius:17px;background:#ffe0cb;box-shadow:0 5px 0 #b88f62;font-weight:800;font-size:14px}
 .secondary:hover:not(:disabled){transform:translateY(-2px)}.secondary span{font-family:Georgia,serif;font-size:23px;vertical-align:middle}
+.secondary--subtle{border-color:var(--sage);background:var(--control-surface);color:var(--ink);box-shadow:0 3px 0 #c9d7b8}
 .author-form{display:flex;flex-direction:column;gap:9px;margin-top:25px}.author-form label{font-size:12px;font-weight:750;margin-top:10px}
 .author-form input,.author-form textarea,.author-form select{font:inherit;color:inherit;min-height:48px;width:100%;padding:12px 14px;border:1.5px solid var(--sage);border-radius:13px;background:var(--paper)}
 .author-form textarea{resize:vertical;line-height:1.6}.author-form textarea:focus-visible{outline:3px solid #8b541e;outline-offset:4px}
@@ -455,11 +456,13 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 @media(min-width:351px) and (max-width:380px){.home-book-state{left:20px;font-size:7.5px}}
 
 /* Closing notes after finishing a book. */
+.notes-completion-modal{width:min(480px,calc(100% - 40px))}
 .book-notes-pending{display:block;margin:2px auto 0;color:var(--muted)}
 .notes-completion-description{margin-top:18px;font-size:14px;line-height:1.6;color:var(--muted)}
 .notes-completion-list{list-style:none;padding:0;margin:20px 0;max-height:35vh;overflow-y:auto;overscroll-behavior:contain}
 .notes-completion-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
 .notes-completion-list li:first-child{border-top:1px solid var(--line)}
 .notes-completion-list li>div{min-width:0;display:grid;gap:4px}.notes-completion-list strong{font-size:14px;line-height:1.4;overflow-wrap:anywhere}.notes-completion-list span{font-size:12px;color:var(--muted);line-height:1.5}
+.notes-completion-list .is-empty strong,.notes-completion-list .is-empty span{color:#70766c}
 .notes-completion-list .text-button{flex:none;max-width:40%;font-size:11px;text-align:right}
-.notes-completion-modal .form-actions{gap:12px}.notes-completion-modal .form-actions .text-button{min-width:0;text-align:left;line-height:1.4}.notes-completion-modal .form-actions .primary{flex:none}
+.notes-completion-modal .form-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px}.notes-completion-modal .form-actions .secondary{min-width:0;padding:8px 10px;font-size:12px;line-height:1.35}.notes-completion-modal .form-actions .primary{height:100%}
