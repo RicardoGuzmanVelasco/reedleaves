@@ -47,11 +47,23 @@ estos fallos y el proceso permitía seguir publicando mientras se acumulaban.
 - **Contratos recientes:** siete pruebas nuevas cubren pertenencia/orden de Inicio, destinos de nota y, en ambos motores, primera nota transaccional, reintentos, permisos, saldo, rollback por fallo de escritura y cierre por lote con lista obsoleta o ajena.
 - **IA simulada:** `npm test` precarga un guard que rechaza `fetch` externo. Dos pruebas verifican el bloqueo y el funcionamiento de HTTP local/datos de iconos. Un proveedor sin simular falla antes de llegar a la API.
 
-La CI y el nuevo build de Render están preparados **localmente**. Para que
-protejan la entrega remota hay que integrar/publicar estos cambios y
-sincronizar el Blueprint; verificar que el Build Command activo coincide.
-Como protección adicional, hacer obligatorio `Build and tests` en las reglas
-de integración de `main`. No se ha cambiado la configuración remota en esta tarea.
+El usuario autorizó su activación. Los cambios se publican en `main` y la primera
+[ejecución de GitHub Actions](https://github.com/RicardoGuzmanVelasco/reedleaves/actions/runs/38815654251)
+pasa **240/240** en Linux con Node 24.21.0. Render RGV ya confirma el Build
+Command nuevo y `autoDeployTrigger: checksPass`. La protección de `main` se
+configura para exigir `Build and tests` de GitHub Actions con la rama al día,
+incluidos administradores, y prohibir force-push y borrado.
+
+Al guardar el Build Command, Render volvió a construir `42bd56e` y lo detuvo
+con `build_failed` por sus pruebas rotas (`dep-db8kvq59fdbs739oashg`). Esto
+comprueba el bloqueo real de una entrega con tests fallidos.
+
+Hay un bloqueo previo independiente para el arranque: `REED_INVITE_CODE` tiene
+12 caracteres, mientras la app exige al menos 24. El despliegue anterior de
+`42bd56e` ya fallaba por esa causa (`dep-db8kqso473hc739vp58g`). Se solicita al
+usuario que corrija la credencial en Render; su valor no se guarda en Git ni
+se publica en la conversación. No declarar producción verificada hasta que
+el nuevo despliegue esté live y responda salud correctamente.
 
 ## Verificación
 
