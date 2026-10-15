@@ -8,7 +8,7 @@ Estado: el repo está conectado a GitHub `main` y a un Blueprint de Render; el u
 - `npm start` respeta `PORT`. En producción escucha en `0.0.0.0`; en desarrollo conserva `127.0.0.1`.
 - Local y pruebas usan SQLite. Producción exige `DATABASE_URL` y usa PostgreSQL; si falta, el servidor se detiene para evitar guardar progreso en almacenamiento efímero.
 - PostgreSQL inicializa el mismo catálogo y persiste cuentas, sesiones, barajas elegidas, progreso, preferencias e idea diaria. El esquema inicial es versión 1; no hay migraciones automáticas.
-- `NODE_ENV=production` exige `REED_ORIGIN=https://<origen-exacto>` y `REED_INVITE_CODE` con al menos 24 caracteres. Se activa la cookie `Secure`.
+- `NODE_ENV=production` exige `REED_ORIGIN=https://<origen-exacto>` y `REED_INVITE_CODE` con al menos 12 caracteres. Se activa la cookie `Secure`.
 - `/api/health` sirve como comprobación de salud y verifica una consulta a la base activa.
 - El primer arranque en una base vacía crea el esquema y siembra los CSV incluidos. Un esquema previo incompatible detiene el arranque; no se migra solo.
 
@@ -16,12 +16,12 @@ Estado: el repo está conectado a GitHub `main` y a un Blueprint de Render; el u
 
 Mantener una aplicación Node, PostgreSQL gestionado, HTTPS y una instancia. La base ya no depende del disco de la aplicación: reinicios y despliegues no deben borrar el progreso. Render está configurado en Frankfurt y el proyecto Supabase usa la región `eu-central-1`.
 
-En modo interno, el catálogo exige una cuenta y el alta exige una clave de invitación. Configurar `REED_INVITE_CODE` con una clave aleatoria de al menos 24 caracteres. El servidor solo acepta el alta si coincide; no se guarda en la base ni en el repositorio. La URL seguirá siendo pública, pero el contenido requiere cuenta y la clave limita quién puede crearla. No compartirla fuera del equipo.
+En modo interno, el catálogo exige una cuenta y el alta exige una clave de invitación. Configurar `REED_INVITE_CODE` con una clave aleatoria de al menos 12 caracteres. El servidor solo acepta el alta si coincide; no se guarda en la base ni en el repositorio. La URL seguirá siendo pública, pero el contenido requiere cuenta y la clave limita quién puede crearla. No compartirla fuera del equipo.
 
 ## Pendiente antes de invitar al equipo
 
 1. Elegir proveedor, espacio privado del repositorio y región.
-2. Crear una clave aleatoria de invitación de 24 caracteres o más y guardarla como secreto `REED_INVITE_CODE` en el hosting.
+2. Crear una clave aleatoria de invitación de 12 caracteres o más y guardarla como secreto `REED_INVITE_CODE` en el hosting.
 3. Usar la URL HTTPS que da el hosting y copiarla exactamente a `REED_ORIGIN`. Un dominio propio es opcional.
 4. Crear la base PostgreSQL y añadir su URL privada como secreto `DATABASE_URL` en el servicio Node.
 5. Configurar `/api/health` como comprobación. Probar alta, sesiones, progreso tras reinicio, backups y restauración desde el proveedor.

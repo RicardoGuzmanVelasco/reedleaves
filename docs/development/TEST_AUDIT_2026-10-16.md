@@ -58,12 +58,12 @@ Al guardar el Build Command, Render volvió a construir `42bd56e` y lo detuvo
 con `build_failed` por sus pruebas rotas (`dep-db8kvq59fdbs739oashg`). Esto
 comprueba el bloqueo real de una entrega con tests fallidos.
 
-Hay un bloqueo previo independiente para el arranque: `REED_INVITE_CODE` tiene
+Se detectó un bloqueo previo independiente para el arranque: `REED_INVITE_CODE` tiene
 12 caracteres, mientras la app exige al menos 24. El despliegue anterior de
-`42bd56e` ya fallaba por esa causa (`dep-db8kqso473hc739vp58g`). Se solicita al
-usuario que corrija la credencial en Render; su valor no se guarda en Git ni
-se publica en la conversación. No declarar producción verificada hasta que
-el nuevo despliegue esté live y responda salud correctamente.
+`42bd56e` ya fallaba por esa causa (`dep-db8kqso473hc739vp58g`). El usuario decide bajar el mínimo a 12. Se adapta la validación de arranque
+y se cubre la frontera 12/11, conservando la credencial existente. Su valor
+no se guarda en Git ni se publica en la conversación. No declarar producción
+verificada hasta que el nuevo despliegue esté live y responda salud correctamente.
 
 ## Verificación
 

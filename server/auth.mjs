@@ -8,6 +8,12 @@ const derive = promisify(scrypt);
 const parameters = {N:131072,r:8,p:1,maxmem:256 * 1024 * 1024};
 export const SESSION_SECONDS = 7 * 86400;
 export const COOKIE_NAME = "reedleaves_session";
+
+export function requireProductionInviteCode(value) {
+  if (typeof value !== "string" || value.length < 12) throw new Error("Production requires a REED_INVITE_CODE of at least 12 characters");
+  return value;
+}
+
 const digest = value => createHash("sha256").update(value).digest("hex");
 const usernameOf = value => typeof value === "string" ? value.trim().toLowerCase() : "";
 const validUsername = value => /^[a-z0-9][a-z0-9._-]{2,31}$/.test(value);
