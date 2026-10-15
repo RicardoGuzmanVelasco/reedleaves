@@ -175,3 +175,12 @@ Regla única de Inicio: **leyendo el libro O alguna baraja propia en `draft`**. 
 - Las portadas siempre abren la información del libro; el progreso de repaso deja de decidir el destino del toque. «+» mantiene su caso de uso de tomar nota. Ver barajas continúa hacia las barajas desde la ficha.
 - Un selector compacto con texto e icono para cada estado, situado junto a título/autor, sustituye los controles de lectura anteriores. Sin empezar usa libro cerrado, Leyendo libro abierto y Leído libro con check. Permite pasar directamente entre los tres estados y conserva permisos de solo lectura.
 - Marcar Leído desde Inicio conserva abierta la ficha aunque el libro deje de ser elegible, permitiendo corregir el cambio antes de cerrar. Cierre con foco de retorno seguro; fallos visibles junto al selector. Las reglas de pertenencia y orden de Inicio se mantienen.
+
+### Atajo de toma de nota desde Librería — incremento 2, implementación local
+
+- Al cambiar un libro a Leyendo o Leído en su ficha abierta desde Librería, aparece allí una invitación discreta «¿Quieres tomar una nota de este libro?» con la acción «Tomar nota».
+- La entrada reusa el editor compartido: recupera un borrador del libro si existe; con cero destinos crea «Notas de lectura» al guardar; con un destino abre directamente; con varios permite elegir las dos barajas recientes o ver todas.
+- Cancelar vuelve a la misma ficha y devuelve el foco al atajo. Guardar también conserva la ficha, actualiza su recuento y retira la invitación. El cambio de estado fallido no muestra la invitación.
+- Si marcar Leído abre el diálogo existente de cierre de barajas, la invitación queda disponible en la ficha al elegir «Mantener en progreso». Confirmar el cierre cierra la ficha y descarta el contexto temporal de invitación.
+- Solo aparece tras cambios de estado iniciados desde Librería, no al cambiar lectura desde otras fichas. No consume hojas ni necesita migración.
+- Revisión manual en demo SQLite aislada: estado Leyendo y Leído sin baraja propia, creación de la primera baraja/nota y regreso, destino múltiple, cancelar con retorno/foco, y convivencia con el diálogo de cierre al marcar Leído. Build/sintaxis/diff correctos; sin ejecutar la suite. Pendiente de revisión del usuario.
