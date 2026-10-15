@@ -338,11 +338,29 @@ export function deckCompletionView(s) {
   </article></dialog>`;
 }
 
+export function notesCompletionView(s) {
+  const c=words[s.language],f=s.notesCompletion,pending=s.pendingNoteVersionIds || [];
+  const book=s.catalog.booksById.get(f.bookId);
+  return `<dialog class="deck-modal notes-completion-modal" aria-labelledby="notes-completion-title" aria-describedby="notes-completion-description"><article class="deck-card">
+    <h2 id="notes-completion-title">${c.finishNotesTitle}</h2>
+    <p class="note-book-context" lang="${esc(displayedBookTitle(s,book).language)}" dir="auto">${esc(displayedBookTitle(s,book).text)}</p>
+    <p class="notes-completion-description" id="notes-completion-description">${c.finishNotesExplanation}</p>
+    <ul class="notes-completion-list">${f.versions.map(entry=>{
+      const version=s.catalog.versionsById.get(entry.versionId);
+      return `<li><div><strong lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</strong><span>${entry.cardCount ? c.noteCardsCount(entry.cardCount) : c.emptyNoteDeckDiscard}</span></div>${pending.includes(entry.versionId) ? `<button class="text-button" type="button" data-action="take-version-note" data-version="${esc(entry.versionId)}">${c.resumeNoteDraft}</button>` : ""}</li>`;
+    }).join("")}</ul>
+    ${pending.length ? `<p class="account-error" role="status">${c.pendingNotesBeforeFinish}</p>` : ""}
+    ${f.error && !(pending.length && f.error === "pendingNotesBeforeFinish") ? `<p class="account-error" role="alert">${esc(c[f.error] || c.connectionError)}</p>` : ""}
+    <div class="form-actions"><button class="text-button" type="button" data-action="keep-note-decks" autofocus ${f.saving ? "disabled" : ""}>${c.keepNoteDecks}</button><button class="primary" type="button" data-action="confirm-note-decks" ${f.saving || pending.length || !f.versions.length ? "disabled" : ""}>${f.saving ? c.finishingDeck : c.confirmNoteDecks}</button></div>
+  </article></dialog>`;
+}
+
 function bookReadingControls(s,book) {
   const c=words[s.language],status=s.statuses[book.id] || "unread",disabled=!s.storageAvailable || s.readOnly;
   const error=s.bookStatusError?.bookId === book.id ? s.bookStatusError.code : null;
   return `<div class="book-reading-controls">
     <div class="segmented-selector book-reading-selector" role="group" aria-label="${esc(c.bookStatus)}">${[["unread",c.unread],["reading",c.readingStatus],["read",c.readStatus]].map(([value,label])=>`<button type="button" data-action="set-book-reading" data-book="${esc(book.id)}" data-status="${value}" aria-pressed="${status === value}" ${disabled ? "disabled" : ""}>${bookReadingIcon(value)}<span>${esc(label)}</span></button>`).join("")}</div>
+    ${status === "read" && !s.readOnly && editableNoteVersions(s.catalog,book.id,s.userId).length ? `<button class="text-button book-notes-pending" type="button" data-action="finish-book-notes" data-book="${esc(book.id)}" aria-haspopup="dialog">${c.notesInProgress}</button>` : ""}
     ${error ? `<p class="account-error" role="alert">${esc(c[error] || c.connectionError)}</p>` : ""}
   </div>`;
 }

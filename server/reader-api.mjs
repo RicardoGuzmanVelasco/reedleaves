@@ -4,7 +4,7 @@ import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {ApiError} from "./errors.mjs";
 import {readReaderState, selectDeck, openCard, changeReading, changePreferences, dailyIdea} from "./reader-repository.mjs";
 
-import {createBook,createDeck,addCard,finishDeck,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
+import {createBook,createDeck,addCard,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
 import {createBookAutofill} from "./book-autofill.mjs";
 import {readCardVotes,setCardVote} from "./card-votes.mjs";
 import {readCardActions,readSavedCards,setCardSave} from "./card-saves.mjs";
@@ -39,6 +39,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],
       ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
     routes.set("/api/feedback",["POST"]);
+    routes.set("/api/author/decks/finish-notes",["POST"]);
     const profileMatch=path.match(/^\/api\/profiles\/([^/]+)$/);
     const cardVotesMatch=path.match(/^\/api\/cards\/([^/]+)\/votes$/);
     const cardActionsMatch=path.match(/^\/api\/cards\/([^/]+)\/actions$/);
@@ -121,7 +122,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         send(200,preview); return true;
       }
       if (path.startsWith("/api/author/")) {
-        const result = path === "/api/author/decks/finish" ? await finishDeck(db,active,input) : path.endsWith("complete") ? await completeBook(db,active,input) : path.endsWith("books") ? await createBook(db,active,input) : path.endsWith("decks") ? await createDeck(db,active,input) : await addCard(db,active,input);
+        const result = path === "/api/author/decks/finish-notes" ? await finishNoteDecks(db,active,input) : path === "/api/author/decks/finish" ? await finishDeck(db,active,input) : path.endsWith("complete") ? await completeBook(db,active,input) : path.endsWith("books") ? await createBook(db,active,input) : path.endsWith("decks") ? await createDeck(db,active,input) : await addCard(db,active,input);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
       const result = path === "/api/reader/select" ? await selectDeck(db,active,input.versionId,currentTime) :

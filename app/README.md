@@ -77,3 +77,9 @@ Esta entrega no publica la app. Para otro dispositivo hace falta un servidor acc
 Tarjetas editoriales propias y breves con fuentes de autores/editoriales; sin texto completo ni portadas comerciales. Son borradores pendientes de revisión antes de publicar. Finanzas resume ideas de los autores, no ofrece asesoramiento.
 
 Arquitectura, despliegue y limitaciones del controlador: ../docs/architecture/CATALOG.md. Contenido y próximos libros propuestos: ../content/catalog/README.md.
+
+### Cerrar las notas de un libro leído
+
+Al marcar un libro Leído, si quedan barajas propias en progreso se ofrece un diálogo con nombres y cantidades. Confirmar termina las no vacías y descarta las vacías (`archived`); Mantener en progreso conserva las barajas y el estado Leído. Notas en progreso, junto al selector de lectura, permite recuperar el diálogo. Los borradores locales deben resolverse antes y pueden retomarse desde su fila. El cierre vuelve a la lista de origen sin entrar en repaso.
+
+`POST /api/author/decks/finish-notes` valida el listado mostrado, propiedad, libro y recuentos bajo los mismos bloqueos de versión que añadir notas. Es transaccional e idempotente; un conflicto exige revisar la lista actualizada. No añade migraciones ni elimina registros físicos.

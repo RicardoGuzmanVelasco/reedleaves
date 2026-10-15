@@ -6,7 +6,7 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=direct-note";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml} from "./views.mjs?v=direct-note";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml} from "./views.mjs?v=direct-note";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -32,7 +32,7 @@ export function startReader({createCardFeatures} = {}) {
   let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, reviews, budget, preferences, statuses, daily, bookId, versionId, requestedId, selections, bookReviews, enrolledIds;
   let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, scrollToCard = false;
   let authorForm = null, quotesOnly = false, deckPreview = false, previewColumns = 2, previewVersionId = null;
-  let noteDestination=null,deckCompletion=null,bookStatusError=null;
+  let noteDestination=null,deckCompletion=null,notesCompletion=null,bookStatusError=null;
   let profileId=null,profileData=null,profileError=null,profileReturnHash="#home",profileRequest=null,profileGeneration=0;
   const recordedViews=new Set(),pendingViews=new Set();
   let albumPosition = null;
@@ -61,7 +61,7 @@ export function startReader({createCardFeatures} = {}) {
 
   function applyState(state) {
     if (snapshot.user?.id !== state.user?.id) {
-      persistNoteDraft(); authorForm=null; noteDestination=null; deckCompletion=null; bookStatusError=null;
+      persistNoteDraft(); authorForm=null; noteDestination=null; deckCompletion=null; notesCompletion=null; bookStatusError=null;
     }
     if (snapshot.user?.id !== state.user?.id) { deckPreview=false;previewColumns=2;previewVersionId=null; }
     if (snapshot.user?.id !== state.user?.id) { bookshelfFilters = {...bookshelfDefaults}; publicBookshelfFilters={...bookshelfDefaults}; libraryFilters = {...libraryDefaults}; libraryQuery = ""; listPositions = {}; profileId=null; profileError=null; profileData=null; profileRequest=null; profileGeneration++; recordedViews.clear(); pendingViews.clear(); libraryOrigin = "home"; openBookId = null; }
@@ -148,18 +148,19 @@ export function startReader({createCardFeatures} = {}) {
     if (!ready) { setExclusivePageLock(false);main.innerHTML = loadingView(language,failed); presentReading(main); updateCardFeatures();return; }
     refreshState(); header();
     if (["review","author"].includes(mode) && previewVersionId !== versionId) { deckPreview=false;previewColumns=2;previewVersionId=versionId; }
-    const state = {userId:snapshot.user?.id,authorForm,noteDestination,deckCompletion,bookStatusError,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,versionId),quotesOnly,deckPreview,previewColumns,language,showOriginalTitles,catalog,reviews,budget,preferences,statuses,noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily,bookId,versionId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],bookReviews,
+    const pendingNoteVersionIds=notesCompletion ? notesCompletion.versions.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.versionId)).map(entry=>entry.versionId) : [];
+    const state = {userId:snapshot.user?.id,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteVersionIds,bookStatusError,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,versionId),quotesOnly,deckPreview,previewColumns,language,showOriginalTitles,catalog,reviews,budget,preferences,statuses,noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily,bookId,versionId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],bookReviews,
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,libraryQuery,libraryFilters,libraryFiltersOpen,bookshelfFilters:mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
       profileData,profileError,readOnly:mode === "public-bookshelf",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,hasLocalProgress:hasLocalProgress()};
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
-      (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "bookshelf" ? bookshelfView(state) : mode === "public-bookshelf" ? profileData ? bookshelfView(state) : profilePendingView(state) : mode === "profile" ? profileView(state) : mode === "daily" ? dailyView(state) : mode === "book" ? deckView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "");
+      (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "bookshelf" ? bookshelfView(state) : mode === "public-bookshelf" ? profileData ? bookshelfView(state) : profilePendingView(state) : mode === "profile" ? profileView(state) : mode === "daily" ? dailyView(state) : mode === "book" ? deckView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "");
     if (!busy) { presentReading(main); recordDisplayedCard(); }
     if (!snapshot.user && mode === "book") main.querySelector('[data-action="select-deck"]')?.removeAttribute("disabled");
     if (mode === "library" && !authorForm) live.textContent = libraryQuery ? words[language].searchResults(filterLibrary(catalog,libraryQuery,libraryFilters).length) : "";
-    const dialog = main.querySelector(".deck-modal");
+    const dialog = main.querySelector(".notes-completion-modal") || main.querySelector(".deck-modal");
     if (dialog) {
       dialog.showModal(); const isNoteDestination=dialog.classList.contains("note-destination-dialog");
-      const close = ()=>dialog.classList.contains("deck-completion-modal") ? closeDeckCompletion() : isNoteDestination ? closeNoteDestination() : dialog.classList.contains("author-modal") ? closeAuthorForm() : dialog.dataset.book ? closeBookDetails(dialog.dataset.book) : closeDeck(dialog.dataset.version);
+      const close = ()=>dialog.classList.contains("notes-completion-modal") ? closeNotesCompletion() : dialog.classList.contains("deck-completion-modal") ? closeDeckCompletion() : isNoteDestination ? closeNoteDestination() : dialog.classList.contains("author-modal") ? closeAuthorForm() : dialog.dataset.book ? closeBookDetails(dialog.dataset.book) : closeDeck(dialog.dataset.version);
       if (isNoteDestination) { positionNoteDestination();dialog.querySelector("button")?.focus({preventScroll:true}); }
       if (authorForm) dialog.querySelector(authorForm.preview ? "#author-dialog-title" : authorForm.bookId ? '[data-action="autofill-book"]' : "input,textarea")?.focus();
       dialog.addEventListener("cancel",event=>{ event.preventDefault(); close(); });
@@ -188,7 +189,7 @@ export function startReader({createCardFeatures} = {}) {
     scrollToCard = false;
   }
   function route(focus = true) {
-    if (!ready) return; noteDestination=null;deckCompletion=null;refreshState();
+    if (!ready) return; noteDestination=null;deckCompletion=null;notesCompletion=null;refreshState();
     if (inviteRequired && !snapshot.user) { if (location.hash && location.hash !== "#account") authReturn = location.hash; mode = "account"; render({focus}); return; }
     const [view,first,second] = location.hash.slice(1).split("/");
     if (view === "library" && first === "book") {
@@ -380,19 +381,64 @@ export function startReader({createCardFeatures} = {}) {
   function openVersionNote(targetVersionId,trigger) {
     const version=catalog.versionsById.get(targetVersionId),deck=catalog.decksById.get(version?.deckId);
     if (busy || !snapshot.user || deck?.creator.userId !== snapshot.user.id || version?.status !== "draft") return;
-    const noteReturn={hash:location.hash,openDeckId,scrollY:exclusivePageLock?.scrollY ?? window.scrollY,dialogScrollTop:trigger.closest("dialog")?.scrollTop || 0,
+    const noteReturn={hash:location.hash,openDeckId,openBookId,notesCompletion,scrollY:exclusivePageLock?.scrollY ?? window.scrollY,dialogScrollTop:trigger.closest("dialog")?.scrollTop || 0,
       action:trigger.dataset.action,versionId:targetVersionId};
+    notesCompletion=null;
     openAuthorForm("card",{noteBookId:version.bookId,noteVersionId:targetVersionId,parentId:null,noteReturn});
   }
   function restoreNoteContext(form) {
     const context=form?.noteReturn;
     if (!context || context.hash !== location.hash || form.noteUserId !== snapshot.user?.id) return false;
-    openDeckId=context.openDeckId;render();
+    openDeckId=context.openDeckId;openBookId=context.openBookId;
+    notesCompletion=context.notesCompletion ? createNotesCompletion(context.notesCompletion.bookId) : null;
+    render();
     window.scrollTo({top:context.scrollY});
     [...main.querySelectorAll('[data-action]')].find(button=>button.dataset.action === context.action && button.dataset.version === context.versionId)?.focus({preventScroll:true});
-    const dialog=main.querySelector(".deck-modal");
+    const dialog=main.querySelector(".notes-completion-modal") || main.querySelector(".deck-modal");
     if (dialog) dialog.scrollTop=context.dialogScrollTop;
     return true;
+  }
+  function createNotesCompletion(id) {
+    const versions=editableNoteVersions(catalog,id,snapshot.user?.id).map(version=>({versionId:version.id,cardCount:version.cardCount}));
+    return versions.length ? {bookId:id,versions,error:null,saving:false} : null;
+  }
+  function openNotesCompletion(id) {
+    if (busy || !snapshot.user || mode === "public-bookshelf" || statuses[id] !== "read") return;
+    notesCompletion=createNotesCompletion(id);render();
+  }
+  function closeNotesCompletion() {
+    if (busy) return;
+    const id=notesCompletion?.bookId;notesCompletion=null;render();
+    ([...main.querySelectorAll('[data-action="finish-book-notes"]')].find(button=>button.dataset.book === id) ||
+      [...main.querySelectorAll('[data-action="set-book-reading"]')].find(button=>button.dataset.book === id && button.dataset.status === "read"))?.focus({preventScroll:true});
+  }
+  async function confirmNotesCompletion() {
+    if (busy || !notesCompletion || !notesCompletion.versions.length) return;
+    const completion=notesCompletion;
+    if (completion.versions.some(entry=>findNoteDraft(completion.bookId,entry.versionId))) {completion.error="pendingNotesBeforeFinish";render();return;}
+    busy=true;syncGeneration++;completion.saving=true;completion.error=null;render();
+    try {
+      const result=await api.request("/api/author/decks/finish-notes",{bookId:completion.bookId,versions:completion.versions});
+      for (const entry of result.versions) {
+        const version=catalog.versionsById.get(entry.versionId);
+        if (version) version.status=entry.status;
+      }
+      applyState(result.state);notesCompletion=null;
+      try {catalog=await loadCatalog();} catch {syncError="connectionError";}
+      busy=false;live.textContent=words[language].notesFinishedAnnouncement;
+      closeBookDetails(completion.bookId);
+    } catch(error) {
+      completion.error=error.status === 401 ? "sessionExpired" : error.code || "connectionError";
+      if (error.status === 409 || error.code === "deckUnavailable") {
+        try {
+          catalog=await loadCatalog();
+          completion.versions=createNotesCompletion(completion.bookId)?.versions || [];
+        } catch { /* Keep the reviewed list when the catalog cannot be refreshed. */ }
+      }
+    } finally {
+      busy=false;completion.saving=false;
+      if (notesCompletion) render();
+    }
   }
   function openAuthorForm(kind,options={}) {
     if (!snapshot.user) return;
@@ -553,9 +599,12 @@ export function startReader({createCardFeatures} = {}) {
   async function setBookReading(id,status) {
     if (!snapshot.user || mode === "public-bookshelf" || !catalog.booksById.has(id) || !["unread","reading","read"].includes(status) || statuses[id] === status) return;
     bookStatusError=null;
-    const saved=await mutation("/api/reader/reading",{bookId:id,status},()=>{live.textContent=words[language][status === "read" ? "bookMarkedRead" : status === "reading" ? "bookMarkedReading" : "bookMarkedUnread"];});
+    const saved=await mutation("/api/reader/reading",{bookId:id,status},()=>{
+      live.textContent=words[language][status === "read" ? "bookMarkedRead" : status === "reading" ? "bookMarkedReading" : "bookMarkedUnread"];
+      if (status === "read") notesCompletion=createNotesCompletion(id);
+    });
     if (!saved && snapshot.user) {bookStatusError={bookId:id,code:syncError};render();}
-    [...main.querySelectorAll('[data-action="set-book-reading"]')].find(button=>button.dataset.book === id && button.dataset.status === status)?.focus({preventScroll:true});
+    if (!notesCompletion) [...main.querySelectorAll('[data-action="set-book-reading"]')].find(button=>button.dataset.book === id && button.dataset.status === status)?.focus({preventScroll:true});
   }
   async function enterDeck(id) {
     if (!snapshot.user) { pendingVersion = id; authReturn = "#review/"+id; navigate("#account"); return; }
@@ -694,6 +743,9 @@ export function startReader({createCardFeatures} = {}) {
     switch(b.dataset.action) {
       case "profile": openOwnProfile(); break;
       case "set-book-reading": setBookReading(b.dataset.book,b.dataset.status); break;
+      case "finish-book-notes": openNotesCompletion(b.dataset.book); break;
+      case "keep-note-decks": closeNotesCompletion(); break;
+      case "confirm-note-decks": confirmNotesCompletion(); break;
       case "profile-back": navigate(profileReturnHash || "#home"); break;
       case "retry-profile": profileData=null; profileError=null; loadProfile(true); render(); break;
       case "create-book": openAuthorForm("book"); break;

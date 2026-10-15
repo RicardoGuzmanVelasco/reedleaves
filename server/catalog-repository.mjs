@@ -55,7 +55,7 @@ export async function readCatalog(db, userId) {
   }
   const versions = [];
   for (const row of await db.prepare("SELECT v.*,d.language FROM deck_versions v JOIN decks d ON d.id=v.deck_id ORDER BY v.deck_id,v.version").all()) {
-    const model = validateCards(cards.filter(c=>c.versionId===row.id),row.book_id,{allowEmpty:row.status === "draft"});
+    const model = validateCards(cards.filter(c=>c.versionId===row.id),row.book_id,{allowEmpty:["draft","archived"].includes(row.status)});
     let depth=0;
     for (const card of model.cards) { let level=1,parent=card.parentId; while(parent!==null){level++;parent=model.byId.get(parent).parentId;} depth=Math.max(depth,level); }
     const version = {id:row.id,deckId:row.deck_id,bookId:row.book_id,number:row.version,status:row.status,

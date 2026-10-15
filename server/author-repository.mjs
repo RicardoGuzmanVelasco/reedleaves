@@ -150,3 +150,25 @@ export async function finishDeck(db,session,input) {
     return {versionId:version.id,status:"published"};
   });
 }
+
+// Close exactly the versions and card counts shown in the confirmation dialog.
+export async function finishNoteDecks(db,session,input) {
+  const {bookId,versions}=input;
+  if (typeof bookId !== "string" || !bookId || bookId.length > 256 || !Array.isArray(versions) || !versions.length || versions.length > 200 ||
+    versions.some(row=>!row || typeof row.versionId !== "string" || !row.versionId || row.versionId.length > 256 || !Number.isSafeInteger(row.cardCount) || row.cardCount < 0) ||
+    new Set(versions.map(row=>row.versionId)).size !== versions.length) throw new ApiError(400,"invalidRequest");
+  return transaction(db,async()=>{
+    const changes=[];
+    // Stable lock order also serializes against addCard and individual finishing.
+    for (const entry of [...versions].sort((a,b)=>a.versionId.localeCompare(b.versionId))) {
+      const version=await db.prepare(`SELECT v.*,d.creator_user_id FROM deck_versions v JOIN decks d ON d.id=v.deck_id WHERE v.id=?${isPostgres(db) ? " FOR UPDATE OF v" : ""}`).get(entry.versionId);
+      if (!version || version.creator_user_id !== session.user_id || version.book_id !== bookId) throw new ApiError(404,"deckUnavailable");
+      const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE version_id=?").get(version.id);
+      const status=entry.cardCount ? "published" : "archived";
+      if (total !== entry.cardCount || !["draft",status].includes(version.status)) throw new ApiError(409,"noteDecksChanged");
+      changes.push({versionId:version.id,status});
+    }
+    for (const change of changes) await db.prepare("UPDATE deck_versions SET status=? WHERE id=? AND status='draft'").run(change.status,change.versionId);
+    return {bookId,versions:changes};
+  });
+}

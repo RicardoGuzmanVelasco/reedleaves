@@ -18,6 +18,8 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 
 - La zona inferior concentra el acceso al contenido en una única acción: «Ver barajas · N» / «View decks · N», con el número de barajas disponibles.
 - Idioma, estado de creación y progreso de repaso se muestran en el contexto de cada baraja. La ficha del libro no repite el número ni muestra idiomas o un resumen agregado de repaso como filas independientes.
+- Marcar «Leído» guarda la lectura y, si quedan barajas propias en progreso, abre un diálogo flotante para cerrarlas juntas. Cada fila muestra nombre y número de tarjetas, o «Vacía (se descartará)». «Confirmar» termina las que tienen contenido y descarta las vacías; «Mantener en progreso», Escape o cerrar conserva sus estados. La advertencia de congelación se muestra antes de confirmar, sin otro diálogo encadenado.
+- Un libro leído con notas pendientes permite recuperar ese diálogo desde «Notas en progreso», junto al estado de lectura. El cierre devuelve al contexto de origen sin abrir un repaso. Los borradores locales deben guardarse o cancelarse antes de terminar sus barajas.
 
 ## Enlaces de atribución
 
