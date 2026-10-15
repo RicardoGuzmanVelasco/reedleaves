@@ -3,8 +3,10 @@ name: Tests
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -24,3 +26,33 @@ jobs:
       # npm test builds the React bundle in pretest. Both databases run locally;
       # no production credentials or external AI provider are needed.
       - run: npm test
+
+  merge:
+    name: Merge PR
+    needs: test
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      # Only merge the tested head. GitHub still enforces branch protection
+      # and refuses a stale/conflicting PR. This job never checks out PR code.
+      - name: Merge the passing PR
+        run: >-
+          gh api --method PUT "repos/$GH_REPO/pulls/$PR_NUMBER/merge"
+          -f sha="$PR_HEAD_SHA" -f merge_method=squash
+      # A merge made with GITHUB_TOKEN does not trigger push workflows.
+      # Dispatch main explicitly so it gets checked before Render deploys.
+      - name: Validate main for deployment
+        run: gh workflow run tests.yml --repo "$GH_REPO" --ref main
