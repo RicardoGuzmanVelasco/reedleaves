@@ -13,6 +13,7 @@
 .mascot-art[data-mascot="seedling"]{--mascot-y:-13%;--mascot-scale:.9;--mascot-shadow-width:34%}
 .mascot-art[data-mascot="sprout"]{--mascot-y:-8%;--mascot-shadow-width:65%}
 .mascot-art[data-mascot="stem"]{--mascot-y:-5%;--mascot-scale:.92;--mascot-shadow-width:39.5%;--mascot-shadow-height:7.71085322836256%}
+.mascot-art[data-mascot="flower"]{--mascot-y:-3%;--mascot-scale:.86;--mascot-shadow-width:60%;--mascot-shadow-height:8%}
 .mascot-art[data-mascot="mystery"]{--mascot-shadow-width:36.5%}
 .mascot-art[data-idle="float"]{--mascot-idle-duration:2800ms}
 .mascot-art[data-idle="float"] .mascot-art-motion{animation-name:mascot-art-float}

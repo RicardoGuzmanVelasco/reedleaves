@@ -3,6 +3,19 @@ import assert from "node:assert/strict";
 import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "../brand/reed/growth/position-study/calibration-model.mjs";
 import {mascotArt} from "./mascot-art.mjs";
 
+test("Flor is available in the shared calibration editor with a separate editable face",()=>{
+  assert.ok(calibrationStages.includes("flower"));
+  const baseline=currentCalibration("flower");
+  assert.equal(Object.keys(baseline).length,14);
+  const edited=normalizeCalibration({...baseline,faceY:80,mouthWidth:3},baseline);
+  const config=calibrationConfiguration("flower",edited);
+  const html=mascotArt("flower","",{face:config.face,mouth:config.mouth});
+  assert.match(html,/growth\/bodies\/flower\.png/);
+  assert.match(html,/mascot-face-placement/);
+  assert.match(html,/translate\(80 80\)/);
+  assert.deepEqual(restoreCalibration({baseline:JSON.stringify(baseline),values:edited},baseline),edited);
+});
+
 test("Tallo exports all fourteen controls and renders its adjusted face independently",()=>{
   assert.ok(calibrationStages.includes("stem"));
   const baseline=currentCalibration("stem");

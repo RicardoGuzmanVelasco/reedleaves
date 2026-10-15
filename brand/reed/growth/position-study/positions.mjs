@@ -1,8 +1,8 @@
-import {mascotArt,mascotAssets,restartMascotIdle} from "/app/mascot-art.mjs?v=stem-shadow-calibration";
-import {playMascotExpression} from "/app/mascot-face.mjs?v=stem-shadow-calibration";
-import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=shadow-height";
+import {mascotArt,mascotAssets,restartMascotIdle} from "/app/mascot-art.mjs?v=flower-15-days";
+import {playMascotExpression} from "/app/mascot-face.mjs?v=flower-15-days";
+import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=flower-15-days";
 const storageKey="reedleaves:mascot-calibration:v1";
-const names={pot:"Maceta",seed:"Semilla",root:"Raíz",seedling:"Brote",sprout:"Plántula",stem:"Tallo"};
+const names={pot:"Maceta",seed:"Semilla",root:"Raíz",seedling:"Brote",sprout:"Plántula",stem:"Tallo",flower:"Flor"};
 const groups={body:"Personaje",shadow:"Sombra",face:"Cara y boca",leftEye:"Ojo izquierdo",rightEye:"Ojo derecho"};
 const stages=calibrationStages.filter(stage=>Object.hasOwn(mascotAssets,stage));
 const select=document.getElementById("mascot-select"),gallery=document.getElementById("preview-gallery");

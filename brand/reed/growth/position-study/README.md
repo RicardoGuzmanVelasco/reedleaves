@@ -22,3 +22,5 @@ Copiar configuración produce un JSON con etapa, cuerpo, sombra (`shadow.width` 
 La página se mantiene en `brand/` como herramienta interna. No desbloquea propuestas futuras ni modifica las reglas del producto.
 
 Tallo (`stem`) está disponible como A · Carnoso, elegida por el usuario el 14 de octubre de 2026. Usa un cuerpo PNG transparente sin cara ni sombra, con la cara SVG, la sombra y el movimiento del componente compartido. Su calibración inicial se puede ajustar con los mismos catorce controles. Desde el 15 de octubre la regla de producto elegida es diez días distintos de gasto por libro; el editor no modifica ese progreso.
+
+Flor (`flower`) usa A · Flor sin tallo: cinco pétalos rosas y centro amarillo. Está disponible con sus catorce controles, cara SVG, sombra independiente y modo de icono sin cara ni sombra. Sigue a Tallo a los quince días distintos de gasto por libro; las demás flores permanecen guardadas como exploraciones.

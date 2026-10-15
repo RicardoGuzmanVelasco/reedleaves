@@ -1,4 +1,4 @@
-import {mascotFace} from "./mascot-face.mjs?v=stem-shadow-calibration";
+import {mascotFace} from "./mascot-face.mjs?v=flower-15-days";
 import {startMascotBlinking} from "./mascot-blink.mjs?v=mascot-random-blink";
 
 if (typeof document !== "undefined") startMascotBlinking(document);
@@ -13,7 +13,7 @@ export const mascotAssets = Object.freeze({
   mystery: "/brand/reed/growth/mystery.svg",
   stem: "/brand/reed/growth/bodies/stem.png",
   plant: "/brand/reed/growth/plant.svg",
-  flower: "/brand/reed/growth/flower.svg",
+  flower: "/brand/reed/growth/bodies/flower.png",
   infinity: "/brand/reed/growth/infinity.svg"
 });
 // New stages hop by default. The historical seedling/sprout IDs name Sprout/Seedling.

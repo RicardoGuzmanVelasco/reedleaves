@@ -4,12 +4,12 @@ import { treeFrontier, hasLeaf, availableVersions } from "./decks.mjs";
 import {homeBooks,editableNoteVersions,recentNoteVersions} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=book-notes-close";
+import { words } from "./i18n.mjs?v=flower-15-days";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
-import {currentMascotStage} from "./mascot-progress.mjs";
-import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=stem-shadow-calibration";
+import {currentMascotStage} from "./mascot-progress.mjs?v=flower-15-days";
+import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=flower-15-days";
 import {missingBookInformation} from "./book-metadata.mjs";
 
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -190,8 +190,7 @@ const mascotStages = [
   {id:"seedling",name:"mascotNameSeedling",milestone:"mascotSeedling",motto:"mascotMottoSeedling",unlocked:g=>g.spentDays>=3},
   {id:"sprout",name:"mascotNameSprout",milestone:"mascotSprout",motto:"mascotMottoSprout",unlocked:g=>g.spentDays>=5},
   {id:"stem",name:"mascotNameStem",milestone:"mascotStem",unlocked:g=>g.spentDays>=10},
-  {id:"plant",name:"mascotNamePlant"},
-  {id:"flower",name:"mascotNameFlower"},
+  {id:"flower",name:"mascotNameFlower",milestone:"mascotFlower",unlocked:g=>g.spentDays>=15},
   {id:"fruit",name:"mascotNameFruit"},
   {id:"infinity",name:"mascotNameInfinity",motto:"mascotMottoInfinity"}
 ];

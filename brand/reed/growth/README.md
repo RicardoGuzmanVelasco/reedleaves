@@ -2,11 +2,11 @@
 
 This is the art source for the per-book mascot stages used by the app. The existing two-leaf app mascot is the **Seedling** stage. **Root** uses the selected ginger-root concept from `root.png`, composited through the transparent derivative `root-cutout.png`, and unlocks after spending leaves on cards for that book on two distinct local days. **Sprout** uses the green leafy seed from the original Sprout study and unlocks after three distinct review days. **Seedling** follows after five distinct review days. The final **Evergreen** stage restores the original **Living loop / Bucle vivo** mascot as a local asset, including its face placement.
 
-The user approved **Flowerpot** and **Seed** as shown, initially named the existing app mascot **Sprout** (now **Seedling**), approved the ginger-root **Root** artwork, approved **Sprout** with widely spaced eyes, asked to distinguish **Seedling** from **Sapling**, and asked to restore the original loop symbol. **Stem** uses the selected **A · Carnoso** direction in the shared component and calibration editor, and unlocks after ten distinct local spend days for the book. Sapling was removed from the sequence on 15 October 2026; Stem follows Seedling. Plant and Flower remain stage-art proposals for review. Fruit follows Flower before Evergreen; its artwork, motto and unlock condition remain undecided.
+The user approved **Flowerpot** and **Seed** as shown, initially named the existing app mascot **Sprout** (now **Seedling**), approved the ginger-root **Root** artwork, approved **Sprout** with widely spaced eyes, asked to distinguish **Seedling** from **Sapling**, and asked to restore the original loop symbol. **Stem** uses the selected **A · Carnoso** direction in the shared component and calibration editor, and unlocks after ten distinct local spend days for the book. Sapling was removed from the sequence on 15 October 2026; Stem follows Seedling. Flower uses the approved A · Flor blossom-only design and unlocks at fifteen distinct local spend days. Plant remains reserved outside the growth sequence. Fruit follows Flower before Evergreen; its artwork, motto and unlock condition remain undecided.
 
 ## Current names and preserved identifiers
 
-The displayed sequence is **Flowerpot → Seed → Root → Sprout → Seedling**. Historical IDs and filenames stay unchanged: `seedling` means **Brote / Sprout** at three review days; `sprout` means **Plántula / Seedling** at five. This naming correction preserves artwork, calibration, saved progress and profile counts.
+The implemented sequence is **Flowerpot → Seed → Root → Sprout → Seedling → Stem → Flower**. Flower follows Stem directly at fifteen distinct local spend days. Plant is reserved outside that sequence. Historical IDs and filenames stay unchanged: `seedling` means **Brote / Sprout** at three review days; `sprout` means **Plántula / Seedling** at five. This naming correction preserves artwork, calibration, saved progress and profile counts.
 
 ## Proposed stages
 
@@ -18,12 +18,19 @@ The displayed sequence is **Flowerpot → Seed → Root → Sprout → Seedling*
 | Sprout | Spend leaves on three distinct local days across any deck for the book. | `seedling.svg` |
 | Seedling | Spend leaves on five distinct local days across any deck for the book. | `../mascot.svg` |
 | Stem | Spend leaves on ten distinct local days across any deck for the book. | `bodies/stem.png` (A · Carnoso), shared component and calibration editor. |
-| Plant | TBD; not active in the app. | Hidden silhouette in the app. |
-| Flower | TBD; not active in the app. | Hidden silhouette in the app. |
+| Flower | Spend leaves on fifteen distinct local days across any deck for the book. | `bodies/flower.png`: approved A · Flor, without stem, shared SVG face and separate shadow. |
 | Fruit | TBD; not active in the app; no approved artwork or motto. | Hidden silhouette in the app. |
 | Evergreen | TBD; not active in the app. | Hidden silhouette in the app. |
 
-The Root, Sprout, Seedling and Stem day thresholds are active product rules. Other unlock conditions are undecided. Progress is monotonic: switching decks or changing the book's `reading` / `read` status must never downgrade a mascot already earned.
+The Root, Sprout, Seedling, Stem and Flower day thresholds are active product rules. Other unlock conditions are undecided. Progress is monotonic: switching decks or changing the book's `reading` / `read` status must never downgrade a mascot already earned.
+
+## Flower · selected on 15 October 2026
+
+The user selected **A · Flor** from [the flower-only exploration](flower-only-variations/README.md), at **fifteen accumulated distinct spend days per book**, without requiring consecutive days. The same shared stage calculation serves book growth and profile counts. Existing books with at least fifteen days qualify automatically; no migration is needed.
+
+Only the flower is shown: five pink petals and a yellow center, with no stem or leaves. `bodies/flower.png` is the transparent body without a face. Its two SVG eyes, smile, ground shadow and motion use the existing shared component. Flor is also available in the calibration editor. No motto was added.
+
+The other five flower-only variants and all six [«estilo tallo» variants](flower-variations/README.md) are saved for future use. They are not selectable in the app. `plant.svg` and the old `flower.svg` remain historical proposals, not active artwork. This section supersedes earlier notes that listed Plant before Flower or treated Flower as undecided.
 
 ## Visual scale
 

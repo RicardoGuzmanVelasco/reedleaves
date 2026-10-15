@@ -1,0 +1,6 @@
+Use case: precise-object-edit.
+Edit target: Image 1, the existing Reedleaves poppy / amapola mascot.
+Primary request: Fix ONLY the FACE PLACEMENT. Preserve this exact poppy mascot silhouette, petal colors, petal shapes, green stem and leaves, large cream highlights, clean chunky illustration style, full composition, dimensions and transparent background.
+Remove the two nearly black eyes and the green smile from the dark center disk. Keep that dark center smooth, with its existing highlight, and WITHOUT a face.
+Place the same familiar Reedleaves face on a BROAD RED FRONT PETAL: two well-separated small dark-forest-green vertical oval eyes (#173D2C) with a restrained curved closed dark-green smile below, matching the original character family. Choose the broad lower-left/front red petal face plane. Make the face about the same size as the old face and comfortably inside that petal, clearly visible against red. No nose, brows, lashes, cheek blush, teeth or tongue.
+Keep every other aspect unchanged. Genuinely transparent background, no floor shadow, no text, no props.

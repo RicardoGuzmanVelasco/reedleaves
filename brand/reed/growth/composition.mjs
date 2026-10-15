@@ -1,4 +1,4 @@
-import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=stem-shadow-calibration";
+import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=flower-15-days";
 const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Brote"],["sprout","Plántula"],["mystery","Sin desbloquear"]];
 for (const id of ["large-mascots","small-mascots"]) {
   document.getElementById(id).innerHTML = stages.map(([stage,name]) => `<li><button type="button" class="preview-mascot-button" aria-label="Reiniciar animación: ${name}">${mascotArt(stage)}</button><span>${name}</span></li>`).join("");
