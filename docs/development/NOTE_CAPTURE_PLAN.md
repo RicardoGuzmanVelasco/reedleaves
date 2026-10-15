@@ -138,10 +138,16 @@ Regla única de Inicio: **leyendo el libro O alguna baraja propia en `draft`**. 
 | Sin empezar | Alguna | Aparece por sus notas |
 | Sin empezar | Ninguna | No aparece |
 
-- «Marcar como leído» en la pantalla de barajas reutiliza el estado personal y el endpoint existentes. Es una acción explícita, reversible con «Marcar como leyendo» o el selector de la ficha. Sin confirmación irreversible ni cambios de esquema. ES/EN y anuncio accesible.
+- El selector único Sin empezar / Leyendo / Leído en la ficha reutiliza el estado personal y el endpoint existentes. Cualquier cambio es explícito y reversible en ese selector. Todas las portadas abren la misma ficha; el «+» conserva la entrada directa al editor. Sin confirmación irreversible ni cambios de esquema. ES/EN y anuncio accesible.
 - Marcar leído no termina ninguna baraja. Terminar una baraja no cambia la lectura. Terminar la última versión en progreso solo retira el libro si ya no está leyendo. No se deduce haber leído el original por completar notas o repasar.
 - Solo cuentan versiones propias `draft`. Las barajas ajenas, las publicadas/archivadas, las guardadas y el progreso de repaso no retienen el libro. Salir de Inicio conserva el libro en Biblioteca y su contenido/repasos. Crear una nueva baraja propia lo hace volver y no cambia automáticamente un libro leído a Leyendo.
 - Inicio explica la presencia dentro de la cubierta: Leyendo/Leído y, si hay versiones draft propias, Notas en progreso en otra línea. Ambas van apiladas y ancladas abajo a la izquierda (solo Notas en progreso si no está empezado). Los guardas de entrada del «+» usan la misma regla de visibilidad, por lo que se puede seguir escribiendo sobre un libro leído.
 - Orden por la última nota creada, sin moverlo por cambiar la lectura o terminar una baraja. Con un libro Leyendo sin destinos propios abiertos, «+» conserva Crear baraja → Tomar nota.
 - Arista pendiente: una baraja vacía retiene el libro pero no se puede publicar vacía. Se propone resolver el descarte de una baraja vacía como otro caso de uso; no se descarta automáticamente ni se cambia la decisión del usuario.
 - Revisión manual en copia aislada: marcar Leído/revertir, persistencia tras recarga, conservar leído con notas y abrir editor desde «+», terminar única baraja sin cambiar Leyendo, cero destinos abre Crear baraja, marcar Leído sin destinos propios retira de Inicio aunque haya barajas ajenas draft, crear una propia vacía devuelve el libro leído y abre su editor. Móvil 320 px sin desbordamiento. Build/sintaxis/diff correctos; sin añadir ni ejecutar la suite. Pendiente de producción.
+
+## Acceso estable a la información y lectura — local
+
+- Las portadas siempre abren la información del libro; el progreso de repaso deja de decidir el destino del toque. «+» mantiene su caso de uso de tomar nota. Ver barajas continúa hacia las barajas desde la ficha.
+- Un selector compacto con texto e icono para cada estado, situado junto a título/autor, sustituye los controles de lectura anteriores. Sin empezar usa libro cerrado, Leyendo libro abierto y Leído libro con check. Permite pasar directamente entre los tres estados y conserva permisos de solo lectura.
+- Marcar Leído desde Inicio conserva abierta la ficha aunque el libro deje de ser elegible, permitiendo corregir el cambio antes de cerrar. Cierre con foco de retorno seguro; fallos visibles junto al selector. Las reglas de pertenencia y orden de Inicio se mantienen.
