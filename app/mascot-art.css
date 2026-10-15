@@ -12,6 +12,7 @@
 .mascot-art[data-mascot="root"]{--mascot-x:3.5%;--mascot-y:-6.5%;--mascot-scale:.88}
 .mascot-art[data-mascot="seedling"]{--mascot-y:-13%;--mascot-scale:.9;--mascot-shadow-width:34%}
 .mascot-art[data-mascot="sprout"]{--mascot-y:-8%;--mascot-shadow-width:65%}
+.mascot-art[data-mascot="stem"]{--mascot-y:-5%;--mascot-scale:.92;--mascot-shadow-width:34%}
 .mascot-art[data-mascot="mystery"]{--mascot-shadow-width:36.5%}
 .mascot-art[data-idle="float"]{--mascot-idle-duration:2800ms}
 .mascot-art[data-idle="float"] .mascot-art-motion{animation-name:mascot-art-float}

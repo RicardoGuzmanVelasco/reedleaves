@@ -1,5 +1,5 @@
-import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=mascot-random-blink";
-import {mascotMouthConfig,mascotMouthWidth,mascotMouthPath,playMascotExpression} from "/app/mascot-face.mjs?v=mascot-random-blink";
+import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=stem-carnoso";
+import {mascotMouthConfig,mascotMouthWidth,mascotMouthPath,playMascotExpression} from "/app/mascot-face.mjs?v=stem-carnoso";
 const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Brote"],["sprout","Plántula"]];
 const widths = [1,1.5,2,3,"custom"];
 const format = value => `${String(value).replace(".",",")}×`;

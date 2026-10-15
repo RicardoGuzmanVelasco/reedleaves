@@ -20,3 +20,5 @@ Copiar configuración produce un JSON con etapa, cuerpo, sombra (`shadow.width`)
 3. La mascota aparecerá automáticamente en el selector. Puede añadirse su nombre a `names` en `positions.mjs`; sin nombre específico se muestra su identificador.
 
 La página se mantiene en `brand/` como herramienta interna. No desbloquea propuestas futuras ni modifica las reglas del producto.
+
+Tallo (`stem`) está disponible como A · Carnoso, elegida por el usuario el 14 de octubre de 2026. Usa un cuerpo PNG transparente sin cara ni sombra, con la cara SVG, la sombra y el movimiento del componente compartido. Su calibración inicial se puede ajustar con los mismos trece controles. Desde el 15 de octubre la regla de producto elegida es diez días distintos de gasto por libro; el editor no modifica ese progreso.

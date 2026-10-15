@@ -1,7 +1,22 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "../brand/reed/growth/position-study/calibration-model.mjs";
+import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "../brand/reed/growth/position-study/calibration-model.mjs";
 import {mascotArt} from "./mascot-art.mjs";
+
+test("Tallo exports all thirteen controls and renders its adjusted face independently",()=>{
+  assert.ok(calibrationStages.includes("stem"));
+  const baseline=currentCalibration("stem");
+  assert.equal(Object.keys(baseline).length,13);
+  const edited=normalizeCalibration({...baseline,faceX:75,leftEyeX:2,rightEyeY:-1,mouthWidth:3},baseline);
+  const config=calibrationConfiguration("stem",edited);
+  const html=mascotArt("stem","",{face:config.face,mouth:config.mouth});
+  assert.match(html,/growth\/bodies\/stem\.png/);
+  assert.match(html,/translate\(75 110\)/);
+  assert.match(html,/mascot-eye--left" transform="translate\(55 104\)"/);
+  assert.match(html,/mascot-eye--right" transform="translate\(111 103\)"/);
+  assert.match(html,/d="M70 119q12 6 24 0"/);
+  assert.deepEqual(restoreCalibration({baseline:JSON.stringify(baseline),values:edited},baseline),edited);
+});
 
 test("Calibration drafts preserve thirteen values and export matching face and body settings",()=>{
   const baseline=currentCalibration("root",{x:0,y:-4.5,scale:.9});
