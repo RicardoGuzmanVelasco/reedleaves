@@ -91,24 +91,18 @@ export function libraryResultsMarkup(s) {
 function bookDetailsMarkup(s,book) {
   const c = words[s.language];
   const choices = availableVersions(s.catalog,book.id), genres = bookGenres(s,book);
-  const languages = [...new Set(choices.map(item => item.deck.language))].map(tag => {
-    try { return new Intl.DisplayNames([s.language],{type:"language"}).of(tag) || tag; } catch { return tag; }
-  });
-  const review = s.bookReviews?.[book.id];
-  const status = [review?.hasReviewing ? c.reviewing : "",review?.hasReviewed ? c.reviewedStatus : ""].filter(Boolean).join(" · ") || c.notReviewed;
+  const creatorProfileId=book.creatorProfileUserId || book.creatorUserId;
   return `<dialog class="deck-modal book-modal" data-book="${esc(book.id)}" aria-labelledby="book-dialog-title" ${contentText(book.description,s.language,book.originalLanguage) ? 'aria-describedby="book-dialog-description"' : ""}><article class="deck-card book-detail">
     <button class="deck-modal-close" type="button" data-action="close-book-details" aria-label="${c.closeBook}" autofocus>×</button>
     <div class="deck-tags">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</div>
     <h2 id="book-dialog-title" lang="${esc(displayedBookTitle(s,book).language)}" dir="auto">${esc(displayedBookTitle(s,book).text)}</h2><div class="book-detail-author-row"><p class="book-detail-author">${esc(book.author)}</p>${completeBookButton(s,book)}</div>
     ${bookReadingControls(s,book)}
     <p class="book-original-title"><span>${c.originalTitle}</span><span lang="${esc(book.originalLanguage)}" dir="auto">${esc(book.originalTitle)}</span></p>
-    ${book.creatorName ? `<p class="book-added-by"><span>${c.bookAddedBy}</span><span><bdi>${esc(book.creatorName)}</bdi></span></p>` : ""}
+    ${book.creatorName ? `<p class="book-added-by"><span>${c.bookAddedBy}</span>${nameLink({icon:"user",name:book.creatorName,href:creatorProfileId ? `#profile/${encodeURIComponent(creatorProfileId)}` : null})}</p>` : ""}
     ${contentText(book.description,s.language,book.originalLanguage) ? `<p class="deck-description" id="book-dialog-description" lang="${esc(contentLocale(book.description,s.language,book.originalLanguage))}" dir="auto">${esc(contentText(book.description,s.language,book.originalLanguage))}</p>` : ""}
     ${bookLinksMarkup(s, book)}
     ${book.creatorUserId ? bookSourcesMarkup(s,book) : ""}
-    <p class="deck-size">${c.deckCount(choices.length)}</p>${languages.length ? `<p class="book-detail-languages">${esc(languages.join(" · "))}</p>` : ""}
-    <p class="book-detail-review">${c.reviewStatus}: <strong>${esc(status)}</strong></p>
-    ${s.readOnly ? `<a class="text-button" href="#library/book/${encodeURIComponent(book.id)}">${c.viewBookLibrary} ↗</a>` : `<button class="primary" type="button" data-action="open-book" data-book="${esc(book.id)}" ${!choices.length && !s.userId ? "disabled" : ""}>${c.viewDecks}</button>`}
+    <button class="primary" type="button" data-action="open-book" data-book="${esc(book.id)}" ${!choices.length && !s.userId ? "disabled" : ""}>${c.viewDecks} · ${choices.length}</button>
   </article></dialog>`;
 }
 
@@ -243,6 +237,13 @@ const attributionIcons = {
 };
 const linkArrow = '<svg class="attribution-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>';
 const attributionIcon = kind => `<svg class="attribution-icon" viewBox="0 0 24 24" aria-hidden="true">${attributionIcons[kind]}</svg>`;
+
+function nameLink({icon,name,language=null,href=null}) {
+  if (!name) return "";
+  const contents=`${attributionIcon(icon)}<bdi${language ? ` lang="${esc(language)}" dir="auto"` : ""}>${esc(name)}</bdi>${href ? linkArrow : ""}`;
+  return href ? `<a class="card-attribution-row" href="${esc(href)}">${contents}</a>` : `<span class="card-attribution-row">${contents}</span>`;
+}
+
 function cardAttribution(s,card,book) {
   const creator=s.catalog.decksById?.get(card.deckId)?.creator;
   const title=displayedBookTitle(s,book,true);
@@ -250,10 +251,7 @@ function cardAttribution(s,card,book) {
     ["book",title.text,title.language,`#library/book/${encodeURIComponent(book.id)}`],
     ["author",book.author,null,`#library/author/${encodeURIComponent(book.author)}`],
     ["user",creator?.name,null,creator ? `#profile/${encodeURIComponent(creator.userId)}` : null]
-  ].filter(([,text])=>text).map(([kind,text,language,href])=>{
-    const contents=`${attributionIcon(kind)}<bdi${language ? ` lang="${esc(language)}" dir="auto"` : ""}>${esc(text)}</bdi>${href ? linkArrow : ""}`;
-    return href ? `<a class="card-attribution-row" href="${esc(href)}">${contents}</a>` : `<span class="card-attribution-row">${contents}</span>`;
-  }).join("")}</div>`;
+  ].map(([icon,name,language,href])=>nameLink({icon,name,language,href})).join("")}</div>`;
 }
 
 function cardActionsHost(card) {
@@ -343,8 +341,8 @@ export function deckCompletionView(s) {
 function bookReadingControls(s,book) {
   const c=words[s.language],status=s.statuses[book.id] || "unread",disabled=!s.storageAvailable || s.readOnly;
   const error=s.bookStatusError?.bookId === book.id ? s.bookStatusError.code : null;
-  return `<div class="book-reading-controls"><p id="book-reading-label-${esc(book.id)}">${c.bookStatus}</p>
-    <div class="segmented-selector book-reading-selector" role="group" aria-labelledby="book-reading-label-${esc(book.id)}">${[["unread",c.unread],["reading",c.readingStatus],["read",c.readStatus]].map(([value,label])=>`<button type="button" data-action="set-book-reading" data-book="${esc(book.id)}" data-status="${value}" aria-pressed="${status === value}" ${disabled ? "disabled" : ""}>${bookReadingIcon(value)}<span>${esc(label)}</span></button>`).join("")}</div>
+  return `<div class="book-reading-controls">
+    <div class="segmented-selector book-reading-selector" role="group" aria-label="${esc(c.bookStatus)}">${[["unread",c.unread],["reading",c.readingStatus],["read",c.readStatus]].map(([value,label])=>`<button type="button" data-action="set-book-reading" data-book="${esc(book.id)}" data-status="${value}" aria-pressed="${status === value}" ${disabled ? "disabled" : ""}>${bookReadingIcon(value)}<span>${esc(label)}</span></button>`).join("")}</div>
     ${error ? `<p class="account-error" role="alert">${esc(c[error] || c.connectionError)}</p>` : ""}
   </div>`;
 }

@@ -10,6 +10,22 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - Escribir de forma breve, clara y humana. Incluir solo el texto necesario para usar la interfaz.
 - Diseñar para distintos tamaños de pantalla y respetar accesibilidad, movimiento reducido y controles semánticos.
 
+## Selectores de cápsula
+
+- Por defecto, ocupan el ancho necesario para sus opciones, sin estirarse para rellenar el contenedor. El selector de lectura de la ficha del libro se centra horizontalmente.
+
+## Ficha del libro
+
+- La zona inferior concentra el acceso al contenido en una única acción: «Ver barajas · N» / «View decks · N», con el número de barajas disponibles.
+- Idioma, estado de creación y progreso de repaso se muestran en el contexto de cada baraja. La ficha del libro no repite el número ni muestra idiomas o un resumen agregado de repaso como filas independientes.
+
+## Enlaces de atribución
+
+- Los enlaces con icono, nombre y flecha comparten el mismo estilo en tarjetas y fichas de libros, incluido «Añadido por».
+- El nombre no lleva subrayado en reposo. Al pasar el cursor se subraya solo el nombre. Se mantiene el indicador visible de foco para teclado.
+- Siguen siendo enlaces semánticos y pulsables a su destino. Reutilizar el componente `nameLink` de `app/views.mjs` (icono, nombre, destino e idioma opcional) y su estilo compartido `card-attribution-row`, sin definir variantes por pantalla.
+- Sin destino, el componente muestra icono y nombre como texto, sin flecha ni interacción. Sin nombre, no se muestra.
+
 ## Glosario
 
 Usar estos términos de forma consistente en la interfaz y en la documentación editorial vigente. Los nombres internos del código y los archivos de datos pueden conservar sus términos técnicos.

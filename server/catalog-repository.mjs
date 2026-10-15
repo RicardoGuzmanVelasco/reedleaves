@@ -10,10 +10,11 @@ export async function readCatalog(db, userId) {
   }
   const books = [];
   for (const row of await db.prepare(`SELECT b.id,b.author,b.original_title,b.original_language,b.editorial_status,b.creator_user_id,
-    COALESCE(u.display_name,(SELECT display_name FROM users WHERE id='reed-team'),'Equipo Reedleaves') AS creator_name
+    COALESCE(u.display_name,(SELECT display_name FROM users WHERE id='reed-team'),'Equipo Reedleaves') AS creator_name,
+    COALESCE(u.id,(SELECT id FROM users WHERE id='reed-team')) AS creator_profile_user_id
     FROM books b LEFT JOIN users u ON u.id=b.creator_user_id ORDER BY b.position`).all()) {
     const book = {schemaVersion:1,id:row.id,author:row.author,editorialStatus:row.editorial_status,
-      creatorUserId:row.creator_user_id,creatorName:row.creator_name || null,
+      creatorUserId:row.creator_user_id,creatorName:row.creator_name || null,creatorProfileUserId:row.creator_profile_user_id || null,
       originalTitle:row.original_title,originalLanguage:row.original_language,title:{},shortTitle:{},description:{},editorialNote:{},
       links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id = ? ORDER BY platform").all(row.id)).map(link=>[link.platform,link.url])),
       genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id = ? ORDER BY genre_id").all(row.id)).map(t=>t.genre_id),

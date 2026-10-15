@@ -68,7 +68,6 @@ preview.addEventListener("click",event=>{
   dialog.id="study-book-dialog";
   // The study reads actual metadata without inventing the account's status.
   dialog.querySelector(".book-reading-controls")?.remove();
-  dialog.querySelector(".book-detail-review")?.remove();
   const libraryLink=dialog.querySelector('a[href^="#library/book/"]');
   if (libraryLink) libraryLink.setAttribute("href",`/app/${libraryLink.getAttribute("href")}`);
   dialog.querySelector(".deck-modal-close").addEventListener("click",()=>dialog.close());
