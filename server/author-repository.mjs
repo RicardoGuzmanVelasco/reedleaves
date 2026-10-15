@@ -1,6 +1,6 @@
 import {transaction,isPostgres} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
-import {isCanonicalLocale,quoteExcerpt,LANGUAGES} from "../app/core.mjs";
+import {isCanonicalLocale,quoteExcerpt,LANGUAGES,validateCards} from "../app/core.mjs";
 import {normalizeBookMetadata,mergeBookMetadata} from "../app/book-metadata.mjs";
 import {defaultNoteDeckTitle} from "../app/note-defaults.mjs";
 import {randomUUID} from "node:crypto";
@@ -191,5 +191,112 @@ export async function finishNoteDecks(db,session,input) {
     }
     for (const change of changes) await db.prepare("UPDATE deck_versions SET status=? WHERE id=? AND status='draft'").run(change.status,change.versionId);
     return {bookId,versions:changes};
+  });
+}
+
+// Conversation-created decks are committed as one operation and always belong
+// to the editorial team identity. The caller must be an authenticated MCP
+// integration; never accept the owner ID from tool input.
+export async function createTeamDeck(db,input) {
+  const id=requestId(input.requestId),title=text(input.title,160),description=text(input.description ?? "",1000,false),language=input.language;
+  if (!isCanonicalLocale(language) || typeof input.bookId !== "string" || !Array.isArray(input.cards) || !input.cards.length || input.cards.length>120) throw new ApiError(400,"invalidRequest");
+  const editorialNote=text(input.editorialNote ?? title,1000);
+  const normalizedCards=[];
+  const siblingPositions=new Map();
+  for (let index=0;index<input.cards.length;index++) {
+    const item=input.cards[index];
+    if (!item || typeof item !== "object" || Array.isArray(item) || typeof item.isQuote!=="boolean") throw new ApiError(400,"invalidRequest");
+    const body=text(item.body,4000),cardTitle=item.isQuote?quoteExcerpt(body):text(item.title,160);
+    let parentId=null;
+    if (item.parentIndex!==undefined && item.parentIndex!==null) {
+      if (!Number.isInteger(item.parentIndex) || item.parentIndex<0 || item.parentIndex>=input.cards.length || item.parentIndex===index) throw new ApiError(400,"invalidParent");
+      parentId=`${id}-c${item.parentIndex+1}`;
+    }
+    const key=parentId || "root",order=(siblingPositions.get(key)||0)+1;
+    siblingPositions.set(key,order);
+    normalizedCards.push({id:`${id}-c${index+1}`,bookId:input.bookId,parentId,order,isQuote:item.isQuote,title:{[language]:cardTitle},body:{[language]:body}});
+  }
+  try { validateCards(normalizedCards,input.bookId); } catch { throw new ApiError(400,"invalidRequest"); }
+  return transaction(db,async()=>{
+    const team=await db.prepare("SELECT id,display_name,can_create_decks FROM users WHERE id='reed-team'").get();
+    if (!team || !team.can_create_decks) throw new ApiError(500,"teamAuthorUnavailable");
+    const book=await db.prepare("SELECT 1 FROM books WHERE id=?").get(input.bookId);
+    if (!book) throw new ApiError(404,"bookUnavailable");
+    const previous=await db.prepare("SELECT * FROM decks WHERE id=?").get(id);
+    if (previous) {
+      if (previous.creator_user_id!=="reed-team" || previous.book_id!==input.bookId || previous.language!==language) throw new ApiError(409,"invalidRequest");
+      const version=await db.prepare("SELECT * FROM deck_versions WHERE id=?").get(id+"-v1");
+      const metadata=await db.prepare("SELECT title,description,editorial_note FROM deck_version_translations WHERE version_id=? AND language=?").get(id+"-v1",language);
+      if (!version || version.status!=="draft" || !metadata || metadata.title!==title || metadata.description!==(description||title) || metadata.editorial_note!==editorialNote) throw new ApiError(409,"invalidRequest");
+      const rows=await db.prepare(`SELECT c.id,c.parent_id,c.position,c.is_quote,t.title,t.body FROM cards c JOIN card_translations t ON t.card_id=c.id AND t.language=? WHERE c.version_id=? ORDER BY c.position,c.id`).all(language,id+"-v1");
+      const actual=rows.map(row=>({id:row.id,parentId:row.parent_id,order:row.position,isQuote:!!row.is_quote,title:row.title,body:row.body})).sort((a,b)=>a.id.localeCompare(b.id));
+      const expected=normalizedCards.map(card=>({id:card.id,parentId:card.parentId,order:card.order,isQuote:card.isQuote,title:card.title[language],body:card.body[language]})).sort((a,b)=>a.id.localeCompare(b.id));
+      if (!isDeepStrictEqual(actual,expected)) throw new ApiError(409,"invalidRequest");
+      return {deckId:id,versionId:id+"-v1",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:true};
+    }
+    await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language) VALUES (?,?, 'reed-team',?)").run(id,input.bookId,language);
+    await db.prepare("INSERT INTO deck_versions(id,deck_id,book_id,version) VALUES (?,?,?,1)").run(id+"-v1",id,input.bookId);
+    await db.prepare("INSERT INTO deck_version_translations(version_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id+"-v1",language,title,description||title,editorialNote);
+    await db.prepare("INSERT INTO studies(user_id,version_id) VALUES ('reed-team',?)").run(id+"-v1");
+    const source=await db.prepare("SELECT id FROM sources WHERE book_id=? ORDER BY id LIMIT 1").get(input.bookId);
+    const createdAt=new Date().toISOString();
+    for (const card of normalizedCards) {
+      await db.prepare("INSERT INTO cards(id,version_id,book_id,parent_id,position,source_id,is_quote,created_at) VALUES (?,?,?,?,?,?,?,?)")
+        .run(card.id,id+"-v1",input.bookId,card.parentId,card.order,source?.id??null,card.isQuote?1:0,createdAt);
+      await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)")
+        .run(card.id,language,card.title[language],card.body[language]);
+    }
+    return {deckId:id,versionId:id+"-v1",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:false};
+  });
+}
+
+export async function appendTeamDeckCards(db,input) {
+  const request=requestId(input.requestId),versionId=text(input.versionId,280),cards=input.cards;
+  if (!Array.isArray(cards)||!cards.length||cards.length>120) throw new ApiError(400,"invalidRequest");
+  const team=await db.prepare("SELECT id,can_create_decks FROM users WHERE id='reed-team'").get();
+  if (!team||!team.can_create_decks) throw new ApiError(500,"teamAuthorUnavailable");
+  return transaction(db,async()=>{
+    const version=await db.prepare(`SELECT v.*,d.creator_user_id,d.language FROM deck_versions v JOIN decks d ON d.id=v.deck_id WHERE v.id=?${isPostgres(db)?" FOR UPDATE OF v":""}`).get(versionId);
+    if (!version||version.creator_user_id!=="reed-team") throw new ApiError(404,"deckUnavailable");
+    if (version.status!=="draft") throw new ApiError(409,"deckReadOnly");
+    const existingIds=new Set((await db.prepare("SELECT id FROM cards WHERE version_id=?").all(versionId)).map(row=>row.id));
+    const normalized=[];
+    const siblingPositions=new Map();
+    // Exclude this operation's deterministic IDs so a retry computes the same positions.
+    for (const card of await db.prepare("SELECT parent_id,MAX(position) AS position FROM cards WHERE version_id=? AND id NOT LIKE ? GROUP BY parent_id").all(versionId,request+"-c%")) siblingPositions.set(card.parent_id||"root",card.position);
+    for (let index=0;index<cards.length;index++) {
+      const item=cards[index];
+      if (!item||typeof item!=="object"||Array.isArray(item)||typeof item.isQuote!=="boolean") throw new ApiError(400,"invalidRequest");
+      if (item.parentId!==undefined&&item.parentIndex!==undefined&&item.parentIndex!==null) throw new ApiError(400,"invalidParent");
+      const body=text(item.body,4000),title=item.isQuote?quoteExcerpt(body):text(item.title,160);
+      let parentId=item.parentId??null;
+      if (item.parentIndex!==undefined&&item.parentIndex!==null) {
+        if (!Number.isInteger(item.parentIndex)||item.parentIndex<0||item.parentIndex>=index) throw new ApiError(400,"invalidParent");
+        parentId=normalized[item.parentIndex].id;
+      }
+      if (parentId!==null&&(typeof parentId!=="string"||!existingIds.has(parentId)&&!normalized.some(card=>card.id===parentId))) throw new ApiError(400,"invalidParent");
+      const id=`${request}-c${index+1}`,key=parentId||"root",order=(siblingPositions.get(key)||0)+1;
+      siblingPositions.set(key,order);
+      normalized.push({id,parentId,order,isQuote:item.isQuote,title,body});
+    }
+    const foundElsewhere=await db.prepare("SELECT id,version_id FROM cards WHERE id LIKE ?").all(request+"-c%");
+    if (foundElsewhere.some(row=>row.version_id!==versionId)) throw new ApiError(409,"invalidRequest");
+    const found=await db.prepare("SELECT c.id,c.parent_id,c.position,c.is_quote,t.title,t.body FROM cards c JOIN card_translations t ON t.card_id=c.id AND t.language=? WHERE c.version_id=? AND c.id LIKE ?").all(version.language,versionId,request+"-c%");
+    if (found.length) {
+      const actual=found.map(row=>({id:row.id,parentId:row.parent_id,order:row.position,isQuote:!!row.is_quote,title:row.title,body:row.body})).sort((a,b)=>a.id.localeCompare(b.id));
+      const expected=normalized.map(card=>({...card})).sort((a,b)=>a.id.localeCompare(b.id));
+      if (found.length!==normalized.length||!isDeepStrictEqual(actual,expected)) throw new ApiError(409,"invalidRequest");
+      return {versionId,cardIds:normalized.map(card=>card.id),cardCount:normalized.length,idempotent:true};
+    }
+    const source=await db.prepare("SELECT id FROM sources WHERE book_id=? ORDER BY id LIMIT 1").get(version.book_id);
+    const createdAt=new Date().toISOString();
+    for (const card of normalized) {
+      await db.prepare("INSERT INTO cards(id,version_id,book_id,parent_id,position,source_id,is_quote,created_at) VALUES (?,?,?,?,?,?,?,?)")
+        .run(card.id,versionId,version.book_id,card.parentId,card.order,source?.id??null,card.isQuote?1:0,createdAt);
+      await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)")
+        .run(card.id,version.language,card.title,card.body);
+    }
+    await db.prepare("UPDATE reviews SET completed_at=NULL WHERE version_id=?").run(versionId);
+    return {versionId,cardIds:normalized.map(card=>card.id),cardCount:normalized.length,idempotent:false};
   });
 }

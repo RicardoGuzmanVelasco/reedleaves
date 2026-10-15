@@ -5,6 +5,7 @@ import { PROJECT_ROOT } from "./database.mjs";
 import { readCatalog } from "./catalog-repository.mjs";
 import {createReaderApi} from "./reader-api.mjs";
 import {readSession} from "./auth.mjs";
+import {handleMcpRequest} from "./mcp-server.mjs";
 
 const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
   ".webmanifest": "application/manifest+json; charset=utf-8",
@@ -36,6 +37,7 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
     try {
       const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
       const path = publicFiles.get(pathname) || pathname;
+      if (path === "/mcp") { response.setHeader("Cache-Control","no-store"); await handleMcpRequest(request,response,{db,token:options.mcpToken,publicBaseUrl:options.publicBaseUrl}); return; }
       if (await readerApi(request,response,path,send)) return;
       if (!["GET", "HEAD"].includes(request.method)) {
         response.setHeader("Allow", "GET, HEAD");

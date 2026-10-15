@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "reedleaves-decks",
+  "version": "0.1.0",
+  "description": "Create Reedleaves deck drafts from a conversation.",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Reedleaves",
+        "shortDescription": "Create and extend deck drafts",
+        "longDescription": "Find books in the Reedleaves catalog and save deck drafts attributed to Equipo Reedleaves.",
+        "developerName": "Reedleaves",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://reedleaves.com"
+      }
+    }
+  }
+}

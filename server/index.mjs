@@ -14,7 +14,10 @@ const origin = process.env.REED_ORIGIN || process.env.RENDER_EXTERNAL_URL;
 if (production && (!origin?.startsWith("https://"))) throw new Error("Production requires an HTTPS public origin");
 const inviteCode = process.env.REED_INVITE_CODE;
 if (production && (!inviteCode || inviteCode.length < 24)) throw new Error("Production requires a REED_INVITE_CODE of at least 24 characters");
-const server = createCatalogServer(db,undefined,{origin,secureCookies:production || origin?.startsWith("https://"),inviteCode});
+const mcpToken = process.env.REED_MCP_TOKEN;
+if (mcpToken && mcpToken.length < 32) throw new Error("REED_MCP_TOKEN must contain at least 32 characters");
+const server = createCatalogServer(db,undefined,{origin,secureCookies:production || origin?.startsWith("https://"),inviteCode,
+  mcpToken,publicBaseUrl:process.env.REED_PUBLIC_URL||"https://reedleaves.com"});
 const port = Number(process.env.REED_PORT || process.env.PORT || 4173);
 const host = process.env.REED_HOST || (production ? "0.0.0.0" : "127.0.0.1");
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid REED_PORT");
