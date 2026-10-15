@@ -4,7 +4,7 @@ import { treeFrontier, hasLeaf, availableVersions } from "./decks.mjs";
 import {homeBooks,editableNoteVersions,recentNoteVersions} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=book-notes-close";
+import { words } from "./i18n.mjs?v=first-note-deck";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
