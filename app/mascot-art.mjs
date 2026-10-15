@@ -1,4 +1,4 @@
-import {mascotFace} from "./mascot-face.mjs?v=mascot-random-blink";
+import {mascotFace} from "./mascot-face.mjs?v=stem-shadow-calibration";
 import {startMascotBlinking} from "./mascot-blink.mjs?v=mascot-random-blink";
 
 if (typeof document !== "undefined") startMascotBlinking(document);
@@ -11,7 +11,7 @@ export const mascotAssets = Object.freeze({
   seedling: "/brand/reed/growth/bodies/seedling.svg",
   sprout: "/brand/reed/growth/bodies/sprout.svg",
   mystery: "/brand/reed/growth/mystery.svg",
-  stem: "/brand/reed/growth/stem.svg",
+  stem: "/brand/reed/growth/bodies/stem.png",
   plant: "/brand/reed/growth/plant.svg",
   flower: "/brand/reed/growth/flower.svg",
   infinity: "/brand/reed/growth/infinity.svg"

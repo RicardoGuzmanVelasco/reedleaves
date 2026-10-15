@@ -4,12 +4,12 @@ import { treeFrontier, hasLeaf, availableVersions } from "./decks.mjs";
 import {homeBooks,editableNoteVersions,recentNoteVersions} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=growth-stage-list";
+import { words } from "./i18n.mjs?v=book-info-reading";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
 import {currentMascotStage} from "./mascot-progress.mjs";
-import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=mascot-random-blink";
+import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=stem-shadow-calibration";
 import {missingBookInformation} from "./book-metadata.mjs";
 
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -189,8 +189,7 @@ const mascotStages = [
   {id:"root",name:"mascotNameRoot",milestone:"mascotRoot",motto:"mascotMottoRoot",unlocked:g=>g.spentDays>=2},
   {id:"seedling",name:"mascotNameSeedling",milestone:"mascotSeedling",motto:"mascotMottoSeedling",unlocked:g=>g.spentDays>=3},
   {id:"sprout",name:"mascotNameSprout",milestone:"mascotSprout",motto:"mascotMottoSprout",unlocked:g=>g.spentDays>=5},
-  {id:"sapling",name:"mascotNameSapling",motto:"mascotMottoSapling"},
-  {id:"stem",name:"mascotNameStem"},
+  {id:"stem",name:"mascotNameStem",milestone:"mascotStem",unlocked:g=>g.spentDays>=10},
   {id:"plant",name:"mascotNamePlant"},
   {id:"flower",name:"mascotNameFlower"},
   {id:"fruit",name:"mascotNameFruit"},
@@ -209,8 +208,9 @@ function mascotMotto(s,bookId) {
   return stage?.motto ? {text:words[s.language][stage.motto],language:s.language} : null;
 }
 function reviewMascotCallout(s,bookId) {
+  if (!mascotState(s,bookId).latest) return "";
   const motto=mascotMotto(s,bookId);
-  return motto ? `<div class="review-mascot-callout">${mascotEntry(s,bookId,"review-mascot-button")}<p lang="${esc(motto.language)}">${esc(motto.text)}</p></div>` : "";
+  return `<div class="review-mascot-callout">${mascotEntry(s,bookId,"review-mascot-button")}${motto ? `<p lang="${esc(motto.language)}">${esc(motto.text)}</p>` : ""}</div>`;
 }
 export function mascotsView(s) {
   const c=words[s.language],book=s.catalog.booksById.get(s.bookId),{unlocked,latest}=mascotState(s,s.bookId);
@@ -224,8 +224,8 @@ export function mascotsView(s) {
       const knownArtwork=earned || index<=maximumKnown;
       const marker=earned?`<span class="mascot-stage-marker mascot-check"><svg viewBox="0 0 24 24" role="img" aria-label="${c.mascotEarned}"><path d="m4 12 5 5L20 6"/></svg></span>`:`<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true"></span>`;
       const showMotto=knownArtwork&&!!stage.motto;
-      const unlock=implemented?c[stage.milestone]:"???",motto=showMotto?c[stage.motto]:c.mascotNotUnlocked;
-      return `<li class="mascot-stage${earned?" is-earned":""}${knownArtwork?" is-known":" is-mystery"}${!earned?" is-locked":""}${current?" is-current":""}"${current?' aria-current="step"':""}>${marker}${mascotArt(knownArtwork?stage.id:"mystery","mascot-stage-art",{idle:false})}<div class="mascot-stage-copy"><h2>${c[stage.name]}</h2><p class="mascot-stage-unlock">${esc(unlock)}</p><p class="mascot-stage-motto${showMotto?"":" is-locked"}">${esc(motto)}</p></div></li>`;
+      const unlock=implemented?c[stage.milestone]:"???",motto=showMotto?c[stage.motto]:earned?"":c.mascotNotUnlocked;
+      return `<li class="mascot-stage${earned?" is-earned":""}${knownArtwork?" is-known":" is-mystery"}${!earned?" is-locked":""}${current?" is-current":""}"${current?' aria-current="step"':""}>${marker}${mascotArt(knownArtwork?stage.id:"mystery","mascot-stage-art",{idle:false})}<div class="mascot-stage-copy"><h2>${c[stage.name]}</h2><p class="mascot-stage-unlock">${esc(unlock)}</p>${motto ? `<p class="mascot-stage-motto${showMotto?"":" is-locked"}">${esc(motto)}</p>` : ""}</div></li>`;
     }).join("")}</ol>
   </section>`;
 }
@@ -570,7 +570,7 @@ export function profileView(s) {
     <section class="profile-section" aria-labelledby="profile-reader"><div class="profile-section-heading"><h2 id="profile-reader">${c.readerSummary}</h2><a class="text-button" href="${s.userId === p.id ? "#bookshelf" : `#bookshelf/${encodeURIComponent(p.id)}`}">${c.viewBookshelf} →</a></div>
       ${metrics(["booksRead","booksReading","decksCompleted","decksInProgress","cardsReviewed","cardsViewed"])}<p class="profile-note">${c.distinctCardsNote}</p></section>
     <section class="profile-section" aria-labelledby="profile-archivist"><h2 id="profile-archivist">${c.archivistSummary}</h2>${metrics(["decksCreated","cardsCreated","quotesCreated"])}</section>
-    <section class="profile-section" aria-labelledby="profile-mascots"><h2 id="profile-mascots">${c.currentMascots}</h2><ul class="profile-mascots">${mascotStages.filter(stage=>stage.unlocked || p.mascots[stage.id]>0).map(stage=>`<li>${mascotIcon(stage.id)}<span>${c[stage.name]}</span><strong>${p.mascots[stage.id]}</strong></li>`).join("")}</ul></section>
+    <section class="profile-section" aria-labelledby="profile-mascots"><h2 id="profile-mascots">${c.currentMascots}</h2><ul class="profile-mascots">${mascotStages.filter(stage=>stage.unlocked || p.mascots[stage.id]>0).map(stage=>`<li>${mascotIcon(stage.id)}<span>${c[stage.name]}</span><strong>${p.mascots[stage.id] ?? 0}</strong></li>`).join("")}</ul></section>
   </section>`;
 }
 export function profilePendingView(s) {

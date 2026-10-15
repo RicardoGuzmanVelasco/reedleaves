@@ -2,7 +2,7 @@
 
 This is the art source for the per-book mascot stages used by the app. The existing two-leaf app mascot is the **Seedling** stage. **Root** uses the selected ginger-root concept from `root.png`, composited through the transparent derivative `root-cutout.png`, and unlocks after spending leaves on cards for that book on two distinct local days. **Sprout** uses the green leafy seed from the original Sprout study and unlocks after three distinct review days. **Seedling** follows after five distinct review days. The final **Evergreen** stage restores the original **Living loop / Bucle vivo** mascot as a local asset, including its face placement.
 
-The user approved **Flowerpot** and **Seed** as shown, initially named the existing app mascot **Sprout** (now **Seedling**), approved the ginger-root **Root** artwork, approved **Sprout** with widely spaced eyes, asked to distinguish **Seedling** from **Sapling**, and asked to restore the original loop symbol. Sapling, Stem, Plant, and Flower remain stage-art proposals for review. Fruit follows Flower before Evergreen; its artwork, motto and unlock condition remain undecided.
+The user approved **Flowerpot** and **Seed** as shown, initially named the existing app mascot **Sprout** (now **Seedling**), approved the ginger-root **Root** artwork, approved **Sprout** with widely spaced eyes, asked to distinguish **Seedling** from **Sapling**, and asked to restore the original loop symbol. **Stem** uses the selected **A · Carnoso** direction in the shared component and calibration editor, and unlocks after ten distinct local spend days for the book. Sapling was removed from the sequence on 15 October 2026; Stem follows Seedling. Plant and Flower remain stage-art proposals for review. Fruit follows Flower before Evergreen; its artwork, motto and unlock condition remain undecided.
 
 ## Current names and preserved identifiers
 
@@ -17,14 +17,13 @@ The displayed sequence is **Flowerpot → Seed → Root → Sprout → Seedling*
 | Root | Spend leaves on cards for the book on two distinct local days. | `root-cutout.png` (original: `root.png`) |
 | Sprout | Spend leaves on three distinct local days across any deck for the book. | `seedling.svg` |
 | Seedling | Spend leaves on five distinct local days across any deck for the book. | `../mascot.svg` |
-| Sapling | TBD; not active in the app. | Hidden silhouette in the app. |
-| Stem | TBD; not active in the app. | Hidden silhouette in the app. |
+| Stem | Spend leaves on ten distinct local days across any deck for the book. | `bodies/stem.png` (A · Carnoso), shared component and calibration editor. |
 | Plant | TBD; not active in the app. | Hidden silhouette in the app. |
 | Flower | TBD; not active in the app. | Hidden silhouette in the app. |
 | Fruit | TBD; not active in the app; no approved artwork or motto. | Hidden silhouette in the app. |
 | Evergreen | TBD; not active in the app. | Hidden silhouette in the app. |
 
-The Root, Sprout, and Seedling day thresholds are active product rules. Other unlock conditions are undecided. Progress is monotonic: switching decks or changing the book's `reading` / `read` status must never downgrade a mascot already earned.
+The Root, Sprout, Seedling and Stem day thresholds are active product rules. Other unlock conditions are undecided. Progress is monotonic: switching decks or changing the book's `reading` / `read` status must never downgrade a mascot already earned.
 
 ## Visual scale
 
@@ -34,11 +33,11 @@ Flowerpot uses the original pixels of reserved **A · Classic / Clásica** from 
 
 `root.png` is the original approved artwork and visual-size reference. Flowerpot and the historical Seed keep their tighter square viewBoxes; removing their shadows did not change their framing, paths or faces. The active almond-shaped Seed uses the shared 160 × 160 frame.
 
-The reusable `app/mascot-art.mjs` and `app/mascot-art.css` component composes full characters. Icons use `mascotIcon`, which outputs a direct body image with context-specific dimensions and no character transforms. The ground ellipse keeps Flowerpot's adjusted baseline and height, with a narrower common width: center at `(50%, 87.5%)`, width `72%`, height `15.384615%`, color `#1E4C2E` at 16% opacity. The base geometry depends on component size and stage calibration. Idle animation only scales shadow width around its center; baseline, height, color and opacity stay fixed. Seed uses 80% scale. Sprout uses 90% scale and a -13% vertical offset; Seedling uses a -8% vertical offset. All three float above the ground. Root keeps its existing calibration. Placement and motion use separate nested elements so animation cannot override calibration.
+The reusable `app/mascot-art.mjs` and `app/mascot-art.css` component composes full characters. Icons use `mascotIcon`, which outputs a direct body image with context-specific dimensions and no character transforms. The ground ellipse stays centered at `(50%, 87.5%)`, with common defaults of width `72%`, height `15.384615%`, color `#1E4C2E` at 16% opacity. Width and height can be calibrated independently per stage through `--mascot-shadow-width` and `--mascot-shadow-height`; the editor exports `shadow.width` and `shadow.height` as percentages of the frame. The base geometry depends on component size and stage calibration. Idle animation only scales shadow width around its center; calibrated height, center, color and opacity stay fixed. Seed uses 80% scale. Sprout uses 90% scale and a -13% vertical offset; Seedling uses a -8% vertical offset. All three float above the ground. Root keeps its existing calibration. Placement and motion use separate nested elements so animation cannot override calibration.
 
 Every full mascot runs its selected idle pattern in an infinite loop by default. Growth timeline rows opt out with `{idle:false}`, keeping both body and ground static; the current mascot in the header stays animated and shares the deck header's size (160 px desktop, 112 px mobile). Flowerpot and Root hop by default: the former greeting is a 600 ms hop (left/right rotation and one 8% upward arc without rebound, plus subtle squash and stretch) followed by a 1200 ms rest. Seed, Sprout (`seedling`), Seedling (`sprout`) and Mystery float smoothly through a 10% upward arc in 2800 ms. `mascotIdlePatterns` selects exceptions; future stages inherit the hop. Ground width shrinks to 78% during a hop and 70% during a float, then returns, with the same duration, keyframe timing and easing as the vertical motion. Independent CSS `translate`, `rotate` and `scale` preserve hover transforms. Reduced motion disables body, shadow and eye animation. Icons remain static body images.
 
-Ground shadows have been removed from Pot, Seed, Mystery, Stem, Plant and Flower SVGs. Embedded darker parts of the characters are retained. Future stage proposals remain unavailable in the app.
+Ground shadows have been removed from Pot, Seed, Mystery, Stem, Plant and Flower SVGs. Embedded darker parts of the characters are retained. Plant, Flower, Fruit and Evergreen remain unavailable in the app.
 
 The shared browser component also installs automatic blinking: both eyes close and reopen in 160 ms, with a new independent random wait of 3–7 seconds for each mascot. It only animates eye-expression layers, preserving body/shadow loops and giving manual gestures priority. Timeline rows (`idle:false`), icons and faceless artwork do not blink. The controller follows inserted/removed markup, clears timers on navigation, and pauses for hidden tabs or reduced motion.
 
@@ -47,6 +46,10 @@ The shared browser component also installs automatic blinking: both eyes close a
 [Composition comparison](composition.html) checks all five available stages plus Mystery at large and small sizes, their idle loops, frame boundaries and Root on three backgrounds. The brand study and app share the same component.
 
 ## Files
+
+- [Tallo — Tres direcciones](stem-directions-exploration.md): A · Carnoso elegida para el componente parametrizado; B · Flexible y C · Nudos conservadas como alternativas. Desbloqueo a los diez días distintos de gasto en el mismo libro.
+
+- [Tallo — Junco y Bambú](stem-reed-bamboo-variants.md): dos exploraciones conservadas, con referencias y prompts completos. Carnoso sigue siendo la forma activa.
 
 - [Variantes de Plántula](plantula-variations-exploration.md): **A · Tierra v3**, aprobada y reservada, con la franja exterior oscura de las hojas recortada; **B · Cotiledones**, propuesta pendiente. Imágenes completas guardadas como exploraciones; el arte activo de la app se conserva.
 
@@ -63,7 +66,7 @@ The shared browser component also installs automatic blinking: both eyes close a
 
 Open `index.html` to review the art. Progress is aggregated across decks for the same book. Motto text is maintained in `mottos.md`.
 
-Names and Spanish/English mottos follow `mottos.md`: **Retoño / Sapling** follows Seedling; **Siempreverde / Evergreen** keeps the existing `infinity.svg` artwork and internal `infinity` ID. Sapling remains locked with a neutral silhouette; no unlock condition has been chosen.
+Names and Spanish/English mottos follow `mottos.md`: **Tallo / Stem** follows Seedling; **Siempreverde / Evergreen** keeps the existing `infinity.svg` artwork and internal `infinity` ID. Sapling is no longer in the sequence. Stem unlocks on the tenth distinct local spend day, accumulated across decks of the same book; consecutive days are not required.
 
 ## Root cutout prompt
 

@@ -62,7 +62,7 @@ test("Sprout precedes Seedling in both languages without changing earned stage I
 test("Mascot names and approved mottos match the editable reference document", () => {
   const reference=readFileSync(new URL("../brand/reed/growth/mottos.md",import.meta.url),"utf8");
   const rows=reference.split("\n").filter(line=>/^\|\s*\d+\s*\|/.test(line)).map(line=>line.split("|").slice(1,-1).map(cell=>cell.trim()));
-  const keys=["Pot","Seed","Root","Seedling","Sprout","Sapling","Stem","Plant","Flower","Fruit","Infinity"];
+  const keys=["Pot","Seed","Root","Seedling","Sprout","Stem","Plant","Flower","Fruit","Infinity"];
   assert.equal(rows.length,keys.length);
   for (const [index,key] of keys.entries()) {
     assert.equal(Number(rows[index][0]),index+1);

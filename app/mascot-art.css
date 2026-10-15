@@ -1,7 +1,7 @@
 /* Ground calibration stays independent of placement. Only its width responds
    to idle motion, using the body's duration and easing. */
-.mascot-art{--mascot-x:0%;--mascot-y:0%;--mascot-scale:1;--mascot-shadow-width:72%;--mascot-idle-duration:1800ms;--mascot-idle-easing:ease-in-out;position:relative;display:inline-block;isolation:isolate;width:100px;height:100px;aspect-ratio:1;vertical-align:middle;flex:none;pointer-events:none}
-.mascot-art::before{content:"";position:absolute;z-index:0;left:calc((100% - var(--mascot-shadow-width)) / 2);top:79.807692%;width:var(--mascot-shadow-width);height:15.384615%;border-radius:50%;background:rgb(30 76 46 / 16%);transform-origin:center;animation:mascot-shadow-hop var(--mascot-idle-duration) var(--mascot-idle-easing) infinite}
+.mascot-art{--mascot-x:0%;--mascot-y:0%;--mascot-scale:1;--mascot-shadow-width:72%;--mascot-shadow-height:15.384615%;--mascot-idle-duration:1800ms;--mascot-idle-easing:ease-in-out;position:relative;display:inline-block;isolation:isolate;width:100px;height:100px;aspect-ratio:1;vertical-align:middle;flex:none;pointer-events:none}
+.mascot-art::before{content:"";position:absolute;z-index:0;left:calc((100% - var(--mascot-shadow-width)) / 2);top:calc(87.5% - var(--mascot-shadow-height) / 2);width:var(--mascot-shadow-width);height:var(--mascot-shadow-height);border-radius:50%;background:rgb(30 76 46 / 16%);transform-origin:center;animation:mascot-shadow-hop var(--mascot-idle-duration) var(--mascot-idle-easing) infinite}
 .mascot-art-placement,.mascot-art-motion{position:absolute;inset:0;display:block}
 .mascot-art-placement{z-index:1;transform:translate(var(--mascot-x),var(--mascot-y)) scale(var(--mascot-scale));transform-origin:50% 50%}
 .mascot-art-motion{transform-origin:50% 88%;transition:transform .15s ease;animation:mascot-art-hop var(--mascot-idle-duration) var(--mascot-idle-easing) infinite}
@@ -12,6 +12,7 @@
 .mascot-art[data-mascot="root"]{--mascot-x:3.5%;--mascot-y:-6.5%;--mascot-scale:.88}
 .mascot-art[data-mascot="seedling"]{--mascot-y:-13%;--mascot-scale:.9;--mascot-shadow-width:34%}
 .mascot-art[data-mascot="sprout"]{--mascot-y:-8%;--mascot-shadow-width:65%}
+.mascot-art[data-mascot="stem"]{--mascot-y:-5%;--mascot-scale:.92;--mascot-shadow-width:39.5%;--mascot-shadow-height:7.71085322836256%}
 .mascot-art[data-mascot="mystery"]{--mascot-shadow-width:36.5%}
 .mascot-art[data-idle="float"]{--mascot-idle-duration:2800ms}
 .mascot-art[data-idle="float"] .mascot-art-motion{animation-name:mascot-art-float}

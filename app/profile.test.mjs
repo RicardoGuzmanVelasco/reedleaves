@@ -17,7 +17,7 @@ test("Profiles translate, escape names, link own versus foreign shelves and show
   for(const language of ["es","en"]) {
     const html=profileView({language,profileData,userId:"other"});
     assert.doesNotMatch(html,/<script>|NaN|undefined|mascot-face/);
-    assert.equal((html.match(/<img class="mascot-icon"/g)||[]).length,5);
+    assert.equal((html.match(/<img class="mascot-icon"/g)||[]).length,6);
     assert.match(html,new RegExp(`<span>${language==="es"?"Brote":"Sprout"}</span><strong>0</strong>`));
     assert.match(html,new RegExp(`<span>${language==="es"?"Plántula":"Seedling"}</span><strong>1</strong>`));
     for(const key of Object.keys(profileData.profile.counts)) assert.ok(html.includes(words[language][key]),key);

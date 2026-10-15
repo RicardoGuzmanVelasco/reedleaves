@@ -46,6 +46,26 @@ test("Profile counts one current pet per book rather than all unlocked stages, i
   assert.deepEqual(p.mascots,{pot:3,seed:0,root:0,seedling:0,sprout:1,sapling:0,stem:0,plant:0,flower:0,fruit:0,infinity:0});
 });
 
+test("Ten nonconsecutive spend days across decks of one book earn one Tallo in the profile",async t=>{
+  const {db,a}=await fixture(t),bookId="seven-habits";
+  const decks=[];
+  for(let n=0;n<2;n++) {
+    const {versionId}=await createDeck(db,a,{requestId:randomUUID(),bookId,title:`Stem test ${n}`,language:"es"});
+    const cards=[];
+    for(let i=0;i<5;i++) cards.push((await addCard(db,a,{requestId:randomUUID(),versionId,title:`Card ${i}`,body:"Test content",parentId:null,isQuote:false})).cardId);
+    decks.push({versionId,cards});
+  }
+  for(let n=0;n<10;n++) {
+    const deck=decks[n%2];
+    await openCard(db,a,deck.versionId,deck.cards[Math.floor(n/2)],day(1+n*2));
+    const profile=(await readProfile(db,a.user_id,a.user_id)).profile;
+    if(n===8) {assert.equal(profile.mascots.sprout,1);assert.equal(profile.mascots.stem,0);}
+  }
+  assert.equal((await readReaderState(db,a,day(19))).growth[bookId].spentDays,10);
+  const {mascots}=(await readProfile(db,a.user_id,a.user_id)).profile;
+  assert.equal(mascots.stem,1);assert.equal(mascots.sprout,0);
+});
+
 test("Author stats include quotes as a subset; shared libraries expose content but not account data or author permissions",async t=>{
   const {db,a,b}=await fixture(t);
   const {bookId}=await createBook(db,a,{requestId:randomUUID(),title:"Shared book",author:"Book author",language:"es"});

@@ -1,8 +1,8 @@
-import {mascotArt,mascotAssets,restartMascotIdle} from "/app/mascot-art.mjs?v=mascot-random-blink";
-import {playMascotExpression} from "/app/mascot-face.mjs?v=mascot-random-blink";
-import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=mascot-random-blink";
+import {mascotArt,mascotAssets,restartMascotIdle} from "/app/mascot-art.mjs?v=stem-shadow-calibration";
+import {playMascotExpression} from "/app/mascot-face.mjs?v=stem-shadow-calibration";
+import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=shadow-height";
 const storageKey="reedleaves:mascot-calibration:v1";
-const names={pot:"Maceta",seed:"Semilla",root:"Raíz",seedling:"Brote",sprout:"Plántula"};
+const names={pot:"Maceta",seed:"Semilla",root:"Raíz",seedling:"Brote",sprout:"Plántula",stem:"Tallo"};
 const groups={body:"Personaje",shadow:"Sombra",face:"Cara y boca",leftEye:"Ojo izquierdo",rightEye:"Ojo derecho"};
 const stages=calibrationStages.filter(stage=>Object.hasOwn(mascotAssets,stage));
 const select=document.getElementById("mascot-select"),gallery=document.getElementById("preview-gallery");
@@ -22,7 +22,7 @@ function readBaseline(id) {
   document.body.append(probe);
   const style=getComputedStyle(probe.firstElementChild);
   const body={x:parseFloat(style.getPropertyValue("--mascot-x")),y:parseFloat(style.getPropertyValue("--mascot-y")),scale:parseFloat(style.getPropertyValue("--mascot-scale"))};
-  const shadow={width:parseFloat(style.getPropertyValue("--mascot-shadow-width"))};
+  const shadow={width:parseFloat(style.getPropertyValue("--mascot-shadow-width")),height:parseFloat(style.getPropertyValue("--mascot-shadow-height"))};
   probe.remove();return currentCalibration(id,body,shadow);
 }
 function save() {
@@ -40,6 +40,7 @@ function applyBody(art) {
   art.style.setProperty("--mascot-y",`${values.bodyY}%`);
   art.style.setProperty("--mascot-scale",values.bodyScale);
   art.style.setProperty("--mascot-shadow-width",`${values.shadowWidth}%`);
+  art.style.setProperty("--mascot-shadow-height",`${values.shadowHeight}%`);
 }
 function buildPreview() {
   gallery.innerHTML=[160,100,60,32].map(size=>`<figure><figcaption>${size} px</figcaption>${mascotArt(stage,`preview-${size}`,options())}</figure>`).join("");
@@ -48,7 +49,7 @@ function buildPreview() {
 function updatePreview(key) {
   for(const art of gallery.querySelectorAll(".mascot-art")) {
     applyBody(art);
-    if(!iconMode.checked && !key.startsWith("body") && key!=="shadowWidth") {
+    if(!iconMode.checked && !key.startsWith("body") && !key.startsWith("shadow")) {
       const template=document.createElement("template");template.innerHTML=mascotArt(stage,"",options());
       art.querySelector(".mascot-face").replaceWith(template.content.querySelector(".mascot-face"));
     }

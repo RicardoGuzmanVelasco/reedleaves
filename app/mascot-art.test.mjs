@@ -5,7 +5,7 @@ import {mascotMouthWidth,mascotMouthPath,mascotFaceGeometry} from "./mascot-face
 import {mascotArt,mascotAssets,mascotIcon} from "./mascot-art.mjs";
 
 test("Decorative mascot artwork reserves separate placement and motion layers",()=>{
-  for (const stage of ["pot","seed","root","seedling","sprout","mystery"]) {
+  for (const stage of ["pot","seed","root","seedling","sprout","stem","mystery"]) {
     const html=mascotArt(stage,"mascot-stage-art");
     assert.match(html,/aria-hidden="true"/);
     assert.match(html,/mascot-art-placement"><span class="mascot-art-motion"><img/);
@@ -56,11 +56,11 @@ test("Root uses an alpha PNG and the static loading fallback matches the shared 
 
 
 test("Active mascots share a face inside body motion; unknown stages stay faceless",()=>{
-  for (const stage of ["pot","seed","root","seedling","sprout"]) {
+  for (const stage of ["pot","seed","root","seedling","sprout","stem"]) {
     const html=mascotArt(stage);
     assert.match(html,/mascot-art-motion"><img[^>]*><svg class="mascot-face"/);
     const body=readFileSync(new URL(`..${mascotAssets[stage]}`,import.meta.url));
-    if(stage!=="root") assert.doesNotMatch(body.toString(),/<ellipse|id="face"|#173D2C/i);
+    if(!["root","stem"].includes(stage)) assert.doesNotMatch(body.toString(),/<ellipse|id="face"|#173D2C/i);
     assert.equal((html.match(/class="mascot-eye-expression"/g)||[]).length,2);
     assert.match(html,/class="mascot-mouth"/);
   }
@@ -109,7 +109,7 @@ test("Invalid mouth widths fall back without injecting SVG attributes",()=>{
 
 
 test("Mascot icons are direct images without character placement, motion or face",()=>{
-  for(const stage of ["pot","seed","root","seedling","sprout","mystery"]) {
+  for(const stage of ["pot","seed","root","seedling","sprout","stem","mystery"]) {
     const icon=mascotIcon(stage,"study-book-mark");
     assert.match(icon,/^<img class="mascot-icon study-book-mark"/);
     assert.doesNotMatch(icon,/<span|<svg|mascot-art|mascot-face|mascot-mouth|mascot-eye|style=|data-mascot/);
