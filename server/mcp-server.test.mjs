@@ -6,7 +6,7 @@ import {Client} from "@modelcontextprotocol/sdk/client/index.js";
 import {StreamableHTTPClientTransport} from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import {openDatabase,initializeDatabase,PostgresDatabase} from "./database.mjs";
 import {PGlite} from "@electric-sql/pglite";
-import {createDeck,addCard,finishNoteDecks} from "./author-repository.mjs";
+import {createDeck,addCard,finishNoteDecks,createTeamDeck} from "./author-repository.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {createCatalogServer} from "./http.mjs";
 
@@ -40,13 +40,13 @@ async function fixture(t,dialect) {
 }
 
 for (const dialect of ["sqlite","postgres"]) {
-test(`${dialect}: MCP authenticates, creates, extends and finishes repeat-safe team decks`,async t=>{
+test(`${dialect}: MCP creates finished team decks atomically and retries safely`,async t=>{
   const {db,client,base}=await fixture(t,dialect);
   const unauthenticated=await fetch(`${base}/mcp`,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
   assert.equal(unauthenticated.status,401);
 
   const {tools}=await client.listTools();
-  assert.deepEqual(tools.map(tool=>tool.name),["find_book","create_deck","append_cards_to_draft","finish_deck"]);
+  assert.deepEqual(tools.map(tool=>tool.name),["find_book","create_deck","append_cards_to_draft","finish_deck","list_team_drafts"]);
 
   const found=await client.callTool({name:"find_book",arguments:{query:"Atomic Habits"}});
   const matches=JSON.parse(found.content[0].text).matches;
@@ -61,15 +61,13 @@ test(`${dialect}: MCP authenticates, creates, extends and finishes repeat-safe t
   const result=JSON.parse(created.content[0].text);
   assert.equal(result.creatorName,"Equipo Reedleaves");
   assert.equal(result.cardCount,2);
+  assert.equal(result.status,"published");
   assert.match(result.url,/\/app\/#book\/atomic-habits$/);
   assert.equal((await db.prepare("SELECT creator_user_id FROM decks WHERE id=?").get(requestId)).creator_user_id,"reed-team");
-  assert.equal((await client.callTool({name:"create_deck",arguments:createInput})).isError,undefined);
-
-  const appended=await client.callTool({name:"append_cards_to_draft",arguments:{requestId:randomUUID(),versionId:result.versionId,cards:[
-    {title:"Repaso",body:"Recupera una idea sin mirar.",isQuote:false}
-  ]}});
-  assert.equal(JSON.parse(appended.content[0].text).cardCount,1);
-  assert.equal((await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE version_id=?").get(result.versionId)).total,3);
+  const retried=await client.callTool({name:"create_deck",arguments:createInput});
+  assert.equal(retried.isError,undefined);
+  assert.deepEqual(JSON.parse(retried.content[0].text),{...result,idempotent:true});
+  assert.equal((await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE version_id=?").get(result.versionId)).total,2);
   assert.equal((await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE version_id=? AND created_at IS NULL").get(result.versionId)).total,0);
   const before=await db.prepare("SELECT * FROM cards WHERE version_id=? ORDER BY id").all(result.versionId);
   const finishInput={name:"finish_deck",arguments:{versionId:result.versionId}};
@@ -82,10 +80,43 @@ test(`${dialect}: MCP authenticates, creates, extends and finishes repeat-safe t
   assert.equal(blockedAppend.isError,true);
   assert.equal(JSON.parse(blockedAppend.content[0].text).error,"deckReadOnly");
   assert.deepEqual(await db.prepare("SELECT * FROM cards WHERE version_id=? ORDER BY id").all(result.versionId),before);
+  const changed=await client.callTool({name:"create_deck",arguments:{...createInput,title:"Cambiar una baraja terminada"}});
+  assert.equal(changed.isError,true);
+  assert.equal(JSON.parse(changed.content[0].text).error,"invalidRequest");
+  const pending=await client.callTool({name:"list_team_drafts",arguments:{}});
+  assert.ok(!JSON.parse(pending.content[0].text).drafts.some(draft=>draft.versionId===result.versionId));
+  // A failure while publishing must roll back the entire deck, not leave a draft.
+  const failedId=randomUUID(),prepare=db.prepare.bind(db);
+  db.prepare=sql=>sql.startsWith("UPDATE deck_versions SET status='published'") ? {run:async()=>{throw new Error("simulated publication failure");}} : prepare(sql);
+  try { await assert.rejects(createTeamDeck(db,{...createInput,requestId:failedId}),/simulated publication failure/); }
+  finally { db.prepare=prepare; }
+  assert.equal(await db.prepare("SELECT id FROM decks WHERE id=?").get(failedId),undefined);
+  assert.equal((await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE version_id=?").get(failedId+"-v1")).total,0);
+});
+
+test(`${dialect}: MCP lists, extends and finishes existing team drafts`,async t=>{
+  const {db,client}=await fixture(t,dialect);
+  const {versionId}=await createDeck(db,{user_id:"reed-team"},{requestId:randomUUID(),bookId:"atomic-habits",title:"Borrador anterior",language:"es"});
+  const listing=await client.callTool({name:"list_team_drafts",arguments:{bookId:"atomic-habits"}});
+  assert.ok(JSON.parse(listing.content[0].text).drafts.some(draft=>draft.versionId===versionId && draft.title==="Borrador anterior" && draft.cardCount===0));
+  const input={name:"append_cards_to_draft",arguments:{requestId:randomUUID(),versionId,cards:[{title:"Repaso",body:"Recupera una idea sin mirar.",isQuote:false}]}};
+  const appended=await client.callTool(input);
+  assert.equal(appended.isError,undefined);
+  assert.equal(JSON.parse(appended.content[0].text).cardCount,1);
+  assert.equal((await client.callTool(input)).isError,undefined);
+  const finishInput={name:"finish_deck",arguments:{versionId}};
+  const finished=await client.callTool(finishInput);
+  assert.equal(finished.isError,undefined);
+  assert.deepEqual(JSON.parse(finished.content[0].text),{versionId,status:"published"});
+  assert.deepEqual(await client.callTool(finishInput),finished);
+  const after=await client.callTool({name:"list_team_drafts",arguments:{bookId:"atomic-habits"}});
+  assert.ok(!JSON.parse(after.content[0].text).drafts.some(draft=>draft.versionId===versionId));
 });
 
 test(`${dialect}: MCP finishing rejects foreign, empty and archived decks`,async t=>{
   const {db,client}=await fixture(t,dialect);
+  const initial=await client.callTool({name:"list_team_drafts",arguments:{bookId:"atomic-habits"}});
+  const initialIds=JSON.parse(initial.content[0].text).drafts.map(draft=>draft.versionId);
   await db.prepare("INSERT INTO users(id,display_name) VALUES ('mcp-other','Otra persona')").run();
   const create=async(owner,withCard=true)=>{
     const {versionId}=await createDeck(db,{user_id:owner},{requestId:randomUUID(),bookId:"atomic-habits",title:"Notas",language:"es"});
@@ -94,6 +125,10 @@ test(`${dialect}: MCP finishing rejects foreign, empty and archived decks`,async
   };
   const foreign=await create("mcp-other"),empty=await create("reed-team",false),archived=await create("reed-team",false);
   await finishNoteDecks(db,{user_id:"reed-team"},{bookId:"atomic-habits",versions:[{versionId:archived,cardCount:0}]});
+  const listing=await client.callTool({name:"list_team_drafts",arguments:{bookId:"atomic-habits",creatorUserId:"mcp-other"}});
+  const drafts=JSON.parse(listing.content[0].text).drafts;
+  assert.deepEqual(drafts.map(draft=>draft.versionId).sort(),[...initialIds,empty].sort());
+  assert.ok(drafts.every(draft=>draft.bookId==="atomic-habits"));
   const before=await db.prepare("SELECT id,status FROM deck_versions ORDER BY id").all();
   for (const [versionId,error] of [[foreign,"deckUnavailable"],[empty,"emptyDeckCannotFinish"],[archived,"deckReadOnly"],["missing-version","deckUnavailable"]]) {
     const result=await client.callTool({name:"finish_deck",arguments:{versionId,creatorUserId:"mcp-other"}});

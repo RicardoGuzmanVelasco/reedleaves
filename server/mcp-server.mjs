@@ -3,7 +3,7 @@ import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
 import {StreamableHTTPServerTransport} from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {z} from "zod/v4";
 import {readCatalog} from "./catalog-repository.mjs";
-import {appendTeamDeckCards,createTeamDeck,finishTeamDeck} from "./author-repository.mjs";
+import {appendTeamDeckCards,createTeamDeck,finishTeamDeck,readTeamDeckDrafts} from "./author-repository.mjs";
 import {ApiError} from "./errors.mjs";
 
 function validBearer(request,token) {
@@ -30,8 +30,8 @@ function safeTool(handler) {
 }
 
 function makeServer(db,publicBaseUrl) {
-  const server=new McpServer({name:"reedleaves-deck-authoring",version:"1.0.0"},{
-    instructions:"Create Reedleaves deck drafts from the user's conversation. Find a book only when the user has not identified it clearly. Saving makes the draft visible in the shared catalog. All created decks are attributed to Equipo Reedleaves. Finish a team draft only when the user explicitly asks; finishing freezes its cards. Never invent source quotes; use isQuote only for wording supplied by the user.",
+  const server=new McpServer({name:"reedleaves-deck-authoring",version:"1.1.0"},{
+    instructions:"Create finished Reedleaves team decks from the user's conversation. Saving publishes and freezes the complete deck in the shared catalog, attributed to Equipo Reedleaves. Prepare all cards before creating. Find a book only when unclear. Use list_team_drafts to identify older team drafts and finish_deck only when the user asks to finish them. Never invent source quotes; use isQuote only for wording supplied by the user.",
     maxToolInputElements:5000
   });
   server.registerTool("find_book",{
@@ -52,7 +52,7 @@ function makeServer(db,publicBaseUrl) {
   }));
   server.registerTool("create_deck",{
     title:"Crear baraja",
-    description:"Save a complete deck draft to the shared Reedleaves catalog, attributed to Equipo Reedleaves. The user must have clearly asked to save/create it; saving makes it visible to other catalog users.",
+    description:"Save a complete finished deck (published) to the shared Reedleaves catalog, attributed to Equipo Reedleaves. Prepare all cards first: creating freezes the deck and prevents further additions. The user must have clearly asked to save/create it; saving makes it visible to other catalog users.",
     inputSchema:{
       requestId:z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i).describe("Stable UUID for this creation attempt; reuse it if retrying after a timeout."),
       bookId:z.string().min(1).max(240),title:z.string().trim().min(1).max(160),
@@ -80,6 +80,12 @@ function makeServer(db,publicBaseUrl) {
     inputSchema:{versionId:z.string().trim().min(1).max(256).describe("Version ID of the team deck to finish, as returned by create_deck.")},
     annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:false}
   },safeTool(async(input)=>toolText(await finishTeamDeck(db,input))));
+  server.registerTool("list_team_drafts",{
+    title:"Listar barajas del equipo en progreso",
+    description:"List only drafts owned by Equipo Reedleaves, optionally filtered by book. Returns version IDs, titles and card counts so the user can identify existing drafts before finishing them. This call does not change any deck.",
+    inputSchema:{bookId:z.string().trim().min(1).max(240).optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false}
+  },safeTool(async(input)=>toolText(await readTeamDeckDrafts(db,input))));
   return server;
 }
 

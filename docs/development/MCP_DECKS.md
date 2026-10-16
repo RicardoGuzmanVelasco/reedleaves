@@ -5,11 +5,12 @@ El servidor ofrece `/mcp` con transporte Streamable HTTP. Está desactivado si n
 ## Herramientas
 
 - `find_book`: busca libros por título, título localizado o autor. Úsala solo si el libro no está claro en la conversación.
-- `create_deck`: guarda una baraja completa y sus tarjetas en una transacción. `requestId` es un UUID estable para reintentos; el servidor lo usa como ID de baraja. El propietario técnico y la atribución visible son `reed-team` / «Equipo Reedleaves».
-- `append_cards_to_draft`: añade tarjetas a una versión `draft` creada por el equipo. No edita ni elimina tarjetas existentes.
+- `create_deck`: guarda una baraja completa y sus tarjetas en una transacción, siempre terminada (`published`). `requestId` es un UUID estable para reintentos; el servidor lo usa como ID de baraja. El propietario técnico y la atribución visible son `reed-team` / «Equipo Reedleaves». Hay que preparar todas las tarjetas antes de guardar: una vez terminada, su contenido queda cerrado.
+- `list_team_drafts`: lista exclusivamente las versiones en progreso cuyo propietario es `reed-team`, con título, libro, idioma, número de tarjetas y `versionId`. Admite un filtro opcional `bookId`. No modifica datos y permite localizar los borradores anteriores al cambio de creación.
+- `append_cards_to_draft`: añade tarjetas a una versión `draft` creada por el equipo. Se conserva para borradores anteriores; las nuevas barajas nacen terminadas. No edita ni elimina tarjetas existentes.
 - `finish_deck`: marca como terminada (`published`) una versión `draft` con tarjetas y cuyo `creator_user_id` es exactamente `reed-team`. Recibe `versionId`; solo se utiliza cuando el usuario pide terminar esa baraja. Repetir el cierre es seguro. Rechaza barajas de otras personas, sin propietario, vacías o archivadas. Tras terminarla no se pueden añadir tarjetas.
 
-Las tarjetas se validan con las mismas reglas del catálogo. Cada baraja utiliza un idioma, elegido independientemente del idioma original del libro. La versión queda en `draft`, pero los borradores guardados son visibles en el catálogo compartido.
+Las tarjetas se validan con las mismas reglas del catálogo. Cada baraja utiliza un idioma, elegido independientemente del idioma original del libro. La creación publica la versión dentro de la misma transacción: un error revierte baraja y tarjetas, sin dejar un borrador parcial. El resultado devuelve `status: "published"` y los reintentos con el mismo contenido son seguros. Las barajas de cuentas creadas por la ruta habitual conservan su flujo de borrador.
 
 ## Activación
 
