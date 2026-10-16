@@ -41,7 +41,7 @@
 .tree-node--next:disabled{background:#f4f5e9;color:#65715b;box-shadow:0 2px 0 #ccd8b9}
 .tree-node--locked{border-color:#c4cabb;background:#e9ece3;color:#66715e;box-shadow:none}
 .tree-node--current{outline:3px solid #b9e877;outline-offset:2px;z-index:1}
-.tree-node-row{display:flex;align-items:stretch;gap:6px;width:100%}.tree-node-row .tree-node{flex:1;min-width:0}.tree-node-note,.preview-card-note{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:8px;border:1.5px solid #71896b;border-radius:13px;background:var(--control-surface,#f0f3e5);color:var(--forest);box-shadow:0 3px 0 #b7c8a8;transition:transform .12s,box-shadow .12s}.tree-node-note:hover,.preview-card-note:hover{transform:translateY(-2px);box-shadow:0 5px 0 #b7c8a8}.tree-node-note .take-note-icon,.preview-card-note .take-note-icon{width:24px;height:24px}
+.tree-node-row{display:flex;align-items:stretch;gap:6px;width:100%}.tree-node-row .tree-node{flex:1;min-width:0}.tree-node-note,.preview-card-note{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:8px;border:1.5px solid #71896b;border-radius:13px;background:var(--control-surface,#f0f3e5);color:#71896b;box-shadow:0 3px 0 #b7c8a8;transition:transform .12s,box-shadow .12s}.tree-node-note:hover,.preview-card-note:hover{transform:translateY(-2px);box-shadow:0 5px 0 #b7c8a8}.tree-node-note .take-note-icon,.preview-card-note .take-note-icon{width:24px;height:24px;transform:translate(-1px,-1px)}
 .tree-node-check,.tree-node-cost,.tree-node-lock{position:absolute;top:-7px;right:-7px;display:grid;place-items:center;width:19px;height:19px;border:1px solid #fffdf6;border-radius:50%;background:#d6eeb4;color:var(--shadow)}
 .tree-node-check{font-size:11px;font-weight:900}.tree-node-cost{width:22px;height:22px;background:transparent;border:0;border-radius:0}.tree-node-cost img{width:22px;height:22px}
 .tree-node-lock{background:#e1e5da}.tree-node-lock svg{width:11px;height:11px;fill:none;stroke:#65715b;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
@@ -130,7 +130,7 @@
 .book-grid{gap:24px;padding:0 9px 9px 2px}
 .book-detail-author{font-size:14px;color:var(--muted);margin-top:11px;line-height:1.5}
 .study-book-entry{position:relative;display:flex;min-width:0}.study-book-entry>.study-book{width:100%;margin-inline:auto}.study-book-entry .study-book-cover>strong{padding-right:10px}
-.book-note-add{position:absolute;right:9px;bottom:9px;display:grid;place-items:center;width:36px;height:36px;padding:7px;border:1.5px solid #71896b;border-radius:12px;background:var(--control-surface,#f0f3e5);color:var(--forest);box-shadow:0 3px 0 #b7c8a8;transition:transform .12s,box-shadow .12s}
+.book-note-add{position:absolute;right:9px;bottom:9px;display:grid;place-items:center;width:36px;height:36px;padding:7px;border:1.5px solid #71896b;border-radius:12px;background:var(--control-surface,#f0f3e5);color:#71896b;box-shadow:0 3px 0 #b7c8a8;transition:transform .12s,box-shadow .12s}
 /* Keep a 44px touch target around the smaller visible plate. */
 .book-note-add::after{content:"";position:absolute;inset:-4px}
 .book-note-add svg{width:18px;height:18px}.book-note-add:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 5px 0 #b7c8a8}.book-note-add:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #b7c8a8}
@@ -481,7 +481,7 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .take-note-icon{display:inline-block;flex:0 0 auto;width:1.2em;height:1.2em;background-color:currentColor;-webkit-mask:url("../brand/icons/note-capture/cards-pen.svg") center/contain no-repeat;mask:url("../brand/icons/note-capture/cards-pen.svg") center/contain no-repeat;vertical-align:-.2em}
 .take-note-content{display:inline-flex;align-items:center;justify-content:center;gap:.45em}
 .take-note-heading{display:flex;align-items:center;gap:.45em}
-.book-note-add .take-note-icon,.note-icon-only .take-note-icon{width:24px;height:24px}
+.book-note-add .take-note-icon,.note-icon-only .take-note-icon{width:24px;height:24px}.book-note-add .take-note-icon{transform:translate(-1px,-1px)}
 .note-icon-only{display:inline-grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:7px}
 .author-actions .note-icon-only{flex:0 0 44px;width:44px;padding:7px}
 .book-note-nudge .book-note-nudge-action.note-icon-only{flex:0 0 44px;width:44px;padding:7px}
