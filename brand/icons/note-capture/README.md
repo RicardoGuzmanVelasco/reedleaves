@@ -1,8 +1,8 @@
 # Iconos de captura de notas
 
 - `rectangle-pen.svg`: versión horizontal aprobada por el usuario el 16 de octubre de 2026.
-- `cards-pen.svg`: propuesta con una segunda tarjeta detrás, desplazada arriba y a la izquierda. Pendiente de aprobación.
+- `cards-pen.svg`: icono aprobado para las acciones de toma de notas, con la segunda tarjeta desplazada arriba y a la izquierda.
 
-Ambos son SVG vectoriales transparentes, con esquinas redondeadas, trazo de 2 unidades y color `#808080`. La variante conserva intactos los trazados de la tarjeta principal y del lápiz. No se han integrado en la interfaz.
+Ambos son SVG vectoriales transparentes, con esquinas redondeadas, trazo de 2 unidades. El icono de tarjetas usa `currentColor` y aparece como máscara CSS en las acciones de toma de notas para heredar su color. Conserva los trazados de la tarjeta principal y del lápiz.
 
 Adaptados de [`square-pen` de Lucide](https://lucide.dev/icons/square-pen). Licencia original en `LUCIDE-LICENSE`.

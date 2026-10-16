@@ -474,3 +474,9 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .notes-completion-modal .form-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px}.notes-completion-modal .form-actions .secondary{min-width:0;padding:8px 10px;font-size:12px;line-height:1.35}.notes-completion-modal .form-actions .primary{height:100%}
 
 .note-default-deck-notice{margin:0 0 14px;font-size:12px;line-height:1.6;color:var(--muted)}
+
+.take-note-icon{display:inline-block;flex:0 0 auto;width:1.2em;height:1.2em;background-color:currentColor;-webkit-mask:url("../brand/icons/note-capture/cards-pen.svg") center/contain no-repeat;mask:url("../brand/icons/note-capture/cards-pen.svg") center/contain no-repeat;vertical-align:-.2em}
+.take-note-content{display:inline-flex;align-items:center;justify-content:center;gap:.45em}
+.take-note-prompt{display:inline-flex;align-items:center;gap:.45em}
+.take-note-heading{display:flex;align-items:center;gap:.45em}
+.book-note-add .take-note-icon{width:22px;height:22px}
