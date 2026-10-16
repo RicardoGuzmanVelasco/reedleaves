@@ -11,6 +11,10 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - Tratar la iconografía de las acciones clave como parte del sistema de producto: una acción recurrente debe conservar un símbolo reconocible en todos sus puntos de entrada. Cuando haya espacio, el icono acompaña al texto y no lo sustituye.
 - Diseñar para distintos tamaños de pantalla y respetar accesibilidad, movimiento reducido y controles semánticos.
 
+## Chips informativos
+
+- Los chips informativos no llevan borde ni sombra propia. Mantener un estilo compartido para los que aparecen juntos: fondo, radio, tipografía y espaciado. El chip «En progreso» comparte estilo con el del ojo. Esta regla también se aplica a los chips de estado e idioma del detalle de baraja.
+
 ## Selectores de cápsula
 
 - Por defecto, ocupan el ancho necesario para sus opciones, sin estirarse para rellenar el contenedor. El selector de lectura de la ficha del libro se centra horizontalmente.
@@ -25,7 +29,10 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 
 ## Selector de barajas
 
-- Las tarjetas de baraja terminadas no muestran un indicador de estado. Las que siguen en progreso muestran solo el icono de lápiz y puntos suspensivos dentro de un triángulo redondeado, en verde y sin animación. Reutilizar el lápiz de «Tomar nota». Conservar «Baraja en progreso / Deck in progress» en el nombre accesible de la tarjeta y al pasar el cursor por el icono.
+- Las distinciones editoriales y de comunidad se conservan en los datos y la ordenación, pero no se muestran en el selector ni en su detalle. No mostrar una etiqueta de relleno para las barajas sin distinción. Dar prioridad visual al título, con mayor tamaño que la autoría y espacio reservado para el idioma.
+- El idioma de cada tarjeta del selector se representa con una bandera en la esquina superior derecha (España para español y Reino Unido para inglés), sin fila de texto inferior. Conservar el nombre del idioma en el nombre accesible de la apertura de baraja y al pasar el cursor por la bandera.
+- Las tarjetas de baraja terminadas no muestran un indicador de estado. Las que siguen en progreso muestran el chip «En progreso / In progress» después del ojo, en la misma fila. Conservar «Baraja en progreso / Deck in progress» en el nombre accesible de la tarjeta y, en el detalle, el aviso de que sus tarjetas podrían cambiar.
+- Antes del ojo, mostrar un chip con el icono de dos tarjetas cerradas y su número. Sustituye a «X tarjetas · Y niveles»; el selector omite los niveles también en su nombre accesible. El icono `cards.svg` deriva de `cards-pen.svg` y mantiene sus dos tarjetas sin lápiz; no sustituye al icono de «Tomar nota». Todos los chips de la fila comparten estilo sin borde.
 
 ## Enlaces de atribución
 
@@ -33,6 +40,7 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - El nombre no lleva subrayado en reposo. Al pasar el cursor se subraya solo el nombre. Se mantiene el indicador visible de foco para teclado.
 - Siguen siendo enlaces semánticos y pulsables a su destino. Reutilizar el componente `nameLink` de `app/views.mjs` (icono, nombre, destino e idioma opcional) y su estilo compartido `card-attribution-row`, sin definir variantes por pantalla.
 - Sin destino, el componente muestra icono y nombre como texto, sin flecha ni interacción. Sin nombre, no se muestra.
+- La autoría de barajas usa este mismo enlace, sin el prefijo «Creada por». Su texto es secundario respecto al título: 11 px y peso 500 en la tarjeta del selector. El enlace abre el perfil de forma independiente de la apertura de la baraja; no anidar enlaces dentro de botones.
 
 ## Glosario
 
