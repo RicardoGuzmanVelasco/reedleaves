@@ -23,6 +23,10 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - Marcar «Leído» guarda la lectura y, si quedan barajas propias en progreso, abre un diálogo flotante para cerrarlas juntas. Cada fila muestra nombre y número de tarjetas, o «Vacía (se descartará)». «Confirmar» termina las que tienen contenido y descarta las vacías; «Mantener en progreso», Escape o cerrar conserva sus estados. La advertencia de congelación se muestra antes de confirmar, sin otro diálogo encadenado.
 - Un libro leído con notas pendientes permite recuperar ese diálogo desde «Notas en progreso», junto al estado de lectura. El cierre devuelve al contexto de origen sin abrir un repaso. Los borradores locales deben guardarse o cancelarse antes de terminar sus barajas.
 
+## Selector de barajas
+
+- Las tarjetas de baraja terminadas no muestran un indicador de estado. Las que siguen en progreso muestran solo el icono de lápiz y puntos suspensivos dentro de un triángulo redondeado, en verde y sin animación. Reutilizar el lápiz de «Tomar nota». Conservar «Baraja en progreso / Deck in progress» en el nombre accesible de la tarjeta y al pasar el cursor por el icono.
+
 ## Enlaces de atribución
 
 - Los enlaces con icono, nombre y flecha comparten el mismo estilo en tarjetas y fichas de libros, incluido «Añadido por».
