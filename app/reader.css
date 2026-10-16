@@ -477,6 +477,12 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 
 .take-note-icon{display:inline-block;flex:0 0 auto;width:1.2em;height:1.2em;background-color:currentColor;-webkit-mask:url("../brand/icons/note-capture/cards-pen.svg") center/contain no-repeat;mask:url("../brand/icons/note-capture/cards-pen.svg") center/contain no-repeat;vertical-align:-.2em}
 .take-note-content{display:inline-flex;align-items:center;justify-content:center;gap:.45em}
-.take-note-prompt{display:inline-flex;align-items:center;gap:.45em}
 .take-note-heading{display:flex;align-items:center;gap:.45em}
-.book-note-add .take-note-icon{width:22px;height:22px}
+.book-note-add .take-note-icon,.note-icon-only .take-note-icon{width:24px;height:24px}
+.note-icon-only{display:inline-grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:7px}
+.author-actions .note-icon-only{flex:0 0 44px;width:44px;padding:7px}
+.book-note-nudge .book-note-nudge-action.note-icon-only{flex:0 0 44px;width:44px;padding:7px}
+.book-note-nudge>span{white-space:nowrap}
+.take-note-heading .take-note-icon{width:1em;height:1em}
+
+@media(max-width:520px){.book-note-nudge{gap:6px;padding:7px 8px}.book-note-nudge>span{font-size:clamp(8px,2.5vw,11px);line-height:1}.book-note-nudge .book-note-nudge-action.note-icon-only{flex-basis:38px;width:38px;height:38px;min-height:38px;padding:6px}.book-note-nudge .take-note-icon{width:22px;height:22px}}

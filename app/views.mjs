@@ -102,7 +102,7 @@ function bookDetailsMarkup(s,book) {
     <div class="deck-tags">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</div>
     <h2 id="book-dialog-title" lang="${esc(displayedBookTitle(s,book).language)}" dir="auto">${esc(displayedBookTitle(s,book).text)}</h2><div class="book-detail-author-row"><p class="book-detail-author">${esc(book.author)}</p>${completeBookButton(s,book)}</div>
     ${bookReadingControls(s,book)}
-    ${noteNudge ? `<div class="book-note-nudge"><span class="take-note-prompt">${takeNoteIconMarkup}${c.bookNoteNudge}</span><button class="primary book-note-nudge-action" type="button" data-action="take-note-from-book" data-book="${esc(book.id)}">${takeNoteLabelMarkup(c.takeNote)}</button></div>` : ""}
+    ${noteNudge ? `<div class="book-note-nudge"><span>${c.bookNoteNudge}</span><button class="primary book-note-nudge-action note-icon-only" type="button" data-action="take-note-from-book" data-book="${esc(book.id)}" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}">${takeNoteIconMarkup}</button></div>` : ""}
     ${noteChoices}
     <p class="book-original-title"><span>${c.originalTitle}</span><span lang="${esc(book.originalLanguage)}" dir="auto">${esc(book.originalTitle)}</span></p>
     ${book.creatorName ? `<p class="book-added-by"><span>${c.bookAddedBy}</span>${nameLink({icon:"user",name:book.creatorName,href:creatorProfileId ? `#profile/${encodeURIComponent(creatorProfileId)}` : null})}</p>` : ""}
@@ -383,7 +383,7 @@ function bookReadingControls(s,book) {
 function deckWritingActions(s,deck,version,className="") {
   if (s.userId !== deck.creator.userId || version.status !== "draft") return "";
   const c=words[s.language];
-  return `<div class="deck-writing-actions${className ? ` ${className}` : ""}"><button class="text-button" type="button" data-action="take-version-note" data-version="${esc(version.id)}" aria-haspopup="dialog">${takeNoteLabelMarkup(c.takeNote)}</button><button class="text-button" type="button" data-action="author-deck" data-version="${esc(version.id)}">${c.manageDeck} →</button></div>`;
+  return `<div class="deck-writing-actions${className ? ` ${className}` : ""}"><button class="text-button note-icon-only" type="button" data-action="take-version-note" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}">${takeNoteIconMarkup}</button><button class="text-button" type="button" data-action="author-deck" data-version="${esc(version.id)}">${c.manageDeck} →</button></div>`;
 }
 
 export function deckView(s) {
@@ -539,7 +539,7 @@ export function authorView(s) {
   return `<section class="author-screen album-screen"><div class="review-heading"><button type="button" class="text-button" data-action="choose-book">${c.deckBack}</button><button type="button" class="text-button" data-action="select-deck" data-version="${esc(version.id)}" ${!model.cards.length ? "disabled" : ""}>${c.review} →</button></div>
     ${albumSummary(s,version,deck,model,review)}
     ${model.cards.length && review.seenIds.length === model.cards.length ? `<p class="complete-note">${c.complete}</p>` : ""}
-    <div class="author-actions"><button class="primary" type="button" data-action="take-version-note" data-version="${esc(version.id)}" aria-haspopup="dialog">${takeNoteLabelMarkup(c.takeNote)}</button><button class="text-button finish-deck-action" type="button" data-action="finish-deck" ${!model.cards.length || s.hasPendingNoteDraft ? 'disabled aria-describedby="finish-deck-hint"' : ""}>${c.finishDeck}</button></div>
+    <div class="author-actions"><button class="primary note-icon-only" type="button" data-action="take-version-note" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}">${takeNoteIconMarkup}</button><button class="text-button finish-deck-action" type="button" data-action="finish-deck" ${!model.cards.length || s.hasPendingNoteDraft ? 'disabled aria-describedby="finish-deck-hint"' : ""}>${c.finishDeck}</button></div>
     ${!model.cards.length || s.hasPendingNoteDraft ? `<p class="finish-deck-hint" id="finish-deck-hint">${s.hasPendingNoteDraft ? c.pendingNoteBeforeFinish : c.emptyDeckCannotFinish}</p>` : ""}
     ${model.cards.length ? `<div class="content-tools deck-content-tools">${deckBrowsingControls(s)}</div>`+deckContentMarkup(s,model,review,version,true) : `<div class="empty-state">${c.emptyAuthor}</div>`}
     ${s.quotesOnly && model.cards.length && !model.cards.some(c=>c.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}${card ? exclusiveCardMarkup(s,card,c.position(model.cards.findIndex(item=>item.id===card.id)+1,model.cards.length)) : ""}</section>`;

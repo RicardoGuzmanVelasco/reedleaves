@@ -644,8 +644,8 @@ export function startReader({createCardFeatures} = {}) {
     dialog.querySelector(".book-note-nudge")?.remove();
     if (noteNudgeBookId !== id || !["reading","read"].includes(status) || !controls) return;
     const nudge=document.createElement("div");nudge.className="book-note-nudge";
-    const prompt=document.createElement("span");prompt.className="take-note-prompt";prompt.innerHTML=`${takeNoteIconMarkup}${words[language].bookNoteNudge}`;
-    const action=document.createElement("button");action.type="button";action.className="primary book-note-nudge-action";action.dataset.action="take-note-from-book";action.dataset.book=id;action.innerHTML=`<span class="take-note-content">${takeNoteIconMarkup}<span>${words[language].takeNote}</span></span>`;
+    const prompt=document.createElement("span");prompt.textContent=words[language].bookNoteNudge;
+    const action=document.createElement("button");action.type="button";action.className="primary book-note-nudge-action note-icon-only";action.dataset.action="take-note-from-book";action.dataset.book=id;action.setAttribute("aria-label",words[language].takeNote);action.title=words[language].takeNote;action.innerHTML=takeNoteIconMarkup;
     nudge.append(prompt,action);controls.insertAdjacentElement("afterend",nudge);
   }
   async function setBookReading(id,status) {
