@@ -7,6 +7,7 @@ El servidor ofrece `/mcp` con transporte Streamable HTTP. Está desactivado si n
 - `find_book`: busca libros por título, título localizado o autor. Úsala solo si el libro no está claro en la conversación.
 - `create_deck`: guarda una baraja completa y sus tarjetas en una transacción. `requestId` es un UUID estable para reintentos; el servidor lo usa como ID de baraja. El propietario técnico y la atribución visible son `reed-team` / «Equipo Reedleaves».
 - `append_cards_to_draft`: añade tarjetas a una versión `draft` creada por el equipo. No edita ni elimina tarjetas existentes.
+- `finish_deck`: marca como terminada (`published`) una versión `draft` con tarjetas y cuyo `creator_user_id` es exactamente `reed-team`. Recibe `versionId`; solo se utiliza cuando el usuario pide terminar esa baraja. Repetir el cierre es seguro. Rechaza barajas de otras personas, sin propietario, vacías o archivadas. Tras terminarla no se pueden añadir tarjetas.
 
 Las tarjetas se validan con las mismas reglas del catálogo. Cada baraja utiliza un idioma, elegido independientemente del idioma original del libro. La versión queda en `draft`, pero los borradores guardados son visibles en el catálogo compartido.
 

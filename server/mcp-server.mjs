@@ -3,7 +3,7 @@ import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
 import {StreamableHTTPServerTransport} from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {z} from "zod/v4";
 import {readCatalog} from "./catalog-repository.mjs";
-import {appendTeamDeckCards,createTeamDeck} from "./author-repository.mjs";
+import {appendTeamDeckCards,createTeamDeck,finishTeamDeck} from "./author-repository.mjs";
 import {ApiError} from "./errors.mjs";
 
 function validBearer(request,token) {
@@ -31,7 +31,7 @@ function safeTool(handler) {
 
 function makeServer(db,publicBaseUrl) {
   const server=new McpServer({name:"reedleaves-deck-authoring",version:"1.0.0"},{
-    instructions:"Create Reedleaves deck drafts from the user's conversation. Find a book only when the user has not identified it clearly. Saving makes the draft visible in the shared catalog. All created decks are attributed to Equipo Reedleaves. Never invent source quotes; use isQuote only for wording supplied by the user.",
+    instructions:"Create Reedleaves deck drafts from the user's conversation. Find a book only when the user has not identified it clearly. Saving makes the draft visible in the shared catalog. All created decks are attributed to Equipo Reedleaves. Finish a team draft only when the user explicitly asks; finishing freezes its cards. Never invent source quotes; use isQuote only for wording supplied by the user.",
     maxToolInputElements:5000
   });
   server.registerTool("find_book",{
@@ -74,6 +74,12 @@ function makeServer(db,publicBaseUrl) {
         parentId:z.string().min(1).optional(),parentIndex:z.number().int().nonnegative().nullable().optional()})).min(1).max(120)},
     annotations:{readOnlyHint:false,destructiveHint:true,openWorldHint:false}
   },safeTool(async(input)=>toolText(await appendTeamDeckCards(db,input))));
+  server.registerTool("finish_deck",{
+    title:"Marcar baraja como terminada",
+    description:"Mark a nonempty draft created by Equipo Reedleaves as finished (published). Call only when the user explicitly asks to finish that deck. Finishing freezes its cards and prevents further additions. Decks owned by other users or without an owner are rejected. Repeating this call for an already finished team deck is safe.",
+    inputSchema:{versionId:z.string().trim().min(1).max(256).describe("Version ID of the team deck to finish, as returned by create_deck.")},
+    annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:false}
+  },safeTool(async(input)=>toolText(await finishTeamDeck(db,input))));
   return server;
 }
 

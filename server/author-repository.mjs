@@ -172,6 +172,13 @@ export async function finishDeck(db,session,input) {
   });
 }
 
+// MCP always acts as the team; the caller cannot choose another owner.
+export async function finishTeamDeck(db,input) {
+  const team=await db.prepare("SELECT id,can_create_decks FROM users WHERE id='reed-team'").get();
+  if (!team || !team.can_create_decks) throw new ApiError(500,"teamAuthorUnavailable");
+  return finishDeck(db,{user_id:"reed-team"},input);
+}
+
 // Close exactly the versions and card counts shown in the confirmation dialog.
 export async function finishNoteDecks(db,session,input) {
   const {bookId,versions}=input;

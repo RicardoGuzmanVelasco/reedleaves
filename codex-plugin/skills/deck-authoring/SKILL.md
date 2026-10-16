@@ -1,6 +1,6 @@
 ---
 name: reedleaves-deck-authoring
-description: Create or extend a Reedleaves deck from the current conversation when the user explicitly asks to save it.
+description: Create, extend or finish a Reedleaves team deck when the user explicitly asks.
 ---
 
 Use the Reedleaves MCP tools to save decks discussed in this conversation.
@@ -13,4 +13,5 @@ Use the Reedleaves MCP tools to save decks discussed in this conversation.
 - For an outline, use `parentIndex` with a zero-based reference to another card in the same submitted list. Leave it empty for a root card.
 - Use a fresh UUID for `requestId` and reuse the same UUID if retrying the same creation after a timeout.
 - To extend a team draft, use the returned `versionId` with `append_cards_to_draft`; do not imply that the tool edits or deletes existing cards.
-- After a successful write, report the title, card count, and returned URL.
+- To mark a team deck as finished, call `finish_deck` with its `versionId` only when the user explicitly asks to finish that specific deck. Finishing freezes the cards, prevents further additions, and cannot be undone through MCP. The server rejects other users' decks, decks without an owner, empty drafts and archived versions. Retrying the same finish operation is safe.
+- After creating a deck, report the title, card count, and returned URL. After finishing it, confirm the finished state without inventing counts or URLs absent from the result.
