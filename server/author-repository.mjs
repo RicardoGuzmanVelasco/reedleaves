@@ -172,6 +172,25 @@ export async function finishDeck(db,session,input) {
   });
 }
 
+// MCP always acts as the team; the caller cannot choose another owner.
+export async function finishTeamDeck(db,input) {
+  const team=await db.prepare("SELECT id,can_create_decks FROM users WHERE id='reed-team'").get();
+  if (!team || !team.can_create_decks) throw new ApiError(500,"teamAuthorUnavailable");
+  return finishDeck(db,{user_id:"reed-team"},input);
+}
+
+export async function readTeamDeckDrafts(db,{bookId}={}) {
+  if (bookId!==undefined && (typeof bookId!=="string" || !bookId.trim() || bookId.length>240)) throw new ApiError(400,"invalidRequest");
+  const rows=await db.prepare(`SELECT d.id AS deck_id,d.book_id,d.language,b.original_title AS book_title,v.id AS version_id,t.title,
+    (SELECT COUNT(*) FROM cards c WHERE c.version_id=v.id) AS card_count
+    FROM decks d JOIN deck_versions v ON v.deck_id=d.id JOIN books b ON b.id=d.book_id
+    JOIN deck_version_translations t ON t.version_id=v.id AND t.language=d.language
+    WHERE d.creator_user_id='reed-team' AND v.status='draft'${bookId===undefined ? "" : " AND d.book_id=?"}
+    ORDER BY b.position,d.id,v.version`).all(...(bookId===undefined ? [] : [bookId]));
+  return {drafts:rows.map(row=>({deckId:row.deck_id,versionId:row.version_id,bookId:row.book_id,bookTitle:row.book_title,
+    title:row.title,language:row.language,cardCount:row.card_count}))};
+}
+
 // Close exactly the versions and card counts shown in the confirmation dialog.
 export async function finishNoteDecks(db,session,input) {
   const {bookId,versions}=input;
@@ -194,8 +213,8 @@ export async function finishNoteDecks(db,session,input) {
   });
 }
 
-// Conversation-created decks are committed as one operation and always belong
-// to the editorial team identity. The caller must be an authenticated MCP
+// Conversation-created team decks are published atomically with their cards.
+// The caller must be an authenticated MCP
 // integration; never accept the owner ID from tool input.
 export async function createTeamDeck(db,input) {
   const id=requestId(input.requestId),title=text(input.title,160),description=text(input.description ?? "",1000,false),language=input.language;
@@ -225,14 +244,15 @@ export async function createTeamDeck(db,input) {
     const previous=await db.prepare("SELECT * FROM decks WHERE id=?").get(id);
     if (previous) {
       if (previous.creator_user_id!=="reed-team" || previous.book_id!==input.bookId || previous.language!==language) throw new ApiError(409,"invalidRequest");
-      const version=await db.prepare("SELECT * FROM deck_versions WHERE id=?").get(id+"-v1");
+      const version=await db.prepare(`SELECT * FROM deck_versions WHERE id=?${isPostgres(db) ? " FOR UPDATE" : ""}`).get(id+"-v1");
       const metadata=await db.prepare("SELECT title,description,editorial_note FROM deck_version_translations WHERE version_id=? AND language=?").get(id+"-v1",language);
-      if (!version || version.status!=="draft" || !metadata || metadata.title!==title || metadata.description!==(description||title) || metadata.editorial_note!==editorialNote) throw new ApiError(409,"invalidRequest");
+      if (!version || !["draft","published"].includes(version.status) || !metadata || metadata.title!==title || metadata.description!==(description||title) || metadata.editorial_note!==editorialNote) throw new ApiError(409,"invalidRequest");
       const rows=await db.prepare(`SELECT c.id,c.parent_id,c.position,c.is_quote,t.title,t.body FROM cards c JOIN card_translations t ON t.card_id=c.id AND t.language=? WHERE c.version_id=? ORDER BY c.position,c.id`).all(language,id+"-v1");
       const actual=rows.map(row=>({id:row.id,parentId:row.parent_id,order:row.position,isQuote:!!row.is_quote,title:row.title,body:row.body})).sort((a,b)=>a.id.localeCompare(b.id));
       const expected=normalizedCards.map(card=>({id:card.id,parentId:card.parentId,order:card.order,isQuote:card.isQuote,title:card.title[language],body:card.body[language]})).sort((a,b)=>a.id.localeCompare(b.id));
       if (!isDeepStrictEqual(actual,expected)) throw new ApiError(409,"invalidRequest");
-      return {deckId:id,versionId:id+"-v1",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:true};
+      if (version.status==="draft") await db.prepare("UPDATE deck_versions SET status='published' WHERE id=? AND status='draft'").run(version.id);
+      return {deckId:id,versionId:id+"-v1",status:"published",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:true};
     }
     await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language) VALUES (?,?, 'reed-team',?)").run(id,input.bookId,language);
     await db.prepare("INSERT INTO deck_versions(id,deck_id,book_id,version) VALUES (?,?,?,1)").run(id+"-v1",id,input.bookId);
@@ -246,7 +266,8 @@ export async function createTeamDeck(db,input) {
       await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)")
         .run(card.id,language,card.title[language],card.body[language]);
     }
-    return {deckId:id,versionId:id+"-v1",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:false};
+    await db.prepare("UPDATE deck_versions SET status='published' WHERE id=? AND status='draft'").run(id+"-v1");
+    return {deckId:id,versionId:id+"-v1",status:"published",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:false};
   });
 }
 
