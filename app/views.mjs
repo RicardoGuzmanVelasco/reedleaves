@@ -338,7 +338,8 @@ export function accountView(s) {
 function deckStatusMarkup(s,version,{compact=false}={}) {
   if (!["draft","published"].includes(version.status)) return "";
   const c=words[s.language],inProgress=version.status === "draft";
-  return `<${compact ? "span" : "div"} class="deck-writing-status${compact ? " deck-writing-status--compact" : ""}"><span class="deck-writing-badge${inProgress ? "" : " deck-writing-badge--finished"}">${inProgress ? c.deckInProgress : c.deckFinished}</span>${inProgress && !compact ? `<p>${c.deckMayChange}</p>` : ""}</${compact ? "span" : "div"}>`;
+  if (compact) return inProgress ? `<span class="deck-writing-status--compact" aria-hidden="true" title="${esc(c.deckInProgress)}"></span>` : "";
+  return `<div class="deck-writing-status"><span class="deck-writing-badge${inProgress ? "" : " deck-writing-badge--finished"}">${inProgress ? c.deckInProgress : c.deckFinished}</span>${inProgress ? `<p>${c.deckMayChange}</p>` : ""}</div>`;
 }
 
 export function deckCompletionView(s) {
@@ -417,7 +418,7 @@ export function deckView(s) {
     ${!choices.length ? `<div class="empty-state">${c.noDecks}</div>` : `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${choices.map(item => {
       const {deck,version,tags} = item, tag = tags[0] || "otherDeck";
       const reviewing = Math.max(0,deck.metrics.startedBy - deck.metrics.completedBy);
-      return `<button class="deck-tile" type="button" data-action="open-deck" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(contentText(version.title,s.language,version.language))}, ${esc(c.by)} ${esc(deck.creator.name)}, ${esc(c.deckSize(version.cardCount,version.depth))}, ${esc(c.reviewingCount(reviewing))}, ${esc(c[tag])}, ${esc(version.status === "draft" ? c.deckInProgress : c.deckFinished)}">
+      return `<button class="deck-tile" type="button" data-action="open-deck" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(contentText(version.title,s.language,version.language))}, ${esc(c.by)} ${esc(deck.creator.name)}, ${esc(c.deckSize(version.cardCount,version.depth))}, ${esc(c.reviewingCount(reviewing))}, ${esc(c[tag])}${version.status === "draft" ? `, ${esc(c.deckInProgress)}` : ""}">
         <span class="deck-tile-copy"><span class="deck-tile-tag">${esc(c[tag])}</span>
         <strong lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</strong>
         <span class="deck-creator deck-tile-creator">${deckCreator(deck,c)}</span>

@@ -6,6 +6,8 @@ import {seedCatalog} from "../server/seed.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {featuredDecks,restoreTreeReview,openTreeCard,reviewedCard,treeFrontier,treeLinks,bookReviewStates,hasLeaf,studyingDecks} from "./decks.mjs";
 import {deckView,reviewView,homeView,authorView,authorFormView,escapeHtml} from "./views.mjs";
+import {readerState} from "../test-support/reader-state.mjs";
+import {words} from "./i18n.mjs";
 
 const versionId = "seven-habits-inside-out-v1";
 async function fixture() {
@@ -99,6 +101,25 @@ test("Deck grid opens a complete modal; review tree exposes valid paths, never l
   assert.match(modal,/<dialog class="deck-modal"/); assert.match(modal,/7 tarjetas · 2 niveles/);
   assert.match(modal,/Creada por/); assert.match(modal,/inglés/i); assert.match(modal,/Continuar repaso/);
   assert.doesNotMatch(modal,/Más popular/);
+});
+
+test("Deck tiles only indicate ongoing creation, without visible state text, in both languages",async()=>{
+  const catalog=await fixture(),choices=featuredDecks(catalog,"seven-habits");
+  const deckChoices=choices.slice(0,2).map((item,i)=>({...item,version:{...item.version,status:i ? "published" : "draft"}}));
+  for (const language of ["es","en"]) {
+    const c=words[language],state=readerState(catalog,{language,bookId:"seven-habits",deckChoices});
+    const tiles=[...deckView(state).matchAll(/<button\b[^>]*data-action="open-deck"[^>]*>[\s\S]*?<\/button>/g)].map(match=>match[0]);
+    assert.equal(tiles.length,2);
+    const [draft,finished]=tiles;
+    assert.ok(draft.match(/aria-label="([^"]*)"/)[1].includes(c.deckInProgress));
+    assert.ok(draft.includes(`title="${c.deckInProgress}"`),"The status icon has a translated hover description");
+    assert.ok(!draft.replace(/<[^>]*>/g,"").includes(c.deckInProgress),"The ongoing state has no visible text label");
+    assert.ok(!finished.includes(c.deckFinished),"A finished tile has no visual or accessible status label");
+    assert.ok(!finished.includes(c.deckInProgress),"A finished tile has no ongoing indicator");
+    const details=deckView({...state,openDeckId:deckChoices[0].version.id}).split("<dialog")[1];
+    assert.ok(details.includes(c.deckInProgress));
+    assert.ok(details.includes(c.deckMayChange));
+  }
 });
 
 test("Deck albums show total progress; cards open separately only when explicitly requested",async()=>{
