@@ -99,26 +99,61 @@ test("Deck grid opens a complete modal; review tree exposes valid paths, never l
   assert.doesNotMatch(grid,/<dialog/); assert.doesNotMatch(grid,/deck-carousel/);
   const modal = deckView({...base,deckChoices,openDeckId:versionId});
   assert.match(modal,/<dialog class="deck-modal"/); assert.match(modal,/7 tarjetas · 2 niveles/);
-  assert.match(modal,/Creada por/); assert.match(modal,/inglés/i); assert.match(modal,/Continuar repaso/);
+  assert.match(modal,/href="#profile\//); assert.match(modal,/inglés/i); assert.match(modal,/Continuar repaso/);
   assert.doesNotMatch(modal,/Más popular/);
 });
 
-test("Deck tiles only indicate ongoing creation, without visible state text, in both languages",async()=>{
+test("Deck tiles only label ongoing creation and retain the change warning in their details, in both languages",async()=>{
   const catalog=await fixture(),choices=featuredDecks(catalog,"seven-habits");
   const deckChoices=choices.slice(0,2).map((item,i)=>({...item,version:{...item.version,status:i ? "published" : "draft"}}));
   for (const language of ["es","en"]) {
     const c=words[language],state=readerState(catalog,{language,bookId:"seven-habits",deckChoices});
-    const tiles=[...deckView(state).matchAll(/<button\b[^>]*data-action="open-deck"[^>]*>[\s\S]*?<\/button>/g)].map(match=>match[0]);
-    assert.equal(tiles.length,2);
-    const [draft,finished]=tiles;
-    assert.ok(draft.match(/aria-label="([^"]*)"/)[1].includes(c.deckInProgress));
-    assert.ok(draft.includes(`title="${c.deckInProgress}"`),"The status icon has a translated hover description");
-    assert.ok(!draft.replace(/<[^>]*>/g,"").includes(c.deckInProgress),"The ongoing state has no visible text label");
-    assert.ok(!finished.includes(c.deckFinished),"A finished tile has no visual or accessible status label");
-    assert.ok(!finished.includes(c.deckInProgress),"A finished tile has no ongoing indicator");
+    for (const choice of deckChoices) {
+      const tags=["recommended","popular","preferred","mostCompleted"];
+      const taggedChoice={...choice,tags:[...tags]};
+      const html=deckView({...state,deckChoices:[taggedChoice]}),version=choice.version;
+      for (const tag of [...tags,"otherDeck"]) assert.ok(!html.includes(c[tag]),"Editorial and community labels stay hidden");
+      assert.deepEqual(taggedChoice.tags,tags,"Rendering preserves the underlying distinctions");
+      const openButton=html.match(/<button\b[^>]*data-action="open-deck"[^>]*>/)[0];
+      const label=openButton.match(/aria-label="([^"]*)"/)[1];
+      assert.ok(label.includes(c.noteCardsCount(version.cardCount)),"The tile describes its card count accessibly");
+      const languageName=new Intl.DisplayNames([language],{type:"language"}).of(choice.deck.language);
+      assert.ok(label.includes(languageName),"The flag retains an accessible language description");
+      assert.ok(!html.includes(c.deckSize(version.cardCount,version.depth)),"The selector omits the old count and level summary");
+      if (version.status === "draft") {
+        assert.ok(label.includes(c.deckInProgress));
+        assert.ok(html.replace(/<[^>]*>/g,"").includes(c.deckInProgressShort),"The tile has a short visible ongoing label");
+      } else {
+        assert.ok(!html.includes(c.deckFinished),"A finished tile has no visual or accessible status label");
+        assert.ok(!html.includes(c.deckInProgress),"A finished tile has no ongoing indicator");
+        assert.ok(!html.includes(c.deckInProgressShort),"A finished tile has no ongoing chip");
+      }
+    }
     const details=deckView({...state,openDeckId:deckChoices[0].version.id}).split("<dialog")[1];
     assert.ok(details.includes(c.deckInProgress));
     assert.ok(details.includes(c.deckMayChange));
+    for (const tag of ["recommended","popular","preferred","mostCompleted","otherDeck"]) assert.ok(!details.includes(c[tag]),"Deck details also omit distinctions and fallback labels");
+  }
+});
+
+test("Deck authors link to their profiles independently of deck opening, including safe fallbacks",async()=>{
+  const catalog=await fixture(),choice=featuredDecks(catalog,"seven-habits")[0];
+  for (const language of ["es","en"]) {
+    const state=readerState(catalog,{language,bookId:"seven-habits",deckChoices:[choice]});
+    const review=restoreTreeReview(null,catalog.versionModels.get(choice.version.id),choice.version.id);
+    for (const html of [deckView(state),deckView({...state,openDeckId:choice.version.id}),reviewView({...state,versionId:choice.version.id,reviews:{[choice.version.id]:review},today:"2026-10-16"})]) {
+      assert.ok(html.includes(`href="#profile/${encodeURIComponent(choice.deck.creator.userId)}"`));
+      assert.ok(html.includes(escapeHtml(choice.deck.creator.name)));
+      assert.doesNotMatch(html,/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?<a\b/,"Profile links must not be nested inside deck buttons");
+    }
+    const visible=deckView(state).replace(/<[^>]*>/g,"");
+    assert.ok(!visible.includes(words[language].by),"The visible attribution has no Created by prefix");
+    const nameless={...choice,deck:{...choice.deck,creator:{userId:null,name:null}}};
+    assert.doesNotMatch(deckView({...state,deckChoices:[nameless]}),/href="#profile\//);
+    const unlinked={...choice,deck:{...choice.deck,creator:{userId:null,name:'<Test & Name>'}}};
+    const html=deckView({...state,deckChoices:[unlinked]});
+    assert.ok(html.includes('&lt;Test &amp; Name&gt;'));
+    assert.doesNotMatch(html,/href="#profile\/|<Test & Name>/);
   }
 });
 
