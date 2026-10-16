@@ -130,10 +130,10 @@
 .book-grid{gap:24px;padding:0 9px 9px 2px}
 .book-detail-author{font-size:14px;color:var(--muted);margin-top:11px;line-height:1.5}
 .study-book-entry{position:relative;display:flex;min-width:0}.study-book-entry>.study-book{width:100%;margin-inline:auto}.study-book-entry .study-book-cover>strong{padding-right:10px}
-.book-note-add{position:absolute;right:9px;bottom:9px;display:grid;place-items:center;width:36px;height:36px;padding:7px;border:1.5px solid #71896b;border-radius:12px;background:var(--control-surface,#f0f3e5);color:#71896b;box-shadow:0 3px 0 #b7c8a8;transition:transform .12s,box-shadow .12s}
+.book-note-add{position:absolute;right:9px;bottom:9px;display:grid;place-items:center;width:36px;height:36px;padding:7px;border:1.5px solid #71896b;border-radius:12px;background:var(--control-surface,#f0f3e5);color:#71896b;box-shadow:0 3px 0 #b7c8a8;transition:transform .14s,box-shadow .14s}
 /* Keep a 44px touch target around the smaller visible plate. */
 .book-note-add::after{content:"";position:absolute;inset:-4px}
-.book-note-add svg{width:18px;height:18px}.book-note-add:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 5px 0 #b7c8a8}.book-note-add:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #b7c8a8}
+.book-note-add svg{width:18px;height:18px}.study-book-entry:has(> .study-book:hover) > .book-note-add{transform:translateY(-3px);box-shadow:0 5px 0 #b7c8a8}.book-note-add:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 5px 0 #b7c8a8}.book-note-add:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #b7c8a8}
 .book-note-add:disabled{opacity:.45;box-shadow:none;cursor:default}.study-book-entry--notes .study-book-mark{margin-inline:auto;margin-bottom:52px;transform:translateX(-8px)}
 .note-book-context{margin:8px 0 20px;color:var(--muted);font-size:14px;line-height:1.4}
 .note-draft-status{margin:0 0 12px;color:var(--muted);font-size:12px;line-height:1.4}
