@@ -6,7 +6,7 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=library-note-nudge-primary";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml} from "./views.mjs?v=library-note-nudge-primary";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup} from "./views.mjs?v=take-note-icon";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -645,7 +645,7 @@ export function startReader({createCardFeatures} = {}) {
     if (noteNudgeBookId !== id || !["reading","read"].includes(status) || !controls) return;
     const nudge=document.createElement("div");nudge.className="book-note-nudge";
     const prompt=document.createElement("span");prompt.textContent=words[language].bookNoteNudge;
-    const action=document.createElement("button");action.type="button";action.className="primary book-note-nudge-action";action.dataset.action="take-note-from-book";action.dataset.book=id;action.textContent=words[language].takeNote;
+    const action=document.createElement("button");action.type="button";action.className="primary book-note-nudge-action note-icon-only";action.dataset.action="take-note-from-book";action.dataset.book=id;action.setAttribute("aria-label",words[language].takeNote);action.title=words[language].takeNote;action.innerHTML=takeNoteIconMarkup;
     nudge.append(prompt,action);controls.insertAdjacentElement("afterend",nudge);
   }
   async function setBookReading(id,status) {
