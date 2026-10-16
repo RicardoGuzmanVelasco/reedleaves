@@ -4,7 +4,7 @@ import { treeFrontier, hasLeaf, availableVersions } from "./decks.mjs";
 import {homeBooks,editableNoteVersions,recentNoteVersions} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=flower-15-days";
+import { words } from "./i18n.mjs?v=library-note-nudge-primary";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
@@ -93,11 +93,15 @@ function bookDetailsMarkup(s,book) {
   const c = words[s.language];
   const choices = availableVersions(s.catalog,book.id), genres = bookGenres(s,book);
   const creatorProfileId=book.creatorProfileUserId || book.creatorUserId;
+  const noteNudge=s.mode === "library" && s.noteNudgeBookId === book.id && ["reading","read"].includes(s.statuses[book.id] || "unread");
+  const noteChoices=s.noteDestination?.source === "book-details" && s.noteDestination.bookId === book.id ? bookNoteDestinationMarkup(s,book) : "";
   return `<dialog class="deck-modal book-modal" data-book="${esc(book.id)}" aria-labelledby="book-dialog-title" ${contentText(book.description,s.language,book.originalLanguage) ? 'aria-describedby="book-dialog-description"' : ""}><article class="deck-card book-detail">
     <button class="deck-modal-close" type="button" data-action="close-book-details" aria-label="${c.closeBook}" autofocus>×</button>
     <div class="deck-tags">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</div>
     <h2 id="book-dialog-title" lang="${esc(displayedBookTitle(s,book).language)}" dir="auto">${esc(displayedBookTitle(s,book).text)}</h2><div class="book-detail-author-row"><p class="book-detail-author">${esc(book.author)}</p>${completeBookButton(s,book)}</div>
     ${bookReadingControls(s,book)}
+    ${noteNudge ? `<div class="book-note-nudge"><span>${c.bookNoteNudge}</span><button class="primary book-note-nudge-action" type="button" data-action="take-note-from-book" data-book="${esc(book.id)}">${c.takeNote}</button></div>` : ""}
+    ${noteChoices}
     <p class="book-original-title"><span>${c.originalTitle}</span><span lang="${esc(book.originalLanguage)}" dir="auto">${esc(book.originalTitle)}</span></p>
     ${book.creatorName ? `<p class="book-added-by"><span>${c.bookAddedBy}</span>${nameLink({icon:"user",name:book.creatorName,href:creatorProfileId ? `#profile/${encodeURIComponent(creatorProfileId)}` : null})}</p>` : ""}
     ${contentText(book.description,s.language,book.originalLanguage) ? `<p class="deck-description" id="book-dialog-description" lang="${esc(contentLocale(book.description,s.language,book.originalLanguage))}" dir="auto">${esc(contentText(book.description,s.language,book.originalLanguage))}</p>` : ""}
@@ -105,6 +109,15 @@ function bookDetailsMarkup(s,book) {
     ${book.creatorUserId ? bookSourcesMarkup(s,book) : ""}
     <button class="primary" type="button" data-action="open-book" data-book="${esc(book.id)}" ${!choices.length && !s.userId ? "disabled" : ""}>${c.viewDecks} · ${choices.length}</button>
   </article></dialog>`;
+}
+
+function bookNoteDestinationMarkup(s,book) {
+  const {bookId,all}=s.noteDestination,c=words[s.language],eligible=editableNoteVersions(s.catalog,bookId,s.userId);
+  const choices=all ? eligible : recentNoteVersions(s.catalog,bookId,s.userId,s.noteDeckActivity);
+  return `<div class="book-note-destination" role="group" aria-label="${esc(c.changeDeck+": "+displayedBookTitle(s,book).text)}"><div class="book-note-destination-heading"><p>${esc(c.changeDeck)}</p><button type="button" class="text-button" data-action="close-note-destination">${esc(c.cancel)}</button></div><div>${choices.map(version=>{
+    const title=contentText(version.title,s.language,version.language),duplicates=eligible.filter(item=>item.deckId === version.deckId).length > 1;
+    return `<button type="button" class="note-destination-option" data-action="choose-note-deck" data-version="${esc(version.id)}"><span lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(title)}${duplicates ? ` · v${version.number}` : ""}</span></button>`;
+  }).join("")}</div>${all ? "" : `<button type="button" class="note-destination-all" data-action="all-note-decks">${esc(c.viewAllNoteDecks)}<span aria-hidden="true">→</span></button>`}</div>`;
 }
 
 function libraryFiltersMarkup(s) {
