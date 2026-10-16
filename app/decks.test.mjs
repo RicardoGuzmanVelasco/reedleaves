@@ -5,7 +5,7 @@ import {readCatalog} from "../server/catalog-repository.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {featuredDecks,restoreTreeReview,openTreeCard,reviewedCard,treeFrontier,treeLinks,bookReviewStates,hasLeaf,studyingDecks} from "./decks.mjs";
-import {deckView,reviewView,homeView,authorView,escapeHtml} from "./views.mjs";
+import {deckView,reviewView,homeView,authorView,authorFormView,escapeHtml} from "./views.mjs";
 
 const versionId = "seven-habits-inside-out-v1";
 async function fixture() {
@@ -110,6 +110,17 @@ test("Deck albums show total progress; cards open separately only when explicitl
     const album=view(state);
     assert.match(album,/1 de 7 tarjetas repasadas/);assert.match(album,/<progress value="1" max="7"/);
     assert.match(album,/class="tree-map"/);assert.doesNotMatch(album,/idea-card|blockquote|data-action="home"|aria-current="page"|tree-map-legend/);
+    if(mode === "author") {
+      const noteButtons=album.match(/data-action="take-child-note"/g) || [];
+      assert.equal(noteButtons.length,model.cards.length,"Every authored tree card has a child-note action");
+      for(const card of model.cards) assert.match(album,new RegExp(`data-action="take-child-note" data-card="${card.id}" data-version="${versionId}"[^>]*aria-label="Tomar nota:`));
+      const grid=view({...state,deckPreview:true});
+      assert.equal((grid.match(/data-action="take-child-note"/g) || []).length,model.cards.length,"Every authored grid card has a child-note action");
+      for(const card of model.cards) assert.match(grid,new RegExp(`data-action="take-child-note" data-card="${card.id}" data-version="${versionId}"[^>]*aria-label="Tomar nota:`));
+      const parent=model.roots[0];
+      const form=authorFormView({...state,authorForm:{kind:"card",requestId:"child-note",noteBookId:version.bookId,noteVersionId:version.id,parentId:parent.id,title:"",body:"",language:version.language}});
+      assert.match(form,new RegExp(`<option value="${parent.id}" selected>`),"The parent selected from a card action is preselected in the note form");
+    } else assert.doesNotMatch(album,/data-action="take-child-note"/);
     const detail=view({...state,requestedId:card.id});
     const modal=detail.match(/<dialog\b[^>]*class="exclusive-card-modal"[\s\S]*?<\/dialog>/)?.[0];
     assert.ok(modal,"An explicitly opened card has its own exclusive dialog");

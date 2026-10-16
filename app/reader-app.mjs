@@ -413,13 +413,15 @@ export function startReader({createCardFeatures} = {}) {
     persistNoteDraft(); render();
     main.querySelector(`[data-action="note-kind"][data-kind="${kind}"]`)?.focus();
   }
-  function openVersionNote(targetVersionId,trigger) {
+  function openVersionNote(targetVersionId,trigger,parentId=null) {
     const version=catalog.versionsById.get(targetVersionId),deck=catalog.decksById.get(version?.deckId);
     if (busy || !snapshot.user || deck?.creator.userId !== snapshot.user.id || version?.status !== "draft") return;
+    const model=catalog.versionModels.get(targetVersionId);
+    if (parentId && !model?.byId.has(parentId)) return;
     const noteReturn={hash:location.hash,openDeckId,openBookId,notesCompletion,scrollY:exclusivePageLock?.scrollY ?? window.scrollY,dialogScrollTop:trigger.closest("dialog")?.scrollTop || 0,
-      action:trigger.dataset.action,versionId:targetVersionId};
+      action:trigger.dataset.action,versionId:targetVersionId,...(parentId ? {cardId:parentId} : {})};
     notesCompletion=null;
-    openAuthorForm("card",{noteBookId:version.bookId,noteVersionId:targetVersionId,parentId:null,noteReturn});
+    openAuthorForm("card",{noteBookId:version.bookId,noteVersionId:targetVersionId,parentId,noteReturn,forceParentId:parentId !== null});
   }
   function restoreNoteContext(form) {
     const context=form?.noteReturn;
@@ -428,7 +430,7 @@ export function startReader({createCardFeatures} = {}) {
     notesCompletion=context.notesCompletion ? createNotesCompletion(context.notesCompletion.bookId) : null;
     render();
     window.scrollTo({top:context.scrollY});
-    [...main.querySelectorAll('[data-action]')].find(button=>button.dataset.action === context.action && (context.bookId ? button.dataset.book === context.bookId : button.dataset.version === context.versionId))?.focus({preventScroll:true});
+    [...main.querySelectorAll('[data-action]')].find(button=>button.dataset.action === context.action && (context.bookId ? button.dataset.book === context.bookId : button.dataset.version === context.versionId) && (!context.cardId || button.dataset.card === context.cardId))?.focus({preventScroll:true});
     const dialog=main.querySelector(".notes-completion-modal") || main.querySelector(".deck-modal");
     if (dialog) dialog.scrollTop=context.dialogScrollTop;
     return true;
@@ -477,15 +479,18 @@ export function startReader({createCardFeatures} = {}) {
   }
   function openAuthorForm(kind,options={}) {
     if (!snapshot.user) return;
+    const {forceParentId=false,...formOptions}=options;
     const bookLanguage=catalog.booksById.get(bookId)?.originalLanguage;
     const contentLanguage=CONTENT_LANGUAGES.includes(bookLanguage) ? bookLanguage : CONTENT_LANGUAGES.includes(language) ? language : "es";
-    authorForm = {kind,requestId:crypto.randomUUID(),title:kind === "book" ? libraryQuery : "",author:"",body:"",description:"",language:kind === "book" ? "" : kind === "deck" ? contentLanguage : language,parentId:kind === "quote" ? null : requestedId || null,...options};
+    authorForm = {kind,requestId:crypto.randomUUID(),title:kind === "book" ? libraryQuery : "",author:"",body:"",description:"",language:kind === "book" ? "" : kind === "deck" ? contentLanguage : language,parentId:kind === "quote" ? null : requestedId || null,...formOptions};
     if (["card","quote"].includes(kind)) {
       if (authorForm.createNoteDeck) authorForm.noteVersionId=authorForm.requestId+"-v1";
       authorForm.noteUserId=snapshot.user.id;authorForm.noteBookId ??= bookId;authorForm.noteVersionId ??= versionId;
       const draft=findNoteDraft(authorForm.noteBookId,authorForm.noteVersionId);
       if (draft) {
         Object.assign(authorForm,draft,{draftRecovered:true});
+        if (forceParentId) authorForm.parentId=formOptions.parentId;
+        if (formOptions.noteReturn) authorForm.noteReturn=formOptions.noteReturn;
         authorForm.draftDestinationUnavailable=!draft.createNoteDeck && !editableNoteVersions(catalog,draft.noteBookId,snapshot.user.id).some(version=>version.id === draft.noteVersionId);
       }
       authorForm.draftStorageUnavailable=!store.available;
@@ -811,6 +816,7 @@ export function startReader({createCardFeatures} = {}) {
       case "complete-book": openBookCompletion(b.dataset.book); break;
       case "create-deck": openAuthorForm("deck"); break;
       case "take-version-note": openVersionNote(b.dataset.version,b); break;
+      case "take-child-note": openVersionNote(b.dataset.version,b,b.dataset.card); break;
       case "take-note": openHomeNote(b.dataset.book); break;
       case "take-note-from-book": openBookNote(b.dataset.book); break;
       case "choose-note-deck": if (noteDestination?.source === "book-details") openBookNoteVersion(noteDestination.bookId,b.dataset.version); else if (noteDestination) openHomeNoteVersion(noteDestination.bookId,b.dataset.version); break;
