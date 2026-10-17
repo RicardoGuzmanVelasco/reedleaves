@@ -16,7 +16,6 @@ async function fixture(t,path = ":memory:") {
   for (const id of ["a","b"]) {
     db.prepare("INSERT INTO users(id,display_name) VALUES (?,?)").run(id,id);
     db.prepare("INSERT INTO accounts VALUES (?,?,?,'Europe/Madrid','es')").run(id,"user"+id,"unit fixture only");
-    db.prepare("INSERT INTO reader_filters VALUES (?,'all')").run(id);
   }
   return {db,a:{user_id:"a",csrf_token:"a"},b:{user_id:"b",csrf_token:"b"}};
 }
@@ -93,23 +92,24 @@ test("SQL path guard also rejects bypassing the repository and rolls back the wa
   assert.throws(()=>db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) VALUES ('direct','a',?,'habit-4','2026-10-06')").run(version),/sibling/);
   assert.equal((await readReaderState(db,a,today)).wallet.balance,1);
 });
-test("Reading, language and daily sources are stored separately from reviews and wallet",async t=>{
+test("Reading and language preferences are stored separately from reviews and wallet",async t=>{
   const {db,a} = await fixture(t), before = await readReaderState(db,a,today);
   const reading = await changeReading(db,a,"seven-habits","read",today); assert.equal(reading.statuses["seven-habits"],"read");
-  const pref = {filters:{reading:false,read:false,reviewing:false,reviewed:false,interests:true,all:false},genres:["finance"]};
-  const state = await changePreferences(db,a,{language:"en",preferences:pref},today);
-  assert.equal(state.language,"en"); assert.deepEqual(state.preferences,pref); assert.deepEqual(state.wallet,before.wallet);
-  assert.deepEqual(state.reviews,{}); await assert.rejects(changePreferences(db,a,{language:"zz",preferences:pref},today));
+  const state = await changePreferences(db,a,{language:"en"},today);
+  assert.equal(state.language,"en"); assert.equal("preferences" in state,false); assert.deepEqual(state.wallet,before.wallet);
+  assert.deepEqual(state.reviews,{}); await assert.rejects(changePreferences(db,a,{language:"zz"},today));
   await assert.rejects(changeReading(db,a,"missing","read",today));
 });
-test("Daily idea is stable across sessions, languages and filter changes, without unlocking cards",async t=>{
+test("One global daily idea is shared across accounts and appears in calendar history",async t=>{
   const {db,a,b} = await fixture(t), first = await dailyIdea(db,a,today);
   assert.ok(first.daily.id); assert.equal(first.wallet.balance,1);
   assert.deepEqual((await dailyIdea(db,a,today)).daily,first.daily);
-  await changePreferences(db,a,{language:"en",preferences:{filters:{reading:false,read:false,reviewing:false,reviewed:false,interests:false,all:false},genres:[]}},today);
+  await changePreferences(db,a,{language:"en"},today);
   assert.deepEqual((await dailyIdea(db,a,today)).daily,first.daily);
-  assert.equal((await dailyIdea(db,a,date("2026-10-07"))).daily,null);
-  assert.equal((await readReaderState(db,b,today)).daily,null);
+  const next=await dailyIdea(db,a,date("2026-10-07"));assert.ok(next.daily.id);assert.equal(next.daily.day,"2026-10-07");
+  const other=await readReaderState(db,b,today);
+  assert.deepEqual(other.daily,first.daily);assert.deepEqual(other.dailyHistory.map(row=>row.day),["2026-10-07","2026-10-06"]);
+  assert.deepEqual((await dailyIdea(db,b,today)).daily,first.daily);
   assert.equal(db.prepare("SELECT count(*) AS n FROM review_unlocks").get().n,0);
 });
 test("Account date handles time zones and DST; backwards server time cannot grant or spend",async t=>{

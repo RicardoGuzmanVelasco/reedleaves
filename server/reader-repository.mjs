@@ -5,14 +5,13 @@ import {serverDay} from "./auth.mjs";
 import {accrueLeafWallet} from "./leaf-wallet-repository.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
-import {restoreTreeReview,treeFrontier,bookReviewStates} from "../app/decks.mjs";
-import {dailyPool} from "../app/rhythm.mjs";
+import {restoreTreeReview,treeFrontier} from "../app/decks.mjs";
 import {LANGUAGES} from "../app/core.mjs";
 
 import {insertCardView} from "./profile-repository.mjs";
 import {cardSavesInside} from "./card-saves.mjs";
 
-const SOURCES=["reading","read","reviewing","reviewed","interests","all"];
+const globalDay = now => now.toISOString().slice(0,10);
 export async function readReaderState(db,session,now=new Date()) {
   return transaction(db,()=>stateInside(db,session,now));
 }
@@ -27,7 +26,6 @@ async function stateInside(db,session,now) {
     reviews[row.version_id]={versionId:row.version_id,seenIds:unlocks.map(u=>u.card_id),lastUnlockDay:unlocks.at(-1)?.local_day||null,
       currentId:position?.card_id||unlocks.at(-1)?.card_id||null,completed:!!row.completed_at};
   }
-  const savedSources=new Set((await db.prepare("SELECT source FROM reader_filters WHERE user_id = ?").all(userId)).map(r=>r.source));
   const display=await db.prepare("SELECT show_original_titles FROM reader_display_preferences WHERE user_id = ?").get(userId);
   const addedBooks=new Set([
     ...(await db.prepare("SELECT book_id FROM book_reading WHERE user_id = ?").all(userId)).map(r=>r.book_id),
@@ -38,7 +36,9 @@ async function stateInside(db,session,now) {
     .map(r=>[r.book_id,{spentDays:Number(r.spent_days)}]));
   for(const bookId of addedBooks) growth[bookId]={spentDays:growth[bookId]?.spentDays||0,added:true};
   for(const value of Object.values(growth)) value.added=!!value.added;
-  const idea=await db.prepare("SELECT d.local_day,c.id,c.book_id FROM daily_ideas d JOIN cards c ON c.id=d.card_id WHERE d.user_id = ? AND d.local_day = ?").get(userId,today);
+  const dailyRows=await db.prepare("SELECT d.day,c.id,c.book_id FROM daily_ideas d JOIN cards c ON c.id=d.card_id ORDER BY d.day DESC").all();
+  const dailyHistory=dailyRows.map(row=>({day:row.day,id:row.id,bookId:row.book_id}));
+  const idea=dailyHistory.find(row=>row.day===globalDay(now)) || null;
   const activityRows=await db.prepare(`SELECT d.id AS deck_id,c.book_id,MAX(c.created_at) AS last_note_at
     FROM decks d JOIN deck_versions v ON v.deck_id=d.id JOIN cards c ON c.version_id=v.id
     WHERE d.creator_user_id=? AND c.created_at IS NOT NULL GROUP BY d.id,c.book_id`).all(userId);
@@ -53,9 +53,7 @@ async function stateInside(db,session,now) {
     statuses:Object.fromEntries((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])),
     enrolledIds:(await db.prepare("SELECT version_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.version_id),
     selections:Object.fromEntries((await db.prepare("SELECT book_id,version_id FROM deck_selections WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.version_id])),
-    preferences:{filters:Object.fromEntries(SOURCES.map(source=>[source,savedSources.has(source)])),
-      genres:(await db.prepare("SELECT genre_id FROM reader_interests WHERE user_id = ? ORDER BY genre_id").all(userId)).map(r=>r.genre_id)},
-    daily:idea?{day:idea.local_day,id:idea.id,bookId:idea.book_id}:null};
+    daily:idea,dailyHistory};
 }
 async function knownVersion(db,versionId,userId) {
   if(typeof versionId!=="string") throw new ApiError(400,"invalidRequest");
@@ -117,26 +115,17 @@ export async function changePreferences(db,session,input,now=new Date()) {
       await db.prepare("INSERT INTO reader_display_preferences VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET show_original_titles=excluded.show_original_titles")
         .run(session.user_id,input.showOriginalTitles ? 1 : 0);
     }
-    if(input.preferences!==undefined){
-      const {filters,genres}=input.preferences||{};
-      if(!filters||Object.keys(filters).length!==SOURCES.length||SOURCES.some(k=>typeof filters[k]!=="boolean")||!Array.isArray(genres)||genres.length>100) throw new ApiError(400,"invalidRequest");
-      for(const id of genres) if(typeof id!=="string"||!await db.prepare("SELECT 1 FROM genres WHERE id = ?").get(id)) throw new ApiError(400,"invalidRequest");
-      await db.prepare("DELETE FROM reader_filters WHERE user_id = ?").run(session.user_id);
-      for(const source of SOURCES) if(filters[source]&&(!filters.all||source==="all")) await db.prepare("INSERT INTO reader_filters VALUES (?,?)").run(session.user_id,source);
-      await db.prepare("DELETE FROM reader_interests WHERE user_id = ?").run(session.user_id);
-      for(const id of new Set(genres)) await db.prepare("INSERT INTO reader_interests VALUES (?,?)").run(session.user_id,id);
-    }
     return stateInside(db,session,now);
   });
 }
 export async function dailyIdea(db,session,now=new Date()) {
   return transaction(db,async()=>{
-    const state=await stateInside(db,session,now);
-    if(state.daily) return state;
-    const catalog=prepareCatalog(await readCatalog(db,session.user_id)),reviews=Object.fromEntries(catalog.versions.map(v=>[v.id,restoreTreeReview(state.reviews[v.id],catalog.versionModels.get(v.id),v.id)]));
-    const candidates=catalog.allCards.filter(card=>card.versionId===(state.selections[card.bookId]||catalog.selectedVersions.get(card.bookId)));
-    const pool=dailyPool(candidates,catalog.books,state.statuses,state.preferences,bookReviewStates(catalog,reviews));
-    if(pool.length) await db.prepare("INSERT INTO daily_ideas VALUES (?,?,?) ON CONFLICT(user_id,local_day) DO NOTHING").run(session.user_id,state.today,pool[randomInt(pool.length)].id);
+    const catalog=prepareCatalog(await readCatalog(db,session.user_id));
+    const day=globalDay(now);
+    const existing=await db.prepare("SELECT 1 FROM daily_ideas WHERE day=?").get(day);
+    if(existing) return stateInside(db,session,now);
+    const candidates=catalog.allCards.filter(card=>card.parentId===null && card.versionId===catalog.selectedVersions.get(card.bookId));
+    if(candidates.length) await db.prepare("INSERT INTO daily_ideas(day,card_id) VALUES (?,?) ON CONFLICT(day) DO NOTHING").run(day,candidates[randomInt(candidates.length)].id);
     return stateInside(db,session,now);
   });
 }

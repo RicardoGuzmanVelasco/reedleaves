@@ -58,7 +58,7 @@ export async function migrationData(db) {
   const tables=["users","accounts","sessions","auth_limits","genres","genre_translations","books","book_links",
     "book_translations","book_genres","decks","deck_versions","deck_version_translations","cards",
     "card_translations","deck_votes","book_reading","reviews","review_unlocks","review_positions","leaf_wallets",
-    "studies","deck_selections","reader_filters","reader_interests","daily_ideas"];
+    "studies","deck_selections","daily_ideas"];
   const columns={books:"id,author,position,editorial_status,original_title,original_language,updated_at",
     cards:"id,version_id,book_id,parent_id,position"};
   for (const table of tables) result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${table} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();

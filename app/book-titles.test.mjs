@@ -15,7 +15,7 @@ async function state() {
     const catalog=prepareCatalog(await readCatalog(db)),versionId="seven-habits-editorial-v1";
     return {catalog,versionId,bookId:"seven-habits",language:"es",showOriginalTitles:true,
       statuses:{"seven-habits":"reading"},bookReviews:{},reviews:{[versionId]:restoreTreeReview({seenIds:["habit-1"]},catalog.versionModels.get(versionId),versionId)},
-      enrolledIds:[versionId],storageAvailable:true,budget:{balance:1},preferences:{filters:{},genres:[]},daily:{id:"habit-1"},
+      enrolledIds:[versionId],storageAvailable:true,budget:{balance:1},daily:{id:"habit-1"},
       deckChoices:featuredDecks(catalog,"seven-habits")};
   } finally { db.close(); }
 }

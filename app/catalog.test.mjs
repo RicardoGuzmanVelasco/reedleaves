@@ -6,7 +6,7 @@ import { seedCatalog } from "../server/seed.mjs";
 import { readSeed } from "../server/seed.mjs";
 import { readCatalog } from "../server/catalog-repository.mjs";
 import { prepareCatalog, loadCatalog } from "./catalog.mjs";
-import { dailyPool, restoreBudget, advanceReview } from "./rhythm.mjs";
+import { restoreBudget, advanceReview } from "./rhythm.mjs";
 import { createBrowserStore, storageKeys } from "./storage.mjs";
 import { dailyView, reviewView, libraryView, mascotsView, deckView, homeView, authorView } from "./views.mjs";
 
@@ -52,13 +52,6 @@ test("Catalog validation rejects orphan cards, duplicate IDs and missing genre t
     const data = await payload(); mutate(data); assert.throws(() => prepareCatalog(data));
   }
 });
-test("Real genre filtering: finances, productivity and their union", async () => {
-  const data = await payload(), catalog = prepareCatalog(data);
-  const selection = genres => dailyPool(catalog.cards, data.books, {}, { filters: { interests: true }, genres });
-  assert.deepEqual([...new Set(selection(["finance"]).map(c => c.bookId))], ["rich-dad-poor-dad", "same-as-ever"]);
-  assert.deepEqual([...new Set(selection(["productivity"]).map(c => c.bookId))], ["seven-habits", "getting-things-done", "atomic-habits"]);
-  assert.equal(selection(["finance", "productivity"]).length, 35);
-});
 test("A shared budget prevents using a second book to unlock another story today", async () => {
   const catalog = prepareCatalog(await payload()), today = "2026-10-06";
   const first = advanceReview(null, catalog.models.get("atomic-habits").roots, today);
@@ -80,10 +73,11 @@ test("Storage preserves v2 book keys, reads live changes and fails closed withou
 });
 test("Views show correct book attribution, genres and only unlocked review text", async () => {
   const catalog = prepareCatalog(await payload()), reviews = Object.fromEntries(catalog.books.map(b => [b.id, { unlockedCount: 0, lastUnlockDay: null, currentId: null }]));
-  const state = { catalog, reviews, language: "es", bookId: "atomic-habits", requestedId: "atomic-8", daily: { id: "rich-dad-2", bookId: "rich-dad-poor-dad" },
-    preferences: { filters: { interests: true }, genres: ["finance"] }, statuses: {}, budget: null, today: "2026-10-06", storageAvailable: true };
+  const state = { catalog, reviews, language: "es", bookId: "atomic-habits", requestedId: "atomic-8", daily: { id: "rich-dad-2", bookId: "rich-dad-poor-dad", day:"2026-10-06" },dailyToday:{day:"2026-10-06"},dailyHistory:[{id:"rich-dad-2",bookId:"rich-dad-poor-dad",day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",
+    statuses: {}, budget: null, today: "2026-10-06", storageAvailable: true };
   const daily = dailyView(state);
-  assert.match(daily, /Robert T\. Kiyosaki/); assert.match(daily, /genre-finance/); assert.match(daily, /genre-productivity/);
+  assert.match(daily, /Robert T\. Kiyosaki/); assert.match(daily, /daily-calendar/);assert.match(daily,/data-day="2026-10-06"/);
+  assert.doesNotMatch(daily,/data-source=|source-content|exclusive-card-modal/);
   assert.doesNotMatch(daily,/data-book-status=/);
   assert.doesNotMatch(libraryView(state),/data-book-status=/);
   assert.equal((libraryView({...state,openBookId:"atomic-habits"}).match(/data-action="set-book-reading"/g) || []).length, 3);

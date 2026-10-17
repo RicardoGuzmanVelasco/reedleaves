@@ -72,14 +72,6 @@ function closedBookMarkup(s,book,{caption=words[s.language].review,catalog=false
   return complete || note ? `<div class="study-book-entry${note ? " study-book-entry--notes" : ""}">${cover}${complete}${addNote}</div>` : cover;
 }
 
-function filters(s) {
-  const c = words[s.language], f = s.preferences.filters;
-  return `<details class="sources" id="sources" ${s.sourcesOpen ? "open" : ""}><summary>${c.sources}</summary>
-    <div class="source-content"><fieldset><legend>${c.from}</legend>${["reading", "read", "reviewing", "reviewed", "interests", "all"].map(key => `<label class="check-row" for="source-${key}"><input type="checkbox" id="source-${key}" data-source="${key}" ${f[key] ? "checked" : ""}><span>${c[key]}</span></label>`).join("")}</fieldset>
-    ${f.interests ? `<fieldset class="sub-fields"><legend>${c.genre}</legend>${s.catalog.genres.map(g => `<label class="check-row" for="genre-${esc(g.id)}"><input type="checkbox" id="genre-${esc(g.id)}" data-genre="${esc(g.id)}" ${s.preferences.genres.includes(g.id) ? "checked" : ""}><span>${esc(g.name[s.language])}</span></label>`).join("")}</fieldset>` : ""}
-    <p class="filter-note">${s.daily ? c.tomorrowFilters : c.union}</p></div></details>`;
-}
-
 export function libraryResultsMarkup(s) {
   const c = words[s.language], books = filterLibrary(s.catalog, s.libraryQuery, s.libraryFilters);
   if (!s.catalog.books.length) return `<div class="empty-state">${c.noBooks}</div>`;
@@ -292,9 +284,28 @@ function exclusiveCardMarkup(s,card,position="") {
 }
 
 export function dailyView(s) {
-  const c = words[s.language], card = s.daily && s.catalog.cardsById.get(s.daily.id);
+  const c=words[s.language], item=s.daily, card=item&&s.catalog.cardsById.get(item.id);
+  const month=s.calendarMonth||s.dailyToday?.day?.slice(0,7)||new Date().toISOString().slice(0,7);
+  const [year,monthNumber]=month.split("-").map(Number),first=new Date(Date.UTC(year,monthNumber-1,1,12));
+  const offset=(first.getUTCDay()+6)%7,daysInMonth=new Date(Date.UTC(year,monthNumber,0,12)).getUTCDate();
+  const history=new Map((s.dailyHistory||[]).map(row=>[row.day,row]));
+  const earliestMonth=[...(s.dailyHistory||[])].map(row=>row.day.slice(0,7)).sort()[0]||month;
+  const locale=s.language === "es" ? "es-ES" : s.language === "fr" ? "fr-FR" : "en-GB";
+  const monthLabel=new Intl.DateTimeFormat(locale,{month:"long",year:"numeric",timeZone:"UTC"}).format(first);
+  const weekdayLabels=Array.from({length:7},(_,index)=>new Intl.DateTimeFormat(locale,{weekday:"short",timeZone:"UTC"}).format(new Date(Date.UTC(2026,0,5+index,12))));
+  const monthShift=(amount)=>{const date=new Date(Date.UTC(year,monthNumber-1+amount,1,12));return date.toISOString().slice(0,7)};
+  const cells=Array.from({length:Math.ceil((offset+daysInMonth)/7)*7},(_,index)=>{
+    const dayNumber=index-offset+1;
+    if(dayNumber<1||dayNumber>daysInMonth)return '<span class="daily-calendar-empty" aria-hidden="true"></span>';
+    const day=`${month}-${String(dayNumber).padStart(2,"0")}`,saved=history.get(day),today=day===s.dailyToday?.day;
+    if(!saved)return `<span class="daily-calendar-day${today?" is-today":""}" aria-label="${dayNumber}">${dayNumber}</span>`;
+    const label=new Intl.DateTimeFormat(locale,{dateStyle:"full",timeZone:"UTC"}).format(new Date(`${day}T12:00:00Z`));
+    return `<button type="button" class="daily-calendar-day has-idea${day===s.selectedDailyDay?" is-selected":""}${today?" is-today":""}" data-action="daily-date" data-day="${day}" aria-label="${esc(label)}" aria-pressed="${day===s.selectedDailyDay}">${dayNumber}</button>`;
+  }).join("");
+  const calendar=`<section class="daily-calendar" aria-labelledby="daily-calendar-title"><div class="daily-calendar-heading"><button type="button" class="calendar-nav" data-action="daily-month" data-direction="previous" data-month="${monthShift(-1)}" aria-label="${esc(c.previousMonth)}" ${monthShift(-1)<earliestMonth?"disabled":""}>‹</button><h2 id="daily-calendar-title">${esc(monthLabel)}</h2><button type="button" class="calendar-nav" data-action="daily-month" data-direction="next" data-month="${monthShift(1)}" aria-label="${esc(c.nextMonth)}" ${monthShift(1)>(s.dailyToday?.day?.slice(0,7)||month)?"disabled":""}>›</button></div><div class="daily-calendar-grid" role="group" aria-label="${esc(monthLabel)}">${weekdayLabels.map(label=>`<span class="daily-calendar-weekday">${esc(label)}</span>`).join("")}${cells}</div></section>`;
+  const dateLabel=item?.day?new Intl.DateTimeFormat(locale,{dateStyle:"long",timeZone:"UTC"}).format(new Date(`${item.day}T12:00:00Z`)):"";
   return `<section class="daily-screen"><div class="screen-heading"><h1 tabindex="-1">${c.daily}</h1></div>
-    ${card ? cardMarkup(s, card, "h2", {typewriter:false}) + `<div class="daily-action">${button(c.reviewBook, "enter-review", !s.storageAvailable)}</div>` + (s.requestedId === card.id ? exclusiveCardMarkup(s,card) : "") : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p><small>${s.storageAvailable ? c.emptyHint : ""}</small></div>`}${filters(s)}
+    ${calendar}${card ? `<p class="daily-date">${esc(dateLabel)}</p>${cardMarkup(s,card,"h2",{typewriter:false,exclusive:true})}<div class="daily-action">${button(c.reviewBook,"enter-review",!s.storageAvailable)}</div>` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p></div>`}
     </section>`;
 }
 
