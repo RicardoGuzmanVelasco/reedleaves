@@ -15,14 +15,14 @@ function fakeProvider(responses=[researchResponse(),extractionResponse()]) {
   return {calls,fetcher:async(url,options)=>{calls.push({url,...options,body:JSON.parse(options.body)});return {ok:true,json:async()=>responses.shift()};}};
 }
 
-test("AI searches the web, extracts all translations, keeps entered metadata, and returns sourced preview only",async()=>{
+test("AI searches the web, extracts all translations, keeps entered metadata, and returns book metadata only",async()=>{
   const fake=fakeProvider();
   const autofill=createBookAutofill({apiKey:"private-test-key",...fake});
-  const metadata=structuredClone(bookMetadata);metadata.description.es="Descripción escrita por la persona";metadata.links={};metadata.sources=[];metadata.genres=[];
+  const metadata=structuredClone(bookMetadata);metadata.description.es="Descripción escrita por la persona";metadata.links={};metadata.genres=[];
   const result=await autofill("reader",{...input,author:"Autor escrito",metadata},genres);
   assert.equal(result.author,"Autor escrito");
   assert.equal(result.metadata.description.es,metadata.description.es);
-  assert.deepEqual(result.metadata.sources,bookMetadata.sources);
+  assert.equal(Object.hasOwn(result.metadata,"sources"),false);
   assert.equal(result.metadata.links.goodreads,bookMetadata.links.goodreads);
   assert.equal(fake.calls.length,2);
   assert.equal(fake.calls[0].body.tools[0].type,"web_search");assert.equal(fake.calls[0].body.tool_choice,"required");
@@ -30,6 +30,19 @@ test("AI searches the web, extracts all translations, keeps entered metadata, an
   assert.equal(fake.calls[1].body.text.format.strict,true);
   assert.equal(fake.calls[0].headers.Authorization,"Bearer private-test-key");
   assert.doesNotMatch(JSON.stringify(result),/private-test-key/);
+});
+
+test("AI can create a preview without provider citations or a stored bibliography",async()=>{
+  const research=researchResponse();
+  delete research.output[1].content[0].annotations;
+  const fake=fakeProvider([research,extractionResponse()]);
+  const result=await createBookAutofill({apiKey:"key",...fake})("reader",input,genres);
+  assert.equal(result.metadata.originalTitle,bookMetadata.originalTitle);
+  assert.deepEqual(result.metadata.description,bookMetadata.description);
+  assert.deepEqual(result.metadata.links,{});
+  assert.equal(Object.hasOwn(result.metadata,"sources"),false);
+  assert.equal(Object.hasOwn(fake.calls[0].body,"include"),false);
+  assert.equal(Object.hasOwn(JSON.parse(fake.calls[1].body.input),"sources"),false);
 });
 
 test("AI separates the Voss mixed heading and subtitles, generates short cover names and preserves personal edits",async()=>{
@@ -183,5 +196,4 @@ test("Existing-book HTTP autofill uses stored identity, enforces ownership and p
   const saved=await post("/api/author/books/complete",{bookId,metadata:result.metadata},owner);assert.equal(saved.status,200);
   const repeat=await post("/api/author/books/complete",{bookId,metadata:result.metadata},owner);assert.equal(repeat.status,200);
   assert.equal((await db.prepare("SELECT count(*) AS n FROM books").get()).n,6);
-  assert.equal((await db.prepare("SELECT count(*) AS n FROM sources WHERE book_id=?").get(bookId)).n,2);
 });

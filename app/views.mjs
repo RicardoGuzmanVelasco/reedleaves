@@ -4,7 +4,7 @@ import { treeFrontier, hasLeaf, availableVersions } from "./decks.mjs";
 import {homeBooks,editableNoteVersions,recentNoteVersions} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=hide-book-sources";
+import { words } from "./i18n.mjs?v=book-metadata-cleanup";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
@@ -20,7 +20,6 @@ const cardsIconMarkup = '<span class="cards-icon" aria-hidden="true"></span>';
 const takeNoteLabelMarkup = label => `<span class="take-note-content">${takeNoteIconMarkup}<span>${esc(label)}</span></span>`;
 const deckCreator = deck => nameLink({icon:"user",name:deck.creator?.name,href:deck.creator?.userId ? `#profile/${encodeURIComponent(deck.creator.userId)}` : null});
 const button = (text, action, disabled = false) => `<button type="button" class="primary" data-action="${action}" ${disabled ? "disabled" : ""}>${esc(text)}</button>`;
-const safeUrl = value => { try { const u = new URL(value); return u.protocol === "https:" ? u.href : "#"; } catch { return "#"; } };
 
 function bookGenres(s,book) {
   return book.genres.map(id => s.catalog.genres.find(genre => genre.id === id)?.name[s.language]).filter(Boolean);

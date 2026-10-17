@@ -63,8 +63,7 @@ export function validateBook(book, requiredLanguages = ["es", "en"], {requireOri
         if (!isCanonicalLocale(language) || typeof value !== "string" || !value.trim()) throw new Error("Invalid book translation");
       }
     }
-    if (!book.title?.[book.originalLanguage]?.trim() || !book.shortTitle?.[book.originalLanguage]?.trim() || !Array.isArray(book.sources)) throw new Error("Missing book title");
-    if (book.sources.some(source => typeof source.title !== "string" || !source.title.trim() || typeof source.url !== "string" || !source.url.startsWith("https://"))) throw new Error("Invalid sources");
+    if (!book.title?.[book.originalLanguage]?.trim() || !book.shortTitle?.[book.originalLanguage]?.trim()) throw new Error("Missing book title");
     return book;
   }
   for (const field of fields) {
@@ -76,8 +75,6 @@ export function validateBook(book, requiredLanguages = ["es", "en"], {requireOri
       if (!isCanonicalLocale(language) || typeof value !== "string" || !value.trim()) throw new Error("Invalid book translation");
     }
   }
-  if (!Array.isArray(book.sources) || !book.sources.length ||
-      book.sources.some(source => typeof source.title !== "string" || typeof source.url !== "string" || !source.url.startsWith("https://"))) throw new Error("Missing sources");
   return book;
 }
 

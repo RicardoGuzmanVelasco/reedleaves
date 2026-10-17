@@ -14,9 +14,9 @@ test("Existing metadata survives autofill; invalid translations and unsafe links
   const partial=mergeBookMetadata({title:{es:"Título existente"},description:{es:""}},bookMetadata);
   assert.equal(partial.title.es,"Título existente");assert.equal(partial.description.es,bookMetadata.description.es);
   assert.throws(()=>normalizeBookMetadata({title:{es:"x"}}));
-  for (const url of ["javascript:alert(1)","https://user:pass@example.com/book","https://127.0.0.1/book","https://host.local/book"]) {
-    assert.throws(()=>normalizeBookMetadata({sources:[{title:"Fuente",url}]}));
-  }
+  assert.throws(()=>normalizeBookMetadata({links:{goodreads:"javascript:alert(1)"}}));
+  assert.equal(Object.hasOwn(merged,"sources"),false);
+  assert.equal(Object.hasOwn(normalizeBookMetadata({sources:[{url:"obsolete"}]}),"sources"),false);
 });
 
 test("Only incomplete owned books offer completion; optional links do not keep the indicator visible",()=>{
@@ -63,7 +63,7 @@ test("Book form keeps loading, retry, translations and save; book interfaces omi
   assert.match(preview,/Vista previa del libro/);assert.match(preview,/Traducciones/);
   assert.match(preview,/target="_blank" rel="noopener noreferrer"/);assert.match(preview,/type="submit">Añadir libro a la librería/);
   assert.doesNotMatch(preview,/<script>|<img src=x|undefined/);
-  const book={...structuredClone(bookMetadata),schemaVersion:1,id:"source-book",creatorUserId:"owner",author:"Daniel Kahneman"};
+  const book={...structuredClone(bookMetadata),schemaVersion:1,id:"preview-book",creatorUserId:"owner",author:"Daniel Kahneman"};
   const catalog={...state.catalog,books:[book],booksById:new Map([[book.id,book]])};
   for (const language of ["es","en"]) {
     const current={...state,catalog,language,userId:"owner",openBookId:book.id};

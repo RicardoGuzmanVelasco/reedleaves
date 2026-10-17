@@ -17,8 +17,7 @@ export async function readCatalog(db, userId) {
       creatorUserId:row.creator_user_id,creatorName:row.creator_name || null,creatorProfileUserId:row.creator_profile_user_id || null,
       originalTitle:row.original_title,originalLanguage:row.original_language,title:{},shortTitle:{},description:{},editorialNote:{},
       links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id = ? ORDER BY platform").all(row.id)).map(link=>[link.platform,link.url])),
-      genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id = ? ORDER BY genre_id").all(row.id)).map(t=>t.genre_id),
-      sources:(await db.prepare("SELECT title,url FROM sources WHERE book_id = ? ORDER BY id").all(row.id)).map(t=>({...t}))};
+      genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id = ? ORDER BY genre_id").all(row.id)).map(t=>t.genre_id)};
     for (const t of await db.prepare("SELECT * FROM book_translations WHERE book_id = ?").all(row.id)) {
       book.title[t.language]=t.title; book.shortTitle[t.language]=t.short_title;
       book.description[t.language]=t.description; book.editorialNote[t.language]=t.editorial_note;
@@ -30,12 +29,12 @@ export async function readCatalog(db, userId) {
     validateBookLinks(book.links,{required:!book.creatorUserId}); books.push(validateBook(book,LANGUAGES,{requireOriginal:true}));
   }
   const cards = [];
-  const cardRows = await db.prepare(`SELECT c.*,d.deck_id,deck.language AS deck_language,s.url FROM cards c
-    JOIN deck_versions d ON d.id=c.version_id JOIN decks deck ON deck.id=d.deck_id LEFT JOIN sources s ON s.id=c.source_id
+  const cardRows = await db.prepare(`SELECT c.*,d.deck_id,deck.language AS deck_language FROM cards c
+    JOIN deck_versions d ON d.id=c.version_id JOIN decks deck ON deck.id=d.deck_id
     JOIN books b ON b.id=c.book_id ORDER BY b.position,d.deck_id,d.version,c.position,c.id`).all();
   for (const row of cardRows) {
     const card = {id:row.id,bookId:row.book_id,deckId:row.deck_id,versionId:row.version_id,deckLanguage:row.deck_language,
-      isQuote:!!row.is_quote,parentId:row.parent_id,order:row.position,sourceUrl:row.url,title:{},body:{}};
+      isQuote:!!row.is_quote,parentId:row.parent_id,order:row.position,title:{},body:{}};
     for (const t of await db.prepare("SELECT language,title,body FROM card_translations WHERE card_id = ?").all(row.id)) {
       card.title[t.language]=t.title; card.body[t.language]=t.body;
     }

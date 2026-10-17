@@ -7,8 +7,8 @@ import { Pool, types } from "pg";
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 18;
-export const POSTGRES_SCHEMA_VERSION = 10;
+export const SQLITE_SCHEMA_VERSION = 19;
+export const POSTGRES_SCHEMA_VERSION = 11;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -81,15 +81,37 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 18) {
+    const schema=readFileSync(new URL("./schema.sql",import.meta.url),"utf8");
+    // Rebuild with foreign keys disabled outside the transaction: dependent rows
+    // keep their card IDs; no DELETE or UPDATE touches published card content.
+    db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
+    try {
+      if (db.prepare("PRAGMA user_version").get().user_version >= 19) { db.exec("COMMIT");return; }
+      const triggers=db.prepare("SELECT name,sql FROM sqlite_master WHERE type='trigger'").all();
+      const indexes=db.prepare("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='cards' AND sql IS NOT NULL").all();
+      for (const trigger of triggers) db.exec(`DROP TRIGGER "${trigger.name.replaceAll('"','""')}";`);
+      db.exec(schema.slice(schema.indexOf("CREATE TABLE cards ("),schema.indexOf("CREATE UNIQUE INDEX root_order")).replace("CREATE TABLE cards (","CREATE TABLE cards_new ("));
+      db.exec(`INSERT INTO cards_new(id,version_id,book_id,parent_id,position,is_quote,created_at)
+        SELECT id,version_id,book_id,parent_id,position,is_quote,created_at FROM cards;
+        DROP TABLE cards; ALTER TABLE cards_new RENAME TO cards; DROP TABLE sources;`);
+      for (const index of indexes) db.exec(index.sql);
+      for (const trigger of triggers) db.exec(trigger.sql);
+      if (db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("Migration broke database references");
+      db.exec("PRAGMA user_version=19; COMMIT;");
+    } catch(error) { db.exec("ROLLBACK");throw error; }
+    finally { db.exec("PRAGMA foreign_keys=ON;"); }
+    return;
+  }
   if (version === 17) {
     db.exec("BEGIN IMMEDIATE");
     try {
-      if (db.prepare("PRAGMA user_version").get().user_version >= 18) { db.exec("COMMIT");return; }
+      if (db.prepare("PRAGMA user_version").get().user_version >= 18) { db.exec("COMMIT");return initializeDatabase(db); }
       db.exec(`ALTER TABLE cards ADD COLUMN created_at TEXT;
         CREATE INDEX cards_by_note_date ON cards(version_id,created_at DESC) WHERE created_at IS NOT NULL;
         PRAGMA user_version=18; COMMIT;`);
     } catch(error) { db.exec("ROLLBACK");throw error; }
-    return;
+    return initializeDatabase(db);
   }
   if (version === 16) {
     db.exec("BEGIN IMMEDIATE");
@@ -173,7 +195,7 @@ export function initializeDatabase(db) {
     return initializeDatabase(db);
   }
   if (version === 10) {
-    const schema = readFileSync(new URL("./schema.sql", import.meta.url),"utf8");
+    const schema = readFileSync(new URL("./fixtures/migrations/sqlite-v11.sql", import.meta.url),"utf8");
     const triggers = db.prepare("SELECT name,sql FROM sqlite_master WHERE type='trigger'").all();
     const indexes = db.prepare("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='cards' AND sql IS NOT NULL").all();
     // SQLite requires a table rebuild to make a column nullable. Keep child
@@ -182,8 +204,8 @@ export function initializeDatabase(db) {
     try {
       for (const trigger of triggers) db.exec(`DROP TRIGGER "${trigger.name.replaceAll('"','""')}";`);
       db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
-      // This rebuild must retain the v11 shape; v18 adds note dates later.
-      db.exec(schema.slice(schema.indexOf("CREATE TABLE cards ("),schema.indexOf("CREATE UNIQUE INDEX root_order")).replace("CREATE TABLE cards (","CREATE TABLE cards_new (").replace("  created_at TEXT,\n",""));
+      // Rebuild to the exact released v11 shape before subsequent upgrades.
+      db.exec(schema.slice(schema.indexOf("CREATE TABLE cards ("),schema.indexOf("CREATE UNIQUE INDEX root_order")).replace("CREATE TABLE cards (","CREATE TABLE cards_new ("));
       db.exec("INSERT INTO cards_new SELECT id,version_id,book_id,parent_id,position,source_id,is_quote FROM cards; DROP TABLE cards; ALTER TABLE cards_new RENAME TO cards;");
       for (const index of indexes) db.exec(index.sql);
       for (const trigger of triggers) db.exec(trigger.sql);
@@ -205,6 +227,18 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 10) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 11) return;
+          await db.exec(`ALTER TABLE cards DROP COLUMN source_id;
+            DROP TABLE sources;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=11;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=11);`);
+        });
+        return;
+      }
       if (version?.version === 9) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
@@ -214,7 +248,7 @@ async function initializePostgresDatabase(db) {
             ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
             UPDATE reed_schema SET version=10; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=10);`);
         });
-        return;
+        return initializePostgresDatabase(db);
       }
       if (version?.version === 8) {
         await transaction(db,async()=>{

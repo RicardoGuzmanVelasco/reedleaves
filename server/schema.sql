@@ -44,16 +44,6 @@ CREATE TABLE book_genres (
 
 CREATE INDEX book_genres_by_genre ON book_genres(genre_id, book_id);
 
-CREATE TABLE sources (
-  id TEXT PRIMARY KEY,
-  book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
-  title TEXT NOT NULL CHECK(length(trim(title)) > 0),
-  url TEXT NOT NULL CHECK(url LIKE 'https://%'),
-  UNIQUE(book_id, url),
-  UNIQUE(id, book_id)
-) STRICT;
-
-
 CREATE TABLE users (
   id TEXT PRIMARY KEY,
   display_name TEXT NOT NULL CHECK(length(trim(display_name)) > 0),
@@ -132,13 +122,11 @@ CREATE TABLE cards (
   book_id TEXT NOT NULL,
   parent_id TEXT,
   position INTEGER NOT NULL CHECK(position > 0),
-  source_id TEXT,
   is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),
   created_at TEXT,
   UNIQUE(id,version_id),
   FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id),
   FOREIGN KEY(parent_id,version_id) REFERENCES cards(id,version_id) DEFERRABLE INITIALLY DEFERRED,
-  FOREIGN KEY(source_id,book_id) REFERENCES sources(id,book_id),
   CHECK(parent_id IS NULL OR parent_id <> id)
 ) STRICT;
 CREATE UNIQUE INDEX root_order ON cards(version_id,position) WHERE parent_id IS NULL;
@@ -366,4 +354,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 18;
+PRAGMA user_version = 19;

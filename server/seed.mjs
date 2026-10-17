@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import { createHash } from "node:crypto";
 import { parseCsv } from "./csv.mjs";
 import { transaction } from "./database.mjs";
 import { checkCatalog } from "./catalog-repository.mjs";
@@ -8,7 +7,6 @@ import { bookLinkUrl, BOOK_LINK_PLATFORMS } from "../app/book-links.mjs";
 
 const text = value => typeof value === "string" && value.trim().length > 0;
 const slug = value => text(value) && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
-const https = value => { try { return new URL(value).protocol === "https:"; } catch { return false; } };
 const locale = value => {
   try { return typeof value === "string" && value.length <= 35 && Intl.getCanonicalLocales(value)[0] === value; }
   catch { return false; }
@@ -51,7 +49,6 @@ export function validateSeed(seed) {
     positions.add(Number(b.position));
     if (!b.genres?.split("|").every(id => genres.has(id))) throw new Error("Unknown book genre");
     if (!["draft", "reviewed"].includes(b.editorial_status)) throw new Error("Invalid editorial status");
-    if (!text(b.source_title) || !https(b.source_url)) throw new Error("Invalid book source");
     for (const language of LANGUAGES) for (const field of ["title", "short_title", "description", "editorial_note"]) {
       if (!text(b[field + "_" + language])) throw new Error("Missing book text");
     }
@@ -85,7 +82,7 @@ export function validateSeed(seed) {
   }
   for (const c of seed.cards) {
     if (!versions.has(c.version_id) || versions.get(c.version_id).book_id !== c.book_id ||
-        !/^\d+$/.test(c.position) || Number(c.position) < 1 || !https(c.source_url)) throw new Error("Invalid card reference");
+        !/^\d+$/.test(c.position) || Number(c.position) < 1) throw new Error("Invalid card reference");
     const cardTranslations = translations(c,["title","body"]), deck = versions.get(c.version_id);
     if (!cardTranslations.has(deck.language)) throw new Error("Every card needs text in its deck language");
   }
@@ -112,12 +109,6 @@ export async function seedCatalog(db, seed = readSeed()) {
       for (const language of LANGUAGES) await db.prepare(`INSERT INTO genre_translations VALUES (?, ?, ?)
         ON CONFLICT(genre_id, language) DO UPDATE SET name = excluded.name`).run(g.id, language, g["name_" + language]);
     }
-    async function addSource(bookId, title, url) {
-      const id = bookId + ":" + createHash("sha256").update(url).digest("hex").slice(0,24);
-      await db.prepare(`INSERT INTO sources(id, book_id, title, url) VALUES (?, ?, ?, ?)
-        ON CONFLICT(id) DO UPDATE SET title = excluded.title`).run(id, bookId, title, url);
-      return id;
-    }
     for (const b of seed.books) {
       await db.prepare(`INSERT INTO books(id, author, position, editorial_status, original_title, original_language) VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET author = excluded.author, position = excluded.position,
@@ -128,7 +119,6 @@ export async function seedCatalog(db, seed = readSeed()) {
         description = excluded.description, editorial_note = excluded.editorial_note`).run(b.id, language, ...["title", "short_title", "description", "editorial_note"].map(field => b[field + "_" + language]));
       await db.prepare("DELETE FROM book_genres WHERE book_id = ?").run(b.id);
       for (const id of new Set(b.genres.split("|"))) await db.prepare("INSERT INTO book_genres VALUES (?, ?)").run(b.id, id);
-      await addSource(b.id, b.source_title, b.source_url);
     }
     for (const link of seed.links) await db.prepare(`INSERT INTO book_links(book_id,platform,url) VALUES (?,?,?)
       ON CONFLICT(book_id,platform) DO UPDATE SET url = excluded.url`).run(link.book_id, link.platform, bookLinkUrl(link.platform, link.url));
@@ -155,17 +145,16 @@ export async function seedCatalog(db, seed = readSeed()) {
       const old = await db.prepare("SELECT * FROM cards WHERE id = ?").get(c.id);
       if (old && (old.book_id !== c.book_id || old.version_id !== c.version_id || old.parent_id !== (c.parent_id || null) || old.position !== Number(c.position))) throw new Error("Card identity and structure are immutable; create a new version");
       const version = await db.prepare("SELECT status FROM deck_versions WHERE id = ?").get(c.version_id);
-      const source = await addSource(c.book_id, new URL(c.source_url).hostname, c.source_url);
       if (version.status !== "draft") {
-        if (!old || old.source_id !== source) throw new Error("Published content is immutable");
+        if (!old) throw new Error("Published content is immutable");
         for (const [lang,translation] of translations(c,["title","body"])) {
           const t = await db.prepare("SELECT title,body FROM card_translations WHERE card_id = ? AND language = ?").get(c.id,lang);
           if (!t || t.title !== translation.title || t.body !== translation.body) throw new Error("Published content is immutable");
         }
         if ((await db.prepare("SELECT count(*) AS n FROM card_translations WHERE card_id = ?").get(c.id)).n !== translations(c,["title","body"]).size) throw new Error("Published translations are immutable");
       } else {
-        await db.prepare(`INSERT INTO cards(id,version_id,book_id,parent_id,position,source_id) VALUES (?,?,?,?,?,?)
-          ON CONFLICT(id) DO UPDATE SET source_id = excluded.source_id`).run(c.id,c.version_id,c.book_id,c.parent_id || null,Number(c.position),source);
+        await db.prepare(`INSERT INTO cards(id,version_id,book_id,parent_id,position) VALUES (?,?,?,?,?)
+          ON CONFLICT(id) DO NOTHING`).run(c.id,c.version_id,c.book_id,c.parent_id || null,Number(c.position));
         for (const [language,translation] of translations(c,["title","body"])) await db.prepare(`INSERT INTO card_translations VALUES (?, ?, ?, ?)
           ON CONFLICT(card_id, language) DO UPDATE SET title = excluded.title, body = excluded.body`).run(c.id, language, translation.title, translation.body);
       }

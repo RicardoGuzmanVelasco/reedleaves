@@ -42,7 +42,7 @@ Cuando se permite explorar sin sesión, estos libros también aparecen ahí.
   La biblioteca de un perfil ajeno puede mostrar las fichas compartidas asociadas
   a ese perfil. La visibilidad de las barajas se define en ADR 0002.
 - Estados de lectura, elecciones, progreso y hojas siguen aislados por cuenta.
-  IDs, fuentes, traducciones y repasos existentes se conservan.
+  IDs, traducciones y repasos existentes se conservan.
 - El catálogo puede contener fichas incompletas y duplicadas. Esta decisión no
   incorpora moderación, deduplicación, publicación de barajas ni edición ajena.
 - No se añade un selector de privacidad al formulario de libro.

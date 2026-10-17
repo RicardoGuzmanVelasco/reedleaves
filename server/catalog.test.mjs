@@ -33,12 +33,10 @@ test("Schema initialization and seed are repeatable without duplicating data", a
   assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
   assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, versions: 6, cards: 42, genres: 3 });
 });
-test("Foreign keys, source ownership, order and translations are constrained", async t => {
+test("Foreign keys, order and translations are constrained", async t => {
   const db = await fixture(t);
   assert.throws(() => db.prepare("INSERT INTO book_genres VALUES (?, ?)").run("missing", "finance"));
-  const wrongSource = db.prepare("SELECT id FROM sources WHERE book_id = 'atomic-habits' LIMIT 1").get().id;
-  assert.throws(() => db.prepare("INSERT INTO cards(id,version_id,book_id,parent_id,position,source_id) VALUES (?, ?, ?, ?, ?, ?)").run("wrong-source", "seven-habits-editorial-v1", "seven-habits", null, 8, wrongSource));
-  assert.throws(() => db.prepare("INSERT INTO cards(id,version_id,book_id,parent_id,position,source_id) VALUES (?, ?, ?, ?, ?, ?)").run("same-order", "atomic-habits-editorial-v1", "atomic-habits", null, 1, wrongSource));
+  assert.throws(() => db.prepare("INSERT INTO cards(id,version_id,book_id,parent_id,position) VALUES (?, ?, ?, ?, ?)").run("same-order", "atomic-habits-editorial-v1", "atomic-habits", null, 1));
   assert.throws(() => db.prepare("INSERT INTO card_translations VALUES (?, ?, ?, ?)").run("atomic-1", "", "x", "x"));
   assert.throws(() => db.prepare("UPDATE card_translations SET body = '' WHERE card_id = 'atomic-1'").run());
 });
@@ -56,7 +54,7 @@ test("Invalid seed rolls back every change and does not move established card ID
 });
 test("Missing translations, references, duplicate IDs and order gaps reject the import", async t => {
   const db = await fixture(t);
-  for (const mutate of [s => s.cards[0].body_es = "", s => s.books[0].genres = "invented", s => s.cards.push(s.cards[0]), s => s.cards[0].position = "9", s => s.cards[0].source_url = "javascript:alert(1)"]) {
+  for (const mutate of [s => s.cards[0].body_es = "", s => s.books[0].genres = "invented", s => s.cards.push(s.cards[0]), s => s.cards[0].position = "9"]) {
     const seed = readSeed(); mutate(seed); await assert.rejects(seedCatalog(db, seed));
   }
   assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, versions: 6, cards: 42, genres: 3 });
