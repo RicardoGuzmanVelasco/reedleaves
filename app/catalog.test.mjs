@@ -9,6 +9,7 @@ import { prepareCatalog, loadCatalog } from "./catalog.mjs";
 import { dailyPool, restoreBudget, advanceReview } from "./rhythm.mjs";
 import { createBrowserStore, storageKeys } from "./storage.mjs";
 import { dailyView, reviewView, libraryView, mascotsView, deckView, homeView, authorView } from "./views.mjs";
+import { readerState } from "../test-support/reader-state.mjs";
 
 async function payload() {
   const db = openDatabase(":memory:");
@@ -209,13 +210,19 @@ test("Mascot collection opens from review album and deck selection, not library,
 });
 test("Home book cover uses that book's earned mascot as a body-only icon",async()=>{
   const catalog=prepareCatalog(await payload()),version=catalog.versions[0],bookId=version.bookId;
-  const state={catalog,language:"es",reviews:{},statuses:{[bookId]:"reading"},enrolledIds:[version.id],growth:{[bookId]:{added:true,spentDays:1}}};
-  assert.doesNotMatch(homeView(state),/mascot-face/);
-  assert.doesNotMatch(homeView(state),/mascot-art-placement|mascot-art-motion/);
-  assert.match(homeView(state),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/seed\.svg"/);
-  assert.match(homeView({...state,growth:{[bookId]:{added:true,spentDays:2}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/root\.png"/);
-  assert.match(homeView({...state,growth:{[bookId]:{added:true,spentDays:3}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/seedling\.svg"/);
-  assert.match(homeView({...state,growth:{[bookId]:{added:true,spentDays:5}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/sprout\.svg"/);
-  assert.match(homeView({...state,growth:{[bookId]:{added:true,spentDays:10}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/stem\.png"/);
-  assert.match(homeView({...state,growth:{[bookId]:{added:true,spentDays:15}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/flower\.png"/);
+  const state=readerState(catalog,{statuses:{[bookId]:"reading"},enrolledIds:[version.id],growth:{[bookId]:{added:true,spentDays:1}}});
+  // Cover artwork has its own contract; the practice entrance can have a full mascot.
+  const cover=overrides=>{
+    const html=homeView({...state,...overrides}).match(/<button\b(?=[^>]*data-action="open-book-details")[^>]*>[\s\S]*?<\/button>/)?.[0];
+    assert.ok(html,"the reading book has an entry on Home");
+    return html;
+  };
+  assert.doesNotMatch(cover(),/mascot-face/);
+  assert.doesNotMatch(cover(),/mascot-art-placement|mascot-art-motion/);
+  assert.match(cover(),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/seed\.svg"/);
+  assert.match(cover({growth:{[bookId]:{added:true,spentDays:2}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/root\.png"/);
+  assert.match(cover({growth:{[bookId]:{added:true,spentDays:3}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/seedling\.svg"/);
+  assert.match(cover({growth:{[bookId]:{added:true,spentDays:5}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/sprout\.svg"/);
+  assert.match(cover({growth:{[bookId]:{added:true,spentDays:10}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/stem\.png"/);
+  assert.match(cover({growth:{[bookId]:{added:true,spentDays:15}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/flower\.png"/);
 });

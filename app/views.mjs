@@ -4,7 +4,7 @@ import { treeFrontier, hasLeaf, availableVersions } from "./decks.mjs";
 import {homeBooks,editableNoteVersions,recentNoteVersions} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=book-metadata-cleanup";
+import { words } from "./i18n.mjs?v=practice-touch-polish";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
@@ -15,6 +15,12 @@ import {defaultNoteDeckTitle} from "./note-defaults.mjs";
 
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const esc = escapeHtml;
+const practiceLaunchLabel = text => {
+  const chars = typeof Intl.Segmenter === "function"
+    ? [...new Intl.Segmenter(undefined,{granularity:"grapheme"}).segment(text)].map(item=>item.segment)
+    : Array.from(text);
+  return chars.map(char=>`<span class="practice-launch-char">${esc(char === " " ? "\u00a0" : char)}</span>`).join("");
+};
 export const takeNoteIconMarkup = '<span class="take-note-icon" aria-hidden="true"></span>';
 const cardsIconMarkup = '<span class="cards-icon" aria-hidden="true"></span>';
 const takeNoteLabelMarkup = label => `<span class="take-note-content">${takeNoteIconMarkup}<span>${esc(label)}</span></span>`;
@@ -178,10 +184,33 @@ export function homeView(s) {
       <button class="home-action primary" type="button" data-action="daily">${c.idea}</button>
       <button class="home-action" type="button" data-action="library">${c.goLibrary}</button>
     </nav>
+    <button class="practice-launch" type="button" data-action="practice" aria-label="${esc(c.practiceLaunch)}"><span class="practice-launch-mascot">${mascotArt("sprout","practice-launch-art")}</span><span class="practice-launch-label" aria-hidden="true">${practiceLaunchLabel(c.practiceLaunch)}</span></button>
     ${books.length ? `<div class="study-books">${books.map(book=>closedBookMarkup(s,book,{note:true})).join("")}</div>` : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
     ${s.noteDestination ? noteDestinationMarkup(s) : ""}
     ${s.catalog.booksById.has(s.openBookId) ? bookDetailsMarkup(s,s.catalog.booksById.get(s.openBookId)) : ""}
   </section>`;
+}
+
+const practiceTopics=["reading","read","saved","mixed"];
+// Iconos basados en Lucide (ISC): brand/icons/note-capture/LUCIDE-LICENSE.
+const practiceDeckIcons={
+  reading:'<path class="practice-topic-icon-fill" d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/><path d="M12 7v14"/>',
+  read:'<path class="practice-topic-icon-fill" d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="m9 9.5 2 2 4-4"/>',
+  saved:'<path class="practice-topic-icon-fill" d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"/><path d="m9 10 2 2 4-4"/>',
+  mixed:'<path class="practice-topic-icon-layer" d="M2 12.5 12 17.5 22 12.5V17L12 22 2 17Z"/><path class="practice-topic-icon-layer" d="M2 7.5 12 12.5 22 7.5V12L12 17 2 12Z"/><path class="practice-topic-icon-fill" d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/>'
+};
+const practiceDeckIcon=topic=>`<svg class="practice-topic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${practiceDeckIcons[topic]}</svg>`;
+export function practiceView(s,session) {
+  const c=words[s.language],back=`<button class="practice-exit" type="button" data-action="practice-exit" aria-label="${esc(c.practiceExit)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18M6 6l12 12"/></svg></button>`;
+  if(s.practiceStage === "session" && session?.cards.length) {
+    const card=session.cards[session.index], next=session.cards[session.index+1], leaving=session.leaving ? ` practice-session--leaving-${session.leaving}` : "", stacked=session.index ? " practice-session--stacked" : "";
+    const soonSelected=session.answer==="soon"?" is-selected":"",rememberedSelected=session.answer==="remembered"?" is-selected":"";
+    const front=cardMarkup(s,card,"h2",{typewriter:false,layerClass:"practice-card--front"}),behind=next?cardMarkup(s,next,"h2",{typewriter:false,idPrefix:`practice-card-${next.id}`,decorative:true,layerClass:"practice-card--behind"}):"";
+    return `<section class="practice-screen practice-session${leaving}${stacked}" aria-label="${esc(c.practice)}">${back}<h1 class="sr-only" tabindex="-1">${esc(c.practice)}</h1><div class="practice-card-stack">${front}${behind}</div><div class="practice-responses" role="group" aria-label="${esc(c.practiceResponse)}"><button class="practice-response practice-response--soon${soonSelected}" type="button" data-action="practice-answer" data-answer="soon" ${session.advancing?"disabled":""}>${esc(c.practiceSoon)}</button><button class="practice-response practice-response--remembered${rememberedSelected}" type="button" data-action="practice-answer" data-answer="remembered" ${session.advancing?"disabled":""}>${esc(c.practiceRemembered)}</button></div></section>`;
+  }
+  if(s.practiceStage === "done") return `<section class="practice-screen practice-done">${back}<div class="practice-done-mascot">${mascotArt("sprout")}</div><h1 tabindex="-1">${esc(c.practiceDone)}</h1><button class="practice-response practice-response--remembered" type="button" data-action="practice-again">${esc(c.practiceAgain)}</button></section>`;
+  if(s.practiceStage === "empty") return `<section class="practice-screen practice-empty">${back}<div class="practice-choice-mascot">${mascotArt("sprout")}</div><h1 tabindex="-1">${esc(c.practiceNoCards)}</h1><button class="practice-response practice-response--remembered" type="button" data-action="practice-choose">${esc(c.practiceChooseAgain)}</button></section>`;
+  return `<section class="practice-screen practice-choose">${back}<div class="practice-choice-mascot">${mascotArt("sprout")}</div><h1 tabindex="-1">${esc(c.practiceQuestion)}</h1><div class="practice-topics">${practiceTopics.map(topic=>`<button class="practice-topic practice-topic--${topic}" type="button" data-action="practice-topic" data-topic="${topic}"><span class="practice-topic-pack" aria-hidden="true"><span class="practice-topic-card practice-topic-card--left"></span><span class="practice-topic-card practice-topic-card--right"></span><span class="practice-topic-card practice-topic-card--cover">${practiceDeckIcon(topic)}</span></span><span class="practice-topic-label">${esc(c[`practiceTopic_${topic}`])}</span></button>`).join("")}</div></section>`;
 }
 
 function noteDestinationMarkup(s) {
@@ -277,12 +306,13 @@ function noteTypeIcon(kind) {
   return `<svg class="note-type-icon" viewBox="${watermark.viewBox}" aria-hidden="true" focusable="false">${watermark.paths}</svg>`;
 }
 
-function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false} = {}) {
+function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false, idPrefix="", decorative=false, layerClass=""} = {}) {
   const book = s.catalog.booksById.get(card.bookId), deckLanguage = card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
   const type=cardTypeFor(card),bodyTag=type.bodyTag;
-  return `<div class="reading-stage reading-stage--${type.id}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${type.className ? ' '+type.className : ''}"><span class="card-header-icon" aria-hidden="true">${type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-content" tabindex="-1">${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : ' id="idea-content" tabindex="-1"'}>${esc(body)}</${bodyTag}></div>
+  const contentId=idPrefix ? `${idPrefix}-idea-content` : "idea-content";
+  return `<div class="reading-stage reading-stage--${type.id}${layerClass ? ` ${layerClass}` : ""}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${decorative ? ' aria-hidden="true" inert' : ""}${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${type.className ? ' '+type.className : ''}"><span class="card-header-icon" aria-hidden="true">${type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="${esc(contentId)}" tabindex="-1">${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : ` id="${esc(contentId)}" tabindex="-1"`}>${esc(body)}</${bodyTag}></div>
     <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book)}</div>${exclusive ? cardActionsHost(card) : ""}</footer></article></div>`;
 }
 
