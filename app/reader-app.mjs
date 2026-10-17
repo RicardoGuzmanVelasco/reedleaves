@@ -1,7 +1,7 @@
 import {loadCatalog} from "./catalog.mjs";
 import {localDay, restoreLanguage} from "./core.mjs";
 import {restorePreferences, changeSource} from "./rhythm.mjs";
-import {featuredDecks, restoreTreeReview, bookReviewStates} from "./decks.mjs";
+import {featuredDecks, restoreTreeReview, bookReviewStates,canChangeDeckLanguage} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
@@ -33,6 +33,8 @@ export function startReader({createCardFeatures} = {}) {
   let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, scrollToCard = false;
   let authorForm = null, quotesOnly = false, deckPreview = false, previewColumns = 2, previewVersionId = null;
   let noteDestination=null,deckCompletion=null,notesCompletion=null,bookStatusError=null,noteNudgeBookId=null;
+  let deckLanguageError=null;
+  let deckTitleEdit=null;
   let profileId=null,profileData=null,profileError=null,profileReturnHash="#home",profileRequest=null,profileGeneration=0;
   const recordedViews=new Set(),pendingViews=new Set();
   let albumPosition = null;
@@ -62,6 +64,7 @@ export function startReader({createCardFeatures} = {}) {
 
   function applyState(state) {
     if (snapshot.user?.id !== state.user?.id) {
+      deckLanguageError=null;deckTitleEdit=null;
       persistNoteDraft(); authorForm=null; noteDestination=null; deckCompletion=null; notesCompletion=null; bookStatusError=null;
     }
     if (snapshot.user?.id !== state.user?.id) { deckPreview=false;previewColumns=2;previewVersionId=null; }
@@ -162,7 +165,7 @@ export function startReader({createCardFeatures} = {}) {
     refreshState(); header();
     if (["review","author"].includes(mode) && previewVersionId !== versionId) { deckPreview=false;previewColumns=2;previewVersionId=versionId; }
     const pendingNoteVersionIds=notesCompletion ? notesCompletion.versions.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.versionId)).map(entry=>entry.versionId) : [];
-    const state = {userId:snapshot.user?.id,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteVersionIds,bookStatusError,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,versionId),quotesOnly,deckPreview,previewColumns,language,showOriginalTitles,catalog,reviews,budget,preferences,statuses,noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily,bookId,versionId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],bookReviews,
+    const state = {userId:snapshot.user?.id,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteVersionIds,bookStatusError,deckLanguageError,deckTitleEdit,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,versionId),quotesOnly,deckPreview,previewColumns,language,showOriginalTitles,catalog,reviews,budget,preferences,statuses,noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily,bookId,versionId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],bookReviews,
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,libraryQuery,libraryFilters,libraryFiltersOpen,bookshelfFilters:mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
       profileData,profileError,readOnly:mode === "public-bookshelf",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,hasLocalProgress:hasLocalProgress()};
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
@@ -495,7 +498,48 @@ export function startReader({createCardFeatures} = {}) {
     }
     openDeckId = null; openBookId = null; render();
   }
+  async function saveDeckLanguage(nextLanguage) {
+    if (busy || deckTitleEdit || mode !== "author" || !canChangeDeckLanguage(catalog,versionId,snapshot.user?.id)) return;
+    const version=catalog.versionsById.get(versionId);
+    if (version.language === nextLanguage) return;
+    busy=true;syncGeneration++;deckLanguageError=null;lockControls();
+    try {
+      const result=await api.request("/api/author/decks/language",{versionId,language:nextLanguage,previousLanguage:version.language});
+      catalog=await loadCatalog();applyState(result.state);
+      live.textContent=words[language].deckLanguageSaved;
+    } catch(error) {
+      deckLanguageError=["deckReadOnly","deckUnavailable","deckLanguageChanged"].includes(error.code) ? error.code : "deckLanguageSaveError";
+      if (error.status === 409) { try {catalog=await loadCatalog();} catch { /* Preserve the current view and error for retry. */ } }
+    } finally {
+      busy=false;render();main.querySelector("[data-deck-language]")?.focus({preventScroll:true});
+    }
+  }
+  function editDeckTitle() {
+    const version=catalog.versionsById.get(versionId),deck=catalog.decksById.get(version?.deckId);
+    if (busy || mode !== "author" || version?.status !== "draft" || deck?.creator.userId !== snapshot.user?.id) return;
+    const title=version.title[version.language];
+    deckTitleEdit={title,previousTitle:title};render();main.querySelector("#deck-title")?.focus();
+  }
+  function cancelDeckTitle() {
+    if (busy) return;
+    deckTitleEdit=null;render();main.querySelector('[data-action="edit-deck-title"]')?.focus({preventScroll:true});
+  }
+  async function saveDeckTitle(form) {
+    if (busy || !deckTitleEdit || mode !== "author") return;
+    const edit=deckTitleEdit;edit.title=form.elements.title.value;
+    busy=true;syncGeneration++;edit.error=null;lockControls();
+    try {
+      const result=await api.request("/api/author/decks/title",{versionId,title:edit.title,previousTitle:edit.previousTitle});
+      catalog=await loadCatalog();applyState(result.state);deckTitleEdit=null;live.textContent=words[language].deckTitleSaved;
+    } catch(error) {
+      edit.error=["deckReadOnly","deckUnavailable","deckTitleChanged"].includes(error.code) ? error.code : "deckTitleSaveError";
+      if (error.status === 409) {try {catalog=await loadCatalog();} catch { /* Keep entered title for retry. */ }}
+    } finally {
+      busy=false;render();main.querySelector(deckTitleEdit ? "#deck-title" : '[data-action="edit-deck-title"]')?.focus({preventScroll:true});
+    }
+  }
   function openDeckCompletion() {
+    if (deckTitleEdit) return;
     const version=catalog.versionsById.get(versionId),deck=catalog.decksById.get(version?.deckId);
     if (busy || mode !== "author" || !snapshot.user || deck?.creator.userId !== snapshot.user.id || version?.status !== "draft" || !version.cardCount) return;
     if (findNoteDraft(bookId,versionId)) {render();return;}
@@ -748,6 +792,7 @@ export function startReader({createCardFeatures} = {}) {
   main.addEventListener("toggle",e=>{ if (e.target.id === "sources") sourcesOpen = e.target.open; if (e.target.classList?.contains("library-filters")) libraryFiltersOpen=e.target.open; },true);
   function updateBookSearch() { main.querySelector("#book-search-results").innerHTML = libraryResultsMarkup({catalog,language,showOriginalTitles,libraryQuery,libraryFilters,userId:snapshot.user?.id}); main.querySelector("[data-book-search] button").hidden = !libraryQuery; live.textContent = words[language].searchResults(filterLibrary(catalog,libraryQuery,libraryFilters).length); }
   main.addEventListener("input",e=>{
+    if (e.target.id === "deck-title" && deckTitleEdit) {deckTitleEdit.title=e.target.value;return;}
     if (e.target.id === "preview-columns") {
       previewColumns=Math.max(1,Math.min(4,Math.round(Number(e.target.value)||2)));
       main.querySelector("#deck-preview-grid").dataset.columns=String(previewColumns);
@@ -759,7 +804,11 @@ export function startReader({createCardFeatures} = {}) {
     if (authorForm && e.target.closest("[data-author-form]")) changeAuthorField(e.target);
     if (e.target.id === "book-search") { libraryQuery = e.target.value; updateBookSearch(); }
   });
+  main.addEventListener("keydown",e=>{
+    if (e.key === "Escape" && deckTitleEdit && e.target.closest("[data-deck-title-form]")) {e.preventDefault();cancelDeckTitle();}
+  });
   main.addEventListener("submit",async e=>{
+    if (e.target.matches("[data-deck-title-form]")) {e.preventDefault();await saveDeckTitle(e.target);return;}
     if (e.target.matches("[data-book-search]")) { e.preventDefault(); return; }
     if (e.target.matches("[data-author-form]")) { e.preventDefault(); await saveAuthorForm(e.target); return; }
     if (!e.target.matches("[data-account-form]")) return; e.preventDefault(); if (busy) return;
@@ -777,6 +826,7 @@ export function startReader({createCardFeatures} = {}) {
   });
   main.addEventListener("change",async e=>{
     const input = e.target;
+    if (input.matches("[data-deck-language]")) {await saveDeckLanguage(input.value);return;}
     if (authorForm && input.closest("[data-author-form]")) { changeAuthorField(input); return; }
     if (input.dataset.libraryFilter) {
       const axis=input.dataset.libraryFilter;
@@ -803,6 +853,8 @@ export function startReader({createCardFeatures} = {}) {
     }
     const b = e.target.closest("[data-action]"); if (!b || b.disabled || busy || !ready && b.dataset.action !== "retry") return;
     switch(b.dataset.action) {
+      case "edit-deck-title": editDeckTitle();break;
+      case "cancel-deck-title": cancelDeckTitle();break;
       case "profile": openOwnProfile(); break;
       case "set-book-reading": setBookReading(b.dataset.book,b.dataset.status); break;
       case "finish-book-notes": openNotesCompletion(b.dataset.book); break;
@@ -866,6 +918,7 @@ export function startReader({createCardFeatures} = {}) {
     }
   });
   window.addEventListener("hashchange",()=>{
+    deckLanguageError=null;deckTitleEdit=null;
     const cardId=requestedId,returning=cardId && location.hash === "#"+mode+"/"+(mode === "saved" ? bookId : versionId);
     persistNoteDraft(); authorForm = null; deckCompletion=null; route(!returning); if (returning) restoreAlbumPosition(cardId);
   }); document.addEventListener("visibilitychange",()=>{ if (document.hidden) persistNoteDraft(); else { recordDisplayedCard(); sync(); } });

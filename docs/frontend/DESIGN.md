@@ -72,6 +72,12 @@ Para iniciar la captura de una idea o cita, usar siempre **Tomar nota / Take a n
 
 «Tomar nota» abre el editor directamente cuando la baraja ya está determinada. Guardar o cancelar devuelve al punto de partida, conservando vista, filtros, posición y foco. «Gestionar baraja / Manage deck» es el acceso a revisar las notas propias y marcar la baraja como terminada; no es un paso previo para tomar una nota.
 
+«Gestionar baraja» omite el libro y la autoría en la cabecera. Tras la navegación y antes del título, el aviso de borrador aparece como un bloque completo destacado; el icono de advertencia comparte línea con el estado. Incluye la acción principal «Marcar como completada / Mark as complete», que mantiene la confirmación de cierre. No se repite como chip bajo el título. El título propio en borrador se puede pulsar para editarlo en línea con Guardar / Cancelar; Escape cancela y devuelve el foco. Hay que guardar o cancelar antes de terminar la baraja.
+
+La gestión muestra todas las tarjetas en su jerarquía y conserva los accesos para tomar notas. Omite progreso de repaso, porcentajes, marcas de tarjetas repasadas, filtros Todas/Citas y selector árbol/cuadrícula. No hereda filtros ni la vista previa del repaso.
+
+En esta pantalla, el idioma de las barajas propias en borrador es un selector con lápiz y flecha, foco visible y uso por teclado. Elegir otro idioma lo guarda directamente y conserva contenido y repaso. Las barajas con alguna versión terminada o archivada mantienen el idioma fijo.
+
 Si el «+» de Inicio no tiene una baraja propia en borrador, abre el editor de nota directamente. Se avisa de que se creará «Notas de lectura» / «Reading notes». La baraja nace al guardar la primera nota, con el idioma elegido para la app al abrir el editor, independiente del idioma original del libro. No se pide configurar nombre o idioma. Cancelar no crea una baraja vacía.
 
 Borrador describe creación y no privacidad. Guardar comparte el contenido con quienes tienen acceso al catálogo; terminar cierra cambios, no lo hace visible por primera vez. El estado editorial `draft/reviewed` es independiente de `status`. «Repaso completo» puede coexistir con «Borrador». Los nombres internos `deckInProgress` y `notesInProgress` conservan su contrato, pero su copy de creación usa Borrador. Las notas sin guardar solo se recuperan en el navegador y dispositivo donde se conservaron.

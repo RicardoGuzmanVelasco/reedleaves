@@ -92,8 +92,11 @@ CREATE UNIQUE INDEX one_recommendation_per_book ON decks(book_id) WHERE is_recom
 CREATE TRIGGER check_deck_author_insert BEFORE INSERT ON decks WHEN COALESCE((SELECT can_create_decks FROM users WHERE id = NEW.creator_user_id),0) <> 1
 BEGIN SELECT RAISE(ABORT,'Deck creation permission required'); END;
 CREATE TRIGGER keep_deck_owner BEFORE UPDATE OF creator_user_id,book_id,language ON decks
-WHEN NEW.creator_user_id IS NOT OLD.creator_user_id OR NEW.book_id <> OLD.book_id OR NEW.language <> OLD.language
+WHEN NEW.creator_user_id IS NOT OLD.creator_user_id OR NEW.book_id <> OLD.book_id
 BEGIN SELECT RAISE(ABORT,'Deck ownership is immutable'); END;
+CREATE TRIGGER keep_finished_deck_language BEFORE UPDATE OF language ON decks
+WHEN NEW.language <> OLD.language AND EXISTS (SELECT 1 FROM deck_versions WHERE deck_id=OLD.id AND status <> 'draft')
+BEGIN SELECT RAISE(ABORT,'Published deck language is immutable'); END;
 
 CREATE TABLE deck_versions (
   id TEXT PRIMARY KEY,
@@ -354,4 +357,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 19;
+PRAGMA user_version = 20;

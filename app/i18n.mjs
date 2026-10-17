@@ -1,5 +1,9 @@
 export const words = {
   es: {
+    markDeckComplete:"Marcar como completada",deckCards:"Tarjetas",
+    pendingDeckTitleBeforeFinish:"Guarda o cancela el cambio de nombre antes de terminar la baraja.",
+    editDeckTitle:"Cambiar nombre de la baraja",deckTitleSaved:"Nombre de la baraja guardado.",deckTitleSaveError:"No se pudo guardar el nombre. Vuelve a intentarlo.",deckTitleChanged:"El nombre cambió en otra sesión. Cierra la edición para revisar el valor actual.",
+    changeDeckLanguage:"Cambiar idioma de la baraja",deckLanguageSaved:"Idioma de la baraja guardado.",deckLanguageSaveError:"No se pudo guardar el idioma. Vuelve a elegirlo para reintentar.",deckLanguageChanged:"El idioma cambió en otra sesión. Revisa el valor actual y vuelve a elegirlo.",
     deckViews:"Vista de la baraja",viewDeckPreview:"Ver preview",viewDeckTree:"Ver árbol",deckPreview:"Preview de la baraja",previewColumns:"Columnas",previewColumnCount:n=>`${n} ${n===1 ? "columna" : "columnas"}`,previewNext:"Siguiente",previewLocked:"Bloqueada",
     cardActions:"Acciones de tarjeta",saveCard:"Guardar tarjeta",unsaveCard:"Quitar de guardadas",savedCards:"Guardadas",noSavedCards:"No tienes tarjetas guardadas de este libro.",
     aiQuotaExceeded:"La IA no tiene saldo disponible. Revisa la facturación de OpenAI; tus datos siguen aquí.", aiConfigurationError:"Hay un problema con la configuración de la IA. Tus datos siguen aquí.", aiProviderBusy:"El servicio de IA está saturado o no está disponible. Vuelve a intentarlo en unos minutos.", errorReference:"Referencia del error",
@@ -65,6 +69,10 @@ export const words = {
     date: d => new Intl.DateTimeFormat("es", { day: "numeric", month: "long" }).format(d), position: (n, total) => `${n} de ${total}`
   },
   en: {
+    markDeckComplete:"Mark as complete",deckCards:"Cards",
+    pendingDeckTitleBeforeFinish:"Save or cancel the name change before finishing the deck.",
+    editDeckTitle:"Change deck name",deckTitleSaved:"Deck name saved.",deckTitleSaveError:"The name could not be saved. Try again.",deckTitleChanged:"The name changed in another session. Close editing to check the current value.",
+    changeDeckLanguage:"Change deck language",deckLanguageSaved:"Deck language saved.",deckLanguageSaveError:"The language could not be saved. Choose it again to retry.",deckLanguageChanged:"The language changed in another session. Check the current value and choose again.",
     deckViews:"Deck view",viewDeckPreview:"View preview",viewDeckTree:"View tree",deckPreview:"Deck preview",previewColumns:"Columns",previewColumnCount:n=>`${n} ${n===1 ? "column" : "columns"}`,previewNext:"Next",previewLocked:"Locked",
     cardActions:"Card actions",saveCard:"Save card",unsaveCard:"Remove from saved cards",savedCards:"Saved cards",noSavedCards:"You have no saved cards from this book.",
     aiQuotaExceeded:"AI has no available credit. Check OpenAI billing; your details are still here.", aiConfigurationError:"There is a problem with the AI configuration. Your details are still here.", aiProviderBusy:"The AI service is busy or unavailable. Try again in a few minutes.", errorReference:"Error reference",

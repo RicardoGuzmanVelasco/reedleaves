@@ -1,6 +1,6 @@
 import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES, LANGUAGES} from "./core.mjs";
 import { accessibleCard, canAdvance } from "./rhythm.mjs";
-import { treeFrontier, hasLeaf, availableVersions } from "./decks.mjs";
+import { treeFrontier, hasLeaf, availableVersions, canChangeDeckLanguage } from "./decks.mjs";
 import {homeBooks,editableNoteVersions,recentNoteVersions} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
@@ -478,7 +478,7 @@ function treeMapMarkup(s,model,review,version,leaf) {
     const canOpen = author || reviewed || next && leaf;
     const title = card.isQuote ? quoteExcerpt(contentText(card.body,s.language,version.language)) : contentText(card.title,s.language,version.language);
     const state = reviewed ? c.treeSeen : next ? leaf ? c.treeNextToday : c.treeNextLater : c.treeLocked;
-    const mark = reviewed ? `<span class="tree-node-check" aria-hidden="true">✓</span>` : author ? "" : next ? `<span class="tree-node-cost"><img src="../brand/reed/leaf-token.svg" alt=""><span class="sr-only">${c.leafCost}</span></span>` : `<span class="tree-node-lock">${lock}</span>`;
+    const mark = author ? "" : reviewed ? `<span class="tree-node-check" aria-hidden="true">✓</span>` : next ? `<span class="tree-node-cost"><img src="../brand/reed/leaf-token.svg" alt=""><span class="sr-only">${c.leafCost}</span></span>` : `<span class="tree-node-lock">${lock}</span>`;
     const name = locked ? `<span class="tree-node-hidden" aria-hidden="true"><i></i><i></i></span><span class="sr-only">${c.treeLocked}</span>` : `<span class="tree-node-name" lang="${esc(contentLocale(card.isQuote ? card.body : card.title,s.language,version.language))}" dir="auto">${esc(title)}</span>`;
     const accessibleName = author ? title : locked ? c.treeLocked : `${title}. ${state}`;
     const children = (model.children.get(card.id) || []).filter(c=>!s.quotesOnly || containsQuote(c));
@@ -488,18 +488,26 @@ function treeMapMarkup(s,model,review,version,leaf) {
     return `<li>${author ? `<div class="tree-node-row">${treeButton}<button class="tree-node-note" type="button" data-action="take-child-note" data-card="${esc(card.id)}" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(takeNoteLabel)}" title="${esc(takeNoteLabel)}">${takeNoteIconMarkup}</button></div>` : treeButton}
       ${children.length ? `<ul>${children.map(node).join("")}</ul>` : ""}</li>`;
   };
-  return `<section class="tree-map" aria-label="${c.treeMap}"><div class="tree-map-viewport"><ul class="mini-tree">${model.roots.filter(c=>!c.isQuote && (!s.quotesOnly || containsQuote(c))).map(node).join("")}${model.roots.some(c=>c.isQuote) ? `<li class="virtual-quotes"><span class="virtual-quotes-title">${c.unclassifiedQuotes}</span><ul>${model.roots.filter(c=>c.isQuote).map(node).join("")}</ul></li>` : ""}</ul></div></section>`;
+  return `<section class="tree-map" aria-label="${author ? c.deckCards : c.treeMap}"><div class="tree-map-viewport"><ul class="mini-tree">${model.roots.filter(c=>!c.isQuote && (!s.quotesOnly || containsQuote(c))).map(node).join("")}${model.roots.some(c=>c.isQuote) ? `<li class="virtual-quotes"><span class="virtual-quotes-title">${c.unclassifiedQuotes}</span><ul>${model.roots.filter(c=>c.isQuote).map(node).join("")}</ul></li>` : ""}</ul></div></section>`;
+}
+
+const editPencilMarkup='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 16l-1 5 5-1L20 8a2.8 2.8 0 0 0-4-4Z"/></svg>';
+function deckTitleMarkup(s,version,deck) {
+  const c=words[s.language],title=version.title[version.language],editable=deck.creator.userId === s.userId && version.status === "draft";
+  if (editable && s.deckTitleEdit) return `<h1 class="sr-only">${c.deckTitle}</h1><form class="deck-title-form" data-deck-title-form><label class="sr-only" for="deck-title">${c.deckTitle}</label><input id="deck-title" name="title" value="${esc(s.deckTitleEdit.title)}" lang="${esc(version.language)}" dir="auto" maxlength="160" required${s.deckTitleEdit.error ? ' aria-describedby="deck-title-error"' : ""}><div class="form-actions"><button class="text-button" type="button" data-action="cancel-deck-title">${c.cancel}</button><button class="primary" type="submit">${c.save}</button></div>${s.deckTitleEdit.error ? `<p class="account-error" role="alert" id="deck-title-error">${esc(c[s.deckTitleEdit.error] || c.deckTitleSaveError)}</p>` : ""}</form>`;
+  return `<h1 tabindex="-1" lang="${esc(version.language)}" dir="auto">${editable ? `<button class="deck-title-button" type="button" data-action="edit-deck-title" aria-label="${esc(c.editDeckTitle+": "+title)}"><span>${esc(title)}</span>${editPencilMarkup}</button>` : esc(title)}</h1>`;
 }
 
 function albumSummary(s,version,deck,model,review,mascot="") {
   const c=words[s.language],book=s.catalog.booksById.get(version.bookId),seen=review.seenIds.length,total=model.cards.length;
   const percent=total ? Math.round(seen / total * 100) : 0;
   const language=new Intl.DisplayNames([s.language],{type:"language"}).of(deck.language) || deck.language;
-  return `<header class="album-heading${mascot ? " album-heading--mascot" : ""}"><div class="album-heading-copy"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>
+  return `<header class="album-heading${mascot ? " album-heading--mascot" : ""}"><div class="album-heading-copy">${s.mode === "author" ? deckTitleMarkup(s,version,deck) : `<p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>
     <h1 tabindex="-1" lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h1>
-    <p class="deck-creator">${deckCreator(deck)}</p>
-    <p class="album-meta">${esc(language)}</p>${deckStatusMarkup(s,version)}</div>${mascot}</header>
-    <div class="album-progress"><div><p>${c.progress(seen,total)}</p><span aria-hidden="true">${percent}%</span></div><progress value="${seen}" max="${Math.max(total,1)}" aria-label="${esc(c.progress(seen,total))}"></progress></div>`;
+    <p class="deck-creator">${deckCreator(deck)}</p>`}
+    ${s.mode === "author" && canChangeDeckLanguage(s.catalog,version.id,s.userId) ? `<label class="deck-language-control" for="deck-language"><span class="sr-only">${c.deckLanguage}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 16l-1 5 5-1L20 8a2.8 2.8 0 0 0-4-4Z"/></svg><select id="deck-language" data-deck-language${s.deckTitleEdit ? " disabled" : ""} title="${esc(c.changeDeckLanguage)}"${s.deckLanguageError ? ' aria-describedby="deck-language-error"' : ""}>${[...new Set([...CONTENT_LANGUAGES,deck.language])].map(tag=>`<option value="${esc(tag)}"${deck.language === tag ? " selected" : ""}>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(tag))}</option>`).join("")}</select></label>` : `<p class="album-meta">${esc(language)}</p>`}
+    ${s.mode === "author" && s.deckLanguageError ? `<p class="account-error" id="deck-language-error" role="alert">${esc(c[s.deckLanguageError] || c.deckLanguageSaveError)}</p>` : ""}${s.mode === "author" ? "" : deckStatusMarkup(s,version)}</div>${mascot}</header>
+    ${s.mode === "author" ? "" : `<div class="album-progress"><div><p>${c.progress(seen,total)}</p><span aria-hidden="true">${percent}%</span></div><progress value="${seen}" max="${Math.max(total,1)}" aria-label="${esc(c.progress(seen,total))}"></progress></div>`}`;
 }
 
 export function reviewView(s) {
@@ -530,15 +538,17 @@ function quoteFilter(s) {
 }
 
 export function authorView(s) {
+  s={...s,mode:"author",quotesOnly:false,deckPreview:false};
   const c=words[s.language],version=s.catalog.versionsById.get(s.versionId),deck=s.catalog.decksById.get(version.deckId),model=s.catalog.versionModels.get(s.versionId),review=s.reviews[version.id];
   const card=model.byId.get(s.requestedId);
-  return `<section class="author-screen album-screen"><div class="review-heading"><button type="button" class="text-button" data-action="choose-book">${c.deckBack}</button><button type="button" class="text-button" data-action="select-deck" data-version="${esc(version.id)}" ${!model.cards.length ? "disabled" : ""}>${c.review} →</button></div>
+  const finishBlocked=!model.cards.length || s.hasPendingNoteDraft || s.deckTitleEdit;
+  const finishHint=s.deckTitleEdit ? c.pendingDeckTitleBeforeFinish : s.hasPendingNoteDraft ? c.pendingNoteBeforeFinish : c.emptyDeckCannotFinish;
+  const draftNotice=version.status === "draft" ? `<aside class="deck-draft-notice" aria-label="${esc(c.deckInProgress)}"><div><strong><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.7 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4m0 4h.01"/></svg>${c.deckInProgress}</strong><p>${c.deckDraftOwnerExplanation}</p>${deck.creator.userId === s.userId ? `<button class="primary deck-draft-complete" type="button" data-action="finish-deck" ${finishBlocked ? 'disabled aria-describedby="finish-deck-hint"' : ""}>${c.markDeckComplete}</button>${finishBlocked ? `<p class="finish-deck-hint" id="finish-deck-hint">${finishHint}</p>` : ""}` : ""}</div></aside>` : "";
+  return `<section class="author-screen album-screen"><div class="review-heading"><button type="button" class="text-button" data-action="choose-book">${c.deckBack}</button><button type="button" class="text-button" data-action="select-deck" data-version="${esc(version.id)}" ${!model.cards.length ? "disabled" : ""}>${c.review} →</button></div>${draftNotice}
     ${albumSummary(s,version,deck,model,review)}
-    ${model.cards.length && review.seenIds.length === model.cards.length ? `<p class="complete-note">${c.complete}</p>` : ""}
-    <div class="author-actions"><button class="primary note-icon-only" type="button" data-action="take-version-note" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}">${takeNoteIconMarkup}</button><button class="text-button finish-deck-action" type="button" data-action="finish-deck" ${!model.cards.length || s.hasPendingNoteDraft ? 'disabled aria-describedby="finish-deck-hint"' : ""}>${c.finishDeck}</button></div>
-    ${!model.cards.length || s.hasPendingNoteDraft ? `<p class="finish-deck-hint" id="finish-deck-hint">${s.hasPendingNoteDraft ? c.pendingNoteBeforeFinish : c.emptyDeckCannotFinish}</p>` : ""}
-    ${model.cards.length ? `<div class="content-tools deck-content-tools">${deckBrowsingControls(s)}</div>`+deckContentMarkup(s,model,review,version,true) : `<div class="empty-state">${c.emptyAuthor}</div>`}
-    ${s.quotesOnly && model.cards.length && !model.cards.some(c=>c.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}${card ? exclusiveCardMarkup(s,card,c.position(model.cards.findIndex(item=>item.id===card.id)+1,model.cards.length)) : ""}</section>`;
+    <div class="author-actions"><button class="primary note-icon-only" type="button" data-action="take-version-note" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}" ${s.deckTitleEdit ? "disabled" : ""}>${takeNoteIconMarkup}</button></div>
+    ${model.cards.length ? deckContentMarkup(s,model,review,version,true) : `<div class="empty-state">${c.emptyAuthor}</div>`}
+    ${card ? exclusiveCardMarkup(s,card,c.position(model.cards.findIndex(item=>item.id===card.id)+1,model.cards.length)) : ""}</section>`;
 }
 
 export function authorFormView(s) {

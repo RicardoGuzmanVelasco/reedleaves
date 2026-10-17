@@ -6,7 +6,7 @@ import {openDatabase,initializeDatabase,PostgresDatabase,SQLITE_SCHEMA_VERSION} 
 import {PGlite} from "@electric-sql/pglite";
 import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
-import {createBook,createDeck,addCard,completeBook,ownedBookInformation,takeFirstNote,finishNoteDecks} from "./author-repository.mjs";
+import {createBook,createDeck,changeDeckLanguage,changeDeckTitle,addCard,completeBook,ownedBookInformation,takeFirstNote,finishNoteDecks,finishDeck} from "./author-repository.mjs";
 import {readCatalog,checkCatalog} from "./catalog-repository.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {readReaderState as readReaderStateAtDate,selectDeck,openCard,dailyIdea,changeReading} from "./reader-repository.mjs";
@@ -32,6 +32,62 @@ async function fixture(t,dialect) {
   return {db,session,other};
 }
 for (const dialect of ["sqlite","postgres"]) {
+  test(`${dialect}: owners rename drafts without changing notes or practice, with conflict and freeze protection`,async t=>{
+    const {db,session,other}=await fixture(t,dialect);
+    const {versionId}=await createDeck(db,session,{requestId:randomUUID(),bookId:"seven-habits",title:"Mis notas",language:"es"});
+    const card=await addCard(db,session,{requestId:randomUUID(),versionId,title:"Idea",body:"Texto",isQuote:false,parentId:null});
+    const before=await readReaderState(db,session),request={versionId,title:"Ideas principales",previousTitle:"Mis notas"};
+    await assert.rejects(changeDeckTitle(db,other,request),e=>e.code==="deckUnavailable");
+    for (const title of [" ","x".repeat(161),null]) await assert.rejects(changeDeckTitle(db,session,{...request,title}),e=>e.status===400);
+    await changeDeckTitle(db,session,request);await changeDeckTitle(db,session,request);
+    const catalog=prepareCatalog(await readCatalog(db));
+    assert.equal(catalog.versionsById.get(versionId).title.es,"Ideas principales");
+    assert.equal(catalog.cardsById.get(card.cardId).body.es,"Texto");
+    assert.deepEqual(await readReaderState(db,session),before);
+    await assert.rejects(changeDeckTitle(db,session,{...request,title:"Otra edición"}),e=>e.code==="deckTitleChanged");
+    await finishDeck(db,session,{versionId});
+    await assert.rejects(changeDeckTitle(db,session,{...request,previousTitle:request.title,title:"Otro nombre"}),e=>e.code==="deckReadOnly");
+  });
+  test(`${dialect}: draft language changes preserve notes, saved cards and completed practice; frozen or foreign decks stay protected`,async t=>{
+    const {db,session,other}=await fixture(t,dialect);
+    const {versionId}=await createDeck(db,session,{requestId:randomUUID(),bookId:"seven-habits",title:"Mis notas",language:"es"});
+    const card=await addCard(db,session,{requestId:randomUUID(),versionId,title:"Idea",body:"Texto conservado",isQuote:false,parentId:null});
+    await selectDeck(db,other,versionId,new Date("2026-10-10T12:00:00Z"));
+    await openCard(db,other,versionId,card.cardId,new Date("2026-10-10T12:00:00Z"));
+    await db.prepare("INSERT INTO card_saves(user_id,card_id,saved_at) VALUES (?,?,?)").run(other.user_id,card.cardId,"2026-10-10T12:00:00Z");
+    const before=await readReaderState(db,other),saved=await db.prepare("SELECT * FROM card_saves WHERE card_id=?").all(card.cardId);
+    const request={versionId,language:"en",previousLanguage:"es"};
+    await assert.rejects(changeDeckLanguage(db,other,request),e=>e.code==="deckUnavailable");
+    await assert.rejects(changeDeckLanguage(db,session,{...request,language:"invalid language"}),e=>e.status===400);
+    await changeDeckLanguage(db,session,request);await changeDeckLanguage(db,session,request);
+    const catalog=prepareCatalog(await readCatalog(db,other.user_id));
+    assert.equal(catalog.versionsById.get(versionId).language,"en");
+    assert.deepEqual(catalog.versionsById.get(versionId).title,{en:"Mis notas"});
+    assert.deepEqual(catalog.cardsById.get(card.cardId).body,{en:"Texto conservado"});
+    assert.deepEqual(await readReaderState(db,other),before);
+    assert.deepEqual(await db.prepare("SELECT * FROM card_saves WHERE card_id=?").all(card.cardId),saved);
+    await assert.rejects(changeDeckLanguage(db,session,{...request,language:"es"}),e=>e.code==="deckLanguageChanged");
+    const next=await addCard(db,session,{requestId:randomUUID(),versionId,title:"Next",body:"New note",isQuote:false,parentId:card.cardId});
+    assert.deepEqual(prepareCatalog(await readCatalog(db)).cardsById.get(next.cardId).body,{en:"New note"});
+    await finishDeck(db,session,{versionId});
+    await assert.rejects(changeDeckLanguage(db,session,{versionId,language:"es",previousLanguage:"en"}),e=>e.code==="deckReadOnly");
+    await assert.rejects(async()=>db.prepare("UPDATE decks SET language='es' WHERE id=(SELECT deck_id FROM deck_versions WHERE id=?)").run(versionId),/immutable/);
+  });
+  test(`${dialect}: language changes keep existing translations and support empty drafts`,async t=>{
+    const {db,session}=await fixture(t,dialect);
+    const {versionId}=await createDeck(db,session,{requestId:randomUUID(),bookId:"seven-habits",title:"Notes",language:"fr"});
+    await changeDeckLanguage(db,session,{versionId,language:"es",previousLanguage:"fr"});
+    const card=await addCard(db,session,{requestId:randomUUID(),versionId,title:"Idea",body:"Texto",isQuote:true,parentId:null});
+    await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,'en','Quote','Text')").run(card.cardId);
+    await db.prepare("INSERT INTO deck_version_translations(version_id,language,title,description,editorial_note) VALUES (?,'en','Notes','Focus','Edition')").run(versionId);
+    await changeDeckLanguage(db,session,{versionId,language:"en",previousLanguage:"es"});
+    const catalog=prepareCatalog(await readCatalog(db));
+    assert.deepEqual(catalog.cardsById.get(card.cardId).body,{en:"Text",es:"Texto"});
+    assert.deepEqual(catalog.versionsById.get(versionId).title,{en:"Notes",es:"Notes"});
+    await changeDeckLanguage(db,session,{versionId,language:"es",previousLanguage:"en"});
+    await db.prepare("UPDATE deck_versions SET status='archived' WHERE id=?").run(versionId);
+    await assert.rejects(changeDeckLanguage(db,session,{versionId,language:"en",previousLanguage:"es"}),e=>e.code==="deckReadOnly");
+  });
   test(`${dialect}: first note creates one default deck atomically, retries safely and preserves leaves`,async t=>{
     const {db,session,other}=await fixture(t,dialect);
     const before=await readReaderState(db,session),counts=await checkCatalog(db);

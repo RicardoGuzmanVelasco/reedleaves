@@ -10,6 +10,54 @@ import {readerState} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
 
 const versionId = "seven-habits-inside-out-v1";
+test("Management starts with one full draft notice, omits book and creator metadata, and offers inline title editing",async()=>{
+  const catalog=await fixture(),version=catalog.versionsById.get(versionId),deck=catalog.decksById.get(version.deckId);
+  version.status="draft";
+  for (const language of ["es","en"]) {
+    const state=readerState(catalog,{language,versionId,bookId:version.bookId,userId:deck.creator.userId,reviews:{[versionId]:restoreTreeReview(null,catalog.versionModels.get(versionId),versionId)}});
+    const html=authorView(state);
+    assert.ok(html.indexOf('data-action="choose-book"')<html.indexOf(words[language].deckInProgress));
+    assert.ok(html.indexOf(words[language].deckInProgress)<html.indexOf('data-action="edit-deck-title"'));
+    assert.equal(html.split(words[language].deckDraftOwnerExplanation).length-1,1);
+    const notice=html.match(/<aside\b[\s\S]*?<\/aside>/)[0];
+    assert.match(notice,/data-action="finish-deck"/);assert.ok(notice.includes(words[language].markDeckComplete));
+    assert.equal((html.match(/data-action="finish-deck"/g)||[]).length,1);
+    assert.doesNotMatch(html,/<progress|album-progress|data-action="(?:filter-all|filter-quotes|view-deck-tree|view-deck-preview)"|id="preview-columns"/);
+    assert.doesNotMatch(html,/<p class="small-book"|<p class="deck-creator"/);
+    assert.match(html,/data-action="edit-deck-title"/);
+    const editing=authorView({...state,deckTitleEdit:{title:'Nuevo <nombre>',error:"deckTitleSaveError"}});
+    assert.match(editing,/name="title" value="Nuevo &lt;nombre&gt;"/);
+    assert.match(editing,/maxlength="160" required/);assert.match(editing,/aria-describedby="deck-title-error"/);
+    assert.match(editing,/type="submit"/);assert.match(editing,/data-action="cancel-deck-title"/);
+    assert.ok(editing.includes(words[language].deckTitleSaveError));
+    assert.doesNotMatch(authorView({...state,userId:"other"}),/data-action="edit-deck-title"/);
+    version.status="published";
+    assert.doesNotMatch(authorView(state),/deck-draft-notice|data-action="edit-deck-title"/);
+    version.status="draft";
+  }
+});
+test("Only draft owners can edit the language in management, with localized choices and recoverable errors",async()=>{
+  const catalog=await fixture(),version=catalog.versionsById.get(versionId),deck=catalog.decksById.get(version.deckId);
+  version.status="draft";
+  for (const language of ["es","en"]) {
+    const state=readerState(catalog,{language,versionId,bookId:version.bookId,userId:deck.creator.userId,mode:"author",reviews:{[versionId]:restoreTreeReview(null,catalog.versionModels.get(versionId),versionId)}});
+    const html=authorView(state),control=html.match(/<select[^>]*data-deck-language[\s\S]*?<\/select>/)[0];
+    assert.match(html,new RegExp(`<label[^>]*for="deck-language">[\\s\\S]*?${words[language].deckLanguage}`));
+    assert.match(control,new RegExp(`value="${deck.language}" selected`));
+    assert.deepEqual([...control.matchAll(/<option value="([^"]+)"/g)].map(match=>match[1]).sort(),["en","es"]);
+    assert.doesNotMatch(authorView({...state,userId:"other"}),/data-deck-language/);
+    assert.doesNotMatch(reviewView({...state,mode:"review"}),/data-deck-language/);
+    const failed=authorView({...state,deckLanguageError:"deckLanguageSaveError"});
+    assert.match(failed,/aria-describedby="deck-language-error"/);
+    assert.ok(failed.includes(words[language].deckLanguageSaveError));assert.match(failed,/role="alert"/);
+    version.status="published";
+    assert.doesNotMatch(authorView(state),/data-deck-language/);
+    version.status="draft";
+    catalog.versions.push({...version,id:"frozen-v0",status:"published"});
+    assert.doesNotMatch(authorView(state),/data-deck-language/);
+    catalog.versions.pop();
+  }
+});
 async function fixture() {
   const db = openDatabase(":memory:");
   try { initializeDatabase(db); await seedCatalog(db); return prepareCatalog(await readCatalog(db)); }
@@ -159,19 +207,24 @@ test("Deck authors link to their profiles independently of deck opening, includi
 
 test("Deck albums show total progress; cards open separately only when explicitly requested",async()=>{
   const catalog=await fixture(),model=catalog.versionModels.get(versionId),version=catalog.versionsById.get(versionId),deck=catalog.decksById.get(version.deckId);
+  version.status="draft";
   const card=model.roots[0],review=openTreeCard(null,model,versionId,card.id,"2026-10-06",null).review;
   const base={catalog,language:"es",versionId,bookId:version.bookId,reviews:{[versionId]:review},today:"2026-10-06",budget:{balance:2,lastAccrualDay:"2026-10-06"},storageAvailable:true};
   for (const [mode,view] of [["review",reviewView],["author",authorView]]) {
     const state={...base,mode,userId:deck.creator.userId};
     const album=view(state);
-    assert.match(album,/1 de 7 tarjetas repasadas/);assert.match(album,/<progress value="1" max="7"/);
+    if(mode === "review") {assert.match(album,/1 de 7 tarjetas repasadas/);assert.match(album,/<progress value="1" max="7"/);}
+    else assert.doesNotMatch(album,/<progress|tarjetas repasadas|tree-node-check/);
     assert.match(album,/class="tree-map"/);assert.doesNotMatch(album,/idea-card|blockquote|data-action="home"|aria-current="page"|tree-map-legend/);
     if(mode === "author") {
       const noteButtons=album.match(/data-action="take-child-note"/g) || [];
       assert.equal(noteButtons.length,model.cards.length,"Every authored tree card has a child-note action");
       for(const card of model.cards) assert.match(album,new RegExp(`data-action="take-child-note" data-card="${card.id}" data-version="${versionId}"[^>]*aria-label="Tomar nota:`));
       const grid=view({...state,deckPreview:true});
-      assert.equal((grid.match(/data-action="take-child-note"/g) || []).length,model.cards.length,"Every authored grid card has a child-note action");
+      assert.doesNotMatch(grid,/deck-preview-grid|data-action="view-deck-preview"/);
+      assert.equal((grid.match(/data-action="take-child-note"/g) || []).length,model.cards.length,"Management keeps every card in the hierarchy regardless of a previous preview setting");
+      const filtered=view({...state,quotesOnly:true,deckPreview:true});
+      assert.equal((filtered.match(/data-action="inspect-card"/g)||[]).length,model.cards.length,"Management does not inherit practice filters");
       for(const card of model.cards) assert.match(grid,new RegExp(`data-action="take-child-note" data-card="${card.id}" data-version="${versionId}"[^>]*aria-label="Tomar nota:`));
       const parent=model.roots[0];
       const form=authorFormView({...state,authorForm:{kind:"card",requestId:"child-note",noteBookId:version.bookId,noteVersionId:version.id,parentId:parent.id,title:"",body:"",language:version.language}});
@@ -183,14 +236,20 @@ test("Deck albums show total progress; cards open separately only when explicitl
     assert.ok(modal.includes(escapeHtml(card.body[version.language])));
     assert.match(modal,/data-action="close-exclusive"/);
     assert.doesNotMatch(modal,/tree-map|album-progress|data-action="choose-book"|data-action="home"/);
-    assert.match(detail,/1 de 7 tarjetas repasadas/,"The album stays behind the dialog");
+    if(mode === "review") assert.match(detail,/1 de 7 tarjetas repasadas/,"The album stays behind the dialog");
+    else assert.doesNotMatch(detail,/<progress|tarjetas repasadas/);
     const empty=view({...state,reviews:{[versionId]:restoreTreeReview(null,model,versionId)}});
-    assert.match(empty,/0 de 7 tarjetas repasadas/);assert.doesNotMatch(empty,/idea-card/);
+    if(mode === "review") assert.match(empty,/0 de 7 tarjetas repasadas/);
+    else assert.doesNotMatch(empty,/<progress|tarjetas repasadas/);
+    assert.doesNotMatch(empty,/idea-card/);
     const emptyDeck=view({...state,catalog:{...catalog,versionModels:new Map([[versionId,{...model,cards:[],roots:[]}]])},reviews:{[versionId]:restoreTreeReview(null,model,versionId)}});
-    assert.match(emptyDeck,/0 de 0 tarjetas repasadas/);assert.match(emptyDeck,/<progress value="0" max="1"/);
+    if(mode === "review") {assert.match(emptyDeck,/0 de 0 tarjetas repasadas/);assert.match(emptyDeck,/<progress value="0" max="1"/);}
+    else assert.match(emptyDeck,/data-action="finish-deck" disabled aria-describedby="finish-deck-hint"/);
     assert.doesNotMatch(emptyDeck,/NaN|Infinity|Repaso completo|idea-card/);
     const complete=view({...state,reviews:{[versionId]:{...review,seenIds:model.cards.map(c=>c.id)}}});
-    assert.match(complete,/100%/);assert.match(complete,/Repaso completo/);assert.doesNotMatch(complete,/idea-card/);
+    if(mode === "review") {assert.match(complete,/100%/);assert.match(complete,/Repaso completo/);}
+    else assert.doesNotMatch(complete,/100%|Repaso completo|tree-node-check/);
+    assert.doesNotMatch(complete,/idea-card/);
   }
   const locked=reviewView({...base,requestedId:model.cards.find(c=>!review.seenIds.includes(c.id)).id});
   assert.match(locked,/tree-map/);assert.doesNotMatch(locked,/idea-card/);

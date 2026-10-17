@@ -7,8 +7,8 @@ import { Pool, types } from "pg";
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 19;
-export const POSTGRES_SCHEMA_VERSION = 11;
+export const SQLITE_SCHEMA_VERSION = 20;
+export const POSTGRES_SCHEMA_VERSION = 12;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -81,6 +81,19 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 19) {
+    const schema=readFileSync(new URL("./schema.sql",import.meta.url),"utf8");
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      if (db.prepare("PRAGMA user_version").get().user_version < 20) {
+        db.exec("DROP TRIGGER keep_deck_owner;");
+        db.exec(schema.slice(schema.indexOf("CREATE TRIGGER keep_deck_owner"),schema.indexOf("CREATE TABLE deck_versions (")));
+        db.exec("PRAGMA user_version=20;");
+      }
+      db.exec("COMMIT");
+    } catch(error) { db.exec("ROLLBACK");throw error; }
+    return;
+  }
   if (version === 18) {
     const schema=readFileSync(new URL("./schema.sql",import.meta.url),"utf8");
     // Rebuild with foreign keys disabled outside the transaction: dependent rows
@@ -101,7 +114,7 @@ export function initializeDatabase(db) {
       db.exec("PRAGMA user_version=19; COMMIT;");
     } catch(error) { db.exec("ROLLBACK");throw error; }
     finally { db.exec("PRAGMA foreign_keys=ON;"); }
-    return;
+    return initializeDatabase(db);
   }
   if (version === 17) {
     db.exec("BEGIN IMMEDIATE");
@@ -227,6 +240,18 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 11) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 12) return;
+          const schema=readFileSync(new URL("./schema.postgres.sql",import.meta.url),"utf8");
+          await db.exec(schema.slice(schema.indexOf("CREATE FUNCTION reed_keep_deck_owner"),schema.indexOf("CREATE TRIGGER keep_deck_owner")).replace("CREATE FUNCTION","CREATE OR REPLACE FUNCTION"));
+          await db.exec(`ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=12;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=12);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 10) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
@@ -237,7 +262,7 @@ async function initializePostgresDatabase(db) {
             UPDATE reed_schema SET version=11;
             ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=11);`);
         });
-        return;
+        return initializePostgresDatabase(db);
       }
       if (version?.version === 9) {
         await transaction(db,async()=>{

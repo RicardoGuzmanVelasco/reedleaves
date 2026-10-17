@@ -9,7 +9,6 @@ export function availableVersions(catalog, bookId) {
     return version ? {deck,version,tags:[]} : null;
   }).filter(Boolean);
 }
-
 export function featuredDecks(catalog, bookId) {
   const choices = availableVersions(catalog,bookId), winners = [];
   const recommended = choices.find(c => c.deck.isRecommended);
@@ -106,4 +105,9 @@ export function bookReviewStates(catalog, reviews) {
     const ongoing = started.some(v => reviews[v.id].seenIds.length < v.cardCount);
     return [book.id,{reviewStatus:done ? "reviewed" : ongoing ? "reviewing" : "none",hasReviewed:done,hasReviewing:ongoing}];
   }));
+}
+export function canChangeDeckLanguage(catalog,versionId,userId) {
+  const version=catalog.versionsById.get(versionId),deck=catalog.decksById.get(version?.deckId);
+  return !!userId && deck?.creator.userId === userId && version?.status === "draft" &&
+    catalog.versions.every(item=>item.deckId !== deck.id || item.status === "draft");
 }

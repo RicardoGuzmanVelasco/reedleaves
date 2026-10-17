@@ -13,6 +13,7 @@ cuentas ni copias de bases reales.
 | f54496c | 13 | 5 |
 | e8cf899 | 15 | 7 |
 | 9d3cfad | 18 | 10 |
+| be26ec8 | 19 | 11 |
 
 Estas copias son inmutables. Al añadir una migración, guardar aquí el esquema
 anterior con otro nombre y añadir una prueba que migre desde él. No regenerar

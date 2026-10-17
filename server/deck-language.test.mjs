@@ -1,0 +1,60 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {once} from "node:events";
+import {randomUUID} from "node:crypto";
+import {historicalDatabase,historicalReader,migrationData} from "../test-support/historical-database.mjs";
+import {initializeDatabase,openDatabase,SQLITE_SCHEMA_VERSION,POSTGRES_SCHEMA_VERSION} from "./database.mjs";
+import {seedCatalog} from "./seed.mjs";
+import {createDeck,changeDeckLanguage,addCard,finishDeck} from "./author-repository.mjs";
+import {prepareCatalog} from "../app/catalog.mjs";
+import {readCatalog} from "./catalog-repository.mjs";
+import {createCatalogServer} from "./http.mjs";
+
+for (const dialect of ["sqlite","postgres"]) test(`${dialect}: deployed schema migrates language protection without altering data`,async t=>{
+  const db=await historicalDatabase(t,dialect,dialect === "sqlite" ? 19 : 11),session=await historicalReader(db);
+  const {versionId}=await createDeck(db,session,{requestId:randomUUID(),bookId:"seven-habits",title:"Notas",language:"es"});
+  const input={versionId,language:"en",previousLanguage:"es"};
+  await assert.rejects(changeDeckLanguage(db,session,input),/immutable/);
+  const before=await migrationData(db);
+  await initializeDatabase(db);await initializeDatabase(db);
+  assert.deepEqual(await migrationData(db),before);
+  const version=dialect === "sqlite" ? db.prepare("PRAGMA user_version").get().user_version : (await db.prepare("SELECT version FROM reed_schema").get()).version;
+  assert.equal(version,dialect === "sqlite" ? SQLITE_SCHEMA_VERSION : POSTGRES_SCHEMA_VERSION);
+  await changeDeckLanguage(db,session,input);
+  const {cardId}=await addCard(db,session,{requestId:randomUUID(),versionId,title:"Idea",body:"Text",parentId:null,isQuote:false});
+  assert.equal(prepareCatalog(await readCatalog(db)).cardsById.get(cardId).deckLanguage,"en");
+  await finishDeck(db,session,{versionId});
+  await assert.rejects(async()=>db.prepare("UPDATE decks SET language='es' WHERE id=(SELECT deck_id FROM deck_versions WHERE id=?)").run(versionId),/immutable/);
+  await assert.rejects(async()=>db.prepare("UPDATE decks SET creator_user_id='reed-team' WHERE id=(SELECT deck_id FROM deck_versions WHERE id=?)").run(versionId),/immutable/);
+});
+
+test("HTTP language editing requires a session, owner and CSRF and returns the updated catalog",async t=>{
+  const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);
+  const server=createCatalogServer(db);server.listen(0,"127.0.0.1");await once(server,"listening");
+  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const register=async username=>{
+    const response=await fetch(base+"/api/auth/register",{method:"POST",headers:{"Content-Type":"application/json",Origin:base},body:JSON.stringify({username,password:"test password long enough",language:"es",timeZone:"Europe/Madrid"})});
+    assert.equal(response.status,200);
+    const state=await response.json();return {cookie:response.headers.get("set-cookie").split(";")[0],csrf:state.csrfToken};
+  };
+  const owner=await register("author"),other=await register("other");
+  const post=(path,body,user=owner,csrf=user.csrf)=>fetch(base+path,{method:"POST",headers:{"Content-Type":"application/json",Origin:base,Cookie:user.cookie,"X-CSRF-Token":csrf},body:JSON.stringify(body)});
+  const created=await post("/api/author/decks",{requestId:randomUUID(),bookId:"seven-habits",title:"Notas",language:"es"});
+  assert.equal(created.status,200);const {versionId}=await created.json();
+  const path="/api/author/decks/language",input={versionId,previousLanguage:"es",language:"en"};
+  assert.equal((await post(path,input,{cookie:"",csrf:""})).status,401);
+  assert.equal((await post(path,input,owner,"wrong")).status,403);
+  assert.equal((await post(path,input,other)).status,404);
+  assert.equal((await fetch(base+path,{headers:{Cookie:owner.cookie}})).status,405);
+  const response=await post(path,input);assert.equal(response.status,200);assert.equal((await response.json()).versionId,versionId);
+  const catalog=prepareCatalog(await (await fetch(base+"/api/catalog",{headers:{Cookie:owner.cookie}})).json());
+  assert.equal(catalog.versionsById.get(versionId).language,"en");
+  assert.deepEqual(catalog.versionsById.get(versionId).title,{en:"Notas"});
+  const rename={versionId,title:"Ideas",previousTitle:"Notas"};
+  assert.equal((await post("/api/author/decks/title",rename,owner,"wrong")).status,403);
+  assert.equal((await post("/api/author/decks/title",rename,other)).status,404);
+  assert.equal((await post("/api/author/decks/title",rename)).status,200);
+  const renamed=prepareCatalog(await (await fetch(base+"/api/catalog",{headers:{Cookie:owner.cookie}})).json());
+  assert.equal(renamed.versionsById.get(versionId).title.en,"Ideas");
+});

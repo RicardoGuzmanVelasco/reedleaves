@@ -3,6 +3,7 @@ import {readFileSync} from "node:fs";
 import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase} from "../server/database.mjs";
 import {seedCatalog} from "./historical-seed.mjs";
+import {seedCatalog as seedCurrentCatalog} from "../server/seed.mjs";
 
 // Load a real released schema, never a current schema with its version lowered.
 export async function historicalDatabase(t,dialect,version) {
@@ -23,7 +24,8 @@ export async function historicalDatabase(t,dialect,version) {
   // seeding editorial books (all NULL), then restore the exact old table shape.
   const beforePersonalBooks=version < (dialect === "postgres" ? 3 : 11);
   if (beforePersonalBooks) await db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
-  await seedCatalog(db);
+  if (version >= (dialect === "postgres" ? 11 : 19)) await seedCurrentCatalog(db);
+  else await seedCatalog(db);
   if (beforePersonalBooks) await db.exec("ALTER TABLE books DROP COLUMN creator_user_id;");
   return db;
 }

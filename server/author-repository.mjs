@@ -89,6 +89,52 @@ export async function createBook(db,session,input) {
 export async function createDeck(db,session,input) {
   return transaction(db,()=>writeDeck(db,session,input));
 }
+async function lockDeckForVersion(db,versionId) {
+  // Lock the deck before its versions in both language editing and note writes.
+  // A writer waiting on a language edit then reads its committed language.
+  if (isPostgres(db)) await db.prepare("SELECT d.id FROM decks d JOIN deck_versions v ON v.deck_id=d.id WHERE v.id=? FOR UPDATE OF d").get(versionId);
+}
+export async function changeDeckTitle(db,session,input) {
+  if (typeof input.versionId !== "string" || !input.versionId || input.versionId.length > 256) throw new ApiError(400,"invalidRequest");
+  const title=text(input.title,160),previousTitle=text(input.previousTitle,160);
+  return transaction(db,async()=>{
+    await lockDeckForVersion(db,input.versionId);
+    const version=await db.prepare(`SELECT v.*,d.creator_user_id,d.language FROM deck_versions v JOIN decks d ON d.id=v.deck_id WHERE v.id=?${isPostgres(db) ? " FOR UPDATE OF v" : ""}`).get(input.versionId);
+    if (!version || version.creator_user_id !== session.user_id) throw new ApiError(404,"deckUnavailable");
+    if (version.status !== "draft") throw new ApiError(409,"deckReadOnly");
+    const saved=await db.prepare("SELECT title FROM deck_version_translations WHERE version_id=? AND language=?").get(version.id,version.language);
+    if (saved.title === title) return {versionId:version.id};
+    if (saved.title !== previousTitle) throw new ApiError(409,"deckTitleChanged");
+    await db.prepare("UPDATE deck_version_translations SET title=? WHERE version_id=? AND language=?").run(title,version.id,version.language);
+    return {versionId:version.id};
+  });
+}
+export async function changeDeckLanguage(db,session,input) {
+  if (typeof input.versionId !== "string" || !input.versionId || input.versionId.length > 256 ||
+      !isCanonicalLocale(input.language) || !isCanonicalLocale(input.previousLanguage)) throw new ApiError(400,"invalidRequest");
+  return transaction(db,async()=>{
+    await lockDeckForVersion(db,input.versionId);
+    const version=await db.prepare(`SELECT v.*,d.creator_user_id,d.language FROM deck_versions v JOIN decks d ON d.id=v.deck_id WHERE v.id=?${isPostgres(db) ? " FOR UPDATE OF v,d" : ""}`).get(input.versionId);
+    if (!version || version.creator_user_id !== session.user_id) throw new ApiError(404,"deckUnavailable");
+    const versions=await db.prepare(`SELECT id,status FROM deck_versions WHERE deck_id=? ORDER BY id${isPostgres(db) ? " FOR UPDATE" : ""}`).all(version.deck_id);
+    // Language belongs to the deck, so no frozen version may be affected.
+    if (versions.some(item=>item.status !== "draft")) throw new ApiError(409,"deckReadOnly");
+    if (version.language === input.language) return {versionId:version.id};
+    if (version.language !== input.previousLanguage) throw new ApiError(409,"deckLanguageChanged");
+    for (const {id} of versions) {
+      // Relabel original text where no translation exists. Existing translations
+      // remain intact and become the text for the selected language.
+      await db.prepare(`UPDATE deck_version_translations SET language=? WHERE version_id=? AND language=?
+        AND NOT EXISTS (SELECT 1 FROM deck_version_translations target WHERE target.version_id=deck_version_translations.version_id AND target.language=?)`)
+        .run(input.language,id,version.language,input.language);
+      await db.prepare(`UPDATE card_translations SET language=? WHERE card_id IN (SELECT id FROM cards WHERE version_id=?) AND language=?
+        AND NOT EXISTS (SELECT 1 FROM card_translations target WHERE target.card_id=card_translations.card_id AND target.language=?)`)
+        .run(input.language,id,version.language,input.language);
+    }
+    await db.prepare("UPDATE decks SET language=? WHERE id=?").run(input.language,version.deck_id);
+    return {versionId:version.id};
+  });
+}
 async function writeDeck(db,session,input) {
   const id=requestId(input.requestId),title=text(input.title,160),description=text(input.description ?? "",1000,false),language=input.language;
   if (!isCanonicalLocale(language) || typeof input.bookId !== "string") throw new ApiError(400,"invalidRequest");
@@ -114,8 +160,9 @@ async function writeCard(db,session,input) {
   const id=requestId(input.requestId),body=text(input.body,4000);
   if (typeof input.isQuote !== "boolean" || typeof input.versionId !== "string" || input.parentId !== null && typeof input.parentId !== "string") throw new ApiError(400,"invalidRequest");
   const title=input.isQuote ? quoteExcerpt(body) : text(input.title,160);
+  await lockDeckForVersion(db,input.versionId);
   // Serializes sibling allocation against other author sessions in PostgreSQL.
-  const version=await db.prepare(`SELECT v.*,d.creator_user_id,d.language FROM deck_versions v JOIN decks d ON d.id=v.deck_id WHERE v.id=?${isPostgres(db) ? " FOR UPDATE OF v" : ""}`).get(input.versionId);
+  const version=await db.prepare(`SELECT v.*,d.creator_user_id,d.language FROM deck_versions v JOIN decks d ON d.id=v.deck_id WHERE v.id=?${isPostgres(db) ? " FOR UPDATE OF v,d" : ""}`).get(input.versionId);
   if (!version || version.creator_user_id !== session.user_id) throw new ApiError(404,"deckUnavailable");
   if (version.status !== "draft") throw new ApiError(409,"deckReadOnly");
   const previous=await db.prepare("SELECT * FROM cards WHERE id=?").get(id);
