@@ -25,18 +25,18 @@ export function createReadingPresentation({window: win = window, document: doc =
     ink.className = "typewriter-ink"; ink.setAttribute("aria-hidden", "true");
     body.replaceChildren(full, space, ink);
     const characters = typeof Intl.Segmenter === "function" ? [...new Intl.Segmenter(body.lang || undefined, {granularity:"grapheme"}).segment(text)].map(part => part.segment) : Array.from(text);
-    // Reveal punctuation immediately, then pause long enough to let the sentence land.
-    // Keep long cards readable without letting the effect run indefinitely.
+    // Reveal punctuation immediately, with a brief pause before continuing.
+    // Cap long cards at 4.25 seconds to keep the writing effect brisk.
     let total = 0;
     const timeline = characters.map((character,index) => {
-      total += 18;
+      total += 11;
       const at = total;
       if (index < characters.length - 1) {
-        total += /[.!?:\r\n\u2028\u2029]/u.test(character) ? 520 : /[,;\-\u2010-\u2015]/u.test(character) ? 220 : 0;
+        total += /[.!?:\r\n\u2028\u2029]/u.test(character) ? 350 : /[,;\-\u2010-\u2015]/u.test(character) ? 145 : 0;
       }
       return at;
     });
-    const scale = Math.min(1,6000 / total);
+    const scale = Math.min(1,4250 / total);
     const duration = total * scale;
     let frame = 0, start = null, finished = false, count = 0;
 
