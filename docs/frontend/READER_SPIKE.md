@@ -47,7 +47,7 @@ Al abrir la primera historia el libro queda «repasando»; al desbloquear todas,
 - Sin conexión, no se abren cartas nuevas: conservar estado confirmado y ofrecer reintento.
 - Cambiar reloj o almacenamiento del navegador no concede saldo ni progreso. La sincronización depende de usar la misma cuenta y servidor; aún no hay despliegue público.
 - Contenido y estado se almacenan por separado.
-- Contenido servido desde SQLite mediante API; filas normalizadas para libros, géneros, tarjetas, traducciones y fuentes. Los CSV son edición/importación, no una base de datos simulada. Ver `docs/architecture/CATALOG.md`.
+- Contenido servido desde SQLite mediante API; filas normalizadas para libros, géneros, tarjetas y traducciones. Los CSV son edición/importación, no una base de datos simulada. Ver `docs/architecture/CATALOG.md`.
 - El antiguo JSON/NDJSON se conserva solo en fixtures de pruebas. No está en el catálogo ni se sirve por HTTP.
 - Las cartas SQL pertenecen a versiones de baraja y admiten hijos. Se ha rehecho el esquema de desarrollo sin migraciones. El selector y el repaso usan una versión elegida. Hermana e hija son opciones de avance de una hoja; volver a cartas vistas es gratis.
 - Solo resúmenes propios contrastados con fuentes oficiales. Títulos parafraseados, sin citas ni portada comercial.

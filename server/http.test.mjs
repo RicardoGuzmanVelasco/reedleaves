@@ -190,7 +190,7 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   const owned=await fetch(base+"/api/catalog",{headers:{Cookie:headers.Cookie}}).then(r=>r.json());
   assert.equal(owned.cards.filter(c=>c.versionId===versionId).length,1);
   assert.equal(owned.cards.find(c=>c.versionId===versionId).isQuote,true);
-  assert.equal(owned.cards.find(c=>c.versionId===versionId).sourceUrl,null);
+  assert.equal(Object.hasOwn(owned.cards.find(c=>c.versionId===versionId),"sourceUrl"),false);
   assert.equal(owned.books.find(b=>b.id===bookId).originalTitle,"Mon livre");
   const unicodeInput={...cardInput,requestId:randomUUID(),body:"葉".repeat(4000)};
   assert.equal((await post("/api/author/cards",unicodeInput,headers)).status,200);

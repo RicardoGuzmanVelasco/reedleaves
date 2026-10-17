@@ -5,9 +5,9 @@ No se simula la base mediante JSON. JSON solo transporta la respuesta HTTP.
 
 ## Modelo actual
 
-- Libro: autor, título original e idioma original propios, títulos localizados, fuentes e intereses. No contiene un único árbol.
+- Libro: autor, título original e idioma original propios, títulos localizados e intereses. No contiene un único árbol.
 - Los libros creados por cuentas se incorporan directamente al catálogo común, incluidos los ya guardados. Se conserva `creator_user_id` para atribución y para completar metadatos; no controla visibilidad. Todas las cuentas pueden registrar su lectura y crear su propia baraja sobre ellos. Fichas mínimas sin traducciones, intereses, enlaces o barajas visibles son válidas. Ver [ADR 0001](../adr/0001-libros-en-catalogo-comun.md): la gestión de privacidad de libros queda pospuesta.
-- Enlace de libro: plataforma y URL de su ficha, en `book_links`; único por libro y plataforma. Separado de las fuentes de contenido. Amazon para comprar, Goodreads para reseñar; no ejecutamos esas acciones desde Reedleaves.
+- Enlace de libro: plataforma y URL de su ficha, en `book_links`; único por libro y plataforma. Amazon para comprar, Goodreads para reseñar; no ejecutamos esas acciones desde Reedleaves.
 - Baraja: libro, usuario creador autorizado, idioma principal y recomendación opcional.
 - Versión de baraja: título, descripción del enfoque, nota editorial, número de versión y estado.
 - Carta: versión, padre opcional, orden entre hermanas y texto en el idioma de la baraja; otras traducciones son opcionales.
@@ -21,7 +21,7 @@ No se simula la base mediante JSON. JSON solo transporta la respuesta HTTP.
 
 Número de cartas y profundidad se calculan a partir del árbol; una baraja plana tiene profundidad 1.
 No guardar contadores editables ni duplicar el árbol en una columna JSON.
-La fuente de una carta debe pertenecer al mismo libro. Su padre debe pertenecer a la misma versión.
+El padre de una carta debe pertenecer a la misma versión.
 No se permiten ciclos, posiciones duplicadas entre hermanos ni recomendaciones múltiples por libro.
 
 El idioma identifica el texto original y se mantiene en la baraja. Se guarda como etiqueta BCP 47 (es, en, pt-BR…). Cada versión y carta requiere texto en ese idioma; las traducciones son opcionales. El lector muestra una traducción si existe y, si no, usa el original.
@@ -79,7 +79,7 @@ El esquema v8 añadió `books.original_title` y `books.original_language`, oblig
 
 El esquema v9 añadió cuentas, sesiones, límites de acceso, barajas elegidas, posiciones, filtros, intereses e idea diaria por usuario. Añade comprobación SQL del recorrido y finalización con todas las cartas. La base v8 y su original están archivados antes del cambio; ver `ACCOUNTS.md`. No se migra progreso anónimo del navegador.
 
-El esquema actual es SQLite v16 / PostgreSQL v8. Las migraciones anteriores de monederos eliminan el tope de tres del saldo total, conservando cuentas, fechas, saldos y progreso. PostgreSQL usa `BIGINT`; ambos motores limitan la representación a enteros exactos de JavaScript. El máximo de tres solo afecta al abono diario. La migración de guardadas añade `card_saves` con claves foráneas y un índice por cuenta/fecha; conserva votos y desbloqueos.
+El esquema actual es SQLite v19 / PostgreSQL v11. La última migración elimina la tabla de fuentes de investigación y la referencia `cards.source_id`; conserva libros, tarjetas, fechas de notas, traducciones y progreso. Se ejecuta al iniciar el nuevo servidor. No aplicar esa eliminación al servidor anterior, que aún consulta la tabla. Las migraciones anteriores de monederos eliminan el tope de tres del saldo total, conservando cuentas, fechas, saldos y progreso. PostgreSQL usa `BIGINT`; ambos motores limitan la representación a enteros exactos de JavaScript. El máximo de tres solo afecta al abono diario. La migración de guardadas añade `card_saves` con claves foráneas y un índice por cuenta/fecha; conserva votos y desbloqueos.
 
 `app/book-search.mjs` filtra el catálogo recibido de la API por todos los títulos originales, completos y cortos, sin idioma activo como filtro. La consulta es estado temporal de la vista: no se escribe en SQLite ni en localStorage. Para este catálogo pequeño se consulta localmente el resultado SQL ya cargado; no hay una base simulada en JSON. Cuando el volumen requiera paginación, habrá que trasladar esa búsqueda a un endpoint con índices SQL, conservando las mismas reglas de coincidencia.
 

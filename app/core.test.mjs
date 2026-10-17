@@ -11,14 +11,13 @@ test("Valida metadatos antes de mostrar un libro", () => {
   assert.equal(validateBook(book).id,"seven-habits");
   const missing=structuredClone(book); delete missing.title.en;
   assert.throws(()=>validateBook(missing));
-  const sources=structuredClone(book); sources.sources=[];
-  assert.throws(()=>validateBook(sources));
+  assert.equal(Object.hasOwn(book,"sources"),false);
 });
 test("Siete tarjetas principales en el orden declarado", () => {
   assert.equal(model.cards.length,7);
   assert.equal(model.roots.length,7);
   assert.deepEqual(model.roots.map(card=>card.order),[1,2,3,4,5,6,7]);
-  assert.ok(model.cards.every(card=>card.parentId===null && card.sourceUrl.startsWith("https://www.franklincovey.com/")));
+  assert.ok(model.cards.every(card=>card.parentId===null && !Object.hasOwn(card,"sourceUrl")));
 });
 test("Una tarjeta puede tener idioma propio y el lector lo usa como alternativa", () => {
   const cards=clone();

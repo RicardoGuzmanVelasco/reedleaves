@@ -19,11 +19,5 @@
     "es": "Resumen propio de las siete ideas. No contiene citas ni sustituye el libro.",
     "en": "Our own summary of the seven ideas. No quotes; not a replacement for the book."
   },
-  "cardsFile": "seven-habits.ndjson",
-  "sources": [
-    {
-      "title": "FranklinCovey · The 7 Habits",
-      "url": "https://www.franklincovey.com/courses/the-7-habits/"
-    }
-  ]
+  "cardsFile": "seven-habits.ndjson"
 }

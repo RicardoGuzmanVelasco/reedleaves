@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase} from "../server/database.mjs";
-import {seedCatalog} from "../server/seed.mjs";
+import {seedCatalog} from "./historical-seed.mjs";
 
 // Load a real released schema, never a current schema with its version lowered.
 export async function historicalDatabase(t,dialect,version) {
@@ -50,14 +50,17 @@ export async function historicalUnlock(db,session,{versionId="seven-habits-edito
   await db.prepare("INSERT INTO review_positions(review_id,user_id,version_id,card_id) VALUES (?,?,?,?)").run(reviewId,userId,versionId,cardId);
 }
 
+// Compare retained data: bibliography rows and the old card reference are
+// deliberately removed by the current migration. Latest-schema tests also
+// compare every other table and column, including note dates and saved cards.
 export async function migrationData(db) {
   const result={};
   const tables=["users","accounts","sessions","auth_limits","genres","genre_translations","books","book_links",
-    "book_translations","book_genres","sources","decks","deck_versions","deck_version_translations","cards",
+    "book_translations","book_genres","decks","deck_versions","deck_version_translations","cards",
     "card_translations","deck_votes","book_reading","reviews","review_unlocks","review_positions","leaf_wallets",
     "studies","deck_selections","reader_filters","reader_interests","daily_ideas"];
   const columns={books:"id,author,position,editorial_status,original_title,original_language,updated_at",
-    cards:"id,version_id,book_id,parent_id,position,source_id"};
+    cards:"id,version_id,book_id,parent_id,position"};
   for (const table of tables) result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${table} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();
   return result;
 }

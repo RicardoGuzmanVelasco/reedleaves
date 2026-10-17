@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 10));
-INSERT INTO reed_schema VALUES (10);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 11));
+INSERT INTO reed_schema VALUES (11);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -32,11 +32,6 @@ CREATE TABLE book_genres(
   PRIMARY KEY(book_id,genre_id)
 );
 CREATE INDEX book_genres_by_genre ON book_genres(genre_id,book_id);
-CREATE TABLE sources(
-  id TEXT PRIMARY KEY, book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
-  title TEXT NOT NULL CHECK(length(btrim(title)) > 0), url TEXT NOT NULL CHECK(url LIKE 'https://%'),
-  UNIQUE(book_id,url), UNIQUE(id,book_id)
-);
 CREATE TABLE users(
   id TEXT PRIMARY KEY, display_name TEXT NOT NULL CHECK(length(btrim(display_name)) > 0),
   can_create_decks SMALLINT NOT NULL DEFAULT 0 CHECK(can_create_decks IN (0,1)), created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -78,10 +73,10 @@ CREATE TABLE deck_version_translations(
 );
 CREATE TABLE cards(
   id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0), version_id TEXT NOT NULL, book_id TEXT NOT NULL, parent_id TEXT,
-  position INTEGER NOT NULL CHECK(position > 0), source_id TEXT, is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)), created_at TIMESTAMPTZ, UNIQUE(id,version_id),
+  position INTEGER NOT NULL CHECK(position > 0), is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)), created_at TIMESTAMPTZ, UNIQUE(id,version_id),
   FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id),
   FOREIGN KEY(parent_id,version_id) REFERENCES cards(id,version_id) DEFERRABLE INITIALLY DEFERRED,
-  FOREIGN KEY(source_id,book_id) REFERENCES sources(id,book_id), CHECK(parent_id IS NULL OR parent_id <> id)
+  CHECK(parent_id IS NULL OR parent_id <> id)
 );
 CREATE UNIQUE INDEX root_order ON cards(version_id,position) WHERE parent_id IS NULL;
 CREATE UNIQUE INDEX sibling_order ON cards(version_id,parent_id,position) WHERE parent_id IS NOT NULL;

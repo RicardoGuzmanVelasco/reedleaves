@@ -12,6 +12,7 @@ cuentas ni copias de bases reales.
 | df62e45 | 12 | 4 |
 | f54496c | 13 | 5 |
 | e8cf899 | 15 | 7 |
+| 9d3cfad | 18 | 10 |
 
 Estas copias son inmutables. Al añadir una migración, guardar aquí el esquema
 anterior con otro nombre y añadir una prueba que migre desde él. No regenerar
@@ -19,7 +20,7 @@ las copias antiguas desde el esquema nuevo, ni simular una versión anterior
 bajando solo `user_version`/`reed_schema`.
 
 `test-support/historical-database.mjs` abre el motor local, comprueba la versión
-de partida y carga el catálogo editorial. Para v9/v10 de SQLite y v1/v2 de
+de partida y carga el catálogo editorial histórico desde `catalog/`, usando el importador congelado en `test-support/historical-seed.mjs`. Estos archivos conservan la estructura antigua exclusivamente para comprobar migraciones; el seed y el catálogo activos no guardan bibliografía. Para v9/v10 de SQLite y v1/v2 de
 PostgreSQL, el validador actual del seed necesita temporalmente
 `books.creator_user_id`; el helper la retira antes de entregar la base.
 

@@ -59,7 +59,7 @@ export const words = {
     genre: "Intereses", library: "Biblioteca", bookStatus: "Lectura del libro", unread: "No leído", readingStatus: "Leyendo", readStatus: "Leído",
     empty: "No hay ideas para esta selección de libros.", emptyHint: "Elige otro grupo de libros o interés.", emptyReview: "Empieza por la primera tarjeta.",
     back: "← Idea del día", reviewBook: "Repasar este libro", previous: "← Anterior", next: "Siguiente →", unlock: "Abrir la siguiente tarjeta",
-    tomorrow: "Mañana tendrás otra hoja", complete: "Repaso completo", notReviewed: "Sin repasar", reviewedStatus: "Repasado", start: "Empezar repaso", source: "Fuente",
+    tomorrow: "Mañana tendrás otra hoja", complete: "Repaso completo", notReviewed: "Sin repasar", reviewedStatus: "Repasado", start: "Empezar repaso",
     loading: "Abriendo…", error: "No podemos abrir los libros.", retry: "Reintentar", skip: "Ir al contenido", language: "Idioma",
     storage: "Entra para ver tu idea del día.",
     date: d => new Intl.DateTimeFormat("es", { day: "numeric", month: "long" }).format(d), position: (n, total) => `${n} de ${total}`
@@ -123,7 +123,7 @@ export const words = {
     genre: "Interests", library: "Bookshelf", bookStatus: "Book reading", unread: "Unread", readingStatus: "Reading", readStatus: "Read",
     empty: "No ideas match this selection of books.", emptyHint: "Choose another group of books or interest.", emptyReview: "Start with the first card.",
     back: "← Daily idea", reviewBook: "Practice this book", previous: "← Previous", next: "Next →", unlock: "Open the next card",
-    tomorrow: "Another leaf tomorrow", complete: "Practice complete", notReviewed: "Not practiced", reviewedStatus: "Practiced", start: "Start practicing", source: "Source",
+    tomorrow: "Another leaf tomorrow", complete: "Practice complete", notReviewed: "Not practiced", reviewedStatus: "Practiced", start: "Start practicing",
     loading: "Opening…", error: "We can't open the books.", retry: "Try again", skip: "Skip to content", language: "Language",
     storage: "Sign in to see your daily idea.",
     date: d => new Intl.DateTimeFormat("en", { day: "numeric", month: "long" }).format(d), position: (n, total) => `${n} of ${total}`

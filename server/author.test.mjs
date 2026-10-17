@@ -102,7 +102,6 @@ for (const dialect of ["sqlite","postgres"]) {
     for (const field of Object.keys(bookMetadata)) assert.deepEqual(saved[field],bookMetadata[field]);
     assert.equal((await db.prepare("SELECT count(*) AS n FROM books").get()).n,bookCount);
     assert.equal((await db.prepare("SELECT count(*) AS n FROM book_translations WHERE book_id=?").get(bookId)).n,2);
-    assert.equal((await db.prepare("SELECT count(*) AS n FROM sources WHERE book_id=?").get(bookId)).n,2);
     assert.deepEqual(await readReaderState(db,session),beforeState);
     assert.equal((await readCatalog(db,session.user_id)).cards.find(card=>card.id===cardId).body.es,"Texto propio");
     assert.deepEqual((await readCatalog(db,other.user_id)).books.find(book=>book.id===bookId),saved);
@@ -116,7 +115,6 @@ for (const dialect of ["sqlite","postgres"]) {
     for (const field of ["title","shortTitle","description","editorialNote"]) original[field]={es:original[field].es};
     original.genres=["productivity"]; original.description.es="Descripción guardada";
     original.links.goodreads="https://www.goodreads.com/book/show/999-existing";
-    original.sources=[{title:"Fuente guardada",url:"https://publisher.example/existing"}];
     const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:bookMetadata.originalTitle,author:"Daniel Kahneman",language:"en",metadata:original});
     await completeBook(db,session,{bookId,metadata:bookMetadata});
     const first=(await readCatalog(db,session.user_id)).books.find(book=>book.id===bookId);
@@ -124,7 +122,7 @@ for (const dialect of ["sqlite","postgres"]) {
     await completeBook(db,session,{bookId,metadata:stale});
     const saved=(await readCatalog(db,session.user_id)).books.find(book=>book.id===bookId);
     assert.deepEqual(saved,first);assert.equal(saved.description.es,"Descripción guardada");assert.deepEqual(saved.genres,["productivity"]);
-    assert.equal(saved.links.goodreads,original.links.goodreads);assert.equal(saved.sources.length,3);
+    assert.equal(saved.links.goodreads,original.links.goodreads);assert.equal(Object.hasOwn(saved,"sources"),false);
     const japanese=(await createBook(db,session,{requestId:randomUUID(),title:"本の原題",author:"著者",language:"ja"})).bookId;
     const invalid=structuredClone(bookMetadata);invalid.genres=["unknown"];
     await assert.rejects(completeBook(db,session,{bookId:japanese,metadata:invalid}),e=>e.status===400);
@@ -149,7 +147,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const changed=structuredClone(input);changed.metadata.description.es="Otra descripción";
     await assert.rejects(createBook(db,session,changed),e=>e.status===409);
     const count=(await db.prepare("SELECT count(*) AS n FROM books").get()).n;
-    for (const change of [m=>m.genres.push("unknown-genre"),m=>m.links.goodreads="javascript:alert(1)",m=>delete m.description.en,m=>m.sources.push({title:"Private",url:"https://localhost/private"})]) {
+    for (const change of [m=>m.genres.push("unknown-genre"),m=>m.links.goodreads="javascript:alert(1)",m=>delete m.description.en]) {
       const invalid=structuredClone(input);invalid.requestId=randomUUID();change(invalid.metadata);
       await assert.rejects(createBook(db,session,invalid),e=>e.status===400);
       assert.equal((await db.prepare("SELECT count(*) AS n FROM books").get()).n,count);
@@ -168,7 +166,7 @@ for (const dialect of ["sqlite","postgres"]) {
     let catalog=prepareCatalog(await readCatalog(db,session.user_id));
     const book=catalog.booksById.get(bookId);
     assert.equal(book.originalTitle,"L’Étranger"); assert.equal(book.author,"Albert Camus");
-    assert.deepEqual(book.title,{fr:"L’Étranger"}); assert.deepEqual(book.sources,[]);
+    assert.deepEqual(book.title,{fr:"L’Étranger"}); assert.equal(Object.hasOwn(book,"sources"),false);
     assert.deepEqual(book.description,{}); assert.deepEqual(book.links,{});
     assert.equal(book.creatorUserId,session.user_id);
     assert.equal(catalog.models.has(bookId),false);
@@ -202,7 +200,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const {versionId}=await createDeck(db,session,deckInput);
     const {cardId}=await addCard(db,session,{requestId:randomUUID(),versionId,isQuote:true,parentId:null,body:"Aujourd’hui, maman est morte."});
     catalog=prepareCatalog(await readCatalog(db,session.user_id));
-    assert.equal(catalog.cardsById.get(cardId).sourceUrl,null);
+    assert.equal(Object.hasOwn(catalog.cardsById.get(cardId),"sourceUrl"),false);
     const html=authorView({...ui,catalog,versionId,requestedId:cardId,mode:"author",reviews:{[versionId]:restoreTreeReview(null,catalog.versionModels.get(versionId),versionId)}});
     assert.match(html,/L’Étranger/); assert.match(html,/<blockquote/); assert.doesNotMatch(html,/href="#"|undefined/);
     await openCard(db,session,versionId,cardId,new Date("2026-10-10T12:00:00Z"));
