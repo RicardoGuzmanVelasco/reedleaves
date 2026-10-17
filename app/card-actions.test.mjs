@@ -2,8 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {createElement} from 'react';
-import {CardActions} from './generated/card-features.js';
+import {build} from 'esbuild';
 import {words} from './i18n.mjs';
+
+// Compile the source with the test renderer's React instance. The browser bundle
+// embeds its own React, so its hooks cannot run inside react-dom/server here.
+const {outputFiles}=await build({entryPoints:[new URL('./card-features.jsx',import.meta.url).pathname],
+  bundle:true,write:false,format:'esm',platform:'node',jsx:'automatic',
+  plugins:[{name:'shared-react',setup(builder){
+    builder.onResolve({filter:/^react(?:-dom)?(?:\/.*)?$/},({path})=>({path:import.meta.resolve(path),external:true}));
+  }}]});
+const {CardActions}=await import(`data:text/javascript;base64,${Buffer.from(outputFiles[0].text).toString('base64')}`);
 
 test('Card actions expose an exclusive rating pair and an independent saved state in both languages',()=>{
   for(const language of ['es','en']){

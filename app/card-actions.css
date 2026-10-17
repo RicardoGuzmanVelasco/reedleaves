@@ -21,20 +21,21 @@
 .card-actions .save-target:hover{filter:brightness(1.015)}
 .card-actions .ribbon-tilt{transform:rotate(2deg);transform-origin:28px 4px;transition:transform .62s cubic-bezier(.2,.9,.2,1)}
 .card-actions .save-target[aria-pressed="true"] .ribbon-tilt{transform:rotate(0deg)}
-.card-actions .ribbon-shape{d:path("M0 11Q0 0 11 0h34q11 0 11 11v61L28 56 0 72z");transition:d .62s cubic-bezier(.2,.9,.2,1),fill .2s ease}
-.card-actions .save-target[aria-pressed="true"] .ribbon-shape{d:path("M0 11Q0 0 11 0h34q11 0 11 11v102L28 97 0 113z")}
+.card-actions .ribbon-shape{transition:fill .2s ease}
 .card-actions .ribbon-shadow{fill:var(--actions-ribbon-shadow)}.card-actions .ribbon-body{fill:var(--actions-ribbon);stroke:var(--actions-edge);stroke-width:2}
 .card-actions .save-target[aria-pressed="true"] .ribbon-body{fill:var(--actions-ribbon-saved)}
 .card-actions .ribbon-fold{fill:none;stroke:var(--actions-edge);stroke-width:1.5;opacity:.4}
 .card-actions [data-plus],.card-actions [data-tick]{fill:none;stroke-linecap:round;stroke-linejoin:round;transform-origin:28px 34px;transition:opacity .18s ease,transform .26s ease}
 .card-actions [data-plus]{stroke:var(--actions-ink);stroke-width:3.2}.card-actions [data-tick]{stroke:var(--actions-accent);stroke-width:3.6;opacity:0;transform:scale(.65)}
 .card-actions .save-target[aria-pressed="true"] [data-plus]{opacity:0;transform:scale(.65)}.card-actions .save-target[aria-pressed="true"] [data-tick]{opacity:1;transform:scale(1)}
-.card-actions-host{width:0;min-width:0;flex:none}.exclusive-card-modal .reading-footer:has(.card-actions-host){padding-right:150px}
+.card-actions-host{width:0;min-width:0;flex:none}.exclusive-card-modal .reading-footer:has(.card-actions-host){gap:0}
+.exclusive-card-modal .card-source>.card-attribution-row:first-child bdi{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exclusive-card-modal .reading-footer:has(.card-actions-host) .card-source>.card-attribution-row:not(:first-child){max-width:calc(100% - 150px)}
 .card-action-error{position:absolute;right:0;bottom:120px;width:260px;background:var(--actions-ribbon);color:var(--actions-counter);border:1px solid var(--actions-edge);border-radius:12px;padding:10px;font-size:13px;line-height:1.5;transform:scale(calc(1 / var(--actions-scale)));transform-origin:right bottom}
 .card-action-error button{display:block;border:0;background:none;text-decoration:underline;min-height:44px;font-weight:750}
 .saved-cards-entry{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;margin:0 0 20px;padding:14px 18px;border:1.5px solid #95ac87;border-radius:18px;background:#f0f1dc;box-shadow:0 4px 0 #c9cfb2;text-align:left;font-size:15px;font-weight:750}
 .saved-cards-entry svg{width:24px;height:24px;fill:none;stroke:#6e916a;stroke-width:1.8;flex:none}.saved-cards-entry strong{margin-left:auto}
 .saved-screen{padding:24px 0 38px}.saved-screen .screen-heading{margin-top:16px}.saved-cards-list{list-style:none;display:grid;gap:12px;padding:0;margin:18px 0 0}
 .saved-card-row{display:flex;flex-direction:column;gap:10px;width:100%;padding:20px;text-align:left;border:1.5px solid #779a72;border-radius:18px;background:#fffbed;box-shadow:0 4px 0 #c9cfb2}.saved-card-name{font-size:18px;font-weight:750;line-height:1.5;overflow-wrap:anywhere}.saved-card-source{font-size:11px;color:#51654c}.saved-card-row--quote{background:#e4effb;border-color:#829fbd;box-shadow:0 4px 0 #c1d4e8}.saved-card-row--quote .saved-card-name{font-family:"EB Garamond",Georgia,serif;font-weight:400;font-size:23px}.saved-card-row--quote .saved-card-source{color:#516a82}
-@media(max-width:600px){.card-actions{right:8px;bottom:7px}.exclusive-card-modal .reading-footer:has(.card-actions-host){padding-right:150px;gap:4px}.saved-card-row{padding:17px}}
+@media(max-width:600px){.card-actions{right:8px;bottom:7px}.saved-card-row{padding:17px}}
 @media(prefers-reduced-motion:reduce){.card-actions .save-target,.card-actions .ribbon-tilt,.card-actions .ribbon-shape,.card-actions [data-plus],.card-actions [data-tick]{transition:none}}

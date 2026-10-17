@@ -5,11 +5,38 @@ import {contentText,contentLocale,quoteExcerpt} from './core.mjs';
 import {words} from './i18n.mjs';
 import {savedReferences,optimisticCardAction,createCardActionTransport} from './card-interactions.mjs';
 
-const shortRibbon='M0 11Q0 0 11 0h34q11 0 11 11v61L28 56 0 72z';
+function useRibbonPath(saved){
+  const [extension,setExtension]=useState(saved?41:0),current=useRef(extension);
+  useLayoutEffect(()=>{
+    const motion=window.matchMedia('(prefers-reduced-motion: reduce)'),target=saved?41:0,from=current.current;
+    let frame=null;
+    const draw=value=>{current.current=value;setExtension(value)};
+    const finish=()=>{if(frame!==null)window.cancelAnimationFrame(frame);frame=null;draw(target)};
+    const onMotion=()=>{if(motion.matches)finish()};
+    if(motion.matches||from===target)finish();
+    else{
+      const start=window.performance.now();
+      const step=now=>{
+        const progress=Math.min(1,(now-start)/620);
+        // Keep the original cubic-bezier(.2,.9,.2,1) without CSS path support.
+        let low=0,high=1;
+        for(let i=0;i<16;i++){const t=(low+high)/2,x=.6*t-.6*t*t+t*t*t;if(x<progress)low=t;else high=t}
+        const t=(low+high)/2,eased=2.7*t-2.4*t*t+.7*t*t*t;
+        draw(progress===1?target:from+(target-from)*eased);
+        frame=progress<1?window.requestAnimationFrame(step):null;
+      };
+      frame=window.requestAnimationFrame(step);
+    }
+    motion.addEventListener('change',onMotion);
+    return ()=>{if(frame!==null)window.cancelAnimationFrame(frame);motion.removeEventListener('change',onMotion)};
+  },[saved]);
+  return `M0 11Q0 0 11 0h34q11 0 11 11v${61+extension}L28 ${56+extension} 0 ${72+extension}z`;
+}
 function Thumb(){return <><path d="M10 15h3l4-7 1-5c.2-2 2.6-2.3 4-.7 2.3 2.5 1.6 6.7-.4 10.7H28c3 0 4 2.1 3.2 4.8L28.7 28c-.6 2.1-2 3-4.3 3h-9.1c-2.2 0-3.8-1.1-5.3-3z"/><rect x="2" y="15" width="8" height="16" rx="2.3"/></>}
 function Bookmark(){return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4Z"/></svg>}
 
 export function CardActions({record,saved,c,onVote,onSave,error,onRetry}){
+  const ribbonPath=useRibbonPath(saved);
   const ready=record?.loaded===true,own=record?.isOwn===true;
   const total=value=>ready?(value===1?record.likes:record.dislikes):'…';
   return <div className="card-actions" data-vote={record?.vote||0} role="group" aria-label={c.cardActions}>
@@ -23,7 +50,7 @@ export function CardActions({record,saved,c,onVote,onSave,error,onRetry}){
       {own&&<span className="sr-only">{c.ownCardVotes}</span>}
     </div>
     <button className="save-target" type="button" data-card-action="save" aria-label={saved?c.unsaveCard:c.saveCard} aria-pressed={saved} title={saved?c.unsaveCard:c.saveCard} onClick={onSave}>
-      <svg viewBox="0 0 64 124" aria-hidden="true"><g transform="translate(4 2)"><g className="ribbon-tilt"><path className="ribbon-shape ribbon-shadow" d={shortRibbon} transform="translate(0 5)"/><path className="ribbon-shape ribbon-body" d={shortRibbon}/><path className="ribbon-fold" d="M11 10h34"/><path data-plus d="M20 34h16m-8-8v16"/><path data-tick d="m19 34 6 6 13-14"/></g></g></svg>
+      <svg viewBox="0 0 64 124" aria-hidden="true"><g transform="translate(4 2)"><g className="ribbon-tilt"><path className="ribbon-shape ribbon-shadow" d={ribbonPath} transform="translate(0 5)"/><path className="ribbon-shape ribbon-body" d={ribbonPath}/><path className="ribbon-fold" d="M11 10h34"/><path data-plus d="M20 34h16m-8-8v16"/><path data-tick d="m19 34 6 6 13-14"/></g></g></svg>
     </button>
     {error&&<div className="card-action-error" role="status"><span>{c[error.code]||c.connectionError}</span><button type="button" onClick={onRetry}>{c.retry}</button></div>}
   </div>;
