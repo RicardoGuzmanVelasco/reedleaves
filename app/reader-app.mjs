@@ -11,7 +11,7 @@ import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
-import {createReadingPresentation} from "./reading-presentation.mjs";
+import {createReadingPresentation} from "./reading-presentation.mjs?v=typewriter-middle-speed";
 import {updateSavedReferences} from "./card-interactions.mjs";
 import {editableNoteVersions,isHomeBook} from "./notes.mjs";
 
