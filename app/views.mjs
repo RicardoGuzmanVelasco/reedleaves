@@ -4,7 +4,7 @@ import { treeFrontier, hasLeaf, availableVersions } from "./decks.mjs";
 import {homeBooks,editableNoteVersions,recentNoteVersions} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=calm-deck-drafts";
+import { words } from "./i18n.mjs?v=hide-book-sources";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
@@ -50,10 +50,6 @@ function bookLinksMarkup(s, book) {
     </a>`];
   });
   return links.length ? `<nav class="book-external-links" aria-label="${esc(c.bookLinks)}">${links.join("")}</nav>${spanishEdition && bookLinkUrl("amazon",book.links?.amazon) ? `<p class="book-links-note">${esc(c.amazonEdition)}</p>` : ""}` : "";
-}
-
-function bookSourcesMarkup(s,book) {
-  return book.sources?.length ? `<div class="book-sources"><p class="book-source-citations">${words[s.language].bookSources}: ${book.sources.map((source,index)=>`<a href="${esc(safeUrl(source.url))}" target="_blank" rel="noopener noreferrer" title="${esc(source.title)}" aria-label="${esc(words[s.language].source+": "+source.title)}">[${index+1}]</a>`).join(" ")}</p><details><summary>${words[s.language].sourceDetails}</summary><ul>${book.sources.map(source=>`<li><a href="${esc(safeUrl(source.url))}" target="_blank" rel="noopener noreferrer">${esc(source.title)} ↗</a></li>`).join("")}</ul></details></div>` : "";
 }
 
 function bookReadingIcon(status) {
@@ -109,7 +105,6 @@ function bookDetailsMarkup(s,book) {
     ${book.creatorName ? `<p class="book-added-by"><span>${c.bookAddedBy}</span>${nameLink({icon:"user",name:book.creatorName,href:creatorProfileId ? `#profile/${encodeURIComponent(creatorProfileId)}` : null})}</p>` : ""}
     ${contentText(book.description,s.language,book.originalLanguage) ? `<p class="deck-description" id="book-dialog-description" lang="${esc(contentLocale(book.description,s.language,book.originalLanguage))}" dir="auto">${esc(contentText(book.description,s.language,book.originalLanguage))}</p>` : ""}
     ${bookLinksMarkup(s, book)}
-    ${book.creatorUserId ? bookSourcesMarkup(s,book) : ""}
     <button class="primary" type="button" data-action="open-book" data-book="${esc(book.id)}" ${!choices.length && !s.userId ? "disabled" : ""}>${c.viewDecks} · ${choices.length}</button>
   </article></dialog>`;
 }
@@ -573,7 +568,7 @@ export function authorFormView(s) {
       <p class="book-original-title"><span>${c.originalTitle}</span><span lang="${esc(preview.originalLanguage)}" dir="auto">${esc(preview.originalTitle)}</span></p>
       <p class="preview-language">${c.originalLanguage}: <span>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(preview.originalLanguage))}</span></p>
       ${description ? `<p class="deck-description" lang="${esc(contentLocale(preview.description,s.language,preview.originalLanguage))}" dir="auto">${esc(description)}</p>` : ""}
-      ${bookLinksMarkup(s,preview)}${bookSourcesMarkup(s,preview)}
+      ${bookLinksMarkup(s,preview)}
       ${LANGUAGES.some(language=>preview.title[language]) ? `<details class="book-translations"><summary>${c.bookTranslations}</summary>${LANGUAGES.filter(language=>preview.title[language]).map(language=>`<section lang="${esc(language)}" dir="auto"><h3>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(language))}</h3><p><strong>${esc(preview.title[language])}</strong></p>${preview.shortTitle[language] !== preview.title[language] ? `<p>${esc(preview.shortTitle[language])}</p>` : ""}<p>${esc(preview.description[language])}</p><small>${esc(preview.editorialNote[language])}</small></section>`).join("")}</details>` : ""}
       <form class="author-form" data-author-form><p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}${f.error && f.errorReference ? `<small class="error-reference">${c.errorReference}: ${esc(f.errorReference)}</small>` : ""}</p>
         <div class="form-actions"><button class="text-button" type="button" data-action="edit-book-preview">${c.editBook}</button><button class="primary" type="submit">${f.bookId ? c.save : c.createBook}</button></div>

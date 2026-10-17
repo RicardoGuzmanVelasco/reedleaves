@@ -188,10 +188,8 @@
 @keyframes ai-spin{to{transform:rotate(360deg)}}
 .preview-label{font-size:12px;font-weight:750;color:var(--ink);margin:0 0 12px}
 .preview-language{font-size:12px;margin-top:8px}.preview-language span{font-weight:750}
-.book-sources,.book-translations{margin:20px 0;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
-.book-sources summary,.book-translations summary{cursor:pointer;font-weight:750;padding:8px 0;min-height:44px}
-.book-sources ul{padding-left:20px;margin:8px 0}.book-sources li+li{margin-top:8px}
-.book-source-citations a{display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:44px}
+.book-translations{margin:20px 0;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.book-translations summary{cursor:pointer;font-weight:750;padding:8px 0;min-height:44px}
 .book-metadata-editor{margin-top:12px;font-size:13px}.book-metadata-editor summary{cursor:pointer;font-weight:750;min-height:44px;padding:10px 0}
 .book-translation-editor{border-top:1px solid var(--line);margin-top:12px;padding-bottom:10px}
 .book-translation-editor label{display:block;margin:10px 0 9px}.book-genre-fields{display:block;margin-top:15px}.book-genre-fields .check-row input{min-height:20px;width:20px;padding:0}

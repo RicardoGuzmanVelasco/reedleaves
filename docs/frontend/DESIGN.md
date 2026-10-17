@@ -21,6 +21,7 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 
 ## Ficha del libro
 
+- La ficha y la vista previa no muestran bibliografía, citas numeradas ni el desplegable de fuentes de investigación. Las fuentes se conservan como metadatos internos del catálogo.
 - La zona inferior concentra el acceso al contenido en una única acción: «Ver barajas · N» / «View decks · N», con el número de barajas disponibles.
 - Después de cambiar un libro a «Leyendo» o «Leído» desde Librería, la ficha abierta ofrece una sugerencia temporal para «Tomar nota». El atajo abre el editor o el selector de baraja que corresponda y regresar conserva la misma ficha.
 - Idioma, estado de creación y progreso de repaso se muestran en el contexto de cada baraja. La ficha del libro no repite el número ni muestra idiomas o un resumen agregado de repaso como filas independientes.
