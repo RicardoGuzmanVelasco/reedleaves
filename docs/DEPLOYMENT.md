@@ -1,4 +1,6 @@
-# Despliegue interno
+# Despliegue interno — preparación histórica
+
+> Este documento conserva la preparación del piloto y no describe el despliegue actual. La app ya está en producción; consultar `docs/development/README.md` y la entrada más reciente. Borrador describe creación abierta, no contenido privado: las barajas y tarjetas se comparten al guardarlas (ADR 0002).
 
 Estado: el repo está conectado a GitHub `main` y a un Blueprint de Render; el usuario confirmó que Auto-Deploy está en `On Commit`. Supabase PostgreSQL es la base elegida para producción. La URL pública y el estado del último despliegue aún no se han verificado desde el repo.
 

@@ -227,6 +227,33 @@ test("Home shows one closed book per active book, without exposing trees or spen
   assert.deepEqual(reviews[versionId].seenIds,["inside-out-1"]);
   assert.equal(state.budget.lastUnlockDay,"2026-10-06");
   const empty = homeView({...state,statuses:{},reviews:Object.fromEntries(catalog.versions.map(v => [v.id,restoreTreeReview(null,catalog.versionModels.get(v.id),v.id)])),enrolledIds:[]});
-  assert.match(empty,/No tienes lecturas ni notas en progreso/); assert.doesNotMatch(empty,/study-book"/);
+  assert.ok(empty.includes(words.es.noReadingBooks)); assert.doesNotMatch(empty,/study-book"/);
   assert.match(homeView({...state,language:"en"}),/Go to the library/);
+});
+
+
+test("Draft creation, completed practice and author guidance stay distinct across deck surfaces",async()=>{
+  const catalog=await fixture(),version=catalog.versionsById.get(versionId),deck=catalog.decksById.get(version.deckId),model=catalog.versionModels.get(versionId);
+  version.status="draft";
+  const done={...restoreTreeReview(null,model,versionId),seenIds:model.cards.map(card=>card.id)};
+  for(const language of ["es","en"]){
+    const c=words[language],base=readerState(catalog,{language,bookId:version.bookId,versionId,reviews:{[versionId]:done},today:"2026-10-17",deckChoices:featuredDecks(catalog,version.bookId)});
+    for(const userId of [deck.creator.userId,"another-reader"]){
+      const state={...base,userId},explanation=userId===deck.creator.userId?c.deckDraftOwnerExplanation:c.deckMayChange;
+      const surfaces=[deckView({...state,openDeckId:versionId}),reviewView(state)];
+      if(userId===deck.creator.userId)surfaces.push(authorView({...state,mode:"author"}));
+      for(const html of surfaces){
+        assert.ok(html.includes(c.deckInProgress));
+        assert.ok(html.includes(explanation));
+        assert.ok(!html.includes(userId===deck.creator.userId?c.deckMayChange:c.deckDraftOwnerExplanation));
+      }
+      assert.ok(reviewView(state).includes(c.complete),"Practice may be complete while creation remains a draft");
+    }
+    version.status="published";
+    const html=reviewView({...base,userId:deck.creator.userId});
+    assert.ok(html.includes(c.deckFinished));
+    assert.ok(!html.includes(c.deckDraftOwnerExplanation));
+    assert.ok(!html.includes(c.deckMayChange));
+    version.status="draft";
+  }
 });

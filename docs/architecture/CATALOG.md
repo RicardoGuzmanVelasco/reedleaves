@@ -102,7 +102,7 @@ Las métricas SQL se incrementan con actividad real de cuentas: primera carta y 
 
 La idea aleatoria sigue siendo independiente: no gasta ni regala hojas y no desbloquea la carta en el repaso.
 Se sortea entre las cartas principales de la baraja elegida para cada libro; cambiar elección no sustituye la idea ya asignada hoy.
-Los filtros repasando y repasado agrupan el progreso de todas las barajas de un libro. Un libro puede pertenecer a ambos grupos si tiene una baraja terminada y otra en curso.
+Los filtros repasando y repasado agrupan el progreso de todas las barajas de un libro. Un libro puede pertenecer a ambos grupos si tiene una versión con repaso completo y otra con repaso pendiente. Este aprendizaje es independiente de `status=draft/published/archived`.
 
 La versión 3 del catálogo todavía expone nuestros borradores editoriales para la prueba interna.
 Las barajas y tarjetas creadas por cuentas se incluyen en el catálogo compartido aunque la versión siga como borrador. Compartir el contenido no concede permisos de edición: solo el creador puede añadir tarjetas. Las versiones publicadas o archivadas conservan las reglas de validación e inmutabilidad.
@@ -110,3 +110,7 @@ Las barajas y tarjetas creadas por cuentas se incluyen en el catálogo compartid
 Producción usa PostgreSQL gestionado, `DATABASE_URL`, TLS del proveedor, backups, supervisión y HTTPS. SQLite se conserva para desarrollo y pruebas. `node:sqlite` sigue siendo experimental en el Node 24.11 local; el runtime requerido se fija en `.node-version`.
 
 Las tarjetas son borradores editoriales propios. Revisar traducciones, contenido y derechos antes de publicación.
+
+## Vocabulario vigente de estado
+
+`deck_versions.status=draft` es Borrador / Draft: el creador puede añadir tarjetas y el catálogo ya comparte su contenido. `published` es Terminada / Finished y cierra los cambios; no describe el progreso de repaso. `editorial_status=draft/reviewed` en libros y versiones representa revisión editorial, no creación ni privacidad. Los registros de pruebas internas anteriores son contexto histórico.
