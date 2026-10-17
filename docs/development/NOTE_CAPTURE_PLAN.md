@@ -1,5 +1,8 @@
 # Tomar nota de un libro desde Inicio
 
+> Vigencia del vocabulario — 17/10/2026: el estado de creación `draft`, antes En progreso / In progress, se muestra ahora como Borrador / Draft. Los accesos vigentes dicen Barajas en borrador y Mantener en borrador. El editor usa Nota sin guardar recuperada y Retomar nota sin guardar. No se cambia lectura, repaso, visibilidad compartida ni valores internos. Las secciones siguientes conservan el desarrollo histórico y sus verificaciones; sus antiguas citas de copy no son instrucciones vigentes. Véanse DESIGN.md y ADR 0002 para la decisión actual.
+
+
 Estado: happy path aprobado el 14 de octubre de 2026 e integrado para publicación en main tras compactar el botón y separar la mascota. La prioridad es llegar rápidamente a escribir sobre un libro concreto.
 
 ## Propuesta confirmada por el usuario

@@ -39,7 +39,7 @@ export async function readProfile(db,userId,viewerId) {
     const user=await db.prepare("SELECT u.id,u.display_name,u.created_at,a.username FROM users u LEFT JOIN accounts a ON a.user_id=u.id WHERE u.id=?").get(userId);
     if (!user) throw new ApiError(404,"profileUnavailable");
     // Library entries are computed only from content visible to this viewer.
-    // Aggregate counts can include private work without publishing its contents.
+    // Creation totals are independent of the reader's practice counts.
     const catalog=prepareCatalog(await readCatalog(db,viewerId));
     const reviews={};
     for (const row of await db.prepare("SELECT id,version_id FROM reviews WHERE user_id=?").all(userId)) {

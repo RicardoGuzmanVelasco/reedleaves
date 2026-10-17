@@ -31,7 +31,9 @@ repaso y las cuentas siguen aislados por usuario.
 - No se añade un selector de privacidad ni un flujo de publicación.
 - La privacidad y la moderación del contenido permanecen pendientes de diseño.
 
-## Estado de creación — decisión del 14 de octubre de 2026
+## Estado de creación — decisión histórica del 14 de octubre de 2026
+
+El vocabulario de esta sección se sustituye por la evolución del 17 de octubre, más abajo. Sus reglas de visibilidad y cierre se conservan.
 
 La interfaz presenta `draft` como **En progreso** y `published` como **Terminada**.
 El creador puede marcar una versión no vacía como terminada mediante confirmación
@@ -62,3 +64,9 @@ Comprobar que las barajas y tarjetas de una cuenta aparecen para otra, que la
 otra cuenta puede repasarlas y que no puede modificarlas. Comprobar también que
 el creador conserva la edición de sus borradores y que el progreso se mantiene
 aislado.
+
+## Vocabulario de creación — 17 de octubre de 2026
+
+`status=draft` se presenta como **Borrador / Draft**, y `published` sigue siendo **Terminada / Finished**. No cambia el modelo, la visibilidad compartida ni la irreversibilidad del cierre. El detalle, repaso y gestión explican al propietario que otras personas ya pueden ver y repasar la baraja; al lector, que su autor puede añadir tarjetas y dejar nuevas tarjetas pendientes aun después de completar el repaso. Se conservan tarjetas ya repasadas y hojas gastadas.
+
+«Nota sin guardar / Unsaved note» nombra el contenido pendiente del editor. «Barajas en repaso / Decks being practiced» y «Barajas con repaso completo / Fully practiced decks» son métricas de aprendizaje, independientes de creación. El campo `editorial_status=draft/reviewed` conserva su significado editorial separado.

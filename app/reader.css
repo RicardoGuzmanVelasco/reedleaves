@@ -50,7 +50,7 @@
 
 /* Deck grid: choose at a glance, then read full details in a native modal. */
 .deck-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.deck-tile{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:flex-start;gap:11px;min-width:0;min-height:166px;margin:0 4px 5px 0;padding:15px;text-align:left;border:2px solid var(--sage);border-radius:22px;background:#fffdf6;box-shadow:0 5px 0 #ccd8b9;transition:transform .14s,box-shadow .14s,background .14s}
+.deck-tile{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:flex-start;gap:11px;min-width:0;min-height:166px;margin:0 4px 5px 0;padding:26px 15px 15px;text-align:left;border:2px solid var(--sage);border-radius:22px;background:#fffdf6;box-shadow:0 5px 0 #ccd8b9;transition:transform .14s,box-shadow .14s,background .14s}
 .deck-tile::before,.deck-tile::after{content:"";position:absolute;z-index:-1;inset:5px -5px -5px;border:2px solid var(--sage);border-radius:inherit;background:#e4f0cc}
 .deck-tile::before{transform:rotate(3deg);background:#b9e877}
 .deck-tile::after{inset:3px -3px -3px;transform:rotate(-2deg)}
@@ -59,22 +59,23 @@
 .deck-tile-open{position:absolute;inset:0;z-index:1;width:100%;border:0;border-radius:inherit;padding:0;background:transparent}
 .deck-tile a.card-attribution-row{position:relative;z-index:2}
 .deck-tile-copy{display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;width:100%}
-.deck-tile-copy strong{display:-webkit-box;width:100%;padding-inline-end:26px;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3;font-size:18px;line-height:1.2;overflow-wrap:anywhere}
+.deck-tile-copy strong{display:-webkit-box;width:100%;padding-inline-end:0;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3;font-size:18px;line-height:1.2;overflow-wrap:anywhere}
 .deck-tile-creator{font-size:11px;margin:2px 0 4px;width:100%}
-.deck-tile-language-flag{position:absolute;top:12px;right:12px;font-size:18px;line-height:1.2}
+.deck-language-flag{display:block;width:16px;height:12px;flex:none}
 .deck-tile-reviewing svg{width:13px;height:13px;flex:none}
 .deck-modal{position:fixed;inset:0;margin:auto;width:min(540px,calc(100% - 32px));max-width:none;max-height:min(88dvh,760px);padding:0;overflow:auto;border:0;border-radius:29px;background:transparent;color:var(--ink);box-shadow:0 22px 0 rgb(30 76 46 / 20%),0 30px 75px rgb(23 61 44 / 30%)}
 .deck-modal::backdrop{background:rgb(23 61 44 / 54%);backdrop-filter:blur(3px)}
 .deck-modal[open]{animation:deck-pop .2s cubic-bezier(.2,.8,.3,1) both}
 .deck-modal .deck-card{position:relative;margin:0;min-height:100%;padding:31px 34px 34px;border:2px solid var(--sage);border-radius:29px;background:#fffdf6;box-shadow:0 6px 0 #ccd8b9}
 .deck-modal .deck-tags{padding-right:42px}
+.deck-modal #deck-dialog-title{padding-inline-end:35px}
 .deck-modal h2{font-size:30px;line-height:1.18;overflow-wrap:anywhere}
 .deck-modal .deck-description{margin-top:20px}
 .deck-modal-close{position:absolute;top:15px;right:15px;z-index:1;display:grid;place-items:center;width:40px;height:40px;border:1.5px solid var(--sage);border-radius:14px;background:#eef3df;font-size:25px;line-height:1}
 .deck-modal .primary{width:100%;margin-top:26px}
 @keyframes deck-pop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
-@media(min-width:600px){.deck-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.deck-tile{min-height:176px;padding:17px}.deck-tile-copy strong{font-size:20px}}
-@media(max-width:520px){.deck-grid{gap:11px}.deck-tile{min-height:157px;padding:13px;border-radius:19px}.deck-tile-copy strong{font-size:18px}.deck-modal{width:calc(100% - 24px);max-height:90dvh;border-radius:25px}.deck-modal .deck-card{padding:27px 22px 25px;border-radius:25px}.deck-modal h2{font-size:27px}.deck-modal-close{top:11px;right:11px;width:38px;height:38px}}
+@media(min-width:600px){.deck-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.deck-tile{min-height:176px;padding:26px 17px 17px}.deck-tile-copy strong{font-size:20px}}
+@media(max-width:520px){.deck-grid{gap:11px}.deck-tile{min-height:157px;padding:26px 13px 13px;border-radius:19px}.deck-tile-copy strong{font-size:18px}.deck-modal{width:calc(100% - 24px);max-height:90dvh;border-radius:25px}.deck-modal .deck-card{padding:27px 22px 25px;border-radius:25px}.deck-modal h2{font-size:27px}.deck-modal-close{top:11px;right:11px;width:38px;height:38px}}
 @media(prefers-reduced-motion:reduce){.deck-modal[open]{animation:none}.deck-tile{transition:none}}
 
 /* Home: closed books for active studies. Currency stays numeric. */
@@ -441,8 +442,8 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .deck-writing-status{margin-top:14px;display:flex;align-items:flex-start;flex-direction:column;gap:5px}
 .deck-writing-badge{display:inline-flex;align-items:center;max-width:100%;padding:4px 9px;border:0;border-radius:9px;background:var(--control-surface);color:var(--forest);font-size:11px;font-weight:750;line-height:1.4}
 .deck-writing-status>p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
-.deck-tile-metadata{display:flex;align-items:center;flex-wrap:wrap;gap:5px;min-height:23px;margin-top:auto}
-.deck-tile-count,.deck-tile-reviewing,.deck-writing-badge--compact{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border:0;border-radius:9px;background:#eef3df;color:var(--ink);font-size:10px;font-weight:800;line-height:1.35;white-space:nowrap}
+.deck-tile-metadata{display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-height:23px;margin-top:auto}
+.deck-tile-count,.deck-tile-reviewing,.deck-writing-badge--compact{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border:0;border-radius:9px;background:#eef3df;color:var(--ink);font-size:10px;font-weight:800;line-height:1.35;white-space:nowrap}
 .finish-deck-action{color:var(--muted);font-size:12px}.finish-deck-action:disabled{opacity:.5;cursor:default}
 .finish-deck-hint{margin:-14px 0 24px;color:var(--muted);font-size:12px;line-height:1.5}
 .deck-completion-warning{margin:16px 0 22px;line-height:1.6;font-size:15px;color:var(--ink)}

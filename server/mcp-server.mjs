@@ -81,7 +81,7 @@ function makeServer(db,publicBaseUrl) {
     annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:false}
   },safeTool(async(input)=>toolText(await finishTeamDeck(db,input))));
   server.registerTool("list_team_drafts",{
-    title:"Listar barajas del equipo en progreso",
+    title:"Listar borradores de barajas del equipo",
     description:"List only drafts owned by Equipo Reedleaves, optionally filtered by book. Returns version IDs, titles and card counts so the user can identify existing drafts before finishing them. This call does not change any deck.",
     inputSchema:{bookId:z.string().trim().min(1).max(240).optional()},
     annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false}

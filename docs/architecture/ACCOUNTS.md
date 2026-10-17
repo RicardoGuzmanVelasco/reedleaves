@@ -56,7 +56,9 @@ El esquema activo es v9. La base v8 se conserva en `var/backups/pre-accounts-202
 
 El progreso anónimo antiguo del navegador no se borra ni se importa como verificado. No puede demostrar gastos o fechas fiables. La cuenta nueva empieza con una hoja y sin repasos; la interfaz informa si detecta una prueba local anterior. Solo la preferencia de idioma se escribe ahora en localStorage. Las funciones antiguas se mantienen como compatibilidad probada, no como fuente del progreso actual.
 
-## Antes de publicar
+## Lista histórica previa al despliegue
+
+Esta sección describe la preparación inicial, no el estado operativo vigente. La app ya está desplegada; consultar `docs/development/README.md` y la entrada más reciente. La visibilidad de barajas se rige por ADR 0002, no por el término borrador.
 
 - Despliegue HTTPS con `NODE_ENV=production` y `REED_ORIGIN=https://<dominio>`; el servidor rechaza producción sin esa configuración. TLS puede terminar en un proxy; no se confía en cabeceras reenviadas para inventar un origen.
 - `DATABASE_URL` de PostgreSQL, copias del proveedor y prueba de restauración.
@@ -72,5 +74,5 @@ Referencias primarias: [contraseñas, OWASP](https://cheatsheetseries.owasp.org/
 - `GET /api/profiles/:userId` requiere sesión y devuelve solo nombre, usuario público, fecha de alta, estadísticas y resúmenes de los libros visibles para quien consulta. No devuelve credenciales, sesión, monedero ni filtros. Las barajas y tarjetas creadas por cuentas son visibles en el catálogo común; editar borradores sigue reservado a su creador. Incluye también a los creadores editoriales sin cuenta de acceso.
 - `POST /api/reader/view` requiere origen, sesión y CSRF. Registra una tarjeta distinta por usuario al mostrarse en idea diaria, repaso o autoría. Comprueba la asignación de hoy, el desbloqueo o la propiedad según el contexto. Los reintentos no duplican vistas. No modifica el monedero ni el repaso.
 - `card_views` guarda `user_id`, `card_id` y primera fecha de vista. Esquemas activos SQLite v13 y PostgreSQL v5. Migración transaccional desde v12/v4, encadenada a las anteriores: conserva progreso y rellena vistas con los desbloqueos históricos. Las ideas diarias anteriores solo prueban asignación, no visualización; no se inventa su historial de vistas.
-- Hojas gastadas: total de desbloqueos. Tarjetas repasadas/vistas: IDs distintos. Barajas terminadas: todas las cartas vistas en una versión no vacía; en curso: la misma definición que Inicio, deduplicada por baraja. Libros leídos/leyendo: estados manuales independientes.
+- Hojas gastadas: total de desbloqueos. Tarjetas repasadas/vistas: IDs distintos. Barajas con repaso completo: todas las tarjetas desbloqueadas en una versión no vacía. Barajas en repaso: versión con tarjetas pendientes (o un borrador vacío), con desbloqueos o inscripción, deduplicada por baraja. Son métricas de aprendizaje; Inicio usa lectura o barajas propias en borrador y no comparte ese criterio. Libros leídos/leyendo: estados manuales independientes.
 - Mascotas: una etapa actual por libro, compartida con la UI. Totales de creador incluyen sus barajas y tarjetas, con citas como subconjunto. La biblioteca ajena muestra fichas de libros compartidos asociadas al perfil, con el repaso calculado solo sobre barajas visibles para el visitante. Ver [ADR 0001](../adr/0001-libros-en-catalogo-comun.md) y [ADR 0002](../adr/0002-barajas-en-catalogo-comun.md).

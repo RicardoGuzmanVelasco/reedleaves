@@ -4,7 +4,7 @@ import { treeFrontier, hasLeaf, availableVersions } from "./decks.mjs";
 import {homeBooks,editableNoteVersions,recentNoteVersions} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=deck-language-flags";
+import { words } from "./i18n.mjs?v=calm-deck-drafts";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
@@ -339,8 +339,9 @@ export function accountView(s) {
 function deckStatusMarkup(s,version,{compact=false}={}) {
   if (!["draft","published"].includes(version.status)) return "";
   const c=words[s.language],inProgress=version.status === "draft";
+  const owner=s.userId && s.userId === s.catalog.decksById.get(version.deckId)?.creator.userId;
   if (compact) return inProgress ? `<span class="deck-writing-badge deck-writing-badge--compact" aria-hidden="true" title="${esc(c.deckInProgress)}">${esc(c.deckInProgressShort)}</span>` : "";
-  return `<div class="deck-writing-status"><span class="deck-writing-badge">${inProgress ? c.deckInProgress : c.deckFinished}</span>${inProgress ? `<p>${c.deckMayChange}</p>` : ""}</div>`;
+  return `<div class="deck-writing-status"><span class="deck-writing-badge">${inProgress ? c.deckInProgress : c.deckFinished}</span>${inProgress ? `<p>${owner ? c.deckDraftOwnerExplanation : c.deckMayChange}</p>` : ""}</div>`;
 }
 
 export function deckCompletionView(s) {
@@ -415,13 +416,14 @@ export function deckView(s) {
     ${mascotEntry(s,s.bookId)}</div>
     ${s.userId ? `<div data-saved-cards-entry></div><div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
     ${!choices.length ? `<div class="empty-state">${c.noDecks}</div>` : `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${choices.map(item => {
-      const {deck,version} = item,language=languageName(deck.language),flag={es:"🇪🇸",en:"🇬🇧"}[deck.language] || "🌐";
+      const {deck,version} = item,language=languageName(deck.language);
+      const flag=["es","en"].includes(deck.language) ? `<img class="deck-language-flag" src="../brand/icons/languages/${deck.language}.svg" width="16" height="12" alt="">` : `<svg class="deck-language-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span>${esc(deck.language)}</span>`;
       const reviewing = Math.max(0,deck.metrics.startedBy - deck.metrics.completedBy);
-      return `<article class="deck-tile"><button class="deck-tile-open" type="button" data-action="open-deck" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(contentText(version.title,s.language,version.language))}, ${esc(c.by)} ${esc(deck.creator.name)}, ${esc(c.noteCardsCount(version.cardCount))}, ${esc(c.reviewingCount(reviewing))}, ${esc(language)}${version.status === "draft" ? `, ${esc(c.deckInProgress)}` : ""}"><span class="deck-tile-language-flag" aria-hidden="true" title="${esc(language)}">${flag}</span></button>
+      return `<article class="deck-tile"><button class="deck-tile-open" type="button" data-action="open-deck" data-version="${esc(version.id)}" aria-haspopup="dialog" title="${esc(language)}" aria-label="${esc(contentText(version.title,s.language,version.language))}, ${esc(c.by)} ${esc(deck.creator.name)}, ${esc(c.noteCardsCount(version.cardCount))}, ${esc(c.reviewingCount(reviewing))}, ${esc(language)}${version.status === "draft" ? `, ${esc(c.deckInProgress)}` : ""}"></button>
         <span class="deck-tile-copy">
         <strong lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</strong>
         <span class="deck-creator deck-tile-creator">${deckCreator(deck)}</span>
-        <span class="deck-tile-metadata"><span class="deck-tile-count" aria-hidden="true" title="${esc(c.noteCardsCount(version.cardCount))}">${cardsIconMarkup}<span>${version.cardCount}</span></span><span class="deck-tile-reviewing" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><span>${reviewing}</span></span>${deckStatusMarkup(s,version,{compact:true})}</span>
+        <span class="deck-tile-metadata"><span class="deck-tile-count" aria-hidden="true" title="${esc(c.noteCardsCount(version.cardCount))}">${cardsIconMarkup}<span>${version.cardCount}</span></span><span class="deck-tile-reviewing" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><span>${reviewing}</span></span><span class="deck-tile-count deck-tile-language" aria-hidden="true" title="${esc(language)}">${flag}</span>${deckStatusMarkup(s,version,{compact:true})}</span>
         </span></article>`;
     }).join("")}</div>`}
     ${(() => { const selected = choices.find(item => item.version.id === s.openDeckId); return selected ? `<dialog class="deck-modal" data-version="${esc(selected.version.id)}" aria-labelledby="deck-dialog-title" aria-describedby="deck-dialog-description">
