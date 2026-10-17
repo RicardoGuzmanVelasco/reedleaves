@@ -51,7 +51,7 @@ test("Completion reuses the preview but saves to the current book and locks exis
   assert.match(editing,/name="metadata.title.en"[^>]*readonly/);
   assert.doesNotMatch(editing,/name="metadata.description.es"[^>]*readonly/);
 });
-test("Book form offers explicit AI loading and retry states; preview escapes all content and has translations, sources and save",()=>{
+test("Book form keeps loading, retry, translations and save; book interfaces omit research sources",()=>{
   const form={kind:"book",title:"Pensar rápido",author:"",language:""};
   assert.match(authorFormView({...state,authorForm:form}),/Rellenar con IA/);
   const loading=authorFormView({...state,authorForm:{...form,autofilling:true}});
@@ -60,9 +60,21 @@ test("Book form offers explicit AI loading and retry states; preview escapes all
   assert.match(failed,/Hay varios libros posibles/);assert.match(failed,/value="Pensar rápido"/);
   const metadata=structuredClone(bookMetadata);metadata.title.es='<script>alert("x")</script>';metadata.description.fr='<img src=x onerror="alert(1)">';
   const preview=authorFormView({...state,authorForm:{...form,author:"Daniel Kahneman",metadata,preview:true}});
-  assert.match(preview,/Vista previa del libro/);assert.match(preview,/Traducciones/);assert.match(preview,/Fuentes/);
+  assert.match(preview,/Vista previa del libro/);assert.match(preview,/Traducciones/);
   assert.match(preview,/target="_blank" rel="noopener noreferrer"/);assert.match(preview,/type="submit">Añadir libro a la librería/);
   assert.doesNotMatch(preview,/<script>|<img src=x|undefined/);
+  const book={...structuredClone(bookMetadata),schemaVersion:1,id:"source-book",creatorUserId:"owner",author:"Daniel Kahneman"};
+  const catalog={...state.catalog,books:[book],booksById:new Map([[book.id,book]])};
+  for (const language of ["es","en"]) {
+    const current={...state,catalog,language,userId:"owner",openBookId:book.id};
+    const interfaces=[libraryView(current),bookshelfView(current),homeView({...current,statuses:{[book.id]:"reading"}}),
+      authorFormView({...current,authorForm:{...form,author:book.author,metadata:bookMetadata,preview:true}})];
+    for (const html of interfaces) {
+      assert.ok(html.includes(bookMetadata.description[language]));
+      assert.ok(html.includes(bookMetadata.links.goodreads));
+      assert.doesNotMatch(html,/publisher\.example|Fuentes:|Ver fuentes|Sources:|View sources/);
+    }
+  }
 });
 
 test("AI errors explain recovery in every interface language and keep the entered book plus its diagnostic reference",()=>{
