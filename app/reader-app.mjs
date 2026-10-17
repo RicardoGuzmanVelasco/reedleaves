@@ -1,5 +1,5 @@
 import {loadCatalog} from "./catalog.mjs";
-import {CONTENT_LANGUAGES, localDay, restoreLanguage} from "./core.mjs";
+import {localDay, restoreLanguage} from "./core.mjs";
 import {restorePreferences, changeSource} from "./rhythm.mjs";
 import {featuredDecks, restoreTreeReview, bookReviewStates} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
@@ -480,9 +480,7 @@ export function startReader({createCardFeatures} = {}) {
   function openAuthorForm(kind,options={}) {
     if (!snapshot.user) return;
     const {forceParentId=false,...formOptions}=options;
-    const bookLanguage=catalog.booksById.get(bookId)?.originalLanguage;
-    const contentLanguage=CONTENT_LANGUAGES.includes(bookLanguage) ? bookLanguage : CONTENT_LANGUAGES.includes(language) ? language : "es";
-    authorForm = {kind,requestId:crypto.randomUUID(),title:kind === "book" ? libraryQuery : "",author:"",body:"",description:"",language:kind === "book" ? "" : kind === "deck" ? contentLanguage : language,parentId:kind === "quote" ? null : requestedId || null,...formOptions};
+    authorForm = {kind,requestId:crypto.randomUUID(),title:kind === "book" ? libraryQuery : "",author:"",body:"",description:"",language:kind === "book" ? "" : language,parentId:kind === "quote" ? null : requestedId || null,...formOptions};
     if (["card","quote"].includes(kind)) {
       if (authorForm.createNoteDeck) authorForm.noteVersionId=authorForm.requestId+"-v1";
       authorForm.noteUserId=snapshot.user.id;authorForm.noteBookId ??= bookId;authorForm.noteVersionId ??= versionId;
