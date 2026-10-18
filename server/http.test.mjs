@@ -206,7 +206,7 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   assert.equal((await post("/api/reader/select",{versionId},otherHeaders)).status,200);
   assert.equal((await post("/api/author/cards",{...cardInput,requestId:randomUUID()},otherHeaders)).status,404);
   const otherOpen=await post("/api/reader/open",{versionId,cardId},otherHeaders);
-  assert.equal(otherOpen.status,200);assert.equal((await otherOpen.json()).spent,true);
+  assert.equal(otherOpen.status,200);assert.equal((await otherOpen.json()).state.reviews[versionId].seenIds.includes(cardId),true);
   const creatorState=await fetch(base+"/api/reader/state",{headers:{Cookie:headers.Cookie}}).then(r=>r.json());
   assert.equal(creatorState.reviews[versionId],undefined);
   assert.equal((await post("/api/reader/reading",{bookId,status:"reading"},otherHeaders)).status,200);
@@ -220,7 +220,7 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   assert.equal(creatorCatalog.versions.some(v=>v.id===ownVersion),true);
 });
 
-test("Profiles require a session and view writes require origin, CSRF and actual access",async t=>{
+test("Profiles require a session and view writes require origin, CSRF and a valid card",async t=>{
   const db=openDatabase(":memory:");initializeDatabase(db);await seedCatalog(db);
   const server=createCatalogServer(db);server.listen(0,"127.0.0.1");await once(server,"listening");
   t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
@@ -237,7 +237,7 @@ test("Profiles require a session and view writes require origin, CSRF and actual
   assert.equal((await fetch(base+"/api/profiles/missing",{headers:{Cookie:cookie}})).status,404);
   assert.equal((await fetch(base+"/api/profiles/reed-team",{method:"POST",headers})).status,405);
   assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"review"},{Cookie:cookie})).status,403);
-  assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"review"},headers)).status,409);
+  assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"review"},headers)).status,200);
   await post("/api/reader/open",{versionId:"seven-habits-editorial-v1",cardId:"habit-1"},headers);
   assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"review"},headers)).status,200);
 });

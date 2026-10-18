@@ -140,26 +140,18 @@ test("Published versions are immutable, reimport is idempotent and new versions 
   assert.equal(stats.startedBy,1); assert.equal(stats.completedBy,1);
   assert.equal(db.prepare("SELECT version_id FROM reviews WHERE id = 'review-v1'").get().version_id,"seven-habits-editorial-v1");
 });
-test("Unlocks spend the same SQL wallet across decks, accrue daily and cap at three", async t => {
+test("Review progress accepts any card and is independent of the leaf balance", async t => {
   const db = await fixture(t);
   db.prepare("INSERT INTO users(id,display_name) VALUES ('test-reader','Reader')").run();
   db.prepare("INSERT INTO reviews(id,user_id,version_id) VALUES ('r1','test-reader','seven-habits-editorial-v1'),('r2','test-reader','atomic-habits-editorial-v1')").run();
-  db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) VALUES ('r1','test-reader','seven-habits-editorial-v1','habit-1','2026-10-06')").run();
-  assert.equal((await readLeafWallet(db,"test-reader","2026-10-06")).balance,0);
-  assert.throws(() => db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) VALUES ('r2','test-reader','atomic-habits-editorial-v1','atomic-1','2026-10-06')").run(),/No leaves/);
-  assert.deepEqual(await readLeafWallet(db,"test-reader","2026-10-10"),{balance:3,lastAccrualDay:"2026-10-10"});
-  assert.throws(() => db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) VALUES ('r1','test-reader','seven-habits-editorial-v1','atomic-1','2026-10-10')").run(),/FOREIGN KEY/);
-  assert.equal((await readLeafWallet(db,"test-reader","2026-10-10")).balance,3);
-  for (const [reviewId,version,cardId] of [["r1","seven-habits-editorial-v1","habit-2"],["r2","atomic-habits-editorial-v1","atomic-1"],["r2","atomic-habits-editorial-v1","atomic-2"]]) {
-    db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) VALUES (?,?,?,?,?)").run(reviewId,"test-reader",version,cardId,"2026-10-10");
+  const wallet=await readLeafWallet(db,"test-reader","2026-10-06");
+  for (const [reviewId,version,cardId] of [["r1","seven-habits-editorial-v1","habit-7"],["r2","atomic-habits-editorial-v1","atomic-8"]]) {
+    db.prepare("INSERT INTO review_cards(review_id,user_id,version_id,card_id,local_day) VALUES (?,?,?,?,?)").run(reviewId,"test-reader",version,cardId,"2026-10-06");
   }
-  assert.equal((await readLeafWallet(db,"test-reader","2026-10-10")).balance,0);
-  assert.throws(() => db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) VALUES ('r1','test-reader','seven-habits-editorial-v1','habit-3','2026-10-10')").run(),/No leaves/);
-  assert.equal((await readLeafWallet(db,"test-reader","2026-10-11")).balance,1);
-  assert.throws(() => db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) VALUES ('r1','test-reader','seven-habits-editorial-v1','habit-2','2026-10-11')").run(),/UNIQUE/);
-  assert.equal((await readLeafWallet(db,"test-reader","2026-10-11")).balance,1);
-  assert.throws(() => db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) VALUES ('r1','test-reader','seven-habits-editorial-v1','habit-3','2026-10-10')").run(),/No leaves/);
-  assert.equal((await readLeafWallet(db,"test-reader","2026-10-11")).balance,1);
+  assert.equal((await readLeafWallet(db,"test-reader","2026-10-06")).balance,wallet.balance);
+  assert.throws(() => db.prepare("INSERT INTO review_cards(review_id,user_id,version_id,card_id,local_day) VALUES ('r1','test-reader','seven-habits-editorial-v1','atomic-1','2026-10-10')").run(),/FOREIGN KEY/);
+  assert.throws(() => db.prepare("INSERT INTO review_cards(review_id,user_id,version_id,card_id,local_day) VALUES ('r1','test-reader','seven-habits-editorial-v1','habit-7','2026-10-11')").run(),/UNIQUE/);
+  assert.equal((await readLeafWallet(db,"test-reader","2026-10-10")).balance,3);
 });
 test("SQL wallets are isolated per user and reject invalid balances and dates", async t => {
   const db = await fixture(t);

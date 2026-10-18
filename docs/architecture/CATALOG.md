@@ -13,7 +13,7 @@ No se simula la base mediante JSON. JSON solo transporta la respuesta HTTP.
 - Carta: versión, padre opcional, orden entre hermanas y texto en el idioma de la baraja; otras traducciones son opcionales.
 - Usuario: identidad interna y permiso de creación. Las cuentas de lectores tienen acceso mediante usuario y contraseña; las sesiones y el progreso se guardan en servidor. Ver `ACCOUNTS.md`.
 - Lectura original: estado por usuario y libro, independiente del repaso.
-- Repaso: usuario y versión elegida. Las cartas desbloqueadas pertenecen a ese repaso.
+- Repaso: usuario y versión elegida. Las tarjetas repasadas pertenecen a ese repaso.
 - Monedero de hojas: usuario, saldo entero no negativo y última fecha de abono. Los abonos diarios acumulan hasta tres; los ajustes manuales pueden superar ese saldo.
 - Voto: usuario y baraja; +1, -1 o ausencia de fila. Un único voto, modificable y retirable.
 - Valoración de tarjeta: usuario y tarjeta en `card_votes`, con destino −1, 0 o 1; no se permite votar contenido propio.
@@ -79,7 +79,7 @@ El esquema v8 añadió `books.original_title` y `books.original_language`, oblig
 
 El esquema v9 añadió cuentas, sesiones, límites de acceso, barajas elegidas, posiciones, filtros, intereses e idea diaria por usuario. Añade comprobación SQL del recorrido y finalización con todas las cartas. La base v8 y su original están archivados antes del cambio; ver `ACCOUNTS.md`. No se migra progreso anónimo del navegador.
 
-El esquema actual es SQLite v19 / PostgreSQL v11. La última migración elimina la tabla de fuentes de investigación y la referencia `cards.source_id`; conserva libros, tarjetas, fechas de notas, traducciones y progreso. Se ejecuta al iniciar el nuevo servidor. No aplicar esa eliminación al servidor anterior, que aún consulta la tabla. Las migraciones anteriores de monederos eliminan el tope de tres del saldo total, conservando cuentas, fechas, saldos y progreso. PostgreSQL usa `BIGINT`; ambos motores limitan la representación a enteros exactos de JavaScript. El máximo de tres solo afecta al abono diario. La migración de guardadas añade `card_saves` con claves foráneas y un índice por cuenta/fecha; conserva votos y desbloqueos.
+El esquema actual es SQLite v22 / PostgreSQL v14. La migración de progreso elimina `review_unlocks` y sus reglas de coste/recorrido; copia las tarjetas abiertas y sus fechas a `review_cards`, conserva las posiciones, hojas gastadas históricas, saldos y finalizaciones. Desde entonces cualquier tarjeta se puede abrir y el repaso registra el avance sin cobrar hojas. PostgreSQL usa `BIGINT` para monederos; ambos motores limitan la representación a enteros exactos de JavaScript. El máximo diario de tres hojas se conserva mientras se decide el próximo uso de esa divisa. La migración de guardadas añade `card_saves` con claves foráneas e índice por cuenta/fecha.
 
 `app/book-search.mjs` filtra el catálogo recibido de la API por todos los títulos originales, completos y cortos, sin idioma activo como filtro. La consulta es estado temporal de la vista: no se escribe en SQLite ni en localStorage. Para este catálogo pequeño se consulta localmente el resultado SQL ya cargado; no hay una base simulada en JSON. Cuando el volumen requiera paginación, habrá que trasladar esa búsqueda a un endpoint con índices SQL, conservando las mismas reglas de coincidencia.
 
@@ -93,14 +93,14 @@ El progreso actual guarda cartas por usuario y versión en SQL. Nunca se hereda 
 Las claves locales antiguas se conservan sin borrar, pero no se usan como fuente verificada ni se importan en la cuenta nueva.
 Cambiar una versión a archivada no cambia el repaso iniciado: el selector permite retomar la versión con historial.
 
-Cada usuario recibe una hoja al día cuando su saldo está por debajo de tres. Un nuevo monedero empieza con una. Los días ausentes suman hasta tres; las fechas excedentes no se guardan para después. Un ajuste manual puede dejar 100 hojas: se conservan hasta gastarlas, sin recortarlas a tres al pasar los días. El abono diario vuelve cuando el saldo baja de tres. Una carta nueva cuesta una hoja y se pueden gastar varias el mismo día. La hermana siguiente y la primera hija son alternativas.
-Volver a una carta repasada, subir a la madre y cambiar baraja no gasta hojas.
-Finalizar exige todas las cartas, incluidas las hijas; no solo las raíces.
-La tabla `leaf_wallets` guarda saldo y fecha por usuario. En SQLite, el trigger de desbloqueo abona días pendientes y descuenta una hoja en la misma operación SQL. En PostgreSQL, el repositorio realiza el débito condicional dentro de la transacción del desbloqueo; la actualización atómica evita saldo negativo ante peticiones concurrentes. En ambos motores, un error revierte el avance. Ya no existe la restricción de un avance por usuario y fecha. Los monederos se aíslan por usuario y se comparten entre sus barajas.
-La autenticación identifica al usuario y el servidor calcula la fecha en la zona horaria fijada de su cuenta. Un doble clic o reintento no cobra dos veces la misma carta. Borrar almacenamiento local o cambiar el reloj del navegador no concede hojas ni elimina progreso SQL.
+Cada usuario recibe una hoja al día cuando su saldo está por debajo de tres. Un nuevo monedero empieza con una. Los días ausentes suman hasta tres; las fechas excedentes no se guardan para después. Un ajuste manual puede dejar 100 hojas y se conserva el saldo. Por ahora, abrir tarjetas no usa hojas.
+Cada cuenta nueva recibe diez pétalos. Los pétalos están visibles en la interfaz y aún no tienen un uso definido.
+Finalizar exige todas las tarjetas, incluidas las hijas; no solo las raíces.
+La tabla `leaf_wallets` guarda el saldo y la última fecha de abono por usuario. Las hojas se aíslan por usuario y se comparten entre sus barajas. `review_cards` registra qué tarjeta abrió, cuándo y en qué repaso; ya no impone secuencia ni cobra una divisa.
+La autenticación identifica al usuario y el servidor calcula la fecha en la zona horaria fijada de su cuenta. Un doble clic o reintento no duplica el progreso. Borrar almacenamiento local o cambiar el reloj del navegador no altera el progreso SQL.
 Las métricas SQL se incrementan con actividad real de cuentas: primera carta y finalización completa, no al elegir baraja ni explorarla.
 
-La idea aleatoria sigue siendo independiente: no gasta ni regala hojas y no desbloquea la carta en el repaso.
+La idea aleatoria sigue siendo independiente: no altera el repaso ni los monederos.
 Se sortea entre las cartas principales de la baraja elegida para cada libro; cambiar elección no sustituye la idea ya asignada hoy.
 Los filtros repasando y repasado agrupan el progreso de todas las barajas de un libro. Un libro puede pertenecer a ambos grupos si tiene una versión con repaso completo y otra con repaso pendiente. Este aprendizaje es independiente de `status=draft/published/archived`.
 

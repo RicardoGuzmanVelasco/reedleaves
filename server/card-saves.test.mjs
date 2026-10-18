@@ -24,11 +24,9 @@ async function fixture(t,dialect) {
 }
 
 for(const dialect of ['sqlite','postgres']){
-  test(`${dialect}: daily saves preserve free access, stay private, are idempotent and never advance review`,async t=>{
+  test(`${dialect}: saved cards stay private, are idempotent and never change review progress`,async t=>{
     const {db,a,b}=await fixture(t,dialect);
     const before=await readReaderState(db,a,now);
-    await assert.rejects(setCardSave(db,a,{cardId:'habit-2',saved:true},now),{code:'cardLocked'});
-    await db.prepare("INSERT INTO daily_ideas VALUES ('2026-10-13','habit-2')").run();
     const first=await setCardSave(db,a,{cardId:'habit-2',saved:true},now);
     assert.equal(first.saved,true);assert.equal(first.savedCount,1);
     assert.deepEqual(await setCardSave(db,a,{cardId:'habit-2',saved:true},new Date('2026-10-14T12:00:00Z')),first);
@@ -38,7 +36,7 @@ for(const dialect of ['sqlite','postgres']){
     assert.equal(after.cardSaves[0].cardId,'habit-2');
     assert.equal((await readSavedCards(db,b,'seven-habits')).cards.length,0);
     assert.equal((await readCardActions(db,b,'habit-2')).saved,false);
-    await assert.rejects(recordCardView(db,b,{cardId:'habit-2',context:'saved'},now),{code:'cardLocked'});
+    await assert.rejects(recordCardView(db,b,{cardId:'habit-2',context:'saved'},now),{code:'notAllowed'});
     const profile=await readProfile(db,a.user_id,b.user_id);
     assert.equal(profile.cardSaves,undefined);assert.equal(profile.bookshelf.some(entry=>entry.bookId==='seven-habits'),false);
     await setCardVote(db,a,{cardId:'habit-2',value:1});
@@ -46,7 +44,7 @@ for(const dialect of ['sqlite','postgres']){
     const removed=await setCardSave(db,a,{cardId:'habit-2',saved:false},now);assert.equal(removed.savedCount,0);
     assert.deepEqual(await setCardSave(db,a,{cardId:'habit-2',saved:false},now),removed);
     assert.equal((await readCardActions(db,a,'habit-2')).vote,1);
-    await assert.rejects(recordCardView(db,a,{cardId:'habit-2',context:'saved'},now),{code:'cardLocked'});
+    await assert.rejects(recordCardView(db,a,{cardId:'habit-2',context:'saved'},now),{code:'notAllowed'});
     await assert.rejects(setCardSave(db,a,{cardId:'habit-2',saved:'yes'},now),{code:'invalidRequest'});
   });
 

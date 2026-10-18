@@ -17,19 +17,19 @@ La zona horaria se valida y se fija al crear la cuenta. La fecha se calcula con 
 
 ## Persistencia
 
-SQLite local o PostgreSQL en producción guarda, por usuario: barajas elegidas, cartas vistas, última carta abierta, lectura del original, idioma, monedero, votos y tarjetas guardadas. La idea diaria se guarda una sola vez por fecha UTC y es común a todas las cuentas.
+SQLite local o PostgreSQL en producción guarda, por usuario: barajas elegidas, tarjetas repasadas, última tarjeta abierta, lectura del original, idioma, monederos, votos y tarjetas guardadas. La idea diaria se guarda una sola vez por fecha UTC y es común a todas las cuentas.
 
 Elegir baraja no gasta hojas ni aumenta «más popular». Abrir la primera carta crea el repaso y cuenta como una persona que empezó. Una persona se cuenta una vez por baraja, aunque use varias versiones.
 
-Cada carta nueva, también hija, cuesta una hoja. Se recibe una por día, con máximo de tres. Volver a una carta vista cuesta cero, incluso sin saldo. No se puede saltar la madre ni una hermana anterior.
+Todas las tarjetas de una baraja se pueden abrir desde el principio, incluidas las hijas y las citas. Abrir una tarjeta registra el repaso y su posición, sin cobrar hojas. Las reglas y precios de las divisas quedan pendientes.
 
-El desbloqueo y el gasto se confirman en una transacción SQL. La clave única de carta por repaso hace los reintentos seguros: un doble clic, una respuesta perdida o dos sesiones no cobran dos veces la misma carta. El esquema SQL comprueba también el recorrido. El repaso termina solo al desbloquear todas las cartas, incluidas las hijas.
+La clave única de tarjeta por repaso hace los reintentos seguros: un doble clic, una respuesta perdida o dos sesiones no duplican progreso. El repaso termina cuando se han abierto todas las tarjetas de la versión, incluidas las hijas.
 
-La idea del día se sortea al primer acceso de cada fecha UTC y queda fijada para todo el mundo, sin gastar ni desbloquear cartas. Se elige al azar entre las tarjetas raíz de las versiones predeterminadas del catálogo y se agotan las candidatas antes de repetir; al empezar otro ciclo se evita la tarjeta del día anterior si hay alternativa. Una cita raíz también puede salir. El calendario permite consultar las asignaciones anteriores.
+La idea del día se sortea al primer acceso de cada fecha UTC y queda fijada para todo el mundo. Se elige al azar entre las tarjetas raíz de las versiones predeterminadas del catálogo y se agotan las candidatas antes de repetir; al empezar otro ciclo se evita la tarjeta del día anterior si hay alternativa. Una cita raíz también puede salir. El calendario permite consultar las asignaciones anteriores.
 
-Las guardadas se consultan por cuenta y libro, sin aparecer en perfiles o bibliotecas ajenas. Guardar exige acceso legítimo a la tarjeta: vista registrada, desbloqueo, asignación diaria vigente, guardado previo o autoría propia. Repetir el mismo destino conserva la fecha; quitar y volver a guardar crea una nueva. Abrir desde Guardadas valida pertenencia y registra contexto `saved`, sin hojas ni desbloqueos. La cuenta propia incluye `cardSaves`; esa relación permite incorporar el libro a Biblioteca sin cambiar su estado de lectura o repaso.
+Las guardadas se consultan por cuenta y libro, sin aparecer en perfiles o bibliotecas ajenas. Todas las tarjetas disponibles en el catálogo se pueden guardar. Repetir el mismo destino conserva la fecha; quitar y volver a guardar crea una nueva. Abrir desde Guardadas valida pertenencia y registra contexto `saved`, sin alterar el repaso. La cuenta propia incluye `cardSaves`; esa relación permite incorporar el libro a Biblioteca sin cambiar su estado de lectura o repaso.
 
-Votos y guardadas usan React `useOptimistic` y Actions: selección y contador cambian antes de la respuesta. Cada cuenta/tarjeta/tipo tiene su cola, con destinos absolutos y relectura tras una respuesta perdida. Guardar no bloquea votar. Los cambios de sesión invalidan peticiones antiguas y desmontan el estado privado. La sincronización actualiza las acciones de un modal sin reemplazarlo. Esta respuesta optimista no se aplica al gasto de hojas ni a desbloqueos.
+Votos y guardadas usan React `useOptimistic` y Actions: selección y contador cambian antes de la respuesta. Cada cuenta/tarjeta/tipo tiene su cola, con destinos absolutos y relectura tras una respuesta perdida. Guardar no bloquea votar. Los cambios de sesión invalidan peticiones antiguas y desmontan el estado privado. La sincronización actualiza las acciones de un modal sin reemplazarlo.
 
 El navegador muestra el estado confirmado y consulta cambios al volver al primer plano y cada 30 segundos mientras está visible. No sustituye formularios, búsquedas o modales abiertos con una actualización en segundo plano. Ante un fallo de red conserva el último estado y ofrece reintento; no concede progreso local provisional.
 
@@ -43,7 +43,7 @@ El navegador muestra el estado confirmado y consulta cambios al volver al primer
 | `/api/auth/logout` | POST | Revocar sesión actual |
 | `/api/reader/state` | GET / HEAD | Estado autenticado |
 | `/api/reader/select` | POST | Elegir versión de baraja, gratis |
-| `/api/reader/open` | POST | Abrir carta; gasto solo si es nueva |
+| `/api/reader/open` | POST | Abrir tarjeta y guardar el progreso |
 | `/api/reader/reading` | POST | Estado manual del libro original |
 | `/api/reader/preferences` | POST | Idioma y títulos originales |
 | `/api/reader/daily` | POST | Obtener o asignar la idea de hoy |
@@ -52,9 +52,9 @@ El navegador muestra el estado confirmado y consulta cambios al volver al primer
 
 ## Datos anteriores
 
-El esquema activo es v9. La base v8 se conserva en `var/backups/pre-accounts-2026-10-06.sqlite` y su original en `var/backups/pre-accounts-original-2026-10-06.sqlite`. Se compararon todas las tablas previas, excluyendo solo fechas técnicas: los datos editoriales se conservan. No había lectores ni progreso SQL en la base anterior.
+La base v8 se conserva en `var/backups/pre-accounts-2026-10-06.sqlite` y su original en `var/backups/pre-accounts-original-2026-10-06.sqlite`. Se compararon todas las tablas previas, excluyendo solo fechas técnicas: los datos editoriales se conservan. No había lectores ni progreso SQL en la base anterior.
 
-El progreso anónimo antiguo del navegador no se borra ni se importa como verificado. No puede demostrar gastos o fechas fiables. La cuenta nueva empieza con una hoja y sin repasos; la interfaz informa si detecta una prueba local anterior. Solo la preferencia de idioma se escribe ahora en localStorage. Las funciones antiguas se mantienen como compatibilidad probada, no como fuente del progreso actual.
+El progreso anónimo antiguo del navegador no se borra ni se importa como verificado. La cuenta nueva empieza con una hoja, diez pétalos y sin repasos. Solo la preferencia de idioma y los borradores de notas se escriben ahora en localStorage.
 
 ## Lista histórica previa al despliegue
 
@@ -72,7 +72,7 @@ Referencias primarias: [contraseñas, OWASP](https://cheatsheetseries.owasp.org/
 ## Perfil y vistas de tarjetas (2026-10-11)
 
 - `GET /api/profiles/:userId` requiere sesión y devuelve solo nombre, usuario público, fecha de alta, estadísticas y resúmenes de los libros visibles para quien consulta. No devuelve credenciales, sesión ni monedero. Las barajas y tarjetas creadas por cuentas son visibles en el catálogo común; editar borradores sigue reservado a su creador. Incluye también a los creadores editoriales sin cuenta de acceso.
-- `POST /api/reader/view` requiere origen, sesión y CSRF. Registra una tarjeta distinta por usuario al mostrarse en idea diaria, repaso o autoría. Comprueba que la tarjeta pertenece al calendario global, el desbloqueo o la propiedad según el contexto. Los reintentos no duplican vistas. No modifica el monedero ni el repaso.
-- `card_views` guarda `user_id`, `card_id` y primera fecha de vista. Esquemas activos SQLite v13 y PostgreSQL v5. Migración transaccional desde v12/v4, encadenada a las anteriores: conserva progreso y rellena vistas con los desbloqueos históricos. Las ideas diarias anteriores solo prueban asignación, no visualización; no se inventa su historial de vistas.
-- Hojas gastadas: total de desbloqueos. Tarjetas repasadas/vistas: IDs distintos. Barajas con repaso completo: todas las tarjetas desbloqueadas en una versión no vacía. Barajas en repaso: versión con tarjetas pendientes (o un borrador vacío), con desbloqueos o inscripción, deduplicada por baraja. Son métricas de aprendizaje; Inicio usa lectura o barajas propias en borrador y no comparte ese criterio. Libros leídos/leyendo: estados manuales independientes.
+- `POST /api/reader/view` requiere origen, sesión y CSRF. Registra una tarjeta distinta por usuario al mostrarse en idea diaria, repaso o autoría. Comprueba que sea la idea asignada, una tarjeta válida de repaso o contenido propio en borrador, según el contexto. Los reintentos no duplican vistas. No modifica los monederos ni el repaso.
+- `card_views` guarda `user_id`, `card_id` y primera fecha de vista. La migración histórica conserva el progreso de repaso anterior y rellena vistas desde ese registro. Las ideas diarias anteriores solo prueban asignación, no visualización; no se inventa su historial de vistas.
+- Hojas gastadas: solo el total histórico anterior a eliminar los cobros. Tarjetas repasadas/vistas: IDs distintos. Barajas con repaso completo: todas las tarjetas abiertas en una versión no vacía. Barajas en repaso: versión con tarjetas pendientes (o un borrador vacío), con progreso o inscripción, deduplicada por baraja. Son métricas de aprendizaje; Inicio usa lectura o barajas propias en borrador y no comparte ese criterio. Libros leídos/leyendo: estados manuales independientes.
 - Mascotas: una etapa actual por libro, compartida con la UI. Totales de creador incluyen sus barajas y tarjetas, con citas como subconjunto. La biblioteca ajena muestra fichas de libros compartidos asociadas al perfil, con el repaso calculado solo sobre barajas visibles para el visitante. Ver [ADR 0001](../adr/0001-libros-en-catalogo-comun.md) y [ADR 0002](../adr/0002-barajas-en-catalogo-comun.md).

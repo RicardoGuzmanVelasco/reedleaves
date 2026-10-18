@@ -213,17 +213,20 @@ CREATE TABLE petal_wallets (
   user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   balance INTEGER NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991)
 ) STRICT;
-CREATE TABLE review_unlocks (
+CREATE TABLE review_cards (
+  rowid INTEGER PRIMARY KEY,
   review_id TEXT NOT NULL,
   user_id TEXT NOT NULL,
   version_id TEXT NOT NULL,
   card_id TEXT NOT NULL,
   local_day TEXT NOT NULL CHECK(local_day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(local_day,'+0 days') IS local_day),
-  unlocked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY(review_id,card_id),
+  reviewed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  leaf_spent INTEGER NOT NULL DEFAULT 0 CHECK(leaf_spent IN (0,1)),
+  UNIQUE(review_id,card_id),
   FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
   FOREIGN KEY(card_id,version_id) REFERENCES cards(id,version_id)
 ) STRICT;
+CREATE INDEX review_cards_by_reader ON review_cards(user_id,version_id,rowid);
 
 CREATE TABLE card_views (
   user_id TEXT NOT NULL REFERENCES users(id),
@@ -250,7 +253,7 @@ CREATE TABLE review_positions (
   version_id TEXT NOT NULL,
   card_id TEXT NOT NULL,
   FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
-  FOREIGN KEY(review_id,card_id) REFERENCES review_unlocks(review_id,card_id)
+  FOREIGN KEY(review_id,card_id) REFERENCES review_cards(review_id,card_id)
 ) STRICT;
 CREATE TABLE daily_ideas (
   day TEXT NOT NULL,
@@ -269,41 +272,11 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-CREATE TRIGGER check_unlock_path BEFORE INSERT ON review_unlocks BEGIN
-  SELECT RAISE(ABORT,'Parent card is locked') WHERE EXISTS (
-    SELECT 1 FROM cards c WHERE c.id = NEW.card_id AND c.version_id = NEW.version_id
-    AND c.parent_id IS NOT NULL AND NOT EXISTS (
-      SELECT 1 FROM review_unlocks u WHERE u.review_id = NEW.review_id AND u.card_id = c.parent_id
-    )
-  );
-  SELECT RAISE(ABORT,'Previous sibling is locked') WHERE EXISTS (
-    SELECT 1 FROM cards c JOIN cards sibling ON sibling.version_id = c.version_id
-      AND sibling.parent_id IS c.parent_id AND sibling.position < c.position
-      AND (c.parent_id IS NOT NULL OR sibling.is_quote = c.is_quote)
-    WHERE c.id = NEW.card_id AND c.version_id = NEW.version_id AND NOT EXISTS (
-      SELECT 1 FROM review_unlocks u WHERE u.review_id = NEW.review_id AND u.card_id = sibling.id
-    )
-  );
-END;
-CREATE TRIGGER complete_review AFTER INSERT ON review_unlocks BEGIN
+CREATE TRIGGER complete_review AFTER INSERT ON review_cards BEGIN
   UPDATE reviews SET completed_at = COALESCE(completed_at,CURRENT_TIMESTAMP)
   WHERE id = NEW.review_id AND
-    (SELECT count(*) FROM review_unlocks WHERE review_id = NEW.review_id) =
+    (SELECT count(*) FROM review_cards WHERE review_id = NEW.review_id) =
     (SELECT count(*) FROM cards WHERE version_id = NEW.version_id);
-END;
-
--- Grant elapsed calendar days (capped), then spend in the same statement.
--- A duplicate or invalid unlock rolls back the wallet changes as well.
-CREATE TRIGGER spend_unlock_leaf BEFORE INSERT ON review_unlocks BEGIN
-  INSERT INTO leaf_wallets(user_id,balance,last_accrual_day)
-    VALUES (NEW.user_id,1,NEW.local_day)
-    ON CONFLICT(user_id) DO UPDATE SET
-      balance = max(leaf_wallets.balance,min(3,leaf_wallets.balance + CAST(julianday(NEW.local_day) - julianday(leaf_wallets.last_accrual_day) AS INTEGER))),
-      last_accrual_day = NEW.local_day
-    WHERE NEW.local_day > leaf_wallets.last_accrual_day;
-  UPDATE leaf_wallets SET balance = balance - 1
-    WHERE user_id = NEW.user_id AND balance > 0 AND last_accrual_day <= NEW.local_day;
-  SELECT RAISE(ABORT,'No leaves available') WHERE changes() <> 1;
 END;
 
 CREATE TRIGGER freeze_cards_insert BEFORE INSERT ON cards
@@ -347,4 +320,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 21;
+PRAGMA user_version = 22;

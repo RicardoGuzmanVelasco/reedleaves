@@ -11,7 +11,7 @@ import {readCatalog,checkCatalog} from "./catalog-repository.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {readReaderState as readReaderStateAtDate,selectDeck,openCard,dailyIdea,changeReading} from "./reader-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
-import {treeFrontier,restoreTreeReview,featuredDecks} from "../app/decks.mjs";
+import {restoreTreeReview,openTreeCard,featuredDecks} from "../app/decks.mjs";
 import {authorView,authorFormView,reviewView,dailyView,libraryView,deckView} from "../app/views.mjs";
 import {bookMetadata} from "./fixtures/book-autofill.mjs";
 
@@ -213,18 +213,18 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal((await readCatalog(db,other.user_id)).cards.some(c=>c.id===cardId),true);
     await selectDeck(db,other,versionId,new Date("2026-10-10T12:00:00Z"));
     const firstOpen=await openCard(db,other,versionId,cardId,new Date("2026-10-10T12:00:00Z"));
-    assert.equal(firstOpen.spent,true);
+    assert.equal(firstOpen.state.wallet.balance,1);
     assert.equal((await readReaderState(db,session)).reviews[versionId].seenIds.length,1);
-    await assert.rejects(recordCardView(db,other,{cardId,context:"author"}),e=>e.code==="cardLocked");
+    await assert.rejects(recordCardView(db,other,{cardId,context:"author"}),e=>e.code==="notAllowed");
     await assert.rejects(addCard(db,other,{requestId:randomUUID(),versionId,isQuote:true,parentId:null,body:"Ajena"}),e=>e.status===404);
     const idea=await dailyIdea(db,other,new Date("2026-10-10T12:00:00Z"));
     assert.ok(prepareCatalog(await readCatalog(db,other.user_id)).cardsById.has(idea.daily.id));
-    // Changing editorial status does not transfer ownership or duplicate a paid unlock.
+    // Changing editorial status does not transfer ownership or duplicate review progress.
     await db.prepare("UPDATE deck_versions SET status='published' WHERE id=?").run(versionId);
     assert.equal(prepareCatalog(await readCatalog(db)).cardsById.has(cardId),true);
     await selectDeck(db,other,versionId,new Date("2026-10-10T12:00:00Z"));
     const opened=await openCard(db,other,versionId,cardId,new Date("2026-10-10T12:00:00Z"));
-    assert.equal(opened.spent,false);
+    assert.equal(opened.state.reviews[versionId].seenIds.length,1);
     await recordCardView(db,other,{cardId,context:"review"},new Date("2026-10-10T12:00:00Z"));
   });
   test(`${dialect}: shared decks, parents, quotes and repeat-safe authoring preserve review and author permissions`,async t=>{
@@ -254,14 +254,16 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal(model.cards.length,4); assert.equal(model.cards.some(c=>c.id==="virtual-quotes"),false);
     assert.equal(model.byId.get(quote.cardId).parentId,null); assert.equal(model.byId.get(childQuote.cardId).isQuote,true);
     const empty=restoreTreeReview(null,model,versionId);
-    assert.deepEqual(new Set(treeFrontier(empty,model).map(c=>c.id)),new Set([root.cardId,quote.cardId]));
+    assert.equal(empty.seenIds.length,0);
+    assert.equal(openTreeCard(empty,model,versionId,secondRoot.cardId).opened,true);
     const now=new Date("2026-10-10T12:00:00Z");
     await openCard(db,session,versionId,quote.cardId,now);
     await openCard(db,session,versionId,root.cardId,new Date("2026-10-11T12:00:00Z"));
     const state=await readReaderState(db,session,new Date("2026-10-15T12:00:00Z"));
     const review=restoreTreeReview(state.reviews[versionId],model,versionId);
     assert.equal(review.seenIds.length,2);
-    assert.deepEqual(new Set(treeFrontier(review,model).map(c=>c.id)),new Set([secondRoot.cardId,childQuote.cardId]));
+    assert.equal(review.seenIds.length,2);
+    assert.equal(openTreeCard(review,model,versionId,childQuote.cardId).opened,true);
     await openCard(db,session,versionId,secondRoot.cardId,new Date("2026-10-15T12:00:00Z"));
     await openCard(db,session,versionId,childQuote.cardId,new Date("2026-10-15T12:00:00Z"));
     assert.equal((await readReaderState(db,session)).reviews[versionId].completed,true);

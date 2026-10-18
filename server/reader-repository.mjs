@@ -5,7 +5,7 @@ import {serverDay} from "./auth.mjs";
 import {accrueLeafWallet} from "./leaf-wallet-repository.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
-import {restoreTreeReview,treeFrontier} from "../app/decks.mjs";
+import {restoreTreeReview} from "../app/decks.mjs";
 import {LANGUAGES} from "../app/core.mjs";
 
 import {insertCardView} from "./profile-repository.mjs";
@@ -22,20 +22,20 @@ async function stateInside(db,session,now) {
   const petals=await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId);
   const reviews={};
   for(const row of await db.prepare("SELECT * FROM reviews WHERE user_id = ? ORDER BY started_at,id").all(userId)) {
-    const unlocks=await db.prepare("SELECT card_id,local_day FROM review_unlocks WHERE review_id = ? ORDER BY rowid").all(row.id);
+    const cards=await db.prepare("SELECT card_id,local_day FROM review_cards WHERE review_id = ? ORDER BY rowid").all(row.id);
     const position=await db.prepare("SELECT card_id FROM review_positions WHERE review_id = ?").get(row.id);
-    reviews[row.version_id]={versionId:row.version_id,seenIds:unlocks.map(u=>u.card_id),lastUnlockDay:unlocks.at(-1)?.local_day||null,
-      currentId:position?.card_id||unlocks.at(-1)?.card_id||null,completed:!!row.completed_at};
+    reviews[row.version_id]={versionId:row.version_id,seenIds:cards.map(card=>card.card_id),
+      currentId:position?.card_id||cards.at(-1)?.card_id||null,completed:!!row.completed_at};
   }
   const display=await db.prepare("SELECT show_original_titles FROM reader_display_preferences WHERE user_id = ?").get(userId);
   const addedBooks=new Set([
     ...(await db.prepare("SELECT book_id FROM book_reading WHERE user_id = ?").all(userId)).map(r=>r.book_id),
     ...(await db.prepare("SELECT v.book_id FROM studies s JOIN deck_versions v ON v.id=s.version_id WHERE s.user_id = ?").all(userId)).map(r=>r.book_id)
   ]);
-  const growth=Object.fromEntries((await db.prepare(`SELECT v.book_id,COUNT(DISTINCT u.local_day) AS spent_days
-    FROM review_unlocks u JOIN deck_versions v ON v.id=u.version_id WHERE u.user_id = ? GROUP BY v.book_id`).all(userId))
-    .map(r=>[r.book_id,{spentDays:Number(r.spent_days)}]));
-  for(const bookId of addedBooks) growth[bookId]={spentDays:growth[bookId]?.spentDays||0,added:true};
+  const growth=Object.fromEntries((await db.prepare(`SELECT v.book_id,COUNT(DISTINCT rc.local_day) AS review_days
+    FROM review_cards rc JOIN deck_versions v ON v.id=rc.version_id WHERE rc.user_id = ? GROUP BY v.book_id`).all(userId))
+    .map(r=>[r.book_id,{reviewDays:Number(r.review_days)}]));
+  for(const bookId of addedBooks) growth[bookId]={reviewDays:growth[bookId]?.reviewDays||0,added:true};
   for(const value of Object.values(growth)) value.added=!!value.added;
   const dailyRows=await db.prepare("SELECT d.day,c.id,c.book_id FROM daily_ideas d JOIN cards c ON c.id=d.card_id ORDER BY d.day DESC").all();
   const dailyHistory=dailyRows.map(row=>({day:row.day,id:row.id,bookId:row.book_id}));
@@ -79,22 +79,16 @@ export async function openCard(db,session,versionId,cardId,now=new Date()) {
   return transaction(db,async()=>{
     const userId=session.user_id,version=await knownVersion(db,versionId,userId),catalog=prepareCatalog(await readCatalog(db,session.user_id)),model=catalog.versionModels.get(versionId);
     if(typeof cardId!=="string"||!model.byId.has(cardId)) throw new ApiError(404,"cardUnavailable");
-    const state=await stateInside(db,session,now),review=restoreTreeReview(state.reviews[versionId],model,versionId),seen=review.seenIds.includes(cardId);
-    if(!seen&&!treeFrontier(review,model).some(c=>c.id===cardId)) throw new ApiError(409,"cardLocked");
-    if(!seen&&(state.wallet.balance<1||state.wallet.lastAccrualDay>state.today)) throw new ApiError(409,"noLeaves");
+    const state=await stateInside(db,session,now),review=restoreTreeReview(state.reviews[versionId],model,versionId);
     await enrol(db,userId,version);
     await db.prepare("INSERT INTO reviews(id,user_id,version_id) VALUES (?,?,?) ON CONFLICT(user_id,version_id) DO NOTHING").run(randomUUID(),userId,versionId);
     const row=await db.prepare("SELECT id FROM reviews WHERE user_id = ? AND version_id = ?").get(userId,versionId);
-    const opened=seen?{changes:0}:await db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) VALUES (?,?,?,?,?) ON CONFLICT(review_id,card_id) DO NOTHING")
+    await db.prepare("INSERT INTO review_cards(review_id,user_id,version_id,card_id,local_day) VALUES (?,?,?,?,?) ON CONFLICT(review_id,card_id) DO NOTHING")
       .run(row.id,userId,versionId,cardId,state.today);
-    if(!seen&&isPostgres(db)&&Number(opened.changes)===1){
-      const spent=await db.prepare("UPDATE leaf_wallets SET balance=balance-1 WHERE user_id=? AND balance>0 AND last_accrual_day<=?").run(userId,state.today);
-      if(Number(spent.changes)!==1) throw new ApiError(409,"noLeaves");
-    }
     await db.prepare("INSERT INTO review_positions(review_id,user_id,version_id,card_id) VALUES (?,?,?,?) ON CONFLICT(review_id) DO UPDATE SET card_id=excluded.card_id")
       .run(row.id,userId,versionId,cardId);
     await insertCardView(db,userId,cardId);
-    return {state:await stateInside(db,session,now),spent:Number(opened.changes)===1};
+    return {state:await stateInside(db,session,now)};
   });
 }
 export async function changeReading(db,session,bookId,status,now=new Date()) {

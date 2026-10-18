@@ -25,9 +25,7 @@ test("Renaming the team changes only its public label, not creator identity or p
   const packageInfo = JSON.parse(readFileSync(new URL("../package.json",import.meta.url),"utf8"));
   assert.equal(packageInfo.name,"reedleaves");
   assert.equal(storageKeys.language,"leaf-reader:language:v1");
-  assert.equal(storageKeys.wallet,"leaf-reader:wallet:v1");
-  assert.equal(storageKeys.deckReview("seven-habits-editorial-v1"),"leaf-reader:deck:seven-habits-editorial-v1:review:v3");
-  assert.equal(storageKeys.studies,"leaf-reader:studies:v1");
+  assert.equal(storageKeys.noteDrafts("u","seven-habits"),"leaf-reader:note-drafts:v1:u:seven-habits");
 });
 
 test("Seed stays a brown body with a separated face and no leaf",()=>{

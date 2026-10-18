@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 13));
-INSERT INTO reed_schema VALUES (13);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 14));
+INSERT INTO reed_schema VALUES (14);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -122,13 +122,15 @@ CREATE TABLE petal_wallets(
   user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   balance BIGINT NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991)
 );
-CREATE TABLE review_unlocks(
+CREATE TABLE review_cards(
   rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE, review_id TEXT NOT NULL, user_id TEXT NOT NULL, version_id TEXT NOT NULL,
   card_id TEXT NOT NULL, local_day TEXT NOT NULL CHECK(local_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(local_day,'YYYY-MM-DD'),'YYYY-MM-DD') = local_day),
-  unlocked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(review_id,card_id),
+  reviewed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, leaf_spent INTEGER NOT NULL DEFAULT 0 CHECK(leaf_spent IN (0,1)),
+  PRIMARY KEY(review_id,card_id),
   FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
   FOREIGN KEY(card_id,version_id) REFERENCES cards(id,version_id)
 );
+CREATE INDEX review_cards_by_reader ON review_cards(user_id,version_id,rowid);
 CREATE TABLE card_views (
   user_id TEXT NOT NULL REFERENCES users(id),
   card_id TEXT NOT NULL REFERENCES cards(id),
@@ -144,7 +146,7 @@ CREATE TABLE deck_selections(
 CREATE TABLE review_positions(
   review_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, version_id TEXT NOT NULL, card_id TEXT NOT NULL,
   FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
-  FOREIGN KEY(review_id,card_id) REFERENCES review_unlocks(review_id,card_id)
+  FOREIGN KEY(review_id,card_id) REFERENCES review_cards(review_id,card_id)
 );
 CREATE TABLE daily_ideas(day TEXT PRIMARY KEY, card_id TEXT NOT NULL REFERENCES cards(id));
 CREATE TABLE feedback_submissions(
@@ -185,27 +187,13 @@ END $$;
 CREATE TRIGGER no_card_cycles_insert BEFORE INSERT ON cards FOR EACH ROW EXECUTE FUNCTION reed_check_card_cycle();
 CREATE TRIGGER no_card_cycles_update BEFORE UPDATE OF parent_id ON cards FOR EACH ROW EXECUTE FUNCTION reed_check_card_cycle();
 
-CREATE FUNCTION reed_check_unlock() RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  IF EXISTS(SELECT 1 FROM cards c WHERE c.id=NEW.card_id AND c.version_id=NEW.version_id AND c.parent_id IS NOT NULL
-    AND NOT EXISTS(SELECT 1 FROM review_unlocks u WHERE u.review_id=NEW.review_id AND u.card_id=c.parent_id)) THEN
-    RAISE EXCEPTION 'Parent card is locked';
-  END IF;
-  IF EXISTS(SELECT 1 FROM cards c JOIN cards sibling ON sibling.version_id=c.version_id AND sibling.parent_id IS NOT DISTINCT FROM c.parent_id AND sibling.position<c.position AND (c.parent_id IS NOT NULL OR sibling.is_quote=c.is_quote)
-    WHERE c.id=NEW.card_id AND c.version_id=NEW.version_id AND NOT EXISTS(SELECT 1 FROM review_unlocks u WHERE u.review_id=NEW.review_id AND u.card_id=sibling.id)) THEN
-    RAISE EXCEPTION 'Previous sibling is locked';
-  END IF;
-  RETURN NEW;
-END $$;
-CREATE TRIGGER spend_unlock_leaf BEFORE INSERT ON review_unlocks FOR EACH ROW EXECUTE FUNCTION reed_check_unlock();
-
 CREATE FUNCTION reed_complete_review() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   UPDATE reviews SET completed_at=COALESCE(completed_at,CURRENT_TIMESTAMP)
-  WHERE id=NEW.review_id AND (SELECT count(*) FROM review_unlocks WHERE review_id=NEW.review_id)=(SELECT count(*) FROM cards WHERE version_id=NEW.version_id);
+  WHERE id=NEW.review_id AND (SELECT count(*) FROM review_cards WHERE review_id=NEW.review_id)=(SELECT count(*) FROM cards WHERE version_id=NEW.version_id);
   RETURN NEW;
 END $$;
-CREATE TRIGGER complete_review AFTER INSERT ON review_unlocks FOR EACH ROW EXECUTE FUNCTION reed_complete_review();
+CREATE TRIGGER complete_review AFTER INSERT ON review_cards FOR EACH ROW EXECUTE FUNCTION reed_complete_review();
 
 CREATE FUNCTION reed_freeze_cards() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE version_status TEXT;

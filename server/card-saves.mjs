@@ -29,15 +29,9 @@ export async function readCardActions(db,session,cardId) {
 export async function setCardSave(db,session,{cardId,saved}={},now=new Date()) {
   if (!validId(cardId) || typeof saved!=="boolean") throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
-    const card=await db.prepare(`SELECT c.id,c.book_id,v.status,d.creator_user_id FROM cards c
-      JOIN deck_versions v ON v.id=c.version_id JOIN decks d ON d.id=v.deck_id WHERE c.id=?`).get(cardId);
+    const card=await db.prepare("SELECT id,book_id FROM cards WHERE id=?").get(cardId);
     if (!card) throw new ApiError(404,"cardUnavailable");
     if (saved) {
-      const seen=await db.prepare(`SELECT 1 FROM card_views WHERE user_id=? AND card_id=?
-        UNION SELECT 1 FROM review_unlocks WHERE user_id=? AND card_id=?
-        UNION SELECT 1 FROM card_saves WHERE user_id=? AND card_id=?`).get(session.user_id,cardId,session.user_id,cardId,session.user_id,cardId);
-      const daily=await db.prepare("SELECT 1 FROM daily_ideas WHERE card_id=?").get(cardId);
-      if (!seen && !daily && !(card.creator_user_id===session.user_id && card.status==="draft")) throw new ApiError(409,"cardLocked");
       await db.prepare("INSERT INTO card_saves(user_id,card_id,saved_at) VALUES (?,?,?) ON CONFLICT(user_id,card_id) DO NOTHING").run(session.user_id,cardId,now.toISOString());
     } else await db.prepare("DELETE FROM card_saves WHERE user_id=? AND card_id=?").run(session.user_id,cardId);
     const cards=await cardSavesInside(db,session.user_id,card.book_id),row=cards.find(card=>card.cardId===cardId);

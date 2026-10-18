@@ -24,7 +24,7 @@ Me gusta, no me gusta y guardar responden de inmediato. El servidor confirma cad
 
 ## Decisión resuelta
 
-**P1 resuelta por el usuario.** Una tarjeta guardada desde Idea del día podrá abrirse gratis desde Guardadas, manteniendo bloqueada su posición original. Abrirla así registra una vista, sin gasto de hojas ni avance del repaso. En otra entrega futura la Idea del día costará una hoja; ese cambio queda fuera de esta implementación.
+**P1 resuelta por el usuario.** Una tarjeta guardada desde Idea del día se puede abrir desde Guardadas y registra una vista. La posición de cualquier tarjeta de una baraja también está disponible para el repaso; abrir una tarjeta no consume hojas. El posible coste de la Idea del día queda pendiente de decisión.
 
 Antes de empezar Guardadas se deben resolver los fallos existentes mediante una revisión del valor de sus pruebas. Ver `TEST_AUDIT_2026-10-13.md`.
 

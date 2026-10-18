@@ -16,7 +16,7 @@ async function fixture(t) {
 }
 const day=n=>new Date(`2026-10-${String(n).padStart(2,"0")}T12:00:00Z`);
 
-test("Profile distinguishes unique views from reviewed cards and spending; daily assignment alone is not a view",async t=>{
+test("Profile distinguishes unique views and review progress; daily assignment alone is not a view",async t=>{
   const {db,a}=await fixture(t),version="seven-habits-editorial-v1";
   await openCard(db,a,version,"habit-1",day(10));
   await openCard(db,a,version,"habit-1",day(10));
@@ -27,10 +27,10 @@ test("Profile distinguishes unique views from reviewed cards and spending; daily
   await recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(10));
   const after=await readReaderState(db,a,day(10));assert.deepEqual(after,before);
   const {counts}= (await readProfile(db,a.user_id,a.user_id)).profile;
-  assert.equal(counts.cardsReviewed,1);assert.equal(counts.cardsViewed,2);assert.equal(counts.leavesSpent,1);
+  assert.equal(counts.cardsReviewed,1);assert.equal(counts.cardsViewed,2);assert.equal(counts.leavesSpent,0);
   assert.equal(counts.decksInProgress,1);assert.equal(counts.decksCompleted,0);
-  await assert.rejects(recordCardView(db,a,{cardId:"habit-3",context:"review"},day(10)),{code:"cardLocked"});
-  await assert.rejects(recordCardView(db,a,{cardId:"habit-1",context:"author"},day(10)),{code:"cardLocked"});
+  await recordCardView(db,a,{cardId:"habit-3",context:"review"},day(10));
+  await assert.rejects(recordCardView(db,a,{cardId:"habit-1",context:"author"},day(10)),{code:"notAllowed"});
   await recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(11));
 });
 
@@ -43,11 +43,11 @@ test("Profile counts one current pet per book rather than all unlocked stages, i
   const p=(await readProfile(db,a.user_id,a.user_id)).profile;
   assert.equal(p.counts.booksRead,1);assert.equal(p.counts.booksReading,1);
   assert.equal(p.counts.decksCompleted,1);assert.equal(p.counts.decksInProgress,1);
-  assert.equal(p.counts.leavesSpent,7);assert.equal(p.counts.cardsReviewed,7);
+  assert.equal(p.counts.leavesSpent,0);assert.equal(p.counts.cardsReviewed,7);
   assert.deepEqual(p.mascots,{pot:3,seed:0,root:0,seedling:0,sprout:1,sapling:0,stem:0,plant:0,flower:0,fruit:0,infinity:0});
 });
 
-test("Nonconsecutive spend days across decks earn Tallo at ten and Flor at fifteen",async t=>{
+test("Nonconsecutive review days across decks earn Tallo at ten and Flor at fifteen",async t=>{
   const {db,a}=await fixture(t),bookId="seven-habits";
   const decks=[];
   for(let n=0;n<2;n++) {
@@ -63,9 +63,9 @@ test("Nonconsecutive spend days across decks earn Tallo at ten and Flor at fifte
     if(n===8) {assert.equal(profile.mascots.sprout,1);assert.equal(profile.mascots.stem,0);}
     if(n===9 || n===13) {assert.equal(profile.mascots.stem,1);assert.equal(profile.mascots.flower,0);}
   }
-  // A second leaf spent on the same local date does not add another growth day.
+  // Opening more than one card on the same date adds one growth day.
   await openCard(db,a,decks[1].versionId,decks[1].cards[7],day(29));
-  assert.equal((await readReaderState(db,a,day(29))).growth[bookId].spentDays,15);
+  assert.equal((await readReaderState(db,a,day(29))).growth[bookId].reviewDays,15);
   const {mascots}=(await readProfile(db,a.user_id,a.user_id)).profile;
   assert.equal(mascots.flower,1);assert.equal(mascots.stem,0);assert.equal(mascots.sprout,0);
 });
@@ -86,7 +86,7 @@ test("Author stats include quotes as a subset; shared libraries expose content b
   assert.deepEqual(foreign.bookshelf.find(entry=>entry.bookId===bookId),{bookId,reading:"reading",pending:true,hasReviewing:false,hasReviewed:false,group:"pending"});
   assert.deepEqual(foreign.bookshelf,own.bookshelf);
   assert.doesNotMatch(JSON.stringify(foreign),/Personal text|password|csrf|time_zone|wallet/);
-  await assert.rejects(recordCardView(db,b,{cardId,context:"author"}),{code:"cardLocked"});
+  await assert.rejects(recordCardView(db,b,{cardId,context:"author"}),{code:"notAllowed"});
   await assert.rejects(readProfile(db,"missing",b.user_id),{code:"profileUnavailable"});
   assert.equal((await readProfile(db,"reed-team",b.user_id)).profile.counts.cardsCreated,42);
 });

@@ -22,7 +22,7 @@ export async function readLeafWallet(db, userId, today) {
   return transaction(db,() => accrueLeafWallet(db,userId,today));
 }
 
-// For use inside an existing transaction (state reads, daily draw, unlock).
+// For use inside an existing transaction (state reads and daily draw).
 export async function accrueLeafWallet(db, userId, today) {
     if (!restoreWallet(null,today).lastAccrualDay) throw new Error("Invalid wallet date");
     const postgres = isPostgres(db), maximum = postgres ? "greatest" : "max", minimum = postgres ? "least" : "min";
