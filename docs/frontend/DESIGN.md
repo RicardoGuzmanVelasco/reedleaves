@@ -10,6 +10,16 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - Escribir de forma breve, clara y humana. Incluir solo el texto necesario para usar la interfaz.
 - Tratar la iconografía de las acciones clave como parte del sistema de producto: una acción recurrente debe conservar un símbolo reconocible en todos sus puntos de entrada. Cuando haya espacio, el icono acompaña al texto y no lo sustituye.
 - Diseñar para distintos tamaños de pantalla y respetar accesibilidad, movimiento reducido y controles semánticos.
+- Diseñar primero para uso táctil (touch first). Las acciones, el atractivo visual y las animaciones principales deben funcionar sin hover. El hover es un refuerzo opcional para dispositivos con cursor preciso, nunca el centro de la experiencia ni un requisito para descubrir una acción.
+- Las respuestas de hover de un contenedor no deben sustituir, reiniciar ni mover la animación propia de una mascota. Separar las capas visuales cuando sea necesario.
+
+## Modo Repasar
+
+- Inicio ofrece «¡Vamos a repasar!» en una sola línea, sin flecha, con Plántula dentro de un círculo grande. Mascota y texto ocupan el mayor tamaño que admite el ancho del botón; el conjunto se adapta a móvil sin desbordarse y evita altura sobrante. El degradado conserva el extremo claro a la derecha, oscurece más el lado izquierdo y mantiene el tono medio hacia la derecha para distinguirse de Plántula. El fondo permanece fijo; un brillo estrecho cruza durante unos 0,75 s cada 7,5 s y una ola rápida recorre el texto carácter por carácter: las letras suben y bajan con easing y se solapan. Movimiento reducido desactiva ambas animaciones.
+- La selección de tema y el cierre pueden dar protagonismo a Plántula. Mientras se muestra una tarjeta, retirar la mascota y concentrar la atención en el contenido.
+- La elección de tema usa un fondo verde suave con luz en ambas esquinas de la diagonal, Plántula sobre el título y cuatro barajas en cuadrícula de 2×2. Cada baraja tiene tres tarjetas en abanico y un único icono grande, semitransparente y recortado por la tarjeta frontal. Mantener los cuatro iconos y sus posiciones calibradas por separado. El cierre es una X centrada dentro de un círculo fino con fondo claro opaco. Conservar la tipografía de la app.
+- Durante la tarjeta, reservar espacio superior para salir y separar las respuestas del contenido: tarjeta algo más arriba y botonera algo más abajo, sin fijarlas sobre el texto. Conservar siempre «Quiero repasarla pronto» a la izquierda y «La recordaba» a la derecha.
+- Las respuestas conservan su paleta al pasar el cursor y al pulsar: fondo, texto, borde y tono de sombra. El feedback cambia solo el desplazamiento y la profundidad de sombra; no aplicar filtros de color.
 
 ## Chips informativos
 

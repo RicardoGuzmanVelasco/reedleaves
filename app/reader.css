@@ -513,3 +513,110 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .take-note-heading .take-note-icon{width:1em;height:1em}
 
 @media(max-width:520px){.book-note-nudge{gap:6px;padding:7px 8px}.book-note-nudge>span{font-size:clamp(8px,2.5vw,11px);line-height:1}.book-note-nudge .book-note-nudge-action.note-icon-only{flex-basis:38px;width:38px;height:38px;min-height:38px;padding:6px}.book-note-nudge .take-note-icon{width:22px;height:22px}}
+
+/* Touch-first practice: an inviting entrance, then full attention on the card. */
+.practice-launch{position:relative;display:grid;grid-template-columns:112px minmax(0,1fr);align-items:center;gap:16px;width:100%;min-height:148px;margin:0 0 24px;padding:12px 24px;border:3px solid transparent;border-radius:28px;background:transparent;color:#173d2c;text-align:left;isolation:isolate;transition:transform .18s cubic-bezier(.2,.72,.25,1)}
+/* Degradado original espejado; solo la franja de brillo se mueve. */
+.practice-launch::before{position:absolute;z-index:-1;inset:-3px;border:3px solid #23653b;border-radius:inherit;background:linear-gradient(250deg,#d2f39c 0%,#a8d95f 38%,#8bc248 100%);box-shadow:0 8px 0 #23653b,0 14px 30px rgb(35 101 59 / 17%);content:"";pointer-events:none;transition:transform .18s cubic-bezier(.2,.72,.25,1),box-shadow .18s cubic-bezier(.2,.72,.25,1)}
+.practice-launch::after{position:absolute;z-index:0;inset:-3px;border:3px solid transparent;border-radius:inherit;background:linear-gradient(110deg,transparent 38%,#fff8d980 46%,#fffdf0e6 50%,#fff8d9b3 54%,transparent 62%);content:"";opacity:0;pointer-events:none;animation:practice-launch-glint 7.5s ease-in-out infinite}
+@keyframes practice-launch-glint{0%,64%{opacity:0;transform:translateX(-100%)}65%{opacity:1}75%{opacity:1;transform:translateX(100%)}76%,100%{opacity:0;transform:translateX(100%)}}
+.practice-launch>*{position:relative;z-index:1}
+.practice-launch:active{transform:translateY(5px) scale(.992)}
+.practice-launch:active::before{transform:none;box-shadow:0 2px 0 #23653b}
+.practice-launch:active .practice-launch-label{transform:none}
+.practice-launch-mascot{display:grid;width:112px;height:112px;place-items:center;border-radius:50%;background:rgb(255 253 239 / 55%)}
+.practice-launch-art,.practice-choice-mascot>.mascot-art,.practice-done-mascot>.mascot-art{width:100%;height:100%}
+.practice-launch-label{font-size:clamp(28px,5vw,50px);font-weight:900;line-height:1.06;letter-spacing:-.045em;white-space:nowrap;transition:transform .18s cubic-bezier(.2,.72,.25,1)}
+.practice-launch-char{display:inline-block;transform-origin:center;animation:practice-launch-char-wave 7.5s ease-in-out infinite}
+.practice-launch-char:nth-child(2){animation-delay:24ms}.practice-launch-char:nth-child(3){animation-delay:48ms}.practice-launch-char:nth-child(4){animation-delay:72ms}.practice-launch-char:nth-child(5){animation-delay:96ms}.practice-launch-char:nth-child(6){animation-delay:120ms}.practice-launch-char:nth-child(7){animation-delay:144ms}.practice-launch-char:nth-child(8){animation-delay:168ms}.practice-launch-char:nth-child(9){animation-delay:192ms}.practice-launch-char:nth-child(10){animation-delay:216ms}.practice-launch-char:nth-child(11){animation-delay:240ms}.practice-launch-char:nth-child(12){animation-delay:264ms}.practice-launch-char:nth-child(13){animation-delay:288ms}.practice-launch-char:nth-child(14){animation-delay:312ms}.practice-launch-char:nth-child(15){animation-delay:336ms}.practice-launch-char:nth-child(16){animation-delay:360ms}.practice-launch-char:nth-child(17){animation-delay:384ms}.practice-launch-char:nth-child(18){animation-delay:408ms}.practice-launch-char:nth-child(19){animation-delay:432ms}.practice-launch-char:nth-child(20){animation-delay:456ms}
+@keyframes practice-launch-char-wave{0%,64%,78%,100%{transform:translateY(0) scale(1)}64%{animation-timing-function:cubic-bezier(.2,.75,.3,1)}67%{transform:translateY(-3px) scale(1.045);animation-timing-function:cubic-bezier(.5,0,.8,.35)}70%{transform:translateY(0) scale(1)}72%{transform:translateY(1px) scale(.99);animation-timing-function:cubic-bezier(.2,.65,.3,1)}74%{transform:translateY(0) scale(1)}}
+.is-practicing{min-height:100dvh;background:#f5f4ec;color:#173d2c}
+.is-practice-choosing{background:radial-gradient(circle 170px at 100% 0%,rgb(203 228 166 / 68%),transparent 100%),radial-gradient(ellipse at 100% 100%,#d8efb3,transparent 52%),linear-gradient(25deg,#b7e56e,#edf3d9 70%)}
+.is-practicing .app-header{display:none}
+.is-practicing main{width:min(850px,calc(100% - 48px));margin:0 auto}
+.is-practice-choosing main{width:min(430px,calc(100% - 32px))}
+.practice-screen{position:relative;min-height:100dvh;padding:26px 0 38px}
+.practice-exit{position:absolute;z-index:4;top:18px;right:0;display:grid;width:44px;height:44px;place-items:center;padding:0;border:1px solid #87947e;border-radius:50%;background:#f0f5df;color:#526653;transition:transform .14s}
+.practice-exit svg{width:25px;height:25px}
+.practice-choice-mascot{width:152px;height:152px;margin:16px auto 6px}
+.practice-choose h1,.practice-empty h1,.practice-done h1{max-width:680px;margin:0 auto 28px;font-size:clamp(29px,5vw,43px);line-height:1.12;text-align:center;text-wrap:balance}
+.practice-choose{padding-top:17px;padding-bottom:28px}
+.practice-choose .practice-exit{top:15px;right:14px}
+.practice-choose .practice-choice-mascot{width:126px;height:126px;margin:7px auto 3px}
+.practice-choose h1{max-width:100%;margin-bottom:22px;font-size:clamp(23px,7.7vw,36px);line-height:1.1;font-weight:900;letter-spacing:-.045em;text-wrap:balance}
+.practice-topics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;max-width:390px;margin:0 auto}
+.practice-topic{position:relative;display:flex;min-width:0;min-height:222px;flex-direction:column;align-items:center;justify-content:flex-start;padding:11px 10px 15px;border:0;border-radius:23px;background:transparent;color:#173d2c;text-align:center}
+.practice-topic-pack{position:relative;display:block;width:129px;height:139px;flex:none;margin:0 auto 10px;transition:transform .14s}
+.practice-topic:active .practice-topic-pack{transform:translateY(4px) scale(.98)}
+.practice-topic-card{position:absolute;display:grid;width:87px;height:117px;place-items:center;border:1.5px solid #789366;border-radius:13px;background:#eff4e5;box-shadow:0 3px 0 #b7c9a7}
+.practice-topic-card--left{z-index:1;left:11px;top:14px;transform:rotate(-13deg);background:#e2ebcf}
+.practice-topic-card--right{z-index:2;left:31px;top:5px;transform:rotate(13deg);background:#cbe4a6}
+.practice-topic-card--cover{z-index:3;left:21px;top:8px;width:89px;height:119px;padding:0;overflow:hidden;border-radius:13px;isolation:isolate;background-clip:padding-box;background:linear-gradient(145deg,#fffef9,#e5efd7);box-shadow:0 11px 18px rgb(23 61 44 / 15%)}
+.practice-topic-icon{display:block;width:122px;height:122px;min-width:122px;min-height:122px;max-width:none;color:#a9c88e;opacity:.48;transform:translate(var(--icon-x),var(--icon-y)) rotate(-8deg) scale(var(--icon-scale))}
+.practice-topic-icon-fill{fill:#d9e9c4;fill-opacity:.58}
+.practice-topic-icon-layer{fill:#d9e9c4;fill-opacity:.82;stroke:none}
+.practice-topic--reading{--icon-x:-5px;--icon-y:0px;--icon-scale:.9}
+.practice-topic--read{--icon-x:-13px;--icon-y:-1px;--icon-scale:.9}
+.practice-topic--saved{--icon-x:-8px;--icon-y:-3px;--icon-scale:1}
+.practice-topic--mixed{--icon-x:-19px;--icon-y:-3px;--icon-scale:.95}
+.practice-topic-label{max-width:165px;font-size:15px;font-weight:850;line-height:1.12}
+.practice-session{display:flex;flex-direction:column;align-items:stretch;justify-content:center;padding-top:76px;padding-bottom:max(44px,env(safe-area-inset-bottom))}
+.practice-card-stack{position:relative;display:grid;width:100%;margin:7px auto 0;padding:0 0 13px}
+.practice-card-stack>.reading-stage{grid-area:1/1;width:100%;margin:0}
+.practice-card--front{z-index:1}
+.practice-card--behind{position:absolute;inset:0 0 -24px;z-index:0;overflow:hidden;transform-origin:top center;transform:translateY(13px) scale(.965);opacity:.84;pointer-events:none}
+.practice-card--behind .idea-card>*{visibility:hidden}
+.practice-session .reading-stage .idea-card{min-height:clamp(310px,52dvh,470px);padding:46px clamp(25px,7vw,60px) 26px}
+.practice-session .reading-stage h2{font-size:clamp(29px,4vw,43px);margin:5px 0 24px}
+.practice-session .reading-content{padding-bottom:23px}
+.practice-session .reading-footer{margin-top:25px;padding-top:14px}
+.practice-session .reading-footer .card-source{font-size:11px}
+.practice-responses{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:clamp(48px,9dvh,84px) 0 0}
+.practice-response{--practice-response-shadow:#cbb291;display:flex;align-items:center;justify-content:center;min-height:68px;padding:13px 18px;border:2px solid #9b7850;border-radius:19px;background:#f5e6cc;box-shadow:0 5px 0 var(--practice-response-shadow);color:#503a20;text-align:center;font-size:16px;font-weight:850;line-height:1.2;transition:transform .14s,box-shadow .14s}
+.practice-response:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 var(--practice-response-shadow)}
+.practice-response.is-selected{animation:practice-answer-confirm .18s cubic-bezier(.2,.78,.28,1) both}
+@keyframes practice-answer-confirm{0%{transform:translateY(0) scale(1)}35%{transform:translateY(4px) scale(.97);box-shadow:0 1px 0 var(--practice-response-shadow)}68%{transform:translateY(-2px) scale(1.025);box-shadow:0 7px 0 var(--practice-response-shadow)}100%{transform:translateY(0) scale(1);box-shadow:0 5px 0 var(--practice-response-shadow)}}
+.practice-response--remembered{--practice-response-shadow:#91bb72;border-color:#3f8850;background:#d9edb6;color:#1d542e}
+.practice-session--leaving-left .practice-card--front,.is-practicing .practice-session--leaving-left .practice-card--front.is-arriving{transform-origin:52% 52%;animation:practice-card-left .42s cubic-bezier(.3,.65,.3,1) .09s both}
+.practice-session--leaving-right .practice-card--front,.is-practicing .practice-session--leaving-right .practice-card--front.is-arriving{transform-origin:48% 52%;animation:practice-card-right .42s cubic-bezier(.3,.65,.3,1) .09s both}
+@keyframes practice-card-left{0%{opacity:1;transform:translateX(0) rotate(0) scale(1)}72%{opacity:1;transform:translateX(-8%) rotate(-.8deg) scale(.995)}100%{opacity:0;transform:translateX(-12%) rotate(-1.5deg) scale(.985)}}
+@keyframes practice-card-right{0%{opacity:1;transform:translateX(0) rotate(0) scale(1)}72%{opacity:1;transform:translateX(8%) rotate(.8deg) scale(.995)}100%{opacity:0;transform:translateX(12%) rotate(1.5deg) scale(.985)}}
+.is-practicing .practice-session .reading-stage.is-arriving{animation:practice-card-arrive .36s cubic-bezier(.18,.78,.25,1) both}
+.is-practicing .practice-session--stacked .practice-card--front.is-arriving{animation:practice-card-stack-arrive .36s cubic-bezier(.18,.78,.25,1) both}
+.is-practicing .practice-session .reading-stage.is-arriving::before,.is-practicing .practice-session .reading-stage.is-arriving::after{animation:reading-layer-release .28s cubic-bezier(.2,.72,.25,1) .08s both}
+@keyframes practice-card-arrive{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes practice-card-stack-arrive{from{opacity:.84;transform:translateY(13px) scale(.965)}to{opacity:1;transform:translateY(0) scale(1)}}
+.practice-done,.practice-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.practice-done-mascot{width:184px;height:184px;margin:0 auto 12px}
+.practice-done h1,.practice-empty h1{margin-bottom:22px}
+.practice-done>.practice-response,.practice-empty>.practice-response{width:min(350px,100%)}
+@media(hover:hover) and (pointer:fine){
+  .practice-launch:hover:not(:active)::before{transform:translateY(-3px) scale(1.012);box-shadow:0 11px 0 #23653b,0 19px 36px rgb(35 101 59 / 20%)}
+  .practice-launch:hover:not(:active) .practice-launch-label{transform:translateY(-3px)}
+  .practice-exit:hover{transform:scale(1.04)}
+  .practice-topic:hover:not(:active) .practice-topic-pack{transform:translateY(-2px)}
+  .practice-response:hover:not(:disabled):not(:active){transform:translateY(-2px);box-shadow:0 7px 0 var(--practice-response-shadow)}
+}
+@media(max-width:600px){
+  .practice-launch{grid-template-columns:clamp(68px,17vw,86px) minmax(0,1fr);min-height:88px;gap:12px;margin-bottom:22px;padding:6px 12px;border-radius:23px}
+  .practice-launch-mascot{width:clamp(68px,20vw,108px);height:clamp(68px,20vw,108px)}
+  .practice-launch-label{font-size:clamp(19px,5.3vw,32px)}
+  .is-practicing main{width:calc(100% - 32px)}
+  .practice-screen{padding-top:22px}
+  .practice-exit{top:9px;right:-4px}
+  .practice-choice-mascot{width:126px;height:126px;margin:10px auto 4px}
+  .practice-choose h1,.practice-empty h1,.practice-done h1{font-size:clamp(28px,7.4vw,36px);margin-bottom:24px}
+  .practice-choose h1{font-size:clamp(23px,7.7vw,36px);margin-bottom:22px}
+  .practice-session{padding-top:76px}
+  .practice-card-stack{margin-top:4px}
+  .practice-session .reading-stage .idea-card{min-height:min(51dvh,430px);padding:45px 23px 20px}
+  .practice-session .reading-stage h2{font-size:clamp(26px,7.2vw,35px);margin-bottom:20px}
+  .practice-session .reading-content{padding-bottom:12px}
+  .practice-session .reading-footer{margin-top:18px;padding-top:11px}
+  .practice-session .reading-footer .card-source{font-size:10px}
+  .practice-responses{gap:10px;margin-top:clamp(48px,8dvh,72px)}
+  .practice-response{min-height:64px;padding:11px 9px;border-radius:16px;font-size:14px}
+  .practice-done-mascot{width:156px;height:156px}
+}
+@media(max-width:370px){.practice-topics{gap:7px}.practice-topic{min-height:205px;padding-right:5px;padding-left:5px}.practice-topic-pack{transform:scale(.91);transform-origin:bottom center;margin-bottom:5px}.practice-topic-label{font-size:14px}.practice-launch{grid-template-columns:clamp(63px,19.7vw,72px) minmax(0,1fr);gap:8px;padding:6px 8px;border-radius:20px}.practice-launch-mascot{width:clamp(63px,19.7vw,72px);height:clamp(63px,19.7vw,72px)}.practice-launch-label{font-size:clamp(20px,7vw,27px)}}
+@media(prefers-reduced-motion:reduce){.practice-launch,.practice-launch::before,.practice-launch::after,.practice-launch-label,.practice-launch-char,.practice-topic-pack,.practice-response,.practice-exit,.practice-session--leaving-left .practice-card--front,.practice-session--leaving-right .practice-card--front,.is-practicing .practice-session .reading-stage.is-arriving{animation:none!important;transition:none!important}}

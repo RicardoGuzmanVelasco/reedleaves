@@ -5,7 +5,7 @@ import {readCatalog} from "../server/catalog-repository.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {featuredDecks,restoreTreeReview,openTreeCard,reviewedCard,treeFrontier,treeLinks,bookReviewStates,hasLeaf,studyingDecks} from "./decks.mjs";
-import {deckView,reviewView,homeView,authorView,authorFormView,escapeHtml} from "./views.mjs";
+import {deckView,reviewView,homeView,practiceView,authorView,authorFormView,escapeHtml} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
 
@@ -218,6 +218,9 @@ test("Home shows one closed book per active book, without exposing trees or spen
   const second = "atomic-habits-editorial-v1";
   const state = {catalog,reviews,language:"es",statuses:{"seven-habits":"reading","atomic-habits":"reading"},enrolledIds:[second],today:"2026-10-06",budget:{lastUnlockDay:"2026-10-06"},storageAvailable:true};
   const html = homeView(state);
+  assert.match(html,/data-action="practice" aria-label="¡Vamos a repasar!"/);
+  assert.equal((html.match(/class="practice-launch-char"/g)||[]).length,[...words.es.practiceLaunch].length);
+  assert.match(html,/class="practice-launch-label" aria-hidden="true"/);
   assert.equal((html.match(/class="study-book"/g) || []).length,2);
   assert.equal((html.match(/data-action="open-book-details"/g) || []).length,2);
   assert.match(html,/Los 7 hábitos/); assert.match(html,/Stephen R\. Covey/);
@@ -229,6 +232,20 @@ test("Home shows one closed book per active book, without exposing trees or spen
   const empty = homeView({...state,statuses:{},reviews:Object.fromEntries(catalog.versions.map(v => [v.id,restoreTreeReview(null,catalog.versionModels.get(v.id),v.id)])),enrolledIds:[]});
   assert.ok(empty.includes(words.es.noReadingBooks)); assert.doesNotMatch(empty,/study-book"/);
   assert.match(homeView({...state,language:"en"}),/Go to the library/);
+});
+
+test("Practice preloads the next card beneath the active one without duplicate IDs or accessible content",async()=>{
+  const catalog=await fixture(),cards=catalog.cards.slice(0,3),state=readerState(catalog,{practiceStage:"session"});
+  const html=practiceView(state,{cards,index:0,advancing:false,leaving:null});
+  assert.equal((html.match(/class="reading-stage/g)||[]).length,2);
+  assert.match(html,new RegExp(`class="reading-stage[^\"]*practice-card--front"[^>]*data-reading-card="${cards[0].id}"`));
+  assert.match(html,/practice-card--behind[^>]*aria-hidden="true" inert/);
+  const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]);
+  assert.equal(ids.length,new Set(ids).size);
+  assert.match(html,new RegExp(`data-reading-card="${cards[1].id}"[^>]*aria-hidden="true" inert`));
+  const next=practiceView(state,{cards,index:1,advancing:false,leaving:null});
+  assert.match(next,new RegExp(`class="reading-stage[^\"]*practice-card--front"[^>]*data-reading-card="${cards[1].id}"`));
+  assert.match(next,new RegExp(`data-reading-card="${cards[2].id}"[^>]*aria-hidden="true" inert`));
 });
 
 
