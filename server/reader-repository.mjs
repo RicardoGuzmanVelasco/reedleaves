@@ -53,6 +53,7 @@ async function stateInside(db,session,now) {
     noteActivity,noteDeckActivity,
     statuses:Object.fromEntries((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])),
     enrolledIds:(await db.prepare("SELECT version_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.version_id),
+    enrolledDeckIds:(await db.prepare("SELECT DISTINCT v.deck_id FROM studies s JOIN deck_versions v ON v.id=s.version_id WHERE s.user_id=?").all(userId)).map(r=>r.deck_id),
     selections:Object.fromEntries((await db.prepare("SELECT book_id,version_id FROM deck_selections WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.version_id])),
     daily:idea,dailyHistory};
 }
@@ -68,17 +69,48 @@ async function enrol(db,userId,version) {
   await db.prepare("INSERT INTO deck_selections VALUES (?,?,?) ON CONFLICT(user_id,book_id) DO UPDATE SET version_id=excluded.version_id")
     .run(userId,version.book_id,version.id);
 }
-export async function selectDeck(db,session,versionId,now=new Date()) {
+async function deckIsOwned(db,userId,version) {
+  return !!await db.prepare("SELECT 1 FROM decks WHERE id=? AND creator_user_id=?").get(version.deck_id,userId);
+}
+async function requireDeckInCollection(db,userId,version) {
+  const added=await db.prepare("SELECT 1 FROM studies s JOIN deck_versions v ON v.id=s.version_id WHERE s.user_id=? AND v.deck_id=?").get(userId,version.deck_id);
+  const owned=await deckIsOwned(db,userId,version);
+  if(!added&&!owned) throw new ApiError(409,"deckNotInCollection");
+  if(!added) await enrol(db,userId,version);
+}
+export async function addDeckToCollection(db,session,versionId,now=new Date()) {
+  return transaction(db,async()=>{
+    const userId=session.user_id,version=await knownVersion(db,versionId,userId);
+    if(isPostgres(db)) await db.prepare("SELECT user_id FROM accounts WHERE user_id=? FOR UPDATE").get(userId);
+    const existing=await db.prepare("SELECT 1 FROM studies s JOIN deck_versions v ON v.id=s.version_id WHERE s.user_id=? AND v.deck_id=?").get(userId,version.deck_id);
+    if(existing) {
+      await enrol(db,userId,version);
+      return {state:await stateInside(db,session,now)};
+    }
+    if(await deckIsOwned(db,userId,version)) {
+      await enrol(db,userId,version);
+      return {state:await stateInside(db,session,now)};
+    }
+    await stateInside(db,session,now);
+    const spent=await db.prepare("UPDATE leaf_wallets SET balance=balance-1 WHERE user_id=? AND balance>=1").run(userId);
+    if(spent.changes!==1) throw new ApiError(409,"insufficientLeaves");
+    await enrol(db,userId,version);
+    return {state:await stateInside(db,session,now)};
+  });
+}
+export async function selectDeck(db,session,versionId,now=new Date(),{requireCollection=false}={}) {
   return transaction(db,async()=>{
     const version=await knownVersion(db,versionId,session.user_id);
+    if(requireCollection) await requireDeckInCollection(db,session.user_id,version);
     await enrol(db,session.user_id,version);
     return stateInside(db,session,now);
   });
 }
-export async function openCard(db,session,versionId,cardId,now=new Date()) {
+export async function openCard(db,session,versionId,cardId,now=new Date(),{requireCollection=false}={}) {
   return transaction(db,async()=>{
     const userId=session.user_id,version=await knownVersion(db,versionId,userId),catalog=prepareCatalog(await readCatalog(db,session.user_id)),model=catalog.versionModels.get(versionId);
     if(typeof cardId!=="string"||!model.byId.has(cardId)) throw new ApiError(404,"cardUnavailable");
+    if(requireCollection) await requireDeckInCollection(db,userId,version);
     const state=await stateInside(db,session,now),review=restoreTreeReview(state.reviews[versionId],model,versionId);
     await enrol(db,userId,version);
     await db.prepare("INSERT INTO reviews(id,user_id,version_id) VALUES (?,?,?) ON CONFLICT(user_id,version_id) DO NOTHING").run(randomUUID(),userId,versionId);

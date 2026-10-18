@@ -4,8 +4,8 @@ import {featuredDecks, restoreTreeReview, bookReviewStates} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=collection-domains-4";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup} from "./views.mjs?v=collection-domains-4";
+import {words} from "./i18n.mjs?v=deck-leaf-cost-5";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup} from "./views.mjs?v=deck-leaf-cost-5";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -38,7 +38,7 @@ export function startReader({createCardFeatures} = {}) {
   let libraryFilters = {...libraryDefaults},libraryFiltersOpen=false;
   let listPositions = {};
   let libraryOrigin = "home", appliedAuthorRoute = null;
-  let libraryQuery = "", authMode = "login", authReturn = "#home", pendingVersion = null, pendingNavigation = null, busy = false, syncError = null, syncGeneration = 0;
+  let libraryQuery = "", authMode = "login", authReturn = "#home", pendingVersion = null, pendingIntent = null, pendingNavigation = null, busy = false, syncError = null, syncGeneration = 0;
   let exclusivePageLock = null;
   const cardFeatures = createCardFeatures?.({api,
     onActionStart:()=>{syncGeneration++},
@@ -724,12 +724,13 @@ export function startReader({createCardFeatures} = {}) {
     if (!notesCompletion) [...main.querySelectorAll('[data-action="set-book-reading"]')].find(button=>button.dataset.book === id && button.dataset.status === status)?.focus({preventScroll:true});
   }
   async function enterDeck(id) {
-    if (!snapshot.user) { pendingVersion = id; authReturn = "#review/"+id; navigate("#account"); return; }
+    if (!snapshot.user) { pendingVersion = id; pendingIntent="review";authReturn = "#review/"+id; navigate("#account"); return; }
     await mutation("/api/reader/select",{versionId:id},()=>{ openDeckId = null; navigate("#review/"+id); });
   }
   async function addDeckToCollection(id) {
-    if (!snapshot.user || !catalog.versionsById.has(id)) return;
-    await mutation("/api/reader/select",{versionId:id},()=>{ openDeckId=id;live.textContent=words[language].deckAddedToCollection; });
+    if (!catalog.versionsById.has(id)) return;
+    if (!snapshot.user) { pendingVersion=id;pendingIntent="collect";authReturn="#book/"+encodeURIComponent(catalog.versionsById.get(id).bookId);navigate("#account");return; }
+    await mutation("/api/reader/collect",{versionId:id},()=>{ openDeckId=id;live.textContent=words[language].deckAddedToCollection; });
   }
   async function openCard(id,activeVersion = versionId) {
     albumPosition={versionId:activeVersion,mode:"review",scrollY:window.scrollY};
@@ -800,8 +801,8 @@ export function startReader({createCardFeatures} = {}) {
   settings.addEventListener("click",async event=>{
     if (event.target === settings) settings.close(); const action = event.target.closest("[data-account-action]")?.dataset.accountAction;
     if (action === "profile") { settings.close(); openOwnProfile(); }
-    if (action === "login") { settings.close(); pendingVersion = null; authReturn = "#home"; navigate("#account"); }
-    if (action === "logout" && !busy) await mutation("/api/auth/logout",{},()=>{ settings.close(); pendingVersion = null; authReturn = "#home"; navigate("#home"); });
+    if (action === "login") { settings.close(); pendingVersion = null;pendingIntent=null; authReturn = "#home"; navigate("#account"); }
+    if (action === "logout" && !busy) await mutation("/api/auth/logout",{},()=>{ settings.close(); pendingVersion = null;pendingIntent=null; authReturn = "#home"; navigate("#home"); });
   });
   main.addEventListener("toggle",e=>{ if (e.target.classList?.contains("library-filters")) libraryFiltersOpen=e.target.open; },true);
   function updateBookSearch() { main.querySelector("#book-search-results").innerHTML = libraryResultsMarkup({catalog,language,showOriginalTitles,libraryQuery,libraryFilters,userId:snapshot.user?.id}); main.querySelector("[data-book-search] button").hidden = !libraryQuery; live.textContent = words[language].searchResults(filterLibrary(catalog,libraryQuery,libraryFilters).length); }
@@ -827,10 +828,15 @@ export function startReader({createCardFeatures} = {}) {
       const state = await api.request("/api/auth/"+authMode,{username,password,inviteCode:authMode === "register" ? input.get("inviteCode") : undefined,language,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone});
       catalog = await loadCatalog();
       applyState(state); form.reset(); syncError = null;
-      if (pendingVersion) { applyState(await api.request("/api/reader/select",{versionId:pendingVersion})); pendingVersion = null; }
+      if (pendingVersion) {
+        const versionId=pendingVersion,addToDecks=pendingIntent === "collect";
+        applyState(await api.request(addToDecks ? "/api/reader/collect" : "/api/reader/select",{versionId}));
+        if(addToDecks)openDeckId=versionId;
+        pendingVersion = null;pendingIntent=null;
+      }
       busy = false; navigate(authReturn);
     } catch(error) { busy = false; main.setAttribute("aria-busy","false"); form.querySelectorAll("button,input").forEach(c=>c.disabled = false); main.querySelectorAll("[data-action]").forEach(c=>c.disabled = false); settings.querySelectorAll("button,input").forEach(c=>c.disabled = false);
-      if (snapshot.user) { syncError = error.code; pendingVersion = null; navigate("#home"); return; }
+      if (snapshot.user) { syncError = error.code; pendingVersion = null;pendingIntent=null; navigate("#home"); return; }
       errorNode.textContent = words[language][error.code] || words[language].connectionError; errorNode.hidden = false; form.querySelector("#account-password").value = ""; form.querySelector("#account-password").focus(); }
   });
   main.addEventListener("change",async e=>{

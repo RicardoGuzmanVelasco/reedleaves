@@ -1,6 +1,6 @@
 # Ajustar hojas manualmente
 
-El monedero `leaf_wallets` admite saldos enteros no negativos, incluidos 10 o 100. El abono diario tiene un máximo de tres: si el saldo ya es mayor, lo conserva sin añadir hojas. Las hojas no se gastan al abrir tarjetas mientras se decide el siguiente uso y sus precios.
+El monedero `leaf_wallets` admite saldos enteros no negativos, incluidos 10 o 100. El abono diario tiene un máximo de tres: si el saldo ya es mayor, lo conserva sin añadir hojas. Añadir una baraja ajena a Decks cuesta una hoja por baraja; las propias aparecen automáticamente. Abrir tarjetas y repasarlas no gasta hojas.
 
 La migración inicial del monedero amplió el saldo máximo permitido por el esquema y conservó las filas existentes. El esquema vigente es SQLite v22 / PostgreSQL v14. Su migración más reciente retira los cobros por abrir tarjetas y conserva el saldo de hojas y el gasto histórico.
 

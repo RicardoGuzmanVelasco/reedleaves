@@ -93,12 +93,12 @@ El progreso actual guarda cartas por usuario y versión en SQL. Nunca se hereda 
 Las claves locales antiguas se conservan sin borrar, pero no se usan como fuente verificada ni se importan en la cuenta nueva.
 Cambiar una versión a archivada no cambia el repaso iniciado: el selector permite retomar la versión con historial.
 
-Cada usuario recibe una hoja al día cuando su saldo está por debajo de tres. Un nuevo monedero empieza con una. Los días ausentes suman hasta tres; las fechas excedentes no se guardan para después. Un ajuste manual puede dejar 100 hojas y se conserva el saldo. Por ahora, abrir tarjetas no usa hojas.
+Cada usuario recibe una hoja al día cuando su saldo está por debajo de tres. Un nuevo monedero empieza con una. Los días ausentes suman hasta tres; las fechas excedentes no se guardan para después. Un ajuste manual puede dejar 100 hojas y se conserva el saldo. Añadir una baraja de otra persona a Decks cuesta una hoja; las barajas propias aparecen automáticamente. Repasar tarjetas no gasta hojas.
 Cada cuenta nueva recibe diez pétalos. Los pétalos están visibles en la interfaz y aún no tienen un uso definido.
 Finalizar exige todas las tarjetas, incluidas las hijas; no solo las raíces.
 La tabla `leaf_wallets` guarda el saldo y la última fecha de abono por usuario. Las hojas se aíslan por usuario y se comparten entre sus barajas. `review_cards` registra qué tarjeta abrió, cuándo y en qué repaso; ya no impone secuencia ni cobra una divisa.
 La autenticación identifica al usuario y el servidor calcula la fecha en la zona horaria fijada de su cuenta. Un doble clic o reintento no duplica el progreso. Borrar almacenamiento local o cambiar el reloj del navegador no altera el progreso SQL.
-Las métricas SQL se incrementan con actividad real de cuentas: primera carta y finalización completa, no al elegir baraja ni explorarla.
+Las métricas SQL se incrementan con actividad real de cuentas: primera carta y finalización completa, no al añadir, elegir baraja ni explorarla.
 
 La idea aleatoria sigue siendo independiente: no altera el repaso ni los monederos.
 Se sortea entre las cartas principales de la baraja elegida para cada libro; cambiar elección no sustituye la idea ya asignada hoy.

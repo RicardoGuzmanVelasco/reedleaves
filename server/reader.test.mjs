@@ -7,7 +7,7 @@ import {join} from "node:path";
 import {openDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION} from "./database.mjs";
 import {seedCatalog,readSeed} from "./seed.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
-import {readReaderState,selectDeck,openCard,changeReading,changePreferences,dailyIdea} from "./reader-repository.mjs";
+import {readReaderState,selectDeck,addDeckToCollection,openCard,changeReading,changePreferences,dailyIdea} from "./reader-repository.mjs";
 import {readProfile} from "./profile-repository.mjs";
 import {serverDay} from "./auth.mjs";
 const date = day=>new Date(day+"T12:00:00Z"), today = date("2026-10-06");
@@ -20,12 +20,16 @@ async function fixture(t,path = ":memory:") {
   }
   return {db,a:{user_id:"a",csrf_token:"a"},b:{user_id:"b",csrf_token:"b"}};
 }
-test("Enrolling is persistent but free and not yet a started review; users are isolated",async t=>{
+test("Adding a deck spends one leaf once; selecting it is free and users are isolated",async t=>{
   const {db,a,b} = await fixture(t), before = await readReaderState(db,a,today);
-  const state = await selectDeck(db,a,version,today);
+  const added = await addDeckToCollection(db,a,version,today), state = added.state;
   assert.deepEqual(state.enrolledIds,[version]); assert.equal(state.selections["seven-habits"],version);
-  assert.deepEqual(state.wallet,before.wallet); assert.deepEqual(state.reviews,{});
+  assert.equal(state.wallet.balance,before.wallet.balance-1); assert.deepEqual(state.reviews,{});
   assert.deepEqual(state.growth["seven-habits"],{added:true,reviewDays:0});
+  assert.equal((await selectDeck(db,a,version,today)).wallet.balance,state.wallet.balance);
+  assert.equal((await addDeckToCollection(db,a,version,today)).state.wallet.balance,state.wallet.balance);
+  await assert.rejects(addDeckToCollection(db,a,other,today),{code:"insufficientLeaves"});
+  assert.equal((await readReaderState(db,a,today)).wallet.balance,state.wallet.balance);
   assert.deepEqual((await readReaderState(db,b,today)).enrolledIds,[]);
   assert.equal((await readCatalog(db)).decks.find(d=>d.id === "seven-habits-editorial").metrics.startedBy,0);
 });
