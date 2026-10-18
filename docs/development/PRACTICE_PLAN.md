@@ -2,6 +2,10 @@
 
 Estado: primera versión integrada en la app, con la elección de tema ya diseñada. Este documento conserva los acuerdos de la conversación del 17 de octubre de 2026 y separa los incrementos futuros de las decisiones pendientes. Las reglas de la experiencia continúan en diseño.
 
+## Pendiente posterior
+
+- Valorar si hace falta una experiencia específica de «Repasar una baraja». No se implementa en esta iteración; las tarjetas se pueden consultar sin posición ni progreso por baraja.
+
 ## Objetivo y entrada acordados
 
 - Repasar es una sesión propia, satisfactoria y expresiva. Complementa a Idea del día; no la sustituye.

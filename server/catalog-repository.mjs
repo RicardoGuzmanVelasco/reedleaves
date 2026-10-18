@@ -47,9 +47,7 @@ export async function readCatalog(db, userId) {
     decks.push({id:row.id,bookId:row.book_id,language:row.language,isRecommended:!!row.is_recommended,
       creator:{kind:"user",userId:row.creator_user_id,name:row.display_name || null},metrics:{
         likes:await metric("SELECT count(*) AS n FROM deck_votes WHERE deck_id = ? AND value = 1",row.id),
-        dislikes:await metric("SELECT count(*) AS n FROM deck_votes WHERE deck_id = ? AND value = -1",row.id),
-        startedBy:await metric(`SELECT count(DISTINCT r.user_id) AS n FROM practices r JOIN deck_versions v ON v.id=r.version_id WHERE v.deck_id = ?`,row.id),
-        reviewingBy:await metric(`SELECT count(DISTINCT r.user_id) AS n FROM practices r JOIN deck_versions v ON v.id=r.version_id WHERE v.deck_id = ? AND r.completed_at IS NULL`,row.id)
+        dislikes:await metric("SELECT count(*) AS n FROM deck_votes WHERE deck_id = ? AND value = -1",row.id)
       }});
   }
   const versions = [];

@@ -1,11 +1,10 @@
-import {randomInt,randomUUID} from "node:crypto";
+import {randomInt} from "node:crypto";
 import {isPostgres,transaction} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
 import {serverDay} from "./auth.mjs";
 import {accrueLeafWallet} from "./leaf-wallet-repository.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
-import {restoreTreePractice} from "../app/decks.mjs";
 import {LANGUAGES} from "../app/core.mjs";
 
 import {insertCardView} from "./profile-repository.mjs";
@@ -32,13 +31,6 @@ async function stateInside(db,session,now) {
     id:activePracticeRow.id,topic:activePracticeRow.topic,cardIds:JSON.parse(activePracticeRow.card_ids),
     index:Number(activePracticeRow.card_index),cost:Number(activePracticeRow.cost),startedAt:activePracticeRow.started_at instanceof Date?activePracticeRow.started_at.toISOString():activePracticeRow.started_at
   }:null;
-  const practices={};
-  for(const row of await db.prepare("SELECT * FROM practices WHERE user_id = ? ORDER BY started_at,id").all(userId)) {
-    const cards=await db.prepare("SELECT card_id,local_day FROM practice_cards WHERE practice_id = ? ORDER BY rowid").all(row.id);
-    const position=await db.prepare("SELECT card_id FROM practice_positions WHERE practice_id = ?").get(row.id);
-    practices[row.version_id]={versionId:row.version_id,seenIds:cards.map(card=>card.card_id),
-      currentId:position?.card_id||cards.at(-1)?.card_id||null,completed:!!row.completed_at};
-  }
   const display=await db.prepare("SELECT show_original_titles FROM reader_display_preferences WHERE user_id = ?").get(userId);
   const addedBooks=new Set([
     ...(await db.prepare("SELECT book_id FROM book_reading WHERE user_id = ?").all(userId)).map(r=>r.book_id),
@@ -63,7 +55,7 @@ async function stateInside(db,session,now) {
     noteDeckActivity[row.deck_id]=date;
     if (!noteActivity[row.book_id] || date > noteActivity[row.book_id]) noteActivity[row.book_id]=date;
   }
-  return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,showOriginalTitles:display?.show_original_titles === 1,today,wallet,petals:petalWallet.balance,petalMaximum:MAX_PETALS,practiceDiscountTopic:discountTopic,activePracticeSession,practices,practiceAnswers,growth,cardSaves:await cardSavesInside(db,userId),
+  return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,showOriginalTitles:display?.show_original_titles === 1,today,wallet,petals:petalWallet.balance,petalMaximum:MAX_PETALS,practiceDiscountTopic:discountTopic,activePracticeSession,practiceAnswers,growth,cardSaves:await cardSavesInside(db,userId),
     noteActivity,noteDeckActivity,
     statuses:Object.fromEntries((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])),
     enrolledIds:(await db.prepare("SELECT version_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.version_id),
@@ -134,14 +126,8 @@ export async function openCard(db,session,versionId,cardId,now=new Date(),{requi
     const userId=session.user_id,version=await knownVersion(db,versionId,userId),catalog=prepareCatalog(await readCatalog(db,session.user_id)),model=catalog.versionModels.get(versionId);
     if(typeof cardId!=="string"||!model.byId.has(cardId)) throw new ApiError(404,"cardUnavailable");
     if(requireCollection) await requireDeckInCollection(db,userId,version);
-    const state=await stateInside(db,session,now),review=restoreTreePractice(state.practices[versionId],model,versionId);
+    const state=await stateInside(db,session,now);
     await enrol(db,userId,version);
-    await db.prepare("INSERT INTO practices(id,user_id,version_id) VALUES (?,?,?) ON CONFLICT(user_id,version_id) DO NOTHING").run(randomUUID(),userId,versionId);
-    const row=await db.prepare("SELECT id FROM practices WHERE user_id = ? AND version_id = ?").get(userId,versionId);
-    await db.prepare("INSERT INTO practice_cards(practice_id,user_id,version_id,card_id,local_day) VALUES (?,?,?,?,?) ON CONFLICT(practice_id,card_id) DO NOTHING")
-      .run(row.id,userId,versionId,cardId,state.today);
-    await db.prepare("INSERT INTO practice_positions(practice_id,user_id,version_id,card_id) VALUES (?,?,?,?) ON CONFLICT(practice_id) DO UPDATE SET card_id=excluded.card_id")
-      .run(row.id,userId,versionId,cardId);
     await insertCardView(db,userId,cardId);
     return {state:await stateInside(db,session,now)};
   });

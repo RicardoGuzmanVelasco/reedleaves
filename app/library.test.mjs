@@ -12,7 +12,7 @@ async function state() {
   let catalog;
   try { initializeDatabase(db); await seedCatalog(db); catalog = prepareCatalog(await readCatalog(db)); }
   finally { await db.close(); }
-  return {catalog,language:"es",statuses:{"seven-habits":"read"},bookPractices:{"seven-habits":{hasReviewing:true,hasReviewed:true}},practices:{},openBookId:null,storageAvailable:true,userId:"reader",budget:{balance:2,lastAccrualDay:"2026-10-06"}};
+  return {catalog,language:"es",statuses:{"seven-habits":"read"},openBookId:null,storageAvailable:true,userId:"reader",budget:{balance:2,lastAccrualDay:"2026-10-06"}};
 }
 
 test("Add book lists the whole catalog as closed books, with essential data and no forms or deck content", async () => {

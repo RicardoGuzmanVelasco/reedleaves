@@ -47,8 +47,7 @@ test("PostgreSQL persists account, daily leaves and freely opened cards", async 
   const repeated = await openCard(db,session,versionId,"habit-1",now);
   assert.equal((await readLeafWallet(db,id,day)).balance,1);
   const state = await readReaderState(db,session,now);
-  assert.deepEqual(state.practices[versionId].seenIds,["habit-1"]);
-  assert.equal((await readCatalog(db)).decks.find(deck => deck.id === "seven-habits-editorial").metrics.startedBy,1);
+  assert.equal("practices" in state,false);
 });
 
 test("PostgreSQL transactions roll back seed writes on failure", async t => {
@@ -63,7 +62,7 @@ test("PostgreSQL transactions roll back seed writes on failure", async t => {
   assert.equal((await db.prepare("SELECT author FROM books WHERE id = ?").get("seven-habits")).author,"Stephen R. Covey");
 });
 
-test("PostgreSQL v1 upgrade preserves accounts, catalog and practices and is repeatable", async t => {
+test("PostgreSQL v1 upgrade preserves accounts and catalog and is repeatable", async t => {
   const db=await historicalDatabase(t,"postgres",1),session=await historicalReader(db);
   await historicalUnlock(db,session);
   const before=await migrationData(db);
@@ -71,7 +70,7 @@ test("PostgreSQL v1 upgrade preserves accounts, catalog and practices and is rep
   assert.equal((await db.prepare("SELECT version FROM reed_schema").get()).version,POSTGRES_SCHEMA_VERSION);
   assert.deepEqual(await migrationData(db),before);
   assert.equal((await readCatalog(db)).cards.length,42);
-  assert.equal((await readReaderState(db,session)).practices["seven-habits-editorial-v1"].seenIds[0],"habit-1");
+  assert.equal("practices" in await readReaderState(db,session),false);
 });
 
 
@@ -84,7 +83,7 @@ test("PostgreSQL v3 upgrade preserves state and saves original title preferences
   assert.deepEqual(await migrationData(db),data);
   const before=await readReaderState(db,session,now);
   assert.equal(before.showOriginalTitles,false);
-  assert.deepEqual(before.practices["seven-habits-editorial-v1"].seenIds,["habit-1"]);
+  assert.equal("practices" in before,false);
   await changePreferences(db,session,{showOriginalTitles:true},now);
   assert.deepEqual(await readReaderState(db,{user_id,csrf_token:"second session"},now),{...before,csrfToken:"second session",showOriginalTitles:true});
   await assert.rejects(changePreferences(db,session,{showOriginalTitles:"true"},now),e=>e.code==="invalidRequest");
@@ -92,7 +91,23 @@ test("PostgreSQL v3 upgrade preserves state and saves original title preferences
   assert.equal((await changePreferences(db,session,{showOriginalTitles:false},now)).showOriginalTitles,false);
 });
 
-test("PostgreSQL profiles separate views and practices and upgrade historical unlocks from v4",async t=>{
+test("PostgreSQL v18 migration removes deck progress but preserves paid practice sessions",async t=>{
+  const db=await historicalDatabase(t,"postgres",18),session=await historicalReader(db);
+  await historicalUnlock(db,session);
+  await db.prepare("INSERT INTO practice_sessions(id,user_id,topic,card_ids,card_index,cost,started_at) VALUES ('paid-1',?,'mixed','[\"habit-1\",\"habit-2\",\"habit-3\",\"habit-4\",\"habit-5\"]',2,2,'2026-10-10T10:00:00.000Z')").run(session.user_id);
+  await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES ('paid-1','habit-1',0),('paid-1','habit-2',1),('paid-1','habit-3',2),('paid-1','habit-4',3),('paid-1','habit-5',4)").run();
+  const before=await migrationData(db);
+  await initializeDatabase(db);await initializeDatabase(db);
+  assert.equal((await db.prepare("SELECT version FROM reed_schema").get()).version,POSTGRES_SCHEMA_VERSION);
+  for(const table of ["practices","practice_cards","practice_positions"]) {
+    assert.equal((await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=?").get(table)),undefined);
+  }
+  assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM practice_sessions WHERE id='paid-1'").get()).n,1);
+  assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM practice_session_cards WHERE session_id='paid-1'").get()).n,5);
+  assert.deepEqual(await migrationData(db),before);
+});
+
+test("PostgreSQL profiles count views and upgrade historical unlocks from v4",async t=>{
   const {readProfile,recordCardView}=await import("./profile-repository.mjs");
   const db=await historicalDatabase(t,"postgres",4),session=await historicalReader(db),now=migrationNow,id=session.user_id;
   await historicalUnlock(db,session);
@@ -105,7 +120,6 @@ test("PostgreSQL profiles separate views and practices and upgrade historical un
   await recordCardView(db,session,{cardId:"habit-2",context:"daily"},now);
   await recordCardView(db,session,{cardId:"habit-2",context:"daily"},now);
   const data=await readProfile(db,id,id);
-  assert.equal(data.profile.counts.cardsViewed,2);assert.equal(data.profile.counts.cardsReviewed,1);
-  assert.equal(data.profile.counts.leavesSpent,1);assert.equal(data.profile.counts.decksInProgress,1);
+  assert.equal(data.profile.counts.cardsViewed,2);
   assert.equal(data.profile.mascots.seed,0);assert.equal(data.profile.mascots.pot,1);
 });

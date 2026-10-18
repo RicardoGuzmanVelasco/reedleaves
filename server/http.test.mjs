@@ -207,9 +207,9 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   assert.equal((await post("/api/reader/select",{versionId},otherHeaders)).status,200);
   assert.equal((await post("/api/author/cards",{...cardInput,requestId:randomUUID()},otherHeaders)).status,404);
   const otherOpen=await post("/api/reader/open",{versionId,cardId},otherHeaders);
-  assert.equal(otherOpen.status,200);assert.equal((await otherOpen.json()).state.practices[versionId].seenIds.includes(cardId),true);
+  assert.equal(otherOpen.status,200);assert.equal("practices" in (await otherOpen.json()).state,false);
   const creatorState=await fetch(base+"/api/reader/state",{headers:{Cookie:headers.Cookie}}).then(r=>r.json());
-  assert.equal(creatorState.practices[versionId],undefined);
+  assert.equal("practices" in creatorState,false);
   assert.equal((await post("/api/reader/reading",{bookId,status:"reading"},otherHeaders)).status,200);
   const ownDeck=await post("/api/author/decks",{...deckInput,requestId:randomUUID()},otherHeaders);
   assert.equal(ownDeck.status,200);
@@ -241,9 +241,9 @@ test("Profiles require a session and view writes require origin, CSRF and a vali
   assert.doesNotMatch(JSON.stringify(data),/password|csrf|token|timeZone/);
   assert.equal((await fetch(base+"/api/profiles/missing",{headers:{Cookie:cookie}})).status,404);
   assert.equal((await fetch(base+"/api/profiles/reed-team",{method:"POST",headers})).status,405);
-  assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"review"},{Cookie:cookie})).status,403);
-  assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"review"},headers)).status,200);
+  assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"practice"},{Cookie:cookie})).status,403);
+  assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"practice"},headers)).status,200);
   await post("/api/reader/collect",{versionId:"seven-habits-editorial-v1"},headers);
   await post("/api/reader/open",{versionId:"seven-habits-editorial-v1",cardId:"habit-1"},headers);
-  assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"review"},headers)).status,200);
+  assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"practice"},headers)).status,200);
 });

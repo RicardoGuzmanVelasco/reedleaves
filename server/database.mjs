@@ -7,8 +7,8 @@ import { Pool, types } from "pg";
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 26;
-export const POSTGRES_SCHEMA_VERSION = 18;
+export const SQLITE_SCHEMA_VERSION = 27;
+export const POSTGRES_SCHEMA_VERSION = 19;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -87,6 +87,17 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 26) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`DROP TRIGGER complete_practice;
+        DROP TABLE practice_positions;
+        DROP TABLE practice_cards;
+        DROP TABLE practices;
+        PRAGMA user_version=27; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 25) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -393,6 +404,21 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 18) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 19) return;
+          await db.exec(`DROP TRIGGER complete_practice ON practice_cards;
+            DROP FUNCTION reed_complete_practice();
+            DROP TABLE practice_positions;
+            DROP TABLE practice_cards;
+            DROP TABLE practices;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=19;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=19);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 17) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");

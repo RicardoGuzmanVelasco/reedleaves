@@ -11,19 +11,17 @@ Estado: implementado para la prueba interna. Usuario y contraseña, sin correo n
 - En HTTPS la cookie añade `Secure`. Entrar rota la sesión de ese navegador; cerrar sesión revoca solo esa sesión, no los otros dispositivos.
 - Intentos de acceso limitados por dirección y usuario. Error genérico si la cuenta no existe o la contraseña no coincide.
 - Mutaciones con origen exacto y token CSRF por sesión. JSON limitado a 8 KiB; respuestas de cuenta sin caché.
-- El usuario del progreso siempre sale de la sesión. La API no acepta un usuario, saldo o fecha elegidos por el cliente.
+- El usuario siempre sale de la sesión. La API no acepta un usuario, saldo o fecha elegidos por el cliente.
 
 La zona horaria se valida y se fija al crear la cuenta. La fecha se calcula con el reloj del servidor en esa zona. No hay una API para cambiarla y obtener abonos adicionales.
 
 ## Persistencia
 
-SQLite local o PostgreSQL en producción guarda, por usuario: barajas elegidas, tarjetas repasadas, última tarjeta abierta, lectura del original, idioma, monederos, votos y tarjetas guardadas. La idea diaria se guarda una sola vez por fecha UTC y es común a todas las cuentas.
+SQLite local o PostgreSQL en producción guarda, por usuario: barajas añadidas al Tarjetero, lectura del libro, idioma, monederos, votos y tarjetas guardadas. `card_views` registra tarjetas vistas una sola vez por usuario para los perfiles. La idea diaria se guarda una sola vez por fecha UTC y es común a todas las cuentas.
 
-Elegir baraja no gasta hojas ni aumenta «más popular». Abrir la primera carta crea el repaso y cuenta como una persona que empezó. Una persona se cuenta una vez por baraja, aunque use varias versiones.
+Añadir una baraja al Tarjetero cuesta una hoja y añadirla otra vez no vuelve a cobrarla. Elegir una baraja no cuesta nada.
 
-Todas las tarjetas de una baraja se pueden abrir desde el principio, incluidas las hijas y las citas. Abrir una tarjeta registra el repaso de esa baraja y su posición, sin cobrar hojas ni pétalos. `practices` registra el progreso por usuario y versión; las sesiones breves de cinco tarjetas se registran por separado en `practice_sessions` y cobran pétalos.
-
-La clave única de tarjeta por repaso hace los reintentos seguros: un doble clic, una respuesta perdida o dos sesiones no duplican progreso. El repaso termina cuando se han abierto todas las tarjetas de la versión, incluidas las hijas.
+Todas las tarjetas de una baraja añadida se pueden abrir desde el principio, incluidas las hijas y las citas. Abrir una tarjeta no cobra hojas ni pétalos y no guarda avance por baraja. Las sesiones breves de cinco tarjetas se registran en `practice_sessions` y cobran pétalos.
 
 La idea del día se sortea al primer acceso de cada fecha UTC y queda fijada para todo el mundo. Se elige al azar entre las tarjetas raíz de las versiones predeterminadas del catálogo y se agotan las candidatas antes de repetir; al empezar otro ciclo se evita la tarjeta del día anterior si hay alternativa. Una cita raíz también puede salir. El calendario permite consultar las asignaciones anteriores.
 
@@ -72,7 +70,7 @@ Referencias primarias: [contraseñas, OWASP](https://cheatsheetseries.owasp.org/
 ## Perfil y vistas de tarjetas (2026-10-11)
 
 - `GET /api/profiles/:userId` requiere sesión y devuelve solo nombre, usuario público, fecha de alta, estadísticas y resúmenes de los libros visibles para quien consulta. No devuelve credenciales, sesión ni monedero. Las barajas y tarjetas creadas por cuentas son visibles en el catálogo común; editar borradores sigue reservado a su creador. Incluye también a los creadores editoriales sin cuenta de acceso.
-- `POST /api/reader/view` requiere origen, sesión y CSRF. Registra una tarjeta distinta por usuario al mostrarse en idea diaria, repaso o autoría. Comprueba que sea la idea asignada, una tarjeta válida de repaso o contenido propio en borrador, según el contexto. Los reintentos no duplican vistas. No modifica los monederos ni el repaso.
+- `POST /api/reader/view` requiere origen, sesión y CSRF. Registra una tarjeta distinta por usuario al mostrarse en idea diaria, una sesión de práctica o autoría. Comprueba que sea la idea asignada, una tarjeta válida de práctica o contenido propio en borrador, según el contexto. Los reintentos no duplican vistas. No modifica los monederos ni la sesión.
 - `card_views` guarda `user_id`, `card_id` y primera fecha de vista. La migración histórica conserva el progreso de repaso anterior y rellena vistas desde ese registro. Las ideas diarias anteriores solo prueban asignación, no visualización; no se inventa su historial de vistas.
-- Hojas gastadas: solo el total histórico anterior a eliminar los cobros. Tarjetas repasadas/vistas: IDs distintos. Barajas en repaso: versión con tarjetas pendientes (o un borrador vacío), con progreso o inscripción, deduplicada por baraja. Es una métrica de aprendizaje; Inicio usa lectura o barajas propias en borrador y no comparte ese criterio. Libros leídos/leyendo: estados manuales independientes.
-- Mascotas: una etapa actual por libro, compartida con la UI. Totales de creador incluyen sus barajas y tarjetas, con citas como subconjunto. La biblioteca ajena muestra fichas de libros compartidos asociadas al perfil, con el repaso calculado solo sobre barajas visibles para el visitante. Ver [ADR 0001](../adr/0001-libros-en-catalogo-comun.md) y [ADR 0002](../adr/0002-barajas-en-catalogo-comun.md).
+- Métricas del perfil: libros leídos y en lectura son estados manuales; tarjetas vistas cuenta IDs distintos; las contribuciones cuentan barajas, tarjetas y citas creadas. No hay métricas de barajas empezadas, tarjetas repasadas ni barajas completadas.
+- Mascotas: una etapa actual por libro, compartida con la UI. El crecimiento cuenta días distintos con sesiones pagadas completadas. Totales de creador incluyen sus barajas y tarjetas, con citas como subconjunto. La biblioteca ajena muestra fichas de libros compartidos asociadas al perfil. Ver [ADR 0001](../adr/0001-libros-en-catalogo-comun.md) y [ADR 0002](../adr/0002-barajas-en-catalogo-comun.md).

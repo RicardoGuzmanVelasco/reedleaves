@@ -51,7 +51,7 @@ test("Empty search restores ordered books; no duplicates, author/body matches, o
 });
 
 test("Simple search is labelled, escaped, clearable and recovers from no results", async () => {
-  const s = {catalog:prepareCatalog(await fixture()),language:"es",statuses:{},practices:{},storageAvailable:true};
+  const s = {catalog:prepareCatalog(await fixture()),language:"es",statuses:{},storageAvailable:true};
   const initial = libraryView(s);
   assert.match(initial,/role="search"/); assert.match(initial,/for="book-search">Buscar libro/);
   assert.match(initial,/aria-controls="book-search-results"/);
@@ -65,11 +65,11 @@ test("Simple search is labelled, escaped, clearable and recovers from no results
 test("Every book modal always shows original title in its own language, even if the titles coincide", async () => {
   const catalog = prepareCatalog(await fixture());
   for (const language of ["es","en"]) for (const book of catalog.books) {
-    const html = libraryView({catalog,language,statuses:{},practices:{},openBookId:book.id,storageAvailable:true});
+    const html = libraryView({catalog,language,statuses:{},openBookId:book.id,storageAvailable:true});
     assert.ok(html.includes(`<span>${words[language].originalTitle}</span><span lang="en" dir="auto">${book.originalTitle}</span>`));
   }
   const book = catalog.books[0]; book.originalTitle = '<img src=x>'; book.originalLanguage = "fr";
-  const html = libraryView({catalog,language:"en",statuses:{},practices:{},openBookId:book.id});
+  const html = libraryView({catalog,language:"en",statuses:{},openBookId:book.id});
   assert.match(html,/lang="fr" dir="auto">&lt;img src=x&gt;/); assert.doesNotMatch(html,/<img src=x>/);
 });
 

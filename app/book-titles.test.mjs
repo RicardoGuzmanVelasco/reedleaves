@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {bookTitle,bookCoverTitle} from "./core.mjs";
 import {libraryView,libraryResultsMarkup,homeView,deckView,reviewView,dailyView} from "./views.mjs";
 import {prepareCatalog} from "./catalog.mjs";
-import {featuredDecks,restoreTreePractice} from "./decks.mjs";
+import {featuredDecks} from "./decks.mjs";
 import {openDatabase,initializeDatabase} from "../server/database.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
@@ -14,7 +14,7 @@ async function state() {
     initializeDatabase(db); await seedCatalog(db);
     const catalog=prepareCatalog(await readCatalog(db)),versionId="seven-habits-editorial-v1";
     return {catalog,versionId,bookId:"seven-habits",language:"es",showOriginalTitles:true,
-      statuses:{"seven-habits":"reading"},bookPractices:{},practices:{[versionId]:restoreTreePractice({seenIds:["habit-1"]},catalog.versionModels.get(versionId),versionId)},
+      statuses:{"seven-habits":"reading"},
       enrolledIds:[versionId],storageAvailable:true,budget:{balance:1},daily:{id:"habit-1"},
       deckChoices:featuredDecks(catalog,"seven-habits")};
   } finally { db.close(); }

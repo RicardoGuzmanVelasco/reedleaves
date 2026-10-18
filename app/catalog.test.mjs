@@ -6,7 +6,6 @@ import { seedCatalog } from "../server/seed.mjs";
 import { readSeed } from "../server/seed.mjs";
 import { readCatalog } from "../server/catalog-repository.mjs";
 import { prepareCatalog, loadCatalog } from "./catalog.mjs";
-import {openTreeCard} from "./decks.mjs";
 import { createBrowserStore, storageKeys } from "./storage.mjs";
 import { dailyView, reviewView, libraryView, mascotsView, deckView, homeView, authorView } from "./views.mjs";
 import { readerState } from "../test-support/reader-state.mjs";
@@ -53,13 +52,6 @@ test("Catalog validation rejects orphan cards, duplicate IDs and missing genre t
     const data = await payload(); mutate(data); assert.throws(() => prepareCatalog(data));
   }
 });
-test("Opening cards in different books does not share an access limit", async () => {
-  const catalog=prepareCatalog(await payload());
-  const first=openTreeCard(null,catalog.versionModels.get("atomic-habits-editorial-v1"),"atomic-habits-editorial-v1","atomic-8");
-  const second=openTreeCard(null,catalog.versionModels.get("rich-dad-poor-dad-editorial-v1"),"rich-dad-poor-dad-editorial-v1","rich-dad-6");
-  assert.deepEqual(first.review.seenIds,["atomic-8"]);
-  assert.deepEqual(second.review.seenIds,["rich-dad-6"]);
-});
 test("Storage preserves v2 book keys, reads live changes and fails closed without persistence", () => {
   const map = new Map(), provider = () => ({ getItem: key => map.get(key) || null, setItem: (key, value) => map.set(key, value) });
   const store = createBrowserStore(provider), key = storageKeys.noteDrafts("reader","seven-habits");
@@ -71,7 +63,7 @@ test("Storage preserves v2 book keys, reads live changes and fails closed withou
 });
 test("Views expose every review card and preserve book attribution", async () => {
   const catalog=prepareCatalog(await payload()),versionId="atomic-habits-editorial-v1";
-  const state = { catalog, practices:{[versionId]:{versionId,seenIds:[],currentId:null}}, versionId, language: "es", bookId: "atomic-habits", requestedId: "atomic-8", daily: { id: "rich-dad-2", bookId: "rich-dad-poor-dad", day:"2026-10-06" },dailyToday:{day:"2026-10-06"},dailyHistory:[{id:"rich-dad-2",bookId:"rich-dad-poor-dad",day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",
+  const state = { catalog, versionId, language: "es", bookId: "atomic-habits", requestedId: "atomic-8", daily: { id: "rich-dad-2", bookId: "rich-dad-poor-dad", day:"2026-10-06" },dailyToday:{day:"2026-10-06"},dailyHistory:[{id:"rich-dad-2",bookId:"rich-dad-poor-dad",day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",
     statuses: {}, today: "2026-10-06", storageAvailable: true };
   const daily = dailyView(state);
   assert.match(daily, /Robert T\. Kiyosaki/); assert.match(daily, /daily-calendar/);assert.match(daily,/data-day="2026-10-06"/);
@@ -170,14 +162,14 @@ test("Locked stages show known artwork and mottos up to the user's maximum in ot
 });
 
 test("Mascot collection opens from review album and deck selection, not library, card detail or authoring",async()=>{
-  const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{},practices:{},bookPractices:{},statuses:{},enrolledIds:[],deckChoices:[],storageAvailable:false};
+  const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{},statuses:{},enrolledIds:[],deckChoices:[],storageAvailable:false};
   assert.doesNotMatch(libraryView({...state,openBookId:"seven-habits"}),/data-action="open-mascots"/);
   assert.match(deckView(state),/data-action="open-mascots" data-book="seven-habits"/);
   assert.match(deckView({...state,growth:{"seven-habits":{added:true,reviewDays:1}}}),/mascot-entry[^>]*data-book="seven-habits"[^>]*>.*?<img src="\/brand\/reed\/growth\/bodies\/seed\.svg"/);
   assert.doesNotMatch(homeView(state),/data-action="open-mascots"/);
-  const version=catalog.versions.find(item=>item.bookId==="seven-habits"),model=catalog.versionModels.get(version.id),first=model.cards[0];
+  const version=catalog.versions.find(item=>item.bookId==="seven-habits");
   const reviewing={...state,versionId:version.id,requestedId:null,today:"2026-10-11",budget:null,storageAvailable:true,
-    practices:{[version.id]:{seenIds:[first.id],currentId:first.id}},growth:{"seven-habits":{added:true,reviewDays:1}}};
+    growth:{"seven-habits":{added:true,reviewDays:1}}};
   const review=reviewView(reviewing);
   assert.match(review,/review-mascot-callout/);assert.match(review,/review-mascot-button/);
   assert.match(review,/data-action="open-mascots" data-book="seven-habits"/);
@@ -193,6 +185,7 @@ test("Mascot collection opens from review album and deck selection, not library,
   const flowerReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,reviewDays:15}}});
   assert.match(flowerReview,/brand\/reed\/growth\/bodies\/flower\.png/);
   assert.doesNotMatch(flowerReview,/<p lang="es"><\/p>|undefined/);
+  const first=catalog.cards.find(card=>card.versionId===version.id);
   for (const html of [reviewView({...reviewing,requestedId:first.id}),authorView({...reviewing,requestedId:first.id})]) {
     const modal=html.match(/<dialog class="exclusive-card-modal"[^>]*>([\s\S]*?)<\/dialog>/)?.[1];
     assert.ok(modal);assert.doesNotMatch(modal,/data-action="open-mascots"/);

@@ -26,7 +26,7 @@ async function recordCompletedPractice(db,session,bookId,now,versionId=null) {
   for(const [position,cardId] of cardIds.entries()) await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)").run(id,cardId,position);
 }
 
-test("Profile distinguishes unique views and review progress; daily assignment alone is not a view",async t=>{
+test("Profile counts unique views; daily assignment alone is not a view",async t=>{
   const {db,a}=await fixture(t),version="seven-habits-editorial-v1";
   await openCard(db,a,version,"habit-1",day(10));
   await openCard(db,a,version,"habit-1",day(10));
@@ -37,9 +37,9 @@ test("Profile distinguishes unique views and review progress; daily assignment a
   await recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(10));
   const after=await readReaderState(db,a,day(10));assert.deepEqual(after,before);
   const {counts}= (await readProfile(db,a.user_id,a.user_id)).profile;
-  assert.equal(counts.cardsReviewed,1);assert.equal(counts.cardsViewed,2);assert.equal(counts.leavesSpent,0);
-  assert.equal(counts.decksInProgress,1);assert.equal("decksCompleted" in counts,false);
-  await recordCardView(db,a,{cardId:"habit-3",context:"review"},day(10));
+  assert.equal(counts.cardsViewed,2);assert.equal("cardsReviewed" in counts,false);
+  assert.equal("decksInProgress" in counts,false);assert.equal("decksCompleted" in counts,false);
+  await recordCardView(db,a,{cardId:"habit-3",context:"practice"},day(10));
   await assert.rejects(recordCardView(db,a,{cardId:"habit-1",context:"author"},day(10)),{code:"notAllowed"});
   await recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(11));
 });
@@ -53,8 +53,8 @@ test("Profile counts one current pet per book rather than all unlocked stages, i
   for(let n=1;n<=7;n++) await recordCompletedPractice(db,a,"seven-habits",day(9+n));
   const p=(await readProfile(db,a.user_id,a.user_id)).profile;
   assert.equal(p.counts.booksRead,1);assert.equal(p.counts.booksReading,2);
-  assert.equal("decksCompleted" in p.counts,false);assert.equal(p.counts.decksInProgress,1);
-  assert.equal(p.counts.leavesSpent,0);assert.equal(p.counts.cardsReviewed,0);
+  assert.equal("decksCompleted" in p.counts,false);assert.equal("decksInProgress" in p.counts,false);
+  assert.equal("leavesSpent" in p.counts,false);assert.equal("cardsReviewed" in p.counts,false);
   assert.deepEqual(p.mascots,{pot:3,seed:0,root:0,seedling:0,sprout:1,sapling:0,stem:0,plant:0,flower:0,fruit:0,infinity:0});
 });
 
@@ -94,10 +94,10 @@ test("Author stats include quotes as a subset; shared libraries expose content b
   await createDeck(db,a,{requestId:randomUUID(),bookId:"atomic-habits",title:"Shared draft",language:"es"});
   const own=await readProfile(db,a.user_id,a.user_id),foreign=await readProfile(db,a.user_id,b.user_id);
   assert.equal(own.profile.counts.decksCreated,2);assert.equal(own.profile.counts.cardsCreated,2);assert.equal(own.profile.counts.quotesCreated,1);
-  assert.equal(own.profile.counts.cardsViewed,1);assert.equal(own.profile.counts.cardsReviewed,0);
+  assert.equal(own.profile.counts.cardsViewed,1);assert.equal("cardsReviewed" in own.profile.counts,false);
   assert.ok(own.bookshelf.some(entry=>entry.bookId===bookId));
   assert.deepEqual(new Set(foreign.bookshelf.map(entry=>entry.bookId)),new Set([bookId,"atomic-habits"]));
-  assert.deepEqual(foreign.bookshelf.find(entry=>entry.bookId===bookId),{bookId,reading:"reading",pending:true,hasReviewing:false,hasReviewedCards:false,group:"pending"});
+  assert.deepEqual(foreign.bookshelf.find(entry=>entry.bookId===bookId),{bookId,reading:"reading"});
   assert.deepEqual(foreign.bookshelf,own.bookshelf);
   assert.doesNotMatch(JSON.stringify(foreign),/Personal text|password|csrf|time_zone|wallet/);
   await assert.rejects(recordCardView(db,b,{cardId,context:"author"}),{code:"notAllowed"});
@@ -113,5 +113,4 @@ test("SQLite v12 view migration preserves accounts and unlocks, backfills once a
   assert.deepEqual(await migrationData(db),before);
   assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM card_views").get().n,1);
-  assert.equal((await readProfile(db,a.user_id,a.user_id)).profile.counts.leavesSpent,1);
 });

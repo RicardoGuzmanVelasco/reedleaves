@@ -128,7 +128,6 @@ async function writeCard(db,session,input) {
   const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM cards WHERE version_id=? AND (parent_id=? OR (parent_id IS NULL AND CAST(? AS TEXT) IS NULL))").get(version.id,input.parentId,input.parentId);
   await db.prepare("INSERT INTO cards(id,version_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)").run(id,version.id,version.book_id,input.parentId,position,input.isQuote ? 1 : 0,new Date().toISOString());
   await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)").run(id,version.language,title,body);
-  await db.prepare("UPDATE practices SET completed_at=NULL WHERE version_id=?").run(version.id);
   return {versionId:version.id,cardId:id};
 }
 
@@ -309,7 +308,6 @@ export async function appendTeamDeckCards(db,input) {
       await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)")
         .run(card.id,version.language,card.title,card.body);
     }
-    await db.prepare("UPDATE practices SET completed_at=NULL WHERE version_id=?").run(versionId);
     return {versionId,cardIds:normalized.map(card=>card.id),cardCount:normalized.length,idempotent:false};
   });
 }

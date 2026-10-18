@@ -171,9 +171,8 @@ function deckCollectionMarkup(s) {
   if (!entries.length) return `<div class="empty-state collection-empty"><p>${c.emptyDeckCollection}</p><button class="text-button collection-back" type="button" data-action="library">${collectionIconMarkup("library",18)}${c.goLibrary} →</button></div>`;
   return `<div class="collection-decks" role="list" aria-label="${esc(c.deckCollection)}">${entries.map(({version,deck,book})=>{
     const title=contentText(version.title,s.language,version.language),bookTitle=displayedBookTitle(s,book).text;
-    const review=s.practices[version.id],ownDraft=deck.creator.userId === s.userId && version.status === "draft";
-    const progress=review?.seenIds.length ? c.progress(review.seenIds.length,version.cardCount) : version.cardCount ? c.noteCardsCount(version.cardCount) : c.emptyAuthor;
-    return `<article class="collection-deck" role="listitem"><div class="collection-deck-copy"><h2 lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(title)}</h2><p lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(bookTitle)}</p><small>${esc(progress)}</small></div><button class="text-button" type="button" data-action="${ownDraft ? "manage-collection-deck" : "review-collection-deck"}" data-version="${esc(version.id)}">${ownDraft ? c.manageDeck : review?.seenIds.length ? c.resume : c.review} →</button></article>`;
+    const ownDraft=deck.creator.userId === s.userId && version.status === "draft";
+    return `<article class="collection-deck" role="listitem"><div class="collection-deck-copy"><h2 lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(title)}</h2><p lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(bookTitle)}</p><small>${esc(c.noteCardsCount(version.cardCount))}</small></div><button class="text-button" type="button" data-action="${ownDraft ? "manage-collection-deck" : "review-collection-deck"}" data-version="${esc(version.id)}">${ownDraft ? c.manageDeck : c.viewDeck} →</button></article>`;
   }).join("")}</div>`;
 }
 
@@ -181,15 +180,14 @@ export function bookshelfView(s) {
   const c = words[s.language], filters = s.bookshelfFilters || bookshelfDefaults;
   const filterDraft=s.bookshelfFilterDraft || filters;
   const activeTab=s.readOnly ? "shelf" : s.bookshelfTab || "shelf";
-  const all=s.readOnly ? (s.profileData?.bookshelf || []).map(entry=>({...entry,book:s.catalog.booksById.get(entry.bookId)})).filter(entry=>entry.book) : bookshelfBooks({...s,bookshelfFilters:bookshelfDefaults});
-  const entries=s.readOnly ? all.filter(entry=>(filters.reading === "all" || entry.reading === filters.reading) && (filters.review === "all" || filters.review === "pending" && entry.pending || filters.review === "none" && !entry.hasReviewing && !entry.hasReviewedCards || filters.review === "reviewed" && entry.hasReviewedCards)) : bookshelfBooks(s);
-  if (s.readOnly) s={...s,statuses:Object.fromEntries(all.map(entry=>[entry.book.id,entry.reading])),bookPractices:Object.fromEntries(all.map(entry=>[entry.book.id,entry]))};
+  const all=s.readOnly ? (s.profileData?.bookshelf || []).map(entry=>({...entry,group:entry.reading,book:s.catalog.booksById.get(entry.bookId)})).filter(entry=>entry.book) : bookshelfBooks({...s,bookshelfFilters:bookshelfDefaults});
+  const entries=s.readOnly ? all.filter(entry=>filters.reading === "all" || entry.reading === filters.reading) : bookshelfBooks(s);
+  if (s.readOnly) s={...s,statuses:Object.fromEntries(all.map(entry=>[entry.book.id,entry.reading]))};
   const selected = s.catalog.booksById.get(s.openBookId);
   const select = (axis,label,options) => `<label class="bookshelf-filter-select" for="bookshelf-filter-${axis}"><span>${esc(label)}</span><select id="bookshelf-filter-${axis}" data-bookshelf-filter="${axis}">${options.map(([value,text])=>`<option value="${value}" ${filterDraft[axis] === value ? "selected" : ""}>${esc(text)}</option>`).join("")}</select></label>`;
-  const groups = [["pending",c.pendingReviews],["none",c.notReviewed],["reviewed",c.reviewedCardsFilter]];
+  const groups = [["reading",c.readingStatus],["read",c.readStatus],["unread",c.unread]];
   const filterDialog=s.bookshelfFiltersOpen ? `<dialog class="bookshelf-filter-modal" aria-labelledby="bookshelf-filter-title"><header class="bookshelf-filter-modal-heading"><h2 id="bookshelf-filter-title">${c.filterBooks}</h2><button class="deck-modal-close" type="button" data-action="close-bookshelf-filters" aria-label="${c.closeFilters}">×</button></header><div class="bookshelf-filter-fields">
-      ${select("reading",c.bookStatus,[["all",c.allBooks],["unread",c.unread],["reading",c.readingStatus],["read",c.readStatus]])}
-      ${select("review",c.reviewStatus,[["all",c.allBooks],["pending",c.pendingReviews],["none",c.notReviewed],["reviewed",c.reviewedCardsFilter]])}</div>
+      ${select("reading",c.bookStatus,[["all",c.allBooks],["unread",c.unread],["reading",c.readingStatus],["read",c.readStatus]])}</div>
       <footer class="bookshelf-filter-actions"><button class="text-button" type="button" data-action="reset-bookshelf-filter-draft">${c.resetFilters}</button><span><button class="text-button" type="button" data-action="close-bookshelf-filters">${c.cancel}</button><button class="primary" type="button" data-action="apply-bookshelf-filters">${c.applyFilters}</button></span></footer></dialog>` : "";
   return `<section class="bookshelf-screen">
     ${s.readOnly ? `<a class="text-button" href="#profile/${encodeURIComponent(s.profileData.profile.id)}">${c.profileBack}</a><p class="bookshelf-owner"><bdi>${esc(s.profileData.profile.name)}</bdi> · ${c.readOnly}</p>` : ""}
@@ -199,7 +197,7 @@ export function bookshelfView(s) {
       ${entries.length ? groups.map(([key,title])=>{
         const items = entries.filter(item=>item.group === key);
         return items.length ? `<section class="bookshelf-group" aria-labelledby="bookshelf-group-${key}"><h2 id="bookshelf-group-${key}">${title}</h2><div class="study-books book-grid">${items.map(item=>{
-          const caption = [item.reading !== "unread" ? c[item.reading === "read" ? "readStatus" : "readingStatus"] : "",item.hasReviewing ? c.reviewing : "",item.hasReviewedCards ? c.reviewedCardsFilter : ""].filter(Boolean).join(" · ") || c.notReviewed;
+          const caption = item.reading !== "unread" ? c[item.reading === "read" ? "readStatus" : "readingStatus"] : "";
           return closedBookMarkup(s,item.book,{caption,catalog:true});
         }).join("")}</div></section>` : "";
       }).join("") : `<div class="empty-state"><p>${c.noBookshelfMatches}</p><button class="text-button" type="button" data-action="reset-bookshelf-filters">${c.resetFilters}</button></div>`}
@@ -295,7 +293,7 @@ function reviewMascotCallout(s,bookId) {
 }
 export function mascotsView(s) {
   const c=words[s.language],book=s.catalog.booksById.get(s.bookId),{unlocked,latest}=mascotState(s,s.bookId);
-  // The snapshot includes progress for every book, including finished practices.
+  // Growth is derived from completed paid sessions for every book.
   const reached=new Set(Object.values(s.growth||{}).filter(Boolean).map(g=>currentMascotStage(g)));
   const maximumKnown=mascotStages.reduce((maximum,stage,index)=>reached.has(stage.id)?index:maximum,-1);
   return `<section class="mascots-screen"><button class="text-button" type="button" data-action="close-mascots">${c.mascotsBack}</button>
@@ -472,12 +470,8 @@ export function deckView(s) {
   const c = words[s.language], book = s.catalog.booksById.get(s.bookId), choices = s.deckChoices;
   const languageName = tag => { try { return new Intl.DisplayNames([s.language],{type:"language"}).of(tag) || tag; } catch { return tag; } };
   const deckDetails = ({deck,version}, dialog = false) => {
-    const review = s.practices[version.id], started = review?.seenIds.length > 0;
     const inCollection=!!s.userId && ((s.enrolledDeckIds || []).includes(deck.id) || deck.creator?.userId === s.userId);
-    const reviewingLabel = c.reviewingCount(deck.metrics.reviewingBy);
     const metrics = [
-      reviewingLabel,
-      deck.metrics.startedBy ? c.startedCount(deck.metrics.startedBy) : "",
       deck.metrics.likes ? c.likesCount(deck.metrics.likes) : ""
     ].filter(Boolean);
     return `<h2 ${dialog ? 'id="deck-dialog-title"' : ""} lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h2>
@@ -486,10 +480,9 @@ export function deckView(s) {
       ${deckStatusMarkup(s,version,{canPractice:inCollection})}
       <p class="deck-size">${c.deckSize(version.cardCount,version.depth)}</p>
       ${metrics.length ? `<p class="deck-metrics">${metrics.map(esc).join(" · ")}</p>` : ""}
-      ${started ? `<p class="deck-progress">${c.progress(review.seenIds.length,version.cardCount)}</p>` : ""}
       ${deckWritingActions(s,deck,version)}
       ${inCollection ? `<p class="collection-object-state"><img src="../brand/icons/collections/decks.svg" alt="" width="21" height="21">${c.deckInCollection}</p>` : ""}
-      ${inCollection ? `<button class="primary" type="button" data-action="select-deck" data-version="${esc(version.id)}" ${!s.storageAvailable ? "disabled" : ""}>${started ? c.resume : c.choose}</button>` : `<button class="primary deck-collection-primary" type="button" data-action="add-deck-to-collection" data-version="${esc(version.id)}" ${!s.storageAvailable ? "disabled" : ""}><img src="../brand/icons/collections/decks-add.svg" alt="" width="24" height="24"><span>${c.addDeckToCollection}</span><span class="deck-add-price" aria-label="${esc(c.deckAddCost)}"><svg class="deck-add-price-paper" viewBox="0 0 160 32" preserveAspectRatio="none" aria-hidden="true"><path d="M17 4C47 8 83-1 139 3C150 4 156 9 153 17C151 25 146 28 135 27C89 23 53 32 18 28C8 27 2 23 3 16C4 8 8 3 17 4Z" fill="currentColor"/></svg><img src="../brand/reed/leaf-token.svg" alt="" width="20" height="20"><span>1</span></span></button>`}`;
+      ${inCollection ? `<button class="primary" type="button" data-action="select-deck" data-version="${esc(version.id)}" ${!s.storageAvailable ? "disabled" : ""}>${c.viewDeck}</button>` : `<button class="primary deck-collection-primary" type="button" data-action="add-deck-to-collection" data-version="${esc(version.id)}" ${!s.storageAvailable ? "disabled" : ""}><img src="../brand/icons/collections/decks-add.svg" alt="" width="24" height="24"><span>${c.addDeckToCollection}</span><span class="deck-add-price" aria-label="${esc(c.deckAddCost)}"><svg class="deck-add-price-paper" viewBox="0 0 160 32" preserveAspectRatio="none" aria-hidden="true"><path d="M17 4C47 8 83-1 139 3C150 4 156 9 153 17C151 25 146 28 135 27C89 23 53 32 18 28C8 27 2 23 3 16C4 8 8 3 17 4Z" fill="currentColor"/></svg><img src="../brand/reed/leaf-token.svg" alt="" width="20" height="20"><span>1</span></span></button>`}`;
   };
   return `<section class="deck-screen">${["library","bookshelf","daily"].includes(s.bookOrigin) ? `<button type="button" class="text-button collection-back" data-action="${s.bookOrigin}">${s.bookOrigin === "library" ? collectionIconMarkup("library",18) : s.bookOrigin === "bookshelf" ? collectionIconMarkup("shelf",18) : ""}${s.bookOrigin === "library" ? c.booksBack : s.bookOrigin === "bookshelf" ? c.shelfBack : c.back}</button>` : ""}
     <div class="screen-heading deck-heading"><div><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.chooseDeck}</h1></div>
@@ -498,12 +491,12 @@ export function deckView(s) {
     ${choices.length || s.userId ? `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${s.userId ? `<div data-saved-cards-entry></div>` : ""}${choices.map(item => {
       const {deck,version} = item,language=languageName(deck.language);
       const flag=["es","en"].includes(deck.language) ? `<img class="deck-language-flag" src="../brand/icons/languages/${deck.language}.svg" width="16" height="12" alt="">` : `<svg class="deck-language-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span>${esc(deck.language)}</span>`;
-      const reviewing=deck.metrics.reviewingBy,recommended=deck.isRecommended;
-      return `<article class="deck-tile"><button class="deck-tile-open" type="button" data-action="open-deck" data-version="${esc(version.id)}" aria-haspopup="dialog" title="${esc(language)}${recommended ? ` · ${esc(c.recommended)}` : ""}" aria-label="${esc(contentText(version.title,s.language,version.language))}, ${esc(c.by)} ${esc(deck.creator.name)}, ${esc(c.noteCardsCount(version.cardCount))}, ${esc(c.reviewingCount(reviewing))}, ${esc(language)}${version.status === "draft" ? `, ${esc(c.deckInProgress)}` : ""}${recommended ? `, ${esc(c.teamRecommendationShort)}` : ""}">${recommended ? teamRecommendationMarkup(c) : ""}</button>
+      const recommended=deck.isRecommended;
+      return `<article class="deck-tile"><button class="deck-tile-open" type="button" data-action="open-deck" data-version="${esc(version.id)}" aria-haspopup="dialog" title="${esc(language)}${recommended ? ` · ${esc(c.recommended)}` : ""}" aria-label="${esc(contentText(version.title,s.language,version.language))}, ${esc(c.by)} ${esc(deck.creator.name)}, ${esc(c.noteCardsCount(version.cardCount))}, ${esc(language)}${version.status === "draft" ? `, ${esc(c.deckInProgress)}` : ""}${recommended ? `, ${esc(c.teamRecommendationShort)}` : ""}">${recommended ? teamRecommendationMarkup(c) : ""}</button>
         <span class="deck-tile-copy">
         <strong lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</strong>
         <span class="deck-creator deck-tile-creator">${deckCreator(deck)}</span>
-        <span class="deck-tile-metadata"><span class="deck-tile-count" aria-hidden="true" title="${esc(c.noteCardsCount(version.cardCount))}">${cardsIconMarkup}<span>${version.cardCount}</span></span><span class="deck-tile-reviewing" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><span>${reviewing}</span></span><span class="deck-tile-count deck-tile-language" aria-hidden="true" title="${esc(language)}">${flag}</span>${deckStatusMarkup(s,version,{compact:true})}</span>
+        <span class="deck-tile-metadata"><span class="deck-tile-count" aria-hidden="true" title="${esc(c.noteCardsCount(version.cardCount))}">${cardsIconMarkup}<span>${version.cardCount}</span></span><span class="deck-tile-count deck-tile-language" aria-hidden="true" title="${esc(language)}">${flag}</span>${deckStatusMarkup(s,version,{compact:true})}</span>
         </span></article>`;
     }).join("")}</div>` : `<div class="empty-state">${c.noDecks}</div>`}
     ${(() => { const selected = choices.find(item => item.version.id === s.openDeckId); return selected ? `<dialog class="deck-modal" data-version="${esc(selected.version.id)}" aria-labelledby="deck-dialog-title" aria-describedby="deck-dialog-description">
@@ -531,19 +524,18 @@ function deckBrowsingControls(s) {
 }
 
 function deckPreviewMarkup(s,model,review,version) {
-  const c=words[s.language],seen=new Set(review.seenIds),author=s.mode === "author";
+  const c=words[s.language],author=s.mode === "author";
   const columns=[1,2,3,4].includes(s.previewColumns) ? s.previewColumns : 2;
   return `<section class="deck-preview" aria-label="${c.deckPreview}"><ul class="deck-preview-grid" id="deck-preview-grid" data-columns="${columns}">${model.cards.filter(card=>!s.quotesOnly || card.isQuote).map(card=>{
-      const type=cardTypeFor(card),reviewed=seen.has(card.id);
+      const type=cardTypeFor(card);
       const title=card.isQuote ? quoteExcerpt(contentText(card.body,s.language,version.language)) : contentText(card.title,s.language,version.language);
       const titleLanguage=contentLocale(card.isQuote ? card.body : card.title,s.language,version.language);
-      const state=author ? "" : reviewed ? c.treeSeen : c.notReviewed;
-      const label=[title,state].filter(Boolean).join(". ");
+      const label=title;
       const heading=type.showTitle ? `<h2 lang="${esc(titleLanguage)}" dir="auto">${esc(title)}</h2>` : '';
       const body=`<${type.bodyTag} class="idea-body" lang="${esc(contentLocale(card.body,s.language,version.language))}" dir="auto">${esc(contentText(card.body,s.language,version.language))}</${type.bodyTag}>`;
       const book=s.catalog.booksById.get(card.bookId),bookName=displayedBookTitle(s,book,true);
       const takeNoteLabel=`${c.takeNote}: ${title}`;
-      return `<li class="deck-preview-item${reviewed ? ' is-available' : ' is-unseen'}${author ? ' is-authored' : ''}"><div class="reading-stage" data-card-type="${type.id}"><article class="idea-card" aria-hidden="true"><span class="card-header-icon">${type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${heading}${body}</div><footer class="reading-footer"><span lang="${esc(bookName.language)}" dir="auto">${esc(bookName.text)}</span><span class="preview-card-state">${!author && reviewed ? '✓' : ''}${esc(state)}</span></footer></article></div>
+      return `<li class="deck-preview-item${author ? ' is-authored' : ''}"><div class="reading-stage" data-card-type="${type.id}"><article class="idea-card" aria-hidden="true"><span class="card-header-icon">${type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${heading}${body}</div><footer class="reading-footer"><span lang="${esc(bookName.language)}" dir="auto">${esc(bookName.text)}</span></footer></article></div>
         <button class="preview-card-open" type="button" data-action="open-preview-card" data-card="${esc(card.id)}" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(label)}"></button>${author ? `<button class="preview-card-note" type="button" data-action="take-child-note" data-card="${esc(card.id)}" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(takeNoteLabel)}" title="${esc(takeNoteLabel)}">${takeNoteIconMarkup}</button>` : ''}</li>`;
     }).join("")}</ul></section>`;
 }
@@ -553,19 +545,16 @@ function deckContentMarkup(s,model,review,version) {
 }
 
 function treeMapMarkup(s,model,review,version) {
-  const c = words[s.language], seen = new Set(review.seenIds);
+  const c = words[s.language];
   const author = s.mode === "author";
   const containsQuote = card => card.isQuote || (model.children.get(card.id) || []).some(containsQuote);
   const node = card => {
-    const reviewed = seen.has(card.id);
     const title = card.isQuote ? quoteExcerpt(contentText(card.body,s.language,version.language)) : contentText(card.title,s.language,version.language);
-    const state = reviewed ? c.treeSeen : author ? "" : c.notReviewed;
-    const mark = reviewed ? `<span class="tree-node-check" aria-hidden="true">✓</span>` : "";
     const name = `<span class="tree-node-name" lang="${esc(contentLocale(card.isQuote ? card.body : card.title,s.language,version.language))}" dir="auto">${esc(title)}</span>`;
-    const accessibleName = [title,state].filter(Boolean).join(". ");
+    const accessibleName = title;
     const children = (model.children.get(card.id) || []).filter(c=>!s.quotesOnly || containsQuote(c));
     if (s.quotesOnly && !card.isQuote) return `<li><span class="quote-context">${name}</span>${children.length ? `<ul>${children.map(node).join("")}</ul>` : ""}</li>`;
-    const treeButton=`<button type="button" class="tree-node ${card.isQuote ? "tree-node--quote" : ""} ${author ? "tree-node--author" : reviewed ? "tree-node--seen" : "tree-node--unseen"}" data-action="${author ? "inspect-card" : "open-card"}" data-version="${esc(version.id)}" data-card="${esc(card.id)}" aria-label="${esc(accessibleName)}">${name}${mark}</button>`;
+    const treeButton=`<button type="button" class="tree-node ${card.isQuote ? "tree-node--quote" : ""} ${author ? "tree-node--author" : ""}" data-action="${author ? "inspect-card" : "open-card"}" data-version="${esc(version.id)}" data-card="${esc(card.id)}" aria-label="${esc(accessibleName)}">${name}</button>`;
     const takeNoteLabel=`${c.takeNote}: ${title}`;
     return `<li>${author ? `<div class="tree-node-row">${treeButton}<button class="tree-node-note" type="button" data-action="take-child-note" data-card="${esc(card.id)}" data-version="${esc(version.id)}" aria-haspopup="dialog" aria-label="${esc(takeNoteLabel)}" title="${esc(takeNoteLabel)}">${takeNoteIconMarkup}</button></div>` : treeButton}
       ${children.length ? `<ul>${children.map(node).join("")}</ul>` : ""}</li>`;
@@ -574,20 +563,18 @@ function treeMapMarkup(s,model,review,version) {
 }
 
 function albumSummary(s,version,deck,model,review,mascot="") {
-  const c=words[s.language],book=s.catalog.booksById.get(version.bookId),seen=review.seenIds.length,total=model.cards.length;
-  const percent=total ? Math.round(seen / total * 100) : 0;
+  const c=words[s.language],book=s.catalog.booksById.get(version.bookId);
   const language=new Intl.DisplayNames([s.language],{type:"language"}).of(deck.language) || deck.language;
   return `<header class="album-heading${mascot ? " album-heading--mascot" : ""}"><div class="album-heading-copy"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>
     <h1 tabindex="-1" lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h1>
     <p class="deck-creator">${deckCreator(deck)}</p>
-    <p class="album-meta">${esc(language)}</p>${deckStatusMarkup(s,version)}</div>${mascot}</header>
-    <div class="album-progress"><div><p>${c.progress(seen,total)}</p><span aria-hidden="true">${percent}%</span></div><progress value="${seen}" max="${Math.max(total,1)}" aria-label="${esc(c.progress(seen,total))}"></progress></div>`;
+    <p class="album-meta">${esc(language)}</p>${deckStatusMarkup(s,version)}</div>${mascot}</header>`;
 }
 
 export function reviewView(s) {
   if (!s.versionId) return `<section class="review-screen"><h1>${words[s.language].review}</h1><p>${words[s.language].noStudies}</p></section>`;
   const c=words[s.language],version=s.catalog.versionsById.get(s.versionId),deck=s.catalog.decksById.get(version.deckId),
-    model=s.catalog.versionModels.get(s.versionId),review=s.practices[s.versionId];
+    model=s.catalog.versionModels.get(s.versionId),review=null;
   const card=model.byId.get(s.requestedId) || null;
   return `<section class="review-screen album-screen"><button class="text-button" type="button" data-action="choose-book">${c.deckBack}</button>
     ${albumSummary(s,version,deck,model,review,reviewMascotCallout(s,version.bookId))}
@@ -610,7 +597,7 @@ function quoteFilter(s) {
 }
 
 export function authorView(s) {
-  const c=words[s.language],version=s.catalog.versionsById.get(s.versionId),deck=s.catalog.decksById.get(version.deckId),model=s.catalog.versionModels.get(s.versionId),review=s.practices[version.id];
+  const c=words[s.language],version=s.catalog.versionsById.get(s.versionId),deck=s.catalog.decksById.get(version.deckId),model=s.catalog.versionModels.get(version.id),review=null;
   const card=model.byId.get(s.requestedId);
   return `<section class="author-screen album-screen"><div class="review-heading"><button type="button" class="text-button" data-action="choose-book">${c.deckBack}</button><button type="button" class="text-button" data-action="select-deck" data-version="${esc(version.id)}" ${!model.cards.length ? "disabled" : ""}>${c.review} →</button></div>
     ${albumSummary(s,version,deck,model,review)}
@@ -680,9 +667,8 @@ export function profileView(s) {
   const date=Number.isNaN(created.getTime()) ? "—" : new Intl.DateTimeFormat(s.language,{year:"numeric",month:"long",day:"numeric",timeZone:"UTC"}).format(created);
   return `<section class="profile-screen"><button class="text-button" type="button" data-action="profile-back">${c.mascotsBack}</button>
     <header class="profile-heading"><div class="profile-avatar" aria-hidden="true">${attributionIcon("user")}</div><div><h1 tabindex="-1"><bdi>${esc(p.name)}</bdi></h1>${p.username && p.username !== p.name ? `<p class="profile-username"><bdi>@${esc(p.username)}</bdi></p>` : ""}<p class="profile-date">${c.memberSince} <time datetime="${esc(Number.isNaN(created.getTime()) ? "" : created.toISOString().slice(0,10))}">${esc(date)}</time></p></div></header>
-    <div class="profile-leaves"><img src="../brand/reed/leaf-token.svg" width="30" height="30" alt=""><span>${c.leavesSpent}</span><strong>${new Intl.NumberFormat(s.language).format(counts.leavesSpent)}</strong></div>
     <section class="profile-section" aria-labelledby="profile-reader"><div class="profile-section-heading"><h2 id="profile-reader">${c.readerSummary}</h2><a class="text-button" href="${s.userId === p.id ? "#bookshelf" : `#bookshelf/${encodeURIComponent(p.id)}`}">${s.userId === p.id ? c.viewBookshelf : c.viewShelf} →</a></div>
-      ${metrics(["booksRead","booksReading","decksInProgress","cardsReviewed","cardsViewed"])}<p class="profile-note">${c.distinctCardsNote}</p></section>
+      ${metrics(["booksRead","booksReading","cardsViewed"])}</section>
     <section class="profile-section" aria-labelledby="profile-archivist"><h2 id="profile-archivist">${c.archivistSummary}</h2>${metrics(["decksCreated","cardsCreated","quotesCreated"])}</section>
     <section class="profile-section" aria-labelledby="profile-mascots"><h2 id="profile-mascots">${c.currentMascots}</h2><ul class="profile-mascots">${mascotStages.filter(stage=>stage.unlocked || p.mascots[stage.id]>0).map(stage=>`<li>${mascotIcon(stage.id)}<span>${c[stage.name]}</span><strong>${p.mascots[stage.id] ?? 0}</strong></li>`).join("")}</ul></section>
   </section>`;

@@ -190,17 +190,6 @@ CREATE TABLE book_reading (
   status TEXT NOT NULL CHECK(status IN ('reading','read')),
   PRIMARY KEY(user_id,book_id)
 ) STRICT;
-CREATE TABLE practices (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id),
-  version_id TEXT NOT NULL REFERENCES deck_versions(id),
-  started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  completed_at TEXT,
-  UNIQUE(user_id,version_id),
-  UNIQUE(id,user_id,version_id),
-  CHECK(completed_at IS NULL OR completed_at >= started_at)
-) STRICT;
-CREATE INDEX practices_by_version ON practices(version_id,user_id);
 CREATE TABLE leaf_wallets (
   user_id TEXT PRIMARY KEY REFERENCES users(id),
   balance INTEGER NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991),
@@ -241,21 +230,6 @@ CREATE TABLE practice_session_cards (
   UNIQUE(session_id,position)
 ) STRICT;
 CREATE INDEX practice_session_cards_by_card ON practice_session_cards(card_id,session_id);
-CREATE TABLE practice_cards (
-  rowid INTEGER PRIMARY KEY,
-  practice_id TEXT NOT NULL,
-  user_id TEXT NOT NULL,
-  version_id TEXT NOT NULL,
-  card_id TEXT NOT NULL,
-  local_day TEXT NOT NULL CHECK(local_day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(local_day,'+0 days') IS local_day),
-  practiced_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  leaf_spent INTEGER NOT NULL DEFAULT 0 CHECK(leaf_spent IN (0,1)),
-  UNIQUE(practice_id,card_id),
-  FOREIGN KEY(practice_id,user_id,version_id) REFERENCES practices(id,user_id,version_id),
-  FOREIGN KEY(card_id,version_id) REFERENCES cards(id,version_id)
-) STRICT;
-CREATE INDEX practice_cards_by_reader ON practice_cards(user_id,version_id,rowid);
-
 CREATE TABLE card_views (
   user_id TEXT NOT NULL REFERENCES users(id),
   card_id TEXT NOT NULL REFERENCES cards(id),
@@ -275,14 +249,6 @@ CREATE TABLE deck_selections (
   PRIMARY KEY(user_id,book_id),
   FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id)
 ) STRICT;
-CREATE TABLE practice_positions (
-  practice_id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  version_id TEXT NOT NULL,
-  card_id TEXT NOT NULL,
-  FOREIGN KEY(practice_id,user_id,version_id) REFERENCES practices(id,user_id,version_id),
-  FOREIGN KEY(practice_id,card_id) REFERENCES practice_cards(practice_id,card_id)
-) STRICT;
 CREATE TABLE daily_ideas (
   day TEXT NOT NULL,
   card_id TEXT NOT NULL REFERENCES cards(id),
@@ -299,13 +265,6 @@ CREATE TABLE feedback_submissions (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
-
-CREATE TRIGGER complete_practice AFTER INSERT ON practice_cards BEGIN
-  UPDATE practices SET completed_at = COALESCE(completed_at,CURRENT_TIMESTAMP)
-  WHERE id = NEW.practice_id AND
-    (SELECT count(*) FROM practice_cards WHERE practice_id = NEW.practice_id) =
-    (SELECT count(*) FROM cards WHERE version_id = NEW.version_id);
-END;
 
 CREATE TRIGGER freeze_cards_insert BEFORE INSERT ON cards
 WHEN (SELECT status FROM deck_versions WHERE id = NEW.version_id) <> 'draft'
@@ -348,4 +307,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 26;
+PRAGMA user_version = 27;

@@ -76,10 +76,8 @@ for (const dialect of ["sqlite","postgres"]) {
     const result = await openCard(db,session,versionId,"habit-2",nextDay);
     assert.equal(result.state.wallet.balance,100);
     assert.equal((await readLeafWallet(db,"reader","2026-10-13")).balance,100);
-    assert.deepEqual(result.state.practices[versionId].seenIds,["habit-1","habit-2"]);
+    assert.equal("practices" in result.state,false);
     if (dialect === "sqlite") {
-      await db.prepare("INSERT INTO practice_cards(practice_id,user_id,version_id,card_id,local_day) SELECT id,user_id,version_id,'habit-3','2026-10-14' FROM practices WHERE user_id=? AND version_id=?")
-        .run("reader",versionId);
       assert.equal((await readLeafWallet(db,"reader","2026-10-14")).balance,100);
       assert.equal(db.prepare("PRAGMA foreign_key_check").all().length,0);
       assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);

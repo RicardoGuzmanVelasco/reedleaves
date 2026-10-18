@@ -1,4 +1,4 @@
-// Writing destinations are independent of practice progress.
+// Writing destinations are independent of paid practice sessions.
 export function editableNoteVersions(catalog,bookId,userId) {
   if (!userId) return [];
   const deckIds=new Set(catalog.decks.filter(deck=>deck.bookId === bookId && deck.creator.userId === userId).map(deck=>deck.id));

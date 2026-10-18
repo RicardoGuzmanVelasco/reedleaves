@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {PGlite} from "@electric-sql/pglite";
 
-const schema = await readFile(new URL("./schema.postgres.sql",import.meta.url),"utf8");
+const schema = await readFile(new URL("./fixtures/migrations/postgres-v18.sql",import.meta.url),"utf8");
 const migration = (await readFile(new URL("../supabase/migrations/20261018021559_secure_public_tables.sql",import.meta.url),"utf8"))
   .replaceAll("public.review_cards","public.practice_cards")
   .replaceAll("public.review_positions","public.practice_positions")
@@ -71,7 +71,7 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
   assert.equal((await db.query("SELECT language FROM public.accounts WHERE user_id='reader-1'")).rows[0].language,"en");
 
   // The app's privileged connection can still use each trigger in the CRUD
-  // paths: authoring, card/version immutability, practice progress and completion.
+  // paths: authoring and card/version immutability.
   await db.exec(`INSERT INTO public.books(id,author,original_title,original_language,position)
       VALUES ('book-1','author','Title','en',1);
     INSERT INTO public.decks(id,book_id,creator_user_id,language)
@@ -83,12 +83,8 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
     INSERT INTO public.cards(id,version_id,book_id,position)
       VALUES ('card-1','version-1','book-1',1);
     INSERT INTO public.card_translations(card_id,language,title,body)
-      VALUES ('card-1','en','Card','Body');
-    INSERT INTO public.practices(id,user_id,version_id) VALUES ('review-1','reader-1','version-1');`);
+      VALUES ('card-1','en','Card','Body');`);
   await assert.rejects(db.query("UPDATE public.decks SET language='es' WHERE id='deck-1'"));
-  await db.query(`INSERT INTO public.practice_cards(practice_id,user_id,version_id,card_id,local_day)
-    VALUES ('review-1','reader-1','version-1','card-1','2026-10-18')`);
-  assert.ok((await db.query("SELECT completed_at FROM public.practices WHERE id='review-1'")).rows[0].completed_at);
   await db.query("UPDATE public.deck_versions SET status='published' WHERE id='version-1'");
   await assert.rejects(db.query("UPDATE public.cards SET position=2 WHERE id='card-1'"));
   await assert.rejects(db.query("UPDATE public.deck_versions SET editorial_status='reviewed' WHERE id='version-1'"));

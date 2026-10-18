@@ -40,16 +40,11 @@ test("Spanish interface calls review items tarjetas, never cartas", () => {
   assert.equal(words.es.parentCard, "Colocar debajo de (opcional)");
 });
 
-test("English practice labels use Practice; ordinary instructions may use review", () => {
-  const practiceKeys=["review","reviewed","reviewing","reviewedStatus","notReviewed","reviewStatus","reviewBook","emptyReview",
-    "pendingReviews","reviewedCardsFilter","reviewedCards","reviewingCount","decksInProgress","cardsReviewed"];
-  for (const key of practiceKeys) {
-    const value=words.en[key];
-    assert.ok(value,key);
-    const message=typeof value === "function" ? value(2) : value;
-    assert.doesNotMatch(message,/\breview(?:s|ed|ing)?\b/i,key);
+test("Old per-deck practice progress copy is gone", () => {
+  for (const key of ["pendingReviews","reviewedCardsFilter","reviewedCards","reviewingCount","decksInProgress","cardsReviewed"]) {
+    assert.equal(Object.hasOwn(words.en,key),false,key);
+    assert.equal(Object.hasOwn(words.es,key),false,key);
   }
-  assert.equal(words.en.review, "Practice");
 });
 
 test("Sprout precedes Seedling in both languages without changing earned stage IDs", () => {
@@ -103,7 +98,7 @@ test("The SQL catalog requires Spanish and English book metadata independently f
 });
 
 test("Spanish and English book previews use their separate short and full title fields", async () => {
-  const s = {catalog:await catalog(), language:"en", statuses:{}, bookPractices:{}, practices:{}, openBookId:"seven-habits", storageAvailable:true};
+  const s = {catalog:await catalog(), language:"en", statuses:{}, openBookId:"seven-habits", storageAvailable:true};
   const html = libraryView(s);
   assert.match(html, /Library/);
   for (const book of s.catalog.books) assert.ok(html.includes(escapeHtml(book.shortTitle.en)));

@@ -46,13 +46,21 @@ export async function historicalUnlock(db,session,{versionId="seven-habits-edito
   const {book_id:bookId}=await db.prepare("SELECT book_id FROM deck_versions WHERE id=?").get(versionId);
   await db.prepare("INSERT INTO studies(user_id,version_id) VALUES (?,?)").run(userId,versionId);
   await db.prepare("INSERT INTO deck_selections VALUES (?,?,?)").run(userId,bookId,versionId);
-  await db.prepare("INSERT INTO reviews(id,user_id,version_id) VALUES (?,?,?)").run(reviewId,userId,versionId);
-  const legacy=db.dialect === "postgres" ? await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_name='review_unlocks'").get() : db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='review_unlocks'").get();
-  if (legacy) {
+  const has = async name => db.dialect === "postgres"
+    ? !!await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=?").get(name)
+    : !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name);
+  const practiceTable=await has("practices")?"practices":"reviews";
+  await db.prepare(`INSERT INTO ${practiceTable}(id,user_id,version_id) VALUES (?,?,?)`).run(reviewId,userId,versionId);
+  const unlocks=await has("review_unlocks");
+  if (unlocks) {
     await db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) VALUES (?,?,?,?,'2026-10-10')").run(reviewId,userId,versionId,cardId);
     if (db.dialect === "postgres") await db.prepare("UPDATE leaf_wallets SET balance=balance-1 WHERE user_id=?").run(userId);
+  } else if (await has("practice_cards")) {
+    await db.prepare("INSERT INTO practice_cards(practice_id,user_id,version_id,card_id,local_day) VALUES (?,?,?,?,'2026-10-10')").run(reviewId,userId,versionId,cardId);
   } else await db.prepare("INSERT INTO review_cards(review_id,user_id,version_id,card_id,local_day,leaf_spent) VALUES (?,?,?,?,'2026-10-10',0)").run(reviewId,userId,versionId,cardId);
-  await db.prepare("INSERT INTO review_positions(review_id,user_id,version_id,card_id) VALUES (?,?,?,?)").run(reviewId,userId,versionId,cardId);
+  const positionTable=await has("practice_positions")?"practice_positions":"review_positions";
+  const idColumn=positionTable === "practice_positions" ? "practice_id" : "review_id";
+  await db.prepare(`INSERT INTO ${positionTable}(${idColumn},user_id,version_id,card_id) VALUES (?,?,?,?)`).run(reviewId,userId,versionId,cardId);
 }
 
 // Compare retained data: bibliography rows and the old card reference are
@@ -69,17 +77,5 @@ export async function migrationData(db) {
   const has = async name => db.dialect === "postgres"
     ? !!await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=?").get(name)
     : !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name);
-  const practiceTable=await has("practices")?"practices":"reviews";
-  const positionTable=await has("practice_positions")?"practice_positions":"review_positions";
-  result.practices=await db.prepare(`SELECT id,user_id,version_id,started_at,completed_at FROM ${practiceTable} ORDER BY id`).all();
-  result.practice_positions=positionTable === "practice_positions"
-    ? await db.prepare("SELECT practice_id,user_id,version_id,card_id FROM practice_positions ORDER BY 1").all()
-    : await db.prepare("SELECT review_id AS practice_id,user_id,version_id,card_id FROM review_positions ORDER BY 1").all();
-  const cardsTable=await has("review_unlocks") ? "review_unlocks" : await has("practice_cards") ? "practice_cards" : "review_cards";
-  result.practice_cards=cardsTable === "review_unlocks" ?
-    await db.prepare("SELECT review_id AS practice_id,user_id,version_id,card_id,local_day,unlocked_at AS practiced_at,1 AS leaf_spent FROM review_unlocks ORDER BY review_id,card_id").all() :
-    cardsTable === "practice_cards" ?
-      await db.prepare("SELECT practice_id,user_id,version_id,card_id,local_day,practiced_at,leaf_spent FROM practice_cards ORDER BY practice_id,card_id").all() :
-      await db.prepare("SELECT review_id AS practice_id,user_id,version_id,card_id,local_day,reviewed_at AS practiced_at,leaf_spent FROM review_cards ORDER BY review_id,card_id").all();
   return result;
 }

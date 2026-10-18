@@ -96,12 +96,12 @@ test("Multiple decks per book, nested cards, calculated counts and depth", async
   assert.equal(data.decks.filter(d => d.bookId === "seven-habits").length,3);
   assert.equal(version.cardCount,3); assert.equal(version.depth,3);
   assert.equal(data.cards.find(c => c.id === "practical-child").parentId,"practical-root");
-  assert.equal(data.decks.every(d => d.metrics.likes === 0 && d.metrics.startedBy === 0),true);
+  assert.equal(data.decks.every(d => d.metrics.likes === 0 && !("startedBy" in d.metrics)),true);
   assert.equal(db.prepare("SELECT count(*) AS n FROM users").get().n,1);
   assert.throws(() => db.prepare("UPDATE cards SET parent_id = 'practical-grandchild' WHERE id = 'practical-root'").run(), /cycle/);
   assert.throws(() => db.prepare("UPDATE cards SET parent_id = 'habit-1' WHERE id = 'practical-root'").run(), /FOREIGN KEY/);
 });
-test("Creation permissions, one optional vote and independent book reading / deck practices", async t => {
+test("Creation permissions, one optional vote and independent book reading / deck enrolment", async t => {
   const db = await fixture(t);
   db.prepare("INSERT INTO users(id,display_name,can_create_decks) VALUES ('test-reader','Reader',0),('test-author','Author',1)").run();
   assert.throws(() => db.prepare("INSERT INTO decks(id,book_id,creator_user_id) VALUES ('denied','seven-habits','test-reader')").run(),/permission/);
@@ -114,13 +114,13 @@ test("Creation permissions, one optional vote and independent book reading / dec
   assert.throws(() => db.prepare("INSERT INTO deck_votes(user_id,deck_id,value) VALUES ('test-reader','seven-habits-editorial',-1)").run());
   assert.throws(() => db.prepare("UPDATE deck_votes SET value = 0").run());
   const stats = async () => (await readCatalog(db)).decks.find(d => d.id === "seven-habits-editorial").metrics;
-  assert.deepEqual(await stats(),{likes:1,dislikes:0,startedBy:0,reviewingBy:0});
+  assert.deepEqual(await stats(),{likes:1,dislikes:0});
   db.prepare("UPDATE deck_votes SET value = -1").run();
   assert.equal((await stats()).dislikes,1); assert.equal((await stats()).likes,0);
   db.prepare("DELETE FROM deck_votes").run();
   assert.equal((await stats()).dislikes,0);
 });
-test("Published versions are immutable, reimport is idempotent and new versions preserve practices", async t => {
+test("Published versions are immutable and reimport is idempotent", async t => {
   const db = await fixture(t), seed = readSeed();
   seed.decks[0].status = "published"; await seedCatalog(db,seed); await seedCatalog(db,seed);
   assert.throws(() => db.prepare("UPDATE cards SET position = 9 WHERE id = 'habit-1'").run(),/immutable/);
@@ -129,29 +129,12 @@ test("Published versions are immutable, reimport is idempotent and new versions 
   assert.throws(() => db.prepare("UPDATE deck_version_translations SET description = 'changed' WHERE version_id = 'seven-habits-editorial-v1'").run(),/immutable/);
   assert.throws(() => db.prepare("UPDATE deck_versions SET status = 'draft' WHERE id = 'seven-habits-editorial-v1'").run(),/immutable/);
   db.prepare("INSERT INTO users(id,display_name) VALUES ('test-reader','Reader')").run();
-  db.prepare("INSERT INTO practices(id,user_id,version_id) VALUES ('review-v1','test-reader','seven-habits-editorial-v1')").run();
   const v2 = {...seed.decks[0],version_id:"seven-habits-editorial-v2",version:"2"};
   seed.decks.push(v2);
   seed.cards.push(...seed.cards.filter(c => c.version_id === "seven-habits-editorial-v1").map(c => ({...c,id:c.id+"-v2",version_id:v2.version_id})));
   await seedCatalog(db,seed);
-  db.prepare("INSERT INTO practices(id,user_id,version_id) VALUES ('review-v2','test-reader','seven-habits-editorial-v2')").run();
-  db.prepare("UPDATE practices SET completed_at = CURRENT_TIMESTAMP WHERE user_id = 'test-reader'").run();
   const stats = (await readCatalog(db)).decks.find(d => d.id === "seven-habits-editorial").metrics;
-  assert.equal(stats.startedBy,1); assert.equal("completedBy" in stats,false);
-  assert.equal(db.prepare("SELECT version_id FROM practices WHERE id = 'review-v1'").get().version_id,"seven-habits-editorial-v1");
-});
-test("Review progress accepts any card and is independent of the leaf balance", async t => {
-  const db = await fixture(t);
-  db.prepare("INSERT INTO users(id,display_name) VALUES ('test-reader','Reader')").run();
-  db.prepare("INSERT INTO practices(id,user_id,version_id) VALUES ('r1','test-reader','seven-habits-editorial-v1'),('r2','test-reader','atomic-habits-editorial-v1')").run();
-  const wallet=await readLeafWallet(db,"test-reader","2026-10-06");
-  for (const [reviewId,version,cardId] of [["r1","seven-habits-editorial-v1","habit-7"],["r2","atomic-habits-editorial-v1","atomic-8"]]) {
-    db.prepare("INSERT INTO practice_cards(practice_id,user_id,version_id,card_id,local_day) VALUES (?,?,?,?,?)").run(reviewId,"test-reader",version,cardId,"2026-10-06");
-  }
-  assert.equal((await readLeafWallet(db,"test-reader","2026-10-06")).balance,wallet.balance);
-  assert.throws(() => db.prepare("INSERT INTO practice_cards(practice_id,user_id,version_id,card_id,local_day) VALUES ('r1','test-reader','seven-habits-editorial-v1','atomic-1','2026-10-10')").run(),/FOREIGN KEY/);
-  assert.throws(() => db.prepare("INSERT INTO practice_cards(practice_id,user_id,version_id,card_id,local_day) VALUES ('r1','test-reader','seven-habits-editorial-v1','habit-7','2026-10-11')").run(),/UNIQUE/);
-  assert.equal((await readLeafWallet(db,"test-reader","2026-10-10")).balance,3);
+  assert.equal("startedBy" in stats,false); assert.equal("completedBy" in stats,false);
 });
 test("SQL wallets are isolated per user and reject invalid balances and dates", async t => {
   const db = await fixture(t);

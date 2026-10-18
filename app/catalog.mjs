@@ -14,7 +14,7 @@ export function prepareCatalog(payload) {
   }), booksById = new Map(books.map(b => [b.id,b]));
   if (booksById.size !== books.length || books.some(b => !Array.isArray(b.genres) || !b.creatorUserId && !b.genres.length || b.genres.some(id => !genreIds.has(id)))) throw new Error("Invalid book references");
   const decks = payload.decks, decksById = new Map(decks.map(d => [d.id,d]));
-  if (decksById.size !== decks.length || decks.some(d => !booksById.has(d.bookId) || !isCanonicalLocale(d.language) || !d.creator?.userId || !d.creator?.name?.trim() || ["likes","dislikes","startedBy","reviewingBy"].some(k => !Number.isInteger(d.metrics?.[k]) || d.metrics[k] < 0))) throw new Error("Invalid deck references");
+  if (decksById.size !== decks.length || decks.some(d => !booksById.has(d.bookId) || !isCanonicalLocale(d.language) || !d.creator?.userId || !d.creator?.name?.trim() || ["likes","dislikes"].some(k => !Number.isInteger(d.metrics?.[k]) || d.metrics[k] < 0))) throw new Error("Invalid deck references");
   const versions = payload.versions, versionsById = new Map(versions.map(v => [v.id,v]));
   if (versionsById.size !== versions.length || versions.some(v => decksById.get(v.deckId)?.bookId !== v.bookId || v.language !== decksById.get(v.deckId)?.language || !isCanonicalLocale(v.language) || ["title","description","editorialNote"].some(k => !v[k]?.[v.language]?.trim()))) throw new Error("Invalid version references");
   const allCards = payload.cards;
