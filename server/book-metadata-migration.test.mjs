@@ -14,7 +14,7 @@ async function retainedData(db,dialect) {
     : "SELECT table_name AS name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name").all();
   const result={};
   for (const {name} of rows) {
-    if (["sources","reed_schema","reader_filters","reader_interests"].includes(name)) continue;
+    if (["sources","reed_schema","reader_filters","reader_interests","review_unlocks","review_cards","petal_wallets"].includes(name)) continue;
     result[name]=(await db.prepare(`SELECT * FROM "${name}"`).all()).map(row=>{
       const value={...row};if (name === "cards") delete value.source_id;
       return value;
@@ -38,7 +38,6 @@ for (const dialect of ["sqlite","postgres"]) {
     await db.prepare("INSERT INTO reader_display_preferences VALUES (?,1)").run(session.user_id);
     await db.exec("UPDATE deck_versions SET status='published' WHERE id='seven-habits-editorial-v1';");
     const before=await retainedData(db,dialect);
-    before.petal_wallets=(await db.prepare("SELECT user_id,0 AS balance FROM accounts ORDER BY user_id").all()).map(row=>({...row}));
     await initializeDatabase(db);await initializeDatabase(db);
     assert.deepEqual(await retainedData(db,dialect),before);
     assert.equal((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance,0);

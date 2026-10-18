@@ -35,7 +35,7 @@ test("PostgreSQL schema and production catalog seed initialize and repeat safely
   assert.equal(data.books.find(book => book.id === "seven-habits").genres.includes("productivity"),true);
 });
 
-test("PostgreSQL persists account, daily leaves, opened cards and repeat-safe spend", async t => {
+test("PostgreSQL persists account, daily leaves and freely opened cards", async t => {
   const {db} = postgresFixture(t);
   await initializeDatabase(db); await seedCatalog(db);
   await authenticate(db,"register",{username:"postgres.reader",password:"correct horse battery staple"});
@@ -43,10 +43,9 @@ test("PostgreSQL persists account, daily leaves, opened cards and repeat-safe sp
   const session = {user_id:id,csrf_token:"test"}, versionId = "seven-habits-editorial-v1", day = "2026-10-08", now = new Date("2026-10-08T12:00:00Z");
   assert.equal((await readLeafWallet(db,id,day)).balance,1);
   const first = await openCard(db,session,versionId,"habit-1",now);
-  assert.equal(first.spent,true); assert.equal(first.state.wallet.balance,0);
+  assert.equal(first.state.wallet.balance,1);
   const repeated = await openCard(db,session,versionId,"habit-1",now);
-  assert.equal(repeated.spent,false);
-  assert.equal((await readLeafWallet(db,id,day)).balance,0);
+  assert.equal((await readLeafWallet(db,id,day)).balance,1);
   const state = await readReaderState(db,session,now);
   assert.deepEqual(state.reviews[versionId].seenIds,["habit-1"]);
   assert.equal((await readCatalog(db)).decks.find(deck => deck.id === "seven-habits-editorial").metrics.startedBy,1);

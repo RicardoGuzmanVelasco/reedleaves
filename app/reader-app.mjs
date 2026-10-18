@@ -4,8 +4,8 @@ import {featuredDecks, restoreTreeReview, bookReviewStates} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=petal-wallet-production";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup} from "./views.mjs?v=practice-topic-decks-1";
+import {words} from "./i18n.mjs?v=free-card-access-1";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup} from "./views.mjs?v=free-card-access-1";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -54,8 +54,6 @@ export function startReader({createCardFeatures} = {}) {
     cardFeatures?.update({userId:snapshot.user?.id,catalog,language,bookId:catalog?.cardsById.get(cardId)?.bookId||bookId,mode,quotesOnly,cardId,
       cardSaves:snapshot.cardSaves||[],revision:syncGeneration,actionSlot:main.querySelector("[data-card-actions]"),entrySlot:main.querySelector("[data-saved-cards-entry]"),listSlot:main.querySelector("[data-saved-cards-list]")});
   }
-  const hasLocalProgress = () => catalog && (store.read(keys.studies)?.length || catalog.versions.some(v=>store.read(keys.deckReview(v.id))?.seenIds?.length || store.read(keys.review(v.bookId))?.unlockedCount));
-
   function applyState(state) {
     if (snapshot.user?.id !== state.user?.id) {
       persistNoteDraft(); authorForm=null; noteDestination=null; deckCompletion=null; notesCompletion=null; bookStatusError=null;
@@ -165,7 +163,7 @@ export function startReader({createCardFeatures} = {}) {
     const selectedDaily=dailyHistory.find(item=>item.day===selectedDailyDay)||daily;
     const state = {userId:snapshot.user?.id,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteVersionIds,bookStatusError,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,versionId),quotesOnly,deckPreview,previewColumns,language,showOriginalTitles,catalog,reviews,budget,preferences,statuses,noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily:selectedDaily,dailyToday:daily,dailyHistory,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,bookId,versionId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],bookReviews,
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,libraryQuery,libraryFilters,libraryFiltersOpen,bookshelfFilters:mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
-      profileData,profileError,readOnly:mode === "public-bookshelf",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,hasLocalProgress:hasLocalProgress()};
+      profileData,profileError,readOnly:mode === "public-bookshelf",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired};
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
       (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "bookshelf" ? bookshelfView(state) : mode === "public-bookshelf" ? profileData ? bookshelfView(state) : profilePendingView(state) : mode === "profile" ? profileView(state) : mode === "daily" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "");
     if (!busy) { presentReading(main); recordDisplayedCard(); }
@@ -252,7 +250,7 @@ export function startReader({createCardFeatures} = {}) {
       if (!versionId) { mode = "home"; history.replaceState(null,"","#home"); }
       else { mode = "review"; bookId = catalog.versionsById.get(versionId).bookId;
         const cardId=second || oldCard?.id;
-        requestedId = reviews[versionId].seenIds.includes(cardId) ? cardId : null;
+        requestedId = catalog.versionModels.get(versionId).byId.has(cardId) ? cardId : null;
         const canonical = "#review/"+versionId+(requestedId ? "/"+requestedId : ""); if (location.hash !== canonical) history.replaceState(null,"",canonical); }
     }
     else if (view === "practice") {
@@ -714,12 +712,11 @@ export function startReader({createCardFeatures} = {}) {
     if (hasSeenCard(reviews,activeVersion,id)) {
       requestedId=id;scrollToCard=true;
       navigate("#review/"+activeVersion+"/"+id);
-      // Reopening a seen card is free, so show it now and persist the resume position in the background.
+      // Show an already recorded card immediately and persist the resume position in the background.
       api.request("/api/reader/open",{versionId:activeVersion,cardId:id}).catch(()=>{});
       return;
     }
-    await mutation("/api/reader/open",{versionId:activeVersion,cardId:id},result=>{
-      if (result.spent) { live.textContent = words[language].leafRemaining(snapshot.wallet.balance); }
+    await mutation("/api/reader/open",{versionId:activeVersion,cardId:id},()=>{
       requestedId = id; scrollToCard = true; navigate("#review/"+activeVersion+"/"+id);
     });
   }

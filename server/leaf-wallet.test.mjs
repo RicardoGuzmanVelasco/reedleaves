@@ -60,7 +60,7 @@ for (const dialect of ["sqlite","postgres"]) {
     await assert.rejects(async() => db.prepare("UPDATE leaf_wallets SET balance=9007199254740992 WHERE user_id='reader'").run(),/CHECK|check/i);
   });
 
-  test(`${dialect}: legacy wallet migration preserves catalog, accounts and reviews and permits manual credit`,async t => {
+  test(`${dialect}: legacy wallet migration preserves balances and permits manual credit`,async t => {
     const db=await historicalDatabase(t,dialect,dialect === "postgres" ? 5 : 13),session=await historicalReader(db,"reader");
     const now=migrationNow,versionId="seven-habits-editorial-v1";
     await historicalUnlock(db,session);
@@ -73,14 +73,13 @@ for (const dialect of ["sqlite","postgres"]) {
     await setLeafBalance(db,"reader",100,now);
     const nextDay = new Date("2026-10-12T12:00:00Z");
     const result = await openCard(db,session,versionId,"habit-2",nextDay);
-    assert.equal(result.state.wallet.balance,99);
-    assert.equal((await openCard(db,session,versionId,"habit-2",nextDay)).spent,false);
-    assert.equal((await readLeafWallet(db,"reader","2026-10-13")).balance,99);
+    assert.equal(result.state.wallet.balance,100);
+    assert.equal((await readLeafWallet(db,"reader","2026-10-13")).balance,100);
     assert.deepEqual(result.state.reviews[versionId].seenIds,["habit-1","habit-2"]);
     if (dialect === "sqlite") {
-      await db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) SELECT id,user_id,version_id,'habit-3','2026-10-14' FROM reviews WHERE user_id=? AND version_id=?")
+      await db.prepare("INSERT INTO review_cards(review_id,user_id,version_id,card_id,local_day) SELECT id,user_id,version_id,'habit-3','2026-10-14' FROM reviews WHERE user_id=? AND version_id=?")
         .run("reader",versionId);
-      assert.equal((await readLeafWallet(db,"reader","2026-10-14")).balance,98);
+      assert.equal((await readLeafWallet(db,"reader","2026-10-14")).balance,100);
       assert.equal(db.prepare("PRAGMA foreign_key_check").all().length,0);
       assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
     } else assert.equal((await db.prepare("SELECT version FROM reed_schema").get()).version,POSTGRES_SCHEMA_VERSION);

@@ -1,14 +1,7 @@
 export const storageKeys = {
   originalTitles: "leaf-reader:original-titles:v1",
   language: "leaf-reader:language:v1",
-  statuses: "leaf-reader:book-reading:v2",
-  budget: "leaf-reader:review-budget:v2",
-  wallet: "leaf-reader:wallet:v1",
-  deckReview: versionId => `leaf-reader:deck:${versionId}:review:v3`,
-  selections: "leaf-reader:deck-selections:v3",
-  studies: "leaf-reader:studies:v1",
-  noteDrafts: (userId,bookId) => `leaf-reader:note-drafts:v1:${encodeURIComponent(userId)}:${encodeURIComponent(bookId)}`,
-  review: bookId => `leaf-reader:${bookId}:review:v2`
+  noteDrafts: (userId,bookId) => `leaf-reader:note-drafts:v1:${encodeURIComponent(userId)}:${encodeURIComponent(bookId)}`
 };
 
 export function createBrowserStore(provider = () => localStorage) {

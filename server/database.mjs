@@ -7,8 +7,8 @@ import { Pool, types } from "pg";
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 21;
-export const POSTGRES_SCHEMA_VERSION = 13;
+export const SQLITE_SCHEMA_VERSION = 22;
+export const POSTGRES_SCHEMA_VERSION = 14;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -81,6 +81,49 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 21) {
+    db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
+    try {
+      db.exec(`DROP TRIGGER IF EXISTS check_unlock_path;
+        DROP TRIGGER IF EXISTS spend_unlock_leaf;
+        DROP TRIGGER IF EXISTS complete_review;
+        CREATE TABLE review_cards (
+          rowid INTEGER PRIMARY KEY,
+          review_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          version_id TEXT NOT NULL,
+          card_id TEXT NOT NULL,
+          local_day TEXT NOT NULL CHECK(local_day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(local_day,'+0 days') IS local_day),
+          reviewed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          leaf_spent INTEGER NOT NULL DEFAULT 0 CHECK(leaf_spent IN (0,1)),
+          UNIQUE(review_id,card_id),
+          FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
+          FOREIGN KEY(card_id,version_id) REFERENCES cards(id,version_id)
+        ) STRICT;
+        INSERT INTO review_cards(review_id,user_id,version_id,card_id,local_day,reviewed_at,leaf_spent)
+          SELECT review_id,user_id,version_id,card_id,local_day,unlocked_at,1 FROM review_unlocks ORDER BY rowid;
+        CREATE INDEX review_cards_by_reader ON review_cards(user_id,version_id,rowid);
+        CREATE TABLE review_positions_new (
+          review_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, version_id TEXT NOT NULL, card_id TEXT NOT NULL,
+          FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
+          FOREIGN KEY(review_id,card_id) REFERENCES review_cards(review_id,card_id)
+        ) STRICT;
+        INSERT INTO review_positions_new SELECT * FROM review_positions;
+        DROP TABLE review_positions;
+        ALTER TABLE review_positions_new RENAME TO review_positions;
+        DROP TABLE review_unlocks;
+        CREATE TRIGGER complete_review AFTER INSERT ON review_cards BEGIN
+          UPDATE reviews SET completed_at=COALESCE(completed_at,CURRENT_TIMESTAMP)
+          WHERE id=NEW.review_id AND
+            (SELECT count(*) FROM review_cards WHERE review_id=NEW.review_id)=(SELECT count(*) FROM cards WHERE version_id=NEW.version_id);
+        END;
+        PRAGMA user_version=22;`);
+      if (db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("Migration broke database references");
+      db.exec("COMMIT;");
+    } catch(error) { db.exec("ROLLBACK;"); throw error; }
+    finally { db.exec("PRAGMA foreign_keys=ON;"); }
+    return;
+  }
   if (version === 19) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -191,7 +234,6 @@ export function initializeDatabase(db) {
       db.exec("DROP TRIGGER spend_unlock_leaf;");
       db.exec(schema.slice(schema.indexOf("CREATE TABLE leaf_wallets ("),schema.indexOf("CREATE TABLE petal_wallets (")).replace("CREATE TABLE leaf_wallets (","CREATE TABLE leaf_wallets_new ("));
       db.exec("INSERT INTO leaf_wallets_new SELECT user_id,balance,last_accrual_day FROM leaf_wallets; DROP TABLE leaf_wallets; ALTER TABLE leaf_wallets_new RENAME TO leaf_wallets;");
-      db.exec(schema.slice(schema.indexOf("CREATE TRIGGER spend_unlock_leaf"),schema.indexOf("CREATE TRIGGER freeze_cards_insert")));
       if (db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("Migration broke database references");
       db.exec("PRAGMA user_version=14; COMMIT;");
     } catch(error) { db.exec("ROLLBACK"); throw error; }
@@ -217,8 +259,7 @@ export function initializeDatabase(db) {
     const schema = readFileSync(new URL("./schema.sql", import.meta.url),"utf8");
     db.exec("BEGIN IMMEDIATE");
     try {
-      db.exec("ALTER TABLE cards ADD COLUMN is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)); DROP TRIGGER check_unlock_path;");
-      db.exec(schema.slice(schema.indexOf("CREATE TRIGGER check_unlock_path"),schema.indexOf("CREATE TRIGGER complete_review")));
+      db.exec("ALTER TABLE cards ADD COLUMN is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)); DROP TRIGGER IF EXISTS check_unlock_path;");
       db.exec("PRAGMA user_version = 10; COMMIT;");
     } catch(error) { db.exec("ROLLBACK"); throw error; }
     return initializeDatabase(db);
@@ -256,6 +297,48 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 13) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 14) return;
+          await db.exec(`CREATE TABLE review_cards(
+            rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE, review_id TEXT NOT NULL, user_id TEXT NOT NULL, version_id TEXT NOT NULL,
+            card_id TEXT NOT NULL, local_day TEXT NOT NULL CHECK(local_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(local_day,'YYYY-MM-DD'),'YYYY-MM-DD') = local_day),
+            reviewed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, leaf_spent INTEGER NOT NULL DEFAULT 0 CHECK(leaf_spent IN (0,1)),
+            PRIMARY KEY(review_id,card_id),
+            FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
+            FOREIGN KEY(card_id,version_id) REFERENCES cards(id,version_id)
+          );
+          INSERT INTO review_cards(review_id,user_id,version_id,card_id,local_day,reviewed_at,leaf_spent)
+            SELECT review_id,user_id,version_id,card_id,local_day,unlocked_at,1 FROM review_unlocks ORDER BY rowid;
+          CREATE INDEX review_cards_by_reader ON review_cards(user_id,version_id,rowid);
+          CREATE TABLE review_positions_new(
+            review_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, version_id TEXT NOT NULL, card_id TEXT NOT NULL,
+            FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
+            FOREIGN KEY(review_id,card_id) REFERENCES review_cards(review_id,card_id)
+          );
+          INSERT INTO review_positions_new SELECT * FROM review_positions;
+          DROP TABLE review_positions;
+          ALTER TABLE review_positions_new RENAME TO review_positions;
+          ALTER TABLE review_unlocks RENAME TO review_unlocks_old;
+          DROP TRIGGER spend_unlock_leaf ON review_unlocks_old;
+          DROP TRIGGER complete_review ON review_unlocks_old;
+          DROP FUNCTION reed_check_unlock();
+          DROP FUNCTION reed_complete_review();
+          DROP TABLE review_unlocks_old;
+          CREATE FUNCTION reed_complete_review() RETURNS trigger LANGUAGE plpgsql AS $$
+          BEGIN
+            UPDATE reviews SET completed_at=COALESCE(completed_at,CURRENT_TIMESTAMP)
+            WHERE id=NEW.review_id AND (SELECT count(*) FROM review_cards WHERE review_id=NEW.review_id)=(SELECT count(*) FROM cards WHERE version_id=NEW.version_id);
+            RETURN NEW;
+          END $$;
+          CREATE TRIGGER complete_review AFTER INSERT ON review_cards FOR EACH ROW EXECUTE FUNCTION reed_complete_review();
+          ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+          UPDATE reed_schema SET version=14;
+          ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=14);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 12) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");

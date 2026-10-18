@@ -1,7 +1,3 @@
-import { restoreWallet, leafBalance, spendLeaf } from "./wallet.mjs";
-
-const validDay = day => typeof day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(day);
-
 export function availableVersions(catalog, bookId) {
   return catalog.decks.filter(d => d.bookId === bookId).map(deck => {
     const versions = catalog.versions.filter(v => v.deckId === deck.id && v.status !== "archived").sort((a,b) => b.number - a.number);
@@ -41,50 +37,17 @@ export function cardSiblings(card,model) {
   return card.parentId === null ? siblings.filter(c=>!!c.isQuote === !!card.isQuote) : siblings;
 }
 
-function eligible(card, seen, model) {
-  if (card.parentId !== null && !seen.has(card.parentId)) return false;
-  const siblings = cardSiblings(card,model), i = siblings.findIndex(c => c.id === card.id);
-  return i === 0 || seen.has(siblings[i-1].id);
-}
-
-export function restoreTreeReview(saved, model, versionId, legacy = null) {
+export function restoreTreeReview(saved, model, versionId) {
   let value = saved?.versionId === versionId ? saved : {};
-  if (!saved && legacy && versionId === model.cards[0].bookId + "-editorial-v1" &&
-      model.cards.length === model.roots.length && validDay(legacy.lastUnlockDay) && Number.isInteger(legacy.unlockedCount)) {
-    // Only the original flat editorial v1 can receive old book-keyed progress.
-    value = {seenIds:model.roots.slice(0,Math.max(0,legacy.unlockedCount)).map(c => c.id),
-      lastUnlockDay:legacy.lastUnlockDay,currentId:legacy.currentId};
-  }
-  const seen = new Set();
-  if (validDay(value.lastUnlockDay) && Array.isArray(value.seenIds)) {
-    for (const id of value.seenIds) {
-      const card = model.byId.get(id);
-      if (card && !seen.has(id) && eligible(card,seen,model)) seen.add(id);
-    }
-  }
-  const seenIds = [...seen];
-  return {versionId,seenIds,lastUnlockDay:seenIds.length ? value.lastUnlockDay : null,
-    currentId:seen.has(value.currentId) ? value.currentId : seenIds.at(-1) || null};
+  const seenIds = [...new Set((Array.isArray(value.seenIds) ? value.seenIds : []).filter(id=>model.byId.has(id)))];
+  return {versionId,seenIds,currentId:seenIds.includes(value.currentId) ? value.currentId : seenIds.at(-1) || null};
 }
 
-export function treeFrontier(review, model) {
-  const seen = new Set(review.seenIds);
-  return model.cards.filter(c => !seen.has(c.id) && eligible(c,seen,model));
-}
-
-export function hasLeaf(today, budget) {
-  return leafBalance(today,budget) > 0;
-}
-
-export function openTreeCard(saved, model, versionId, cardId, today, budget) {
+export function openTreeCard(saved, model, versionId, cardId) {
   const review = restoreTreeReview(saved,model,versionId), card = model.byId.get(cardId);
-  const wallet = restoreWallet(budget,today,budget || review);
-  if (!card) return {review,wallet,spent:false};
-  if (review.seenIds.includes(cardId)) return {review:{...review,currentId:cardId},wallet,spent:false};
-  if (!treeFrontier(review,model).some(c => c.id === cardId)) return {review,wallet,spent:false};
-  const payment = spendLeaf(wallet,today);
-  if (!payment.spent) return {review,...payment};
-  return {review:{...review,seenIds:[...review.seenIds,cardId],currentId:cardId,lastUnlockDay:today},...payment};
+  if (!card) return {review,opened:false};
+  const seenIds = review.seenIds.includes(cardId) ? review.seenIds : [...review.seenIds,cardId];
+  return {review:{...review,seenIds,currentId:cardId},opened:true};
 }
 
 export function reviewedCard(review, model, requestedId) {

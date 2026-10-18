@@ -1,6 +1,6 @@
 # Primer recorrido funcional
 
-Estado: prototipo local. Plataforma final sin decidir.
+Documento de diseño del primer recorrido. Las reglas de acceso por tarjeta descritas en versiones anteriores se eliminaron el 18 de octubre de 2026.
 
 ## Decisiones
 
@@ -12,7 +12,7 @@ Estado: prototipo local. Plataforma final sin decidir.
 
 ## Recorrido
 
-Inicio → libros en repaso, dibujados cerrados → abrir recorrido → carta ya vista gratis o carta siguiente con una hoja.
+Inicio → libros en repaso, dibujados cerrados → abrir recorrido → elegir cualquier tarjeta de la baraja.
 
 Cada contenedor de libro tiene portada, lomo y canto de páginas. No es una tarjeta genérica con un icono. Si solo hay un repaso activo, entrar en el libro abre su recorrido directamente; si hay varios, abre sus barajas.
 
@@ -20,33 +20,29 @@ Añadir libro → cuadrícula de todos los libros cerrados → ficha modal del l
 
 Idea del día → calendario global → idea de hoy o de una fecha anterior → «Repasar este libro» → seleccionar baraja.
 
-Cabecera con logo sin lema, icono de hoja y saldo numérico; idioma y cuenta dentro del botón de ajustes. Sin sesión, acceso o creación con usuario y contraseña; explorar el catálogo no necesita cuenta.
+Cabecera con logo sin lema, saldos de hojas y pétalos; idioma y cuenta dentro del botón de ajustes. Sin sesión, acceso o creación con usuario y contraseña; explorar el catálogo no necesita cuenta.
 
-Primera entrada al repaso → primera carta (una hoja) → hermana o hija, si queda saldo.
+El repaso muestra todo el árbol desplegado de arriba hacia abajo y usa el scroll vertical de la página. Todas las tarjetas muestran título y contenido, y se pueden abrir en cualquier orden. El avance registra qué tarjetas se han repasado y la última abierta.
 
-Otro día → recibir una hoja hasta un saldo máximo de tres → revisitar anteriores gratis o gastar hojas en nuevas cartas.
-
-El repaso muestra todo el árbol desplegado de arriba hacia abajo y usa el scroll vertical de la página. Las cartas ya repasadas se pueden abrir gratis; las siguientes válidas muestran el coste de una hoja; las demás aparecen bloqueadas, con el título oculto. Hoy puede gastar varias hojas acumuladas, una por carta nueva. Los días ausentes suman hasta tres; el exceso se descarta. Una URL hacia una carta bloqueada se ajusta a una accesible.
-
-Al abrir la primera historia el libro queda «repasando»; al desbloquear todas, «repasado». Esto no afirma aprendizaje ni dominio. La lectura del libro original se marca manualmente: sin empezar, leyendo o leído. Ambos ejes son independientes.
+Al abrir la primera historia el libro queda «repasando»; al abrir todas, «repasado». Esto no afirma aprendizaje ni dominio. La lectura del libro original se marca manualmente: sin empezar, leyendo o leído. Ambos ejes son independientes.
 
 ## Reglas de la prueba
 
 - Una idea compartida por todas las cuentas para cada fecha UTC. La selección se conserva al recargar y al cambiar de idioma.
 - El calendario permite abrir ideas asignadas en fechas anteriores.
-- La idea diaria no desbloquea su posición en el repaso.
+- La idea diaria no registra progreso en el repaso.
 - Progreso y posición SQL por usuario y versión. Volver a entrar en la misma cuenta recupera ambos.
-- Monedero global entre barajas: una hoja inicial y una por fecha local posterior, máximo tres. Abono único por fecha; recargar no añade hojas. En saldo máximo se actualiza igualmente la fecha de abono para no guardar exceso pendiente.
+- Divisas: la cuenta nueva recibe diez pétalos. Las hojas siguen acumulándose con abono diario hasta tres, pero no se usan al abrir tarjetas. Los precios y usos se decidirán después.
 - «Añadir libro» muestra título, autor, intereses y número de barajas. Su ficha modal contiene el resto de datos, la lectura original y el acceso a barajas, con vuelta al catálogo. Inicio solo muestra barajas elegidas pendientes o repasos empezados, no todas las recomendaciones del catálogo.
 - La lista SQL de barajas elegidas es independiente de la selección usada para la idea diaria. Una baraja completa se sigue consultando desde Libros.
 - El estado local antiguo se conserva sin borrar ni importar como verificado. La cuenta nueva empieza limpia. La interfaz solo escribe ahora el idioma en localStorage.
-- Recargar no abre más historias. El servidor confirma desbloqueo y gasto juntos; los reintentos y dos sesiones no cobran dos veces la misma carta.
-- Sin conexión, no se abren cartas nuevas: conservar estado confirmado y ofrecer reintento.
-- Cambiar reloj o almacenamiento del navegador no concede saldo ni progreso. La sincronización depende de usar la misma cuenta y servidor; aún no hay despliegue público.
+- Recargar no cambia el avance. El servidor registra una tarjeta una sola vez por repaso; los reintentos y dos sesiones no duplican el progreso.
+- Sin conexión, conservar el estado confirmado y ofrecer reintento.
+- Cambiar reloj o almacenamiento del navegador no altera saldos ni progreso. La sincronización depende de usar la misma cuenta y servidor.
 - Contenido y estado se almacenan por separado.
 - Contenido servido desde SQLite mediante API; filas normalizadas para libros, géneros, tarjetas y traducciones. Los CSV son edición/importación, no una base de datos simulada. Ver `docs/architecture/CATALOG.md`.
 - El antiguo JSON/NDJSON se conserva solo en fixtures de pruebas. No está en el catálogo ni se sirve por HTTP.
-- Las cartas SQL pertenecen a versiones de baraja y admiten hijos. Se ha rehecho el esquema de desarrollo sin migraciones. El selector y el repaso usan una versión elegida. Hermana e hija son opciones de avance de una hoja; volver a cartas vistas es gratis.
+- Las cartas SQL pertenecen a versiones de baraja y admiten hijos. El selector y el repaso usan una versión elegida. El registro de repaso no impone un orden entre las tarjetas.
 - Solo resúmenes propios contrastados con fuentes oficiales. Títulos parafraseados, sin citas ni portada comercial.
 
 ## Diseño
@@ -55,7 +51,7 @@ Conservar la familia Duolingo/Forest: siluetas amables, profundidad por capas, b
 
 La animación acompaña la acción: celebración finita al abrir una historia. No bucles, sonidos ni castigos por ausencia. Con `prefers-reduced-motion`, todo es estático.
 
-Inicio muestra libros cerrados, solo los que tienen un repaso pendiente. Los recorridos completos se ven al entrar; la idea diaria comparte pantalla con el calendario. Las portadas son contenedores propios, no portadas comerciales. Sin barra de progreso, accesos directos a historias bloqueadas, marcas de leído ni cierre adicional.
+Inicio muestra libros cerrados, solo los que tienen un repaso pendiente. Los recorridos completos se ven al entrar; la idea diaria comparte pantalla con el calendario. Las portadas son contenedores propios, no portadas comerciales. Sin accesos directos a historias ni marcas de leído.
 
 ## Pendiente
 

@@ -8,7 +8,7 @@ Read the newest dated entry when recent progress, deployment state, or project h
 - [Tomar nota desde Inicio](NOTE_CAPTURE_PLAN.md): happy path de captura rápida, decisiones aprobadas y escenarios alternativos.
 - [Repasar](PRACTICE_PLAN.md): diseño en curso, botonera inicial, posiciones aprobadas e incrementos futuros con swipe y cuatro respuestas.
 
-- [2026-10-18 — Repasar, título de libro y animación de guardado](2026-10-18.md)
+- [2026-10-18 — Repaso, títulos, guardado y acceso libre a tarjetas](2026-10-18.md)
 - [2026-10-17 — Barajas en borrador y selector calmado](2026-10-17.md)
 - [2026-10-16 — Reparar la suite y prevenir fallos](2026-10-16.md)
 - [2026-10-15 — Libros, notas y crecimiento](2026-10-15.md)

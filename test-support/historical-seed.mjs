@@ -114,6 +114,10 @@ export async function seedCatalog(db, seed = readSeed()) {
         ON CONFLICT(genre_id, language) DO UPDATE SET name = excluded.name`).run(g.id, language, g["name_" + language]);
     }
     async function addSource(bookId, title, url) {
+      const sources=db.dialect === "postgres"
+        ? await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='sources'").get()
+        : await db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='sources'").get();
+      if (!sources) return null;
       const id = bookId + ":" + createHash("sha256").update(url).digest("hex").slice(0,24);
       await db.prepare(`INSERT INTO sources(id, book_id, title, url) VALUES (?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET title = excluded.title`).run(id, bookId, title, url);
@@ -158,14 +162,16 @@ export async function seedCatalog(db, seed = readSeed()) {
       const version = await db.prepare("SELECT status FROM deck_versions WHERE id = ?").get(c.version_id);
       const source = await addSource(c.book_id, new URL(c.source_url).hostname, c.source_url);
       if (version.status !== "draft") {
-        if (!old || old.source_id !== source) throw new Error("Published content is immutable");
+        if (!old || (source !== null && old.source_id !== source)) throw new Error("Published content is immutable");
         for (const [lang,translation] of translations(c,["title","body"])) {
           const t = await db.prepare("SELECT title,body FROM card_translations WHERE card_id = ? AND language = ?").get(c.id,lang);
           if (!t || t.title !== translation.title || t.body !== translation.body) throw new Error("Published content is immutable");
         }
         if ((await db.prepare("SELECT count(*) AS n FROM card_translations WHERE card_id = ?").get(c.id)).n !== translations(c,["title","body"]).size) throw new Error("Published translations are immutable");
       } else {
-        await db.prepare(`INSERT INTO cards(id,version_id,book_id,parent_id,position,source_id) VALUES (?,?,?,?,?,?)
+        if (source === null) await db.prepare(`INSERT INTO cards(id,version_id,book_id,parent_id,position) VALUES (?,?,?,?,?)
+          ON CONFLICT(id) DO NOTHING`).run(c.id,c.version_id,c.book_id,c.parent_id || null,Number(c.position));
+        else await db.prepare(`INSERT INTO cards(id,version_id,book_id,parent_id,position,source_id) VALUES (?,?,?,?,?,?)
           ON CONFLICT(id) DO UPDATE SET source_id = excluded.source_id`).run(c.id,c.version_id,c.book_id,c.parent_id || null,Number(c.position),source);
         for (const [language,translation] of translations(c,["title","body"])) await db.prepare(`INSERT INTO card_translations VALUES (?, ?, ?, ?)
           ON CONFLICT(card_id, language) DO UPDATE SET title = excluded.title, body = excluded.body`).run(c.id, language, translation.title, translation.body);

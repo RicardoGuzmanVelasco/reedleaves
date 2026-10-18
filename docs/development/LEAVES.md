@@ -1,8 +1,8 @@
 # Ajustar hojas manualmente
 
-El monedero `leaf_wallets` admite saldos enteros no negativos, incluidos 10 o 100. Solo el abono diario tiene un máximo de tres: si el saldo ya es mayor, lo conserva sin añadir hojas. Las hojas manuales se mantienen hasta gastarlas. Cuando el saldo baja de tres vuelve el abono diario, sin recuperar días descartados.
+El monedero `leaf_wallets` admite saldos enteros no negativos, incluidos 10 o 100. El abono diario tiene un máximo de tres: si el saldo ya es mayor, lo conserva sin añadir hojas. Las hojas no se gastan al abrir tarjetas mientras se decide el siguiente uso y sus precios.
 
-El esquema anterior limitaba todo el saldo a tres, y por eso el editor rechazaba cantidades mayores. Arrancar la versión actual (o ejecutar `npm run db:init`) migra SQLite v13 → v14 y PostgreSQL v5 → v6, conservando las filas existentes. Desplegar el cambio antes de editar un saldo mayor de tres en producción: la versión antigua de la aplicación no sabe conservarlo. La migración prepara el esquema; no regala hojas ni altera ningún saldo.
+La migración inicial del monedero amplió el saldo máximo permitido por el esquema y conservó las filas existentes. El esquema vigente es SQLite v22 / PostgreSQL v14. Su migración más reciente retira los cobros por abrir tarjetas y conserva el saldo de hojas y el gasto histórico.
 
 `user_id` es el ID interno de `users`, no el nombre de acceso. Solo hay un monedero por usuario: insertar otra fila para la misma cuenta falla por clave duplicada. `last_accrual_day` es obligatorio y usa `YYYY-MM-DD`.
 

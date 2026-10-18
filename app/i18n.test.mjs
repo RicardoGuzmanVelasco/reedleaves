@@ -53,7 +53,7 @@ test("English practice labels use Practice; ordinary instructions may use review
 });
 
 test("Sprout precedes Seedling in both languages without changing earned stage IDs", () => {
-  const stages=[currentMascotStage({added:true,spentDays:3}),currentMascotStage({added:true,spentDays:5})];
+  const stages=[currentMascotStage({added:true,reviewDays:3}),currentMascotStage({added:true,reviewDays:5})];
   assert.deepEqual(stages,["seedling","sprout"]);
   assert.deepEqual(stages.map(id=>words.es[id==="seedling"?"mascotNameSeedling":"mascotNameSprout"]),["Brote","Plántula"]);
   assert.deepEqual(stages.map(id=>words.en[id==="seedling"?"mascotNameSeedling":"mascotNameSprout"]),["Sprout","Seedling"]);
