@@ -112,7 +112,7 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
       const tags=["recommended","popular","preferred","mostCompleted"];
       const taggedChoice={...choice,tags:[...tags]};
       const html=deckView({...state,deckChoices:[taggedChoice]}),version=choice.version;
-      for (const tag of [...tags,"otherDeck"]) assert.ok(!html.includes(c[tag]),"Editorial and community labels stay hidden");
+      for (const tag of ["popular","preferred","mostCompleted","otherDeck"]) assert.ok(!html.includes(c[tag]),"Community and fallback labels stay hidden");
       assert.deepEqual(taggedChoice.tags,tags,"Rendering preserves the underlying distinctions");
       const openButton=html.match(/<button\b[^>]*data-action="open-deck"[^>]*>/)[0];
       const label=openButton.match(/aria-label="([^"]*)"/)[1];
@@ -272,5 +272,25 @@ test("Draft creation, completed practice and author guidance stay distinct acros
     assert.ok(!html.includes(c.deckDraftOwnerExplanation));
     assert.ok(!html.includes(c.deckMayChange));
     version.status="draft";
+  }
+});
+
+
+test("Only the explicit team recommendation gets the translated visible and accessible label",async()=>{
+  const catalog=await fixture(),choice=featuredDecks(catalog,"seven-habits")[0];
+  for(const language of ["es","en"]){
+    const c=words[language];
+    for(const status of ["draft","published"]){
+      for(const recommended of [true,false]){
+        const item={...choice,deck:{...choice.deck,isRecommended:recommended},version:{...choice.version,status},tags:["recommended","popular","preferred","mostCompleted"]};
+        const html=deckView(readerState(catalog,{language,bookId:"seven-habits",deckChoices:[item]}));
+        const open=html.match(/<button\b[^>]*data-action="open-deck"[^>]*>([\s\S]*?)<\/button>/)[0];
+        const label=open.match(/aria-label="([^"]*)"/)[1];
+        assert.equal(label.includes(c.teamRecommendationShort),recommended);
+        assert.equal(open.replace(/<[^>]*>/g,"").includes(c.teamRecommendationShort),recommended);
+        assert.equal(open.includes(c.recommended),recommended,"The tooltip identifies the recommendation as the team’s");
+        for(const key of ["popular","preferred","mostCompleted","otherDeck"])assert.ok(!html.includes(c[key]));
+      }
+    }
   }
 });
