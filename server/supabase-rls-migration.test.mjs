@@ -43,7 +43,7 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
       count(*) FILTER (WHERE has_function_privilege('service_role',p.oid,'EXECUTE'))::int AS service_exec
     FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
     WHERE n.nspname='public' AND p.proname LIKE 'reed_%'`);
-  assert.deepEqual(functionAccess.rows,[{functions:10,trigger_functions:10,public_exec:0,anon_exec:0,authenticated_exec:0,service_exec:0}]);
+  assert.deepEqual(functionAccess.rows,[{functions:9,trigger_functions:9,public_exec:0,anon_exec:0,authenticated_exec:0,service_exec:0}]);
 
   await db.exec(`INSERT INTO public.users(id,display_name,can_create_decks) VALUES ('reader-1','reader',1);
     INSERT INTO public.accounts(user_id,username,password_hash,time_zone,language)
@@ -67,7 +67,7 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
   assert.equal((await db.query("SELECT language FROM public.accounts WHERE user_id='reader-1'")).rows[0].language,"en");
 
   // The app's privileged connection can still use each trigger in the CRUD
-  // paths: authoring, card/version immutability, review unlock and completion.
+  // paths: authoring, card/version immutability, review progress and completion.
   await db.exec(`INSERT INTO public.books(id,author,original_title,original_language,position)
       VALUES ('book-1','author','Title','en',1);
     INSERT INTO public.decks(id,book_id,creator_user_id,language)
@@ -82,7 +82,7 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
       VALUES ('card-1','en','Card','Body');
     INSERT INTO public.reviews(id,user_id,version_id) VALUES ('review-1','reader-1','version-1');`);
   await assert.rejects(db.query("UPDATE public.decks SET language='es' WHERE id='deck-1'"));
-  await db.query(`INSERT INTO public.review_unlocks(review_id,user_id,version_id,card_id,local_day)
+  await db.query(`INSERT INTO public.review_cards(review_id,user_id,version_id,card_id,local_day)
     VALUES ('review-1','reader-1','version-1','card-1','2026-10-18')`);
   assert.ok((await db.query("SELECT completed_at FROM public.reviews WHERE id='review-1'")).rows[0].completed_at);
   await db.query("UPDATE public.deck_versions SET status='published' WHERE id='version-1'");
