@@ -4,7 +4,7 @@ import {featuredDecks, restoreTreeReview, bookReviewStates} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=practice-topic-decks-1";
+import {words} from "./i18n.mjs?v=petal-wallet-production";
 import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup} from "./views.mjs?v=practice-topic-decks-1";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
@@ -104,10 +104,15 @@ export function startReader({createCardFeatures} = {}) {
     settingsError.hidden = !syncError; settingsError.textContent = syncError ? c[syncError] || c.connectionError : "";
     const wallet = document.getElementById("leaf-wallet"), signedIn = !!snapshot.user;
     wallet.hidden = !signedIn;
+    const petalWallet = document.getElementById("petal-wallet");
+    petalWallet.hidden = !signedIn;
     document.getElementById("brand-name").hidden = signedIn;
     document.querySelector(".brand").classList.toggle("brand-with-name",!signedIn);
     document.getElementById("leaf-count").textContent = ready && budget ? String(budget.balance) : "—";
     wallet.setAttribute("aria-label",ready && budget ? c.leafBalance(budget.balance) : c.loading);
+    const petals = Number.isSafeInteger(snapshot.petals) ? snapshot.petals : 0;
+    document.getElementById("petal-count").textContent = ready ? String(petals) : "—";
+    petalWallet.setAttribute("aria-label",ready ? c.petalBalance(petals) : c.loading);
     document.querySelectorAll("[data-language]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.language === language)));
     document.getElementById("account-controls").innerHTML = snapshot.user ? `<button type="button" class="text-button" data-account-action="profile">${escapeHtml(snapshot.user.username)} ↗</button><button type="button" class="text-button" data-account-action="logout">${c.signOut}</button>` : `<button type="button" class="text-button" data-account-action="login">${c.signIn}</button>`;
   }
