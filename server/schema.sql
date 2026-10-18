@@ -248,21 +248,10 @@ CREATE TABLE review_positions (
   FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
   FOREIGN KEY(review_id,card_id) REFERENCES review_unlocks(review_id,card_id)
 ) STRICT;
-CREATE TABLE reader_filters (
-  user_id TEXT NOT NULL REFERENCES users(id),
-  source TEXT NOT NULL CHECK(source IN ('reading','read','reviewing','reviewed','interests','all')),
-  PRIMARY KEY(user_id,source)
-) STRICT;
-CREATE TABLE reader_interests (
-  user_id TEXT NOT NULL REFERENCES users(id),
-  genre_id TEXT NOT NULL REFERENCES genres(id),
-  PRIMARY KEY(user_id,genre_id)
-) STRICT;
 CREATE TABLE daily_ideas (
-  user_id TEXT NOT NULL REFERENCES users(id),
-  local_day TEXT NOT NULL,
+  day TEXT NOT NULL,
   card_id TEXT NOT NULL REFERENCES cards(id),
-  PRIMARY KEY(user_id,local_day)
+  PRIMARY KEY(day)
 ) STRICT;
 
 CREATE TABLE feedback_submissions (
@@ -354,4 +343,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 19;
+PRAGMA user_version = 20;

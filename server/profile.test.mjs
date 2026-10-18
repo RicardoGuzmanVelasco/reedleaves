@@ -20,7 +20,7 @@ test("Profile distinguishes unique views from reviewed cards and spending; daily
   const {db,a}=await fixture(t),version="seven-habits-editorial-v1";
   await openCard(db,a,version,"habit-1",day(10));
   await openCard(db,a,version,"habit-1",day(10));
-  db.prepare("INSERT INTO daily_ideas VALUES (?,?,'habit-2')").run(a.user_id,"2026-10-10");
+  db.prepare("INSERT INTO daily_ideas VALUES ('2026-10-10','habit-2')").run();
   assert.equal((await readProfile(db,a.user_id,a.user_id)).profile.counts.cardsViewed,1);
   const before=await readReaderState(db,a,day(10));
   await recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(10));
@@ -31,7 +31,7 @@ test("Profile distinguishes unique views from reviewed cards and spending; daily
   assert.equal(counts.decksInProgress,1);assert.equal(counts.decksCompleted,0);
   await assert.rejects(recordCardView(db,a,{cardId:"habit-3",context:"review"},day(10)),{code:"cardLocked"});
   await assert.rejects(recordCardView(db,a,{cardId:"habit-1",context:"author"},day(10)),{code:"cardLocked"});
-  await assert.rejects(recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(11)),{code:"cardLocked"});
+  await recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(11));
 });
 
 test("Profile counts one current pet per book rather than all unlocked stages, including completion",async t=>{

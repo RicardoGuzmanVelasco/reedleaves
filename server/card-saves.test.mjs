@@ -28,7 +28,7 @@ for(const dialect of ['sqlite','postgres']){
     const {db,a,b}=await fixture(t,dialect);
     const before=await readReaderState(db,a,now);
     await assert.rejects(setCardSave(db,a,{cardId:'habit-2',saved:true},now),{code:'cardLocked'});
-    await db.prepare("INSERT INTO daily_ideas VALUES (?,?,'habit-2')").run(a.user_id,'2026-10-13');
+    await db.prepare("INSERT INTO daily_ideas VALUES ('2026-10-13','habit-2')").run();
     const first=await setCardSave(db,a,{cardId:'habit-2',saved:true},now);
     assert.equal(first.saved,true);assert.equal(first.savedCount,1);
     assert.deepEqual(await setCardSave(db,a,{cardId:'habit-2',saved:true},new Date('2026-10-14T12:00:00Z')),first);
@@ -61,7 +61,7 @@ for(const dialect of ['sqlite','postgres']){
     assert.equal((await readCardActions(db,a,'habit-1')).vote,-1);
     assert.deepEqual((await readReaderState(db,a,now)).reviews['seven-habits-editorial-v1'].seenIds,['habit-1']);
     await setCardSave(db,a,{cardId:'habit-1',saved:true},now);
-    await db.prepare("INSERT INTO daily_ideas VALUES (?,?,'habit-2')").run(a.user_id,'2026-10-13');
+    await db.prepare("INSERT INTO daily_ideas VALUES ('2026-10-13','habit-2')").run();
     await setCardSave(db,a,{cardId:'habit-2',saved:true},new Date(now.getTime()+1000));
     assert.deepEqual((await readSavedCards(db,a,'seven-habits')).cards.map(c=>c.cardId),['habit-2','habit-1']);
     await assert.rejects(readSavedCards(db,a,'missing'),{code:'bookUnavailable'});

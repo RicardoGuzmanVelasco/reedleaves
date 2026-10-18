@@ -46,6 +46,11 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - Las tarjetas de baraja terminadas no muestran un indicador de estado. Las versiones `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. Detalle, repaso y gestión comparten una explicación según propietario o lector: otras personas ya pueden ver y repasar el contenido; añadir tarjetas puede dejar un repaso completo con nuevas tarjetas pendientes. La fila de chips puede envolver en móvil estrecho.
 - Antes del ojo, mostrar un chip con el icono de dos tarjetas cerradas y su número. Sustituye a «X tarjetas · Y niveles»; el selector omite los niveles también en su nombre accesible. El icono `cards.svg` deriva de `cards-pen.svg` y mantiene sus dos tarjetas sin lápiz; no sustituye al icono de «Tomar nota». Todos los chips de la fila comparten estilo sin borde.
 
+## Vista exclusiva de tarjetas
+
+- La valoración («Me gusta» / «No me gusta») y las acciones «Guardar tarjeta» / «Quitar de guardadas» aparecen únicamente dentro de la vista exclusiva de la tarjeta. Nunca aparecen en previsualizaciones fuera de esa vista, incluida la tarjeta del calendario de la idea del día.
+- Al pulsar la tarjeta compacta de la idea del día, se abre su vista exclusiva. Las acciones de valoración y guardado viven dentro de esa vista.
+
 ## Enlaces de atribución
 
 - Los enlaces con icono, nombre y flecha comparten el mismo estilo en tarjetas y fichas de libros, incluido «Añadido por».

@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 11));
-INSERT INTO reed_schema VALUES (11);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 12));
+INSERT INTO reed_schema VALUES (12);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -142,12 +142,7 @@ CREATE TABLE review_positions(
   FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
   FOREIGN KEY(review_id,card_id) REFERENCES review_unlocks(review_id,card_id)
 );
-CREATE TABLE reader_filters(
-  user_id TEXT NOT NULL REFERENCES users(id), source TEXT NOT NULL CHECK(source IN ('reading','read','reviewing','reviewed','interests','all')),
-  PRIMARY KEY(user_id,source)
-);
-CREATE TABLE reader_interests(user_id TEXT NOT NULL REFERENCES users(id), genre_id TEXT NOT NULL REFERENCES genres(id), PRIMARY KEY(user_id,genre_id));
-CREATE TABLE daily_ideas(user_id TEXT NOT NULL REFERENCES users(id), local_day TEXT NOT NULL, card_id TEXT NOT NULL REFERENCES cards(id), PRIMARY KEY(user_id,local_day));
+CREATE TABLE daily_ideas(day TEXT PRIMARY KEY, card_id TEXT NOT NULL REFERENCES cards(id));
 CREATE TABLE feedback_submissions(
   id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   username TEXT NOT NULL, message TEXT NOT NULL CHECK(length(btrim(message)) BETWEEN 1 AND 5000),

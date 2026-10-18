@@ -22,6 +22,7 @@ const practiceLaunchLabel = text => {
   return chars.map(char=>`<span class="practice-launch-char">${esc(char === " " ? "\u00a0" : char)}</span>`).join("");
 };
 export const takeNoteIconMarkup = '<span class="take-note-icon" aria-hidden="true"></span>';
+const calendarIconMarkup = () => '<svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/></svg>';
 const cardsIconMarkup = '<span class="cards-icon" aria-hidden="true"></span>';
 const takeNoteLabelMarkup = label => `<span class="take-note-content">${takeNoteIconMarkup}<span>${esc(label)}</span></span>`;
 const deckCreator = deck => nameLink({icon:"user",name:deck.creator?.name,href:deck.creator?.userId ? `#profile/${encodeURIComponent(deck.creator.userId)}` : null});
@@ -76,14 +77,6 @@ function closedBookMarkup(s,book,{caption=words[s.language].review,catalog=false
   const noteLabel=`${c.takeNote}: ${displayedBookTitle(s,book).text}`;
   const addNote=note ? `<button class="book-note-add" type="button" data-action="take-note" data-book="${esc(book.id)}" aria-haspopup="dialog" ${noteVersions.length > 1 ? `aria-expanded="${s.noteDestination?.bookId === book.id}" aria-controls="note-destination-dialog"` : ""} aria-label="${esc(noteLabel)}" title="${esc(noteLabel)}">${takeNoteIconMarkup}</button>` : "";
   return complete || note ? `<div class="study-book-entry${note ? " study-book-entry--notes" : ""}">${cover}${complete}${addNote}</div>` : cover;
-}
-
-function filters(s) {
-  const c = words[s.language], f = s.preferences.filters;
-  return `<details class="sources" id="sources" ${s.sourcesOpen ? "open" : ""}><summary>${c.sources}</summary>
-    <div class="source-content"><fieldset><legend>${c.from}</legend>${["reading", "read", "reviewing", "reviewed", "interests", "all"].map(key => `<label class="check-row" for="source-${key}"><input type="checkbox" id="source-${key}" data-source="${key}" ${f[key] ? "checked" : ""}><span>${c[key]}</span></label>`).join("")}</fieldset>
-    ${f.interests ? `<fieldset class="sub-fields"><legend>${c.genre}</legend>${s.catalog.genres.map(g => `<label class="check-row" for="genre-${esc(g.id)}"><input type="checkbox" id="genre-${esc(g.id)}" data-genre="${esc(g.id)}" ${s.preferences.genres.includes(g.id) ? "checked" : ""}><span>${esc(g.name[s.language])}</span></label>`).join("")}</fieldset>` : ""}
-    <p class="filter-note">${s.daily ? c.tomorrowFilters : c.union}</p></div></details>`;
 }
 
 export function libraryResultsMarkup(s) {
@@ -181,7 +174,7 @@ export function homeView(s) {
   return `<section class="home-screen"><h1 class="sr-only" tabindex="-1">${c.home}</h1>
     <nav class="home-actions" aria-label="${c.home}">
       <button class="home-action" type="button" data-action="profile">${c.goProfile}</button>
-      <button class="home-action primary" type="button" data-action="daily">${c.idea}</button>
+      <button class="home-action home-action--icon primary" type="button" data-action="daily" aria-label="${esc(c.daily)}">${calendarIconMarkup()}</button>
       <button class="home-action" type="button" data-action="library">${c.goLibrary}</button>
     </nav>
     <button class="practice-launch" type="button" data-action="practice" aria-label="${esc(c.practiceLaunch)}"><span class="practice-launch-mascot">${mascotArt("sprout","practice-launch-art")}</span><span class="practice-launch-label" aria-hidden="true">${practiceLaunchLabel(c.practiceLaunch)}</span></button>
@@ -283,14 +276,15 @@ function nameLink({icon,name,language=null,href=null}) {
   return href ? `<a class="card-attribution-row" href="${esc(href)}">${contents}</a>` : `<span class="card-attribution-row">${contents}</span>`;
 }
 
-function cardAttribution(s,card,book) {
+function cardAttribution(s,card,book,{compact=false,linkBook=true}={}) {
   const creator=s.catalog.decksById?.get(card.deckId)?.creator;
   const title=displayedBookTitle(s,book,true);
-  return `<div class="card-source">${[
+  const rows=[
     ["book",title.text,title.language,`#library/book/${encodeURIComponent(book.id)}`],
     ["author",book.author,null,`#library/author/${encodeURIComponent(book.author)}`],
     ["user",creator?.name,null,creator ? `#profile/${encodeURIComponent(creator.userId)}` : null]
-  ].map(([icon,name,language,href])=>nameLink({icon,name,language,href})).join("")}</div>`;
+  ];
+  return `<div class="card-source">${(compact ? rows.slice(0,1) : rows).map(([icon,name,language,href])=>nameLink({icon,name,language,href:icon==="book"&&!linkBook?null:href})).join("")}</div>`;
 }
 
 function cardActionsHost(card) {
@@ -306,14 +300,14 @@ function noteTypeIcon(kind) {
   return `<svg class="note-type-icon" viewBox="${watermark.viewBox}" aria-hidden="true" focusable="false">${watermark.paths}</svg>`;
 }
 
-function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false, idPrefix="", decorative=false, layerClass=""} = {}) {
+function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false, compact = false,linkBook=true,focusable=true,idPrefix="",decorative=false,layerClass=""} = {}) {
   const book = s.catalog.booksById.get(card.bookId), deckLanguage = card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
   const type=cardTypeFor(card),bodyTag=type.bodyTag;
-  const contentId=idPrefix ? `${idPrefix}-idea-content` : "idea-content";
-  return `<div class="reading-stage reading-stage--${type.id}${layerClass ? ` ${layerClass}` : ""}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${decorative ? ' aria-hidden="true" inert' : ""}${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${type.className ? ' '+type.className : ''}"><span class="card-header-icon" aria-hidden="true">${type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="${esc(contentId)}" tabindex="-1">${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : ` id="${esc(contentId)}" tabindex="-1"`}>${esc(body)}</${bodyTag}></div>
-    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book)}</div>${exclusive ? cardActionsHost(card) : ""}</footer></article></div>`;
+  const contentId=idPrefix ? `${idPrefix}-idea-content` : "idea-content",focusTarget=focusable || idPrefix ? ` id="${esc(contentId)}"${focusable ? ' tabindex="-1"' : ""}` : "";
+  return `<div class="reading-stage reading-stage--${type.id}${layerClass ? ` ${layerClass}` : ""}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${decorative ? ' aria-hidden="true" inert' : ""}${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${type.className ? ' '+type.className : ''}"><span class="card-header-icon" aria-hidden="true">${type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto"${focusTarget}>${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : focusTarget}>${esc(body)}</${bodyTag}></div>
+    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book,{compact,linkBook})}</div>${exclusive ? cardActionsHost(card) : ""}</footer></article></div>`;
 }
 
 function exclusiveCardMarkup(s,card,position="") {
@@ -322,9 +316,30 @@ function exclusiveCardMarkup(s,card,position="") {
 }
 
 export function dailyView(s) {
-  const c = words[s.language], card = s.daily && s.catalog.cardsById.get(s.daily.id);
-  return `<section class="daily-screen"><div class="screen-heading"><h1 tabindex="-1">${c.daily}</h1></div>
-    ${card ? cardMarkup(s, card, "h2", {typewriter:false}) + `<div class="daily-action">${button(c.reviewBook, "enter-review", !s.storageAvailable)}</div>` + (s.requestedId === card.id ? exclusiveCardMarkup(s,card) : "") : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p><small>${s.storageAvailable ? c.emptyHint : ""}</small></div>`}${filters(s)}
+  const c=words[s.language], item=s.daily, card=item&&s.catalog.cardsById.get(item.id);
+  const month=s.calendarMonth||s.dailyToday?.day?.slice(0,7)||new Date().toISOString().slice(0,7);
+  const [year,monthNumber]=month.split("-").map(Number),first=new Date(Date.UTC(year,monthNumber-1,1,12));
+  const offset=(first.getUTCDay()+6)%7,daysInMonth=new Date(Date.UTC(year,monthNumber,0,12)).getUTCDate();
+  const history=new Map((s.dailyHistory||[]).map(row=>[row.day,row]));
+  const earliestMonth=[...(s.dailyHistory||[])].map(row=>row.day.slice(0,7)).sort()[0]||month;
+  const locale=s.language === "es" ? "es-ES" : s.language === "fr" ? "fr-FR" : "en-GB";
+  const monthLabel=new Intl.DateTimeFormat(locale,{month:"long",year:"numeric",timeZone:"UTC"}).format(first);
+  const weekdayLabels=Array.from({length:7},(_,index)=>new Intl.DateTimeFormat(locale,{weekday:"short",timeZone:"UTC"}).format(new Date(Date.UTC(2026,0,5+index,12))));
+  const monthShift=(amount)=>{const date=new Date(Date.UTC(year,monthNumber-1+amount,1,12));return date.toISOString().slice(0,7)};
+  const cells=Array.from({length:Math.ceil((offset+daysInMonth)/7)*7},(_,index)=>{
+    const dayNumber=index-offset+1;
+    if(dayNumber<1||dayNumber>daysInMonth)return '<span class="daily-calendar-empty" aria-hidden="true"></span>';
+    const day=`${month}-${String(dayNumber).padStart(2,"0")}`,saved=history.get(day),today=day===s.dailyToday?.day;
+    if(!saved)return `<span class="daily-calendar-day${today?" is-today":""}" aria-label="${dayNumber}">${dayNumber}</span>`;
+    const label=new Intl.DateTimeFormat(locale,{dateStyle:"full",timeZone:"UTC"}).format(new Date(`${day}T12:00:00Z`));
+    return `<button type="button" class="daily-calendar-day has-idea${day===s.selectedDailyDay?" is-selected":""}${today?" is-today":""}" data-action="daily-date" data-day="${day}" aria-label="${esc(label)}" aria-pressed="${day===s.selectedDailyDay}">${dayNumber}</button>`;
+  }).join("");
+  const calendar=`<section class="daily-calendar" aria-labelledby="daily-calendar-title"><div class="daily-calendar-heading"><button type="button" class="calendar-nav" data-action="daily-month" data-direction="previous" data-month="${monthShift(-1)}" aria-label="${esc(c.previousMonth)}" ${monthShift(-1)<earliestMonth?"disabled":""}>‹</button><h2 id="daily-calendar-title">${esc(monthLabel)}</h2><button type="button" class="calendar-nav" data-action="daily-month" data-direction="next" data-month="${monthShift(1)}" aria-label="${esc(c.nextMonth)}" ${monthShift(1)>(s.dailyToday?.day?.slice(0,7)||month)?"disabled":""}>›</button></div><div class="daily-calendar-grid" role="group" aria-label="${esc(monthLabel)}">${weekdayLabels.map(label=>`<span class="daily-calendar-weekday">${esc(label)}</span>`).join("")}${cells}</div></section>`;
+  const dateLabel=item?.day?new Intl.DateTimeFormat(locale,{dateStyle:"long",timeZone:"UTC"}).format(new Date(`${item.day}T12:00:00Z`)):"";
+  const exclusive=card&&s.dailyExclusiveCardId===card.id?exclusiveCardMarkup(s,card):"";
+  const previewTitle=card?(card.isQuote?quoteExcerpt(contentText(card.body,s.language,card.deckLanguage||s.language)):contentText(card.title,s.language,card.deckLanguage||s.language)):"";
+  return `<section class="daily-screen"><div class="screen-heading"><h1 tabindex="-1" class="daily-title">${calendarIconMarkup()}<span>${c.daily}</span></h1></div>
+    ${calendar}${card ? `<p class="daily-date">${esc(dateLabel)}</p><div class="daily-card-preview reading-stage" data-card-type="${cardTypeFor(card).id}"><div class="deck-preview-item">${cardMarkup(s,card,"h2",{typewriter:false,focusable:false})}<button class="preview-card-open" type="button" data-action="open-daily-card" aria-haspopup="dialog" aria-label="${esc(c.openDailyCard+": "+previewTitle)}"></button></div></div><div class="daily-action">${button(c.reviewBook,"enter-review",!s.storageAvailable)}</div>${exclusive}` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p></div>`}
     </section>`;
 }
 

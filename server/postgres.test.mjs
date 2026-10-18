@@ -102,7 +102,7 @@ test("PostgreSQL profiles separate views and reviews and upgrade historical unlo
   assert.equal((await db.prepare("SELECT version FROM reed_schema").get()).version,POSTGRES_SCHEMA_VERSION);
   assert.deepEqual(await migrationData(db),before);
   assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM card_views").get()).n,1);
-  await db.prepare("INSERT INTO daily_ideas VALUES (?,'2026-10-10','habit-2')").run(id);
+  await db.prepare("INSERT INTO daily_ideas VALUES ('2026-10-10','habit-2')").run();
   await recordCardView(db,session,{cardId:"habit-2",context:"daily"},now);
   await recordCardView(db,session,{cardId:"habit-2",context:"daily"},now);
   const data=await readProfile(db,id,id);
