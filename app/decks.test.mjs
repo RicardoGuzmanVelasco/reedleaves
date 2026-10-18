@@ -171,8 +171,14 @@ test("Practice prices show one discounted topic, the wallet cap, and useful empt
   const catalog=await fixture(),state=readerState(catalog,{practiceStage:"choose",practiceDiscountTopic:"saved",petals:10,petalMaximum:15});
   const choice=practiceView(state,null);
   assert.equal(state.petalMaximum,15);
-  assert.match(choice,/practice-topic-cost is-discounted/);
-  assert.equal((choice.match(/practice-topic-cost/g)||[]).length,4);
+  assert.equal((choice.match(/class="pricetag(?: pricetag--discounted)?"/g)||[]).length,4);
+  assert.match(choice,/aria-label="2 pétalos"/);
+  assert.match(choice,/aria-label="3 pétalos"/);
+  assert.match(choice,/petal-token\.svg/);
+  assert.match(choice,/class="pricetag pricetag--discounted"[^>]*aria-label="2 pétalos"/);
+  assert.match(choice,/<s>3<\/s><strong>2<\/strong>/);
+  assert.match(choice,/class="pricetag-offer-icon"/);
+  assert.doesNotMatch(choice,/practice-topic-cost/);
   const insufficient=practiceView({...state,practiceStage:"empty",practiceUnavailable:{reason:"notEnoughCards",topic:"mixed",available:4,required:5}},null);
   assert.match(insufficient,/Necesitas 5 para empezar/);
   assert.match(insufficient,/#bookshelf\/decks/);assert.match(insufficient,/#library/);
