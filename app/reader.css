@@ -106,11 +106,12 @@
 .study-book:hover{transform:translateY(-3px);box-shadow:1px 6px 0 var(--shadow),4px 9px 16px rgb(23 61 44 / 15%)}.study-book:active{transform:translateY(3px);box-shadow:1px 1px 0 var(--shadow)}
 .study-book-entry--notes:hover > .study-book{transform:translateY(-3px);box-shadow:1px 6px 0 var(--shadow),4px 9px 16px rgb(23 61 44 / 15%)}.study-book-entry--notes > .study-book:active{transform:translateY(3px);box-shadow:1px 1px 0 var(--shadow)}
 .tree-map--compact{padding:0;margin:0;border:0;background:transparent}.tree-map--compact .tree-map-viewport{padding:8px 3px 4px}
-.home-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:12px;margin-bottom:32px}
+.home-actions{display:grid;grid-template-columns:minmax(0,1fr) 56px minmax(0,1fr);align-items:stretch;gap:12px;margin-bottom:32px}
 .home-action{display:flex;align-items:center;justify-content:center;min-width:0;min-height:56px;padding:12px 14px;border-radius:17px;font-size:13px;font-weight:800;line-height:1.35;text-align:center;transition:transform .12s,box-shadow .12s}
 .home-action:not(.primary){border:2px solid var(--sage);background:#eef3df;box-shadow:0 5px 0 #c3d2a9}
 .home-action:not(.primary):hover:not(:disabled){background:#e4f0cc;transform:translateY(-2px);box-shadow:0 7px 0 #c3d2a9}
 .home-action:not(.primary):active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 #c3d2a9}
+.home-action--icon{color:var(--ink)}.home-action--icon .calendar-icon{width:25px;height:25px;flex:none}
 .home-add{display:flex;align-items:center;gap:8px;min-height:48px;padding:8px 15px;border:1.5px dashed var(--sage);border-radius:16px;background:#eef3df;font-size:12px;font-weight:800}.home-add>span{font-size:22px;line-height:1}
 .home-add:hover{background:#e4f0cc}
 .home-empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:55px 15px 30px;gap:22px}.home-empty h2{font-size:27px}
@@ -265,6 +266,7 @@
 .deck-preview-item .reading-stage[data-card-type="quote"] .idea-body{font-size:5cqw;line-height:1.35;-webkit-line-clamp:6}
 .deck-preview-item .reading-footer{display:flex;align-items:center;justify-content:space-between;gap:3cqw;margin-top:0;padding-top:3cqw;border-top-width:.3cqw;font-size:2.6cqw;line-height:1.3;font-weight:750}
 .deck-preview-item .reading-footer>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.daily-card-preview .card-source>.card-attribution-row:first-child bdi{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .preview-card-state{display:flex;align-items:center;gap:1cqw;white-space:nowrap;flex-shrink:0;color:var(--card-edge)}
 .preview-card-state svg{width:3cqw;height:3cqw;fill:none;stroke:currentColor;stroke-width:1.8}
 .deck-preview-item .preview-obscured{filter:blur(.4em);opacity:.55;user-select:none;pointer-events:none}
@@ -319,6 +321,7 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .daily-screen{padding-top:32px}
 .daily-screen .screen-heading{margin:0 0 20px;justify-content:center}
 .daily-screen .screen-heading h1{font-size:28px;line-height:1.2;letter-spacing:-.035em;color:var(--ink);font-weight:850}
+.daily-screen .screen-heading h1.daily-title{display:flex;align-items:center;gap:9px}.daily-title .calendar-icon{width:23px;height:23px;flex:none}
 .daily-screen .reading-stage{margin:0 auto 25px}
 .daily-calendar{margin:0 auto 25px;max-width:380px;padding:17px 18px 19px;border:1px solid var(--line);border-radius:22px;background:#eef3df}
 .daily-calendar-heading{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;text-align:center;margin-bottom:12px}
@@ -334,6 +337,8 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .daily-calendar-day.is-selected{background:var(--green);color:#fff;box-shadow:0 3px 0 var(--shadow)}
 .daily-calendar-day.is-today:not(.is-selected){outline:1px solid var(--green);outline-offset:-2px}
 .daily-date{max-width:680px;margin:0 auto 10px;color:var(--muted);font-size:12px;font-weight:750;text-align:center}
+.daily-card-preview.reading-stage{margin:0 auto;perspective:none}
+.daily-card-preview.reading-stage::before,.daily-card-preview.reading-stage::after{content:none}
 .daily-action{max-width:680px;margin-left:auto;margin-right:auto}
 .is-reading .daily-action .primary{width:auto;min-width:240px}.is-reading .daily-action{text-align:center;margin-top:0}
 @keyframes exclusive-backdrop-arrival{from{opacity:0}to{opacity:1}}

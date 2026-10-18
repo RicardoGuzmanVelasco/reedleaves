@@ -120,12 +120,24 @@ export async function changePreferences(db,session,input,now=new Date()) {
 }
 export async function dailyIdea(db,session,now=new Date()) {
   return transaction(db,async()=>{
-    const catalog=prepareCatalog(await readCatalog(db,session.user_id));
     const day=globalDay(now);
     const existing=await db.prepare("SELECT 1 FROM daily_ideas WHERE day=?").get(day);
     if(existing) return stateInside(db,session,now);
+    // Serialize assignments across UTC dates so concurrent first requests cannot
+    // pick the same unused card on PostgreSQL.
+    if(isPostgres(db)) await db.prepare("SELECT pg_advisory_xact_lock(731942, 1)").get();
+    const raced=await db.prepare("SELECT 1 FROM daily_ideas WHERE day=?").get(day);
+    if(raced) return stateInside(db,session,now);
+    const catalog=prepareCatalog(await readCatalog(db,session.user_id));
     const candidates=catalog.allCards.filter(card=>card.parentId===null && card.versionId===catalog.selectedVersions.get(card.bookId));
-    if(candidates.length) await db.prepare("INSERT INTO daily_ideas(day,card_id) VALUES (?,?) ON CONFLICT(day) DO NOTHING").run(day,candidates[randomInt(candidates.length)].id);
+    if(candidates.length) {
+      const seen=new Set((await db.prepare("SELECT DISTINCT card_id FROM daily_ideas").all()).map(row=>row.card_id));
+      const unused=candidates.filter(card=>!seen.has(card.id));
+      const latest=await db.prepare("SELECT card_id FROM daily_ideas ORDER BY day DESC LIMIT 1").get();
+      const cycle=unused.length ? unused : candidates.filter(card=>candidates.length===1 || card.id!==latest?.card_id);
+      const selected=cycle[randomInt(cycle.length)];
+      await db.prepare("INSERT INTO daily_ideas(day,card_id) VALUES (?,?) ON CONFLICT(day) DO NOTHING").run(day,selected.id);
+    }
     return stateInside(db,session,now);
   });
 }

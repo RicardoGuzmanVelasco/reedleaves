@@ -25,7 +25,7 @@ Cada carta nueva, también hija, cuesta una hoja. Se recibe una por día, con m�
 
 El desbloqueo y el gasto se confirman en una transacción SQL. La clave única de carta por repaso hace los reintentos seguros: un doble clic, una respuesta perdida o dos sesiones no cobran dos veces la misma carta. El esquema SQL comprueba también el recorrido. El repaso termina solo al desbloquear todas las cartas, incluidas las hijas.
 
-La idea del día se fija por fecha UTC para todo el mundo, sin gastar ni desbloquear cartas. El calendario permite consultar las asignaciones anteriores.
+La idea del día se sortea al primer acceso de cada fecha UTC y queda fijada para todo el mundo, sin gastar ni desbloquear cartas. Se elige al azar entre las tarjetas raíz de las versiones predeterminadas del catálogo y se agotan las candidatas antes de repetir; al empezar otro ciclo se evita la tarjeta del día anterior si hay alternativa. Una cita raíz también puede salir. El calendario permite consultar las asignaciones anteriores.
 
 Las guardadas se consultan por cuenta y libro, sin aparecer en perfiles o bibliotecas ajenas. Guardar exige acceso legítimo a la tarjeta: vista registrada, desbloqueo, asignación diaria vigente, guardado previo o autoría propia. Repetir el mismo destino conserva la fecha; quitar y volver a guardar crea una nueva. Abrir desde Guardadas valida pertenencia y registra contexto `saved`, sin hojas ni desbloqueos. La cuenta propia incluye `cardSaves`; esa relación permite incorporar el libro a Biblioteca sin cambiar su estado de lectura o repaso.
 

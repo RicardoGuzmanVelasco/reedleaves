@@ -16,6 +16,7 @@ import {defaultNoteDeckTitle} from "./note-defaults.mjs";
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const esc = escapeHtml;
 export const takeNoteIconMarkup = '<span class="take-note-icon" aria-hidden="true"></span>';
+const calendarIconMarkup = () => '<svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/></svg>';
 const cardsIconMarkup = '<span class="cards-icon" aria-hidden="true"></span>';
 const takeNoteLabelMarkup = label => `<span class="take-note-content">${takeNoteIconMarkup}<span>${esc(label)}</span></span>`;
 const deckCreator = deck => nameLink({icon:"user",name:deck.creator?.name,href:deck.creator?.userId ? `#profile/${encodeURIComponent(deck.creator.userId)}` : null});
@@ -167,7 +168,7 @@ export function homeView(s) {
   return `<section class="home-screen"><h1 class="sr-only" tabindex="-1">${c.home}</h1>
     <nav class="home-actions" aria-label="${c.home}">
       <button class="home-action" type="button" data-action="profile">${c.goProfile}</button>
-      <button class="home-action primary" type="button" data-action="daily">${c.idea}</button>
+      <button class="home-action home-action--icon primary" type="button" data-action="daily" aria-label="${esc(c.daily)}">${calendarIconMarkup()}</button>
       <button class="home-action" type="button" data-action="library">${c.goLibrary}</button>
     </nav>
     ${books.length ? `<div class="study-books">${books.map(book=>closedBookMarkup(s,book,{note:true})).join("")}</div>` : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
@@ -246,14 +247,15 @@ function nameLink({icon,name,language=null,href=null}) {
   return href ? `<a class="card-attribution-row" href="${esc(href)}">${contents}</a>` : `<span class="card-attribution-row">${contents}</span>`;
 }
 
-function cardAttribution(s,card,book) {
+function cardAttribution(s,card,book,{compact=false,linkBook=true}={}) {
   const creator=s.catalog.decksById?.get(card.deckId)?.creator;
   const title=displayedBookTitle(s,book,true);
-  return `<div class="card-source">${[
+  const rows=[
     ["book",title.text,title.language,`#library/book/${encodeURIComponent(book.id)}`],
     ["author",book.author,null,`#library/author/${encodeURIComponent(book.author)}`],
     ["user",creator?.name,null,creator ? `#profile/${encodeURIComponent(creator.userId)}` : null]
-  ].map(([icon,name,language,href])=>nameLink({icon,name,language,href})).join("")}</div>`;
+  ];
+  return `<div class="card-source">${(compact ? rows.slice(0,1) : rows).map(([icon,name,language,href])=>nameLink({icon,name,language,href:icon==="book"&&!linkBook?null:href})).join("")}</div>`;
 }
 
 function cardActionsHost(card) {
@@ -269,13 +271,14 @@ function noteTypeIcon(kind) {
   return `<svg class="note-type-icon" viewBox="${watermark.viewBox}" aria-hidden="true" focusable="false">${watermark.paths}</svg>`;
 }
 
-function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false} = {}) {
+function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false, compact = false,linkBook=true,focusable=true} = {}) {
   const book = s.catalog.booksById.get(card.bookId), deckLanguage = card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
   const type=cardTypeFor(card),bodyTag=type.bodyTag;
-  return `<div class="reading-stage reading-stage--${type.id}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${type.className ? ' '+type.className : ''}"><span class="card-header-icon" aria-hidden="true">${type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto" id="idea-content" tabindex="-1">${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : ' id="idea-content" tabindex="-1"'}>${esc(body)}</${bodyTag}></div>
-    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book)}</div>${exclusive ? cardActionsHost(card) : ""}</footer></article></div>`;
+  const focusTarget=focusable?' id="idea-content" tabindex="-1"':"";
+  return `<div class="reading-stage reading-stage--${type.id}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${type.className ? ' '+type.className : ''}"><span class="card-header-icon" aria-hidden="true">${type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto"${focusTarget}>${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : focusTarget}>${esc(body)}</${bodyTag}></div>
+    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book,{compact,linkBook})}</div>${exclusive ? cardActionsHost(card) : ""}</footer></article></div>`;
 }
 
 function exclusiveCardMarkup(s,card,position="") {
@@ -304,8 +307,10 @@ export function dailyView(s) {
   }).join("");
   const calendar=`<section class="daily-calendar" aria-labelledby="daily-calendar-title"><div class="daily-calendar-heading"><button type="button" class="calendar-nav" data-action="daily-month" data-direction="previous" data-month="${monthShift(-1)}" aria-label="${esc(c.previousMonth)}" ${monthShift(-1)<earliestMonth?"disabled":""}>‹</button><h2 id="daily-calendar-title">${esc(monthLabel)}</h2><button type="button" class="calendar-nav" data-action="daily-month" data-direction="next" data-month="${monthShift(1)}" aria-label="${esc(c.nextMonth)}" ${monthShift(1)>(s.dailyToday?.day?.slice(0,7)||month)?"disabled":""}>›</button></div><div class="daily-calendar-grid" role="group" aria-label="${esc(monthLabel)}">${weekdayLabels.map(label=>`<span class="daily-calendar-weekday">${esc(label)}</span>`).join("")}${cells}</div></section>`;
   const dateLabel=item?.day?new Intl.DateTimeFormat(locale,{dateStyle:"long",timeZone:"UTC"}).format(new Date(`${item.day}T12:00:00Z`)):"";
-  return `<section class="daily-screen"><div class="screen-heading"><h1 tabindex="-1">${c.daily}</h1></div>
-    ${calendar}${card ? `<p class="daily-date">${esc(dateLabel)}</p>${cardMarkup(s,card,"h2",{typewriter:false,exclusive:true})}<div class="daily-action">${button(c.reviewBook,"enter-review",!s.storageAvailable)}</div>` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p></div>`}
+  const exclusive=card&&s.dailyExclusiveCardId===card.id?exclusiveCardMarkup(s,card):"";
+  const previewTitle=card?(card.isQuote?quoteExcerpt(contentText(card.body,s.language,card.deckLanguage||s.language)):contentText(card.title,s.language,card.deckLanguage||s.language)):"";
+  return `<section class="daily-screen"><div class="screen-heading"><h1 tabindex="-1" class="daily-title">${calendarIconMarkup()}<span>${c.daily}</span></h1></div>
+    ${calendar}${card ? `<p class="daily-date">${esc(dateLabel)}</p><div class="daily-card-preview reading-stage" data-card-type="${cardTypeFor(card).id}"><div class="deck-preview-item">${cardMarkup(s,card,"h2",{typewriter:false,focusable:false})}<button class="preview-card-open" type="button" data-action="open-daily-card" aria-haspopup="dialog" aria-label="${esc(c.openDailyCard+": "+previewTitle)}"></button></div></div><div class="daily-action">${button(c.reviewBook,"enter-review",!s.storageAvailable)}</div>${exclusive}` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p></div>`}
     </section>`;
 }
 
