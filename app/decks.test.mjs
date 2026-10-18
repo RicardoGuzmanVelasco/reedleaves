@@ -15,18 +15,17 @@ async function fixture() {
   try { initializeDatabase(db); await seedCatalog(db); return prepareCatalog(await readCatalog(db)); }
   finally { await db.close(); }
 }
-test("Popularity is people who started; completions and likes have separate winners", async () => {
+test("Popularity counts people who started and likes have a separate winner", async () => {
   const catalog = await fixture(), [a,b] = catalog.decks.filter(d => d.bookId === "seven-habits");
-  a.metrics = {startedBy:20,completedBy:2,likes:1,dislikes:90};
-  b.metrics = {startedBy:5,completedBy:4,likes:8,dislikes:100};
+  a.metrics = {startedBy:20,likes:1,dislikes:90};
+  b.metrics = {startedBy:5,likes:8,dislikes:100};
   const choices = featuredDecks(catalog,"seven-habits");
   assert.equal(choices.length,2);
   assert.equal(choices[0].deck.isRecommended,true);
   assert.equal(choices.find(c => c.tags.includes("popular")).deck.id,a.id);
-  assert.equal(choices.find(c => c.tags.includes("mostCompleted")).deck.id,b.id);
   assert.equal(choices.find(c => c.tags.includes("preferred")).deck.id,b.id);
-  for (const deck of catalog.decks) deck.metrics = {startedBy:0,completedBy:0,likes:0,dislikes:0};
-  assert.equal(featuredDecks(catalog,"seven-habits").some(c => c.tags.some(t => ["popular","preferred","mostCompleted"].includes(t))),false);
+  for (const deck of catalog.decks) deck.metrics = {startedBy:0,likes:0,dislikes:0};
+  assert.equal(featuredDecks(catalog,"seven-habits").some(c => c.tags.some(t => ["popular","preferred"].includes(t))),false);
 });
 test("Any card in the selected deck opens without a leaf or sequence requirement", async () => {
   const model = (await fixture()).versionModels.get(versionId);
@@ -60,9 +59,9 @@ test("Completion includes all descendants and each deck keeps its own history", 
   const order = ["inside-out-1","inside-out-4","inside-out-7","inside-out-2","inside-out-3","inside-out-5","inside-out-6"];
   order.forEach(id => { review = openTreeCard(review,model,versionId,id).review; });
   assert.equal(review.seenIds.length,7);
-  assert.equal(bookReviewStates(catalog,{[versionId]:review})["seven-habits"].reviewStatus,"reviewed");
+  assert.equal(bookReviewStates(catalog,{[versionId]:review})["seven-habits"].hasReviewedCards,true);
   const partial = {...review,seenIds:order.slice(0,3)};
-  assert.equal(bookReviewStates(catalog,{[versionId]:partial})["seven-habits"].reviewStatus,"reviewing");
+  assert.deepEqual(bookReviewStates(catalog,{[versionId]:partial})["seven-habits"],{hasReviewedCards:true,hasReviewing:true});
   const otherId = "atomic-habits-editorial-v1", other = catalog.versionModels.get(otherId);
   assert.deepEqual(openTreeCard(null,other,otherId,"atomic-1").review.seenIds,["atomic-1"]);
 });
@@ -90,10 +89,10 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
   for (const language of ["es","en"]) {
     const c=words[language],state=readerState(catalog,{language,bookId:"seven-habits",deckChoices});
     for (const choice of deckChoices) {
-      const tags=["recommended","popular","preferred","mostCompleted"];
+      const tags=["recommended","popular","preferred"];
       const taggedChoice={...choice,tags:[...tags]};
       const html=deckView({...state,deckChoices:[taggedChoice]}),version=choice.version;
-      for (const tag of ["popular","preferred","mostCompleted","otherDeck"]) assert.ok(!html.includes(c[tag]),"Community and fallback labels stay hidden");
+      for (const tag of ["popular","preferred","otherDeck"]) assert.ok(!html.includes(c[tag]),"Community and fallback labels stay hidden");
       assert.deepEqual(taggedChoice.tags,tags,"Rendering preserves the underlying distinctions");
       const openButton=html.match(/<button\b[^>]*data-action="open-deck"[^>]*>/)[0];
       const label=openButton.match(/aria-label="([^"]*)"/)[1];
@@ -113,7 +112,7 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
     const details=deckView({...state,openDeckId:deckChoices[0].version.id}).split("<dialog")[1];
     assert.ok(details.includes(c.deckInProgress));
     assert.ok(details.includes(c.deckMayChange));
-    for (const tag of ["recommended","popular","preferred","mostCompleted","otherDeck"]) assert.ok(!details.includes(c[tag]),"Deck details also omit distinctions and fallback labels");
+    for (const tag of ["recommended","popular","preferred","otherDeck"]) assert.ok(!details.includes(c[tag]),"Deck details also omit distinctions and fallback labels");
   }
 });
 
@@ -171,7 +170,7 @@ test("Deck albums show total progress; cards open separately only when explicitl
     assert.match(emptyDeck,/0 de 0 tarjetas repasadas/);assert.match(emptyDeck,/<progress value="0" max="1"/);
     assert.doesNotMatch(emptyDeck,/NaN|Infinity|Repaso completo|idea-card/);
     const complete=view({...state,reviews:{[versionId]:{...review,seenIds:model.cards.map(c=>c.id)}}});
-    assert.match(complete,/100%/);assert.match(complete,/Repaso completo/);assert.doesNotMatch(complete,/idea-card/);
+    assert.match(complete,/100%/);assert.doesNotMatch(complete,/Repaso completo|idea-card/);
   }
   const unseen=model.cards.find(c=>!review.seenIds.includes(c.id));
   const opened=reviewView({...base,requestedId:unseen.id});
@@ -230,7 +229,7 @@ test("Practice preloads the next card beneath the active one without duplicate I
 });
 
 
-test("Draft creation, completed practice and author guidance stay distinct across deck surfaces",async()=>{
+test("Draft creation status stays distinct from review progress across deck surfaces",async()=>{
   const catalog=await fixture(),version=catalog.versionsById.get(versionId),deck=catalog.decksById.get(version.deckId),model=catalog.versionModels.get(versionId);
   version.status="draft";
   const done={...restoreTreeReview(null,model,versionId),seenIds:model.cards.map(card=>card.id)};
@@ -245,7 +244,7 @@ test("Draft creation, completed practice and author guidance stay distinct acros
         assert.ok(html.includes(explanation));
         assert.ok(!html.includes(userId===deck.creator.userId?c.deckMayChange:c.deckDraftOwnerExplanation));
       }
-      assert.ok(reviewView(state).includes(c.complete),"Practice may be complete while creation remains a draft");
+      assert.doesNotMatch(reviewView(state),/Repaso completo|Practice complete/);
     }
     version.status="published";
     const html=reviewView({...base,userId:deck.creator.userId});
@@ -263,14 +262,14 @@ test("Only the explicit team recommendation gets the translated visible and acce
     const c=words[language];
     for(const status of ["draft","published"]){
       for(const recommended of [true,false]){
-        const item={...choice,deck:{...choice.deck,isRecommended:recommended},version:{...choice.version,status},tags:["recommended","popular","preferred","mostCompleted"]};
+        const item={...choice,deck:{...choice.deck,isRecommended:recommended},version:{...choice.version,status},tags:["recommended","popular","preferred"]};
         const html=deckView(readerState(catalog,{language,bookId:"seven-habits",deckChoices:[item]}));
         const open=html.match(/<button\b[^>]*data-action="open-deck"[^>]*>([\s\S]*?)<\/button>/)[0];
         const label=open.match(/aria-label="([^"]*)"/)[1];
         assert.equal(label.includes(c.teamRecommendationShort),recommended);
         assert.equal(open.replace(/<[^>]*>/g,"").includes(c.teamRecommendationShort),recommended);
         assert.equal(open.includes(c.recommended),recommended,"The tooltip identifies the recommendation as the team’s");
-        for(const key of ["popular","preferred","mostCompleted","otherDeck"])assert.ok(!html.includes(c[key]));
+        for(const key of ["popular","preferred","otherDeck"])assert.ok(!html.includes(c[key]));
       }
     }
   }

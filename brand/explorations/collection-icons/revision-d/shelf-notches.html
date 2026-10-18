@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estantería A · Muescas superiores</title>
+  <style>
+    :root{color-scheme:light;font-family:"Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif;color:#173d2c;background:#fff9ed}
+    *{box-sizing:border-box}body{margin:0}main{max-width:720px;margin:auto;padding:40px 24px}h1{font-size:24px;letter-spacing:-.035em;margin:0 0 28px}h2{font-size:16px;margin:0 0 20px}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:36px}.drawing{display:flex;align-items:center;gap:24px;min-height:128px}.icon{display:block;width:128px;height:128px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.small{width:24px;height:24px}.size{font-size:12px;color:#51654c;margin:12px 0 0}details{margin-top:32px;font-size:12px;line-height:1.65;color:#51654c}summary{cursor:pointer;color:#173d2c}details p{margin:12px 0 0}.svg-defs{position:absolute;width:0;height:0;overflow:hidden}@media(max-width:520px){main{padding:28px 20px}.comparison{gap:20px}.drawing{gap:12px}.icon{width:96px;height:96px}.small{width:24px;height:24px}}@media(max-width:360px){.drawing{flex-wrap:wrap}}
+  </style>
+</head>
+<body>
+  <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <g id="a-shelf">
+      <rect x="5" y="9" width="5" height="15" rx="1.3"/>
+      <path d="M10 12h5v12H10M17.5 10.5l4.4-1.2 4 14.5-4.4 1.2zM3 26h24"/>
+    </g>
+    <g id="a-shelf-notched">
+      <path d="M6.3 9H6.5Q7.5 11.6 8.5 9H8.7A1.3 1.3 0 0 1 10 10.3V22.7A1.3 1.3 0 0 1 8.7 24H6.3A1.3 1.3 0 0 1 5 22.7V10.3A1.3 1.3 0 0 1 6.3 9Z"/>
+      <path d="M10 12H11.5Q12.5 14.6 13.5 12H15v12H10M17.5 10.5L18.735236178762 10.163117405792Q20.384105255059 12.408385935218 20.664763821238 9.636882594208L21.9 9.3l4 14.5-4.4 1.2zM3 26h24"/>
+    </g>
+  </defs></svg>
+  <main>
+    <h1>Estantería A · Muescas superiores</h1>
+    <div class="comparison">
+      <section aria-labelledby="original-title">
+        <h2 id="original-title">Original A</h2>
+        <div class="drawing" aria-hidden="true"><svg class="icon" viewBox="0 0 32 32"><use href="#a-shelf"/></svg><svg class="icon small" viewBox="0 0 32 32"><use href="#a-shelf"/></svg></div>
+        <p class="size">Ampliado / 24 px</p>
+      </section>
+      <section aria-labelledby="variant-title">
+        <h2 id="variant-title">Con muescas</h2>
+        <div class="drawing" aria-hidden="true"><svg class="icon" viewBox="0 0 32 32"><use href="#a-shelf-notched"/></svg><svg class="icon small" viewBox="0 0 32 32"><use href="#a-shelf-notched"/></svg></div>
+        <p class="size">Ampliado / 24 px</p>
+      </section>
+    </div>
+    <details>
+      <summary>Comparación geométrica</summary>
+      <p>Canvas 32 × 32. Trazo 1,9 y extremos/uniones redondeados, iguales al original. Cada borde superior recibe una entrada curva de 2 unidades de anchura y 1,3 de profundidad, centrada y orientada con su libro.</p>
+      <p>La balda, los laterales, los bordes inferiores, las esquinas originales y la inclinación conservan sus coordenadas. El rectángulo izquierdo se expresa como un path para abrir su borde superior; los cuatro arcos mantienen el radio 1,3. El grupo Original A se copia literalmente de la propuesta inicial.</p>
+      <p>El trazo redondeado suaviza los extremos de cada muesca y reduce su abertura visible a 24 px. La geometría restante es idéntica; el antialiasing puede variar al convertir rect a path. Propuesta aislada, pendiente de aprobación.</p>
+    </details>
+  </main>
+</body>
+</html>

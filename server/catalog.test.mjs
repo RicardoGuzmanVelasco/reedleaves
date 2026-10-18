@@ -114,7 +114,7 @@ test("Creation permissions, one optional vote and independent book reading / dec
   assert.throws(() => db.prepare("INSERT INTO deck_votes(user_id,deck_id,value) VALUES ('test-reader','seven-habits-editorial',-1)").run());
   assert.throws(() => db.prepare("UPDATE deck_votes SET value = 0").run());
   const stats = async () => (await readCatalog(db)).decks.find(d => d.id === "seven-habits-editorial").metrics;
-  assert.deepEqual(await stats(),{likes:1,dislikes:0,startedBy:0,completedBy:0});
+  assert.deepEqual(await stats(),{likes:1,dislikes:0,startedBy:0,reviewingBy:0});
   db.prepare("UPDATE deck_votes SET value = -1").run();
   assert.equal((await stats()).dislikes,1); assert.equal((await stats()).likes,0);
   db.prepare("DELETE FROM deck_votes").run();
@@ -137,7 +137,7 @@ test("Published versions are immutable, reimport is idempotent and new versions 
   db.prepare("INSERT INTO reviews(id,user_id,version_id) VALUES ('review-v2','test-reader','seven-habits-editorial-v2')").run();
   db.prepare("UPDATE reviews SET completed_at = CURRENT_TIMESTAMP WHERE user_id = 'test-reader'").run();
   const stats = (await readCatalog(db)).decks.find(d => d.id === "seven-habits-editorial").metrics;
-  assert.equal(stats.startedBy,1); assert.equal(stats.completedBy,1);
+  assert.equal(stats.startedBy,1); assert.equal("completedBy" in stats,false);
   assert.equal(db.prepare("SELECT version_id FROM reviews WHERE id = 'review-v1'").get().version_id,"seven-habits-editorial-v1");
 });
 test("Review progress accepts any card and is independent of the leaf balance", async t => {

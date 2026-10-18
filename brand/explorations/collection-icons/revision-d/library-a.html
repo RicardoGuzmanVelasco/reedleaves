@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reedleaves · Biblioteca A · Exploración D</title>
+  <style>
+    :root{color-scheme:light;--ink:#173d2c;--muted:#51654c;--paper:#fff9ed;--line:#dadcc9;--soft:#eef3df;font-family:"Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif;color:var(--ink);background:var(--paper)}
+    *{box-sizing:border-box}body{margin:0}main{max-width:1060px;margin:auto;padding:38px 28px 44px}h1,h2,p{margin:0}.status{font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}h1{font-size:28px;letter-spacing:-.04em}.lead{margin-top:10px;max-width:700px;color:var(--muted);font-size:14px;line-height:1.6}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:28px}.variant{background:#fffdf6;border:1px solid var(--line);border-radius:16px;padding:20px;min-width:0}.variant h2{font-size:15px;line-height:1.4}.drawing{display:flex;align-items:flex-end;justify-content:center;gap:35px;padding:28px 0 20px}.sample{display:flex;flex-direction:column;align-items:center;gap:14px}.sample span{font-size:10px;line-height:1;color:var(--muted)}.icon{display:block;width:104px;height:104px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.icon.small{width:24px;height:24px}.caption{font-size:12px;line-height:1.5;color:var(--muted)}.recommendation{display:inline-block;margin-top:13px;padding:5px 8px;border-radius:7px;background:var(--soft);font-size:10px;font-weight:700}.context{margin-top:24px;display:flex;gap:12px;flex-wrap:wrap}.context-item{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:650;padding:12px 14px;border-radius:12px;background:var(--soft)}.context-item small{font-size:10px;font-weight:500;color:var(--muted);margin-left:5px}footer{margin-top:24px;font-size:11px;line-height:1.6;color:var(--muted)}.defs{position:absolute;width:0;height:0;overflow:hidden}@media(max-width:760px){main{padding:28px 18px}.grid{grid-template-columns:1fr;max-width:420px}.variant{padding:20px 24px}.drawing{justify-content:flex-start;gap:45px;padding:24px 0}.context{flex-direction:column;align-items:flex-start}}
+  </style>
+</head>
+<body>
+  <svg class="defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <!-- Same three-level cabinet in every variation. The short diagonal cuts form its feet. -->
+    <g id="cabinet"><path d="M6 28.5V5.2A2.2 2.2 0 0 1 8.2 3h15.6A2.2 2.2 0 0 1 26 5.2v23.3h-2.8l-1.6-2.4H10.4l-1.6 2.4H6ZM6 10.7h20M6 18.4h20M6 26.1h20"/></g>
+    <!-- A1: the reference rhythm, with eight undecorated spines. -->
+    <g id="library-a1"><use href="#cabinet"/><path d="M8.7 10.7V5.8h2.6v4.9M11.3 10.7V5.8h2.6v4.9M15.85 10.7 13.9 6.4l2.2-1 2.4 5.3M19.1 18.4l2-4.9 2.4 1-1.6 3.9M23.5 18.4v-4.9H26M8.7 26.1v-4.9h3.1v4.9M11.8 26.1v-4.9h3.1v4.9M16.55 26.1 14.9 22l2.7-1.1 2.1 5.2"/></g>
+    <!-- A2: two clear books per level, alternating the occupied side. -->
+    <g id="library-a2"><use href="#cabinet"/><path d="M8.9 10.7V5.8H12v4.9M13.65 10.7 12 6.7l2.6-1.1 2.1 5.1M18.1 18.4l2.1-4.8 2.5 1-1.65 3.8M22.7 18.4v-4.9H26M8.9 26.1v-4.9H12v4.9M13.65 26.1 12 22.1l2.6-1.1 2.1 5.1"/></g>
+    <!-- A3: only spine strokes; fewer intersections at 24 px. -->
+    <g id="library-a3"><use href="#cabinet"/><path d="M9.6 6v4.7M13 6v4.7M16.4 6.2l1.7 4.5M19.7 14l-1.8 4.4M23 13.7v4.7M9.6 21.4v4.7M13 21.4v4.7M16.4 21.6l1.7 4.5"/></g>
+  </defs></svg>
+  <main>
+    <header>
+      <p class="status">Exploración D · propuesta</p>
+      <h1>Biblioteca · mueble completo</h1>
+      <p class="lead">Tres variaciones de la opción A. El mismo mueble con tres niveles y pies; cambia la representación de los libros.</p>
+    </header>
+    <div class="grid">
+      <article class="variant">
+        <h2>A1 · Lomos contorneados</h2>
+        <div class="drawing" aria-hidden="true">
+          <div class="sample"><svg class="icon" viewBox="0 0 32 32"><use href="#library-a1"/></svg><span>104 px</span></div>
+          <div class="sample"><svg class="icon small" viewBox="0 0 32 32"><use href="#library-a1"/></svg><span>24 px</span></div>
+        </div>
+        <p class="caption">Grupos alternos y libros inclinados, como en la referencia.</p>
+      </article>
+      <article class="variant">
+        <h2>A2 · Dos por nivel</h2>
+        <div class="drawing" aria-hidden="true">
+          <div class="sample"><svg class="icon" viewBox="0 0 32 32"><use href="#library-a2"/></svg><span>104 px</span></div>
+          <div class="sample"><svg class="icon small" viewBox="0 0 32 32"><use href="#library-a2"/></svg><span>24 px</span></div>
+        </div>
+        <p class="caption">Seis libros sin marcas interiores. Más espacio entre grupos.</p>
+      </article>
+      <article class="variant">
+        <h2>A3 · Trazos simples</h2>
+        <div class="drawing" aria-hidden="true">
+          <div class="sample"><svg class="icon" viewBox="0 0 32 32"><use href="#library-a3"/></svg><span>104 px</span></div>
+          <div class="sample"><svg class="icon small" viewBox="0 0 32 32"><use href="#library-a3"/></svg><span>24 px</span></div>
+        </div>
+        <p class="caption">Cada lomo se reduce a un trazo. La versión más ligera.</p>
+        <p class="recommendation">Elegida</p>
+      </article>
+    </div>
+    <div class="context" aria-label="Variaciones con etiqueta a 24 píxeles">
+      <div class="context-item"><svg class="icon small" viewBox="0 0 32 32" aria-hidden="true"><use href="#library-a1"/></svg><span>Biblioteca <small>A1</small></span></div>
+      <div class="context-item"><svg class="icon small" viewBox="0 0 32 32" aria-hidden="true"><use href="#library-a2"/></svg><span>Biblioteca <small>A2</small></span></div>
+      <div class="context-item"><svg class="icon small" viewBox="0 0 32 32" aria-hidden="true"><use href="#library-a3"/></svg><span>Biblioteca <small>A3</small></span></div>
+    </div>
+    <footer>Propuesta aislada · no modifica la interfaz ni las exploraciones anteriores.</footer>
+  </main>
+</body>
+</html>

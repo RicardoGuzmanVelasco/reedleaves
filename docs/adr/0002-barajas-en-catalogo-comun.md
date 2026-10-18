@@ -49,7 +49,7 @@ no introduce un paso de publicación para hacerlo visible.
 ## Evolución pendiente: ampliar una baraja ya repasada
 
 Una baraja compartida puede crecer después de que otras personas la hayan
-repasado. Hoy, añadir una tarjeta borra el estado de completado de esa versión;
+repasado. Hoy, añadir una tarjeta actualiza el resumen de progreso de esa versión;
 las tarjetas ya abiertas y las hojas gastadas se conservan, pero el repaso vuelve
 a quedar pendiente.
 
@@ -69,4 +69,4 @@ aislado.
 
 `status=draft` se presenta como **Borrador / Draft**, y `published` sigue siendo **Terminada / Finished**. No cambia el modelo, la visibilidad compartida ni la irreversibilidad del cierre. El detalle, repaso y gestión explican al propietario que otras personas ya pueden ver y repasar la baraja; al lector, que su autor puede añadir tarjetas y dejar nuevas tarjetas pendientes aun después de completar el repaso. Se conservan tarjetas ya repasadas y hojas gastadas.
 
-«Nota sin guardar / Unsaved note» nombra el contenido pendiente del editor. «Barajas en repaso / Decks being practiced» y «Barajas con repaso completo / Fully practiced decks» son métricas de aprendizaje, independientes de creación. El campo `editorial_status=draft/reviewed` conserva su significado editorial separado.
+«Nota sin guardar / Unsaved note» nombra el contenido pendiente del editor. «Barajas en repaso / Decks being practiced» es una métrica de aprendizaje, independiente de creación. El campo `editorial_status=draft/reviewed` conserva su significado editorial separado.

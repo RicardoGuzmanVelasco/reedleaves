@@ -55,7 +55,6 @@ export async function readProfile(db,userId,viewerId) {
       (SELECT COUNT(*) FROM studies s WHERE s.version_id=v.id AND s.user_id=?) AS enrolled
       FROM deck_versions v WHERE EXISTS (SELECT 1 FROM studies s WHERE s.version_id=v.id AND s.user_id=?)
       OR EXISTS (SELECT 1 FROM review_cards rc WHERE rc.version_id=v.id AND rc.user_id=?)`).all(userId,userId,userId,userId);
-    const completed=new Set(progress.filter(v=>Number(v.total)>0 && Number(v.seen)===Number(v.total)).map(v=>v.deck_id));
     const active=new Set(progress.filter(v=>(Number(v.seen)<Number(v.total) || v.status === "draft" && Number(v.total)===0) && (Number(v.seen)>0 || Number(v.enrolled)>0)).map(v=>v.deck_id));
     const days=new Map((await db.prepare("SELECT v.book_id,COUNT(DISTINCT rc.local_day) AS n FROM review_cards rc JOIN deck_versions v ON v.id=rc.version_id WHERE rc.user_id=? GROUP BY v.book_id").all(userId)).map(r=>[r.book_id,Number(r.n)]));
     const mascots={pot:0,seed:0,root:0,seedling:0,sprout:0,sapling:0,stem:0,plant:0,flower:0,fruit:0,infinity:0};
@@ -69,14 +68,14 @@ export async function readProfile(db,userId,viewerId) {
       leavesSpent:await count("SELECT COUNT(*) AS n FROM review_cards WHERE user_id=? AND leaf_spent=1",userId),
       booksRead:Object.values(statuses).filter(s=>s==="read").length,
       booksReading:Object.values(statuses).filter(s=>s==="reading").length,
-      decksCompleted:completed.size,decksInProgress:active.size,
+      decksInProgress:active.size,
       cardsReviewed:await count("SELECT COUNT(DISTINCT card_id) AS n FROM review_cards WHERE user_id=?",userId),
       cardsViewed:await count("SELECT COUNT(*) AS n FROM (SELECT card_id FROM card_views WHERE user_id=? UNION SELECT card_id FROM review_cards WHERE user_id=?) viewed",userId,userId),
       decksCreated:await count("SELECT COUNT(*) AS n FROM decks WHERE creator_user_id=?",userId),
       cardsCreated:await count("SELECT COUNT(*) AS n FROM cards c JOIN deck_versions v ON v.id=c.version_id JOIN decks d ON d.id=v.deck_id WHERE d.creator_user_id=?",userId),
       quotesCreated:await count("SELECT COUNT(*) AS n FROM cards c JOIN deck_versions v ON v.id=c.version_id JOIN decks d ON d.id=v.deck_id WHERE d.creator_user_id=? AND c.is_quote=1",userId)
     };
-    const bookshelf=entries.map(({book,reading,pending,hasReviewing,hasReviewed,group})=>({bookId:book.id,reading,pending,hasReviewing,hasReviewed,group}));
+    const bookshelf=entries.map(({book,reading,pending,hasReviewing,hasReviewedCards,group})=>({bookId:book.id,reading,pending,hasReviewing,hasReviewedCards,group}));
     return {profile:{id:user.id,name:user.display_name,username:user.username||null,createdAt:user.created_at,counts,mascots},bookshelf};
   });
 }

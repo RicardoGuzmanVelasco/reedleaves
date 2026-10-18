@@ -28,6 +28,7 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 ## Selectores de cápsula
 
 - Por defecto, ocupan el ancho necesario para sus opciones, sin estirarse para rellenar el contenedor. El selector de lectura de la ficha del libro se centra horizontalmente.
+- Las pestañas Estantería / Shelf y Tarjetero / Decks de Biblioteca / Bookcase mantienen por ahora su estilo propio. Posible unificación futura: revisar si conviene aplicarles el lenguaje visual del selector de cápsula.
 
 ## Ficha del libro
 
@@ -43,7 +44,7 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - La recomendación del equipo (`deck.isRecommended`, procedente de `is_recommended`) se muestra en el selector con la etiqueta flotante «Te recomendamos / We recommend» y estrella de puntas redondeadas. Usar la opción aprobada de papel ondulado, fondo miel `#e7d6aa`, texto y estrella en el verde bosque existente `var(--ink)` (`#173d2c`), sin borde ni sombra. El nombre accesible incluye el texto de la etiqueta y el tooltip identifica al equipo. No depende de votos ni de que la baraja esté en borrador o terminada.
 - Las distinciones de comunidad se conservan en datos y ordenación, pero siguen ocultas; el detalle no añade distintivos. No mostrar una etiqueta de relleno para barajas sin recomendación. Dar prioridad visual al título, con mayor tamaño que la autoría y todo el ancho disponible. Sus 26 px de margen superior dejan espacio al distintivo sin solapar el título.
 - El idioma se representa con un chip después del ojo y antes del estado de creación. Usar los SVG suaves de `brand/icons/languages/` (España para español y Reino Unido para inglés); para otros idiomas, globo neutro con su etiqueta de idioma. Conservar el nombre localizado del idioma en el nombre accesible y el tooltip de apertura. No reservar espacio lateral en el título para la bandera.
-- Las tarjetas de baraja terminadas no muestran un indicador de estado. Las versiones `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. Detalle, repaso y gestión comparten una explicación según propietario o lector: otras personas ya pueden ver y repasar el contenido; añadir tarjetas puede dejar un repaso completo con nuevas tarjetas pendientes. La fila de chips puede envolver en móvil estrecho.
+- Las tarjetas de baraja terminadas no muestran un indicador de estado. Las versiones `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. Detalle, repaso y gestión comparten una explicación según propietario o lector: otras personas ya pueden ver y repasar el contenido; las tarjetas que se añadan aparecerán como pendientes. La fila de chips puede envolver en móvil estrecho.
 - Antes del ojo, mostrar un chip con el icono de dos tarjetas cerradas y su número. Sustituye a «X tarjetas · Y niveles»; el selector omite los niveles también en su nombre accesible. El icono `cards.svg` deriva de `cards-pen.svg` y mantiene sus dos tarjetas sin lápiz; no sustituye al icono de «Tomar nota». Todos los chips de la fila comparten estilo sin borde.
 
 ## Vista exclusiva de tarjetas
@@ -65,14 +66,15 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 
 | Concepto | Español | Inglés |
 | --- | --- | --- |
-| Catálogo | Librería | Library |
-| Colección personal | Biblioteca | Bookshelf |
+| Catálogo global | Librería | Library |
+| Colección personal | Biblioteca | Bookcase |
+| Libros de la colección personal | Estantería | Shelf |
+| Barajas de la colección personal | Tarjetero | Decks |
 | Conjunto de repaso | Baraja | Deck |
 | Creación abierta (`status=draft`) | Borrador / Baraja en borrador | Draft / Draft deck |
 | Creación cerrada (`status=published`) | Terminada | Finished |
 | Contenido pendiente del editor | Nota sin guardar | Unsaved note |
 | Aprendizaje activo | Barajas en repaso | Decks being practiced |
-| Aprendizaje completado | Barajas con repaso completo | Fully practiced decks |
 | Unidad de contenido | Tarjeta | Card |
 | Texto citado | Cita | Quote |
 | Relación entre tarjetas | Colocar debajo de | Place under |
@@ -82,7 +84,7 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 | Contenido creado por usuarios | Contribuciones | Contributions |
 | Progreso de una persona en un libro | Crecimiento | Growth |
 
-En castellano, llamar **tarjeta** a cada unidad de contenido; no usar **carta** como sinónimo. **Hoja** conserva el juego intencional entre página y hoja de planta. **Cita** se refiere a un texto citado dentro del contexto de tarjetas. Usar **Practice** para la actividad de aprendizaje en inglés.
+En castellano, llamar **tarjeta** a cada unidad de contenido; no usar **carta** como sinónimo. **Hoja** conserva el juego intencional entre página y hoja de planta. **Cita** se refiere a un texto citado dentro del contexto de tarjetas. Usar **Practice** para la actividad de aprendizaje en inglés. La Biblioteca / Bookcase personal contiene dos vistas: Estantería / Shelf para libros y Tarjetero / Decks para barajas. Las barajas creadas por la persona aparecen automáticamente en Decks.
 
 Para iniciar la captura de una idea o cita, usar siempre **Tomar nota / Take a note**, incluidos botones, nombres accesibles, encabezados del editor y título de página. Reutilizar la clave de traducción `takeNote`. Evitar las variantes «Añadir contenido», «Añadir tarjeta» y «Añadir cita» para esta acción. Idea / Cita identifica el tipo dentro del editor; Tarjeta sigue nombrando la unidad de lectura y repaso.
 
@@ -90,7 +92,7 @@ Para iniciar la captura de una idea o cita, usar siempre **Tomar nota / Take a n
 
 Si el «+» de Inicio no tiene una baraja propia en borrador, abre el editor de nota directamente. Se avisa de que se creará «Notas de lectura» / «Reading notes». La baraja nace al guardar la primera nota, con el idioma elegido para la app al abrir el editor, independiente del idioma original del libro. No se pide configurar nombre o idioma. Cancelar no crea una baraja vacía.
 
-Borrador describe creación y no privacidad. Guardar comparte el contenido con quienes tienen acceso al catálogo; terminar cierra cambios, no lo hace visible por primera vez. El estado editorial `draft/reviewed` es independiente de `status`. «Repaso completo» puede coexistir con «Borrador». Los nombres internos `deckInProgress` y `notesInProgress` conservan su contrato, pero su copy de creación usa Borrador. Las notas sin guardar solo se recuperan en el navegador y dispositivo donde se conservaron.
+Borrador describe creación y no privacidad. Guardar comparte el contenido con quienes tienen acceso al catálogo; terminar cierra cambios, no lo hace visible por primera vez. El estado editorial `draft/reviewed` es independiente de `status`. Los nombres internos `deckInProgress` y `notesInProgress` conservan su contrato, pero su copy de creación usa Borrador. Las notas sin guardar solo se recuperan en el navegador y dispositivo donde se conservaron.
 
 ## Cómo usarla
 
