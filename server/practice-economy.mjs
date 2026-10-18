@@ -3,7 +3,7 @@ import {isPostgres,transaction} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
-import {prioritizePracticeCards} from "../app/practice-progress.mjs";
+import {selectPracticeCards} from "../app/practice-progress.mjs";
 import {accruePetalWallet} from "./petal-wallet-repository.mjs";
 import {serverDay} from "./auth.mjs";
 
@@ -55,7 +55,7 @@ export async function startPracticeSession(db,session,topic,now=new Date()) {
     const discountTopic=await currentDiscount(db,userId),cost=topic===discountTopic?PRACTICE_DISCOUNT_COST:PRACTICE_BASE_COST;
     if(wallet.balance<cost) return {reason:"insufficientPetals",topic,cost,balance:wallet.balance};
     const answers=Object.fromEntries((await db.prepare("SELECT card_id,answer FROM practice_answers WHERE user_id=?").all(userId)).map(row=>[row.card_id,row.answer]));
-    const selected=prioritizePracticeCards(cards,answers).slice(0,PRACTICE_SESSION_SIZE);
+    const selected=selectPracticeCards(cards,answers,PRACTICE_SESSION_SIZE);
     const spent=await db.prepare("UPDATE petal_wallets SET balance=balance-? WHERE user_id=? AND balance>=?").run(cost,userId,cost);
     if(spent.changes!==1) throw new ApiError(409,"insufficientPetals");
     const id=randomUUID(),startedAt=now.toISOString(),cardIds=selected.map(card=>card.id);
