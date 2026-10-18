@@ -17,7 +17,7 @@ La zona horaria se valida y se fija al crear la cuenta. La fecha se calcula con 
 
 ## Persistencia
 
-SQLite local o PostgreSQL en producción guarda, por usuario: barajas elegidas, cartas vistas, última carta abierta, lectura del original, idioma, filtros, intereses, idea diaria, monedero, votos y tarjetas guardadas.
+SQLite local o PostgreSQL en producción guarda, por usuario: barajas elegidas, cartas vistas, última carta abierta, lectura del original, idioma, monedero, votos y tarjetas guardadas. La idea diaria se guarda una sola vez por fecha UTC y es común a todas las cuentas.
 
 Elegir baraja no gasta hojas ni aumenta «más popular». Abrir la primera carta crea el repaso y cuenta como una persona que empezó. Una persona se cuenta una vez por baraja, aunque use varias versiones.
 
@@ -25,7 +25,7 @@ Cada carta nueva, también hija, cuesta una hoja. Se recibe una por día, con m�
 
 El desbloqueo y el gasto se confirman en una transacción SQL. La clave única de carta por repaso hace los reintentos seguros: un doble clic, una respuesta perdida o dos sesiones no cobran dos veces la misma carta. El esquema SQL comprueba también el recorrido. El repaso termina solo al desbloquear todas las cartas, incluidas las hijas.
 
-La idea del día se fija por usuario y fecha, sin gastar ni desbloquear cartas. Cambiar filtros, idioma o baraja no reemplaza la idea ya asignada hoy.
+La idea del día se sortea al primer acceso de cada fecha UTC y queda fijada para todo el mundo, sin gastar ni desbloquear cartas. Se elige al azar entre las tarjetas raíz de las versiones predeterminadas del catálogo y se agotan las candidatas antes de repetir; al empezar otro ciclo se evita la tarjeta del día anterior si hay alternativa. Una cita raíz también puede salir. El calendario permite consultar las asignaciones anteriores.
 
 Las guardadas se consultan por cuenta y libro, sin aparecer en perfiles o bibliotecas ajenas. Guardar exige acceso legítimo a la tarjeta: vista registrada, desbloqueo, asignación diaria vigente, guardado previo o autoría propia. Repetir el mismo destino conserva la fecha; quitar y volver a guardar crea una nueva. Abrir desde Guardadas valida pertenencia y registra contexto `saved`, sin hojas ni desbloqueos. La cuenta propia incluye `cardSaves`; esa relación permite incorporar el libro a Biblioteca sin cambiar su estado de lectura o repaso.
 
@@ -45,7 +45,7 @@ El navegador muestra el estado confirmado y consulta cambios al volver al primer
 | `/api/reader/select` | POST | Elegir versión de baraja, gratis |
 | `/api/reader/open` | POST | Abrir carta; gasto solo si es nueva |
 | `/api/reader/reading` | POST | Estado manual del libro original |
-| `/api/reader/preferences` | POST | Idioma, filtros e intereses |
+| `/api/reader/preferences` | POST | Idioma y títulos originales |
 | `/api/reader/daily` | POST | Obtener o asignar la idea de hoy |
 
 `/api/catalog` sigue siendo público y de lectura. Registro y acceso requieren origen válido; las demás mutaciones requieren además sesión y `X-CSRF-Token`. Las pestañas comparten cookie; los dispositivos usan sesiones distintas de la misma cuenta.
@@ -71,8 +71,8 @@ Referencias primarias: [contraseñas, OWASP](https://cheatsheetseries.owasp.org/
 
 ## Perfil y vistas de tarjetas (2026-10-11)
 
-- `GET /api/profiles/:userId` requiere sesión y devuelve solo nombre, usuario público, fecha de alta, estadísticas y resúmenes de los libros visibles para quien consulta. No devuelve credenciales, sesión, monedero ni filtros. Las barajas y tarjetas creadas por cuentas son visibles en el catálogo común; editar borradores sigue reservado a su creador. Incluye también a los creadores editoriales sin cuenta de acceso.
-- `POST /api/reader/view` requiere origen, sesión y CSRF. Registra una tarjeta distinta por usuario al mostrarse en idea diaria, repaso o autoría. Comprueba la asignación de hoy, el desbloqueo o la propiedad según el contexto. Los reintentos no duplican vistas. No modifica el monedero ni el repaso.
+- `GET /api/profiles/:userId` requiere sesión y devuelve solo nombre, usuario público, fecha de alta, estadísticas y resúmenes de los libros visibles para quien consulta. No devuelve credenciales, sesión ni monedero. Las barajas y tarjetas creadas por cuentas son visibles en el catálogo común; editar borradores sigue reservado a su creador. Incluye también a los creadores editoriales sin cuenta de acceso.
+- `POST /api/reader/view` requiere origen, sesión y CSRF. Registra una tarjeta distinta por usuario al mostrarse en idea diaria, repaso o autoría. Comprueba que la tarjeta pertenece al calendario global, el desbloqueo o la propiedad según el contexto. Los reintentos no duplican vistas. No modifica el monedero ni el repaso.
 - `card_views` guarda `user_id`, `card_id` y primera fecha de vista. Esquemas activos SQLite v13 y PostgreSQL v5. Migración transaccional desde v12/v4, encadenada a las anteriores: conserva progreso y rellena vistas con los desbloqueos históricos. Las ideas diarias anteriores solo prueban asignación, no visualización; no se inventa su historial de vistas.
 - Hojas gastadas: total de desbloqueos. Tarjetas repasadas/vistas: IDs distintos. Barajas con repaso completo: todas las tarjetas desbloqueadas en una versión no vacía. Barajas en repaso: versión con tarjetas pendientes (o un borrador vacío), con desbloqueos o inscripción, deduplicada por baraja. Son métricas de aprendizaje; Inicio usa lectura o barajas propias en borrador y no comparte ese criterio. Libros leídos/leyendo: estados manuales independientes.
 - Mascotas: una etapa actual por libro, compartida con la UI. Totales de creador incluyen sus barajas y tarjetas, con citas como subconjunto. La biblioteca ajena muestra fichas de libros compartidos asociadas al perfil, con el repaso calculado solo sobre barajas visibles para el visitante. Ver [ADR 0001](../adr/0001-libros-en-catalogo-comun.md) y [ADR 0002](../adr/0002-barajas-en-catalogo-comun.md).

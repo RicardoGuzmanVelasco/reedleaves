@@ -18,7 +18,7 @@ Cada contenedor de libro tiene portada, lomo y canto de páginas. No es una tarj
 
 Añadir libro → cuadrícula de todos los libros cerrados → ficha modal del libro → ver barajas → seleccionar baraja → aparece en Inicio sin gastar hojas.
 
-Idea del día → idea aleatoria → «Repasar este libro» → seleccionar baraja.
+Idea del día → calendario global → idea de hoy o de una fecha anterior → «Repasar este libro» → seleccionar baraja.
 
 Cabecera con logo sin lema, icono de hoja y saldo numérico; idioma y cuenta dentro del botón de ajustes. Sin sesión, acceso o creación con usuario y contraseña; explorar el catálogo no necesita cuenta.
 
@@ -32,12 +32,9 @@ Al abrir la primera historia el libro queda «repasando»; al desbloquear todas,
 
 ## Reglas de la prueba
 
-- La diaria se sortea entre las cartas principales de la baraja elegida para cada libro que cumpla los filtros.
-- Seis filtros: leyendo, leídos, repasando, repasados, intereses por género y todos los libros. Unión de grupos sin duplicar candidatos. «Todos» sustituye al resto.
-- Tres intereses reales: finanzas, productividad y crecimiento personal. Los 7 hábitos también pertenece a productividad.
-- Fecha del servidor en la zona horaria fija de la cuenta. Una selección por día, conservada al recargar y al cambiar de idioma; puede repetirse al día siguiente.
-- Ver la idea diaria no desbloquea esa posición del repaso. Si no hay candidatos, pedir cambiar los filtros sin sortear fuera de la selección.
-- Tras asignar la idea de hoy, los filtros se aplican mañana. Decisión pendiente de confirmación; implementada para preservar una sola idea al día.
+- Una idea compartida por todas las cuentas para cada fecha UTC. La selección se conserva al recargar y al cambiar de idioma.
+- El calendario permite abrir ideas asignadas en fechas anteriores.
+- La idea diaria no desbloquea su posición en el repaso.
 - Progreso y posición SQL por usuario y versión. Volver a entrar en la misma cuenta recupera ambos.
 - Monedero global entre barajas: una hoja inicial y una por fecha local posterior, máximo tres. Abono único por fecha; recargar no añade hojas. En saldo máximo se actualiza igualmente la fecha de abono para no guardar exceso pendiente.
 - «Añadir libro» muestra título, autor, intereses y número de barajas. Su ficha modal contiene el resto de datos, la lectura original y el acceso a barajas, con vuelta al catálogo. Inicio solo muestra barajas elegidas pendientes o repasos empezados, no todas las recomendaciones del catálogo.
@@ -58,11 +55,11 @@ Conservar la familia Duolingo/Forest: siluetas amables, profundidad por capas, b
 
 La animación acompaña la acción: celebración finita al abrir una historia. No bucles, sonidos ni castigos por ausencia. Con `prefers-reduced-motion`, todo es estático.
 
-Inicio muestra libros cerrados, solo los que tienen un repaso pendiente. Los recorridos completos se ven al entrar; la idea diaria tiene su propia pantalla con filtros plegados. Las portadas son contenedores propios, no portadas comerciales. Sin barra de progreso, accesos directos a historias bloqueadas, marcas de leído ni cierre adicional.
+Inicio muestra libros cerrados, solo los que tienen un repaso pendiente. Los recorridos completos se ven al entrar; la idea diaria comparte pantalla con el calendario. Las portadas son contenedores propios, no portadas comerciales. Sin barra de progreso, accesos directos a historias bloqueadas, marcas de leído ni cierre adicional.
 
 ## Pendiente
 
-- Confirmar cuándo se aplican los filtros y revisar el contenido de las 42 cartas.
+- Revisar el contenido de las 42 cartas.
 - Elegir plataforma final después de validar el recorrido.
 - Recuperación de contraseña y despliegue seguro antes de publicar. Cuentas y fecha de servidor ya implementadas; ver `docs/architecture/ACCOUNTS.md`.
 - Autoría por usuarios queda para otra fase. Naming cerrado: Reedleaves.

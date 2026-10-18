@@ -1,6 +1,5 @@
 import {transaction} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
-import {serverDay} from "./auth.mjs";
 import {readCardVotes} from "./card-votes.mjs";
 
 const validId=value=>typeof value==="string" && value.trim().length>0 && value.length<=240;
@@ -37,8 +36,7 @@ export async function setCardSave(db,session,{cardId,saved}={},now=new Date()) {
       const seen=await db.prepare(`SELECT 1 FROM card_views WHERE user_id=? AND card_id=?
         UNION SELECT 1 FROM review_unlocks WHERE user_id=? AND card_id=?
         UNION SELECT 1 FROM card_saves WHERE user_id=? AND card_id=?`).get(session.user_id,cardId,session.user_id,cardId,session.user_id,cardId);
-      const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id);
-      const daily=account && await db.prepare("SELECT 1 FROM daily_ideas WHERE user_id=? AND card_id=? AND local_day=?").get(session.user_id,cardId,serverDay(account.time_zone,now));
+      const daily=await db.prepare("SELECT 1 FROM daily_ideas WHERE card_id=?").get(cardId);
       if (!seen && !daily && !(card.creator_user_id===session.user_id && card.status==="draft")) throw new ApiError(409,"cardLocked");
       await db.prepare("INSERT INTO card_saves(user_id,card_id,saved_at) VALUES (?,?,?) ON CONFLICT(user_id,card_id) DO NOTHING").run(session.user_id,cardId,now.toISOString());
     } else await db.prepare("DELETE FROM card_saves WHERE user_id=? AND card_id=?").run(session.user_id,cardId);

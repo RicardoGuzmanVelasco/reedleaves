@@ -1,6 +1,5 @@
 import {transaction} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
-import {serverDay} from "./auth.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
 import {restoreTreeReview} from "../app/decks.mjs";
@@ -24,8 +23,7 @@ export async function recordCardView(db,session,{cardId,context} = {},now=new Da
     if (context === "review") allowed=!!await db.prepare("SELECT 1 FROM review_unlocks WHERE user_id=? AND card_id=?").get(session.user_id,cardId);
     if (context === "saved") allowed=!!await db.prepare("SELECT 1 FROM card_saves WHERE user_id=? AND card_id=?").get(session.user_id,cardId);
     if (context === "daily") {
-      const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id);
-      allowed=!!account && !!await db.prepare("SELECT 1 FROM daily_ideas WHERE user_id=? AND local_day=? AND card_id=?").get(session.user_id,serverDay(account.time_zone,now),cardId);
+      allowed=!!await db.prepare("SELECT 1 FROM daily_ideas WHERE card_id=?").get(cardId);
     }
     if (!allowed) throw new ApiError(409,"cardLocked");
     await insertCardView(db,session.user_id,cardId);

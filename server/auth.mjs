@@ -90,7 +90,6 @@ export async function authenticate(db,kind,input,{now = new Date(),ip = "unknown
       const userId = randomUUID();
       await db.prepare("INSERT INTO users(id,display_name) VALUES (?,?)").run(userId,username);
       await db.prepare("INSERT INTO accounts VALUES (?,?,?,?,?)").run(userId,username,`scrypt$131072$8$1$${salt}$${result.toString("hex")}`,timeZone,language);
-      await db.prepare("INSERT INTO reader_filters VALUES (?,'all')").run(userId);
       return issueSession(db,userId,now,previous);
     });
   }

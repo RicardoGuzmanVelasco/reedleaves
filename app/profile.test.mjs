@@ -41,7 +41,7 @@ test("Foreign shelf shows target reading/review states without mutation controls
 
 test("All three card attributions are escaped links with three filled icons and diagonal arrows",async()=>{
   const catalog=await fixture(),card=catalog.allCards[0];
-  const s={catalog,language:"es",daily:{id:card.id},preferences:{filters:{},genres:[]},storageAvailable:true};
+  const s={catalog,language:"es",daily:{id:card.id,day:"2026-10-06"},dailyToday:{day:"2026-10-06"},dailyHistory:[{id:card.id,day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",storageAvailable:true};
   const html=dailyView(s),footer=html.slice(html.indexOf('<footer'),html.indexOf('</footer>'));
   assert.equal((footer.match(/class="card-attribution-row"/g)||[]).length,3);
   assert.equal((footer.match(/class="attribution-icon"/g)||[]).length,3);

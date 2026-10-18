@@ -14,7 +14,7 @@ async function retainedData(db,dialect) {
     : "SELECT table_name AS name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name").all();
   const result={};
   for (const {name} of rows) {
-    if (["sources","reed_schema"].includes(name)) continue;
+    if (["sources","reed_schema","reader_filters","reader_interests"].includes(name)) continue;
     result[name]=(await db.prepare(`SELECT * FROM "${name}"`).all()).map(row=>{
       const value={...row};if (name === "cards") delete value.source_id;
       return value;
