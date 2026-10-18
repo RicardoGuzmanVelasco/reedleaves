@@ -27,6 +27,16 @@ test("All interface languages have the same complete set of messages and types",
   }
 });
 
+test("Personal collection copy distinguishes Bookcase from Library and lowercases tarjetero in phrases", () => {
+  assert.equal(words.es.goBookcase, "Ir a mi biblioteca");
+  assert.equal(words.es.viewBookshelf, "Ver mi biblioteca");
+  assert.equal(words.es.deckInCollection, "En tu tarjetero");
+  assert.equal(words.en.goBookcase, "Go to my Bookcase");
+  assert.equal(words.en.viewBookshelf, "View my Bookcase");
+  assert.equal(words.es.deckMayChangeUnadded, "Puedes previsualizar sus tarjetas. Añádela al tarjetero para guardarla en tu colección.");
+  assert.equal(words.es.deckAddedToCollection, "Baraja añadida al tarjetero.");
+});
+
 test("Spanish interface calls review items tarjetas, never cartas", () => {
   const dynamicSamples = Object.entries(words.es).flatMap(([key, value]) => {
     if (typeof value !== "function") return [];
