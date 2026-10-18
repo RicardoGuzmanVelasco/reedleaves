@@ -61,10 +61,13 @@ test("Storage preserves v2 book keys, reads live changes and fails closed withou
 });
 test("Views expose every review card and preserve book attribution", async () => {
   const catalog=prepareCatalog(await payload()),deckId="atomic-habits-editorial";
-  const state = { catalog, deckId, language: "es", bookId: "atomic-habits", requestedId: "atomic-8", daily: { id: "rich-dad-2", bookId: "rich-dad-poor-dad", day:"2026-10-06" },dailyToday:{day:"2026-10-06"},dailyHistory:[{id:"rich-dad-2",bookId:"rich-dad-poor-dad",day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",
+  const state = { catalog, deckId, language: "es", bookId: "atomic-habits", requestedId: "atomic-8", daily: { id: "rich-dad-2", bookId: "rich-dad-poor-dad", day:"2026-10-06" },dailyToday:{day:"2026-10-06"},dailyHistory:[{id:"rich-dad-2",bookId:"rich-dad-poor-dad",day:"2026-10-06",seenInDay:true}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",
     statuses: {}, today: "2026-10-06", storageAvailable: true };
   const daily = dailyView(state);
   assert.match(daily, /Robert T\. Kiyosaki/); assert.match(daily, /daily-calendar/);assert.match(daily,/data-day="2026-10-06"/);
+  assert.match(daily,/daily-calendar-seen/);assert.match(daily,/Vista durante su día/);
+  const home=homeView({...state,dailyStatus:{day:"2026-10-06",unseen:true,animate:true}});
+  assert.match(home,/aria-label="Nueva idea del día"/);assert.match(home,/daily-new-badge/);assert.match(home,/daily-badge-entering/);
   assert.doesNotMatch(daily,/data-source=|source-content|exclusive-card-modal/);
   assert.doesNotMatch(daily,/data-book-status=/);
   assert.doesNotMatch(libraryView(state),/data-book-status=/);

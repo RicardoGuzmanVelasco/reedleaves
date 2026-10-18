@@ -43,8 +43,10 @@ async function stateInside(db,session,now) {
     .map(r=>[r.book_id,{reviewDays:Number(r.review_days)}]));
   for(const bookId of addedBooks) growth[bookId]={reviewDays:growth[bookId]?.reviewDays||0,added:true};
   for(const value of Object.values(growth)) value.added=!!value.added;
-  const dailyRows=await db.prepare("SELECT d.day,c.id,c.book_id FROM daily_ideas d JOIN cards c ON c.id=d.card_id ORDER BY d.day DESC").all();
-  const dailyHistory=dailyRows.map(row=>({day:row.day,id:row.id,bookId:row.book_id}));
+  const dailyRows=await db.prepare(`SELECT d.day,c.id,c.book_id,v.user_id AS seen_by_user
+    FROM daily_ideas d JOIN cards c ON c.id=d.card_id
+    LEFT JOIN daily_idea_views v ON v.day=d.day AND v.user_id=? ORDER BY d.day DESC`).all(userId);
+  const dailyHistory=dailyRows.map(row=>({day:row.day,id:row.id,bookId:row.book_id,seenInDay:!!row.seen_by_user}));
   const idea=dailyHistory.find(row=>row.day===ideaDay) || null;
   const activityRows=await db.prepare(`SELECT d.id AS deck_id,c.book_id,MAX(c.created_at) AS last_note_at
     FROM decks d JOIN cards c ON c.deck_id=d.id
@@ -177,4 +179,17 @@ export async function dailyIdea(db,session,now=new Date()) {
     }
     return stateInside(db,session,now);
   });
+}
+
+// This check is deliberately read-only: it must not assign today's idea.
+export async function dailyIdeaStatus(db,session,now=new Date()) {
+  const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id);
+  if(!account) throw new ApiError(401,"signInRequired");
+  const day=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea);
+  const seen=await db.prepare("SELECT 1 FROM daily_idea_views WHERE user_id=? AND day=?").get(session.user_id,day);
+  if(seen) return {day,unseen:false};
+  if(await db.prepare("SELECT 1 FROM daily_ideas WHERE day=?").get(day)) return {day,unseen:true};
+  const catalog=prepareCatalog(await readCatalog(db,session.user_id));
+  const available=catalog.allCards.some(card=>card.parentId===null&&card.deckId===catalog.selectedDecks.get(card.bookId));
+  return {day,unseen:available};
 }

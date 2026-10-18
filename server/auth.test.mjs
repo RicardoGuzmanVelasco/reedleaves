@@ -79,6 +79,14 @@ test("Real registration, two sessions, spending, reconnecting and logout persist
   assert.equal((await call("/api/reader/state",undefined,b)).status,200);
   setClock(new Date("2026-10-20T12:00:00Z")); assert.equal((await call("/api/reader/state",undefined,b)).status,401);
 });
+test("Daily idea status is private and never assigns the day's card",async t=>{
+  const {call,register,db}=await fixture(t);
+  assert.equal((await call("/api/reader/daily-status")).status,401);
+  const {headers}=await register("daily.badge");
+  const result=await call("/api/reader/daily-status",undefined,headers);
+  assert.equal(result.status,200);assert.deepEqual(result.body,{day:"2026-10-06",unseen:true});
+  assert.equal(db.prepare("SELECT count(*) AS n FROM daily_ideas").get().n,0);
+});
 test("Origin, CSRF, malformed bodies and wrong methods are rejected without writes",async t=>{
   const {call,register,db,base} = await fixture(t), {headers} = await register("safe.reader");
   const v = "seven-habits-editorial";

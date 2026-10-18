@@ -102,7 +102,7 @@
 .home-action:not(.primary){border:2px solid var(--sage);background:#eef3df;box-shadow:0 5px 0 #c3d2a9}
 .home-action:not(.primary):hover:not(:disabled){background:#e4f0cc;transform:translateY(-2px);box-shadow:0 7px 0 #c3d2a9}
 .home-action:not(.primary):active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 #c3d2a9}
-.home-action--icon{color:var(--ink)}.home-action--icon .calendar-icon{width:25px;height:25px;flex:none}.home-action>img{width:20px;height:20px;flex:none}
+.home-action--icon{position:relative;color:var(--ink)}.home-action--icon .calendar-icon{width:25px;height:25px;flex:none}.home-action>img{width:20px;height:20px;flex:none}.daily-new-badge{position:absolute;top:4px;right:4px;width:13px;height:13px;border:2px solid var(--paper);border-radius:50%;background:#f2a83b;box-shadow:0 1px 4px #173d2c66}.daily-badge-entering{animation:daily-button-arrive .85s cubic-bezier(.2,.85,.25,1.2) both}.daily-badge-entering .daily-new-badge{animation:daily-badge-arrive .85s cubic-bezier(.2,.85,.25,1.2) both}.daily-new-badge::before,.daily-new-badge::after{content:"";position:absolute;inset:-5px;border:1.5px solid #f2a83b;border-radius:50%;opacity:0;pointer-events:none}.daily-badge-entering .daily-new-badge::before{animation:daily-badge-ring .9s ease-out .08s both}.daily-badge-entering .daily-new-badge::after{inset:-9px;border-width:1px;animation:daily-badge-ring .9s ease-out .2s both}
 .home-add{display:flex;align-items:center;gap:8px;min-height:48px;padding:8px 15px;border:1.5px dashed var(--sage);border-radius:16px;background:#eef3df;font-size:12px;font-weight:800}.home-add>span{font-size:22px;line-height:1}
 .home-add:hover{background:#e4f0cc}
 .home-empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:55px 15px 30px;gap:22px}.home-empty h2{font-size:27px}
@@ -318,12 +318,16 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .calendar-nav:hover:not(:disabled){background:#fffdf6}.calendar-nav:disabled{opacity:.28}
 .daily-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;text-align:center}
 .daily-calendar-weekday{min-height:24px;display:grid;place-items:center;font-size:10px;font-weight:750;color:var(--muted);text-transform:capitalize}
-.daily-calendar-day,.daily-calendar-empty{width:100%;aspect-ratio:1;max-height:42px;display:grid;place-items:center;border:0;border-radius:13px;background:transparent;font-size:12px;color:var(--muted)}
+.daily-calendar-day,.daily-calendar-empty{position:relative;width:100%;aspect-ratio:1;max-height:42px;display:grid;place-items:center;border:0;border-radius:13px;background:transparent;font-size:12px;color:var(--muted)}
 button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .daily-calendar-day.has-idea{background:#fffdf6;box-shadow:0 2px 0 #d9e1cd}
 .daily-calendar-day.has-idea:hover{background:#fff}
 .daily-calendar-day.is-selected{background:var(--light);color:var(--ink);box-shadow:0 3px 0 var(--shadow)}
 .daily-calendar-day.is-today:not(.is-selected){outline:1px solid var(--green);outline-offset:-2px}
+.daily-calendar-seen{position:absolute;top:3px;right:3px;width:10px;height:10px;overflow:visible;fill:none;stroke:#31834a;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@keyframes daily-button-arrive{0%{transform:scale(.7);box-shadow:0 5px 0 var(--shadow)}45%{transform:scale(1.12);box-shadow:0 5px 0 var(--shadow),0 0 0 8px #f2a83b26,0 0 22px #f2a83b88}72%{transform:scale(.97)}100%{transform:scale(1);box-shadow:0 5px 0 var(--shadow)}}
+@keyframes daily-badge-arrive{0%{transform:scale(0) rotate(-90deg)}48%{transform:scale(1.55) rotate(14deg)}72%{transform:scale(.82) rotate(-7deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes daily-badge-ring{0%{transform:scale(.3);opacity:.9}100%{transform:scale(2.3);opacity:0}}
 .daily-card-preview.reading-stage{margin:0 auto;perspective:none}
 .daily-card-preview.reading-stage::before,.daily-card-preview.reading-stage::after{content:none}
 .daily-action{max-width:680px;margin-left:auto;margin-right:auto}
