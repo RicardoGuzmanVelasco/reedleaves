@@ -49,6 +49,7 @@ test("Real registration, two sessions, spending, reconnecting and logout persist
   const {result,headers:a} = await register("reader.one");
   assert.match(result.headers.get("set-cookie"),/HttpOnly/); assert.match(result.headers.get("set-cookie"),/SameSite=Strict/);
   assert.equal(result.body.wallet.balance,1); assert.equal(result.body.today,"2026-10-06");
+  assert.equal(result.body.petals,10); assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(result.body.user.id).balance,10);
   const credentials = db.prepare("SELECT password_hash FROM accounts").get().password_hash;
   assert.match(credentials,/^scrypt\$131072\$8\$1\$/); assert.ok(!credentials.includes(password));
   assert.equal(db.prepare("SELECT can_create_decks FROM users WHERE id = ?").get(result.body.user.id).can_create_decks,0);

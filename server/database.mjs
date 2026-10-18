@@ -189,7 +189,7 @@ export function initializeDatabase(db) {
     db.exec("BEGIN IMMEDIATE");
     try {
       db.exec("DROP TRIGGER spend_unlock_leaf;");
-      db.exec(schema.slice(schema.indexOf("CREATE TABLE leaf_wallets ("),schema.indexOf("CREATE TABLE review_unlocks (")).replace("CREATE TABLE leaf_wallets (","CREATE TABLE leaf_wallets_new ("));
+      db.exec(schema.slice(schema.indexOf("CREATE TABLE leaf_wallets ("),schema.indexOf("CREATE TABLE petal_wallets (")).replace("CREATE TABLE leaf_wallets (","CREATE TABLE leaf_wallets_new ("));
       db.exec("INSERT INTO leaf_wallets_new SELECT user_id,balance,last_accrual_day FROM leaf_wallets; DROP TABLE leaf_wallets; ALTER TABLE leaf_wallets_new RENAME TO leaf_wallets;");
       db.exec(schema.slice(schema.indexOf("CREATE TRIGGER spend_unlock_leaf"),schema.indexOf("CREATE TRIGGER freeze_cards_insert")));
       if (db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("Migration broke database references");

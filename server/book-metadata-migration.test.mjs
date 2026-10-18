@@ -38,8 +38,10 @@ for (const dialect of ["sqlite","postgres"]) {
     await db.prepare("INSERT INTO reader_display_preferences VALUES (?,1)").run(session.user_id);
     await db.exec("UPDATE deck_versions SET status='published' WHERE id='seven-habits-editorial-v1';");
     const before=await retainedData(db,dialect);
+    before.petal_wallets=(await db.prepare("SELECT user_id,0 AS balance FROM accounts ORDER BY user_id").all()).map(row=>({...row}));
     await initializeDatabase(db);await initializeDatabase(db);
     assert.deepEqual(await retainedData(db,dialect),before);
+    assert.equal((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance,0);
     const tables=await db.prepare(dialect === "sqlite"
       ? "SELECT name FROM sqlite_master WHERE type='table' AND name='sources'"
       : "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name='sources'").all();

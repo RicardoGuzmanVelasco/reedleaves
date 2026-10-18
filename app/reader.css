@@ -88,7 +88,7 @@
 .app-header{position:sticky;top:0;z-index:5;background:var(--paper);min-height:76px}
 .brand{width:46px;min-height:46px;justify-content:center}.brand img{width:42px;height:42px}.brand.brand-with-name{width:auto;justify-content:flex-start}.brand-name{white-space:nowrap}.wallet[hidden]{display:none}
 .header-tools{display:flex;align-items:center;gap:12px}
-.wallet{display:flex;align-items:center;gap:4px;font-size:16px;font-weight:850;font-variant-numeric:tabular-nums}.wallet img{width:24px;height:24px}
+.wallet{display:flex;align-items:center;gap:3px;font-size:12px;font-weight:850;font-variant-numeric:tabular-nums}.wallet img{width:18px;height:18px}
 .icon-button{display:grid;place-items:center;flex-shrink:0;width:44px;height:44px;padding:10px;border:1.5px solid var(--line);border-radius:15px;background:#eef3df;box-shadow:0 2px 0 #d4ddc6;font-size:26px}
 .icon-button svg{width:23px;height:23px;fill:none;stroke:var(--ink);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .icon-button:hover{background:#e4f0cc}.icon-button:active{transform:translateY(2px);box-shadow:none}
