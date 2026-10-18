@@ -323,7 +323,7 @@ export function dailyView(s) {
   const history=new Map((s.dailyHistory||[]).map(row=>[row.day,row]));
   const earliestMonth=[...(s.dailyHistory||[])].map(row=>row.day.slice(0,7)).sort()[0]||month;
   const locale=s.language === "es" ? "es-ES" : s.language === "fr" ? "fr-FR" : "en-GB";
-  const monthLabel=new Intl.DateTimeFormat(locale,{month:"long",year:"numeric",timeZone:"UTC"}).format(first);
+  const monthLabel=`${new Intl.DateTimeFormat(locale,{month:"long",timeZone:"UTC"}).format(first)} ${year}`;
   const weekdayLabels=Array.from({length:7},(_,index)=>new Intl.DateTimeFormat(locale,{weekday:"short",timeZone:"UTC"}).format(new Date(Date.UTC(2026,0,5+index,12))));
   const monthShift=(amount)=>{const date=new Date(Date.UTC(year,monthNumber-1+amount,1,12));return date.toISOString().slice(0,7)};
   const cells=Array.from({length:Math.ceil((offset+daysInMonth)/7)*7},(_,index)=>{
@@ -335,11 +335,10 @@ export function dailyView(s) {
     return `<button type="button" class="daily-calendar-day has-idea${day===s.selectedDailyDay?" is-selected":""}${today?" is-today":""}" data-action="daily-date" data-day="${day}" aria-label="${esc(label)}" aria-pressed="${day===s.selectedDailyDay}">${dayNumber}</button>`;
   }).join("");
   const calendar=`<section class="daily-calendar" aria-labelledby="daily-calendar-title"><div class="daily-calendar-heading"><button type="button" class="calendar-nav" data-action="daily-month" data-direction="previous" data-month="${monthShift(-1)}" aria-label="${esc(c.previousMonth)}" ${monthShift(-1)<earliestMonth?"disabled":""}>‹</button><h2 id="daily-calendar-title">${esc(monthLabel)}</h2><button type="button" class="calendar-nav" data-action="daily-month" data-direction="next" data-month="${monthShift(1)}" aria-label="${esc(c.nextMonth)}" ${monthShift(1)>(s.dailyToday?.day?.slice(0,7)||month)?"disabled":""}>›</button></div><div class="daily-calendar-grid" role="group" aria-label="${esc(monthLabel)}">${weekdayLabels.map(label=>`<span class="daily-calendar-weekday">${esc(label)}</span>`).join("")}${cells}</div></section>`;
-  const dateLabel=item?.day?new Intl.DateTimeFormat(locale,{dateStyle:"long",timeZone:"UTC"}).format(new Date(`${item.day}T12:00:00Z`)):"";
   const exclusive=card&&s.dailyExclusiveCardId===card.id?exclusiveCardMarkup(s,card):"";
   const previewTitle=card?(card.isQuote?quoteExcerpt(contentText(card.body,s.language,card.deckLanguage||s.language)):contentText(card.title,s.language,card.deckLanguage||s.language)):"";
   return `<section class="daily-screen"><div class="screen-heading"><h1 tabindex="-1" class="daily-title">${calendarIconMarkup()}<span>${c.daily}</span></h1></div>
-    ${calendar}${card ? `<p class="daily-date">${esc(dateLabel)}</p><div class="daily-card-preview reading-stage" data-card-type="${cardTypeFor(card).id}"><div class="deck-preview-item">${cardMarkup(s,card,"h2",{typewriter:false,focusable:false})}<button class="preview-card-open" type="button" data-action="open-daily-card" aria-haspopup="dialog" aria-label="${esc(c.openDailyCard+": "+previewTitle)}"></button></div></div><div class="daily-action">${button(c.reviewBook,"enter-review",!s.storageAvailable)}</div>${exclusive}` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p></div>`}
+    ${calendar}${card ? `<div class="daily-card-preview reading-stage" data-card-type="${cardTypeFor(card).id}"><div class="deck-preview-item">${cardMarkup(s,card,"h2",{typewriter:false,focusable:false})}<button class="preview-card-open" type="button" data-action="open-daily-card" aria-haspopup="dialog" aria-label="${esc(c.openDailyCard+": "+previewTitle)}"></button></div></div><div class="daily-action">${button(c.reviewBook,"enter-review",!s.storageAvailable)}</div>${exclusive}` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p></div>`}
     </section>`;
 }
 
