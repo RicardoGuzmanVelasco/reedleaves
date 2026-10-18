@@ -21,7 +21,7 @@ test('Saved-card HTTP flow authenticates, isolates accounts and opens a daily ca
   assert.equal((await call('/api/reader/view',{cardId,context:'saved'},b.headers)).status,403);
   assert.equal((await call('/api/reader/view',{cardId,context:'saved'},a.headers)).status,200);
   const state=(await call('/api/reader/state',undefined,a.headers)).body;
-  assert.deepEqual(state.wallet,a.state.wallet);assert.deepEqual(state.reviews,{});assert.deepEqual(state.enrolledIds,[]);
+  assert.deepEqual(state.wallet,a.state.wallet);assert.deepEqual(state.practices,{});assert.deepEqual(state.enrolledIds,[]);
   assert.equal(state.cardSaves[0].cardId,cardId);
   assert.equal((await call('/api/cards/save',{cardId,saved:false},a.headers)).status,200);
   assert.equal((await call(`/api/reader/saved/${bookId}`,undefined,a.headers)).body.cards.length,0);

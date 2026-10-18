@@ -207,9 +207,9 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   assert.equal((await post("/api/reader/select",{versionId},otherHeaders)).status,200);
   assert.equal((await post("/api/author/cards",{...cardInput,requestId:randomUUID()},otherHeaders)).status,404);
   const otherOpen=await post("/api/reader/open",{versionId,cardId},otherHeaders);
-  assert.equal(otherOpen.status,200);assert.equal((await otherOpen.json()).state.reviews[versionId].seenIds.includes(cardId),true);
+  assert.equal(otherOpen.status,200);assert.equal((await otherOpen.json()).state.practices[versionId].seenIds.includes(cardId),true);
   const creatorState=await fetch(base+"/api/reader/state",{headers:{Cookie:headers.Cookie}}).then(r=>r.json());
-  assert.equal(creatorState.reviews[versionId],undefined);
+  assert.equal(creatorState.practices[versionId],undefined);
   assert.equal((await post("/api/reader/reading",{bookId,status:"reading"},otherHeaders)).status,200);
   const ownDeck=await post("/api/author/decks",{...deckInput,requestId:randomUUID()},otherHeaders);
   assert.equal(ownDeck.status,200);
@@ -231,6 +231,10 @@ test("Profiles require a session and view writes require origin, CSRF and a vali
   const response=await post("/api/auth/register",{username:"profile.http",password:"http profile test phrase"});
   const state=await response.json(),cookie=response.headers.get("set-cookie").split(";")[0];
   const headers={Cookie:cookie,"X-CSRF-Token":state.csrfToken};
+  assert.deepEqual(state.practiceAnswers,{});
+  assert.equal((await post("/api/reader/practice-answer",{cardId:"habit-1",answer:"soon"},headers)).status,200);
+  assert.equal((await post("/api/reader/practice-answer",{cardId:"habit-1",answer:"later"},headers)).status,400);
+  assert.equal((await fetch(base+"/api/reader/state",{headers:{Cookie:cookie}}).then(r=>r.json())).practiceAnswers["habit-1"],"soon");
   const profile=await fetch(base+"/api/profiles/reed-team",{headers:{Cookie:cookie}});
   assert.equal(profile.status,200);assert.equal(profile.headers.get("cache-control"),"no-store");
   const data=await profile.json();assert.equal(data.profile.name,"Equipo Reedleaves");

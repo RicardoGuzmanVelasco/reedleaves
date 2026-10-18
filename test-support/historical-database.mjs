@@ -62,16 +62,24 @@ export async function migrationData(db) {
   const result={};
   const tables=["users","accounts","sessions","auth_limits","genres","genre_translations","books","book_links",
     "book_translations","book_genres","decks","deck_versions","deck_version_translations","cards",
-    "card_translations","deck_votes","book_reading","reviews","review_positions","leaf_wallets",
-    "studies","deck_selections","daily_ideas"];
+    "card_translations","deck_votes","book_reading","leaf_wallets","studies","deck_selections","daily_ideas"];
   const columns={books:"id,author,position,editorial_status,original_title,original_language,updated_at",
     cards:"id,version_id,book_id,parent_id,position"};
   for (const table of tables) result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${table} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();
-  const reviewTable=db.dialect === "postgres" ?
-    await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_name='review_unlocks'").get() ? "review_unlocks" : "review_cards" :
-    db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='review_unlocks'").get() ? "review_unlocks" : "review_cards";
-  result.review_unlocks=reviewTable === "review_unlocks" ?
-    await db.prepare("SELECT review_id,user_id,version_id,card_id,local_day,unlocked_at FROM review_unlocks ORDER BY review_id,card_id").all() :
-    await db.prepare("SELECT review_id,user_id,version_id,card_id,local_day,reviewed_at AS unlocked_at FROM review_cards ORDER BY review_id,card_id").all();
+  const has = async name => db.dialect === "postgres"
+    ? !!await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=?").get(name)
+    : !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name);
+  const practiceTable=await has("practices")?"practices":"reviews";
+  const positionTable=await has("practice_positions")?"practice_positions":"review_positions";
+  result.practices=await db.prepare(`SELECT id,user_id,version_id,started_at,completed_at FROM ${practiceTable} ORDER BY id`).all();
+  result.practice_positions=positionTable === "practice_positions"
+    ? await db.prepare("SELECT practice_id,user_id,version_id,card_id FROM practice_positions ORDER BY 1").all()
+    : await db.prepare("SELECT review_id AS practice_id,user_id,version_id,card_id FROM review_positions ORDER BY 1").all();
+  const cardsTable=await has("review_unlocks") ? "review_unlocks" : await has("practice_cards") ? "practice_cards" : "review_cards";
+  result.practice_cards=cardsTable === "review_unlocks" ?
+    await db.prepare("SELECT review_id AS practice_id,user_id,version_id,card_id,local_day,unlocked_at AS practiced_at,1 AS leaf_spent FROM review_unlocks ORDER BY review_id,card_id").all() :
+    cardsTable === "practice_cards" ?
+      await db.prepare("SELECT practice_id,user_id,version_id,card_id,local_day,practiced_at,leaf_spent FROM practice_cards ORDER BY practice_id,card_id").all() :
+      await db.prepare("SELECT review_id AS practice_id,user_id,version_id,card_id,local_day,reviewed_at AS practiced_at,leaf_spent FROM review_cards ORDER BY review_id,card_id").all();
   return result;
 }

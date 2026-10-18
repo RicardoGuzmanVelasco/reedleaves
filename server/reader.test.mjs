@@ -7,7 +7,7 @@ import {join} from "node:path";
 import {openDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION} from "./database.mjs";
 import {seedCatalog,readSeed} from "./seed.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
-import {readReaderState,selectDeck,addDeckToCollection,openCard,changeReading,changePreferences,dailyIdea} from "./reader-repository.mjs";
+import {readReaderState,selectDeck,addDeckToCollection,openCard,changeReading,changePreferences,dailyIdea,savePracticeAnswer} from "./reader-repository.mjs";
 import {readProfile} from "./profile-repository.mjs";
 import {serverDay} from "./auth.mjs";
 const date = day=>new Date(day+"T12:00:00Z"), today = date("2026-10-06");
@@ -24,7 +24,7 @@ test("Adding a deck spends one leaf once; selecting it is free and users are iso
   const {db,a,b} = await fixture(t), before = await readReaderState(db,a,today);
   const added = await addDeckToCollection(db,a,version,today), state = added.state;
   assert.deepEqual(state.enrolledIds,[version]); assert.equal(state.selections["seven-habits"],version);
-  assert.equal(state.wallet.balance,before.wallet.balance-1); assert.deepEqual(state.reviews,{});
+  assert.equal(state.wallet.balance,before.wallet.balance-1); assert.deepEqual(state.practices,{});
   assert.deepEqual(state.growth["seven-habits"],{added:true,reviewDays:0});
   assert.equal((await selectDeck(db,a,version,today)).wallet.balance,state.wallet.balance);
   assert.equal((await addDeckToCollection(db,a,version,today)).state.wallet.balance,state.wallet.balance);
@@ -52,18 +52,32 @@ test("Opening any card records distinct review progress without spending leaves"
   assert.equal(opened.state.wallet.balance,1);
   for(let i=0;i<4;i++) {
     const repeat = await openCard(db,a,version,"habit-1",today);
-    assert.equal(repeat.state.wallet.balance,1); assert.deepEqual(repeat.state.reviews[version].seenIds,["habit-1"]);
+    assert.equal(repeat.state.wallet.balance,1); assert.deepEqual(repeat.state.practices[version].seenIds,["habit-1"]);
   }
   assert.equal((await readCatalog(db)).decks.find(d=>d.id === "seven-habits-editorial").metrics.startedBy,1);
   const second=await openCard(db,a,other,"atomic-1",today);
-  assert.equal(second.state.wallet.balance,1);assert.deepEqual(second.state.reviews[other].seenIds,["atomic-1"]);
-  assert.equal(db.prepare("SELECT count(*) AS n FROM review_cards").get().n,2);
+  assert.equal(second.state.wallet.balance,1);assert.deepEqual(second.state.practices[other].seenIds,["atomic-1"]);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM practice_cards").get().n,2);
 });
 test("Invalid cards do not change review state",async t=>{
   const {db,a} = await fixture(t), original = await readReaderState(db,a,today);
   for (const [v,c] of [[other,"atomic-1-wrong"],[version,"atomic-1"]]) await assert.rejects(openCard(db,a,v,c,today));
-  assert.deepEqual((await readReaderState(db,a,today)).reviews,original.reviews);
-  assert.equal(db.prepare("SELECT count(*) AS n FROM reviews").get().n,0);
+  assert.deepEqual((await readReaderState(db,a,today)).practices,original.practices);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM practices").get().n,0);
+});
+test("Practice answers persist per account and overwrite the last answer",async t=>{
+  const {db,a,b}=await fixture(t),answeredAt=new Date("2026-10-06T13:45:00.000Z");
+  assert.deepEqual((await readReaderState(db,a,today)).practiceAnswers,{});
+  assert.deepEqual(await savePracticeAnswer(db,a,{cardId:"habit-1",answer:"soon"},answeredAt),{saved:true});
+  assert.equal((await readReaderState(db,a,today)).practiceAnswers["habit-1"],"soon");
+  await savePracticeAnswer(db,a,{cardId:"habit-1",answer:"remembered"},new Date("2026-10-06T14:00:00.000Z"));
+  assert.deepEqual((await readReaderState(db,a,today)).practiceAnswers,{"habit-1":"remembered"});
+  assert.deepEqual((await readReaderState(db,b,today)).practiceAnswers,{});
+  assert.equal(db.prepare("SELECT answered_at FROM practice_answers WHERE user_id='a' AND card_id='habit-1'").get().answered_at,"2026-10-06T14:00:00.000Z");
+  for(const input of [{cardId:"habit-1",answer:"later"},{cardId:"missing",answer:"soon"},{cardId:"",answer:"soon"}]) {
+    await assert.rejects(savePracticeAnswer(db,a,input));
+  }
+  assert.deepEqual((await readReaderState(db,a,today)).practiceAnswers,{"habit-1":"remembered"});
 });
 test("Leaves continue accruing independently of card access",async t=>{
   const {db,a} = await fixture(t), v = "seven-habits-inside-out-v1";
@@ -76,32 +90,32 @@ test("Leaves continue accruing independently of card access",async t=>{
   assert.equal((await readReaderState(db,a,later)).wallet.balance,3);
   assert.equal((await readReaderState(db,a,date("2026-10-13"))).wallet.balance,3);
 });
-test("Completion requires all cards, including children; finished reviews remain resumable",async t=>{
+test("Completion requires all cards, including children; finished practices remain resumable",async t=>{
   const {db,a} = await fixture(t), v = "seven-habits-inside-out-v1";
   const cards = (await readCatalog(db)).cards.filter(c=>c.versionId === v), pending = [...cards], seen = new Set();
   let day = 6;
   while(pending.length) {
     const card = pending[0];
     const result = await openCard(db,a,v,card.id,date(`2026-10-${String(day++).padStart(2,"0")}`)); seen.add(card.id); pending.splice(pending.indexOf(card),1);
-    assert.equal(result.state.reviews[v].completed,pending.length === 0);
+    assert.equal(result.state.practices[v].completed,pending.length === 0);
   }
   const result = await openCard(db,a,v,cards[0].id,date("2026-10-20"));
-  assert.equal(result.state.reviews[v].completed,true);
-  assert.equal(result.state.reviews[v].currentId,cards[0].id);
+  assert.equal(result.state.practices[v].completed,true);
+  assert.equal(result.state.practices[v].currentId,cards[0].id);
 });
 test("Review records retain card ownership and no longer encode access paths or charges",async t=>{
   const {db,a} = await fixture(t); await readReaderState(db,a,today);
-  db.prepare("INSERT INTO reviews(id,user_id,version_id) VALUES ('direct','a',?)").run(version);
-  db.prepare("INSERT INTO review_cards(review_id,user_id,version_id,card_id,local_day) VALUES ('direct','a',?,'habit-4','2026-10-06')").run(version);
-  assert.throws(()=>db.prepare("INSERT INTO review_cards(review_id,user_id,version_id,card_id,local_day) VALUES ('direct','a',?,'atomic-1','2026-10-06')").run(version),/FOREIGN KEY/);
+  db.prepare("INSERT INTO practices(id,user_id,version_id) VALUES ('direct','a',?)").run(version);
+  db.prepare("INSERT INTO practice_cards(practice_id,user_id,version_id,card_id,local_day) VALUES ('direct','a',?,'habit-4','2026-10-06')").run(version);
+  assert.throws(()=>db.prepare("INSERT INTO practice_cards(practice_id,user_id,version_id,card_id,local_day) VALUES ('direct','a',?,'atomic-1','2026-10-06')").run(version),/FOREIGN KEY/);
   assert.equal((await readReaderState(db,a,today)).wallet.balance,1);
 });
-test("Reading and language preferences are stored separately from reviews and wallet",async t=>{
+test("Reading and language preferences are stored separately from practices and wallet",async t=>{
   const {db,a} = await fixture(t), before = await readReaderState(db,a,today);
   const reading = await changeReading(db,a,"seven-habits","read",today); assert.equal(reading.statuses["seven-habits"],"read");
   const state = await changePreferences(db,a,{language:"en"},today);
   assert.equal(state.language,"en"); assert.equal("preferences" in state,false); assert.deepEqual(state.wallet,before.wallet);
-  assert.deepEqual(state.reviews,{}); await assert.rejects(changePreferences(db,a,{language:"zz"},today));
+  assert.deepEqual(state.practices,{}); await assert.rejects(changePreferences(db,a,{language:"zz"},today));
   await assert.rejects(changeReading(db,a,"missing","read",today));
 });
 test("One global daily idea is shared across accounts and appears in calendar history",async t=>{
@@ -114,7 +128,7 @@ test("One global daily idea is shared across accounts and appears in calendar hi
   const other=await readReaderState(db,b,today);
   assert.deepEqual(other.daily,first.daily);assert.deepEqual(other.dailyHistory.map(row=>row.day),["2026-10-07","2026-10-06"]);
   assert.deepEqual((await dailyIdea(db,b,today)).daily,first.daily);
-  assert.equal(db.prepare("SELECT count(*) AS n FROM review_cards").get().n,0);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM practice_cards").get().n,0);
 });
 test("Account date handles time zones and DST; backwards server time does not change access",async t=>{
   assert.equal(serverDay("Europe/Madrid",new Date("2026-10-06T22:30:00Z")),"2026-10-07");
@@ -122,7 +136,7 @@ test("Account date handles time zones and DST; backwards server time does not ch
   assert.equal(serverDay("Europe/Madrid",new Date("2026-10-25T01:30:00Z")),"2026-10-25");
   const {db,a} = await fixture(t); await readReaderState(db,a,date("2026-10-09"));
   const result=await openCard(db,a,version,"habit-1",today);
-  assert.deepEqual(result.state.reviews[version].seenIds,["habit-1"]);
+  assert.deepEqual(result.state.practices[version].seenIds,["habit-1"]);
   assert.equal(result.state.wallet.lastAccrualDay,"2026-10-09");
 });
 test("Separate SQL connections share one wallet; lost-response retry never double-spends",async t=>{
@@ -162,7 +176,7 @@ test("SQLite v11 upgrade keeps account, cards and review state, defaulting to tr
   assert.deepEqual(await migrationData(db),before);
   const state=await readReaderState(db,a,migrationNow);
   assert.equal(state.showOriginalTitles,false);
-  assert.deepEqual(state.reviews[version].seenIds,["habit-1"]);
+  assert.deepEqual(state.practices[version].seenIds,["habit-1"]);
   assert.equal((await changePreferences(db,a,{showOriginalTitles:true},today)).showOriginalTitles,true);
 });
 
@@ -176,11 +190,11 @@ test("SQLite v21 migration opens every card and preserves historical progress an
   assert.equal(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='review_unlocks'").get(),undefined);
   assert.deepEqual(await migrationData(db),before);
   const migrated=await readReaderState(db,session,migrationNow);
-  assert.deepEqual(migrated.reviews[version].seenIds,["habit-1"]);
+  assert.deepEqual(migrated.practices[version].seenIds,["habit-1"]);
   assert.equal(migrated.wallet.balance,2);
-  assert.equal(db.prepare("SELECT leaf_spent FROM review_cards WHERE card_id='habit-1'").get().leaf_spent,1);
+  assert.equal(db.prepare("SELECT leaf_spent FROM practice_cards WHERE card_id='habit-1'").get().leaf_spent,1);
   const opened=await openCard(db,session,version,"habit-7",migrationNow);
-  assert.deepEqual(opened.state.reviews[version].seenIds,["habit-1","habit-7"]);
+  assert.deepEqual(opened.state.practices[version].seenIds,["habit-1","habit-7"]);
   assert.equal(opened.state.wallet.balance,2);
   assert.equal((await readProfile(db,session.user_id,session.user_id)).profile.counts.leavesSpent,1);
 });

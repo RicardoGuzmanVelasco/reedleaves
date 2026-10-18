@@ -171,7 +171,7 @@ function deckCollectionMarkup(s) {
   if (!entries.length) return `<div class="empty-state collection-empty"><p>${c.emptyDeckCollection}</p><button class="text-button collection-back" type="button" data-action="library">${collectionIconMarkup("library",18)}${c.goLibrary} →</button></div>`;
   return `<div class="collection-decks" role="list" aria-label="${esc(c.deckCollection)}">${entries.map(({version,deck,book})=>{
     const title=contentText(version.title,s.language,version.language),bookTitle=displayedBookTitle(s,book).text;
-    const review=s.reviews[version.id],ownDraft=deck.creator.userId === s.userId && version.status === "draft";
+    const review=s.practices[version.id],ownDraft=deck.creator.userId === s.userId && version.status === "draft";
     const progress=review?.seenIds.length ? c.progress(review.seenIds.length,version.cardCount) : version.cardCount ? c.noteCardsCount(version.cardCount) : c.emptyAuthor;
     return `<article class="collection-deck" role="listitem"><div class="collection-deck-copy"><h2 lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(title)}</h2><p lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(bookTitle)}</p><small>${esc(progress)}</small></div><button class="text-button" type="button" data-action="${ownDraft ? "manage-collection-deck" : "review-collection-deck"}" data-version="${esc(version.id)}">${ownDraft ? c.manageDeck : review?.seenIds.length ? c.resume : c.review} →</button></article>`;
   }).join("")}</div>`;
@@ -183,7 +183,7 @@ export function bookshelfView(s) {
   const activeTab=s.readOnly ? "shelf" : s.bookshelfTab || "shelf";
   const all=s.readOnly ? (s.profileData?.bookshelf || []).map(entry=>({...entry,book:s.catalog.booksById.get(entry.bookId)})).filter(entry=>entry.book) : bookshelfBooks({...s,bookshelfFilters:bookshelfDefaults});
   const entries=s.readOnly ? all.filter(entry=>(filters.reading === "all" || entry.reading === filters.reading) && (filters.review === "all" || filters.review === "pending" && entry.pending || filters.review === "none" && !entry.hasReviewing && !entry.hasReviewedCards || filters.review === "reviewed" && entry.hasReviewedCards)) : bookshelfBooks(s);
-  if (s.readOnly) s={...s,statuses:Object.fromEntries(all.map(entry=>[entry.book.id,entry.reading])),bookReviews:Object.fromEntries(all.map(entry=>[entry.book.id,entry]))};
+  if (s.readOnly) s={...s,statuses:Object.fromEntries(all.map(entry=>[entry.book.id,entry.reading])),bookPractices:Object.fromEntries(all.map(entry=>[entry.book.id,entry]))};
   const selected = s.catalog.booksById.get(s.openBookId);
   const select = (axis,label,options) => `<label class="bookshelf-filter-select" for="bookshelf-filter-${axis}"><span>${esc(label)}</span><select id="bookshelf-filter-${axis}" data-bookshelf-filter="${axis}">${options.map(([value,text])=>`<option value="${value}" ${filterDraft[axis] === value ? "selected" : ""}>${esc(text)}</option>`).join("")}</select></label>`;
   const groups = [["pending",c.pendingReviews],["none",c.notReviewed],["reviewed",c.reviewedCardsFilter]];
@@ -240,8 +240,19 @@ export function practiceView(s,session) {
     return `<section class="practice-screen practice-session${leaving}${stacked}" aria-label="${esc(c.practice)}">${back}<h1 class="sr-only" tabindex="-1">${esc(c.practice)}</h1><div class="practice-card-stack">${front}${behind}</div><div class="practice-responses" role="group" aria-label="${esc(c.practiceResponse)}"><button class="practice-response practice-response--soon${soonSelected}" type="button" data-action="practice-answer" data-answer="soon" ${session.advancing?"disabled":""}>${esc(c.practiceSoon)}</button><button class="practice-response practice-response--remembered${rememberedSelected}" type="button" data-action="practice-answer" data-answer="remembered" ${session.advancing?"disabled":""}>${esc(c.practiceRemembered)}</button></div></section>`;
   }
   if(s.practiceStage === "done") return `<section class="practice-screen practice-done">${back}<div class="practice-done-mascot">${mascotArt("sprout")}</div><h1 tabindex="-1">${esc(c.practiceDone)}</h1><button class="practice-response practice-response--remembered" type="button" data-action="practice-again">${esc(c.practiceAgain)}</button></section>`;
-  if(s.practiceStage === "empty") return `<section class="practice-screen practice-empty">${back}<div class="practice-choice-mascot">${mascotArt("sprout")}</div><h1 tabindex="-1">${esc(c.practiceNoCards)}</h1><button class="practice-response practice-response--remembered" type="button" data-action="practice-choose">${esc(c.practiceChooseAgain)}</button></section>`;
-  return `<section class="practice-screen practice-choose">${back}<div class="practice-choice-mascot">${mascotArt("sprout")}</div><h1 tabindex="-1">${esc(c.practiceQuestion)}</h1><div class="practice-topics">${practiceTopics.map(topic=>`<button class="practice-topic practice-topic--${topic}" type="button" data-action="practice-topic" data-topic="${topic}"><span class="practice-topic-pack" aria-hidden="true"><span class="practice-topic-card practice-topic-card--left"></span><span class="practice-topic-card practice-topic-card--right"></span><span class="practice-topic-card practice-topic-card--cover">${practiceDeckIcon(topic)}</span></span><span class="practice-topic-label">${esc(c[`practiceTopic_${topic}`])}</span></button>`).join("")}</div></section>`;
+  if(s.practiceStage === "empty") {
+    const failure=s.practiceUnavailable,topic=failure?.topic,reason=failure?.reason;
+    const message=reason==="insufficientPetals"?c.practiceInsufficientPetals(failure.cost,failure.balance):reason==="notEnoughCards"?c.practiceNeedMoreCards(failure.available,failure.required):reason==="connectionError"?c.connectionError:c.practiceNoCards;
+    const links=[];
+    if(["reading","read","mixed"].includes(topic))links.push(`<a class="practice-empty-link" href="#bookshelf/decks">${esc(c.practiceAddDecks)} <span aria-hidden="true">→</span></a>`);
+    if(["saved","mixed"].includes(topic))links.push(`<a class="practice-empty-link" href="#library">${esc(c.practiceFindCards)} <span aria-hidden="true">→</span></a>`);
+    return `<section class="practice-screen practice-empty">${back}<div class="practice-choice-mascot">${mascotArt("sprout")}</div><h1 tabindex="-1">${esc(message)}</h1>${links.length?`<nav class="practice-empty-links" aria-label="${esc(c.practiceSources)}">${links.join("")}</nav>`:""}<button class="practice-response practice-response--remembered" type="button" data-action="practice-choose">${esc(c.practiceChooseAgain)}</button></section>`;
+  }
+  if(s.practiceStage === "choose" && s.activePracticeSession) return `<section class="practice-screen practice-choose">${back}<div class="practice-choice-mascot">${mascotArt("sprout")}</div><h1 tabindex="-1">${esc(c.practiceResumeTitle)}</h1><p class="practice-resume-topic">${esc(c[`practiceTopic_${s.activePracticeSession.topic}`])}</p><button class="practice-response practice-response--remembered practice-resume" type="button" data-action="practice-resume">${esc(c.practiceResume)} · ${s.activePracticeSession.index}/${s.activePracticeSession.cardIds.length}</button></section>`;
+  return `<section class="practice-screen practice-choose">${back}<div class="practice-choice-mascot">${mascotArt("sprout")}</div><h1 tabindex="-1">${esc(c.practiceQuestion)}</h1><div class="practice-topics">${practiceTopics.map(topic=>{
+    const discounted=topic===s.practiceDiscountTopic,cost=discounted?2:3;
+    return `<button class="practice-topic practice-topic--${topic}" type="button" data-action="practice-topic" data-topic="${topic}"><span class="practice-topic-pack" aria-hidden="true"><span class="practice-topic-card practice-topic-card--left"></span><span class="practice-topic-card practice-topic-card--right"></span><span class="practice-topic-card practice-topic-card--cover">${practiceDeckIcon(topic)}</span></span><span class="practice-topic-label">${esc(c[`practiceTopic_${topic}`])}</span><span class="practice-topic-cost${discounted?" is-discounted":""}" aria-label="${esc(c.practicePrice(cost))}"><img src="../brand/reed/petal-token.svg" alt=""><span>${cost}</span></span></button>`;
+  }).join("")}</div></section>`;
 }
 
 function noteDestinationMarkup(s) {
@@ -284,7 +295,7 @@ function reviewMascotCallout(s,bookId) {
 }
 export function mascotsView(s) {
   const c=words[s.language],book=s.catalog.booksById.get(s.bookId),{unlocked,latest}=mascotState(s,s.bookId);
-  // The snapshot includes progress for every book, including finished reviews.
+  // The snapshot includes progress for every book, including finished practices.
   const reached=new Set(Object.values(s.growth||{}).filter(Boolean).map(g=>currentMascotStage(g)));
   const maximumKnown=mascotStages.reduce((maximum,stage,index)=>reached.has(stage.id)?index:maximum,-1);
   return `<section class="mascots-screen"><button class="text-button" type="button" data-action="close-mascots">${c.mascotsBack}</button>
@@ -461,7 +472,7 @@ export function deckView(s) {
   const c = words[s.language], book = s.catalog.booksById.get(s.bookId), choices = s.deckChoices;
   const languageName = tag => { try { return new Intl.DisplayNames([s.language],{type:"language"}).of(tag) || tag; } catch { return tag; } };
   const deckDetails = ({deck,version}, dialog = false) => {
-    const review = s.reviews[version.id], started = review?.seenIds.length > 0;
+    const review = s.practices[version.id], started = review?.seenIds.length > 0;
     const inCollection=!!s.userId && ((s.enrolledDeckIds || []).includes(deck.id) || deck.creator?.userId === s.userId);
     const reviewingLabel = c.reviewingCount(deck.metrics.reviewingBy);
     const metrics = [
@@ -576,7 +587,7 @@ function albumSummary(s,version,deck,model,review,mascot="") {
 export function reviewView(s) {
   if (!s.versionId) return `<section class="review-screen"><h1>${words[s.language].review}</h1><p>${words[s.language].noStudies}</p></section>`;
   const c=words[s.language],version=s.catalog.versionsById.get(s.versionId),deck=s.catalog.decksById.get(version.deckId),
-    model=s.catalog.versionModels.get(s.versionId),review=s.reviews[s.versionId];
+    model=s.catalog.versionModels.get(s.versionId),review=s.practices[s.versionId];
   const card=model.byId.get(s.requestedId) || null;
   return `<section class="review-screen album-screen"><button class="text-button" type="button" data-action="choose-book">${c.deckBack}</button>
     ${albumSummary(s,version,deck,model,review,reviewMascotCallout(s,version.bookId))}
@@ -599,7 +610,7 @@ function quoteFilter(s) {
 }
 
 export function authorView(s) {
-  const c=words[s.language],version=s.catalog.versionsById.get(s.versionId),deck=s.catalog.decksById.get(version.deckId),model=s.catalog.versionModels.get(s.versionId),review=s.reviews[version.id];
+  const c=words[s.language],version=s.catalog.versionsById.get(s.versionId),deck=s.catalog.decksById.get(version.deckId),model=s.catalog.versionModels.get(s.versionId),review=s.practices[version.id];
   const card=model.byId.get(s.requestedId);
   return `<section class="author-screen album-screen"><div class="review-heading"><button type="button" class="text-button" data-action="choose-book">${c.deckBack}</button><button type="button" class="text-button" data-action="select-deck" data-version="${esc(version.id)}" ${!model.cards.length ? "disabled" : ""}>${c.review} →</button></div>
     ${albumSummary(s,version,deck,model,review)}

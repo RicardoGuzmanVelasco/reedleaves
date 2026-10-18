@@ -21,7 +21,7 @@ SQLite local o PostgreSQL en producción guarda, por usuario: barajas elegidas, 
 
 Elegir baraja no gasta hojas ni aumenta «más popular». Abrir la primera carta crea el repaso y cuenta como una persona que empezó. Una persona se cuenta una vez por baraja, aunque use varias versiones.
 
-Todas las tarjetas de una baraja se pueden abrir desde el principio, incluidas las hijas y las citas. Abrir una tarjeta registra el repaso y su posición, sin cobrar hojas. Las reglas y precios de las divisas quedan pendientes.
+Todas las tarjetas de una baraja se pueden abrir desde el principio, incluidas las hijas y las citas. Abrir una tarjeta registra el repaso de esa baraja y su posición, sin cobrar hojas ni pétalos. `practices` registra el progreso por usuario y versión; las sesiones breves de cinco tarjetas se registran por separado en `practice_sessions` y cobran pétalos.
 
 La clave única de tarjeta por repaso hace los reintentos seguros: un doble clic, una respuesta perdida o dos sesiones no duplican progreso. El repaso termina cuando se han abierto todas las tarjetas de la versión, incluidas las hijas.
 
@@ -54,7 +54,7 @@ El navegador muestra el estado confirmado y consulta cambios al volver al primer
 
 La base v8 se conserva en `var/backups/pre-accounts-2026-10-06.sqlite` y su original en `var/backups/pre-accounts-original-2026-10-06.sqlite`. Se compararon todas las tablas previas, excluyendo solo fechas técnicas: los datos editoriales se conservan. No había lectores ni progreso SQL en la base anterior.
 
-El progreso anónimo antiguo del navegador no se borra ni se importa como verificado. La cuenta nueva empieza con una hoja, diez pétalos y sin repasos. Solo la preferencia de idioma y los borradores de notas se escriben ahora en localStorage.
+El progreso anónimo antiguo del navegador no se borra ni se importa como verificado. La cuenta nueva empieza con una hoja, diez pétalos y sin repasos. Los pétalos recargan nueve al día hasta un máximo de quince; las sesiones de cinco tarjetas cuestan tres pétalos o dos para el tipo con descuento. Las respuestas se guardan por usuario y tarjeta para ordenar sesiones futuras. Solo la preferencia de idioma y los borradores de notas se escriben ahora en localStorage.
 
 ## Lista histórica previa al despliegue
 

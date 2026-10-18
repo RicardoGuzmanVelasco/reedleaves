@@ -15,6 +15,7 @@ No se simula la base mediante JSON. JSON solo transporta la respuesta HTTP.
 - Lectura original: estado por usuario y libro, independiente del repaso.
 - Repaso: usuario y versión elegida. Las tarjetas repasadas pertenecen a ese repaso.
 - Monedero de hojas: usuario, saldo entero no negativo y última fecha de abono. Los abonos diarios acumulan hasta tres; los ajustes manuales pueden superar ese saldo.
+- Monedero de pétalos: usuario, saldo y última fecha de recarga; nueve al día hasta quince. `practice_sessions` registra cada sesión breve pagada y sus fechas de inicio/finalización. `practice_answers` conserva la última respuesta por tarjeta para ordenar sesiones futuras.
 - Voto: usuario y baraja; +1, -1 o ausencia de fila. Un único voto, modificable y retirable.
 - Valoración de tarjeta: usuario y tarjeta en `card_votes`, con destino −1, 0 o 1; no se permite votar contenido propio.
 - Tarjeta guardada: usuario, tarjeta y fecha en `card_saves`. Selección privada por libro, independiente de votos y repaso. La clave compuesta impide duplicados; el origen y el libro proceden de la tarjeta, sin copiar contenido.
@@ -79,7 +80,7 @@ El esquema v8 añadió `books.original_title` y `books.original_language`, oblig
 
 El esquema v9 añadió cuentas, sesiones, límites de acceso, barajas elegidas, posiciones, filtros, intereses e idea diaria por usuario. Añade comprobación SQL del recorrido y finalización con todas las cartas. La base v8 y su original están archivados antes del cambio; ver `ACCOUNTS.md`. No se migra progreso anónimo del navegador.
 
-El esquema actual es SQLite v22 / PostgreSQL v14. La migración de progreso elimina `review_unlocks` y sus reglas de coste/recorrido; copia las tarjetas abiertas y sus fechas a `review_cards`, conserva las posiciones, hojas gastadas históricas, saldos y finalizaciones. Desde entonces cualquier tarjeta se puede abrir y el repaso registra el avance sin cobrar hojas. PostgreSQL usa `BIGINT` para monederos; ambos motores limitan la representación a enteros exactos de JavaScript. El máximo diario de tres hojas se conserva mientras se decide el próximo uso de esa divisa. La migración de guardadas añade `card_saves` con claves foráneas e índice por cuenta/fecha.
+El esquema actual es SQLite v25 / PostgreSQL v17. Las migraciones anteriores eliminaron `review_unlocks` y copiaron las tarjetas abiertas a `practice_cards`. La migración final renombra el progreso por baraja a `practices`, junto con `practice_cards` y `practice_positions`, sin perder filas ni posiciones. Cualquier tarjeta se puede abrir sin cobrar hojas ni pétalos. Las sesiones breves de cinco tarjetas viven en `practice_sessions`; persisten tema, tarjetas, avance, coste y fechas para cobrar una vez y reanudar. El tipo con descuento se deriva de la fecha de creación de cuenta o de la última sesión completada, no se guarda como dato separado. Cada cuenta recibe nueve pétalos diarios hasta quince. PostgreSQL usa `BIGINT` para monederos; ambos motores limitan la representación a enteros exactos de JavaScript. La migración de guardadas añade `card_saves` con claves foráneas e índice por cuenta/fecha.
 
 `app/book-search.mjs` filtra el catálogo recibido de la API por todos los títulos originales, completos y cortos, sin idioma activo como filtro. La consulta es estado temporal de la vista: no se escribe en SQLite ni en localStorage. Para este catálogo pequeño se consulta localmente el resultado SQL ya cargado; no hay una base simulada en JSON. Cuando el volumen requiera paginación, habrá que trasladar esa búsqueda a un endpoint con índices SQL, conservando las mismas reglas de coincidencia.
 
@@ -94,9 +95,9 @@ Las claves locales antiguas se conservan sin borrar, pero no se usan como fuente
 Cambiar una versión a archivada no cambia el repaso iniciado: el selector permite retomar la versión con historial.
 
 Cada usuario recibe una hoja al día cuando su saldo está por debajo de tres. Un nuevo monedero empieza con una. Los días ausentes suman hasta tres; las fechas excedentes no se guardan para después. Un ajuste manual puede dejar 100 hojas y se conserva el saldo. Añadir una baraja de otra persona a Decks cuesta una hoja; las barajas propias aparecen automáticamente. Repasar tarjetas no gasta hojas.
-Cada cuenta nueva recibe diez pétalos. Los pétalos están visibles en la interfaz y aún no tienen un uso definido.
+Cada cuenta nueva recibe diez pétalos. Cada sesión de cinco tarjetas cuesta tres pétalos, o dos si coincide con el tipo rebajado. El descuento se deriva de la fecha de la última sesión completada y cambia al completar una sesión.
 Finalizar exige todas las tarjetas, incluidas las hijas; no solo las raíces.
-La tabla `leaf_wallets` guarda el saldo y la última fecha de abono por usuario. Las hojas se aíslan por usuario y se comparten entre sus barajas. `review_cards` registra qué tarjeta abrió, cuándo y en qué repaso; ya no impone secuencia ni cobra una divisa.
+La tabla `leaf_wallets` guarda el saldo y la última fecha de abono por usuario. Las hojas se aíslan por usuario y se comparten entre sus barajas. `practice_cards` registra qué tarjeta abrió, cuándo y en qué repaso; ya no impone secuencia ni cobra una divisa.
 La autenticación identifica al usuario y el servidor calcula la fecha en la zona horaria fijada de su cuenta. Un doble clic o reintento no duplica el progreso. Borrar almacenamiento local o cambiar el reloj del navegador no altera el progreso SQL.
 Las métricas SQL se incrementan con actividad real de cuentas: primera carta y finalización completa, no al añadir, elegir baraja ni explorarla.
 

@@ -103,7 +103,7 @@ test("The SQL catalog requires Spanish and English book metadata independently f
 });
 
 test("Spanish and English book previews use their separate short and full title fields", async () => {
-  const s = {catalog:await catalog(), language:"en", statuses:{}, bookReviews:{}, reviews:{}, openBookId:"seven-habits", storageAvailable:true};
+  const s = {catalog:await catalog(), language:"en", statuses:{}, bookPractices:{}, practices:{}, openBookId:"seven-habits", storageAvailable:true};
   const html = libraryView(s);
   assert.match(html, /Library/);
   for (const book of s.catalog.books) assert.ok(html.includes(escapeHtml(book.shortTitle.en)));

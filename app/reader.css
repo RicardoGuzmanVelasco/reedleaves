@@ -552,6 +552,14 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .practice-topic--saved{--icon-x:-8px;--icon-y:-3px;--icon-scale:1}
 .practice-topic--mixed{--icon-x:-19px;--icon-y:-3px;--icon-scale:.95}
 .practice-topic-label{max-width:165px;font-size:15px;font-weight:850;line-height:1.12}
+.practice-topic-cost{display:inline-flex;align-items:center;gap:4px;margin-top:7px;padding:3px 8px;border:1px solid #d4dfc7;border-radius:999px;background:#f4f6ed;color:#3e5d3e;font-size:12px;font-weight:850;line-height:1}
+.practice-topic-cost img{width:14px;height:14px}
+.practice-topic-cost.is-discounted{border-color:#e9c5a7;background:#fff0df;color:#75491f}
+.practice-resume-topic{margin:-12px auto 18px;color:#44634a;font-weight:800}
+.practice-resume{width:min(350px,100%)}
+.practice-empty-links{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:-4px auto 22px}
+.practice-empty-link{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;border:1.5px solid #71896b;border-radius:13px;background:#f0f3e5;color:#31573a;font-weight:800;text-decoration:none;box-shadow:0 3px 0 #b7c8a8}
+.practice-empty-link:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .practice-session{display:flex;flex-direction:column;align-items:stretch;justify-content:center;padding-top:76px;padding-bottom:max(44px,env(safe-area-inset-bottom))}
 .practice-card-stack{position:relative;display:grid;width:100%;margin:7px auto 0;padding:0 0 13px}
 .practice-card-stack>.reading-stage{grid-area:1/1;width:100%;margin:0}

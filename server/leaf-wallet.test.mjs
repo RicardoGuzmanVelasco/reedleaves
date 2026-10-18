@@ -64,10 +64,11 @@ for (const dialect of ["sqlite","postgres"]) {
     const db=await historicalDatabase(t,dialect,dialect === "postgres" ? 5 : 13),session=await historicalReader(db,"reader");
     const now=migrationNow,versionId="seven-habits-editorial-v1";
     await historicalUnlock(db,session);
-    const before=await migrationData(db),catalog=await readCatalog(db);
+    const before=await migrationData(db);
     await assert.rejects(async()=>db.prepare("UPDATE leaf_wallets SET balance=100 WHERE user_id='reader'").run(),/CHECK|check/i);
     await initializeDatabase(db);await initializeDatabase(db);
     assert.deepEqual(await migrationData(db),before);
+    const catalog=await readCatalog(db);
     assert.equal((await readReaderState(db,session,now)).wallet.balance,2);
     assert.deepEqual(await readCatalog(db),catalog);
     await setLeafBalance(db,"reader",100,now);
@@ -75,9 +76,9 @@ for (const dialect of ["sqlite","postgres"]) {
     const result = await openCard(db,session,versionId,"habit-2",nextDay);
     assert.equal(result.state.wallet.balance,100);
     assert.equal((await readLeafWallet(db,"reader","2026-10-13")).balance,100);
-    assert.deepEqual(result.state.reviews[versionId].seenIds,["habit-1","habit-2"]);
+    assert.deepEqual(result.state.practices[versionId].seenIds,["habit-1","habit-2"]);
     if (dialect === "sqlite") {
-      await db.prepare("INSERT INTO review_cards(review_id,user_id,version_id,card_id,local_day) SELECT id,user_id,version_id,'habit-3','2026-10-14' FROM reviews WHERE user_id=? AND version_id=?")
+      await db.prepare("INSERT INTO practice_cards(practice_id,user_id,version_id,card_id,local_day) SELECT id,user_id,version_id,'habit-3','2026-10-14' FROM practices WHERE user_id=? AND version_id=?")
         .run("reader",versionId);
       assert.equal((await readLeafWallet(db,"reader","2026-10-14")).balance,100);
       assert.equal(db.prepare("PRAGMA foreign_key_check").all().length,0);

@@ -32,7 +32,7 @@ for(const dialect of ['sqlite','postgres']){
     assert.deepEqual(await setCardSave(db,a,{cardId:'habit-2',saved:true},new Date('2026-10-14T12:00:00Z')),first);
     await recordCardView(db,a,{cardId:'habit-2',context:'saved'},new Date('2026-10-14T12:00:00Z'));
     const after=await readReaderState(db,a,now);
-    assert.deepEqual(after.wallet,before.wallet);assert.deepEqual(after.reviews,before.reviews);assert.deepEqual(after.growth,before.growth);
+    assert.deepEqual(after.wallet,before.wallet);assert.deepEqual(after.practices,before.practices);assert.deepEqual(after.growth,before.growth);
     assert.equal(after.cardSaves[0].cardId,'habit-2');
     assert.equal((await readSavedCards(db,b,'seven-habits')).cards.length,0);
     assert.equal((await readCardActions(db,b,'habit-2')).saved,false);
@@ -57,7 +57,7 @@ for(const dialect of ['sqlite','postgres']){
     const version=dialect==='postgres'?(await db.prepare('SELECT version FROM reed_schema').get()).version:db.prepare('PRAGMA user_version').get().user_version;
     assert.equal(version,dialect==='postgres'?POSTGRES_SCHEMA_VERSION:SQLITE_SCHEMA_VERSION);
     assert.equal((await readCardActions(db,a,'habit-1')).vote,-1);
-    assert.deepEqual((await readReaderState(db,a,now)).reviews['seven-habits-editorial-v1'].seenIds,['habit-1']);
+    assert.deepEqual((await readReaderState(db,a,now)).practices['seven-habits-editorial-v1'].seenIds,['habit-1']);
     await setCardSave(db,a,{cardId:'habit-1',saved:true},now);
     await db.prepare("INSERT INTO daily_ideas VALUES ('2026-10-13','habit-2')").run();
     await setCardSave(db,a,{cardId:'habit-2',saved:true},new Date(now.getTime()+1000));

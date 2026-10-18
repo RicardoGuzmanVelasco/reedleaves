@@ -4,7 +4,10 @@ import {readFile} from "node:fs/promises";
 import {PGlite} from "@electric-sql/pglite";
 
 const schema = await readFile(new URL("./schema.postgres.sql",import.meta.url),"utf8");
-const migration = await readFile(new URL("../supabase/migrations/20261018021559_secure_public_tables.sql",import.meta.url),"utf8");
+const migration = (await readFile(new URL("../supabase/migrations/20261018021559_secure_public_tables.sql",import.meta.url),"utf8"))
+  .replaceAll("public.review_cards","public.practice_cards")
+  .replaceAll("public.review_positions","public.practice_positions")
+  .replaceAll("public.reviews","public.practices");
 
 test("Supabase migration blocks Data API roles while preserving privileged app and admin access",async t=>{
   const db = new PGlite();
@@ -25,13 +28,14 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
       count(*) FILTER (WHERE NOT c.relrowsecurity)::int AS without_rls
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
     WHERE n.nspname='public' AND c.relkind IN ('r','p')`);
-  assert.deepEqual(tableState.rows,[{total:31,without_rls:0}]);
+  assert.deepEqual(tableState.rows,[{total:33,without_rls:0}]);
 
   const directAccess = await db.query(`SELECT
       has_table_privilege('anon','public.accounts','SELECT') AS anon_select,
       has_table_privilege('authenticated','public.accounts','UPDATE') AS authenticated_update,
-      has_table_privilege('anon','public.sessions','DELETE') AS anon_delete`);
-  assert.deepEqual(directAccess.rows,[{anon_select:false,authenticated_update:false,anon_delete:false}]);
+      has_table_privilege('anon','public.sessions','DELETE') AS anon_delete,
+      has_table_privilege('anon','public.practice_sessions','SELECT') AS anon_practice_select`);
+  assert.deepEqual(directAccess.rows,[{anon_select:false,authenticated_update:false,anon_delete:false,anon_practice_select:false}]);
 
   const functionAccess = await db.query(`SELECT count(*)::int AS functions,
       count(*) FILTER (WHERE p.prorettype='trigger'::regtype AND EXISTS (
@@ -67,7 +71,7 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
   assert.equal((await db.query("SELECT language FROM public.accounts WHERE user_id='reader-1'")).rows[0].language,"en");
 
   // The app's privileged connection can still use each trigger in the CRUD
-  // paths: authoring, card/version immutability, review progress and completion.
+  // paths: authoring, card/version immutability, practice progress and completion.
   await db.exec(`INSERT INTO public.books(id,author,original_title,original_language,position)
       VALUES ('book-1','author','Title','en',1);
     INSERT INTO public.decks(id,book_id,creator_user_id,language)
@@ -80,11 +84,11 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
       VALUES ('card-1','version-1','book-1',1);
     INSERT INTO public.card_translations(card_id,language,title,body)
       VALUES ('card-1','en','Card','Body');
-    INSERT INTO public.reviews(id,user_id,version_id) VALUES ('review-1','reader-1','version-1');`);
+    INSERT INTO public.practices(id,user_id,version_id) VALUES ('review-1','reader-1','version-1');`);
   await assert.rejects(db.query("UPDATE public.decks SET language='es' WHERE id='deck-1'"));
-  await db.query(`INSERT INTO public.review_cards(review_id,user_id,version_id,card_id,local_day)
+  await db.query(`INSERT INTO public.practice_cards(practice_id,user_id,version_id,card_id,local_day)
     VALUES ('review-1','reader-1','version-1','card-1','2026-10-18')`);
-  assert.ok((await db.query("SELECT completed_at FROM public.reviews WHERE id='review-1'")).rows[0].completed_at);
+  assert.ok((await db.query("SELECT completed_at FROM public.practices WHERE id='review-1'")).rows[0].completed_at);
   await db.query("UPDATE public.deck_versions SET status='published' WHERE id='version-1'");
   await assert.rejects(db.query("UPDATE public.cards SET position=2 WHERE id='card-1'"));
   await assert.rejects(db.query("UPDATE public.deck_versions SET editorial_status='reviewed' WHERE id='version-1'"));

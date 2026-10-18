@@ -21,7 +21,7 @@ test("Home includes reading and owned draft notes independently of practice and 
   assert.deepEqual(ids(homeBooks(s.catalog,s.statuses,{},s.userId)),["reading"]);
   s.catalog.versions[0].status="archived";
   assert.deepEqual(ids(homeBooks(s.catalog,s.statuses,{},s.userId)),["reading"]);
-  assert.deepEqual(s.statuses,before.statuses);assert.deepEqual(s.reviews,before.reviews);
+  assert.deepEqual(s.statuses,before.statuses);assert.deepEqual(s.practices,before.practices);
 });
 
 test("Home orders by latest note date and preserves catalog order on ties and absent dates",()=>{

@@ -1,11 +1,11 @@
-import {bookReviewStates, studyingDecks} from "./decks.mjs";
+import {bookPracticeStates, studyingDecks} from "./decks.mjs";
 
 export const bookshelfDefaults = {reading:"all",review:"all"};
 
 // Reading the original and reviewing its decks are independent axes.
-export function bookshelfBooks({catalog,reviews = {},statuses = {},enrolledIds = [],cardSaves = [],userId,bookshelfFilters = bookshelfDefaults}) {
-  const active = new Set(studyingDecks(catalog,reviews,enrolledIds).map(item=>item.book.id));
-  const states = bookReviewStates(catalog,reviews);
+export function bookshelfBooks({catalog,practices = {},statuses = {},enrolledIds = [],cardSaves = [],userId,bookshelfFilters = bookshelfDefaults}) {
+  const active = new Set(studyingDecks(catalog,practices,enrolledIds).map(item=>item.book.id));
+  const states = bookPracticeStates(catalog,practices);
   const enrolled = new Set(enrolledIds);
   const personal = new Set(catalog.decks.filter(deck=>userId && deck.creator.userId === userId).map(deck=>deck.bookId));
   const selected = new Set(catalog.versions.filter(version=>enrolled.has(version.id)).map(version=>version.bookId));

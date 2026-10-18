@@ -14,7 +14,7 @@ async function retainedData(db,dialect) {
     : "SELECT table_name AS name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name").all();
   const result={};
   for (const {name} of rows) {
-    if (["sources","reed_schema","reader_filters","reader_interests","review_unlocks","review_cards","petal_wallets"].includes(name)) continue;
+    if (["sources","reed_schema","reader_filters","reader_interests","review_unlocks","practice_cards","petal_wallets","practice_answers","practice_sessions"].includes(name)) continue;
     result[name]=(await db.prepare(`SELECT * FROM "${name}"`).all()).map(row=>{
       const value={...row};if (name === "cards") delete value.source_id;
       return value;
@@ -29,6 +29,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const session=await historicalReader(db);
     assert.ok((await db.prepare("SELECT count(*) AS n FROM sources").get()).n>0);
     await historicalUnlock(db,session);
+    await initializeDatabase(db);
     const book=await createBook(db,session,{requestId:randomUUID(),author:"Daniel Kahneman",metadata:bookMetadata});
     const deck=await createDeck(db,session,{requestId:randomUUID(),bookId:book.bookId,title:"Notas",language:"es"});
     const card=await addCard(db,session,{requestId:randomUUID(),versionId:deck.versionId,title:"Idea",body:"Texto conservado",isQuote:false,parentId:null});

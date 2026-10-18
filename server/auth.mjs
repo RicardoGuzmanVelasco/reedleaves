@@ -90,7 +90,7 @@ export async function authenticate(db,kind,input,{now = new Date(),ip = "unknown
       const userId = randomUUID();
       await db.prepare("INSERT INTO users(id,display_name) VALUES (?,?)").run(userId,username);
       await db.prepare("INSERT INTO accounts VALUES (?,?,?,?,?)").run(userId,username,`scrypt$131072$8$1$${salt}$${result.toString("hex")}`,timeZone,language);
-      await db.prepare("INSERT INTO petal_wallets(user_id,balance) VALUES (?,10)").run(userId);
+      await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run(userId,10,serverDay(timeZone,now));
       return issueSession(db,userId,now,previous);
     });
   }

@@ -4,7 +4,7 @@ import {openDatabase,initializeDatabase} from "../server/database.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
 import {prepareCatalog} from "./catalog.mjs";
-import {bookReviewStates,featuredDecks} from "./decks.mjs";
+import {bookPracticeStates,featuredDecks} from "./decks.mjs";
 import {bookshelfBooks} from "./bookshelf.mjs";
 import {bookshelfView,homeView,libraryView,deckView} from "./views.mjs";
 import {words} from "./i18n.mjs";
@@ -14,13 +14,13 @@ async function fixture() {
   try {
     initializeDatabase(db); await seedCatalog(db);
     const catalog=prepareCatalog(await readCatalog(db));
-    return {catalog,userId:"reader",language:"es",reviews:{},statuses:{},enrolledIds:[],storageAvailable:true};
+    return {catalog,userId:"reader",language:"es",practices:{},statuses:{},enrolledIds:[],storageAvailable:true};
   } finally { await db.close(); }
 }
 const ids = entries=>entries.map(item=>item.book.id);
 function reviewed(s,versionId,complete=false) {
   const model=s.catalog.versionModels.get(versionId);
-  s.reviews[versionId]={seenIds:complete ? model.cards.map(c=>c.id) : [model.roots[0].id]};
+  s.practices[versionId]={seenIds:complete ? model.cards.map(c=>c.id) : [model.roots[0].id]};
 }
 
 test("Bookshelf excludes untouched recommendations, includes reading, enrolments, history and personal content",async()=>{
@@ -29,7 +29,7 @@ test("Bookshelf excludes untouched recommendations, includes reading, enrolments
   s.statuses={"atomic-habits":"reading","getting-things-done":"read"};
   s.enrolledIds=["seven-habits-editorial-v1","missing"];
   reviewed(s,"rich-dad-poor-dad-editorial-v1",true);
-  const before=structuredClone({reviews:s.reviews,enrolledIds:s.enrolledIds,statuses:s.statuses});
+  const before=structuredClone({practices:s.practices,enrolledIds:s.enrolledIds,statuses:s.statuses});
   assert.deepEqual(ids(bookshelfBooks(s)),["seven-habits","rich-dad-poor-dad","getting-things-done","atomic-habits"]);
   const book=s.catalog.booksById.get("same-as-ever"); book.creatorUserId=s.userId;
   assert.ok(ids(bookshelfBooks(s)).includes(book.id));
@@ -37,7 +37,7 @@ test("Bookshelf excludes untouched recommendations, includes reading, enrolments
   assert.ok(!ids(bookshelfBooks(s)).includes(book.id));
   const deck=s.catalog.decks.find(d=>d.bookId===book.id); deck.creator.userId=s.userId;
   assert.ok(ids(bookshelfBooks(s)).includes(book.id));
-  assert.deepEqual({reviews:s.reviews,enrolledIds:s.enrolledIds,statuses:s.statuses},before);
+  assert.deepEqual({practices:s.practices,enrolledIds:s.enrolledIds,statuses:s.statuses},before);
 });
 
 test("Reading and review filters intersect, preserving read books without a review",async()=>{
@@ -57,7 +57,7 @@ test("Saved-only books belong to the personal bookshelf without inventing readin
   const s=await fixture();s.cardSaves=[{cardId:"habit-1",bookId:"seven-habits",savedAt:"2026-10-13T12:00:00Z"}];
   const entries=bookshelfBooks(s);
   assert.deepEqual(ids(entries),["seven-habits"]);assert.equal(entries[0].reading,"unread");assert.equal(entries[0].group,"none");assert.equal(entries[0].hasReviewing,false);
-  assert.deepEqual(s.reviews,{});assert.deepEqual(s.enrolledIds,[]);
+  assert.deepEqual(s.practices,{});assert.deepEqual(s.enrolledIds,[]);
   assert.deepEqual(bookshelfBooks({...s,cardSaves:[]}),[]);
 });
 
@@ -93,7 +93,7 @@ test("A book with pending and practiced cards appears once in both groups",async
 
 test("Collection filters, empty states, book details and origin navigation translate consistently",async()=>{
   const s=await fixture(); s.statuses={"atomic-habits":"read"};
-  s.bookReviews=bookReviewStates(s.catalog,s.reviews);
+  s.bookPractices=bookPracticeStates(s.catalog,s.practices);
   for (const language of ["es","en"]) {
     const state={...s,language}; const c=words[language];
     const html=bookshelfView(state);

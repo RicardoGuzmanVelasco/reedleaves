@@ -7,8 +7,8 @@ import { Pool, types } from "pg";
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 22;
-export const POSTGRES_SCHEMA_VERSION = 14;
+export const SQLITE_SCHEMA_VERSION = 25;
+export const POSTGRES_SCHEMA_VERSION = 17;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -81,6 +81,71 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 24) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE reviews RENAME TO practices;
+        ALTER TABLE review_cards RENAME TO practice_cards;
+        ALTER TABLE practice_cards RENAME COLUMN review_id TO practice_id;
+        ALTER TABLE practice_cards RENAME COLUMN reviewed_at TO practiced_at;
+        ALTER TABLE review_positions RENAME TO practice_positions;
+        ALTER TABLE practice_positions RENAME COLUMN review_id TO practice_id;
+        DROP INDEX reviews_by_version;
+        CREATE INDEX practices_by_version ON practices(version_id,user_id);
+        DROP INDEX review_cards_by_reader;
+        CREATE INDEX practice_cards_by_reader ON practice_cards(user_id,version_id,rowid);
+        DROP TRIGGER complete_review;
+        CREATE TRIGGER complete_practice AFTER INSERT ON practice_cards BEGIN
+          UPDATE practices SET completed_at=COALESCE(completed_at,CURRENT_TIMESTAMP)
+          WHERE id=NEW.practice_id AND
+            (SELECT count(*) FROM practice_cards WHERE practice_id=NEW.practice_id)=(SELECT count(*) FROM cards WHERE version_id=NEW.version_id);
+        END;
+        PRAGMA user_version=25;`);
+      db.exec("COMMIT");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return;
+  }
+  if (version === 23) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE petal_wallets ADD COLUMN last_accrual_day TEXT;
+        CREATE TABLE practice_sessions (
+          id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+          topic TEXT NOT NULL CHECK(topic IN ('reading','read','saved','mixed')),
+          card_ids TEXT NOT NULL, card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
+          cost INTEGER NOT NULL CHECK(cost IN (2,3)), started_at TEXT NOT NULL, completed_at TEXT
+        ) STRICT;
+        CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL;
+        PRAGMA user_version=24;`);
+      const now = new Date();
+      const formatterCache = new Map();
+      for (const account of db.prepare("SELECT user_id,time_zone FROM accounts").all()) {
+        let formatter = formatterCache.get(account.time_zone);
+        if (!formatter) {
+          formatter = new Intl.DateTimeFormat("en-CA",{timeZone:account.time_zone,year:"numeric",month:"2-digit",day:"2-digit"});
+          formatterCache.set(account.time_zone,formatter);
+        }
+        const parts = Object.fromEntries(formatter.formatToParts(now).map(part=>[part.type,part.value]));
+        db.prepare("UPDATE petal_wallets SET last_accrual_day=? WHERE user_id=?").run(`${parts.year}-${parts.month}-${parts.day}`,account.user_id);
+      }
+      db.exec("COMMIT");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 22) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE practice_answers (
+        user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+        card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+        answer TEXT NOT NULL CHECK(answer IN ('soon','remembered')),
+        answered_at TEXT NOT NULL,
+        PRIMARY KEY(user_id,card_id)
+      ) STRICT;
+      PRAGMA user_version=23; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 21) {
     db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
     try {
@@ -122,7 +187,7 @@ export function initializeDatabase(db) {
       db.exec("COMMIT;");
     } catch(error) { db.exec("ROLLBACK;"); throw error; }
     finally { db.exec("PRAGMA foreign_keys=ON;"); }
-    return;
+    return initializeDatabase(db);
   }
   if (version === 19) {
     db.exec("BEGIN IMMEDIATE");
@@ -151,7 +216,7 @@ export function initializeDatabase(db) {
       INSERT INTO petal_wallets(user_id,balance) SELECT user_id,0 FROM accounts;
       PRAGMA user_version=21; COMMIT;`);
     } catch(error) { db.exec("ROLLBACK"); throw error; }
-    return;
+    return initializeDatabase(db);
   }
   if (version === 18) {
     const schema=readFileSync(new URL("./schema.sql",import.meta.url),"utf8");
@@ -297,6 +362,72 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 16) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 17) return;
+          await db.exec(`ALTER TABLE reviews RENAME TO practices;
+            ALTER TABLE review_cards RENAME TO practice_cards;
+            ALTER TABLE practice_cards RENAME COLUMN review_id TO practice_id;
+            ALTER TABLE practice_cards RENAME COLUMN reviewed_at TO practiced_at;
+            ALTER TABLE review_positions RENAME TO practice_positions;
+            ALTER TABLE practice_positions RENAME COLUMN review_id TO practice_id;
+            ALTER INDEX reviews_by_version RENAME TO practices_by_version;
+            ALTER INDEX review_cards_by_reader RENAME TO practice_cards_by_reader;
+            DROP TRIGGER complete_review ON practice_cards;
+            DROP FUNCTION reed_complete_review();
+            CREATE FUNCTION reed_complete_practice() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              UPDATE practices SET completed_at=COALESCE(completed_at,CURRENT_TIMESTAMP)
+              WHERE id=NEW.practice_id AND (SELECT count(*) FROM practice_cards WHERE practice_id=NEW.practice_id)=(SELECT count(*) FROM cards WHERE version_id=NEW.version_id);
+              RETURN NEW;
+            END $$;
+            CREATE TRIGGER complete_practice AFTER INSERT ON practice_cards FOR EACH ROW EXECUTE FUNCTION reed_complete_practice();
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=17;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=17);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 15) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 16) return;
+          await db.exec(`ALTER TABLE petal_wallets ADD COLUMN last_accrual_day TEXT;
+            UPDATE petal_wallets p SET last_accrual_day=to_char(CURRENT_TIMESTAMP AT TIME ZONE a.time_zone,'YYYY-MM-DD')
+              FROM accounts a WHERE a.user_id=p.user_id;
+            CREATE TABLE practice_sessions (
+              id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+              topic TEXT NOT NULL CHECK(topic IN ('reading','read','saved','mixed')),
+              card_ids TEXT NOT NULL, card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
+              cost INTEGER NOT NULL CHECK(cost IN (2,3)), started_at TIMESTAMPTZ NOT NULL, completed_at TIMESTAMPTZ
+            );
+            CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL;
+            ALTER TABLE practice_sessions ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=16;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=16);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 14) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 15) return;
+          await db.exec(`CREATE TABLE practice_answers (
+            user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+            card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+            answer TEXT NOT NULL CHECK(answer IN ('soon','remembered')),
+            answered_at TIMESTAMPTZ NOT NULL,
+            PRIMARY KEY(user_id,card_id)
+          );
+          ALTER TABLE practice_answers ENABLE ROW LEVEL SECURITY;
+          ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+          UPDATE reed_schema SET version=15;
+          ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=15);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 13) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");

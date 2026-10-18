@@ -64,7 +64,7 @@ test("API consumers reject missing or untrusted links; changing interface langua
 test("Each book modal offers labelled external anchors and platform icons in ES/EN; previews remain simple", async t => {
   const db = await fixture(t), catalog = prepareCatalog(await readCatalog(db));
   for (const language of LANGUAGES) for (const book of catalog.books) {
-    const s = {catalog,language,statuses:{},bookReviews:{},reviews:{},openBookId:book.id,storageAvailable:true};
+    const s = {catalog,language,statuses:{},bookPractices:{},practices:{},openBookId:book.id,storageAvailable:true};
     const html = libraryView(s), modal = html.slice(html.indexOf("<dialog"));
     assert.equal((modal.match(/class="book-external-link"/g) || []).length, 2);
     for (const platform of ["amazon", "goodreads"]) {
@@ -84,7 +84,7 @@ test("Each book modal offers labelled external anchors and platform icons in ES/
 test("The view never renders an unsafe link or a misleading edition note", async t => {
   const db = await fixture(t), catalog = prepareCatalog(await readCatalog(db)), book = catalog.books[0];
   book.links.amazon = "javascript:alert(1)";
-  const html = libraryView({catalog,language:"es",statuses:{},bookReviews:{},openBookId:book.id,storageAvailable:true});
+  const html = libraryView({catalog,language:"es",statuses:{},bookPractices:{},openBookId:book.id,storageAvailable:true});
   assert.doesNotMatch(html, /javascript:|platforms\/amazon|Edición en español/);
   assert.match(html, /platforms\/goodreads/);
 });

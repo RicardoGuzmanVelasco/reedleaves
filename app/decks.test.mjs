@@ -4,7 +4,7 @@ import {openDatabase,initializeDatabase} from "../server/database.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {prepareCatalog} from "./catalog.mjs";
-import {featuredDecks,restoreTreeReview,openTreeCard,reviewedCard,treeLinks,bookReviewStates,studyingDecks} from "./decks.mjs";
+import {featuredDecks,restoreTreePractice,openTreeCard,reviewedCard,treeLinks,bookPracticeStates,studyingDecks} from "./decks.mjs";
 import {deckView,reviewView,homeView,practiceView,authorView,authorFormView,escapeHtml} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
@@ -29,7 +29,7 @@ test("Popularity counts people who started and likes have a separate winner", as
 });
 test("Any card in the selected deck opens without a leaf or sequence requirement", async () => {
   const model = (await fixture()).versionModels.get(versionId);
-  let review = restoreTreeReview(null,model,versionId);
+  let review = restoreTreePractice(null,model,versionId);
   const result=openTreeCard(review,model,versionId,"inside-out-7");
   assert.equal(result.opened,true);assert.deepEqual(result.review.seenIds,["inside-out-7"]);
   assert.equal(result.review.currentId,"inside-out-7");
@@ -45,29 +45,29 @@ test("Reopening a card preserves distinct progress and updates the resume positi
 });
 test("Unknown IDs and different versions do not add progress", async () => {
   const catalog = await fixture(), model = catalog.versionModels.get(versionId);
-  const empty = restoreTreeReview(null,model,versionId);
+  const empty = restoreTreePractice(null,model,versionId);
   assert.equal(openTreeCard(empty,model,versionId,"inside-out-2").opened,true);
   assert.equal(openTreeCard(empty,model,versionId,"habit-1").opened,false);
   const first = openTreeCard(empty,model,versionId,"inside-out-1").review;
   assert.equal(reviewedCard(first,model,"inside-out-7").id,"inside-out-1");
-  assert.equal(restoreTreeReview({...first,versionId:"wrong"},model,versionId).seenIds.length,0);
-  assert.equal(restoreTreeReview({...first,seenIds:["inside-out-3","inside-out-1"]},model,versionId).seenIds.length,2);
+  assert.equal(restoreTreePractice({...first,versionId:"wrong"},model,versionId).seenIds.length,0);
+  assert.equal(restoreTreePractice({...first,seenIds:["inside-out-3","inside-out-1"]},model,versionId).seenIds.length,2);
 });
 test("Completion includes all descendants and each deck keeps its own history", async () => {
   const catalog = await fixture(), model = catalog.versionModels.get(versionId);
-  let review = restoreTreeReview(null,model,versionId);
+  let review = restoreTreePractice(null,model,versionId);
   const order = ["inside-out-1","inside-out-4","inside-out-7","inside-out-2","inside-out-3","inside-out-5","inside-out-6"];
   order.forEach(id => { review = openTreeCard(review,model,versionId,id).review; });
   assert.equal(review.seenIds.length,7);
-  assert.equal(bookReviewStates(catalog,{[versionId]:review})["seven-habits"].hasReviewedCards,true);
+  assert.equal(bookPracticeStates(catalog,{[versionId]:review})["seven-habits"].hasReviewedCards,true);
   const partial = {...review,seenIds:order.slice(0,3)};
-  assert.deepEqual(bookReviewStates(catalog,{[versionId]:partial})["seven-habits"],{hasReviewedCards:true,hasReviewing:true});
+  assert.deepEqual(bookPracticeStates(catalog,{[versionId]:partial})["seven-habits"],{hasReviewedCards:true,hasReviewing:true});
   const otherId = "atomic-habits-editorial-v1", other = catalog.versionModels.get(otherId);
   assert.deepEqual(openTreeCard(null,other,otherId,"atomic-1").review.seenIds,["atomic-1"]);
 });
 test("Deck grid opens a complete modal; every review card is visible and openable", async () => {
   const catalog = await fixture(), model = catalog.versionModels.get(versionId), review = openTreeCard(null,model,versionId,"inside-out-1","2026-10-06",null).review;
-  const reviews = {[versionId]:review}, deckId=catalog.versionsById.get(versionId).deckId,base = {catalog,language:"es",reviews,versionId,bookId:"seven-habits",requestedId:"inside-out-2",storageAvailable:true,userId:"reader",enrolledDeckIds:[deckId]};
+  const practices = {[versionId]:review}, deckId=catalog.versionsById.get(versionId).deckId,base = {catalog,language:"es",practices,versionId,bookId:"seven-habits",requestedId:"inside-out-2",storageAvailable:true,userId:"reader",enrolledDeckIds:[deckId]};
   const html = reviewView(base);
   assert.match(html,/Equipo Reedleaves/); assert.match(html,/class="tree-map/);
   assert.match(html,/tree-node--seen/); assert.match(html,/tree-node--unseen/);
@@ -120,8 +120,8 @@ test("Deck authors link to their profiles independently of deck opening, includi
   const catalog=await fixture(),choice=featuredDecks(catalog,"seven-habits")[0];
   for (const language of ["es","en"]) {
     const state=readerState(catalog,{language,bookId:"seven-habits",deckChoices:[choice]});
-    const review=restoreTreeReview(null,catalog.versionModels.get(choice.version.id),choice.version.id);
-    for (const html of [deckView(state),deckView({...state,openDeckId:choice.version.id}),reviewView({...state,versionId:choice.version.id,reviews:{[choice.version.id]:review},today:"2026-10-16"})]) {
+    const review=restoreTreePractice(null,catalog.versionModels.get(choice.version.id),choice.version.id);
+    for (const html of [deckView(state),deckView({...state,openDeckId:choice.version.id}),reviewView({...state,versionId:choice.version.id,practices:{[choice.version.id]:review},today:"2026-10-16"})]) {
       assert.ok(html.includes(`href="#profile/${encodeURIComponent(choice.deck.creator.userId)}"`));
       assert.ok(html.includes(escapeHtml(choice.deck.creator.name)));
       assert.doesNotMatch(html,/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?<a\b/,"Profile links must not be nested inside deck buttons");
@@ -140,7 +140,7 @@ test("Deck authors link to their profiles independently of deck opening, includi
 test("Deck albums show total progress; cards open separately only when explicitly requested",async()=>{
   const catalog=await fixture(),model=catalog.versionModels.get(versionId),version=catalog.versionsById.get(versionId),deck=catalog.decksById.get(version.deckId);
   const card=model.roots[0],review=openTreeCard(null,model,versionId,card.id,"2026-10-06",null).review;
-  const base={catalog,language:"es",versionId,bookId:version.bookId,reviews:{[versionId]:review},storageAvailable:true};
+  const base={catalog,language:"es",versionId,bookId:version.bookId,practices:{[versionId]:review},storageAvailable:true};
   for (const [mode,view] of [["review",reviewView],["author",authorView]]) {
     const state={...base,mode,userId:deck.creator.userId};
     const album=view(state);
@@ -164,12 +164,12 @@ test("Deck albums show total progress; cards open separately only when explicitl
     assert.match(modal,/data-action="close-exclusive"/);
     assert.doesNotMatch(modal,/tree-map|album-progress|data-action="choose-book"|data-action="home"/);
     assert.match(detail,/1 de 7 tarjetas repasadas/,"The album stays behind the dialog");
-    const empty=view({...state,reviews:{[versionId]:restoreTreeReview(null,model,versionId)}});
+    const empty=view({...state,practices:{[versionId]:restoreTreePractice(null,model,versionId)}});
     assert.match(empty,/0 de 7 tarjetas repasadas/);assert.doesNotMatch(empty,/idea-card/);
-    const emptyDeck=view({...state,catalog:{...catalog,versionModels:new Map([[versionId,{...model,cards:[],roots:[]}]])},reviews:{[versionId]:restoreTreeReview(null,model,versionId)}});
+    const emptyDeck=view({...state,catalog:{...catalog,versionModels:new Map([[versionId,{...model,cards:[],roots:[]}]])},practices:{[versionId]:restoreTreePractice(null,model,versionId)}});
     assert.match(emptyDeck,/0 de 0 tarjetas repasadas/);assert.match(emptyDeck,/<progress value="0" max="1"/);
     assert.doesNotMatch(emptyDeck,/NaN|Infinity|Repaso completo|idea-card/);
-    const complete=view({...state,reviews:{[versionId]:{...review,seenIds:model.cards.map(c=>c.id)}}});
+    const complete=view({...state,practices:{[versionId]:{...review,seenIds:model.cards.map(c=>c.id)}}});
     assert.match(complete,/100%/);assert.doesNotMatch(complete,/Repaso completo|idea-card/);
   }
   const unseen=model.cards.find(c=>!review.seenIds.includes(c.id));
@@ -179,25 +179,25 @@ test("Deck albums show total progress; cards open separately only when explicitl
 
 test("Home enrolment is independent of recommended daily selections and preserves unfinished histories", async () => {
   const catalog = await fixture(), model = catalog.versionModels.get(versionId);
-  const reviews = Object.fromEntries(catalog.versions.map(v => [v.id,restoreTreeReview(null,catalog.versionModels.get(v.id),v.id)]));
-  assert.equal(studyingDecks(catalog,reviews).length,0);
-  assert.equal(studyingDecks(catalog,reviews,{bad:true}).length,0);
-  assert.deepEqual(studyingDecks(catalog,reviews,[versionId,"unknown"]).map(s => s.version.id),[versionId]);
-  reviews[versionId] = openTreeCard(null,model,versionId,"inside-out-1","2026-10-06",null).review;
-  assert.deepEqual(studyingDecks(catalog,reviews).map(s => s.version.id),[versionId]);
+  const practices = Object.fromEntries(catalog.versions.map(v => [v.id,restoreTreePractice(null,catalog.versionModels.get(v.id),v.id)]));
+  assert.equal(studyingDecks(catalog,practices).length,0);
+  assert.equal(studyingDecks(catalog,practices,{bad:true}).length,0);
+  assert.deepEqual(studyingDecks(catalog,practices,[versionId,"unknown"]).map(s => s.version.id),[versionId]);
+  practices[versionId] = openTreeCard(null,model,versionId,"inside-out-1","2026-10-06",null).review;
+  assert.deepEqual(studyingDecks(catalog,practices).map(s => s.version.id),[versionId]);
   const second = "seven-habits-editorial-v1";
-  assert.equal(studyingDecks(catalog,reviews,[second]).length,2);
+  assert.equal(studyingDecks(catalog,practices,[second]).length,2);
   const order = ["inside-out-1","inside-out-4","inside-out-7","inside-out-2","inside-out-3","inside-out-5","inside-out-6"];
-  order.forEach((id,i) => { reviews[versionId] = openTreeCard(reviews[versionId],model,versionId,id,"2026-10-"+String(7+i).padStart(2,"0"),null).review; });
-  assert.equal(studyingDecks(catalog,reviews,[versionId]).length,0);
+  order.forEach((id,i) => { practices[versionId] = openTreeCard(practices[versionId],model,versionId,id,"2026-10-"+String(7+i).padStart(2,"0"),null).review; });
+  assert.equal(studyingDecks(catalog,practices,[versionId]).length,0);
 });
 
 test("Home shows one closed book per active book, without exposing trees or spending leaves", async () => {
   const catalog = await fixture(), model = catalog.versionModels.get(versionId);
-  const reviews = Object.fromEntries(catalog.versions.map(v => [v.id,restoreTreeReview(null,catalog.versionModels.get(v.id),v.id)]));
-  reviews[versionId] = openTreeCard(null,model,versionId,"inside-out-1","2026-10-06",null).review;
+  const practices = Object.fromEntries(catalog.versions.map(v => [v.id,restoreTreePractice(null,catalog.versionModels.get(v.id),v.id)]));
+  practices[versionId] = openTreeCard(null,model,versionId,"inside-out-1","2026-10-06",null).review;
   const second = "atomic-habits-editorial-v1";
-  const state = {catalog,reviews,language:"es",statuses:{"seven-habits":"reading","atomic-habits":"reading"},enrolledIds:[second],storageAvailable:true};
+  const state = {catalog,practices,language:"es",statuses:{"seven-habits":"reading","atomic-habits":"reading"},enrolledIds:[second],storageAvailable:true};
   const html = homeView(state);
   assert.match(html,/data-action="practice" aria-label="¡Vamos a repasar!"/);
   assert.equal((html.match(/class="practice-launch-char"/g)||[]).length,[...words.es.practiceLaunch].length);
@@ -208,8 +208,8 @@ test("Home shows one closed book per active book, without exposing trees or spen
   assert.doesNotMatch(html,/Choose your response|Make room for what matters|tree-node|tree-map|open-card|idea-card|Una idea al día/);
   assert.equal(homeView({...state,budget:null}),html);
   assert.equal((homeView({...state,enrolledIds:[second,"seven-habits-editorial-v1"]}).match(/class="study-book"/g) || []).length,2);
-  assert.deepEqual(reviews[versionId].seenIds,["inside-out-1"]);
-  const empty = homeView({...state,statuses:{},reviews:Object.fromEntries(catalog.versions.map(v => [v.id,restoreTreeReview(null,catalog.versionModels.get(v.id),v.id)])),enrolledIds:[]});
+  assert.deepEqual(practices[versionId].seenIds,["inside-out-1"]);
+  const empty = homeView({...state,statuses:{},practices:Object.fromEntries(catalog.versions.map(v => [v.id,restoreTreePractice(null,catalog.versionModels.get(v.id),v.id)])),enrolledIds:[]});
   assert.ok(empty.includes(words.es.noReadingBooks)); assert.doesNotMatch(empty,/study-book"/);
   assert.match(homeView({...state,language:"en"}),/Go to the library/);
 });
@@ -228,13 +228,26 @@ test("Practice preloads the next card beneath the active one without duplicate I
   assert.match(next,new RegExp(`data-reading-card="${cards[2].id}"[^>]*aria-hidden="true" inert`));
 });
 
+test("Practice prices show one discounted topic, the wallet cap, and useful empty-session paths",async()=>{
+  const catalog=await fixture(),state=readerState(catalog,{practiceStage:"choose",practiceDiscountTopic:"saved",petals:10,petalMaximum:15});
+  const choice=practiceView(state,null);
+  assert.equal(state.petalMaximum,15);
+  assert.match(choice,/practice-topic-cost is-discounted/);
+  assert.equal((choice.match(/practice-topic-cost/g)||[]).length,4);
+  const insufficient=practiceView({...state,practiceStage:"empty",practiceUnavailable:{reason:"notEnoughCards",topic:"mixed",available:4,required:5}},null);
+  assert.match(insufficient,/Necesitas 5 para empezar/);
+  assert.match(insufficient,/#bookshelf\/decks/);assert.match(insufficient,/#library/);
+  const resume=practiceView({...state,practiceStage:"choose",activePracticeSession:{topic:"reading",index:2,cardIds:["a","b","c","d","e"]}},null);
+  assert.match(resume,/data-action="practice-resume"/);assert.match(resume,/2\/5/);
+});
+
 
 test("Draft creation status stays distinct from review progress across deck surfaces",async()=>{
   const catalog=await fixture(),version=catalog.versionsById.get(versionId),deck=catalog.decksById.get(version.deckId),model=catalog.versionModels.get(versionId);
   version.status="draft";
-  const done={...restoreTreeReview(null,model,versionId),seenIds:model.cards.map(card=>card.id)};
+  const done={...restoreTreePractice(null,model,versionId),seenIds:model.cards.map(card=>card.id)};
   for(const language of ["es","en"]){
-    const c=words[language],base=readerState(catalog,{language,bookId:version.bookId,versionId,reviews:{[versionId]:done},today:"2026-10-17",deckChoices:featuredDecks(catalog,version.bookId)});
+    const c=words[language],base=readerState(catalog,{language,bookId:version.bookId,versionId,practices:{[versionId]:done},today:"2026-10-17",deckChoices:featuredDecks(catalog,version.bookId)});
     for(const userId of [deck.creator.userId,"another-reader"]){
       const state={...base,userId},explanation=userId===deck.creator.userId?c.deckDraftOwnerExplanation:c.deckMayChangeUnadded;
       const surfaces=[deckView({...state,openDeckId:versionId}),reviewView(state)];

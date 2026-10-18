@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 14));
-INSERT INTO reed_schema VALUES (14);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 17));
+INSERT INTO reed_schema VALUES (17);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -108,29 +108,46 @@ CREATE TABLE book_reading(
   user_id TEXT NOT NULL REFERENCES users(id), book_id TEXT NOT NULL REFERENCES books(id),
   status TEXT NOT NULL CHECK(status IN ('reading','read')), PRIMARY KEY(user_id,book_id)
 );
-CREATE TABLE reviews(
+CREATE TABLE practices(
   id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), version_id TEXT NOT NULL REFERENCES deck_versions(id),
   started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, completed_at TIMESTAMP,
   UNIQUE(user_id,version_id), UNIQUE(id,user_id,version_id), CHECK(completed_at IS NULL OR completed_at >= started_at)
 );
-CREATE INDEX reviews_by_version ON reviews(version_id,user_id);
+CREATE INDEX practices_by_version ON practices(version_id,user_id);
 CREATE TABLE leaf_wallets(
   user_id TEXT PRIMARY KEY REFERENCES users(id), balance BIGINT NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991),
   last_accrual_day TEXT NOT NULL CHECK(last_accrual_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(last_accrual_day,'YYYY-MM-DD'),'YYYY-MM-DD') = last_accrual_day)
 );
 CREATE TABLE petal_wallets(
   user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  balance BIGINT NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991)
+  balance BIGINT NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991),
+  last_accrual_day TEXT CHECK(last_accrual_day IS NULL OR (last_accrual_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(last_accrual_day,'YYYY-MM-DD'),'YYYY-MM-DD') = last_accrual_day))
 );
-CREATE TABLE review_cards(
-  rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE, review_id TEXT NOT NULL, user_id TEXT NOT NULL, version_id TEXT NOT NULL,
+CREATE TABLE practice_answers(
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  answer TEXT NOT NULL CHECK(answer IN ('soon','remembered')),
+  answered_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY(user_id,card_id)
+);
+ALTER TABLE practice_answers ENABLE ROW LEVEL SECURITY;
+CREATE TABLE practice_sessions(
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  topic TEXT NOT NULL CHECK(topic IN ('reading','read','saved','mixed')),
+  card_ids TEXT NOT NULL, card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
+  cost INTEGER NOT NULL CHECK(cost IN (2,3)), started_at TIMESTAMPTZ NOT NULL, completed_at TIMESTAMPTZ
+);
+CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL;
+ALTER TABLE practice_sessions ENABLE ROW LEVEL SECURITY;
+CREATE TABLE practice_cards(
+  rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE, practice_id TEXT NOT NULL, user_id TEXT NOT NULL, version_id TEXT NOT NULL,
   card_id TEXT NOT NULL, local_day TEXT NOT NULL CHECK(local_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(local_day,'YYYY-MM-DD'),'YYYY-MM-DD') = local_day),
-  reviewed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, leaf_spent INTEGER NOT NULL DEFAULT 0 CHECK(leaf_spent IN (0,1)),
-  PRIMARY KEY(review_id,card_id),
-  FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
+  practiced_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, leaf_spent INTEGER NOT NULL DEFAULT 0 CHECK(leaf_spent IN (0,1)),
+  PRIMARY KEY(practice_id,card_id),
+  FOREIGN KEY(practice_id,user_id,version_id) REFERENCES practices(id,user_id,version_id),
   FOREIGN KEY(card_id,version_id) REFERENCES cards(id,version_id)
 );
-CREATE INDEX review_cards_by_reader ON review_cards(user_id,version_id,rowid);
+CREATE INDEX practice_cards_by_reader ON practice_cards(user_id,version_id,rowid);
 CREATE TABLE card_views (
   user_id TEXT NOT NULL REFERENCES users(id),
   card_id TEXT NOT NULL REFERENCES cards(id),
@@ -143,10 +160,10 @@ CREATE TABLE deck_selections(
   user_id TEXT NOT NULL REFERENCES users(id), book_id TEXT NOT NULL REFERENCES books(id), version_id TEXT NOT NULL,
   PRIMARY KEY(user_id,book_id), FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id)
 );
-CREATE TABLE review_positions(
-  review_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, version_id TEXT NOT NULL, card_id TEXT NOT NULL,
-  FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
-  FOREIGN KEY(review_id,card_id) REFERENCES review_cards(review_id,card_id)
+CREATE TABLE practice_positions(
+  practice_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, version_id TEXT NOT NULL, card_id TEXT NOT NULL,
+  FOREIGN KEY(practice_id,user_id,version_id) REFERENCES practices(id,user_id,version_id),
+  FOREIGN KEY(practice_id,card_id) REFERENCES practice_cards(practice_id,card_id)
 );
 CREATE TABLE daily_ideas(day TEXT PRIMARY KEY, card_id TEXT NOT NULL REFERENCES cards(id));
 CREATE TABLE feedback_submissions(
@@ -187,13 +204,13 @@ END $$;
 CREATE TRIGGER no_card_cycles_insert BEFORE INSERT ON cards FOR EACH ROW EXECUTE FUNCTION reed_check_card_cycle();
 CREATE TRIGGER no_card_cycles_update BEFORE UPDATE OF parent_id ON cards FOR EACH ROW EXECUTE FUNCTION reed_check_card_cycle();
 
-CREATE FUNCTION reed_complete_review() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION reed_complete_practice() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  UPDATE reviews SET completed_at=COALESCE(completed_at,CURRENT_TIMESTAMP)
-  WHERE id=NEW.review_id AND (SELECT count(*) FROM review_cards WHERE review_id=NEW.review_id)=(SELECT count(*) FROM cards WHERE version_id=NEW.version_id);
+  UPDATE practices SET completed_at=COALESCE(completed_at,CURRENT_TIMESTAMP)
+  WHERE id=NEW.practice_id AND (SELECT count(*) FROM practice_cards WHERE practice_id=NEW.practice_id)=(SELECT count(*) FROM cards WHERE version_id=NEW.version_id);
   RETURN NEW;
 END $$;
-CREATE TRIGGER complete_review AFTER INSERT ON review_cards FOR EACH ROW EXECUTE FUNCTION reed_complete_review();
+CREATE TRIGGER complete_practice AFTER INSERT ON practice_cards FOR EACH ROW EXECUTE FUNCTION reed_complete_practice();
 
 CREATE FUNCTION reed_freeze_cards() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE version_status TEXT;

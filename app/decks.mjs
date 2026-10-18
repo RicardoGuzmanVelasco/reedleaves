@@ -21,15 +21,15 @@ export function featuredDecks(catalog, bookId) {
   return [...winners,...choices.filter(c => !winners.includes(c))];
 }
 
-export function studyingDecks(catalog, reviews, enrolledIds = []) {
+export function studyingDecks(catalog, practices, enrolledIds = []) {
   const enrolled = new Set(Array.isArray(enrolledIds) ? enrolledIds : []);
   // Recommendations are not enrolments. Started versions remain visible even
   // when the daily selection changes or the author publishes a newer version.
   return catalog.versions.filter(version => {
-    const count = reviews[version.id]?.seenIds.length || 0;
+    const count = practices[version.id]?.seenIds.length || 0;
     return (count < version.cardCount || version.status === "draft" && version.cardCount === 0) && (count > 0 || enrolled.has(version.id));
   }).map(version => ({version,deck:catalog.decksById.get(version.deckId),
-    book:catalog.booksById.get(version.bookId),review:reviews[version.id] || restoreTreeReview(null,catalog.versionModels.get(version.id),version.id)}));
+    book:catalog.booksById.get(version.bookId),review:practices[version.id] || restoreTreePractice(null,catalog.versionModels.get(version.id),version.id)}));
 }
 
 export function cardSiblings(card,model) {
@@ -37,14 +37,14 @@ export function cardSiblings(card,model) {
   return card.parentId === null ? siblings.filter(c=>!!c.isQuote === !!card.isQuote) : siblings;
 }
 
-export function restoreTreeReview(saved, model, versionId) {
+export function restoreTreePractice(saved, model, versionId) {
   let value = saved?.versionId === versionId ? saved : {};
   const seenIds = [...new Set((Array.isArray(value.seenIds) ? value.seenIds : []).filter(id=>model.byId.has(id)))];
   return {versionId,seenIds,currentId:seenIds.includes(value.currentId) ? value.currentId : seenIds.at(-1) || null};
 }
 
 export function openTreeCard(saved, model, versionId, cardId) {
-  const review = restoreTreeReview(saved,model,versionId), card = model.byId.get(cardId);
+  const review = restoreTreePractice(saved,model,versionId), card = model.byId.get(cardId);
   if (!card) return {review,opened:false};
   const seenIds = review.seenIds.includes(cardId) ? review.seenIds : [...review.seenIds,cardId];
   return {review:{...review,seenIds,currentId:cardId},opened:true};
@@ -62,10 +62,10 @@ export function treeLinks(card, model) {
     parent:card.parentId ? model.byId.get(card.parentId) : null};
 }
 
-export function bookReviewStates(catalog, reviews) {
+export function bookPracticeStates(catalog, practices) {
   return Object.fromEntries(catalog.books.map(book => {
-    const versions = catalog.versions.filter(v => v.bookId === book.id), started = versions.filter(v => reviews[v.id]?.seenIds.length);
-    const ongoing = started.some(v => reviews[v.id].seenIds.length < v.cardCount);
+    const versions = catalog.versions.filter(v => v.bookId === book.id), started = versions.filter(v => practices[v.id]?.seenIds.length);
+    const ongoing = started.some(v => practices[v.id].seenIds.length < v.cardCount);
     return [book.id,{hasReviewedCards:started.length>0,hasReviewing:ongoing}];
   }));
 }

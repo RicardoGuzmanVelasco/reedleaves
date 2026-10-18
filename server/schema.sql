@@ -190,7 +190,7 @@ CREATE TABLE book_reading (
   status TEXT NOT NULL CHECK(status IN ('reading','read')),
   PRIMARY KEY(user_id,book_id)
 ) STRICT;
-CREATE TABLE reviews (
+CREATE TABLE practices (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id),
   version_id TEXT NOT NULL REFERENCES deck_versions(id),
@@ -200,7 +200,7 @@ CREATE TABLE reviews (
   UNIQUE(id,user_id,version_id),
   CHECK(completed_at IS NULL OR completed_at >= started_at)
 ) STRICT;
-CREATE INDEX reviews_by_version ON reviews(version_id,user_id);
+CREATE INDEX practices_by_version ON practices(version_id,user_id);
 CREATE TABLE leaf_wallets (
   user_id TEXT PRIMARY KEY REFERENCES users(id),
   balance INTEGER NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991),
@@ -211,22 +211,41 @@ CREATE TABLE leaf_wallets (
 ) STRICT;
 CREATE TABLE petal_wallets (
   user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  balance INTEGER NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991)
+  balance INTEGER NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991),
+  last_accrual_day TEXT CHECK(last_accrual_day IS NULL OR (last_accrual_day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(last_accrual_day,'+0 days') IS last_accrual_day))
 ) STRICT;
-CREATE TABLE review_cards (
+CREATE TABLE practice_answers (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  answer TEXT NOT NULL CHECK(answer IN ('soon','remembered')),
+  answered_at TEXT NOT NULL,
+  PRIMARY KEY(user_id,card_id)
+) STRICT;
+CREATE TABLE practice_sessions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  topic TEXT NOT NULL CHECK(topic IN ('reading','read','saved','mixed')),
+  card_ids TEXT NOT NULL,
+  card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
+  cost INTEGER NOT NULL CHECK(cost IN (2,3)),
+  started_at TEXT NOT NULL,
+  completed_at TEXT
+) STRICT;
+CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL;
+CREATE TABLE practice_cards (
   rowid INTEGER PRIMARY KEY,
-  review_id TEXT NOT NULL,
+  practice_id TEXT NOT NULL,
   user_id TEXT NOT NULL,
   version_id TEXT NOT NULL,
   card_id TEXT NOT NULL,
   local_day TEXT NOT NULL CHECK(local_day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(local_day,'+0 days') IS local_day),
-  reviewed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  practiced_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   leaf_spent INTEGER NOT NULL DEFAULT 0 CHECK(leaf_spent IN (0,1)),
-  UNIQUE(review_id,card_id),
-  FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
+  UNIQUE(practice_id,card_id),
+  FOREIGN KEY(practice_id,user_id,version_id) REFERENCES practices(id,user_id,version_id),
   FOREIGN KEY(card_id,version_id) REFERENCES cards(id,version_id)
 ) STRICT;
-CREATE INDEX review_cards_by_reader ON review_cards(user_id,version_id,rowid);
+CREATE INDEX practice_cards_by_reader ON practice_cards(user_id,version_id,rowid);
 
 CREATE TABLE card_views (
   user_id TEXT NOT NULL REFERENCES users(id),
@@ -247,13 +266,13 @@ CREATE TABLE deck_selections (
   PRIMARY KEY(user_id,book_id),
   FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id)
 ) STRICT;
-CREATE TABLE review_positions (
-  review_id TEXT PRIMARY KEY,
+CREATE TABLE practice_positions (
+  practice_id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
   version_id TEXT NOT NULL,
   card_id TEXT NOT NULL,
-  FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
-  FOREIGN KEY(review_id,card_id) REFERENCES review_cards(review_id,card_id)
+  FOREIGN KEY(practice_id,user_id,version_id) REFERENCES practices(id,user_id,version_id),
+  FOREIGN KEY(practice_id,card_id) REFERENCES practice_cards(practice_id,card_id)
 ) STRICT;
 CREATE TABLE daily_ideas (
   day TEXT NOT NULL,
@@ -272,10 +291,10 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-CREATE TRIGGER complete_review AFTER INSERT ON review_cards BEGIN
-  UPDATE reviews SET completed_at = COALESCE(completed_at,CURRENT_TIMESTAMP)
-  WHERE id = NEW.review_id AND
-    (SELECT count(*) FROM review_cards WHERE review_id = NEW.review_id) =
+CREATE TRIGGER complete_practice AFTER INSERT ON practice_cards BEGIN
+  UPDATE practices SET completed_at = COALESCE(completed_at,CURRENT_TIMESTAMP)
+  WHERE id = NEW.practice_id AND
+    (SELECT count(*) FROM practice_cards WHERE practice_id = NEW.practice_id) =
     (SELECT count(*) FROM cards WHERE version_id = NEW.version_id);
 END;
 
@@ -320,4 +339,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 22;
+PRAGMA user_version = 25;
