@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reedleaves · Propuestas de iconos de colección</title>
+  <style>
+    :root{color-scheme:light;--ink:#173d2c;--muted:#51654c;--paper:#fff9ed;--line:#dadcc9;--soft:#eef3df;font-family:"Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif;color:var(--ink);background:var(--paper)}
+    *{box-sizing:border-box}body{margin:0}main{max-width:1060px;margin:auto;padding:44px 32px 48px}h1,h2,h3,p{margin:0}h1{font-size:29px;letter-spacing:-.04em;line-height:1.15}header>p{margin-top:12px;max-width:690px;color:var(--muted);font-size:14px;line-height:1.6}.status{font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}.family{padding-top:28px;margin-top:30px;border-top:1px solid var(--line)}.family-heading{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}.family-heading h2{font-size:20px;letter-spacing:-.025em}.family-heading p{font-size:12px;color:var(--muted)}.concepts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin-top:22px}.concept{min-width:0}h3{font-size:14px;font-weight:750}h3 small{font-size:11px;font-weight:500;color:var(--muted);display:block;margin-top:5px}.drawing{height:108px;display:flex;align-items:center;gap:28px}.icon{display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}.large{width:76px;height:76px}.small{width:24px;height:24px}.size-note{font-size:10px;color:var(--muted);margin-top:-8px;margin-bottom:13px}.description{min-height:37px;font-size:12px;line-height:1.5;color:var(--muted);max-width:245px}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}.action-example{display:flex;align-items:center;gap:9px;min-height:48px;padding:10px 14px;background:var(--soft);border-radius:13px;font-size:12px;font-weight:650}.action-example .icon{width:28px;height:28px}.note{font-size:12px;line-height:1.6;color:var(--muted);max-width:790px;margin-top:32px}.recommendation{font-size:13px;line-height:1.6;margin-top:26px;max-width:790px}.recommendation strong{font-weight:750}.svg-defs{position:absolute;width:0;height:0;overflow:hidden}footer{font-size:11px;color:var(--muted);margin-top:14px;line-height:1.6}@media(max-width:640px){main{padding:28px 20px 36px}h1{font-size:25px}.concepts{gap:14px}.drawing{height:94px;gap:10px}.large{width:58px;height:58px}.description{font-size:11px}.family-heading{gap:6px 12px}.actions{gap:8px}.action-example{width:100%}.size-note{font-size:9px}h3{font-size:12px}h3 small{font-size:10px}}@media(max-width:370px){.drawing{gap:5px}.large{width:50px;height:50px}.concepts{gap:10px}}
+  </style>
+</head>
+<body>
+  <!-- Shared geometry: every adding action references exactly its destination symbol.
+       The only extra geometry is #add. The common 32 × 32 canvas reserves its upper
+       right corner for this small sign; the destination is never moved or reduced. -->
+  <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <g id="add"><path d="M27 2.5v5M24.5 5h5"/></g>
+
+    <!-- A: shop / bookshelf / card holder. -->
+    <g id="a-library">
+      <path d="M5 15v10h18V15M4 10l2-4h16l2 4"/>
+      <path d="M4 10v2a3.33 3.33 0 0 0 6.67 0 3.33 3.33 0 0 0 6.66 0A3.33 3.33 0 0 0 24 12v-2ZM11 25v-7h6v7"/>
+    </g>
+    <g id="a-shelf">
+      <rect x="5" y="9" width="5" height="15" rx="1.3"/>
+      <path d="M10 12h5v12H10M17.5 10.5l4.4-1.2 4 14.5-4.4 1.2zM3 26h24"/>
+    </g>
+    <g id="a-cards">
+      <path d="M8 12V8a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v4M5 15v-3a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3"/>
+      <path d="M4 15h6a4 4 0 0 0 8 0h6v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>
+    </g>
+
+    <!-- B: open book / framed bookshelf / two closed cards. -->
+    <g id="b-library">
+      <path d="M14 11C11 8 7 8 3 9v15c4-1 8-1 11 2 3-3 7-3 11-2V9c-4-1-8-1-11 2ZM14 11v15"/>
+    </g>
+    <g id="b-shelf">
+      <path d="M4 25V8a2 2 0 0 1 2-2h17a2 2 0 0 1 2 2v17M4 24h21M8 24V11h5v13M17 24V13h4v11"/>
+    </g>
+    <g id="b-cards">
+      <path d="M5 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h15a2 2 0 0 1 2 2v1"/>
+      <rect x="7" y="12" width="19" height="13" rx="2"/>
+    </g>
+
+    <!-- C: catalog grid / stacked books / card fan. -->
+    <g id="c-library">
+      <rect x="4" y="6" width="8" height="8" rx="1.5"/><rect x="17" y="6" width="8" height="8" rx="1.5"/>
+      <rect x="4" y="19" width="8" height="8" rx="1.5"/><rect x="17" y="19" width="8" height="8" rx="1.5"/>
+    </g>
+    <g id="c-shelf">
+      <path d="M24 16H8a3 3 0 0 1 0-6h16v6ZM8 10v6M25 25H5a3 3 0 0 1 0-6h20v6ZM5 19v6"/>
+    </g>
+    <g id="c-cards">
+      <path d="M10 25H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+      <rect x="12" y="10" width="12" height="16" rx="2" transform="rotate(15 18 18)"/>
+    </g>
+  </defs></svg>
+  <main>
+    <header>
+      <div class="status">Reedleaves · Exploración, pendiente de elección</div>
+      <h1>Iconos de colección</h1>
+      <p>Librería: catálogo de libros y barajas. Estantería: tus libros. Tarjetero: tus barajas. Tres propuestas con las acciones de añadir correspondientes.</p>
+    </header>
+
+    <section class="family" aria-labelledby="family-a">
+      <div class="family-heading"><h2 id="family-a">A · Objetos distintos</h2><p>Tienda, balda y tarjetero</p></div>
+      <div class="concepts">
+        <article class="concept"><h3>Librería<small>Catálogo</small></h3><div class="drawing" aria-hidden="true"><svg class="icon large" viewBox="0 0 32 32"><use href="#a-library"/></svg><svg class="icon small" viewBox="0 0 32 32"><use href="#a-library"/></svg></div><p class="size-note">Ampliado / 24 px</p><p class="description">Una tienda: acceso al catálogo común.</p></article>
+        <article class="concept"><h3>Estantería<small>Libros personales</small></h3><div class="drawing" aria-hidden="true"><svg class="icon large" viewBox="0 0 32 32"><use href="#a-shelf"/></svg><svg class="icon small" viewBox="0 0 32 32"><use href="#a-shelf"/></svg></div><p class="size-note">Ampliado / 24 px</p><p class="description">Libros en una balda; uno ligeramente inclinado.</p></article>
+        <article class="concept"><h3>Tarjetero<small>Barajas personales</small></h3><div class="drawing" aria-hidden="true"><svg class="icon large" viewBox="0 0 32 32"><use href="#a-cards"/></svg><svg class="icon small" viewBox="0 0 32 32"><use href="#a-cards"/></svg></div><p class="size-note">Ampliado / 24 px</p><p class="description">Tarjetas dentro de un bolsillo abierto.</p></article>
+      </div>
+      <div class="actions"><div class="action-example"><svg class="icon" viewBox="0 0 32 32" aria-hidden="true"><use href="#a-shelf"/><use href="#add"/></svg><span>Añadir a la estantería</span></div><div class="action-example"><svg class="icon" viewBox="0 0 32 32" aria-hidden="true"><use href="#a-cards"/><use href="#add"/></svg><span>Añadir al tarjetero</span></div></div>
+    </section>
+
+    <section class="family" aria-labelledby="family-b">
+      <div class="family-heading"><h2 id="family-b">B · Contornos suaves</h2><p>Libro abierto, mueble y tarjetas</p></div>
+      <div class="concepts">
+        <article class="concept"><h3>Librería<small>Catálogo</small></h3><div class="drawing" aria-hidden="true"><svg class="icon large" viewBox="0 0 32 32"><use href="#b-library"/></svg><svg class="icon small" viewBox="0 0 32 32"><use href="#b-library"/></svg></div><p class="size-note">Ampliado / 24 px</p><p class="description">Libro abierto; cercano al símbolo de lectura.</p></article>
+        <article class="concept"><h3>Estantería<small>Libros personales</small></h3><div class="drawing" aria-hidden="true"><svg class="icon large" viewBox="0 0 32 32"><use href="#b-shelf"/></svg><svg class="icon small" viewBox="0 0 32 32"><use href="#b-shelf"/></svg></div><p class="size-note">Ampliado / 24 px</p><p class="description">Dos libros dentro de una estantería.</p></article>
+        <article class="concept"><h3>Tarjetero<small>Barajas personales</small></h3><div class="drawing" aria-hidden="true"><svg class="icon large" viewBox="0 0 32 32"><use href="#b-cards"/></svg><svg class="icon small" viewBox="0 0 32 32"><use href="#b-cards"/></svg></div><p class="size-note">Ampliado / 24 px</p><p class="description">Dos tarjetas; continuidad con el icono actual.</p></article>
+      </div>
+      <div class="actions"><div class="action-example"><svg class="icon" viewBox="0 0 32 32" aria-hidden="true"><use href="#b-shelf"/><use href="#add"/></svg><span>Añadir a la estantería</span></div><div class="action-example"><svg class="icon" viewBox="0 0 32 32" aria-hidden="true"><use href="#b-cards"/><use href="#add"/></svg><span>Añadir al tarjetero</span></div></div>
+    </section>
+
+    <section class="family" aria-labelledby="family-c">
+      <div class="family-heading"><h2 id="family-c">C · Formas compactas</h2><p>Cuadrícula, libros apilados y abanico</p></div>
+      <div class="concepts">
+        <article class="concept"><h3>Librería<small>Catálogo</small></h3><div class="drawing" aria-hidden="true"><svg class="icon large" viewBox="0 0 32 32"><use href="#c-library"/></svg><svg class="icon small" viewBox="0 0 32 32"><use href="#c-library"/></svg></div><p class="size-note">Ampliado / 24 px</p><p class="description">Cuadrícula neutra para libros y barajas.</p></article>
+        <article class="concept"><h3>Estantería<small>Libros personales</small></h3><div class="drawing" aria-hidden="true"><svg class="icon large" viewBox="0 0 32 32"><use href="#c-shelf"/></svg><svg class="icon small" viewBox="0 0 32 32"><use href="#c-shelf"/></svg></div><p class="size-note">Ampliado / 24 px</p><p class="description">Dos libros apilados; silueta horizontal.</p></article>
+        <article class="concept"><h3>Tarjetero<small>Barajas personales</small></h3><div class="drawing" aria-hidden="true"><svg class="icon large" viewBox="0 0 32 32"><use href="#c-cards"/></svg><svg class="icon small" viewBox="0 0 32 32"><use href="#c-cards"/></svg></div><p class="size-note">Ampliado / 24 px</p><p class="description">Dos tarjetas en un abanico corto.</p></article>
+      </div>
+      <div class="actions"><div class="action-example"><svg class="icon" viewBox="0 0 32 32" aria-hidden="true"><use href="#c-shelf"/><use href="#add"/></svg><span>Añadir a la estantería</span></div><div class="action-example"><svg class="icon" viewBox="0 0 32 32" aria-hidden="true"><use href="#c-cards"/><use href="#add"/></svg><span>Añadir al tarjetero</span></div></div>
+    </section>
+
+    <p class="recommendation"><strong>Recomendación: A.</strong> Cada destino tiene una silueta propia: tienda, libros verticales y bolsillo. El tarjetero representa una colección y se distingue del recuento actual de tarjetas. La tienda puede sugerir compra; conviene acompañarla siempre de «Librería».</p>
+    <p class="note">En las tres propuestas, «Añadir» conserva exactamente el icono del destino y suma un «+» pequeño en la esquina libre. B mantiene mayor continuidad con los iconos actuales, aunque el libro abierto puede leerse como «Leer» y las dos tarjetas como una baraja individual. C es la más geométrica; su cuadrícula necesita más apoyo del texto.</p>
+    <footer>Propuestas aisladas. Trazo redondeado, un solo color y sin adornos. Las denominaciones de esta plancha siguen la petición; no actualizan el glosario ni la interfaz.</footer>
+  </main>
+</body>
+</html>

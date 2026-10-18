@@ -81,7 +81,6 @@ test("Completion requires all cards, including children; finished reviews remain
     const result = await openCard(db,a,v,card.id,date(`2026-10-${String(day++).padStart(2,"0")}`)); seen.add(card.id); pending.splice(pending.indexOf(card),1);
     assert.equal(result.state.reviews[v].completed,pending.length === 0);
   }
-  assert.equal((await readCatalog(db)).decks.find(d=>d.id === "seven-habits-inside-out").metrics.completedBy,1);
   const result = await openCard(db,a,v,cards[0].id,date("2026-10-20"));
   assert.equal(result.state.reviews[v].completed,true);
   assert.equal(result.state.reviews[v].currentId,cards[0].id);

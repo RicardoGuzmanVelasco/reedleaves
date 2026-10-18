@@ -49,7 +49,7 @@ export async function readCatalog(db, userId) {
         likes:await metric("SELECT count(*) AS n FROM deck_votes WHERE deck_id = ? AND value = 1",row.id),
         dislikes:await metric("SELECT count(*) AS n FROM deck_votes WHERE deck_id = ? AND value = -1",row.id),
         startedBy:await metric(`SELECT count(DISTINCT r.user_id) AS n FROM reviews r JOIN deck_versions v ON v.id=r.version_id WHERE v.deck_id = ?`,row.id),
-        completedBy:await metric(`SELECT count(DISTINCT r.user_id) AS n FROM reviews r JOIN deck_versions v ON v.id=r.version_id WHERE v.deck_id = ? AND r.completed_at IS NOT NULL`,row.id)
+        reviewingBy:await metric(`SELECT count(DISTINCT r.user_id) AS n FROM reviews r JOIN deck_versions v ON v.id=r.version_id WHERE v.deck_id = ? AND r.completed_at IS NULL`,row.id)
       }});
   }
   const versions = [];

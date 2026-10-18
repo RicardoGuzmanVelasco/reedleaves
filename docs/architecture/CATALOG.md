@@ -32,11 +32,11 @@ La importación valida orden consecutivo, referencias, textos, estructura y dere
 
 ## Métricas reales
 
-La API devuelve me gusta, no me gusta, personas que empezaron y personas que terminaron.
+La API devuelve me gusta, no me gusta, personas que empezaron y personas que están repasando.
 Los recuentos de personas son únicos por baraja, incluso si alguien repasa varias versiones.
 Sin actividad, todo vale cero. No hay usuarios, votos ni popularidad inventados.
 
-Más popular cuenta personas que empezaron. Más terminada es una categoría distinta, por personas que terminaron.
+Más popular cuenta personas que empezaron.
 “Preferida por la comunidad” contará me gusta, no me gusta menos no me gusta.
 La cuadrícula muestra primero la recomendación, después las ganadoras reales deduplicadas y finalmente otras propuestas. No otorga etiquetas por cero actividad.
 
@@ -102,7 +102,7 @@ Las métricas SQL se incrementan con actividad real de cuentas: primera carta y 
 
 La idea aleatoria sigue siendo independiente: no altera el repaso ni los monederos.
 Se sortea entre las cartas principales de la baraja elegida para cada libro; cambiar elección no sustituye la idea ya asignada hoy.
-Los filtros repasando y repasado agrupan el progreso de todas las barajas de un libro. Un libro puede pertenecer a ambos grupos si tiene una versión con repaso completo y otra con repaso pendiente. Este aprendizaje es independiente de `status=draft/published/archived`.
+Los filtros de repaso agrupan libros con tarjetas pendientes o ya repasadas. Un libro puede pertenecer a ambos grupos si varias barajas tienen progreso distinto. Este aprendizaje es independiente de `status=draft/published/archived`.
 
 La versión 3 del catálogo todavía expone nuestros borradores editoriales para la prueba interna.
 Las barajas y tarjetas creadas por cuentas se incluyen en el catálogo compartido aunque la versión siga como borrador. Compartir el contenido no concede permisos de edición: solo el creador puede añadir tarjetas. Las versiones publicadas o archivadas conservan las reglas de validación e inmutabilidad.

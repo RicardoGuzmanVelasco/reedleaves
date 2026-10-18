@@ -10,7 +10,7 @@ export function featuredDecks(catalog, bookId) {
   const choices = availableVersions(catalog,bookId), winners = [];
   const recommended = choices.find(c => c.deck.isRecommended);
   if (recommended) { recommended.tags.push("recommended"); winners.push(recommended); }
-  for (const [tag,metric] of [["popular","startedBy"],["preferred","likes"],["mostCompleted","completedBy"]]) {
+  for (const [tag,metric] of [["popular","startedBy"],["preferred","likes"]]) {
     const winner = [...choices].sort((a,b) => b.deck.metrics[metric] - a.deck.metrics[metric] || a.deck.id.localeCompare(b.deck.id))[0];
     // Zero activity is not a community award. Same winner appears only once.
     if (winner?.deck.metrics[metric] > 0) {
@@ -65,8 +65,7 @@ export function treeLinks(card, model) {
 export function bookReviewStates(catalog, reviews) {
   return Object.fromEntries(catalog.books.map(book => {
     const versions = catalog.versions.filter(v => v.bookId === book.id), started = versions.filter(v => reviews[v.id]?.seenIds.length);
-    const done = started.some(v => reviews[v.id].seenIds.length === v.cardCount);
     const ongoing = started.some(v => reviews[v.id].seenIds.length < v.cardCount);
-    return [book.id,{reviewStatus:done ? "reviewed" : ongoing ? "reviewing" : "none",hasReviewed:done,hasReviewing:ongoing}];
+    return [book.id,{hasReviewedCards:started.length>0,hasReviewing:ongoing}];
   }));
 }

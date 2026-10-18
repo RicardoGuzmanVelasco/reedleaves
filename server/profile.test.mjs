@@ -28,7 +28,7 @@ test("Profile distinguishes unique views and review progress; daily assignment a
   const after=await readReaderState(db,a,day(10));assert.deepEqual(after,before);
   const {counts}= (await readProfile(db,a.user_id,a.user_id)).profile;
   assert.equal(counts.cardsReviewed,1);assert.equal(counts.cardsViewed,2);assert.equal(counts.leavesSpent,0);
-  assert.equal(counts.decksInProgress,1);assert.equal(counts.decksCompleted,0);
+  assert.equal(counts.decksInProgress,1);assert.equal("decksCompleted" in counts,false);
   await recordCardView(db,a,{cardId:"habit-3",context:"review"},day(10));
   await assert.rejects(recordCardView(db,a,{cardId:"habit-1",context:"author"},day(10)),{code:"notAllowed"});
   await recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(11));
@@ -42,7 +42,7 @@ test("Profile counts one current pet per book rather than all unlocked stages, i
   for(let n=1;n<=7;n++) await openCard(db,a,v,"habit-"+n,day(9+n));
   const p=(await readProfile(db,a.user_id,a.user_id)).profile;
   assert.equal(p.counts.booksRead,1);assert.equal(p.counts.booksReading,1);
-  assert.equal(p.counts.decksCompleted,1);assert.equal(p.counts.decksInProgress,1);
+  assert.equal("decksCompleted" in p.counts,false);assert.equal(p.counts.decksInProgress,1);
   assert.equal(p.counts.leavesSpent,0);assert.equal(p.counts.cardsReviewed,7);
   assert.deepEqual(p.mascots,{pot:3,seed:0,root:0,seedling:0,sprout:1,sapling:0,stem:0,plant:0,flower:0,fruit:0,infinity:0});
 });
@@ -83,7 +83,7 @@ test("Author stats include quotes as a subset; shared libraries expose content b
   assert.equal(own.profile.counts.cardsViewed,1);assert.equal(own.profile.counts.cardsReviewed,0);
   assert.ok(own.bookshelf.some(entry=>entry.bookId===bookId));
   assert.deepEqual(new Set(foreign.bookshelf.map(entry=>entry.bookId)),new Set([bookId,"atomic-habits"]));
-  assert.deepEqual(foreign.bookshelf.find(entry=>entry.bookId===bookId),{bookId,reading:"reading",pending:true,hasReviewing:false,hasReviewed:false,group:"pending"});
+  assert.deepEqual(foreign.bookshelf.find(entry=>entry.bookId===bookId),{bookId,reading:"reading",pending:true,hasReviewing:false,hasReviewedCards:false,group:"pending"});
   assert.deepEqual(foreign.bookshelf,own.bookshelf);
   assert.doesNotMatch(JSON.stringify(foreign),/Personal text|password|csrf|time_zone|wallet/);
   await assert.rejects(recordCardView(db,b,{cardId,context:"author"}),{code:"notAllowed"});

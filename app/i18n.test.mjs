@@ -42,7 +42,7 @@ test("Spanish interface calls review items tarjetas, never cartas", () => {
 
 test("English practice labels use Practice; ordinary instructions may use review", () => {
   const practiceKeys=["review","reviewed","reviewing","reviewedStatus","notReviewed","reviewStatus","reviewBook","emptyReview",
-    "pendingReviews","completedReviews","reviewedCards","reviewingCount","decksCompleted","decksInProgress","cardsReviewed"];
+    "pendingReviews","reviewedCardsFilter","reviewedCards","reviewingCount","decksInProgress","cardsReviewed"];
   for (const key of practiceKeys) {
     const value=words.en[key];
     assert.ok(value,key);

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reedleaves · Estantería con marcas en los lomos</title>
+  <style>
+    :root{color-scheme:light;--ink:#173d2c;--muted:#51654c;--paper:#fff9ed;--line:#dadcc9;font-family:"Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif;color:var(--ink);background:var(--paper)}
+    *{box-sizing:border-box}body{margin:0}main{max-width:780px;margin:auto;padding:40px 28px}h1,h2,p{margin:0}.status{margin-bottom:10px;font-size:11px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}h1{font-size:28px;letter-spacing:-.035em}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:28px;padding-block:24px;border-block:1px solid var(--line)}h2{font-size:16px}.drawing{display:flex;align-items:center;gap:28px;min-height:174px}.icon{display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}.large{width:128px;height:128px}.small{width:24px;height:24px}.sizes{font-size:11px;color:var(--muted)}.export{display:inline-block;margin-top:22px;color:var(--ink);font-size:13px;text-underline-offset:3px}.export:focus-visible{outline:2px solid currentColor;outline-offset:5px;border-radius:2px}.defs{position:absolute;width:0;height:0;overflow:hidden}@media(max-width:560px){main{padding:28px 20px}.comparison{gap:20px}.drawing{gap:12px;min-height:140px}.large{width:96px;height:96px}}@media(max-width:380px){.comparison{grid-template-columns:1fr}.drawing{min-height:132px}}
+  </style>
+</head>
+<body>
+  <svg class="defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <!-- Copia literal de #a-shelf de la plancha original; no se modifica el contorno. -->
+    <g id="a-shelf">
+      <rect x="5" y="9" width="5" height="15" rx="1.3"/>
+      <path d="M10 12h5v12H10M17.5 10.5l4.4-1.2 4 14.5-4.4 1.2zM3 26h24"/>
+    </g>
+    <g id="shelf-spine-marks">
+      <use href="#a-shelf"/>
+      <path d="M7.5 12v2.5M12.5 14.5V17M20.42 12.51l.67 2.42" stroke-width="1.2"/>
+    </g>
+  </defs></svg>
+  <main>
+    <header><p class="status">Exploración · pendiente de elección</p><h1>Estantería</h1></header>
+    <section class="comparison" aria-label="Comparación del icono original y la propuesta">
+      <article>
+        <h2>Original A</h2>
+        <div class="drawing">
+          <svg class="icon large" viewBox="0 0 32 32" role="img" aria-label="Estantería original"><use href="#a-shelf"/></svg>
+          <svg class="icon small" viewBox="0 0 32 32" aria-hidden="true"><use href="#a-shelf"/></svg>
+        </div>
+        <p class="sizes">Ampliado / 24 px</p>
+      </article>
+      <article>
+        <h2>Con marcas interiores</h2>
+        <div class="drawing">
+          <svg class="icon large" viewBox="0 0 32 32" role="img" aria-label="Estantería con una marca interior en cada lomo"><use href="#shelf-spine-marks"/></svg>
+          <svg class="icon small" viewBox="0 0 32 32" aria-hidden="true"><use href="#shelf-spine-marks"/></svg>
+        </div>
+        <p class="sizes">Ampliado / 24 px</p>
+      </article>
+    </section>
+    <a class="export" href="shelf-spine-marks.svg" download>Descargar SVG</a>
+  </main>
+</body>
+</html>
