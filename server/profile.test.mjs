@@ -17,8 +17,9 @@ async function fixture(t) {
 }
 const day=n=>new Date(`2026-10-${String(n).padStart(2,"0")}T12:00:00Z`);
 async function recordCompletedPractice(db,session,bookId,now,versionId=null) {
-  const cards=await db.prepare(`SELECT c.id FROM cards c JOIN deck_versions v ON v.id=c.version_id
-    WHERE v.book_id=? AND (? IS NULL OR v.id=?) ORDER BY c.id LIMIT 5`).all(bookId,versionId,versionId);
+  const deckId=versionId?.replace(/-v1$/,"")??null;
+  const cards=await db.prepare(`SELECT c.id FROM cards c JOIN decks d ON d.id=c.deck_id
+    WHERE d.book_id=? AND (? IS NULL OR d.id=?) ORDER BY c.id LIMIT 5`).all(bookId,deckId,deckId);
   assert.equal(cards.length,5);
   const id=randomUUID(),cardIds=cards.map(card=>card.id),completedAt=now.toISOString();
   await db.prepare(`INSERT INTO practice_sessions(id,user_id,topic,card_ids,card_index,cost,started_at,completed_at,completed_local_day)

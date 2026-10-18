@@ -8,12 +8,11 @@ No se simula la base mediante JSON. JSON solo transporta la respuesta HTTP.
 - Libro: autor, título original e idioma original propios, títulos localizados e intereses. No contiene un único árbol.
 - Los libros creados por cuentas se incorporan directamente al catálogo común, incluidos los ya guardados. Se conserva `creator_user_id` para atribución y para completar metadatos; no controla visibilidad. Todas las cuentas pueden registrar su lectura y crear su propia baraja sobre ellos. Fichas mínimas sin traducciones, intereses, enlaces o barajas visibles son válidas. Ver [ADR 0001](../adr/0001-libros-en-catalogo-comun.md): la gestión de privacidad de libros queda pospuesta.
 - Enlace de libro: plataforma y URL de su ficha, en `book_links`; único por libro y plataforma. Amazon para comprar, Goodreads para reseñar; no ejecutamos esas acciones desde Reedleaves.
-- Baraja: libro, usuario creador autorizado, idioma principal y recomendación opcional.
-- Versión de baraja: título, descripción del enfoque, nota editorial, número de versión y estado.
-- Carta: versión, padre opcional, orden entre hermanas y texto en el idioma de la baraja; otras traducciones son opcionales.
+- Baraja: libro, usuario creador autorizado, idioma principal, estado editorial y recomendación opcional. Contiene directamente sus textos localizados y tarjetas.
+- Tarjeta: baraja, padre opcional, orden entre hermanas y texto en el idioma de la baraja; otras traducciones son opcionales.
 - Usuario: identidad interna y permiso de creación. Las cuentas de lectores tienen acceso mediante usuario y contraseña; las sesiones y el progreso se guardan en servidor. Ver `ACCOUNTS.md`.
 - Lectura: estado por usuario y libro, independiente de las barajas añadidas al Tarjetero.
-- Barajas añadidas: relación por usuario y versión elegida. No se guarda posición ni avance de lectura por tarjeta.
+- Barajas añadidas: relación por usuario y baraja elegida. No se guarda posición ni avance de lectura por tarjeta.
 - Monedero de hojas: usuario, saldo entero no negativo y última fecha de abono. Los abonos diarios acumulan hasta tres; los ajustes manuales pueden superar ese saldo.
 - Monedero de pétalos: usuario, saldo y última fecha de recarga; nueve al día hasta quince. `practice_sessions` registra cada sesión breve pagada y sus fechas de inicio/finalización. `practice_answers` conserva la última respuesta por tarjeta para ordenar sesiones futuras.
 - Voto: usuario y baraja; +1, -1 o ausencia de fila. Un único voto, modificable y retirable.
@@ -22,19 +21,18 @@ No se simula la base mediante JSON. JSON solo transporta la respuesta HTTP.
 
 Número de cartas y profundidad se calculan a partir del árbol; una baraja plana tiene profundidad 1.
 No guardar contadores editables ni duplicar el árbol en una columna JSON.
-El padre de una carta debe pertenecer a la misma versión.
+El padre de una tarjeta debe pertenecer a la misma baraja.
 No se permiten ciclos, posiciones duplicadas entre hermanos ni recomendaciones múltiples por libro.
 
-El idioma identifica el texto original y se mantiene en la baraja. Se guarda como etiqueta BCP 47 (es, en, pt-BR…). Cada versión y carta requiere texto en ese idioma; las traducciones son opcionales. El lector muestra una traducción si existe y, si no, usa el original.
+El idioma identifica el texto original y se mantiene en la baraja. Se guarda como etiqueta BCP 47 (es, en, pt-BR…). Cada baraja y tarjeta requiere texto en ese idioma; las traducciones son opcionales. El lector muestra una traducción si existe y, si no, usa el original.
 Los metadatos editoriales requeridos de libros e intereses cubren español e inglés; otros idiomas guardados se conservan como datos opcionales. `book_translations.title` guarda el título completo; `short_title`, la versión editorial de portada. No se recorta el título mediante CSS. Estas traducciones no declaran disponibilidad de barajas en ese idioma: las seis actuales siguen siendo monolingües ES/EN. Las columnas SQL de idioma admiten etiquetas nuevas sin volver a cambiar el esquema; la importación exige español e inglés, definidos en `app/core.mjs`.
-El contenido publicado o archivado es inmutable en SQL. Para editarlo se crea otra versión con nuevos IDs de carta.
-Los repasos anteriores siguen apuntando a su versión. Los votos pertenecen a la baraja, no a una versión.
+Una baraja puede corregirse directamente sin cambiar sus IDs ni los de sus tarjetas. El borrado de tarjetas y traducciones sigue protegido. Los repasos y votos apuntan a tarjetas y barajas estables.
 La importación valida orden consecutivo, referencias, textos, estructura y derechos de creación antes de completar la transacción.
 
 ## Métricas reales
 
 La API devuelve me gusta, no me gusta, personas que empezaron y personas que están repasando.
-Los recuentos de personas son únicos por baraja, incluso si alguien repasa varias versiones.
+Los recuentos de personas son únicos por baraja, incluso si alguien completa varias prácticas.
 Sin actividad, todo vale cero. No hay usuarios, votos ni popularidad inventados.
 
 Más popular cuenta personas que empezaron.
@@ -49,8 +47,8 @@ La cuadrícula muestra primero la recomendación, después las ganadoras reales 
 - `server/seed.mjs`: importación transaccional; reiniciar no sobrescribe datos.
 - `server/catalog-repository.mjs`: consulta relacional y métricas.
 - `server/leaf-wallet-repository.mjs`: abono fechado y persistente por usuario; comparte las reglas con `app/wallet.mjs`.
-- `/api/catalog`: contrato versión 3, con libros, barajas, versiones, idiomas y cartas.
-- `app/catalog.mjs`: valida cada árbol por versión, sin mezclar barajas del mismo libro.
+- `/api/catalog`: contrato actual de libros, barajas, idiomas y tarjetas.
+- `app/catalog.mjs`: valida cada árbol dentro de su baraja, sin mezclar barajas del mismo libro.
 
 ```sh
 npm run db:init
@@ -80,7 +78,7 @@ El esquema v8 añadió `books.original_title` y `books.original_language`, oblig
 
 El esquema v9 añadió cuentas, sesiones, límites de acceso, barajas elegidas, posiciones, filtros, intereses e idea diaria por usuario. Añade comprobación SQL del recorrido y finalización con todas las cartas. La base v8 y su original están archivados antes del cambio; ver `ACCOUNTS.md`. No se migra progreso anónimo del navegador.
 
-El esquema actual es SQLite v27 / PostgreSQL v19. Las tarjetas de una baraja se consultan sin guardar avance por tarjeta ni una posición de lectura. `practices`, `practice_cards` y `practice_positions` se eliminaron; el tipo con descuento de los repasos se calcula con la fecha de creación de cuenta o de la última sesión completada, sin guardar el tipo elegido. Las sesiones breves de cinco tarjetas viven en `practice_sessions`; persisten tema, tarjetas, avance, coste y fechas para cobrar una vez y reanudar la sesión pagada. `practice_session_cards` normaliza las cinco tarjetas y conserva su orden; al completar la sesión se fija el día local para contar crecimiento por libro. Cada cuenta recibe nueve pétalos diarios hasta quince. PostgreSQL usa `BIGINT` para monederos; ambos motores limitan la representación a enteros exactos de JavaScript. La migración de guardadas añade `card_saves` con claves foráneas e índice por cuenta/fecha.
+El esquema actual es SQLite v29 / PostgreSQL v21. Ya no hay tablas ni columnas de versión de baraja: tarjetas, textos, selección, biblioteca y prácticas usan IDs estables de baraja o tarjeta. La migración aborta de forma transaccional si encuentra una baraja con más de una versión o sin versión; así no combina árboles editoriales distintos. Las tarjetas de una baraja se consultan sin guardar avance por tarjeta ni una posición de lectura. `practices`, `practice_cards` y `practice_positions` se eliminaron; el tipo con descuento de los repasos se calcula con la fecha de creación de cuenta o de la última sesión completada, sin guardar el tipo elegido. Las sesiones breves de cinco tarjetas viven en `practice_sessions`; persisten tema, tarjetas, avance, coste y fechas para cobrar una vez y reanudar la sesión pagada. `practice_session_cards` normaliza las cinco tarjetas y conserva su orden; al completar la sesión se fija el día local para contar crecimiento por libro. Cada cuenta recibe nueve pétalos diarios hasta quince. PostgreSQL usa `BIGINT` para monederos; ambos motores limitan la representación a enteros exactos de JavaScript. La migración de guardadas añade `card_saves` con claves foráneas e índice por cuenta/fecha.
 
 `app/book-search.mjs` filtra el catálogo recibido de la API por todos los títulos originales, completos y cortos, sin idioma activo como filtro. La consulta es estado temporal de la vista: no se escribe en SQLite ni en localStorage. Para este catálogo pequeño se consulta localmente el resultado SQL ya cargado; no hay una base simulada en JSON. Cuando el volumen requiera paginación, habrá que trasladar esa búsqueda a un endpoint con índices SQL, conservando las mismas reglas de coincidencia.
 
@@ -88,11 +86,11 @@ La API entrega `book.links.amazon` y `book.links.goodreads`, sin codificar libro
 
 ## Límites explícitos
 
-El selector, el repaso por versión, la creación autenticada de libros y barajas, los votos de tarjeta y las guardadas están implementados. Los libros, las barajas de cuentas y sus tarjetas se comparten al guardarlos. La edición de borradores sigue reservada a su creador.
+El selector de barajas, el repaso, la creación autenticada de libros y barajas, los votos de tarjeta y las guardadas están implementados. Los libros, las barajas de cuentas y sus tarjetas se comparten al guardarlos. La edición de barajas sigue reservada a su creador.
 La API de catálogo sigue siendo de lectura. Los endpoints de cuenta, repaso, autoría y acciones escriben con sesión, origen y CSRF. `/api/cards/vote` y `/api/cards/save` aceptan destinos absolutos idempotentes; `/api/cards/:cardId/actions` y `/api/reader/saved/:bookId` leen las acciones y la selección propia. Guardadas no aparece en perfiles ni bibliotecas ajenas.
-El progreso actual guarda cartas por usuario y versión en SQL. Nunca se hereda progreso entre barajas o versiones.
+El progreso actual guarda prácticas y respuestas por usuario y tarjeta en SQL. Las barajas ya no tienen entidades de versión ni avance propio.
 Las claves locales antiguas se conservan sin borrar, pero no se usan como fuente verificada ni se importan en la cuenta nueva.
-Cambiar una versión a archivada no cambia el repaso iniciado: el selector permite retomar la versión con historial.
+Archivar una baraja no elimina sus tarjetas, historial de prácticas ni referencias de usuarios.
 
 Cada usuario recibe una hoja al día cuando su saldo está por debajo de tres. Un nuevo monedero empieza con una. Los días ausentes suman hasta tres; las fechas excedentes no se guardan para después. Un ajuste manual puede dejar 100 hojas y se conserva el saldo. Añadir una baraja de otra persona a Decks cuesta una hoja; las barajas propias aparecen automáticamente. Repasar tarjetas no gasta hojas.
 Cada cuenta nueva recibe diez pétalos. Cada sesión de cinco tarjetas cuesta tres pétalos, o dos si coincide con el tipo rebajado. El descuento se deriva de la fecha de la última sesión completada y cambia al completar una sesión.
@@ -105,8 +103,8 @@ La idea aleatoria sigue siendo independiente: no altera el repaso ni los moneder
 Se sortea entre las cartas principales de la baraja elegida para cada libro; cambiar elección no sustituye la idea ya asignada hoy.
 Los filtros de repaso agrupan libros con tarjetas pendientes o ya repasadas. Un libro puede pertenecer a ambos grupos si varias barajas tienen progreso distinto. Este aprendizaje es independiente de `status=draft/published/archived`.
 
-La versión 3 del catálogo todavía expone nuestros borradores editoriales para la prueba interna.
-Las barajas y tarjetas creadas por cuentas se incluyen en el catálogo compartido aunque la versión siga como borrador. Compartir el contenido no concede permisos de edición: solo el creador puede añadir tarjetas. Las versiones publicadas o archivadas conservan las reglas de validación e inmutabilidad.
+El contrato 3 del catálogo todavía expone nuestros borradores editoriales para la prueba interna.
+Las barajas y tarjetas creadas por cuentas se incluyen en el catálogo compartido aunque la baraja siga como borrador. Compartir el contenido no concede permisos de edición: solo el creador puede modificar sus tarjetas y textos. El estado publicado o archivado no crea copias ni versiones distintas.
 
 Producción usa PostgreSQL gestionado, `DATABASE_URL`, TLS del proveedor, backups, supervisión y HTTPS. SQLite se conserva para desarrollo y pruebas. `node:sqlite` sigue siendo experimental en el Node 24.11 local; el runtime requerido se fija en `.node-version`.
 
@@ -114,4 +112,4 @@ Las tarjetas son borradores editoriales propios. Revisar traducciones, contenido
 
 ## Vocabulario vigente de estado
 
-`deck_versions.status=draft` es Borrador / Draft: el creador puede añadir tarjetas y el catálogo ya comparte su contenido. `published` es Terminada / Finished y cierra los cambios; no describe el progreso de repaso. `editorial_status=draft/reviewed` en libros y versiones representa revisión editorial, no creación ni privacidad. Los registros de pruebas internas anteriores son contexto histórico.
+`decks.status=draft` es Borrador / Draft: el creador puede añadir y corregir tarjetas, y el catálogo ya comparte su contenido. `published` es Terminada / Finished; ya no impide correcciones de contenido. `editorial_status=draft/reviewed` en libros y barajas representa revisión editorial, no creación ni privacidad. Los registros de pruebas internas anteriores son contexto histórico.

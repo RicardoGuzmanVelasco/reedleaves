@@ -63,7 +63,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const full=await create(session,bookId),empty=await create(session,bookId),foreign=await create(other,bookId),differentBook=await create(session,"atomic-habits");
     const note={requestId:randomUUID(),versionId:full.versionId,title:"Idea",body:"Texto conservado",isQuote:false,parentId:null};
     await addCard(db,session,note);
-    const before=await readReaderState(db,session),drafts=await db.prepare("SELECT id,status FROM deck_versions ORDER BY id").all();
+    const before=await readReaderState(db,session),drafts=await db.prepare("SELECT id,status FROM decks ORDER BY id").all();
     const versions=[{versionId:full.versionId,cardCount:1},{versionId:empty.versionId,cardCount:0}];
     for (const [rows,code] of [
       [[versions[0],{...versions[1],cardCount:1}],"noteDecksChanged"],
@@ -72,7 +72,7 @@ for (const dialect of ["sqlite","postgres"]) {
       [[versions[0],versions[0]],"invalidRequest"]
     ]) {
       await assert.rejects(finishNoteDecks(db,session,{bookId,versions:rows}),{code});
-      assert.deepEqual(await db.prepare("SELECT id,status FROM deck_versions ORDER BY id").all(),drafts);
+      assert.deepEqual(await db.prepare("SELECT id,status FROM decks ORDER BY id").all(),drafts);
     }
     const finished=await finishNoteDecks(db,session,{bookId,versions});
     assert.deepEqual(await finishNoteDecks(db,session,{bookId,versions}),finished);
@@ -220,7 +220,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const idea=await dailyIdea(db,other,new Date("2026-10-10T12:00:00Z"));
     assert.ok(prepareCatalog(await readCatalog(db,other.user_id)).cardsById.has(idea.daily.id));
     // Changing editorial status does not transfer ownership or block card views.
-    await db.prepare("UPDATE deck_versions SET status='published' WHERE id=?").run(versionId);
+    await db.prepare("UPDATE decks SET status='published' WHERE id=?").run(versionId.replace(/-v1$/,""));
     assert.equal(prepareCatalog(await readCatalog(db)).cardsById.has(cardId),true);
     await selectDeck(db,other,versionId,new Date("2026-10-10T12:00:00Z"));
     const opened=await openCard(db,other,versionId,cardId,new Date("2026-10-10T12:00:00Z"));

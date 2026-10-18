@@ -29,11 +29,11 @@ export async function readCatalog(db, userId) {
     validateBookLinks(book.links,{required:!book.creatorUserId}); books.push(validateBook(book,LANGUAGES,{requireOriginal:true}));
   }
   const cards = [];
-  const cardRows = await db.prepare(`SELECT c.*,d.deck_id,deck.language AS deck_language FROM cards c
-    JOIN deck_versions d ON d.id=c.version_id JOIN decks deck ON deck.id=d.deck_id
-    JOIN books b ON b.id=c.book_id ORDER BY b.position,d.deck_id,d.version,c.position,c.id`).all();
+  const cardRows = await db.prepare(`SELECT c.*,deck.language AS deck_language FROM cards c
+    JOIN decks deck ON deck.id=c.deck_id JOIN books b ON b.id=c.book_id
+    ORDER BY b.position,c.deck_id,c.position,c.id`).all();
   for (const row of cardRows) {
-    const card = {id:row.id,bookId:row.book_id,deckId:row.deck_id,versionId:row.version_id,deckLanguage:row.deck_language,
+    const card = {id:row.id,bookId:row.book_id,deckId:row.deck_id,versionId:row.deck_id+"-v1",deckLanguage:row.deck_language,
       isQuote:!!row.is_quote,parentId:row.parent_id,order:row.position,title:{},body:{}};
     for (const t of await db.prepare("SELECT language,title,body FROM card_translations WHERE card_id = ?").all(row.id)) {
       card.title[t.language]=t.title; card.body[t.language]=t.body;
@@ -51,13 +51,14 @@ export async function readCatalog(db, userId) {
       }});
   }
   const versions = [];
-  for (const row of await db.prepare("SELECT v.*,d.language FROM deck_versions v JOIN decks d ON d.id=v.deck_id ORDER BY v.deck_id,v.version").all()) {
-    const model = validateCards(cards.filter(c=>c.versionId===row.id),row.book_id,{allowEmpty:["draft","archived"].includes(row.status)});
+  for (const row of await db.prepare("SELECT * FROM decks ORDER BY book_id,id").all()) {
+    const id=row.id+"-v1";
+    const model = validateCards(cards.filter(c=>c.versionId===id),row.book_id,{allowEmpty:["draft","archived"].includes(row.status)});
     let depth=0;
     for (const card of model.cards) { let level=1,parent=card.parentId; while(parent!==null){level++;parent=model.byId.get(parent).parentId;} depth=Math.max(depth,level); }
-    const version = {id:row.id,deckId:row.deck_id,bookId:row.book_id,number:row.version,status:row.status,
+    const version = {id,deckId:row.id,bookId:row.book_id,number:1,status:row.status,
       editorialStatus:row.editorial_status,language:row.language,cardCount:model.cards.length,depth,title:{},description:{},editorialNote:{}};
-    for (const t of await db.prepare("SELECT * FROM deck_version_translations WHERE version_id = ?").all(row.id)) {
+    for (const t of await db.prepare("SELECT * FROM deck_translations WHERE deck_id = ?").all(row.id)) {
       version.title[t.language]=t.title; version.description[t.language]=t.description; version.editorialNote[t.language]=t.editorial_note;
     }
     for (const key of ["title","description","editorialNote"]) if(!version[key][version.language]?.trim()) throw new Error("Missing deck-language metadata");

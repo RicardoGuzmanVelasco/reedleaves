@@ -50,7 +50,8 @@ for(const dialect of ['sqlite','postgres']){
 
   test(`${dialect}: upgrade previous schema keeps votes and unlocks, orders saves by date, and reinitializes safely`,async t=>{
     const db=await historicalDatabase(t,dialect,dialect === "postgres" ? 7 : 15),a=await historicalReader(db);
-    await historicalUnlock(db,a);await setCardVote(db,a,{cardId:'habit-1',value:-1});
+    await historicalUnlock(db,a);
+    await db.prepare("INSERT INTO card_votes(user_id,card_id,value) VALUES (?,?,?)").run(a.user_id,'habit-1',-1);
     const before=await migrationData(db);
     await initializeDatabase(db);await initializeDatabase(db);
     assert.deepEqual(await migrationData(db),before);

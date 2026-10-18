@@ -34,7 +34,7 @@ export function readSeed(directory = new URL("../content/catalog/", import.meta.
 export function validateSeed(seed) {
   for (const key of ["users", "genres", "books", "decks", "cards"]) {
     if (!Array.isArray(seed[key]) || !seed[key].length) throw new Error("Empty " + key);
-    const ids = seed[key].map(row => key === "decks" ? row.version_id : row.id);
+    const ids = seed[key].map(row => row.id);
     if (new Set(ids).size !== ids.length) throw new Error("Duplicate " + key + " IDs");
     if (ids.some(id => !slug(id))) throw new Error("Invalid " + key + " ID");
   }
@@ -63,31 +63,28 @@ export function validateSeed(seed) {
   for (const bookId of books) for (const platform of BOOK_LINK_PLATFORMS) {
     if (!linkKeys.has(JSON.stringify([bookId, platform]))) throw new Error("Missing book link");
   }
-  const versions = new Map(), identities = new Map(), recommended = new Map();
+  const decks = new Map(), recommended = new Map();
   for (const d of seed.decks) {
-    if (!slug(d.id) || !books.has(d.book_id) || !/^\d+$/.test(d.version) || Number(d.version) < 1 ||
+    if (!slug(d.id) || !books.has(d.book_id) ||
         !["draft", "published", "archived"].includes(d.status) || !["draft", "reviewed"].includes(d.editorial_status) ||
         !["0","1"].includes(d.is_recommended) || !locale(d.language) ||
         !users.has(d.creator_user_id)) throw new Error("Invalid deck");
-    const identity = JSON.stringify([d.book_id,d.creator_user_id,d.is_recommended]);
-    if (identities.has(d.id) && identities.get(d.id) !== identity) throw new Error("Conflicting deck identity");
-    identities.set(d.id, identity);
     if (d.is_recommended === "1") {
       if (recommended.has(d.book_id) && recommended.get(d.book_id) !== d.id) throw new Error("Multiple recommendations");
       recommended.set(d.book_id,d.id);
     }
     const metadata = translations(d,["title","description","editorial_note"]);
     if (!metadata.has(d.language)) throw new Error("Deck language needs its own metadata translation");
-    versions.set(d.version_id,d);
+    decks.set(d.id,d);
   }
   for (const c of seed.cards) {
-    if (!versions.has(c.version_id) || versions.get(c.version_id).book_id !== c.book_id ||
+    if (!decks.has(c.deck_id) || decks.get(c.deck_id).book_id !== c.book_id ||
         !/^\d+$/.test(c.position) || Number(c.position) < 1) throw new Error("Invalid card reference");
-    const cardTranslations = translations(c,["title","body"]), deck = versions.get(c.version_id);
+    const cardTranslations = translations(c,["title","body"]), deck = decks.get(c.deck_id);
     if (!cardTranslations.has(deck.language)) throw new Error("Every card needs text in its deck language");
   }
   for (const d of seed.decks) {
-    const model = validateCards(seed.cards.filter(c => c.version_id === d.version_id).map(c => ({
+    const model = validateCards(seed.cards.filter(c => c.deck_id === d.id).map(c => ({
       id:c.id, bookId:c.book_id, parentId:c.parent_id || null, order:Number(c.position),
       title:Object.fromEntries([...translations(c,["title"])].map(([language,value]) => [language,value.title])),
       body:Object.fromEntries([...translations(c,["body"])].map(([language,value]) => [language,value.body]))
@@ -125,36 +122,33 @@ export async function seedCatalog(db, seed = readSeed()) {
     for (const d of seed.decks) {
       const owner = await db.prepare("SELECT * FROM decks WHERE id = ?").get(d.id);
       if (owner && (owner.book_id !== d.book_id || owner.creator_user_id !== d.creator_user_id || owner.language !== d.language)) throw new Error("Deck owner and language are immutable");
-      await db.prepare(`INSERT INTO decks(id,book_id,creator_user_id,language,is_recommended) VALUES (?,?,?,?,?)
-        ON CONFLICT(id) DO UPDATE SET is_recommended = excluded.is_recommended`).run(d.id,d.book_id,d.creator_user_id,d.language,Number(d.is_recommended));
-      const version = await db.prepare("SELECT * FROM deck_versions WHERE id = ?").get(d.version_id);
-      if (version && (version.deck_id !== d.id || version.book_id !== d.book_id || version.version !== Number(d.version))) throw new Error("Version identity is immutable");
-      await db.prepare("INSERT INTO deck_versions(id,deck_id,book_id,version,editorial_status) VALUES (?,?,?,?,?) ON CONFLICT(id) DO NOTHING").run(d.version_id,d.id,d.book_id,Number(d.version),d.editorial_status);
+      await db.prepare(`INSERT INTO decks(id,book_id,creator_user_id,language,is_recommended,status,editorial_status) VALUES (?,?,?,?,?,?,?)
+        ON CONFLICT(id) DO UPDATE SET is_recommended = excluded.is_recommended`).run(d.id,d.book_id,d.creator_user_id,d.language,Number(d.is_recommended),d.status,d.editorial_status);
       for (const [lang,translation] of translations(d,["title","description","editorial_note"])) {
         const values = ["title","description","editorial_note"].map(f => translation[f]);
-        await db.prepare(`INSERT INTO deck_version_translations VALUES (?,?,?,?,?)
-          ON CONFLICT(version_id,language) DO UPDATE SET title = excluded.title, description = excluded.description, editorial_note = excluded.editorial_note`).run(d.version_id,lang,...values);
+        await db.prepare(`INSERT INTO deck_translations VALUES (?,?,?,?,?)
+          ON CONFLICT(deck_id,language) DO UPDATE SET title = excluded.title, description = excluded.description, editorial_note = excluded.editorial_note`).run(d.id,lang,...values);
       }
     }
     for (const d of seed.decks) {
-      const versionId=d.version_id,deckCards=seed.cards.filter(card=>card.version_id===versionId);
-      const existing=await db.prepare("SELECT id,book_id,version_id,parent_id,position FROM cards WHERE version_id=? ORDER BY position,id").all(versionId);
+      const deckId=d.id,deckCards=seed.cards.filter(card=>card.deck_id===deckId);
+      const existing=await db.prepare("SELECT id,book_id,deck_id,parent_id,position FROM cards WHERE deck_id=? ORDER BY position,id").all(deckId);
       const original=new Map(existing.map(row=>[row.id,row]));
       for (const card of deckCards) {
         const old=original.get(card.id);
-        if (old && (old.book_id!==card.book_id || old.version_id!==card.version_id)) throw new Error("Card identity cannot move between books or decks");
+        if (old && (old.book_id!==card.book_id || old.deck_id!==deckId)) throw new Error("Card identity cannot move between books or decks");
       }
       // Free sibling positions before applying parent and order corrections.
       const temporaryBase=Math.max(1_000_000,...existing.map(row=>Number(row.position)+1));
       for (const [index,row] of existing.entries()) await db.prepare("UPDATE cards SET position=? WHERE id=?").run(temporaryBase+index,row.id);
       for (const [index,card] of deckCards.entries()) {
-        await db.prepare(`INSERT INTO cards(id,version_id,book_id,parent_id,position,is_quote) VALUES (?,?,?,?,?,?)
+        await db.prepare(`INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote) VALUES (?,?,?,?,?,?)
           ON CONFLICT(id) DO UPDATE SET parent_id=excluded.parent_id,position=excluded.position,is_quote=excluded.is_quote`)
-          .run(card.id,versionId,card.book_id,card.parent_id || null,temporaryBase+existing.length+index,Number(card.is_quote || 0));
+          .run(card.id,deckId,card.book_id,card.parent_id || null,temporaryBase+existing.length+index,Number(card.is_quote || 0));
         for (const [language,translation] of translations(card,["title","body"])) await db.prepare(`INSERT INTO card_translations VALUES (?, ?, ?, ?)
           ON CONFLICT(card_id, language) DO UPDATE SET title = excluded.title, body = excluded.body`).run(card.id, language, translation.title, translation.body);
       }
-      const all=await db.prepare("SELECT id,parent_id,position FROM cards WHERE version_id=?").all(versionId);
+      const all=await db.prepare("SELECT id,parent_id,position FROM cards WHERE deck_id=?").all(deckId);
       const seeded=new Map(deckCards.map(card=>[card.id,card]));
       const groups=new Map();
       for (const row of all) { const key=row.parent_id || "";groups.set(key,[...(groups.get(key)||[]),row]); }
@@ -169,8 +163,8 @@ export async function seedCatalog(db, seed = readSeed()) {
       }
     }
     for (const d of seed.decks) {
-      const row = await db.prepare("SELECT status,editorial_status FROM deck_versions WHERE id = ?").get(d.version_id);
-      if (row.status !== d.status || row.editorial_status !== d.editorial_status) await db.prepare("UPDATE deck_versions SET status = ?, editorial_status = ? WHERE id = ?").run(d.status,d.editorial_status,d.version_id);
+      const row = await db.prepare("SELECT status,editorial_status FROM decks WHERE id = ?").get(d.id);
+      if (row.status !== d.status || row.editorial_status !== d.editorial_status) await db.prepare("UPDATE decks SET status = ?, editorial_status = ? WHERE id = ?").run(d.status,d.editorial_status,d.id);
     }
     return checkCatalog(db);
   });

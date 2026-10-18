@@ -68,14 +68,31 @@ export async function historicalUnlock(db,session,{versionId="seven-habits-edito
 // compare every other table and column, including note dates and saved cards.
 export async function migrationData(db) {
   const result={};
-  const tables=["users","accounts","sessions","auth_limits","genres","genre_translations","books","book_links",
-    "book_translations","book_genres","decks","deck_versions","deck_version_translations","cards",
-    "card_translations","deck_votes","book_reading","leaf_wallets","studies","deck_selections","daily_ideas"];
-  const columns={books:"id,author,position,editorial_status,original_title,original_language,updated_at",
-    cards:"id,version_id,book_id,parent_id,position"};
-  for (const table of tables) result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${table} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();
   const has = async name => db.dialect === "postgres"
     ? !!await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=?").get(name)
     : !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name);
+  const tables=["users","accounts","sessions","auth_limits","genres","genre_translations","books","book_links",
+    "book_translations","book_genres","decks","card_translations","deck_votes","book_reading","leaf_wallets","daily_ideas"];
+  const columns={books:"id,author,position,editorial_status,original_title,original_language,updated_at",
+    decks:"id,book_id,creator_user_id,language,is_recommended,created_at"};
+  for (const table of tables) result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${table} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();
+  const flattened=await has("deck_versions");
+  result.deckStatus=flattened
+    ? await db.prepare("SELECT deck_id,status,editorial_status FROM deck_versions ORDER BY deck_id").all()
+    : await db.prepare("SELECT id AS deck_id,status,editorial_status FROM decks ORDER BY id").all();
+  result.deckTranslations=flattened
+    ? await db.prepare(`SELECT v.deck_id,t.language,t.title,t.description,t.editorial_note FROM deck_version_translations t
+        JOIN deck_versions v ON v.id=t.version_id ORDER BY v.deck_id,t.language`).all()
+    : await db.prepare("SELECT deck_id,language,title,description,editorial_note FROM deck_translations ORDER BY deck_id,language").all();
+  result.cards=flattened
+    ? await db.prepare(`SELECT c.id,v.deck_id,c.book_id,c.parent_id,c.position FROM cards c
+        JOIN deck_versions v ON v.id=c.version_id ORDER BY c.id`).all()
+    : await db.prepare("SELECT id,deck_id,book_id,parent_id,position FROM cards ORDER BY id").all();
+  result.studies=flattened
+    ? await db.prepare(`SELECT s.user_id,v.deck_id FROM studies s JOIN deck_versions v ON v.id=s.version_id ORDER BY s.user_id,v.deck_id`).all()
+    : await db.prepare("SELECT user_id,deck_id FROM studies ORDER BY user_id,deck_id").all();
+  result.deckSelections=flattened
+    ? await db.prepare(`SELECT s.user_id,s.book_id,v.deck_id FROM deck_selections s JOIN deck_versions v ON v.id=s.version_id ORDER BY s.user_id,s.book_id`).all()
+    : await db.prepare("SELECT user_id,book_id,deck_id FROM deck_selections ORDER BY user_id,book_id").all();
   return result;
 }

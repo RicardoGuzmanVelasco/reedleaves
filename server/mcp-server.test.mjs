@@ -67,19 +67,20 @@ test(`${dialect}: MCP creates finished team decks atomically and retries safely`
   const retried=await client.callTool({name:"create_deck",arguments:createInput});
   assert.equal(retried.isError,undefined);
   assert.deepEqual(JSON.parse(retried.content[0].text),{...result,idempotent:true});
-  assert.equal((await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE version_id=?").get(result.versionId)).total,2);
-  assert.equal((await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE version_id=? AND created_at IS NULL").get(result.versionId)).total,0);
-  const before=await db.prepare("SELECT * FROM cards WHERE version_id=? ORDER BY id").all(result.versionId);
+  const deckId=result.versionId.replace(/-v1$/,"");
+  assert.equal((await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(deckId)).total,2);
+  assert.equal((await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=? AND created_at IS NULL").get(deckId)).total,0);
+  const before=await db.prepare("SELECT * FROM cards WHERE deck_id=? ORDER BY id").all(deckId);
   const finishInput={name:"finish_deck",arguments:{versionId:result.versionId}};
   const finished=await client.callTool(finishInput);
   assert.equal(finished.isError,undefined);
   assert.deepEqual(JSON.parse(finished.content[0].text),{versionId:result.versionId,status:"published"});
-  assert.equal((await db.prepare("SELECT status FROM deck_versions WHERE id=?").get(result.versionId)).status,"published");
+  assert.equal((await db.prepare("SELECT status FROM decks WHERE id=?").get(deckId)).status,"published");
   assert.deepEqual(await client.callTool(finishInput),finished);
   const blockedAppend=await client.callTool({name:"append_cards_to_draft",arguments:{requestId:randomUUID(),versionId:result.versionId,cards:[{title:"Extra",body:"No debe guardarse",isQuote:false}]}});
   assert.equal(blockedAppend.isError,true);
   assert.equal(JSON.parse(blockedAppend.content[0].text).error,"deckReadOnly");
-  assert.deepEqual(await db.prepare("SELECT * FROM cards WHERE version_id=? ORDER BY id").all(result.versionId),before);
+  assert.deepEqual(await db.prepare("SELECT * FROM cards WHERE deck_id=? ORDER BY id").all(deckId),before);
   const changed=await client.callTool({name:"create_deck",arguments:{...createInput,title:"Cambiar una baraja terminada"}});
   assert.equal(changed.isError,true);
   assert.equal(JSON.parse(changed.content[0].text).error,"invalidRequest");
@@ -87,11 +88,11 @@ test(`${dialect}: MCP creates finished team decks atomically and retries safely`
   assert.ok(!JSON.parse(pending.content[0].text).drafts.some(draft=>draft.versionId===result.versionId));
   // A failure while publishing must roll back the entire deck, not leave a draft.
   const failedId=randomUUID(),prepare=db.prepare.bind(db);
-  db.prepare=sql=>sql.startsWith("UPDATE deck_versions SET status='published'") ? {run:async()=>{throw new Error("simulated publication failure");}} : prepare(sql);
+  db.prepare=sql=>sql.startsWith("UPDATE decks SET status='published'") ? {run:async()=>{throw new Error("simulated publication failure");}} : prepare(sql);
   try { await assert.rejects(createTeamDeck(db,{...createInput,requestId:failedId}),/simulated publication failure/); }
   finally { db.prepare=prepare; }
   assert.equal(await db.prepare("SELECT id FROM decks WHERE id=?").get(failedId),undefined);
-  assert.equal((await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE version_id=?").get(failedId+"-v1")).total,0);
+  assert.equal((await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(failedId)).total,0);
 });
 
 test(`${dialect}: MCP lists, extends and finishes existing team drafts`,async t=>{
@@ -129,15 +130,15 @@ test(`${dialect}: MCP finishing rejects foreign, empty and archived decks`,async
   const drafts=JSON.parse(listing.content[0].text).drafts;
   assert.deepEqual(drafts.map(draft=>draft.versionId).sort(),[...initialIds,empty].sort());
   assert.ok(drafts.every(draft=>draft.bookId==="atomic-habits"));
-  const before=await db.prepare("SELECT id,status FROM deck_versions ORDER BY id").all();
+  const before=await db.prepare("SELECT id,status FROM decks ORDER BY id").all();
   for (const [versionId,error] of [[foreign,"deckUnavailable"],[empty,"emptyDeckCannotFinish"],[archived,"deckReadOnly"],["missing-version","deckUnavailable"]]) {
     const result=await client.callTool({name:"finish_deck",arguments:{versionId,creatorUserId:"mcp-other"}});
     assert.equal(result.isError,true);
     assert.equal(JSON.parse(result.content[0].text).error,error);
-    assert.deepEqual(await db.prepare("SELECT id,status FROM deck_versions ORDER BY id").all(),before);
+    assert.deepEqual(await db.prepare("SELECT id,status FROM decks ORDER BY id").all(),before);
   }
   // A published foreign deck must still fail before the idempotent-success path.
-  await db.prepare("UPDATE deck_versions SET status='published' WHERE id=?").run(foreign);
+  await db.prepare("UPDATE decks SET status='published' WHERE id=?").run(foreign.replace(/-v1$/, ""));
   const denied=await client.callTool({name:"finish_deck",arguments:{versionId:foreign}});
   assert.equal(denied.isError,true);
   assert.equal(JSON.parse(denied.content[0].text).error,"deckUnavailable");

@@ -14,26 +14,24 @@ async function payload() {
   const db = openDatabase(":memory:");
   try { initializeDatabase(db); await seedCatalog(db); return await readCatalog(db); } finally { await db.close(); }
 }
-test("Separate trees and versions never merge; the new reader uses explicit version models", async () => {
+test("Separate decks keep their own card trees in the catalog", async () => {
   const db = openDatabase(":memory:");
   try {
     initializeDatabase(db);
-    const seed = readSeed(), alternative = {...seed.decks[0],id:"seven-habits-alternative",version_id:"seven-habits-alternative-v1",is_recommended:"0"};
-    const second = {...seed.decks[0],version_id:"seven-habits-editorial-v2",version:"2",status:"published"};
-    seed.decks.push(alternative,second);
+    const seed = readSeed(), alternative = {...seed.decks[0],id:"seven-habits-alternative",is_recommended:"0"};
+    seed.decks.push(alternative);
     seed.cards.push(
-      {...seed.cards[0],id:"alternative-root",version_id:alternative.version_id},
-      {...seed.cards[1],id:"alternative-child",version_id:alternative.version_id,parent_id:"alternative-root",position:"1"},
-      {...seed.cards[0],id:"new-edition-root",version_id:second.version_id}
+      {...seed.cards[0],id:"alternative-root",deck_id:alternative.id},
+      {...seed.cards[1],id:"alternative-child",deck_id:alternative.id,parent_id:"alternative-root",position:"1"}
     );
     await seedCatalog(db,seed);
     const catalog = prepareCatalog(await readCatalog(db));
+    const alternativeCards=catalog.allCards.filter(card=>card.deckId===alternative.id);
     assert.equal(catalog.decks.filter(d => d.bookId === "seven-habits").length,3);
-    assert.equal(catalog.versionModels.get(alternative.version_id).cards.length,2);
-    assert.equal(catalog.versionModels.get(alternative.version_id).roots.length,1);
-    assert.equal(catalog.selectedVersions.get("seven-habits"),"seven-habits-editorial-v2");
-    assert.equal(catalog.versionModels.get("seven-habits-editorial-v1").roots.length,7);
-    assert.equal(catalog.cards.some(c => c.id === "alternative-root"),false);
+    assert.equal(alternativeCards.length,2);
+    assert.equal(alternativeCards.filter(card=>card.parentId===null).length,1);
+    assert.equal(catalog.allCards.filter(card=>card.deckId===seed.decks[0].id).length,7);
+    assert.equal(catalog.allCards.some(card=>card.id==="alternative-root" && card.deckId!==alternative.id),false);
   } finally { await db.close(); }
 });
 test("Frontend consumes the database API without a hard-coded book or card count", async () => {

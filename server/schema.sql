@@ -83,6 +83,8 @@ CREATE TABLE decks (
   creator_user_id TEXT NOT NULL REFERENCES users(id),
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
   is_recommended INTEGER NOT NULL DEFAULT 0 CHECK(is_recommended IN (0,1)),
+  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived')),
+  editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft','reviewed')),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(id,book_id)
 ) STRICT;
@@ -94,45 +96,35 @@ BEGIN SELECT RAISE(ABORT,'Deck creation permission required'); END;
 CREATE TRIGGER keep_deck_owner BEFORE UPDATE OF creator_user_id,book_id,language ON decks
 WHEN NEW.creator_user_id IS NOT OLD.creator_user_id OR NEW.book_id <> OLD.book_id OR NEW.language <> OLD.language
 BEGIN SELECT RAISE(ABORT,'Deck ownership is immutable'); END;
+CREATE TRIGGER keep_published_deck BEFORE DELETE ON decks WHEN OLD.status <> 'draft'
+BEGIN SELECT RAISE(ABORT,'Published deck cannot be deleted'); END;
 
-CREATE TABLE deck_versions (
-  id TEXT PRIMARY KEY,
-  deck_id TEXT NOT NULL,
-  book_id TEXT NOT NULL,
-  version INTEGER NOT NULL CHECK(version > 0),
-  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived')),
-  editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft','reviewed')),
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(deck_id,version),
-  UNIQUE(id,book_id),
-  FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id)
-) STRICT;
-CREATE TABLE deck_version_translations (
-  version_id TEXT NOT NULL REFERENCES deck_versions(id),
+CREATE TABLE deck_translations (
+  deck_id TEXT NOT NULL REFERENCES decks(id),
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
   title TEXT NOT NULL CHECK(length(trim(title)) > 0),
   description TEXT NOT NULL CHECK(length(trim(description)) > 0),
   editorial_note TEXT NOT NULL CHECK(length(trim(editorial_note)) > 0),
-  PRIMARY KEY(version_id,language)
+  PRIMARY KEY(deck_id,language)
 ) STRICT;
 
 CREATE TABLE cards (
   id TEXT PRIMARY KEY CHECK(length(trim(id)) > 0),
-  version_id TEXT NOT NULL,
+  deck_id TEXT NOT NULL,
   book_id TEXT NOT NULL,
   parent_id TEXT,
   position INTEGER NOT NULL CHECK(position > 0),
   is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),
   created_at TEXT,
-  UNIQUE(id,version_id),
-  FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id),
-  FOREIGN KEY(parent_id,version_id) REFERENCES cards(id,version_id) DEFERRABLE INITIALLY DEFERRED,
+  UNIQUE(id,deck_id),
+  FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id),
+  FOREIGN KEY(parent_id,deck_id) REFERENCES cards(id,deck_id) DEFERRABLE INITIALLY DEFERRED,
   CHECK(parent_id IS NULL OR parent_id <> id)
 ) STRICT;
-CREATE UNIQUE INDEX root_order ON cards(version_id,position) WHERE parent_id IS NULL;
-CREATE UNIQUE INDEX sibling_order ON cards(version_id,parent_id,position) WHERE parent_id IS NOT NULL;
-CREATE INDEX cards_by_version ON cards(version_id,parent_id,position);
-CREATE INDEX cards_by_note_date ON cards(version_id,created_at DESC) WHERE created_at IS NOT NULL;
+CREATE UNIQUE INDEX root_order ON cards(deck_id,position) WHERE parent_id IS NULL;
+CREATE UNIQUE INDEX sibling_order ON cards(deck_id,parent_id,position) WHERE parent_id IS NOT NULL;
+CREATE INDEX cards_by_deck ON cards(deck_id,parent_id,position);
+CREATE INDEX cards_by_note_date ON cards(deck_id,created_at DESC) WHERE created_at IS NOT NULL;
 CREATE TABLE card_translations (
   card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
@@ -159,13 +151,13 @@ CREATE TRIGGER no_card_cycles_update BEFORE UPDATE OF parent_id ON cards WHEN NE
 END;
 
 CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards
-WHEN (SELECT status FROM deck_versions WHERE id = OLD.version_id) <> 'draft'
+WHEN (SELECT status FROM decks WHERE id = OLD.deck_id) <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published content is immutable; cards cannot be deleted'); END;
 CREATE TRIGGER freeze_card_translations_delete BEFORE DELETE ON card_translations
-WHEN (SELECT status FROM deck_versions WHERE id = (SELECT version_id FROM cards WHERE id = OLD.card_id)) <> 'draft'
+WHEN (SELECT status FROM decks WHERE id = (SELECT deck_id FROM cards WHERE id = OLD.card_id)) <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published content is immutable; card translations cannot be deleted'); END;
-CREATE TRIGGER freeze_deck_version_translations_delete BEFORE DELETE ON deck_version_translations
-WHEN (SELECT status FROM deck_versions WHERE id = OLD.version_id) <> 'draft'
+CREATE TRIGGER freeze_deck_translations_delete BEFORE DELETE ON deck_translations
+WHEN (SELECT status FROM decks WHERE id = OLD.deck_id) <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published content is immutable; deck translations cannot be deleted'); END;
 
 CREATE TABLE deck_votes (
@@ -249,15 +241,15 @@ CREATE TABLE card_views (
 
 CREATE TABLE studies (
   user_id TEXT NOT NULL REFERENCES users(id),
-  version_id TEXT NOT NULL REFERENCES deck_versions(id),
-  PRIMARY KEY(user_id,version_id)
+  deck_id TEXT NOT NULL REFERENCES decks(id),
+  PRIMARY KEY(user_id,deck_id)
 ) STRICT;
 CREATE TABLE deck_selections (
   user_id TEXT NOT NULL REFERENCES users(id),
   book_id TEXT NOT NULL REFERENCES books(id),
-  version_id TEXT NOT NULL,
+  deck_id TEXT NOT NULL,
   PRIMARY KEY(user_id,book_id),
-  FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id)
+  FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id)
 ) STRICT;
 CREATE TABLE daily_ideas (
   day TEXT NOT NULL,
@@ -276,4 +268,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 28;
+PRAGMA user_version = 29;

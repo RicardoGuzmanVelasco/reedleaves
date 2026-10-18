@@ -13,6 +13,8 @@ import {accruePetalWallet,MAX_PETALS} from "./petal-wallet-repository.mjs";
 import {practiceDiscountTopic} from "./practice-economy.mjs";
 
 const globalDay = now => now.toISOString().slice(0,10);
+const canonicalDeckId = value => value.endsWith("-v1") ? value.slice(0,-3) : value;
+const deckVersionRef = value => value + "-v1";
 export async function readReaderState(db,session,now=new Date()) {
   return transaction(db,()=>stateInside(db,session,now));
 }
@@ -34,11 +36,11 @@ async function stateInside(db,session,now) {
   const display=await db.prepare("SELECT show_original_titles FROM reader_display_preferences WHERE user_id = ?").get(userId);
   const addedBooks=new Set([
     ...(await db.prepare("SELECT book_id FROM book_reading WHERE user_id = ?").all(userId)).map(r=>r.book_id),
-    ...(await db.prepare("SELECT v.book_id FROM studies s JOIN deck_versions v ON v.id=s.version_id WHERE s.user_id = ?").all(userId)).map(r=>r.book_id)
+    ...(await db.prepare("SELECT d.book_id FROM studies s JOIN decks d ON d.id=s.deck_id WHERE s.user_id = ?").all(userId)).map(r=>r.book_id)
   ]);
   const growth=Object.fromEntries((await db.prepare(`SELECT v.book_id,COUNT(DISTINCT ps.completed_local_day) AS review_days
     FROM practice_sessions ps JOIN practice_session_cards psc ON psc.session_id=ps.id
-    JOIN cards c ON c.id=psc.card_id JOIN deck_versions v ON v.id=c.version_id
+    JOIN cards c ON c.id=psc.card_id JOIN decks v ON v.id=c.deck_id
     WHERE ps.user_id=? AND ps.completed_at IS NOT NULL AND ps.completed_local_day IS NOT NULL GROUP BY v.book_id`).all(userId))
     .map(r=>[r.book_id,{reviewDays:Number(r.review_days)}]));
   for(const bookId of addedBooks) growth[bookId]={reviewDays:growth[bookId]?.reviewDays||0,added:true};
@@ -47,7 +49,7 @@ async function stateInside(db,session,now) {
   const dailyHistory=dailyRows.map(row=>({day:row.day,id:row.id,bookId:row.book_id}));
   const idea=dailyHistory.find(row=>row.day===globalDay(now)) || null;
   const activityRows=await db.prepare(`SELECT d.id AS deck_id,c.book_id,MAX(c.created_at) AS last_note_at
-    FROM decks d JOIN deck_versions v ON v.deck_id=d.id JOIN cards c ON c.version_id=v.id
+    FROM decks d JOIN cards c ON c.deck_id=d.id
     WHERE d.creator_user_id=? AND c.created_at IS NOT NULL GROUP BY d.id,c.book_id`).all(userId);
   const noteActivity={},noteDeckActivity={};
   for (const row of activityRows) {
@@ -58,9 +60,9 @@ async function stateInside(db,session,now) {
   return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,showOriginalTitles:display?.show_original_titles === 1,today,wallet,petals:petalWallet.balance,petalMaximum:MAX_PETALS,practiceDiscountTopic:discountTopic,activePracticeSession,practiceAnswers,growth,cardSaves:await cardSavesInside(db,userId),
     noteActivity,noteDeckActivity,
     statuses:Object.fromEntries((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])),
-    enrolledIds:(await db.prepare("SELECT version_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.version_id),
-    enrolledDeckIds:(await db.prepare("SELECT DISTINCT v.deck_id FROM studies s JOIN deck_versions v ON v.id=s.version_id WHERE s.user_id=?").all(userId)).map(r=>r.deck_id),
-    selections:Object.fromEntries((await db.prepare("SELECT book_id,version_id FROM deck_selections WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.version_id])),
+    enrolledIds:(await db.prepare("SELECT deck_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>deckVersionRef(r.deck_id)),
+    enrolledDeckIds:(await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(r=>r.deck_id),
+    selections:Object.fromEntries((await db.prepare("SELECT book_id,deck_id FROM deck_selections WHERE user_id = ?").all(userId)).map(r=>[r.book_id,deckVersionRef(r.deck_id)])),
     daily:idea,dailyHistory};
 }
 export async function savePracticeAnswer(db,session,input,now=new Date()) {
@@ -74,21 +76,21 @@ export async function savePracticeAnswer(db,session,input,now=new Date()) {
 }
 async function knownVersion(db,versionId,userId) {
   if(typeof versionId!=="string") throw new ApiError(400,"invalidRequest");
-  const version=await db.prepare("SELECT * FROM deck_versions WHERE id = ?").get(versionId);
-  const enrolled=await db.prepare("SELECT 1 FROM studies WHERE user_id = ? AND version_id = ?").get(userId,versionId);
-  if(!version||(version.status==="archived"&&!enrolled)) throw new ApiError(404,"deckUnavailable");
-  return version;
+  const canonicalId=canonicalDeckId(versionId),deck=await db.prepare("SELECT * FROM decks WHERE id = ?").get(canonicalId);
+  const enrolled=await db.prepare("SELECT 1 FROM studies WHERE user_id = ? AND deck_id = ?").get(userId,canonicalId);
+  if(!deck||(deck.status==="archived"&&!enrolled)) throw new ApiError(404,"deckUnavailable");
+  return {...deck,id:deckVersionRef(deck.id),deck_id:deck.id,canonicalId:deck.id};
 }
 async function enrol(db,userId,version) {
-  await db.prepare("INSERT INTO studies(user_id,version_id) VALUES (?,?) ON CONFLICT DO NOTHING").run(userId,version.id);
-  await db.prepare("INSERT INTO deck_selections VALUES (?,?,?) ON CONFLICT(user_id,book_id) DO UPDATE SET version_id=excluded.version_id")
-    .run(userId,version.book_id,version.id);
+  await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?) ON CONFLICT DO NOTHING").run(userId,version.canonicalId);
+  await db.prepare("INSERT INTO deck_selections VALUES (?,?,?) ON CONFLICT(user_id,book_id) DO UPDATE SET deck_id=excluded.deck_id")
+    .run(userId,version.book_id,version.canonicalId);
 }
 async function deckIsOwned(db,userId,version) {
   return !!await db.prepare("SELECT 1 FROM decks WHERE id=? AND creator_user_id=?").get(version.deck_id,userId);
 }
 async function requireDeckInCollection(db,userId,version) {
-  const added=await db.prepare("SELECT 1 FROM studies s JOIN deck_versions v ON v.id=s.version_id WHERE s.user_id=? AND v.deck_id=?").get(userId,version.deck_id);
+  const added=await db.prepare("SELECT 1 FROM studies WHERE user_id=? AND deck_id=?").get(userId,version.deck_id);
   const owned=await deckIsOwned(db,userId,version);
   if(!added&&!owned) throw new ApiError(409,"deckNotInCollection");
   if(!added) await enrol(db,userId,version);
@@ -97,7 +99,7 @@ export async function addDeckToCollection(db,session,versionId,now=new Date()) {
   return transaction(db,async()=>{
     const userId=session.user_id,version=await knownVersion(db,versionId,userId);
     if(isPostgres(db)) await db.prepare("SELECT user_id FROM accounts WHERE user_id=? FOR UPDATE").get(userId);
-    const existing=await db.prepare("SELECT 1 FROM studies s JOIN deck_versions v ON v.id=s.version_id WHERE s.user_id=? AND v.deck_id=?").get(userId,version.deck_id);
+    const existing=await db.prepare("SELECT 1 FROM studies WHERE user_id=? AND deck_id=?").get(userId,version.deck_id);
     if(existing) {
       await enrol(db,userId,version);
       return {state:await stateInside(db,session,now)};
@@ -123,7 +125,7 @@ export async function selectDeck(db,session,versionId,now=new Date(),{requireCol
 }
 export async function openCard(db,session,versionId,cardId,now=new Date(),{requireCollection=false}={}) {
   return transaction(db,async()=>{
-    const userId=session.user_id,version=await knownVersion(db,versionId,userId),catalog=prepareCatalog(await readCatalog(db,session.user_id)),model=catalog.versionModels.get(versionId);
+    const userId=session.user_id,version=await knownVersion(db,versionId,userId),catalog=prepareCatalog(await readCatalog(db,session.user_id)),model=catalog.versionModels.get(version.id);
     if(typeof cardId!=="string"||!model.byId.has(cardId)) throw new ApiError(404,"cardUnavailable");
     if(requireCollection) await requireDeckInCollection(db,userId,version);
     const state=await stateInside(db,session,now);

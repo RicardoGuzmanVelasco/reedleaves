@@ -37,7 +37,7 @@ for (const dialect of ["sqlite","postgres"]) {
     await db.prepare("INSERT INTO card_votes(user_id,card_id,value) VALUES (?,?,1)").run(session.user_id,"habit-1");
     await db.prepare("INSERT INTO card_saves(user_id,card_id,saved_at) VALUES (?,?,?)").run(session.user_id,"habit-1","2026-10-17T12:00:00Z");
     await db.prepare("INSERT INTO reader_display_preferences VALUES (?,1)").run(session.user_id);
-    await db.exec("UPDATE deck_versions SET status='published' WHERE id='seven-habits-editorial-v1';");
+    await db.exec("UPDATE decks SET status='published' WHERE id='seven-habits-editorial';");
     const before=await retainedData(db,dialect);
     await initializeDatabase(db);await initializeDatabase(db);
     assert.deepEqual(await retainedData(db,dialect),before);
@@ -60,7 +60,7 @@ for (const dialect of ["sqlite","postgres"]) {
     await completeBook(db,session,{bookId:book.bookId,metadata:bookMetadata});
     const added=await createBook(db,session,{requestId:randomUUID(),author:"Daniel Kahneman",metadata:bookMetadata});
     assert.ok(added.bookId);
-    const seed=readSeed();seed.decks.find(value=>value.version_id === "seven-habits-editorial-v1").status="published";
+    const seed=readSeed();seed.decks.find(value=>value.id === "seven-habits-editorial").status="published";
     await seedCatalog(db,seed);await seedCatalog(db,seed);
     assert.equal((await checkCatalog(db)).cards,43);
     const version=dialect === "sqlite" ? db.prepare("PRAGMA user_version").get().user_version
@@ -73,13 +73,14 @@ for (const dialect of ["sqlite","postgres"]) {
   });
 }
 
-for (const [dialect,version] of [["sqlite",27],["postgres",19]]) {
+for (const [dialect,version] of [["sqlite",28],["postgres",20]]) {
   test(`${dialect}: latest published deck correction migration preserves IDs and user references`,async t=>{
     const db=await historicalDatabase(t,dialect,version);
     await db.prepare("UPDATE deck_versions SET status='published' WHERE id='seven-habits-editorial-v1'").run();
-    const beforeCards=await db.prepare("SELECT id,version_id,book_id,parent_id,position FROM cards ORDER BY id").all();
+    const beforeCards=await db.prepare("SELECT id,book_id,parent_id,position FROM cards ORDER BY id").all();
     await initializeDatabase(db);
-    assert.deepEqual(await db.prepare("SELECT id,version_id,book_id,parent_id,position FROM cards ORDER BY id").all(),beforeCards);
+    assert.deepEqual(await db.prepare("SELECT id,book_id,parent_id,position FROM cards ORDER BY id").all(),beforeCards);
+    assert.equal((await db.prepare("SELECT deck_id FROM cards WHERE id='habit-1'").get()).deck_id,"seven-habits-editorial");
     const changed=await db.prepare("UPDATE card_translations SET body='Corrected on the same card' WHERE card_id='habit-1' AND language='es'").run();
     assert.equal(changed.changes,1);
     assert.equal((await db.prepare("SELECT body FROM card_translations WHERE card_id='habit-1' AND language='es'").get()).body,"Corrected on the same card");

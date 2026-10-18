@@ -13,6 +13,8 @@ function requestId(value) {
   if (typeof value !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) throw new ApiError(400,"invalidRequest");
   return value;
 }
+const canonicalDeckId = value => value.endsWith("-v1") ? value.slice(0,-3) : value;
+const deckVersionRef = value => value + "-v1";
 export async function ownedBookInformation(db,session,bookId,{lock=false}={}) {
   if (typeof bookId !== "string" || !bookId.trim() || bookId.length > 240) throw new ApiError(400,"invalidRequest");
   const book=await db.prepare(`SELECT * FROM books WHERE id=? AND creator_user_id=?${lock && isPostgres(db) ? " FOR UPDATE" : ""}`).get(bookId,session.user_id);
@@ -97,15 +99,14 @@ async function writeDeck(db,session,input) {
   const previous=await db.prepare("SELECT * FROM decks WHERE id=?").get(id);
   if (previous) {
     if (previous.creator_user_id !== session.user_id || previous.book_id !== input.bookId || previous.language !== language) throw new ApiError(409,"invalidRequest");
-    const saved = await db.prepare("SELECT title,description FROM deck_version_translations WHERE version_id=? AND language=?").get(id+"-v1",language);
+    const saved = await db.prepare("SELECT title,description FROM deck_translations WHERE deck_id=? AND language=?").get(id,language);
     if (saved.title !== title || saved.description !== (description || title)) throw new ApiError(409,"invalidRequest");
-    return {versionId:id+"-v1"};
+    return {versionId:deckVersionRef(id)};
   }
-  await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language) VALUES (?,?,?,?)").run(id,input.bookId,session.user_id,language);
-  await db.prepare("INSERT INTO deck_versions(id,deck_id,book_id,version) VALUES (?,?,?,1)").run(id+"-v1",id,input.bookId);
-  await db.prepare("INSERT INTO deck_version_translations(version_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id+"-v1",language,title,description || title,title);
-  await db.prepare("INSERT INTO studies(user_id,version_id) VALUES (?,?)").run(session.user_id,id+"-v1");
-  return {versionId:id+"-v1"};
+  await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language,status) VALUES (?,?,?,?,'draft')").run(id,input.bookId,session.user_id,language);
+  await db.prepare("INSERT INTO deck_translations(deck_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,title,description || title,title);
+  await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,id);
+  return {versionId:deckVersionRef(id)};
 }
 export async function addCard(db,session,input) {
   return transaction(db,()=>writeCard(db,session,input));
@@ -115,20 +116,21 @@ async function writeCard(db,session,input) {
   if (typeof input.isQuote !== "boolean" || typeof input.versionId !== "string" || input.parentId !== null && typeof input.parentId !== "string") throw new ApiError(400,"invalidRequest");
   const title=input.isQuote ? quoteExcerpt(body) : text(input.title,160);
   // Serializes sibling allocation against other author sessions in PostgreSQL.
-  const version=await db.prepare(`SELECT v.*,d.creator_user_id,d.language FROM deck_versions v JOIN decks d ON d.id=v.deck_id WHERE v.id=?${isPostgres(db) ? " FOR UPDATE OF v" : ""}`).get(input.versionId);
+  const deckId=canonicalDeckId(input.versionId);
+  const version=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db) ? " FOR UPDATE OF d" : ""}`).get(deckId);
   if (!version || version.creator_user_id !== session.user_id) throw new ApiError(404,"deckUnavailable");
   if (version.status !== "draft") throw new ApiError(409,"deckReadOnly");
   const previous=await db.prepare("SELECT * FROM cards WHERE id=?").get(id);
   if (previous) {
     const saved = await db.prepare("SELECT title,body FROM card_translations WHERE card_id=? AND language=?").get(id,version.language);
-    if (previous.version_id !== version.id || previous.parent_id !== input.parentId || !!previous.is_quote !== input.isQuote || (!input.isQuote && saved?.title !== title) || saved?.body !== body) throw new ApiError(409,"invalidRequest");
-    return {versionId:version.id,cardId:id};
+    if (previous.deck_id !== version.id || previous.parent_id !== input.parentId || !!previous.is_quote !== input.isQuote || (!input.isQuote && saved?.title !== title) || saved?.body !== body) throw new ApiError(409,"invalidRequest");
+    return {versionId:deckVersionRef(version.id),cardId:id};
   }
-  if (input.parentId !== null && !await db.prepare("SELECT 1 FROM cards WHERE id=? AND version_id=?").get(input.parentId,version.id)) throw new ApiError(400,"invalidParent");
-  const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM cards WHERE version_id=? AND (parent_id=? OR (parent_id IS NULL AND CAST(? AS TEXT) IS NULL))").get(version.id,input.parentId,input.parentId);
-  await db.prepare("INSERT INTO cards(id,version_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)").run(id,version.id,version.book_id,input.parentId,position,input.isQuote ? 1 : 0,new Date().toISOString());
+  if (input.parentId !== null && !await db.prepare("SELECT 1 FROM cards WHERE id=? AND deck_id=?").get(input.parentId,version.id)) throw new ApiError(400,"invalidParent");
+  const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM cards WHERE deck_id=? AND (parent_id=? OR (parent_id IS NULL AND CAST(? AS TEXT) IS NULL))").get(version.id,input.parentId,input.parentId);
+  await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)").run(id,version.id,version.book_id,input.parentId,position,input.isQuote ? 1 : 0,new Date().toISOString());
   await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)").run(id,version.language,title,body);
-  return {versionId:version.id,cardId:id};
+  return {versionId:deckVersionRef(version.id),cardId:id};
 }
 
 export async function takeFirstNote(db,session,input) {
@@ -137,12 +139,12 @@ export async function takeFirstNote(db,session,input) {
   const title=input.isQuote ? quoteExcerpt(body) : text(input.title,160);
   return transaction(db,async()=>{
     const previous=await db.prepare(`SELECT c.*,d.creator_user_id,d.language,t.title,t.body FROM cards c
-      JOIN deck_versions v ON v.id=c.version_id JOIN decks d ON d.id=v.deck_id
+      JOIN decks d ON d.id=c.deck_id
       JOIN card_translations t ON t.card_id=c.id AND t.language=d.language WHERE c.id=?`).get(id);
     if (previous) {
       if (previous.creator_user_id !== session.user_id || previous.book_id !== input.bookId || previous.language !== language ||
         !!previous.is_quote !== input.isQuote || previous.parent_id !== null || previous.title !== title || previous.body !== body) throw new ApiError(409,"invalidRequest");
-      return {versionId:previous.version_id,cardId:id};
+      return {versionId:deckVersionRef(previous.deck_id),cardId:id};
     }
     const deck=await writeDeck(db,session,{requestId:id,bookId:input.bookId,title:defaultNoteDeckTitle(language),description:"",language});
     return writeCard(db,session,{requestId:id,versionId:deck.versionId,title,body,isQuote:input.isQuote,parentId:null});
@@ -154,14 +156,14 @@ export async function finishDeck(db,session,input) {
   if (typeof input.versionId !== "string" || !input.versionId || input.versionId.length > 256) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     // Shares addCard's version lock: adding a note and finishing cannot race.
-    const version=await db.prepare(`SELECT v.*,d.creator_user_id FROM deck_versions v JOIN decks d ON d.id=v.deck_id WHERE v.id=?${isPostgres(db) ? " FOR UPDATE OF v" : ""}`).get(input.versionId);
+    const version=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db) ? " FOR UPDATE OF d" : ""}`).get(canonicalDeckId(input.versionId));
     if (!version || version.creator_user_id !== session.user_id) throw new ApiError(404,"deckUnavailable");
-    if (version.status === "published") return {versionId:version.id,status:"published"};
+    if (version.status === "published") return {versionId:deckVersionRef(version.id),status:"published"};
     if (version.status !== "draft") throw new ApiError(409,"deckReadOnly");
-    const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE version_id=?").get(version.id);
+    const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(version.id);
     if (!total) throw new ApiError(409,"emptyDeckCannotFinish");
-    await db.prepare("UPDATE deck_versions SET status='published' WHERE id=? AND status='draft'").run(version.id);
-    return {versionId:version.id,status:"published"};
+    await db.prepare("UPDATE decks SET status='published' WHERE id=? AND status='draft'").run(version.id);
+    return {versionId:deckVersionRef(version.id),status:"published"};
   });
 }
 
@@ -174,13 +176,13 @@ export async function finishTeamDeck(db,input) {
 
 export async function readTeamDeckDrafts(db,{bookId}={}) {
   if (bookId!==undefined && (typeof bookId!=="string" || !bookId.trim() || bookId.length>240)) throw new ApiError(400,"invalidRequest");
-  const rows=await db.prepare(`SELECT d.id AS deck_id,d.book_id,d.language,b.original_title AS book_title,v.id AS version_id,t.title,
-    (SELECT COUNT(*) FROM cards c WHERE c.version_id=v.id) AS card_count
-    FROM decks d JOIN deck_versions v ON v.deck_id=d.id JOIN books b ON b.id=d.book_id
-    JOIN deck_version_translations t ON t.version_id=v.id AND t.language=d.language
-    WHERE d.creator_user_id='reed-team' AND v.status='draft'${bookId===undefined ? "" : " AND d.book_id=?"}
-    ORDER BY b.position,d.id,v.version`).all(...(bookId===undefined ? [] : [bookId]));
-  return {drafts:rows.map(row=>({deckId:row.deck_id,versionId:row.version_id,bookId:row.book_id,bookTitle:row.book_title,
+  const rows=await db.prepare(`SELECT d.id AS deck_id,d.book_id,d.language,b.original_title AS book_title,t.title,
+    (SELECT COUNT(*) FROM cards c WHERE c.deck_id=d.id) AS card_count
+    FROM decks d JOIN books b ON b.id=d.book_id
+    JOIN deck_translations t ON t.deck_id=d.id AND t.language=d.language
+    WHERE d.creator_user_id='reed-team' AND d.status='draft'${bookId===undefined ? "" : " AND d.book_id=?"}
+    ORDER BY b.position,d.id`).all(...(bookId===undefined ? [] : [bookId]));
+  return {drafts:rows.map(row=>({deckId:row.deck_id,versionId:deckVersionRef(row.deck_id),bookId:row.book_id,bookTitle:row.book_title,
     title:row.title,language:row.language,cardCount:row.card_count}))};
 }
 
@@ -194,14 +196,14 @@ export async function finishNoteDecks(db,session,input) {
     const changes=[];
     // Stable lock order also serializes against addCard and individual finishing.
     for (const entry of [...versions].sort((a,b)=>a.versionId.localeCompare(b.versionId))) {
-      const version=await db.prepare(`SELECT v.*,d.creator_user_id FROM deck_versions v JOIN decks d ON d.id=v.deck_id WHERE v.id=?${isPostgres(db) ? " FOR UPDATE OF v" : ""}`).get(entry.versionId);
+      const version=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db) ? " FOR UPDATE OF d" : ""}`).get(canonicalDeckId(entry.versionId));
       if (!version || version.creator_user_id !== session.user_id || version.book_id !== bookId) throw new ApiError(404,"deckUnavailable");
-      const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE version_id=?").get(version.id);
+      const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(version.id);
       const status=entry.cardCount ? "published" : "archived";
       if (total !== entry.cardCount || !["draft",status].includes(version.status)) throw new ApiError(409,"noteDecksChanged");
-      changes.push({versionId:version.id,status});
+      changes.push({versionId:deckVersionRef(version.id),status});
     }
-    for (const change of changes) await db.prepare("UPDATE deck_versions SET status=? WHERE id=? AND status='draft'").run(change.status,change.versionId);
+    for (const change of changes) await db.prepare("UPDATE decks SET status=? WHERE id=? AND status='draft'").run(change.status,canonicalDeckId(change.versionId));
     return {bookId,versions:changes};
   });
 }
@@ -237,29 +239,28 @@ export async function createTeamDeck(db,input) {
     const previous=await db.prepare("SELECT * FROM decks WHERE id=?").get(id);
     if (previous) {
       if (previous.creator_user_id!=="reed-team" || previous.book_id!==input.bookId || previous.language!==language) throw new ApiError(409,"invalidRequest");
-      const version=await db.prepare(`SELECT * FROM deck_versions WHERE id=?${isPostgres(db) ? " FOR UPDATE" : ""}`).get(id+"-v1");
-      const metadata=await db.prepare("SELECT title,description,editorial_note FROM deck_version_translations WHERE version_id=? AND language=?").get(id+"-v1",language);
+      const version=await db.prepare(`SELECT * FROM decks WHERE id=?${isPostgres(db) ? " FOR UPDATE" : ""}`).get(id);
+      const metadata=await db.prepare("SELECT title,description,editorial_note FROM deck_translations WHERE deck_id=? AND language=?").get(id,language);
       if (!version || !["draft","published"].includes(version.status) || !metadata || metadata.title!==title || metadata.description!==(description||title) || metadata.editorial_note!==editorialNote) throw new ApiError(409,"invalidRequest");
-      const rows=await db.prepare(`SELECT c.id,c.parent_id,c.position,c.is_quote,t.title,t.body FROM cards c JOIN card_translations t ON t.card_id=c.id AND t.language=? WHERE c.version_id=? ORDER BY c.position,c.id`).all(language,id+"-v1");
+      const rows=await db.prepare(`SELECT c.id,c.parent_id,c.position,c.is_quote,t.title,t.body FROM cards c JOIN card_translations t ON t.card_id=c.id AND t.language=? WHERE c.deck_id=? ORDER BY c.position,c.id`).all(language,id);
       const actual=rows.map(row=>({id:row.id,parentId:row.parent_id,order:row.position,isQuote:!!row.is_quote,title:row.title,body:row.body})).sort((a,b)=>a.id.localeCompare(b.id));
       const expected=normalizedCards.map(card=>({id:card.id,parentId:card.parentId,order:card.order,isQuote:card.isQuote,title:card.title[language],body:card.body[language]})).sort((a,b)=>a.id.localeCompare(b.id));
       if (!isDeepStrictEqual(actual,expected)) throw new ApiError(409,"invalidRequest");
-      if (version.status==="draft") await db.prepare("UPDATE deck_versions SET status='published' WHERE id=? AND status='draft'").run(version.id);
-      return {deckId:id,versionId:id+"-v1",status:"published",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:true};
+      if (version.status==="draft") await db.prepare("UPDATE decks SET status='published' WHERE id=? AND status='draft'").run(version.id);
+    return {deckId:id,versionId:deckVersionRef(id),status:"published",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:true};
     }
-    await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language) VALUES (?,?, 'reed-team',?)").run(id,input.bookId,language);
-    await db.prepare("INSERT INTO deck_versions(id,deck_id,book_id,version) VALUES (?,?,?,1)").run(id+"-v1",id,input.bookId);
-    await db.prepare("INSERT INTO deck_version_translations(version_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id+"-v1",language,title,description||title,editorialNote);
-    await db.prepare("INSERT INTO studies(user_id,version_id) VALUES ('reed-team',?)").run(id+"-v1");
+    await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language,status) VALUES (?,?, 'reed-team',?,'draft')").run(id,input.bookId,language);
+    await db.prepare("INSERT INTO deck_translations(deck_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,title,description||title,editorialNote);
+    await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES ('reed-team',?)").run(id);
     const createdAt=new Date().toISOString();
     for (const card of normalizedCards) {
-      await db.prepare("INSERT INTO cards(id,version_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)")
-        .run(card.id,id+"-v1",input.bookId,card.parentId,card.order,card.isQuote?1:0,createdAt);
+      await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)")
+        .run(card.id,id,input.bookId,card.parentId,card.order,card.isQuote?1:0,createdAt);
       await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)")
         .run(card.id,language,card.title[language],card.body[language]);
     }
-    await db.prepare("UPDATE deck_versions SET status='published' WHERE id=? AND status='draft'").run(id+"-v1");
-    return {deckId:id,versionId:id+"-v1",status:"published",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:false};
+    await db.prepare("UPDATE decks SET status='published' WHERE id=? AND status='draft'").run(id);
+    return {deckId:id,versionId:deckVersionRef(id),status:"published",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:false};
   });
 }
 
@@ -269,14 +270,15 @@ export async function appendTeamDeckCards(db,input) {
   const team=await db.prepare("SELECT id,can_create_decks FROM users WHERE id='reed-team'").get();
   if (!team||!team.can_create_decks) throw new ApiError(500,"teamAuthorUnavailable");
   return transaction(db,async()=>{
-    const version=await db.prepare(`SELECT v.*,d.creator_user_id,d.language FROM deck_versions v JOIN decks d ON d.id=v.deck_id WHERE v.id=?${isPostgres(db)?" FOR UPDATE OF v":""}`).get(versionId);
+    const deckId=canonicalDeckId(versionId);
+    const version=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db)?" FOR UPDATE OF d":""}`).get(deckId);
     if (!version||version.creator_user_id!=="reed-team") throw new ApiError(404,"deckUnavailable");
     if (version.status!=="draft") throw new ApiError(409,"deckReadOnly");
-    const existingIds=new Set((await db.prepare("SELECT id FROM cards WHERE version_id=?").all(versionId)).map(row=>row.id));
+    const existingIds=new Set((await db.prepare("SELECT id FROM cards WHERE deck_id=?").all(deckId)).map(row=>row.id));
     const normalized=[];
     const siblingPositions=new Map();
     // Exclude this operation's deterministic IDs so a retry computes the same positions.
-    for (const card of await db.prepare("SELECT parent_id,MAX(position) AS position FROM cards WHERE version_id=? AND id NOT LIKE ? GROUP BY parent_id").all(versionId,request+"-c%")) siblingPositions.set(card.parent_id||"root",card.position);
+    for (const card of await db.prepare("SELECT parent_id,MAX(position) AS position FROM cards WHERE deck_id=? AND id NOT LIKE ? GROUP BY parent_id").all(deckId,request+"-c%")) siblingPositions.set(card.parent_id||"root",card.position);
     for (let index=0;index<cards.length;index++) {
       const item=cards[index];
       if (!item||typeof item!=="object"||Array.isArray(item)||typeof item.isQuote!=="boolean") throw new ApiError(400,"invalidRequest");
@@ -292,9 +294,9 @@ export async function appendTeamDeckCards(db,input) {
       siblingPositions.set(key,order);
       normalized.push({id,parentId,order,isQuote:item.isQuote,title,body});
     }
-    const foundElsewhere=await db.prepare("SELECT id,version_id FROM cards WHERE id LIKE ?").all(request+"-c%");
-    if (foundElsewhere.some(row=>row.version_id!==versionId)) throw new ApiError(409,"invalidRequest");
-    const found=await db.prepare("SELECT c.id,c.parent_id,c.position,c.is_quote,t.title,t.body FROM cards c JOIN card_translations t ON t.card_id=c.id AND t.language=? WHERE c.version_id=? AND c.id LIKE ?").all(version.language,versionId,request+"-c%");
+    const foundElsewhere=await db.prepare("SELECT id,deck_id FROM cards WHERE id LIKE ?").all(request+"-c%");
+    if (foundElsewhere.some(row=>row.deck_id!==deckId)) throw new ApiError(409,"invalidRequest");
+    const found=await db.prepare("SELECT c.id,c.parent_id,c.position,c.is_quote,t.title,t.body FROM cards c JOIN card_translations t ON t.card_id=c.id AND t.language=? WHERE c.deck_id=? AND c.id LIKE ?").all(version.language,deckId,request+"-c%");
     if (found.length) {
       const actual=found.map(row=>({id:row.id,parentId:row.parent_id,order:row.position,isQuote:!!row.is_quote,title:row.title,body:row.body})).sort((a,b)=>a.id.localeCompare(b.id));
       const expected=normalized.map(card=>({...card})).sort((a,b)=>a.id.localeCompare(b.id));
@@ -303,8 +305,8 @@ export async function appendTeamDeckCards(db,input) {
     }
     const createdAt=new Date().toISOString();
     for (const card of normalized) {
-      await db.prepare("INSERT INTO cards(id,version_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)")
-        .run(card.id,versionId,version.book_id,card.parentId,card.order,card.isQuote?1:0,createdAt);
+      await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)")
+        .run(card.id,deckId,version.book_id,card.parentId,card.order,card.isQuote?1:0,createdAt);
       await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)")
         .run(card.id,version.language,card.title,card.body);
     }
