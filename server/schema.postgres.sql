@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 19));
-INSERT INTO reed_schema VALUES (19);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 20));
+INSERT INTO reed_schema VALUES (20);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -192,51 +192,23 @@ END $$;
 CREATE TRIGGER no_card_cycles_insert BEFORE INSERT ON cards FOR EACH ROW EXECUTE FUNCTION reed_check_card_cycle();
 CREATE TRIGGER no_card_cycles_update BEFORE UPDATE OF parent_id ON cards FOR EACH ROW EXECUTE FUNCTION reed_check_card_cycle();
 
-CREATE FUNCTION reed_freeze_cards() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE version_status TEXT;
+CREATE FUNCTION reed_keep_published_card() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  SELECT status INTO version_status FROM deck_versions WHERE id=CASE WHEN TG_OP='DELETE' THEN OLD.version_id ELSE NEW.version_id END;
-  IF version_status IS DISTINCT FROM 'draft' THEN RAISE EXCEPTION 'Published content is immutable; create a new version'; END IF;
-  IF TG_OP='DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
-END $$;
-CREATE TRIGGER freeze_cards_insert BEFORE INSERT ON cards FOR EACH ROW EXECUTE FUNCTION reed_freeze_cards();
-CREATE TRIGGER freeze_cards_update BEFORE UPDATE ON cards FOR EACH ROW EXECUTE FUNCTION reed_freeze_cards();
-CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards FOR EACH ROW EXECUTE FUNCTION reed_freeze_cards();
-
-CREATE FUNCTION reed_freeze_card_translation() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE card_version TEXT; version_status TEXT;
-BEGIN
-  SELECT version_id INTO card_version FROM cards WHERE id=CASE WHEN TG_OP='DELETE' THEN OLD.card_id ELSE NEW.card_id END;
-  SELECT status INTO version_status FROM deck_versions WHERE id=card_version;
-  IF version_status IS DISTINCT FROM 'draft' THEN RAISE EXCEPTION 'Published content is immutable; create a new version'; END IF;
-  IF TG_OP='DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
-END $$;
-CREATE TRIGGER freeze_card_translation_insert BEFORE INSERT ON card_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_card_translation();
-CREATE TRIGGER freeze_card_translation_update BEFORE UPDATE ON card_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_card_translation();
-CREATE TRIGGER freeze_card_translation_delete BEFORE DELETE ON card_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_card_translation();
-
-CREATE FUNCTION reed_freeze_version_translation() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE version_status TEXT;
-BEGIN
-  SELECT status INTO version_status FROM deck_versions WHERE id=CASE WHEN TG_OP='DELETE' THEN OLD.version_id ELSE NEW.version_id END;
-  IF version_status IS DISTINCT FROM 'draft' THEN RAISE EXCEPTION 'Published content is immutable; create a new version'; END IF;
-  IF TG_OP='DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
-END $$;
-CREATE TRIGGER freeze_version_translation_insert BEFORE INSERT ON deck_version_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_version_translation();
-CREATE TRIGGER freeze_version_translation_update BEFORE UPDATE ON deck_version_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_version_translation();
-CREATE TRIGGER freeze_version_translation_delete BEFORE DELETE ON deck_version_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_version_translation();
-
-CREATE FUNCTION reed_freeze_version() RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  IF OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id OR NEW.book_id <> OLD.book_id OR NEW.version <> OLD.version OR NEW.status='draft' OR NEW.editorial_status <> OLD.editorial_status OR NEW.created_at <> OLD.created_at) THEN
-    RAISE EXCEPTION 'Published version is immutable';
-  END IF;
-  RETURN NEW;
-END $$;
-CREATE TRIGGER freeze_version BEFORE UPDATE ON deck_versions FOR EACH ROW EXECUTE FUNCTION reed_freeze_version();
-CREATE FUNCTION reed_keep_published_version() RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  IF OLD.status <> 'draft' THEN RAISE EXCEPTION 'Published version is immutable'; END IF;
+  IF (SELECT status FROM deck_versions WHERE id=OLD.version_id) <> 'draft' THEN RAISE EXCEPTION 'Published content is immutable; cards cannot be deleted'; END IF;
   RETURN OLD;
 END $$;
-CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions FOR EACH ROW EXECUTE FUNCTION reed_keep_published_version();
+CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards FOR EACH ROW EXECUTE FUNCTION reed_keep_published_card();
+CREATE FUNCTION reed_keep_published_card_translation() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE version_status TEXT;
+BEGIN
+  SELECT v.status INTO version_status FROM deck_versions v JOIN cards c ON c.version_id=v.id WHERE c.id=OLD.card_id;
+  IF version_status <> 'draft' THEN RAISE EXCEPTION 'Published content is immutable; card translations cannot be deleted'; END IF;
+  RETURN OLD;
+END $$;
+CREATE TRIGGER freeze_card_translation_delete BEFORE DELETE ON card_translations FOR EACH ROW EXECUTE FUNCTION reed_keep_published_card_translation();
+CREATE FUNCTION reed_keep_published_deck_translation() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF (SELECT status FROM deck_versions WHERE id=OLD.version_id) <> 'draft' THEN RAISE EXCEPTION 'Published content is immutable; deck translations cannot be deleted'; END IF;
+  RETURN OLD;
+END $$;
+CREATE TRIGGER freeze_version_translation_delete BEFORE DELETE ON deck_version_translations FOR EACH ROW EXECUTE FUNCTION reed_keep_published_deck_translation();

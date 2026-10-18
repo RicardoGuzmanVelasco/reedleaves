@@ -7,8 +7,8 @@ import { Pool, types } from "pg";
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 27;
-export const POSTGRES_SCHEMA_VERSION = 19;
+export const SQLITE_SCHEMA_VERSION = 28;
+export const POSTGRES_SCHEMA_VERSION = 20;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -87,6 +87,17 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 27) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`DROP TRIGGER freeze_cards_insert; DROP TRIGGER freeze_cards_update;
+        DROP TRIGGER freeze_card_translations_insert; DROP TRIGGER freeze_card_translations_update;
+        DROP TRIGGER freeze_deck_version_translations_insert; DROP TRIGGER freeze_deck_version_translations_update;
+        DROP TRIGGER freeze_version; DROP TRIGGER keep_published_version;
+        PRAGMA user_version=28; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 26) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -404,6 +415,52 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 19) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 20) return;
+          await db.exec(`DROP TRIGGER freeze_cards_insert ON cards;
+            DROP TRIGGER freeze_cards_update ON cards;
+            DROP TRIGGER freeze_cards_delete ON cards;
+            DROP FUNCTION reed_freeze_cards();
+            CREATE FUNCTION reed_freeze_cards() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              IF (SELECT status FROM deck_versions WHERE id=OLD.version_id) <> 'draft' THEN RAISE EXCEPTION 'Published content is immutable; cards cannot be deleted'; END IF;
+              RETURN OLD;
+            END $$;
+            CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards FOR EACH ROW EXECUTE FUNCTION reed_freeze_cards();
+            DROP TRIGGER freeze_card_translation_insert ON card_translations;
+            DROP TRIGGER freeze_card_translation_update ON card_translations;
+            DROP TRIGGER freeze_card_translation_delete ON card_translations;
+            DROP FUNCTION reed_freeze_card_translation();
+            CREATE FUNCTION reed_freeze_card_translation() RETURNS trigger LANGUAGE plpgsql AS $$
+            DECLARE version_status TEXT;
+            BEGIN
+              SELECT v.status INTO version_status FROM deck_versions v JOIN cards c ON c.version_id=v.id WHERE c.id=OLD.card_id;
+              IF version_status <> 'draft' THEN RAISE EXCEPTION 'Published content is immutable; card translations cannot be deleted'; END IF;
+              RETURN OLD;
+            END $$;
+            CREATE TRIGGER freeze_card_translation_delete BEFORE DELETE ON card_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_card_translation();
+            DROP TRIGGER freeze_version_translation_insert ON deck_version_translations;
+            DROP TRIGGER freeze_version_translation_update ON deck_version_translations;
+            DROP TRIGGER freeze_version_translation_delete ON deck_version_translations;
+            DROP FUNCTION reed_freeze_version_translation();
+            CREATE FUNCTION reed_freeze_version_translation() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              IF (SELECT status FROM deck_versions WHERE id=OLD.version_id) <> 'draft' THEN RAISE EXCEPTION 'Published content is immutable; deck translations cannot be deleted'; END IF;
+              RETURN OLD;
+            END $$;
+            CREATE TRIGGER freeze_version_translation_delete BEFORE DELETE ON deck_version_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_version_translation();
+            DROP TRIGGER freeze_version ON deck_versions;
+            DROP FUNCTION reed_freeze_version();
+            DROP TRIGGER keep_published_version ON deck_versions;
+            DROP FUNCTION reed_keep_published_version();
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=20;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=20);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 18) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");

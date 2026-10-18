@@ -54,8 +54,8 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.ok(catalog.books.every(value=>!Object.hasOwn(value,"sources")));
     assert.ok(catalog.cards.every(value=>!Object.hasOwn(value,"sourceUrl")));
     assert.ok((await db.prepare("SELECT created_at FROM cards WHERE id=?").get(card.cardId)).created_at);
-    await assert.rejects(async()=>db.prepare("UPDATE cards SET position=99 WHERE id=?").run(card.cardId),/immutable/);
-    await assert.rejects(async()=>db.prepare("UPDATE card_translations SET body='changed' WHERE card_id=?").run(card.cardId),/immutable/);
+    await db.prepare("UPDATE card_translations SET body='Corrección directa' WHERE card_id=?").run(card.cardId);
+    assert.equal((await db.prepare("SELECT body FROM card_translations WHERE card_id=? AND language=?").get(card.cardId,"es")).body,"Corrección directa");
     await assert.rejects(async()=>db.prepare("DELETE FROM cards WHERE id=?").run(card.cardId),/immutable/);
     await completeBook(db,session,{bookId:book.bookId,metadata:bookMetadata});
     const added=await createBook(db,session,{requestId:randomUUID(),author:"Daniel Kahneman",metadata:bookMetadata});
@@ -70,5 +70,21 @@ for (const dialect of ["sqlite","postgres"]) {
       assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(),[]);
       assert.equal(db.prepare("PRAGMA foreign_keys").get().foreign_keys,1);
     }
+  });
+}
+
+for (const [dialect,version] of [["sqlite",27],["postgres",19]]) {
+  test(`${dialect}: latest published deck correction migration preserves IDs and user references`,async t=>{
+    const db=await historicalDatabase(t,dialect,version);
+    await db.prepare("UPDATE deck_versions SET status='published' WHERE id='seven-habits-editorial-v1'").run();
+    const beforeCards=await db.prepare("SELECT id,version_id,book_id,parent_id,position FROM cards ORDER BY id").all();
+    await initializeDatabase(db);
+    assert.deepEqual(await db.prepare("SELECT id,version_id,book_id,parent_id,position FROM cards ORDER BY id").all(),beforeCards);
+    const changed=await db.prepare("UPDATE card_translations SET body='Corrected on the same card' WHERE card_id='habit-1' AND language='es'").run();
+    assert.equal(changed.changes,1);
+    assert.equal((await db.prepare("SELECT body FROM card_translations WHERE card_id='habit-1' AND language='es'").get()).body,"Corrected on the same card");
+    await assert.rejects(async()=>db.prepare("DELETE FROM cards WHERE id='habit-1'").run(),/immutable/);
+    const status=dialect==="sqlite"?db.prepare("PRAGMA user_version").get().user_version:(await db.prepare("SELECT version FROM reed_schema").get()).version;
+    assert.equal(status,dialect==="sqlite"?SQLITE_SCHEMA_VERSION:POSTGRES_SCHEMA_VERSION);
   });
 }

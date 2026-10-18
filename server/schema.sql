@@ -158,6 +158,16 @@ CREATE TRIGGER no_card_cycles_update BEFORE UPDATE OF parent_id ON cards WHEN NE
   );
 END;
 
+CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards
+WHEN (SELECT status FROM deck_versions WHERE id = OLD.version_id) <> 'draft'
+BEGIN SELECT RAISE(ABORT,'Published content is immutable; cards cannot be deleted'); END;
+CREATE TRIGGER freeze_card_translations_delete BEFORE DELETE ON card_translations
+WHEN (SELECT status FROM deck_versions WHERE id = (SELECT version_id FROM cards WHERE id = OLD.card_id)) <> 'draft'
+BEGIN SELECT RAISE(ABORT,'Published content is immutable; card translations cannot be deleted'); END;
+CREATE TRIGGER freeze_deck_version_translations_delete BEFORE DELETE ON deck_version_translations
+WHEN (SELECT status FROM deck_versions WHERE id = OLD.version_id) <> 'draft'
+BEGIN SELECT RAISE(ABORT,'Published content is immutable; deck translations cannot be deleted'); END;
+
 CREATE TABLE deck_votes (
   user_id TEXT NOT NULL REFERENCES users(id),
   deck_id TEXT NOT NULL REFERENCES decks(id),
@@ -266,45 +276,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-CREATE TRIGGER freeze_cards_insert BEFORE INSERT ON cards
-WHEN (SELECT status FROM deck_versions WHERE id = NEW.version_id) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published content is immutable; create a new version'); END;
-
-CREATE TRIGGER freeze_cards_update BEFORE UPDATE ON cards
-WHEN (SELECT status FROM deck_versions WHERE id = OLD.version_id) <> 'draft' OR (SELECT status FROM deck_versions WHERE id = NEW.version_id) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published content is immutable; create a new version'); END;
-
-CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards
-WHEN (SELECT status FROM deck_versions WHERE id = OLD.version_id) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published content is immutable; create a new version'); END;
-
-CREATE TRIGGER freeze_card_translations_insert BEFORE INSERT ON card_translations
-WHEN (SELECT status FROM deck_versions WHERE id = (SELECT version_id FROM cards WHERE id = NEW.card_id)) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published content is immutable; create a new version'); END;
-
-CREATE TRIGGER freeze_card_translations_update BEFORE UPDATE ON card_translations
-WHEN (SELECT status FROM deck_versions WHERE id = (SELECT version_id FROM cards WHERE id = OLD.card_id)) <> 'draft' OR (SELECT status FROM deck_versions WHERE id = (SELECT version_id FROM cards WHERE id = NEW.card_id)) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published content is immutable; create a new version'); END;
-
-CREATE TRIGGER freeze_card_translations_delete BEFORE DELETE ON card_translations
-WHEN (SELECT status FROM deck_versions WHERE id = (SELECT version_id FROM cards WHERE id = OLD.card_id)) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published content is immutable; create a new version'); END;
-
-CREATE TRIGGER freeze_deck_version_translations_insert BEFORE INSERT ON deck_version_translations
-WHEN (SELECT status FROM deck_versions WHERE id = NEW.version_id) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published content is immutable; create a new version'); END;
-
-CREATE TRIGGER freeze_deck_version_translations_update BEFORE UPDATE ON deck_version_translations
-WHEN (SELECT status FROM deck_versions WHERE id = OLD.version_id) <> 'draft' OR (SELECT status FROM deck_versions WHERE id = NEW.version_id) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published content is immutable; create a new version'); END;
-
-CREATE TRIGGER freeze_deck_version_translations_delete BEFORE DELETE ON deck_version_translations
-WHEN (SELECT status FROM deck_versions WHERE id = OLD.version_id) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published content is immutable; create a new version'); END;
-
-CREATE TRIGGER freeze_version BEFORE UPDATE ON deck_versions
-WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id OR NEW.book_id <> OLD.book_id OR NEW.version <> OLD.version OR NEW.status = 'draft' OR NEW.editorial_status <> OLD.editorial_status OR NEW.created_at <> OLD.created_at)
-BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 27;
+PRAGMA user_version = 28;

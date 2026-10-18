@@ -49,7 +49,8 @@ test("Invalid seed rolls back every change and does not move established card ID
   assert.equal((await readCatalog(db)).books[0].author, "Stephen R. Covey");
   const moved = readSeed();
   [moved.cards[0].position, moved.cards[1].position] = [moved.cards[1].position, moved.cards[0].position];
-  await assert.rejects(seedCatalog(db, moved), /immutable/);
+  await seedCatalog(db, moved);
+  assert.equal((await readCatalog(db)).cards.find(card=>card.id===moved.cards[0].id).order,2);
   assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, versions: 6, cards: 42, genres: 3 });
 });
 test("Missing translations, references, duplicate IDs and order gaps reject the import", async t => {
@@ -120,19 +121,27 @@ test("Creation permissions, one optional vote and independent book reading / dec
   db.prepare("DELETE FROM deck_votes").run();
   assert.equal((await stats()).dislikes,0);
 });
-test("Published versions are immutable and reimport is idempotent", async t => {
+test("Published decks accept in-place content corrections while preserving card identities", async t => {
   const db = await fixture(t), seed = readSeed();
   seed.decks[0].status = "published"; await seedCatalog(db,seed); await seedCatalog(db,seed);
-  assert.throws(() => db.prepare("UPDATE cards SET position = 9 WHERE id = 'habit-1'").run(),/immutable/);
-  assert.throws(() => db.prepare("UPDATE card_translations SET body = 'changed' WHERE card_id = 'habit-1'").run(),/immutable/);
+  const corrected=readSeed();
+  corrected.decks[0].title_es="Ideas corregidas";
+  corrected.cards.find(card=>card.id==="habit-1").body_es="Texto corregido en la misma tarjeta.";
+  corrected.cards.find(card=>card.id==="habit-2").parent_id="habit-1";
+  for (const parentId of new Set(corrected.cards.filter(card=>card.version_id===corrected.decks[0].version_id).map(card=>card.parent_id||""))) {
+    corrected.cards.filter(card=>card.version_id===corrected.decks[0].version_id&&(card.parent_id||"")===parentId)
+      .sort((a,b)=>Number(a.position)-Number(b.position)).forEach((card,index)=>card.position=String(index+1));
+  }
+  corrected.decks[0].status="published";
+  await seedCatalog(db,corrected);
+  const catalog=await readCatalog(db);
+  assert.equal(catalog.versions.find(version=>version.id==="seven-habits-editorial-v1").title.es,"Ideas corregidas");
+  assert.equal(catalog.cards.find(card=>card.id==="habit-1").body.es,"Texto corregido en la misma tarjeta.");
+  assert.equal(catalog.cards.find(card=>card.id==="habit-2").parentId,"habit-1");
+  assert.equal(db.prepare("SELECT count(*) AS n FROM cards WHERE id IN ('habit-1','habit-2')").get().n,2);
   assert.throws(() => db.prepare("DELETE FROM card_translations WHERE card_id = 'habit-1'").run(),/immutable/);
-  assert.throws(() => db.prepare("UPDATE deck_version_translations SET description = 'changed' WHERE version_id = 'seven-habits-editorial-v1'").run(),/immutable/);
-  assert.throws(() => db.prepare("UPDATE deck_versions SET status = 'draft' WHERE id = 'seven-habits-editorial-v1'").run(),/immutable/);
-  db.prepare("INSERT INTO users(id,display_name) VALUES ('test-reader','Reader')").run();
-  const v2 = {...seed.decks[0],version_id:"seven-habits-editorial-v2",version:"2"};
-  seed.decks.push(v2);
-  seed.cards.push(...seed.cards.filter(c => c.version_id === "seven-habits-editorial-v1").map(c => ({...c,id:c.id+"-v2",version_id:v2.version_id})));
-  await seedCatalog(db,seed);
+  assert.equal(db.prepare("UPDATE deck_version_translations SET description = 'changed' WHERE version_id = 'seven-habits-editorial-v1'").run().changes,1);
+  assert.equal(db.prepare("UPDATE deck_versions SET status = 'draft' WHERE id = 'seven-habits-editorial-v1'").run().changes,1);
   const stats = (await readCatalog(db)).decks.find(d => d.id === "seven-habits-editorial").metrics;
   assert.equal("startedBy" in stats,false); assert.equal("completedBy" in stats,false);
 });

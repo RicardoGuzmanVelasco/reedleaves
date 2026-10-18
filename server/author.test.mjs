@@ -316,7 +316,9 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal(quote.body.fr,"Citation conservée");
     assert.equal("practices" in await readReaderState(db,session),false);
     assert.equal((await db.prepare("SELECT created_at FROM cards WHERE id=?").get(cardId)).created_at,null);
-    await assert.rejects(async()=>db.prepare("UPDATE cards SET position=99 WHERE id=?").run(cardId),/immutable/);
+    await db.prepare("UPDATE card_translations SET body='Corrección conservada' WHERE card_id=? AND language='fr'").run(cardId);
+    assert.equal((await db.prepare("SELECT body FROM card_translations WHERE card_id=? AND language='fr'").get(cardId)).body,"Corrección conservada");
+    await db.prepare("UPDATE card_translations SET body='Citation conservée' WHERE card_id=? AND language='fr'").run(cardId);
     const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:"Après migration",author:"Auteur",language:"fr"});
     const next=await createDeck(db,session,{requestId:randomUUID(),bookId,title:"Notes",language:"fr"});
     await addCard(db,session,{requestId:randomUUID(),versionId:next.versionId,isQuote:true,parentId:null,body:"Sans URL"});

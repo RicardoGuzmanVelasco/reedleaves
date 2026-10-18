@@ -132,38 +132,45 @@ export async function seedCatalog(db, seed = readSeed()) {
       await db.prepare("INSERT INTO deck_versions(id,deck_id,book_id,version,editorial_status) VALUES (?,?,?,?,?) ON CONFLICT(id) DO NOTHING").run(d.version_id,d.id,d.book_id,Number(d.version),d.editorial_status);
       for (const [lang,translation] of translations(d,["title","description","editorial_note"])) {
         const values = ["title","description","editorial_note"].map(f => translation[f]);
-        if (version && version.status !== "draft") {
-          const old = await db.prepare("SELECT title,description,editorial_note FROM deck_version_translations WHERE version_id = ? AND language = ?").get(d.version_id,lang);
-          if (!old || values.some((v,i) => v !== old[["title","description","editorial_note"][i]])) throw new Error("Published content is immutable");
-        } else await db.prepare(`INSERT INTO deck_version_translations VALUES (?,?,?,?,?)
+        await db.prepare(`INSERT INTO deck_version_translations VALUES (?,?,?,?,?)
           ON CONFLICT(version_id,language) DO UPDATE SET title = excluded.title, description = excluded.description, editorial_note = excluded.editorial_note`).run(d.version_id,lang,...values);
       }
-      if (version && version.status !== "draft" &&
-          (await db.prepare("SELECT count(*) AS n FROM deck_version_translations WHERE version_id = ?").get(d.version_id)).n !== translations(d,["title","description","editorial_note"]).size) throw new Error("Published translations are immutable");
     }
-    for (const c of seed.cards) {
-      const old = await db.prepare("SELECT * FROM cards WHERE id = ?").get(c.id);
-      if (old && (old.book_id !== c.book_id || old.version_id !== c.version_id || old.parent_id !== (c.parent_id || null) || old.position !== Number(c.position))) throw new Error("Card identity and structure are immutable; create a new version");
-      const version = await db.prepare("SELECT status FROM deck_versions WHERE id = ?").get(c.version_id);
-      if (version.status !== "draft") {
-        if (!old) throw new Error("Published content is immutable");
-        for (const [lang,translation] of translations(c,["title","body"])) {
-          const t = await db.prepare("SELECT title,body FROM card_translations WHERE card_id = ? AND language = ?").get(c.id,lang);
-          if (!t || t.title !== translation.title || t.body !== translation.body) throw new Error("Published content is immutable");
-        }
-        if ((await db.prepare("SELECT count(*) AS n FROM card_translations WHERE card_id = ?").get(c.id)).n !== translations(c,["title","body"]).size) throw new Error("Published translations are immutable");
-      } else {
-        await db.prepare(`INSERT INTO cards(id,version_id,book_id,parent_id,position) VALUES (?,?,?,?,?)
-          ON CONFLICT(id) DO NOTHING`).run(c.id,c.version_id,c.book_id,c.parent_id || null,Number(c.position));
-        for (const [language,translation] of translations(c,["title","body"])) await db.prepare(`INSERT INTO card_translations VALUES (?, ?, ?, ?)
-          ON CONFLICT(card_id, language) DO UPDATE SET title = excluded.title, body = excluded.body`).run(c.id, language, translation.title, translation.body);
+    for (const d of seed.decks) {
+      const versionId=d.version_id,deckCards=seed.cards.filter(card=>card.version_id===versionId);
+      const existing=await db.prepare("SELECT id,book_id,version_id,parent_id,position FROM cards WHERE version_id=? ORDER BY position,id").all(versionId);
+      const original=new Map(existing.map(row=>[row.id,row]));
+      for (const card of deckCards) {
+        const old=original.get(card.id);
+        if (old && (old.book_id!==card.book_id || old.version_id!==card.version_id)) throw new Error("Card identity cannot move between books or decks");
+      }
+      // Free sibling positions before applying parent and order corrections.
+      const temporaryBase=Math.max(1_000_000,...existing.map(row=>Number(row.position)+1));
+      for (const [index,row] of existing.entries()) await db.prepare("UPDATE cards SET position=? WHERE id=?").run(temporaryBase+index,row.id);
+      for (const [index,card] of deckCards.entries()) {
+        await db.prepare(`INSERT INTO cards(id,version_id,book_id,parent_id,position,is_quote) VALUES (?,?,?,?,?,?)
+          ON CONFLICT(id) DO UPDATE SET parent_id=excluded.parent_id,position=excluded.position,is_quote=excluded.is_quote`)
+          .run(card.id,versionId,card.book_id,card.parent_id || null,temporaryBase+existing.length+index,Number(card.is_quote || 0));
+        for (const [language,translation] of translations(card,["title","body"])) await db.prepare(`INSERT INTO card_translations VALUES (?, ?, ?, ?)
+          ON CONFLICT(card_id, language) DO UPDATE SET title = excluded.title, body = excluded.body`).run(card.id, language, translation.title, translation.body);
+      }
+      const all=await db.prepare("SELECT id,parent_id,position FROM cards WHERE version_id=?").all(versionId);
+      const seeded=new Map(deckCards.map(card=>[card.id,card]));
+      const groups=new Map();
+      for (const row of all) { const key=row.parent_id || "";groups.set(key,[...(groups.get(key)||[]),row]); }
+      for (const rows of groups.values()) {
+        rows.sort((a,b)=>{
+          const left=seeded.get(a.id),right=seeded.get(b.id);
+          if(left&&right)return Number(left.position)-Number(right.position);
+          if(left)return -1;if(right)return 1;
+          return Number(original.get(a.id)?.position ?? a.position)-Number(original.get(b.id)?.position ?? b.position);
+        });
+        for (const [index,row] of rows.entries()) await db.prepare("UPDATE cards SET position=? WHERE id=?").run(index+1,row.id);
       }
     }
     for (const d of seed.decks) {
       const row = await db.prepare("SELECT status,editorial_status FROM deck_versions WHERE id = ?").get(d.version_id);
-      if (row.status !== "draft") {
-        if (row.status !== d.status || row.editorial_status !== d.editorial_status) throw new Error("Published version is immutable");
-      } else await db.prepare("UPDATE deck_versions SET status = ?, editorial_status = ? WHERE id = ?").run(d.status,d.editorial_status,d.version_id);
+      if (row.status !== d.status || row.editorial_status !== d.editorial_status) await db.prepare("UPDATE deck_versions SET status = ?, editorial_status = ? WHERE id = ?").run(d.status,d.editorial_status,d.version_id);
     }
     return checkCatalog(db);
   });
