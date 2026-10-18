@@ -28,7 +28,7 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
       count(*) FILTER (WHERE NOT c.relrowsecurity)::int AS without_rls
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
     WHERE n.nspname='public' AND c.relkind IN ('r','p')`);
-  assert.deepEqual(tableState.rows,[{total:33,without_rls:0}]);
+  assert.deepEqual(tableState.rows,[{total:34,without_rls:0}]);
 
   const directAccess = await db.query(`SELECT
       has_table_privilege('anon','public.accounts','SELECT') AS anon_select,

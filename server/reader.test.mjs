@@ -9,6 +9,7 @@ import {seedCatalog,readSeed} from "./seed.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {readReaderState,selectDeck,addDeckToCollection,openCard,changeReading,changePreferences,dailyIdea,savePracticeAnswer} from "./reader-repository.mjs";
 import {readProfile} from "./profile-repository.mjs";
+import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 import {serverDay} from "./auth.mjs";
 const date = day=>new Date(day+"T12:00:00Z"), today = date("2026-10-06");
 const version = "seven-habits-editorial-v1", other = "atomic-habits-editorial-v1";
@@ -33,16 +34,27 @@ test("Adding a deck spends one leaf once; selecting it is free and users are iso
   assert.deepEqual((await readReaderState(db,b,today)).enrolledIds,[]);
   assert.equal((await readCatalog(db)).decks.find(d=>d.id === "seven-habits-editorial").metrics.startedBy,0);
 });
-test("Book mascot progress counts distinct local review days across cards",async t=>{
+test("Book mascot progress counts distinct days with completed paid practices",async t=>{
   const {db,a,b}=await fixture(t);
   await readReaderState(db,a,date("2026-10-06"));
+  await changeReading(db,a,"seven-habits","reading",date("2026-10-06"));
+  const practice=async now=>{
+    const started=await startPracticeSession(db,a,"reading",now);
+    assert.ok(started.session);
+    let result;
+    for(let index=0;index<started.session.cardIds.length;index++) result=await answerPracticeSession(db,a,{
+      sessionId:started.session.id,index,cardId:started.session.cardIds[index],answer:"remembered"
+    },new Date(now.getTime()+index+1));
+    return result;
+  };
   await openCard(db,a,version,"habit-1",date("2026-10-07"));
-  await openCard(db,a,version,"habit-2",date("2026-10-07"));
+  assert.equal((await readReaderState(db,a,date("2026-10-07"))).growth["seven-habits"].reviewDays,0);
+  await practice(date("2026-10-07"));
+  await practice(date("2026-10-07"));
   assert.deepEqual((await readReaderState(db,a,date("2026-10-07"))).growth["seven-habits"],{added:true,reviewDays:1});
-  await openCard(db,a,version,"habit-3",date("2026-10-08"));
-  const threeDays=await openCard(db,a,version,"habit-4",date("2026-10-09"));
-  assert.equal(threeDays.state.growth["seven-habits"].reviewDays,3);
-  await openCard(db,a,version,"habit-4",date("2026-10-09"));
+  await practice(date("2026-10-08"));
+  const threeDays=await practice(date("2026-10-09"));
+  assert.equal(threeDays.session.index,5);
   assert.equal((await readReaderState(db,a,date("2026-10-09"))).growth["seven-habits"].reviewDays,3);
   assert.deepEqual((await readReaderState(db,b,today)).growth,{});
 });

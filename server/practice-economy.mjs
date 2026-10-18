@@ -61,6 +61,10 @@ export async function startPracticeSession(db,session,topic,now=new Date()) {
     const id=randomUUID(),startedAt=now.toISOString(),cardIds=selected.map(card=>card.id);
     await db.prepare("INSERT INTO practice_sessions(id,user_id,topic,card_ids,card_index,cost,started_at) VALUES (?,?,?,?,0,?,?)")
       .run(id,userId,topic,JSON.stringify(cardIds),cost,startedAt);
+    for (const [position,cardId] of cardIds.entries()) {
+      await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)")
+        .run(id,cardId,position);
+    }
     return {session:{id,topic,cardIds,index:0,cost,startedAt,completedAt:null},discountTopic,balance:wallet.balance-cost};
   });
 }
@@ -76,11 +80,13 @@ export async function answerPracticeSession(db,session,input,now=new Date()) {
     if(input.index<current.index) return {session:current,idempotent:true};
     if(row.completed_at||input.index!==current.index||current.cardIds[current.index]!==input.cardId) throw new ApiError(409,"invalidRequest");
     const answeredAt=now.toISOString(),nextIndex=current.index+1,completedAt=nextIndex===PRACTICE_SESSION_SIZE?answeredAt:null;
+    const account=completedAt ? await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id) : null;
+    const completedLocalDay=account ? serverDay(account.time_zone,now) : null;
     await db.prepare(`INSERT INTO practice_answers(user_id,card_id,answer,answered_at) VALUES (?,?,?,?)
       ON CONFLICT(user_id,card_id) DO UPDATE SET answer=excluded.answer,answered_at=excluded.answered_at`)
       .run(session.user_id,input.cardId,input.answer,answeredAt);
-    await db.prepare("UPDATE practice_sessions SET card_index=?,completed_at=? WHERE id=? AND user_id=?")
-      .run(nextIndex,completedAt,input.sessionId,session.user_id);
+    await db.prepare("UPDATE practice_sessions SET card_index=?,completed_at=?,completed_local_day=? WHERE id=? AND user_id=?")
+      .run(nextIndex,completedAt,completedLocalDay,input.sessionId,session.user_id);
     return {session:{...current,index:nextIndex,completedAt}};
   });
 }

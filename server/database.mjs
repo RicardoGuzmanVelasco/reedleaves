@@ -7,13 +7,19 @@ import { Pool, types } from "pg";
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 25;
-export const POSTGRES_SCHEMA_VERSION = 17;
+export const SQLITE_SCHEMA_VERSION = 26;
+export const POSTGRES_SCHEMA_VERSION = 18;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
 const sqliteQueues = new WeakMap();
 types.setTypeParser(20, value => Number(value));
+
+function localDay(timeZone,value) {
+  const parts=new Intl.DateTimeFormat("en-CA",{timeZone,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(value));
+  const part=type=>parts.find(item=>item.type===type).value;
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
 
 export class PostgresDatabase {
   dialect = "postgres";
@@ -81,6 +87,31 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 25) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE practice_sessions ADD COLUMN completed_local_day TEXT;
+        CREATE TABLE practice_session_cards (
+          session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
+          card_id TEXT NOT NULL REFERENCES cards(id),
+          position INTEGER NOT NULL CHECK(position BETWEEN 0 AND 4),
+          PRIMARY KEY(session_id,card_id), UNIQUE(session_id,position)
+        ) STRICT;
+        CREATE INDEX practice_session_cards_by_card ON practice_session_cards(card_id,session_id);`);
+      const sessions=db.prepare(`SELECT ps.id,ps.card_ids,ps.completed_at,a.time_zone
+        FROM practice_sessions ps JOIN accounts a ON a.user_id=ps.user_id ORDER BY ps.started_at,ps.id`).all();
+      const insert=db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)");
+      const update=db.prepare("UPDATE practice_sessions SET completed_local_day=? WHERE id=?");
+      for (const session of sessions) {
+        const cardIds=JSON.parse(session.card_ids);
+        if (!Array.isArray(cardIds) || cardIds.length!==5 || cardIds.some(id=>typeof id!=="string")) throw new Error(`Invalid cards for practice session ${session.id}`);
+        cardIds.forEach((cardId,position)=>insert.run(session.id,cardId,position));
+        if (session.completed_at) update.run(localDay(session.time_zone,session.completed_at),session.id);
+      }
+      db.exec("PRAGMA user_version=26; COMMIT;");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 24) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -362,6 +393,32 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 17) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 18) return;
+          await db.exec(`ALTER TABLE practice_sessions ADD COLUMN completed_local_day TEXT;
+            CREATE TABLE practice_session_cards(
+              session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
+              card_id TEXT NOT NULL REFERENCES cards(id), position INTEGER NOT NULL CHECK(position BETWEEN 0 AND 4),
+              PRIMARY KEY(session_id,card_id), UNIQUE(session_id,position)
+            );
+            CREATE INDEX practice_session_cards_by_card ON practice_session_cards(card_id,session_id);
+            ALTER TABLE practice_session_cards ENABLE ROW LEVEL SECURITY;`);
+          const sessions=await db.prepare(`SELECT ps.id,ps.card_ids,ps.completed_at,a.time_zone
+            FROM practice_sessions ps JOIN accounts a ON a.user_id=ps.user_id ORDER BY ps.started_at,ps.id`).all();
+          for (const session of sessions) {
+            const cardIds=JSON.parse(session.card_ids);
+            if (!Array.isArray(cardIds) || cardIds.length!==5 || cardIds.some(id=>typeof id!=="string")) throw new Error(`Invalid cards for practice session ${session.id}`);
+            for (const [position,cardId] of cardIds.entries()) await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)").run(session.id,cardId,position);
+            if (session.completed_at) await db.prepare("UPDATE practice_sessions SET completed_local_day=? WHERE id=?").run(localDay(session.time_zone,session.completed_at),session.id);
+          }
+          await db.exec(`ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=18;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=18);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 16) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");

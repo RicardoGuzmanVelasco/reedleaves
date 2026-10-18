@@ -56,7 +56,10 @@ export async function readProfile(db,userId,viewerId) {
       FROM deck_versions v WHERE EXISTS (SELECT 1 FROM studies s WHERE s.version_id=v.id AND s.user_id=?)
       OR EXISTS (SELECT 1 FROM practice_cards rc WHERE rc.version_id=v.id AND rc.user_id=?)`).all(userId,userId,userId,userId);
     const active=new Set(progress.filter(v=>(Number(v.seen)<Number(v.total) || v.status === "draft" && Number(v.total)===0) && (Number(v.seen)>0 || Number(v.enrolled)>0)).map(v=>v.deck_id));
-    const days=new Map((await db.prepare("SELECT v.book_id,COUNT(DISTINCT rc.local_day) AS n FROM practice_cards rc JOIN deck_versions v ON v.id=rc.version_id WHERE rc.user_id=? GROUP BY v.book_id").all(userId)).map(r=>[r.book_id,Number(r.n)]));
+    const days=new Map((await db.prepare(`SELECT v.book_id,COUNT(DISTINCT ps.completed_local_day) AS n
+      FROM practice_sessions ps JOIN practice_session_cards psc ON psc.session_id=ps.id
+      JOIN cards c ON c.id=psc.card_id JOIN deck_versions v ON v.id=c.version_id
+      WHERE ps.user_id=? AND ps.completed_at IS NOT NULL AND ps.completed_local_day IS NOT NULL GROUP BY v.book_id`).all(userId)).map(r=>[r.book_id,Number(r.n)]));
     const mascots={pot:0,seed:0,root:0,seedling:0,sprout:0,sapling:0,stem:0,plant:0,flower:0,fruit:0,infinity:0};
     const added=new Set([...Object.keys(statuses),...(await db.prepare("SELECT v.book_id FROM studies s JOIN deck_versions v ON v.id=s.version_id WHERE s.user_id=?").all(userId)).map(row=>row.book_id)]);
     for (const bookId of new Set([...added,...days.keys()])) {

@@ -44,8 +44,10 @@ async function stateInside(db,session,now) {
     ...(await db.prepare("SELECT book_id FROM book_reading WHERE user_id = ?").all(userId)).map(r=>r.book_id),
     ...(await db.prepare("SELECT v.book_id FROM studies s JOIN deck_versions v ON v.id=s.version_id WHERE s.user_id = ?").all(userId)).map(r=>r.book_id)
   ]);
-  const growth=Object.fromEntries((await db.prepare(`SELECT v.book_id,COUNT(DISTINCT rc.local_day) AS review_days
-    FROM practice_cards rc JOIN deck_versions v ON v.id=rc.version_id WHERE rc.user_id = ? GROUP BY v.book_id`).all(userId))
+  const growth=Object.fromEntries((await db.prepare(`SELECT v.book_id,COUNT(DISTINCT ps.completed_local_day) AS review_days
+    FROM practice_sessions ps JOIN practice_session_cards psc ON psc.session_id=ps.id
+    JOIN cards c ON c.id=psc.card_id JOIN deck_versions v ON v.id=c.version_id
+    WHERE ps.user_id=? AND ps.completed_at IS NOT NULL AND ps.completed_local_day IS NOT NULL GROUP BY v.book_id`).all(userId))
     .map(r=>[r.book_id,{reviewDays:Number(r.review_days)}]));
   for(const bookId of addedBooks) growth[bookId]={reviewDays:growth[bookId]?.reviewDays||0,added:true};
   for(const value of Object.values(growth)) value.added=!!value.added;

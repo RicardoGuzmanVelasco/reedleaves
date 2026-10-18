@@ -8,6 +8,7 @@ import {authenticate} from "./auth.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {openCard,changeReading,selectDeck,readReaderState} from "./reader-repository.mjs";
 import {createBook,createDeck,addCard} from "./author-repository.mjs";
+import {serverDay} from "./auth.mjs";
 
 async function fixture(t) {
   const db=openDatabase(":memory:"); initializeDatabase(db); await seedCatalog(db);t.after(()=>db.close());
@@ -15,6 +16,15 @@ async function fixture(t) {
   return {db,a:await session("profile.reader"),b:await session("profile.visitor")};
 }
 const day=n=>new Date(`2026-10-${String(n).padStart(2,"0")}T12:00:00Z`);
+async function recordCompletedPractice(db,session,bookId,now,versionId=null) {
+  const cards=await db.prepare(`SELECT c.id FROM cards c JOIN deck_versions v ON v.id=c.version_id
+    WHERE v.book_id=? AND (? IS NULL OR v.id=?) ORDER BY c.id LIMIT 5`).all(bookId,versionId,versionId);
+  assert.equal(cards.length,5);
+  const id=randomUUID(),cardIds=cards.map(card=>card.id),completedAt=now.toISOString();
+  await db.prepare(`INSERT INTO practice_sessions(id,user_id,topic,card_ids,card_index,cost,started_at,completed_at,completed_local_day)
+    VALUES (?,?,'reading',?,5,2,?,?,?)`).run(id,session.user_id,JSON.stringify(cardIds),completedAt,completedAt,serverDay("Europe/Madrid",now));
+  for(const [position,cardId] of cardIds.entries()) await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)").run(id,cardId,position);
+}
 
 test("Profile distinguishes unique views and review progress; daily assignment alone is not a view",async t=>{
   const {db,a}=await fixture(t),version="seven-habits-editorial-v1";
@@ -38,17 +48,19 @@ test("Profile counts one current pet per book rather than all unlocked stages, i
   const {db,a}=await fixture(t),v="seven-habits-editorial-v1";
   await changeReading(db,a,"atomic-habits","read",day(10));
   await changeReading(db,a,"same-as-ever","reading",day(10));
+  await changeReading(db,a,"seven-habits","reading",day(10));
   await selectDeck(db,a,"getting-things-done-editorial-v1",day(10));
-  for(let n=1;n<=7;n++) await openCard(db,a,v,"habit-"+n,day(9+n));
+  for(let n=1;n<=7;n++) await recordCompletedPractice(db,a,"seven-habits",day(9+n));
   const p=(await readProfile(db,a.user_id,a.user_id)).profile;
-  assert.equal(p.counts.booksRead,1);assert.equal(p.counts.booksReading,1);
+  assert.equal(p.counts.booksRead,1);assert.equal(p.counts.booksReading,2);
   assert.equal("decksCompleted" in p.counts,false);assert.equal(p.counts.decksInProgress,1);
-  assert.equal(p.counts.leavesSpent,0);assert.equal(p.counts.cardsReviewed,7);
+  assert.equal(p.counts.leavesSpent,0);assert.equal(p.counts.cardsReviewed,0);
   assert.deepEqual(p.mascots,{pot:3,seed:0,root:0,seedling:0,sprout:1,sapling:0,stem:0,plant:0,flower:0,fruit:0,infinity:0});
 });
 
 test("Nonconsecutive review days across decks earn Tallo at ten and Flor at fifteen",async t=>{
   const {db,a}=await fixture(t),bookId="seven-habits";
+  await changeReading(db,a,bookId,"reading",day(1));
   const decks=[];
   for(let n=0;n<2;n++) {
     const {versionId}=await createDeck(db,a,{requestId:randomUUID(),bookId,title:`Stem test ${n}`,language:"es"});
@@ -58,13 +70,15 @@ test("Nonconsecutive review days across decks earn Tallo at ten and Flor at fift
   }
   for(let n=0;n<15;n++) {
     const deck=decks[n%2];
-    await openCard(db,a,deck.versionId,deck.cards[Math.floor(n/2)],day(1+n*2));
+    await selectDeck(db,a,deck.versionId,day(1+n*2));
+    await recordCompletedPractice(db,a,bookId,day(1+n*2),deck.versionId);
     const profile=(await readProfile(db,a.user_id,a.user_id)).profile;
     if(n===8) {assert.equal(profile.mascots.sprout,1);assert.equal(profile.mascots.stem,0);}
     if(n===9 || n===13) {assert.equal(profile.mascots.stem,1);assert.equal(profile.mascots.flower,0);}
   }
-  // Opening more than one card on the same date adds one growth day.
-  await openCard(db,a,decks[1].versionId,decks[1].cards[7],day(29));
+  // Another completed session on an existing local date adds no growth day.
+  await selectDeck(db,a,decks[1].versionId,day(29));
+  await recordCompletedPractice(db,a,bookId,day(29),decks[1].versionId);
   assert.equal((await readReaderState(db,a,day(29))).growth[bookId].reviewDays,15);
   const {mascots}=(await readProfile(db,a.user_id,a.user_id)).profile;
   assert.equal(mascots.flower,1);assert.equal(mascots.stem,0);assert.equal(mascots.sprout,0);

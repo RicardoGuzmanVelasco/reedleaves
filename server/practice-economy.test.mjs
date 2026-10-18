@@ -49,6 +49,9 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal(result.session.index,PRACTICE_SESSION_SIZE);assert.ok(result.session.completedAt);
     const after=await readReaderState(db,session,now),expected=practiceDiscountTopic("reader",result.session.completedAt);
     assert.equal(after.practiceDiscountTopic,expected);assert.equal(after.activePracticeSession,null);
+    assert.equal(after.growth["seven-habits"].reviewDays,1);
+    assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM practice_session_cards WHERE session_id=?").get(first.session.id)).n,5);
+    assert.equal((await db.prepare("SELECT completed_local_day FROM practice_sessions WHERE id=?").get(first.session.id)).completed_local_day,"2026-10-06");
     assert.equal(Object.keys(after.practiceAnswers).length,PRACTICE_SESSION_SIZE);
     const next=await startPracticeSession(db,session,expected,new Date(now.getTime()+7000));
     assert.equal(next.session.cost,2);

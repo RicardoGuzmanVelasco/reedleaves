@@ -107,5 +107,5 @@ test("PostgreSQL profiles separate views and practices and upgrade historical un
   const data=await readProfile(db,id,id);
   assert.equal(data.profile.counts.cardsViewed,2);assert.equal(data.profile.counts.cardsReviewed,1);
   assert.equal(data.profile.counts.leavesSpent,1);assert.equal(data.profile.counts.decksInProgress,1);
-  assert.equal(data.profile.mascots.seed,1);assert.equal(data.profile.mascots.pot,0);
+  assert.equal(data.profile.mascots.seed,0);assert.equal(data.profile.mascots.pot,1);
 });

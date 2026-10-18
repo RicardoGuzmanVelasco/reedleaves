@@ -229,9 +229,18 @@ CREATE TABLE practice_sessions (
   card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
   cost INTEGER NOT NULL CHECK(cost IN (2,3)),
   started_at TEXT NOT NULL,
-  completed_at TEXT
+  completed_at TEXT,
+  completed_local_day TEXT CHECK(completed_local_day IS NULL OR (completed_local_day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(completed_local_day,'+0 days') IS completed_local_day))
 ) STRICT;
 CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL;
+CREATE TABLE practice_session_cards (
+  session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
+  card_id TEXT NOT NULL REFERENCES cards(id),
+  position INTEGER NOT NULL CHECK(position BETWEEN 0 AND 4),
+  PRIMARY KEY(session_id,card_id),
+  UNIQUE(session_id,position)
+) STRICT;
+CREATE INDEX practice_session_cards_by_card ON practice_session_cards(card_id,session_id);
 CREATE TABLE practice_cards (
   rowid INTEGER PRIMARY KEY,
   practice_id TEXT NOT NULL,
@@ -339,4 +348,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 25;
+PRAGMA user_version = 26;

@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 17));
-INSERT INTO reed_schema VALUES (17);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 18));
+INSERT INTO reed_schema VALUES (18);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -135,10 +135,18 @@ CREATE TABLE practice_sessions(
   id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
   topic TEXT NOT NULL CHECK(topic IN ('reading','read','saved','mixed')),
   card_ids TEXT NOT NULL, card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
-  cost INTEGER NOT NULL CHECK(cost IN (2,3)), started_at TIMESTAMPTZ NOT NULL, completed_at TIMESTAMPTZ
+  cost INTEGER NOT NULL CHECK(cost IN (2,3)), started_at TIMESTAMPTZ NOT NULL, completed_at TIMESTAMPTZ,
+  completed_local_day TEXT CHECK(completed_local_day IS NULL OR (completed_local_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(completed_local_day,'YYYY-MM-DD'),'YYYY-MM-DD') = completed_local_day))
 );
 CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL;
 ALTER TABLE practice_sessions ENABLE ROW LEVEL SECURITY;
+CREATE TABLE practice_session_cards(
+  session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
+  card_id TEXT NOT NULL REFERENCES cards(id), position INTEGER NOT NULL CHECK(position BETWEEN 0 AND 4),
+  PRIMARY KEY(session_id,card_id), UNIQUE(session_id,position)
+);
+CREATE INDEX practice_session_cards_by_card ON practice_session_cards(card_id,session_id);
+ALTER TABLE practice_session_cards ENABLE ROW LEVEL SECURITY;
 CREATE TABLE practice_cards(
   rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE, practice_id TEXT NOT NULL, user_id TEXT NOT NULL, version_id TEXT NOT NULL,
   card_id TEXT NOT NULL, local_day TEXT NOT NULL CHECK(local_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(local_day,'YYYY-MM-DD'),'YYYY-MM-DD') = local_day),
