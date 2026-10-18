@@ -67,7 +67,7 @@ test("Completion includes all descendants and each deck keeps its own history", 
 });
 test("Deck grid opens a complete modal; every review card is visible and openable", async () => {
   const catalog = await fixture(), model = catalog.versionModels.get(versionId), review = openTreeCard(null,model,versionId,"inside-out-1","2026-10-06",null).review;
-  const reviews = {[versionId]:review}, base = {catalog,language:"es",reviews,versionId,bookId:"seven-habits",requestedId:"inside-out-2",storageAvailable:true};
+  const reviews = {[versionId]:review}, deckId=catalog.versionsById.get(versionId).deckId,base = {catalog,language:"es",reviews,versionId,bookId:"seven-habits",requestedId:"inside-out-2",storageAvailable:true,userId:"reader",enrolledDeckIds:[deckId]};
   const html = reviewView(base);
   assert.match(html,/Equipo Reedleaves/); assert.match(html,/class="tree-map/);
   assert.match(html,/tree-node--seen/); assert.match(html,/tree-node--unseen/);
@@ -111,7 +111,7 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
     }
     const details=deckView({...state,openDeckId:deckChoices[0].version.id}).split("<dialog")[1];
     assert.ok(details.includes(c.deckInProgress));
-    assert.ok(details.includes(c.deckMayChange));
+    assert.ok(details.includes(c.deckMayChangeUnadded));
     for (const tag of ["recommended","popular","preferred","otherDeck"]) assert.ok(!details.includes(c[tag]),"Deck details also omit distinctions and fallback labels");
   }
 });
@@ -236,13 +236,13 @@ test("Draft creation status stays distinct from review progress across deck surf
   for(const language of ["es","en"]){
     const c=words[language],base=readerState(catalog,{language,bookId:version.bookId,versionId,reviews:{[versionId]:done},today:"2026-10-17",deckChoices:featuredDecks(catalog,version.bookId)});
     for(const userId of [deck.creator.userId,"another-reader"]){
-      const state={...base,userId},explanation=userId===deck.creator.userId?c.deckDraftOwnerExplanation:c.deckMayChange;
+      const state={...base,userId},explanation=userId===deck.creator.userId?c.deckDraftOwnerExplanation:c.deckMayChangeUnadded;
       const surfaces=[deckView({...state,openDeckId:versionId}),reviewView(state)];
       if(userId===deck.creator.userId)surfaces.push(authorView({...state,mode:"author"}));
       for(const html of surfaces){
         assert.ok(html.includes(c.deckInProgress));
         assert.ok(html.includes(explanation));
-        assert.ok(!html.includes(userId===deck.creator.userId?c.deckMayChange:c.deckDraftOwnerExplanation));
+        assert.ok(!html.includes(userId===deck.creator.userId?c.deckMayChangeUnadded:c.deckDraftOwnerExplanation));
       }
       assert.doesNotMatch(reviewView(state),/Repaso completo|Practice complete/);
     }

@@ -203,6 +203,7 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   assert.equal(shared.versions.some(v=>v.id===versionId),true);
   assert.equal(shared.books.find(b=>b.id===bookId).creatorUserId,state.user.id);
   const otherHeaders={Cookie:otherCookie,"X-CSRF-Token":(await other.json()).csrfToken};
+  assert.equal((await post("/api/reader/collect",{versionId},otherHeaders)).status,200);
   assert.equal((await post("/api/reader/select",{versionId},otherHeaders)).status,200);
   assert.equal((await post("/api/author/cards",{...cardInput,requestId:randomUUID()},otherHeaders)).status,404);
   const otherOpen=await post("/api/reader/open",{versionId,cardId},otherHeaders);
@@ -238,6 +239,7 @@ test("Profiles require a session and view writes require origin, CSRF and a vali
   assert.equal((await fetch(base+"/api/profiles/reed-team",{method:"POST",headers})).status,405);
   assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"review"},{Cookie:cookie})).status,403);
   assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"review"},headers)).status,200);
+  await post("/api/reader/collect",{versionId:"seven-habits-editorial-v1"},headers);
   await post("/api/reader/open",{versionId:"seven-habits-editorial-v1",cardId:"habit-1"},headers);
   assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"review"},headers)).status,200);
 });

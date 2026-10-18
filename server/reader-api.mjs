@@ -2,7 +2,7 @@ import {randomUUID} from "node:crypto";
 import {authenticate, readSession, revokeSession, checkCsrf, sessionCookie} from "./auth.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {ApiError} from "./errors.mjs";
-import {readReaderState, selectDeck, openCard, changeReading, changePreferences, dailyIdea} from "./reader-repository.mjs";
+import {readReaderState, selectDeck, addDeckToCollection, openCard, changeReading, changePreferences, dailyIdea} from "./reader-repository.mjs";
 
 import {createBook,createDeck,addCard,takeFirstNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
 import {createBookAutofill} from "./book-autofill.mjs";
@@ -36,7 +36,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
   }
   return async (request,response,path,send) => {
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
-      ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],
+      ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/collect",["POST"]],
       ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
     routes.set("/api/feedback",["POST"]);
     routes.set("/api/author/decks/finish-notes",["POST"]);
@@ -126,8 +126,9 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         const result = path === "/api/author/notes" ? await takeFirstNote(db,active,input) : path === "/api/author/decks/finish-notes" ? await finishNoteDecks(db,active,input) : path === "/api/author/decks/finish" ? await finishDeck(db,active,input) : path.endsWith("complete") ? await completeBook(db,active,input) : path.endsWith("books") ? await createBook(db,active,input) : path.endsWith("decks") ? await createDeck(db,active,input) : await addCard(db,active,input);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
-      const result = path === "/api/reader/select" ? await selectDeck(db,active,input.versionId,currentTime) :
-        path === "/api/reader/open" ? await openCard(db,active,input.versionId,input.cardId,currentTime) :
+      const result = path === "/api/reader/collect" ? await addDeckToCollection(db,active,input.versionId,currentTime) :
+        path === "/api/reader/select" ? await selectDeck(db,active,input.versionId,currentTime,{requireCollection:true}) :
+        path === "/api/reader/open" ? await openCard(db,active,input.versionId,input.cardId,currentTime,{requireCollection:true}) :
         path === "/api/reader/reading" ? await changeReading(db,active,input.bookId,input.status,currentTime) :
         path === "/api/reader/preferences" ? await changePreferences(db,active,input,currentTime) : await dailyIdea(db,active,currentTime);
       send(200,result);

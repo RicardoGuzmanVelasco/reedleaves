@@ -1,4 +1,4 @@
-import { startReader } from "./reader-app.mjs?v=collection-domains-4";
+import { startReader } from "./reader-app.mjs?v=deck-leaf-cost-5";
 import {createCardFeaturesBridge} from "./generated/card-features.js";
 
 startReader({createCardFeatures:createCardFeaturesBridge});

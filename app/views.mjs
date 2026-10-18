@@ -3,7 +3,7 @@ import { availableVersions } from "./decks.mjs";
 import {homeBooks,editableNoteVersions,recentNoteVersions} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=collection-domains-4";
+import { words } from "./i18n.mjs?v=deck-leaf-cost-6";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
@@ -403,12 +403,13 @@ function teamRecommendationMarkup(c) {
   return `<span class="team-recommendation" aria-hidden="true"><svg class="team-recommendation-paper" viewBox="0 0 160 32" preserveAspectRatio="none" aria-hidden="true"><path d="M17 4C47 8 83-1 139 3C150 4 156 9 153 17C151 25 146 28 135 27C89 23 53 32 18 28C8 27 2 23 3 16C4 8 8 3 17 4Z" fill="currentColor"/></svg><span class="team-recommendation-content"><svg class="team-recommendation-star" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.1 3.5Q12 1.5 12.9 3.5L15 8Q15.2 8.5 15.9 8.6L20.4 9Q22.7 9.2 20.9 10.8L17.5 13.9Q17 14.3 17.2 15L18.1 19.5Q18.6 21.7 16.6 20.5L12.5 18.1Q12 17.8 11.4 18.1L7.4 20.5Q5.3 21.7 5.9 19.4L6.9 15Q7.1 14.3 6.6 13.9L3.1 10.8Q1.3 9.2 3.6 9L8.2 8.6Q8.8 8.5 9.1 7.9Z"/></svg><span>${esc(c.teamRecommendationShort)}</span></span></span>`;
 }
 
-function deckStatusMarkup(s,version,{compact=false}={}) {
+function deckStatusMarkup(s,version,{compact=false,canPractice:canPracticeState}={}) {
   if (!["draft","published"].includes(version.status)) return "";
   const c=words[s.language],inProgress=version.status === "draft";
   const owner=s.userId && s.userId === s.catalog.decksById.get(version.deckId)?.creator.userId;
+  const canPractice=canPracticeState ?? (!!s.userId && ((s.enrolledDeckIds || []).includes(version.deckId) || owner));
   if (compact) return inProgress ? `<span class="deck-writing-badge deck-writing-badge--compact" aria-hidden="true" title="${esc(c.deckInProgress)}">${esc(c.deckInProgressShort)}</span>` : "";
-  return `<div class="deck-writing-status"><span class="deck-writing-badge">${inProgress ? c.deckInProgress : c.deckFinished}</span>${inProgress ? `<p>${owner ? c.deckDraftOwnerExplanation : c.deckMayChange}</p>` : ""}</div>`;
+  return `<div class="deck-writing-status"><span class="deck-writing-badge">${inProgress ? c.deckInProgress : c.deckFinished}</span>${inProgress ? `<p>${owner ? c.deckDraftOwnerExplanation : canPractice ? c.deckMayChange : c.deckMayChangeUnadded}</p>` : ""}</div>`;
 }
 
 export function deckCompletionView(s) {
@@ -461,7 +462,7 @@ export function deckView(s) {
   const languageName = tag => { try { return new Intl.DisplayNames([s.language],{type:"language"}).of(tag) || tag; } catch { return tag; } };
   const deckDetails = ({deck,version}, dialog = false) => {
     const review = s.reviews[version.id], started = review?.seenIds.length > 0;
-    const inCollection=!!s.userId && ((s.enrolledIds || []).includes(version.id) || deck.creator?.userId === s.userId);
+    const inCollection=!!s.userId && ((s.enrolledDeckIds || []).includes(deck.id) || deck.creator?.userId === s.userId);
     const reviewingLabel = c.reviewingCount(deck.metrics.reviewingBy);
     const metrics = [
       reviewingLabel,
@@ -471,13 +472,13 @@ export function deckView(s) {
     return `<h2 ${dialog ? 'id="deck-dialog-title"' : ""} lang="${esc(contentLocale(version.title,s.language,version.language))}" dir="auto">${esc(contentText(version.title,s.language,version.language))}</h2>
       <p class="deck-creator">${deckCreator(deck)}<span class="deck-language" lang="${esc(deck.language)}">${esc(languageName(deck.language))}</span></p>
       <p class="deck-description" ${dialog ? 'id="deck-dialog-description"' : ""} lang="${esc(contentLocale(version.description,s.language,version.language))}" dir="auto">${esc(contentText(version.description,s.language,version.language))}</p>
-      ${deckStatusMarkup(s,version)}
+      ${deckStatusMarkup(s,version,{canPractice:inCollection})}
       <p class="deck-size">${c.deckSize(version.cardCount,version.depth)}</p>
       ${metrics.length ? `<p class="deck-metrics">${metrics.map(esc).join(" · ")}</p>` : ""}
       ${started ? `<p class="deck-progress">${c.progress(review.seenIds.length,version.cardCount)}</p>` : ""}
       ${deckWritingActions(s,deck,version)}
-      ${s.userId ? inCollection ? `<p class="collection-object-state"><img src="../brand/icons/collections/decks.svg" alt="" width="21" height="21">${c.deckInCollection}</p>` : `<button class="collection-add-action" type="button" data-action="add-deck-to-collection" data-version="${esc(version.id)}"><img src="../brand/icons/collections/decks-add.svg" alt="" width="24" height="24">${c.addDeckToCollection}</button>` : ""}
-      <button class="primary" type="button" data-action="select-deck" data-version="${esc(version.id)}" ${!s.storageAvailable ? "disabled" : ""}>${started ? c.resume : c.choose}</button>`;
+      ${inCollection ? `<p class="collection-object-state"><img src="../brand/icons/collections/decks.svg" alt="" width="21" height="21">${c.deckInCollection}</p>` : ""}
+      ${inCollection ? `<button class="primary" type="button" data-action="select-deck" data-version="${esc(version.id)}" ${!s.storageAvailable ? "disabled" : ""}>${started ? c.resume : c.choose}</button>` : `<button class="primary deck-collection-primary" type="button" data-action="add-deck-to-collection" data-version="${esc(version.id)}" ${!s.storageAvailable ? "disabled" : ""}><img src="../brand/icons/collections/decks-add.svg" alt="" width="24" height="24"><span>${c.addDeckToCollection}</span><span class="deck-add-price" aria-label="${esc(c.deckAddCost)}"><svg class="deck-add-price-paper" viewBox="0 0 160 32" preserveAspectRatio="none" aria-hidden="true"><path d="M17 4C47 8 83-1 139 3C150 4 156 9 153 17C151 25 146 28 135 27C89 23 53 32 18 28C8 27 2 23 3 16C4 8 8 3 17 4Z" fill="currentColor"/></svg><img src="../brand/reed/leaf-token.svg" alt="" width="20" height="20"><span>1</span></span></button>`}`;
   };
   return `<section class="deck-screen">${["library","bookshelf","daily"].includes(s.bookOrigin) ? `<button type="button" class="text-button collection-back" data-action="${s.bookOrigin}">${s.bookOrigin === "library" ? collectionIconMarkup("library",18) : s.bookOrigin === "bookshelf" ? collectionIconMarkup("shelf",18) : ""}${s.bookOrigin === "library" ? c.booksBack : s.bookOrigin === "bookshelf" ? c.shelfBack : c.back}</button>` : ""}
     <div class="screen-heading deck-heading"><div><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.chooseDeck}</h1></div>

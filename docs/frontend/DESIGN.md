@@ -44,7 +44,7 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - La recomendación del equipo (`deck.isRecommended`, procedente de `is_recommended`) se muestra en el selector con la etiqueta flotante «Te recomendamos / We recommend» y estrella de puntas redondeadas. Usar la opción aprobada de papel ondulado, fondo miel `#e7d6aa`, texto y estrella en el verde bosque existente `var(--ink)` (`#173d2c`), sin borde ni sombra. El nombre accesible incluye el texto de la etiqueta y el tooltip identifica al equipo. No depende de votos ni de que la baraja esté en borrador o terminada.
 - Las distinciones de comunidad se conservan en datos y ordenación, pero siguen ocultas; el detalle no añade distintivos. No mostrar una etiqueta de relleno para barajas sin recomendación. Dar prioridad visual al título, con mayor tamaño que la autoría y todo el ancho disponible. Sus 26 px de margen superior dejan espacio al distintivo sin solapar el título.
 - El idioma se representa con un chip después del ojo y antes del estado de creación. Usar los SVG suaves de `brand/icons/languages/` (España para español y Reino Unido para inglés); para otros idiomas, globo neutro con su etiqueta de idioma. Conservar el nombre localizado del idioma en el nombre accesible y el tooltip de apertura. No reservar espacio lateral en el título para la bandera.
-- Las tarjetas de baraja terminadas no muestran un indicador de estado. Las versiones `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. Detalle, repaso y gestión comparten una explicación según propietario o lector: otras personas ya pueden ver y repasar el contenido; las tarjetas que se añadan aparecerán como pendientes. La fila de chips puede envolver en móvil estrecho.
+- Las tarjetas de baraja terminadas no muestran un indicador de estado. Las versiones `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. En una baraja aún no añadida a Decks, indicar que puede previsualizarse y que hay que añadirla para repasarla. Tras añadirla, explicar que las nuevas tarjetas del borrador aparecerán como pendientes. La fila de chips puede envolver en móvil estrecho.
 - Antes del ojo, mostrar un chip con el icono de dos tarjetas cerradas y su número. Sustituye a «X tarjetas · Y niveles»; el selector omite los niveles también en su nombre accesible. El icono `cards.svg` deriva de `cards-pen.svg` y mantiene sus dos tarjetas sin lápiz; no sustituye al icono de «Tomar nota». Todos los chips de la fila comparten estilo sin borde.
 
 ## Vista exclusiva de tarjetas
@@ -75,6 +75,7 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 | Creación cerrada (`status=published`) | Terminada | Finished |
 | Contenido pendiente del editor | Nota sin guardar | Unsaved note |
 | Aprendizaje activo | Barajas en repaso | Decks being practiced |
+| Coste de añadir una baraja ajena | Una hoja | One leaf |
 | Unidad de contenido | Tarjeta | Card |
 | Texto citado | Cita | Quote |
 | Relación entre tarjetas | Colocar debajo de | Place under |
@@ -84,7 +85,7 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 | Contenido creado por usuarios | Contribuciones | Contributions |
 | Progreso de una persona en un libro | Crecimiento | Growth |
 
-En castellano, llamar **tarjeta** a cada unidad de contenido; no usar **carta** como sinónimo. **Hoja** conserva el juego intencional entre página y hoja de planta. **Cita** se refiere a un texto citado dentro del contexto de tarjetas. Usar **Practice** para la actividad de aprendizaje en inglés. La Biblioteca / Bookcase personal contiene dos vistas: Estantería / Shelf para libros y Tarjetero / Decks para barajas. Las barajas creadas por la persona aparecen automáticamente en Decks.
+En castellano, llamar **tarjeta** a cada unidad de contenido; no usar **carta** como sinónimo. **Hoja** conserva el juego intencional entre página y hoja de planta. **Cita** se refiere a un texto citado dentro del contexto de tarjetas. Usar **Practice** para la actividad de aprendizaje en inglés. La Biblioteca / Bookcase personal contiene dos vistas: Estantería / Shelf para libros y Tarjetero / Decks para barajas. Las barajas creadas por la persona aparecen automáticamente en Decks. Añadir una baraja de otra persona a Decks cuesta una hoja; repasar sus tarjetas no gasta hojas.
 
 Para iniciar la captura de una idea o cita, usar siempre **Tomar nota / Take a note**, incluidos botones, nombres accesibles, encabezados del editor y título de página. Reutilizar la clave de traducción `takeNote`. Evitar las variantes «Añadir contenido», «Añadir tarjeta» y «Añadir cita» para esta acción. Idea / Cita identifica el tipo dentro del editor; Tarjeta sigue nombrando la unidad de lectura y repaso.
 
