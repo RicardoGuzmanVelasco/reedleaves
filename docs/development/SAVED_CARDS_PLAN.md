@@ -1,7 +1,9 @@
-# Plan de implementación · Tarjetas guardadas y acciones optimistas
+# Registro histórico · Tarjetas guardadas y acciones optimistas
 
 Fecha: 13 de octubre de 2026.
 Estado: implementado en producción y disponible en local. Base previa corregida: 204/204. Resultado final: 214/214, más verificación de navegador en escritorio y móvil.
+
+> Este documento registra decisiones y código anteriores; las referencias a versiones y desbloqueos son históricas. El modelo vigente relaciona tarjetas guardadas, barajas y prácticas mediante sus IDs estables. No usar este registro como especificación actual.
 
 ## Resultado esperado
 

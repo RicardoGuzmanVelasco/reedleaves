@@ -4,7 +4,7 @@ import {ApiError} from "./errors.mjs";
 async function accessibleCard(db,session,cardId) {
   if (typeof cardId !== "string" || !cardId.trim() || cardId.length > 240) throw new ApiError(400,"invalidRequest");
   const card=await db.prepare(`SELECT c.id,d.creator_user_id FROM cards c
-    JOIN deck_versions v ON v.id=c.version_id JOIN decks d ON d.id=v.deck_id WHERE c.id=?`).get(cardId);
+    JOIN decks d ON d.id=c.deck_id WHERE c.id=?`).get(cardId);
   if (!card) throw new ApiError(404,"cardUnavailable");
   return card;
 }

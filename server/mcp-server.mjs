@@ -69,7 +69,7 @@ function makeServer(db,publicBaseUrl) {
   server.registerTool("append_cards_to_draft",{
     title:"Añadir tarjetas a borrador",
     description:"Append cards to a draft deck created by Equipo Reedleaves. Existing cards cannot be edited or removed by this tool. Saving updates the shared catalog.",
-    inputSchema:{requestId:z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i).describe("Stable UUID for this append operation; reuse it when retrying."),versionId:z.string().min(1).max(280),
+    inputSchema:{requestId:z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i).describe("Stable UUID for this append operation; reuse it when retrying."),deckId:z.string().min(1).max(280),
       cards:z.array(z.object({title:z.string().trim().max(160).optional(),body:z.string().trim().min(1).max(4000),isQuote:z.boolean().default(false),
         parentId:z.string().min(1).optional(),parentIndex:z.number().int().nonnegative().nullable().optional()})).min(1).max(120)},
     annotations:{readOnlyHint:false,destructiveHint:true,openWorldHint:false}
@@ -77,12 +77,12 @@ function makeServer(db,publicBaseUrl) {
   server.registerTool("finish_deck",{
     title:"Marcar baraja como terminada",
     description:"Mark a nonempty draft created by Equipo Reedleaves as finished (published). Call only when the user explicitly asks to finish that deck. Finishing freezes its cards and prevents further additions. Decks owned by other users or without an owner are rejected. Repeating this call for an already finished team deck is safe.",
-    inputSchema:{versionId:z.string().trim().min(1).max(256).describe("Version ID of the team deck to finish, as returned by create_deck.")},
+    inputSchema:{deckId:z.string().trim().min(1).max(256).describe("Deck ID of the team deck to finish, as returned by create_deck.")},
     annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:false}
   },safeTool(async(input)=>toolText(await finishTeamDeck(db,input))));
   server.registerTool("list_team_drafts",{
     title:"Listar borradores de barajas del equipo",
-    description:"List only drafts owned by Equipo Reedleaves, optionally filtered by book. Returns version IDs, titles and card counts so the user can identify existing drafts before finishing them. This call does not change any deck.",
+    description:"List only drafts owned by Equipo Reedleaves, optionally filtered by book. Returns deck IDs, titles and card counts so the user can identify existing drafts before finishing them. This call does not change any deck.",
     inputSchema:{bookId:z.string().trim().min(1).max(240).optional()},
     annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false}
   },safeTool(async(input)=>toolText(await readTeamDeckDrafts(db,input))));

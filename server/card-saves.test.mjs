@@ -24,7 +24,7 @@ async function fixture(t,dialect) {
 }
 
 for(const dialect of ['sqlite','postgres']){
-  test(`${dialect}: saved cards stay private, are idempotent and never change review progress`,async t=>{
+  test(`${dialect}: saved cards stay private and idempotent`,async t=>{
     const {db,a,b}=await fixture(t,dialect);
     const before=await readReaderState(db,a,now);
     const first=await setCardSave(db,a,{cardId:'habit-2',saved:true},now);
@@ -32,7 +32,7 @@ for(const dialect of ['sqlite','postgres']){
     assert.deepEqual(await setCardSave(db,a,{cardId:'habit-2',saved:true},new Date('2026-10-14T12:00:00Z')),first);
     await recordCardView(db,a,{cardId:'habit-2',context:'saved'},new Date('2026-10-14T12:00:00Z'));
     const after=await readReaderState(db,a,now);
-    assert.deepEqual(after.wallet,before.wallet);assert.deepEqual(after.reviews,before.reviews);assert.deepEqual(after.growth,before.growth);
+    assert.deepEqual(after.wallet,before.wallet);assert.deepEqual(after.growth,before.growth);
     assert.equal(after.cardSaves[0].cardId,'habit-2');
     assert.equal((await readSavedCards(db,b,'seven-habits')).cards.length,0);
     assert.equal((await readCardActions(db,b,'habit-2')).saved,false);
@@ -50,14 +50,15 @@ for(const dialect of ['sqlite','postgres']){
 
   test(`${dialect}: upgrade previous schema keeps votes and unlocks, orders saves by date, and reinitializes safely`,async t=>{
     const db=await historicalDatabase(t,dialect,dialect === "postgres" ? 7 : 15),a=await historicalReader(db);
-    await historicalUnlock(db,a);await setCardVote(db,a,{cardId:'habit-1',value:-1});
+    await historicalUnlock(db,a);
+    await db.prepare("INSERT INTO card_votes(user_id,card_id,value) VALUES (?,?,?)").run(a.user_id,'habit-1',-1);
     const before=await migrationData(db);
     await initializeDatabase(db);await initializeDatabase(db);
     assert.deepEqual(await migrationData(db),before);
     const version=dialect==='postgres'?(await db.prepare('SELECT version FROM reed_schema').get()).version:db.prepare('PRAGMA user_version').get().user_version;
     assert.equal(version,dialect==='postgres'?POSTGRES_SCHEMA_VERSION:SQLITE_SCHEMA_VERSION);
     assert.equal((await readCardActions(db,a,'habit-1')).vote,-1);
-    assert.deepEqual((await readReaderState(db,a,now)).reviews['seven-habits-editorial-v1'].seenIds,['habit-1']);
+    assert.equal('practices' in await readReaderState(db,a,now),false);
     await setCardSave(db,a,{cardId:'habit-1',saved:true},now);
     await db.prepare("INSERT INTO daily_ideas VALUES ('2026-10-13','habit-2')").run();
     await setCardSave(db,a,{cardId:'habit-2',saved:true},new Date(now.getTime()+1000));

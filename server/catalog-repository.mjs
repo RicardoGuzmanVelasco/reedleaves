@@ -29,11 +29,11 @@ export async function readCatalog(db, userId) {
     validateBookLinks(book.links,{required:!book.creatorUserId}); books.push(validateBook(book,LANGUAGES,{requireOriginal:true}));
   }
   const cards = [];
-  const cardRows = await db.prepare(`SELECT c.*,d.deck_id,deck.language AS deck_language FROM cards c
-    JOIN deck_versions d ON d.id=c.version_id JOIN decks deck ON deck.id=d.deck_id
-    JOIN books b ON b.id=c.book_id ORDER BY b.position,d.deck_id,d.version,c.position,c.id`).all();
+  const cardRows = await db.prepare(`SELECT c.*,deck.language AS deck_language FROM cards c
+    JOIN decks deck ON deck.id=c.deck_id JOIN books b ON b.id=c.book_id
+    ORDER BY b.position,c.deck_id,c.position,c.id`).all();
   for (const row of cardRows) {
-    const card = {id:row.id,bookId:row.book_id,deckId:row.deck_id,versionId:row.version_id,deckLanguage:row.deck_language,
+    const card = {id:row.id,bookId:row.book_id,deckId:row.deck_id,deckLanguage:row.deck_language,
       isQuote:!!row.is_quote,parentId:row.parent_id,order:row.position,title:{},body:{}};
     for (const t of await db.prepare("SELECT language,title,body FROM card_translations WHERE card_id = ?").all(row.id)) {
       card.title[t.language]=t.title; card.body[t.language]=t.body;
@@ -47,28 +47,25 @@ export async function readCatalog(db, userId) {
     decks.push({id:row.id,bookId:row.book_id,language:row.language,isRecommended:!!row.is_recommended,
       creator:{kind:"user",userId:row.creator_user_id,name:row.display_name || null},metrics:{
         likes:await metric("SELECT count(*) AS n FROM deck_votes WHERE deck_id = ? AND value = 1",row.id),
-        dislikes:await metric("SELECT count(*) AS n FROM deck_votes WHERE deck_id = ? AND value = -1",row.id),
-        startedBy:await metric(`SELECT count(DISTINCT r.user_id) AS n FROM reviews r JOIN deck_versions v ON v.id=r.version_id WHERE v.deck_id = ?`,row.id),
-        reviewingBy:await metric(`SELECT count(DISTINCT r.user_id) AS n FROM reviews r JOIN deck_versions v ON v.id=r.version_id WHERE v.deck_id = ? AND r.completed_at IS NULL`,row.id)
+        dislikes:await metric("SELECT count(*) AS n FROM deck_votes WHERE deck_id = ? AND value = -1",row.id)
       }});
   }
-  const versions = [];
-  for (const row of await db.prepare("SELECT v.*,d.language FROM deck_versions v JOIN decks d ON d.id=v.deck_id ORDER BY v.deck_id,v.version").all()) {
-    const model = validateCards(cards.filter(c=>c.versionId===row.id),row.book_id,{allowEmpty:["draft","archived"].includes(row.status)});
+  for (const row of await db.prepare("SELECT * FROM decks ORDER BY book_id,id").all()) {
+    const model = validateCards(cards.filter(c=>c.deckId===row.id),row.book_id,{allowEmpty:["draft","archived"].includes(row.status)});
     let depth=0;
     for (const card of model.cards) { let level=1,parent=card.parentId; while(parent!==null){level++;parent=model.byId.get(parent).parentId;} depth=Math.max(depth,level); }
-    const version = {id:row.id,deckId:row.deck_id,bookId:row.book_id,number:row.version,status:row.status,
-      editorialStatus:row.editorial_status,language:row.language,cardCount:model.cards.length,depth,title:{},description:{},editorialNote:{}};
-    for (const t of await db.prepare("SELECT * FROM deck_version_translations WHERE version_id = ?").all(row.id)) {
-      version.title[t.language]=t.title; version.description[t.language]=t.description; version.editorialNote[t.language]=t.editorial_note;
+    const deck = decks.find(item=>item.id===row.id);
+    Object.assign(deck,{status:row.status,
+      editorialStatus:row.editorial_status,language:row.language,cardCount:model.cards.length,depth,title:{},description:{},editorialNote:{}});
+    for (const t of await db.prepare("SELECT * FROM deck_translations WHERE deck_id = ?").all(row.id)) {
+      deck.title[t.language]=t.title; deck.description[t.language]=t.description; deck.editorialNote[t.language]=t.editorial_note;
     }
-    for (const key of ["title","description","editorialNote"]) if(!version[key][version.language]?.trim()) throw new Error("Missing deck-language metadata");
+    for (const key of ["title","description","editorialNote"]) if(!deck[key][deck.language]?.trim()) throw new Error("Missing deck-language metadata");
     for (const siblings of model.children.values()) if(siblings.some((c,i)=>c.order!==i+1)) throw new Error("Non-contiguous sibling order");
     if(model.cards.some(card=>!card.title[row.language]||!card.body[row.language])) throw new Error("Card is missing text in its deck language");
-    versions.push(version);
   }
   // Account-created decks and their cards join the shared catalog as they are saved.
-  return {schemaVersion:3,genres,books,decks,versions,cards};
+  return {schemaVersion:4,genres,books,decks,cards};
 }
 
 export async function checkCatalog(db) {
@@ -79,5 +76,5 @@ export async function checkCatalog(db) {
   const catalog = await readCatalog(db), ids = new Set(catalog.genres.map(g=>g.id));
   if(catalog.genres.some(g=>LANGUAGES.some(language=>!g.name[language]?.trim()))) throw new Error("Missing genre translation");
   for(const book of catalog.books) if(!book.creatorUserId && !book.genres.length||book.genres.some(id=>!ids.has(id))) throw new Error("Missing book genre");
-  return {books:catalog.books.length,decks:catalog.decks.length,versions:catalog.versions.length,cards:catalog.cards.length,genres:catalog.genres.length};
+  return {books:catalog.books.length,decks:catalog.decks.length,cards:catalog.cards.length,genres:catalog.genres.length};
 }

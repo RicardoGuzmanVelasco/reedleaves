@@ -5,7 +5,7 @@ Read the newest dated entry when recent progress, deployment state, or project h
 - [Ajustar hojas manualmente](LEAVES.md): SQL para Supabase y comando administrativo.
 - [Crear barajas desde Codex mediante MCP](MCP_DECKS.md): herramientas, atribución y conexión privada.
 - [Decisiones de arquitectura y producto](../adr/README.md): acuerdos vigentes y cuestiones pospuestas.
-- [Tomar nota desde Inicio](NOTE_CAPTURE_PLAN.md): happy path de captura rápida, decisiones aprobadas y escenarios alternativos.
+- [Archivo histórico de captura de notas](NOTE_CAPTURE_PLAN.md): diseño e implementación del flujo anterior a los IDs directos de baraja.
 - [Repasar](PRACTICE_PLAN.md): diseño en curso, botonera inicial, posiciones aprobadas e incrementos futuros con swipe y cuatro respuestas.
 
 - [2026-10-18 — Repaso, títulos, guardado y acceso libre a tarjetas](2026-10-18.md)

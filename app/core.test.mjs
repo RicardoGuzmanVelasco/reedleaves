@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { parseCards, validateCards, selectDaily, restoreProgress, localDay, validateBook, contentText } from "./core.mjs";
+import { parseCards, validateCards, selectDaily, localDay, validateBook, contentText } from "./core.mjs";
 
 const text = readFileSync(new URL("./fixtures/v1/seven-habits.ndjson",import.meta.url),"utf8");
 const model = parseCards(text,"seven-habits");
@@ -71,8 +71,4 @@ test("Una selección diaria inválida se recupera y el día usa fecha local", ()
   assert.equal(selectDaily(model.roots,"2026-10-06",{day:"2026-10-06",id:"missing"},()=>0).id,"habit-1");
   assert.equal(localDay(new Date(2026,9,6,23,59)),"2026-10-06");
   assert.equal(localDay(new Date(2026,9,7,0,0)),"2026-10-07");
-});
-test("El progreso elimina IDs desconocidos y duplicados", () => {
-  assert.deepEqual(restoreProgress({reviewed:["habit-1","habit-1","missing"],currentId:"missing"},model),{reviewed:["habit-1"],currentId:"habit-1",dailyReviewedDay:null});
-  assert.equal(restoreProgress(null,model).reviewed.length,0);
 });

@@ -46,13 +46,21 @@ export async function historicalUnlock(db,session,{versionId="seven-habits-edito
   const {book_id:bookId}=await db.prepare("SELECT book_id FROM deck_versions WHERE id=?").get(versionId);
   await db.prepare("INSERT INTO studies(user_id,version_id) VALUES (?,?)").run(userId,versionId);
   await db.prepare("INSERT INTO deck_selections VALUES (?,?,?)").run(userId,bookId,versionId);
-  await db.prepare("INSERT INTO reviews(id,user_id,version_id) VALUES (?,?,?)").run(reviewId,userId,versionId);
-  const legacy=db.dialect === "postgres" ? await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_name='review_unlocks'").get() : db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='review_unlocks'").get();
-  if (legacy) {
+  const has = async name => db.dialect === "postgres"
+    ? !!await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=?").get(name)
+    : !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name);
+  const practiceTable=await has("practices")?"practices":"reviews";
+  await db.prepare(`INSERT INTO ${practiceTable}(id,user_id,version_id) VALUES (?,?,?)`).run(reviewId,userId,versionId);
+  const unlocks=await has("review_unlocks");
+  if (unlocks) {
     await db.prepare("INSERT INTO review_unlocks(review_id,user_id,version_id,card_id,local_day) VALUES (?,?,?,?,'2026-10-10')").run(reviewId,userId,versionId,cardId);
     if (db.dialect === "postgres") await db.prepare("UPDATE leaf_wallets SET balance=balance-1 WHERE user_id=?").run(userId);
+  } else if (await has("practice_cards")) {
+    await db.prepare("INSERT INTO practice_cards(practice_id,user_id,version_id,card_id,local_day) VALUES (?,?,?,?,'2026-10-10')").run(reviewId,userId,versionId,cardId);
   } else await db.prepare("INSERT INTO review_cards(review_id,user_id,version_id,card_id,local_day,leaf_spent) VALUES (?,?,?,?,'2026-10-10',0)").run(reviewId,userId,versionId,cardId);
-  await db.prepare("INSERT INTO review_positions(review_id,user_id,version_id,card_id) VALUES (?,?,?,?)").run(reviewId,userId,versionId,cardId);
+  const positionTable=await has("practice_positions")?"practice_positions":"review_positions";
+  const idColumn=positionTable === "practice_positions" ? "practice_id" : "review_id";
+  await db.prepare(`INSERT INTO ${positionTable}(${idColumn},user_id,version_id,card_id) VALUES (?,?,?,?)`).run(reviewId,userId,versionId,cardId);
 }
 
 // Compare retained data: bibliography rows and the old card reference are
@@ -60,18 +68,31 @@ export async function historicalUnlock(db,session,{versionId="seven-habits-edito
 // compare every other table and column, including note dates and saved cards.
 export async function migrationData(db) {
   const result={};
+  const has = async name => db.dialect === "postgres"
+    ? !!await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=?").get(name)
+    : !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name);
   const tables=["users","accounts","sessions","auth_limits","genres","genre_translations","books","book_links",
-    "book_translations","book_genres","decks","deck_versions","deck_version_translations","cards",
-    "card_translations","deck_votes","book_reading","reviews","review_positions","leaf_wallets",
-    "studies","deck_selections","daily_ideas"];
+    "book_translations","book_genres","decks","card_translations","deck_votes","book_reading","leaf_wallets","daily_ideas"];
   const columns={books:"id,author,position,editorial_status,original_title,original_language,updated_at",
-    cards:"id,version_id,book_id,parent_id,position"};
+    decks:"id,book_id,creator_user_id,language,is_recommended,created_at"};
   for (const table of tables) result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${table} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();
-  const reviewTable=db.dialect === "postgres" ?
-    await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_name='review_unlocks'").get() ? "review_unlocks" : "review_cards" :
-    db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='review_unlocks'").get() ? "review_unlocks" : "review_cards";
-  result.review_unlocks=reviewTable === "review_unlocks" ?
-    await db.prepare("SELECT review_id,user_id,version_id,card_id,local_day,unlocked_at FROM review_unlocks ORDER BY review_id,card_id").all() :
-    await db.prepare("SELECT review_id,user_id,version_id,card_id,local_day,reviewed_at AS unlocked_at FROM review_cards ORDER BY review_id,card_id").all();
+  const flattened=await has("deck_versions");
+  result.deckStatus=flattened
+    ? await db.prepare("SELECT deck_id,status,editorial_status FROM deck_versions ORDER BY deck_id").all()
+    : await db.prepare("SELECT id AS deck_id,status,editorial_status FROM decks ORDER BY id").all();
+  result.deckTranslations=flattened
+    ? await db.prepare(`SELECT v.deck_id,t.language,t.title,t.description,t.editorial_note FROM deck_version_translations t
+        JOIN deck_versions v ON v.id=t.version_id ORDER BY v.deck_id,t.language`).all()
+    : await db.prepare("SELECT deck_id,language,title,description,editorial_note FROM deck_translations ORDER BY deck_id,language").all();
+  result.cards=flattened
+    ? await db.prepare(`SELECT c.id,v.deck_id,c.book_id,c.parent_id,c.position FROM cards c
+        JOIN deck_versions v ON v.id=c.version_id ORDER BY c.id`).all()
+    : await db.prepare("SELECT id,deck_id,book_id,parent_id,position FROM cards ORDER BY id").all();
+  result.studies=flattened
+    ? await db.prepare(`SELECT s.user_id,v.deck_id FROM studies s JOIN deck_versions v ON v.id=s.version_id ORDER BY s.user_id,v.deck_id`).all()
+    : await db.prepare("SELECT user_id,deck_id FROM studies ORDER BY user_id,deck_id").all();
+  result.deckSelections=flattened
+    ? await db.prepare(`SELECT s.user_id,s.book_id,v.deck_id FROM deck_selections s JOIN deck_versions v ON v.id=s.version_id ORDER BY s.user_id,s.book_id`).all()
+    : await db.prepare("SELECT user_id,book_id,deck_id FROM deck_selections ORDER BY user_id,book_id").all();
   return result;
 }

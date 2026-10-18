@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {bookTitle,bookCoverTitle} from "./core.mjs";
 import {libraryView,libraryResultsMarkup,homeView,deckView,reviewView,dailyView} from "./views.mjs";
 import {prepareCatalog} from "./catalog.mjs";
-import {featuredDecks,restoreTreeReview} from "./decks.mjs";
+import {featuredDecks} from "./decks.mjs";
 import {openDatabase,initializeDatabase} from "../server/database.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
@@ -12,10 +12,10 @@ async function state() {
   const db=openDatabase(":memory:");
   try {
     initializeDatabase(db); await seedCatalog(db);
-    const catalog=prepareCatalog(await readCatalog(db)),versionId="seven-habits-editorial-v1";
-    return {catalog,versionId,bookId:"seven-habits",language:"es",showOriginalTitles:true,
-      statuses:{"seven-habits":"reading"},bookReviews:{},reviews:{[versionId]:restoreTreeReview({seenIds:["habit-1"]},catalog.versionModels.get(versionId),versionId)},
-      enrolledIds:[versionId],storageAvailable:true,budget:{balance:1},daily:{id:"habit-1"},
+    const catalog=prepareCatalog(await readCatalog(db)),deckId="seven-habits-editorial";
+    return {catalog,deckId,bookId:"seven-habits",language:"es",showOriginalTitles:true,
+      statuses:{"seven-habits":"reading"},
+      enrolledIds:[deckId],storageAvailable:true,budget:{balance:1},daily:{id:"habit-1"},
       deckChoices:featuredDecks(catalog,"seven-habits")};
   } finally { db.close(); }
 }

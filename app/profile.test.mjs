@@ -11,9 +11,9 @@ async function fixture() {
   const db=openDatabase(":memory:");initializeDatabase(db);await seedCatalog(db);
   try{return prepareCatalog(await readCatalog(db));}finally{db.close();}
 }
-const profileData={profile:{id:"test-user",name:'<script>Long name</script>',username:"test.user",createdAt:"2026-10-10 12:00:00",counts:{leavesSpent:8,booksRead:2,booksReading:1,decksInProgress:1,cardsReviewed:8,cardsViewed:9,decksCreated:3,cardsCreated:11,quotesCreated:2},mascots:{pot:1,seed:2,root:0,seedling:0,sprout:1}},bookshelf:[{bookId:"seven-habits",reading:"read",pending:true,hasReviewing:true,hasReviewedCards:false,group:"pending"}]};
+const profileData={profile:{id:"test-user",name:'<script>Long name</script>',username:"test.user",createdAt:"2026-10-10 12:00:00",counts:{booksRead:2,booksReading:1,cardsViewed:9,decksCreated:3,cardsCreated:11,quotesCreated:2},mascots:{pot:1,seed:2,root:0,seedling:0,sprout:1}},bookshelf:[{bookId:"seven-habits",reading:"read"}]};
 
-test("Profiles translate, escape names, link own versus foreign shelves and show all requested statistics",async()=>{
+test("Profiles show book, card-view and contribution counts without old per-card progress statistics",async()=>{
   for(const language of ["es","en"]) {
     const html=profileView({language,profileData,userId:"other"});
     assert.doesNotMatch(html,/<script>|NaN|undefined|mascot-face/);
@@ -28,15 +28,15 @@ test("Profiles translate, escape names, link own versus foreign shelves and show
 });
 
 test("Foreign shelf shows target reading/review states without mutation controls or private metadata actions",async()=>{
-  const catalog=await fixture(),s={catalog,language:"es",readOnly:true,profileData,userId:"other",openBookId:"seven-habits",bookshelfFilters:{reading:"all",review:"all"}};
+  const catalog=await fixture(),s={catalog,language:"es",readOnly:true,profileData,userId:"other",openBookId:"seven-habits",bookshelfFilters:{reading:"all"}};
   const html=bookshelfView(s);
   assert.match(html,/Solo lectura/);assert.match(html,/data-status="read" aria-pressed="true" disabled/);
-  assert.match(html,/Repasando/);assert.match(html,/href="#profile\/test-user"/);
+    assert.doesNotMatch(html,/Repasando|Tarjetas repasadas|Continuar repaso/);assert.match(html,/href="#profile\/test-user"/);
   assert.match(html,/data-action="open-book" data-book="seven-habits"/);
   const controls=[...html.matchAll(/<button[^>]*data-action="set-book-reading"[^>]*>/g)];
   assert.equal(controls.length,3); assert.ok(controls.every(([tag])=>tag.includes("disabled")));
   assert.doesNotMatch(html,/data-book-status|data-action="(?:library|complete-book|create-book)"/);
-  assert.match(bookshelfView({...s,openBookId:null,bookshelfFilters:{reading:"reading",review:"all"}}),/No hay libros con estos filtros/);
+  assert.match(bookshelfView({...s,openBookId:null,bookshelfFilters:{reading:"reading"}}),/No hay libros con estos filtros/);
 });
 
 test("All three card attributions are escaped links with three filled icons and diagonal arrows",async()=>{

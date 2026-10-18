@@ -8,12 +8,12 @@ La app consulta SQLite, no estos archivos. Los CSV son el formato plano de autor
 | `genres.csv` | Un interés con nombre ES/EN |
 | `books.csv` | Un libro con metadatos ES/EN y géneros separados por `|` |
 | `links.csv` | Enlace externo de un libro: plataforma (`amazon` o `goodreads`) y URL HTTPS de su ficha |
-| `decks.csv` | Baraja, creador, libro, idioma principal y versión; enfoque y nota editorial |
-| `cards.csv` | Tarjeta con versión, padre opcional, orden entre hermanas, texto |
+| `decks.csv` | Baraja, creador, libro, idioma principal y estado; enfoque y nota editorial |
+| `cards.csv` | Tarjeta con baraja, padre opcional, orden entre hermanas y texto |
 
 `decks.csv` declara una etiqueta de idioma BCP 47 en `language`, por ejemplo `fr`, `pt-BR` o `zh-Hant`. Esa columna fija el idioma original de la baraja. Las columnas traducidas usan sufijos de idioma, por ejemplo `title_fr` y `body_fr`. Añade una columna y rellénala solo si quieres ofrecer esa traducción; cada tarjeta siempre debe tener título y texto en el idioma principal.
 
-Comas, saltos de línea y comillas dentro de un campo siguen CSV estándar: rodear el campo con comillas y duplicar las interiores. No incluir citas largas ni transcribir capítulos. Mantener IDs y orden estables. Cada tarjeta tiene `version_id` y `parent_id`; el orden es entre hermanas. Para cambios de contenido publicado, crear otra versión con nuevos IDs.
+Comas, saltos de línea y comillas dentro de un campo siguen CSV estándar: rodear el campo con comillas y duplicar las interiores. No incluir citas largas ni transcribir capítulos. Mantener IDs y orden estables. Cada tarjeta tiene `deck_id` y `parent_id`; el orden es entre hermanas. Las correcciones actualizan la misma baraja y conservan los IDs de las tarjetas.
 
 Editar → `npm run db:seed` → `npm run db:check` → `npm test`. La importación es transaccional y repetible; rechaza datos incompletos, referencias ausentes y cambios de posición de tarjetas existentes. Los libros y tarjetas no se borran por omitirlos del CSV.
 

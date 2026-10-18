@@ -12,7 +12,7 @@ Use the Reedleaves MCP tools to save decks discussed in this conversation.
 - Do not invent quotations. Set `isQuote` only when the user supplied the exact quoted wording; otherwise use original editorial prose and `isQuote: false`.
 - For an outline, use `parentIndex` with a zero-based reference to another card in the same submitted list. Leave it empty for a root card.
 - Use a fresh UUID for `requestId` and reuse the same UUID if retrying the same creation after a timeout.
-- Use `list_team_drafts` to identify older team drafts, optionally filtered by `bookId`. It returns titles, card counts and version IDs; never guess a version ID.
+- Use `list_team_drafts` to identify older team drafts, optionally filtered by `bookId`. It returns deck IDs, titles and card counts; never guess a deck ID.
 - Only older team drafts can be extended with `append_cards_to_draft`; do not imply that the tool edits or deletes existing cards or extends finished decks.
-- To mark a team deck as finished, call `finish_deck` with its `versionId` only when the user explicitly asks to finish that specific deck. Finishing freezes the cards, prevents further additions, and cannot be undone through MCP. The server rejects other users' decks, decks without an owner, empty drafts and archived versions. Retrying the same finish operation is safe.
+- To mark a team deck as finished, call `finish_deck` with its `deckId` only when the user explicitly asks to finish that specific deck. Finishing freezes the cards, prevents further additions, and cannot be undone through MCP. The server rejects other users' decks, decks without an owner, empty drafts and archived decks. Retrying the same finish operation is safe.
 - After creating a deck, report the title, card count, and returned URL. After finishing it, confirm the finished state without inventing counts or URLs absent from the result.

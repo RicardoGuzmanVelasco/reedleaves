@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 14));
-INSERT INTO reed_schema VALUES (14);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 21));
+INSERT INTO reed_schema VALUES (21);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -55,33 +55,28 @@ CREATE TABLE auth_limits(bucket TEXT PRIMARY KEY, attempts INTEGER NOT NULL, res
 CREATE TABLE decks(
   id TEXT PRIMARY KEY, book_id TEXT NOT NULL REFERENCES books(id), creator_user_id TEXT NOT NULL REFERENCES users(id),
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35), is_recommended SMALLINT NOT NULL DEFAULT 0 CHECK(is_recommended IN (0,1)),
+  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived')),
+  editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft','reviewed')),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(id,book_id)
 );
 CREATE INDEX decks_by_book ON decks(book_id);
 CREATE UNIQUE INDEX one_recommendation_per_book ON decks(book_id) WHERE is_recommended = 1;
-CREATE TABLE deck_versions(
-  id TEXT PRIMARY KEY, deck_id TEXT NOT NULL, book_id TEXT NOT NULL, version INTEGER NOT NULL CHECK(version > 0),
-  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived')),
-  editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft','reviewed')),
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(deck_id,version), UNIQUE(id,book_id),
-  FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id)
-);
-CREATE TABLE deck_version_translations(
-  version_id TEXT NOT NULL REFERENCES deck_versions(id), language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
+CREATE TABLE deck_translations(
+  deck_id TEXT NOT NULL REFERENCES decks(id), language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
   title TEXT NOT NULL CHECK(length(btrim(title)) > 0), description TEXT NOT NULL CHECK(length(btrim(description)) > 0),
-  editorial_note TEXT NOT NULL CHECK(length(btrim(editorial_note)) > 0), PRIMARY KEY(version_id,language)
+  editorial_note TEXT NOT NULL CHECK(length(btrim(editorial_note)) > 0), PRIMARY KEY(deck_id,language)
 );
 CREATE TABLE cards(
-  id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0), version_id TEXT NOT NULL, book_id TEXT NOT NULL, parent_id TEXT,
-  position INTEGER NOT NULL CHECK(position > 0), is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)), created_at TIMESTAMPTZ, UNIQUE(id,version_id),
-  FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id),
-  FOREIGN KEY(parent_id,version_id) REFERENCES cards(id,version_id) DEFERRABLE INITIALLY DEFERRED,
+  id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0), deck_id TEXT NOT NULL, book_id TEXT NOT NULL, parent_id TEXT,
+  position INTEGER NOT NULL CHECK(position > 0), is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)), created_at TIMESTAMPTZ, UNIQUE(id,deck_id),
+  FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id),
+  FOREIGN KEY(parent_id,deck_id) REFERENCES cards(id,deck_id) DEFERRABLE INITIALLY DEFERRED,
   CHECK(parent_id IS NULL OR parent_id <> id)
 );
-CREATE UNIQUE INDEX root_order ON cards(version_id,position) WHERE parent_id IS NULL;
-CREATE UNIQUE INDEX sibling_order ON cards(version_id,parent_id,position) WHERE parent_id IS NOT NULL;
-CREATE INDEX cards_by_version ON cards(version_id,parent_id,position);
-CREATE INDEX cards_by_note_date ON cards(version_id,created_at DESC) WHERE created_at IS NOT NULL;
+CREATE UNIQUE INDEX root_order ON cards(deck_id,position) WHERE parent_id IS NULL;
+CREATE UNIQUE INDEX sibling_order ON cards(deck_id,parent_id,position) WHERE parent_id IS NOT NULL;
+CREATE INDEX cards_by_deck ON cards(deck_id,parent_id,position);
+CREATE INDEX cards_by_note_date ON cards(deck_id,created_at DESC) WHERE created_at IS NOT NULL;
 CREATE TABLE card_translations(
   card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE, language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
   title TEXT NOT NULL CHECK(length(btrim(title)) > 0), body TEXT NOT NULL CHECK(length(btrim(body)) > 0), PRIMARY KEY(card_id,language)
@@ -108,29 +103,39 @@ CREATE TABLE book_reading(
   user_id TEXT NOT NULL REFERENCES users(id), book_id TEXT NOT NULL REFERENCES books(id),
   status TEXT NOT NULL CHECK(status IN ('reading','read')), PRIMARY KEY(user_id,book_id)
 );
-CREATE TABLE reviews(
-  id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), version_id TEXT NOT NULL REFERENCES deck_versions(id),
-  started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, completed_at TIMESTAMP,
-  UNIQUE(user_id,version_id), UNIQUE(id,user_id,version_id), CHECK(completed_at IS NULL OR completed_at >= started_at)
-);
-CREATE INDEX reviews_by_version ON reviews(version_id,user_id);
 CREATE TABLE leaf_wallets(
   user_id TEXT PRIMARY KEY REFERENCES users(id), balance BIGINT NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991),
   last_accrual_day TEXT NOT NULL CHECK(last_accrual_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(last_accrual_day,'YYYY-MM-DD'),'YYYY-MM-DD') = last_accrual_day)
 );
 CREATE TABLE petal_wallets(
   user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  balance BIGINT NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991)
+  balance BIGINT NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991),
+  last_accrual_day TEXT CHECK(last_accrual_day IS NULL OR (last_accrual_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(last_accrual_day,'YYYY-MM-DD'),'YYYY-MM-DD') = last_accrual_day))
 );
-CREATE TABLE review_cards(
-  rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE, review_id TEXT NOT NULL, user_id TEXT NOT NULL, version_id TEXT NOT NULL,
-  card_id TEXT NOT NULL, local_day TEXT NOT NULL CHECK(local_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(local_day,'YYYY-MM-DD'),'YYYY-MM-DD') = local_day),
-  reviewed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, leaf_spent INTEGER NOT NULL DEFAULT 0 CHECK(leaf_spent IN (0,1)),
-  PRIMARY KEY(review_id,card_id),
-  FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
-  FOREIGN KEY(card_id,version_id) REFERENCES cards(id,version_id)
+CREATE TABLE practice_answers(
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  answer TEXT NOT NULL CHECK(answer IN ('soon','remembered')),
+  answered_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY(user_id,card_id)
 );
-CREATE INDEX review_cards_by_reader ON review_cards(user_id,version_id,rowid);
+ALTER TABLE practice_answers ENABLE ROW LEVEL SECURITY;
+CREATE TABLE practice_sessions(
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  topic TEXT NOT NULL CHECK(topic IN ('reading','read','saved','mixed')),
+  card_ids TEXT NOT NULL, card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
+  cost INTEGER NOT NULL CHECK(cost IN (2,3)), started_at TIMESTAMPTZ NOT NULL, completed_at TIMESTAMPTZ,
+  completed_local_day TEXT CHECK(completed_local_day IS NULL OR (completed_local_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(completed_local_day,'YYYY-MM-DD'),'YYYY-MM-DD') = completed_local_day))
+);
+CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL;
+ALTER TABLE practice_sessions ENABLE ROW LEVEL SECURITY;
+CREATE TABLE practice_session_cards(
+  session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
+  card_id TEXT NOT NULL REFERENCES cards(id), position INTEGER NOT NULL CHECK(position BETWEEN 0 AND 4),
+  PRIMARY KEY(session_id,card_id), UNIQUE(session_id,position)
+);
+CREATE INDEX practice_session_cards_by_card ON practice_session_cards(card_id,session_id);
+ALTER TABLE practice_session_cards ENABLE ROW LEVEL SECURITY;
 CREATE TABLE card_views (
   user_id TEXT NOT NULL REFERENCES users(id),
   card_id TEXT NOT NULL REFERENCES cards(id),
@@ -138,15 +143,10 @@ CREATE TABLE card_views (
   PRIMARY KEY(user_id,card_id)
 );
 
-CREATE TABLE studies(rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE, user_id TEXT NOT NULL REFERENCES users(id), version_id TEXT NOT NULL REFERENCES deck_versions(id), PRIMARY KEY(user_id,version_id));
+CREATE TABLE studies(rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE, user_id TEXT NOT NULL REFERENCES users(id), deck_id TEXT NOT NULL REFERENCES decks(id), PRIMARY KEY(user_id,deck_id));
 CREATE TABLE deck_selections(
-  user_id TEXT NOT NULL REFERENCES users(id), book_id TEXT NOT NULL REFERENCES books(id), version_id TEXT NOT NULL,
-  PRIMARY KEY(user_id,book_id), FOREIGN KEY(version_id,book_id) REFERENCES deck_versions(id,book_id)
-);
-CREATE TABLE review_positions(
-  review_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, version_id TEXT NOT NULL, card_id TEXT NOT NULL,
-  FOREIGN KEY(review_id,user_id,version_id) REFERENCES reviews(id,user_id,version_id),
-  FOREIGN KEY(review_id,card_id) REFERENCES review_cards(review_id,card_id)
+  user_id TEXT NOT NULL REFERENCES users(id), book_id TEXT NOT NULL REFERENCES books(id), deck_id TEXT NOT NULL,
+  PRIMARY KEY(user_id,book_id), FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id)
 );
 CREATE TABLE daily_ideas(day TEXT PRIMARY KEY, card_id TEXT NOT NULL REFERENCES cards(id));
 CREATE TABLE feedback_submissions(
@@ -173,13 +173,19 @@ BEGIN
   RETURN NEW;
 END $$;
 CREATE TRIGGER keep_deck_owner BEFORE UPDATE ON decks FOR EACH ROW EXECUTE FUNCTION reed_keep_deck_owner();
+CREATE FUNCTION reed_keep_published_deck() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF OLD.status <> 'draft' THEN RAISE EXCEPTION 'Published deck cannot be deleted'; END IF;
+  RETURN OLD;
+END $$;
+CREATE TRIGGER keep_published_deck BEFORE DELETE ON decks FOR EACH ROW EXECUTE FUNCTION reed_keep_published_deck();
 
 CREATE FUNCTION reed_check_card_cycle() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF NEW.parent_id IS NOT NULL AND EXISTS (
     WITH RECURSIVE ancestors(id,parent_id) AS (
-      SELECT id,parent_id FROM cards WHERE id=NEW.parent_id AND version_id=NEW.version_id
-      UNION SELECT c.id,c.parent_id FROM cards c JOIN ancestors a ON c.id=a.parent_id AND c.version_id=NEW.version_id
+      SELECT id,parent_id FROM cards WHERE id=NEW.parent_id AND deck_id=NEW.deck_id
+      UNION SELECT c.id,c.parent_id FROM cards c JOIN ancestors a ON c.id=a.parent_id AND c.deck_id=NEW.deck_id
     ) SELECT 1 FROM ancestors WHERE id=NEW.id
   ) THEN RAISE EXCEPTION 'Card tree cycle'; END IF;
   RETURN NEW;
@@ -187,59 +193,23 @@ END $$;
 CREATE TRIGGER no_card_cycles_insert BEFORE INSERT ON cards FOR EACH ROW EXECUTE FUNCTION reed_check_card_cycle();
 CREATE TRIGGER no_card_cycles_update BEFORE UPDATE OF parent_id ON cards FOR EACH ROW EXECUTE FUNCTION reed_check_card_cycle();
 
-CREATE FUNCTION reed_complete_review() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION reed_keep_published_card() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  UPDATE reviews SET completed_at=COALESCE(completed_at,CURRENT_TIMESTAMP)
-  WHERE id=NEW.review_id AND (SELECT count(*) FROM review_cards WHERE review_id=NEW.review_id)=(SELECT count(*) FROM cards WHERE version_id=NEW.version_id);
-  RETURN NEW;
-END $$;
-CREATE TRIGGER complete_review AFTER INSERT ON review_cards FOR EACH ROW EXECUTE FUNCTION reed_complete_review();
-
-CREATE FUNCTION reed_freeze_cards() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE version_status TEXT;
-BEGIN
-  SELECT status INTO version_status FROM deck_versions WHERE id=CASE WHEN TG_OP='DELETE' THEN OLD.version_id ELSE NEW.version_id END;
-  IF version_status IS DISTINCT FROM 'draft' THEN RAISE EXCEPTION 'Published content is immutable; create a new version'; END IF;
-  IF TG_OP='DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
-END $$;
-CREATE TRIGGER freeze_cards_insert BEFORE INSERT ON cards FOR EACH ROW EXECUTE FUNCTION reed_freeze_cards();
-CREATE TRIGGER freeze_cards_update BEFORE UPDATE ON cards FOR EACH ROW EXECUTE FUNCTION reed_freeze_cards();
-CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards FOR EACH ROW EXECUTE FUNCTION reed_freeze_cards();
-
-CREATE FUNCTION reed_freeze_card_translation() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE card_version TEXT; version_status TEXT;
-BEGIN
-  SELECT version_id INTO card_version FROM cards WHERE id=CASE WHEN TG_OP='DELETE' THEN OLD.card_id ELSE NEW.card_id END;
-  SELECT status INTO version_status FROM deck_versions WHERE id=card_version;
-  IF version_status IS DISTINCT FROM 'draft' THEN RAISE EXCEPTION 'Published content is immutable; create a new version'; END IF;
-  IF TG_OP='DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
-END $$;
-CREATE TRIGGER freeze_card_translation_insert BEFORE INSERT ON card_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_card_translation();
-CREATE TRIGGER freeze_card_translation_update BEFORE UPDATE ON card_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_card_translation();
-CREATE TRIGGER freeze_card_translation_delete BEFORE DELETE ON card_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_card_translation();
-
-CREATE FUNCTION reed_freeze_version_translation() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE version_status TEXT;
-BEGIN
-  SELECT status INTO version_status FROM deck_versions WHERE id=CASE WHEN TG_OP='DELETE' THEN OLD.version_id ELSE NEW.version_id END;
-  IF version_status IS DISTINCT FROM 'draft' THEN RAISE EXCEPTION 'Published content is immutable; create a new version'; END IF;
-  IF TG_OP='DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
-END $$;
-CREATE TRIGGER freeze_version_translation_insert BEFORE INSERT ON deck_version_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_version_translation();
-CREATE TRIGGER freeze_version_translation_update BEFORE UPDATE ON deck_version_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_version_translation();
-CREATE TRIGGER freeze_version_translation_delete BEFORE DELETE ON deck_version_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_version_translation();
-
-CREATE FUNCTION reed_freeze_version() RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  IF OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id OR NEW.book_id <> OLD.book_id OR NEW.version <> OLD.version OR NEW.status='draft' OR NEW.editorial_status <> OLD.editorial_status OR NEW.created_at <> OLD.created_at) THEN
-    RAISE EXCEPTION 'Published version is immutable';
-  END IF;
-  RETURN NEW;
-END $$;
-CREATE TRIGGER freeze_version BEFORE UPDATE ON deck_versions FOR EACH ROW EXECUTE FUNCTION reed_freeze_version();
-CREATE FUNCTION reed_keep_published_version() RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  IF OLD.status <> 'draft' THEN RAISE EXCEPTION 'Published version is immutable'; END IF;
+  IF (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft' THEN RAISE EXCEPTION 'Published content is immutable; cards cannot be deleted'; END IF;
   RETURN OLD;
 END $$;
-CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions FOR EACH ROW EXECUTE FUNCTION reed_keep_published_version();
+CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards FOR EACH ROW EXECUTE FUNCTION reed_keep_published_card();
+CREATE FUNCTION reed_keep_published_card_translation() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE deck_status TEXT;
+BEGIN
+  SELECT d.status INTO deck_status FROM decks d JOIN cards c ON c.deck_id=d.id WHERE c.id=OLD.card_id;
+  IF deck_status <> 'draft' THEN RAISE EXCEPTION 'Published content is immutable; card translations cannot be deleted'; END IF;
+  RETURN OLD;
+END $$;
+CREATE TRIGGER freeze_card_translation_delete BEFORE DELETE ON card_translations FOR EACH ROW EXECUTE FUNCTION reed_keep_published_card_translation();
+CREATE FUNCTION reed_keep_published_deck_translation() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft' THEN RAISE EXCEPTION 'Published content is immutable; deck translations cannot be deleted'; END IF;
+  RETURN OLD;
+END $$;
+CREATE TRIGGER freeze_deck_translation_delete BEFORE DELETE ON deck_translations FOR EACH ROW EXECUTE FUNCTION reed_keep_published_deck_translation();

@@ -7,13 +7,19 @@ import { Pool, types } from "pg";
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 22;
-export const POSTGRES_SCHEMA_VERSION = 14;
+export const SQLITE_SCHEMA_VERSION = 29;
+export const POSTGRES_SCHEMA_VERSION = 21;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
 const sqliteQueues = new WeakMap();
 types.setTypeParser(20, value => Number(value));
+
+function localDay(timeZone,value) {
+  const parts=new Intl.DateTimeFormat("en-CA",{timeZone,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(value));
+  const part=type=>parts.find(item=>item.type===type).value;
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
 
 export class PostgresDatabase {
   dialect = "postgres";
@@ -81,6 +87,209 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 28) {
+    db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
+    try {
+      const multiple=db.prepare("SELECT d.deck_id,COUNT(*) AS n FROM deck_versions d GROUP BY d.deck_id HAVING COUNT(*)>1 LIMIT 1").get();
+      if (multiple) throw new Error(`Cannot remove deck versions: deck ${multiple.deck_id} has ${multiple.n} versions`);
+      const missing=db.prepare(`SELECT d.id FROM decks d LEFT JOIN deck_versions v ON v.deck_id=d.id
+        WHERE v.id IS NULL LIMIT 1`).get();
+      if (missing) throw new Error(`Cannot remove deck versions: deck ${missing.id} has no version`);
+      db.exec(`ALTER TABLE decks ADD COLUMN status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived'));
+        ALTER TABLE decks ADD COLUMN editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft','reviewed'));
+        UPDATE decks SET status=(SELECT status FROM deck_versions WHERE deck_id=decks.id),
+          editorial_status=(SELECT editorial_status FROM deck_versions WHERE deck_id=decks.id);
+        CREATE TABLE deck_translations_new(
+          deck_id TEXT NOT NULL REFERENCES decks(id), language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
+          title TEXT NOT NULL CHECK(length(trim(title)) > 0), description TEXT NOT NULL CHECK(length(trim(description)) > 0),
+          editorial_note TEXT NOT NULL CHECK(length(trim(editorial_note)) > 0), PRIMARY KEY(deck_id,language)
+        ) STRICT;
+        INSERT INTO deck_translations_new SELECT v.deck_id,t.language,t.title,t.description,t.editorial_note
+          FROM deck_version_translations t JOIN deck_versions v ON v.id=t.version_id;
+        CREATE TABLE cards_new(
+          id TEXT PRIMARY KEY CHECK(length(trim(id)) > 0), deck_id TEXT NOT NULL, book_id TEXT NOT NULL, parent_id TEXT,
+          position INTEGER NOT NULL CHECK(position > 0), is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)), created_at TEXT,
+          UNIQUE(id,deck_id), FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id),
+          FOREIGN KEY(parent_id,deck_id) REFERENCES cards_new(id,deck_id) DEFERRABLE INITIALLY DEFERRED,
+          CHECK(parent_id IS NULL OR parent_id <> id)
+        ) STRICT;
+        INSERT INTO cards_new SELECT c.id,v.deck_id,c.book_id,c.parent_id,c.position,c.is_quote,c.created_at
+          FROM cards c JOIN deck_versions v ON v.id=c.version_id;
+        CREATE TABLE studies_new(
+          user_id TEXT NOT NULL REFERENCES users(id), deck_id TEXT NOT NULL REFERENCES decks(id), PRIMARY KEY(user_id,deck_id)
+        ) STRICT;
+        INSERT INTO studies_new SELECT s.user_id,v.deck_id FROM studies s JOIN deck_versions v ON v.id=s.version_id;
+        CREATE TABLE deck_selections_new(
+          user_id TEXT NOT NULL REFERENCES users(id), book_id TEXT NOT NULL REFERENCES books(id), deck_id TEXT NOT NULL,
+          PRIMARY KEY(user_id,book_id), FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id)
+        ) STRICT;
+        INSERT INTO deck_selections_new SELECT s.user_id,s.book_id,v.deck_id FROM deck_selections s JOIN deck_versions v ON v.id=s.version_id;
+        DROP TRIGGER freeze_cards_delete;
+        DROP TRIGGER freeze_card_translations_delete;
+        DROP TRIGGER freeze_deck_version_translations_delete;
+        DROP TRIGGER no_card_cycles_insert;
+        DROP TRIGGER no_card_cycles_update;
+        DROP TABLE deck_version_translations;
+        DROP TABLE deck_versions;
+        DROP TABLE cards;
+        ALTER TABLE cards_new RENAME TO cards;
+        DROP TABLE studies;
+        ALTER TABLE studies_new RENAME TO studies;
+        DROP TABLE deck_selections;
+        ALTER TABLE deck_selections_new RENAME TO deck_selections;
+        ALTER TABLE deck_translations_new RENAME TO deck_translations;
+        CREATE UNIQUE INDEX root_order ON cards(deck_id,position) WHERE parent_id IS NULL;
+        CREATE UNIQUE INDEX sibling_order ON cards(deck_id,parent_id,position) WHERE parent_id IS NOT NULL;
+        CREATE INDEX cards_by_deck ON cards(deck_id,parent_id,position);
+        CREATE INDEX cards_by_note_date ON cards(deck_id,created_at DESC) WHERE created_at IS NOT NULL;
+        CREATE TRIGGER no_card_cycles_insert BEFORE INSERT ON cards WHEN NEW.parent_id IS NOT NULL BEGIN
+          SELECT RAISE(ABORT,'Card tree cycle') WHERE EXISTS (
+            WITH RECURSIVE ancestors(id,parent_id) AS (
+              SELECT id,parent_id FROM cards WHERE id=NEW.parent_id AND deck_id=NEW.deck_id
+              UNION SELECT c.id,c.parent_id FROM cards c JOIN ancestors a ON c.id=a.parent_id AND c.deck_id=NEW.deck_id
+            ) SELECT 1 FROM ancestors WHERE id=NEW.id
+          );
+        END;
+        CREATE TRIGGER no_card_cycles_update BEFORE UPDATE OF parent_id ON cards WHEN NEW.parent_id IS NOT NULL BEGIN
+          SELECT RAISE(ABORT,'Card tree cycle') WHERE EXISTS (
+            WITH RECURSIVE ancestors(id,parent_id) AS (
+              SELECT id,parent_id FROM cards WHERE id=NEW.parent_id AND deck_id=NEW.deck_id
+              UNION SELECT c.id,c.parent_id FROM cards c JOIN ancestors a ON c.id=a.parent_id AND c.deck_id=NEW.deck_id
+            ) SELECT 1 FROM ancestors WHERE id=NEW.id
+          );
+        END;
+        CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards
+          WHEN (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft'
+          BEGIN SELECT RAISE(ABORT,'Published content is immutable; cards cannot be deleted'); END;
+        CREATE TRIGGER freeze_card_translations_delete BEFORE DELETE ON card_translations
+          WHEN (SELECT status FROM decks WHERE id=(SELECT deck_id FROM cards WHERE id=OLD.card_id)) <> 'draft'
+          BEGIN SELECT RAISE(ABORT,'Published content is immutable; card translations cannot be deleted'); END;
+        CREATE TRIGGER freeze_deck_translations_delete BEFORE DELETE ON deck_translations
+          WHEN (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft'
+          BEGIN SELECT RAISE(ABORT,'Published content is immutable; deck translations cannot be deleted'); END;
+        CREATE TRIGGER keep_published_deck BEFORE DELETE ON decks WHEN OLD.status <> 'draft'
+          BEGIN SELECT RAISE(ABORT,'Published deck cannot be deleted'); END;
+        PRAGMA user_version=29;
+      `);
+      const broken=db.prepare("PRAGMA foreign_key_check").all();
+      if (broken.length) throw new Error("Deck version migration produced broken references");
+      db.exec("COMMIT;");
+    } catch(error) { db.exec("ROLLBACK;"); throw error; }
+    finally { db.exec("PRAGMA foreign_keys=ON;"); }
+    return initializeDatabase(db);
+  }
+  if (version === 27) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`DROP TRIGGER freeze_cards_insert; DROP TRIGGER freeze_cards_update;
+        DROP TRIGGER freeze_card_translations_insert; DROP TRIGGER freeze_card_translations_update;
+        DROP TRIGGER freeze_deck_version_translations_insert; DROP TRIGGER freeze_deck_version_translations_update;
+        DROP TRIGGER freeze_version; DROP TRIGGER keep_published_version;
+        PRAGMA user_version=28; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 26) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`DROP TRIGGER complete_practice;
+        DROP TABLE practice_positions;
+        DROP TABLE practice_cards;
+        DROP TABLE practices;
+        PRAGMA user_version=27; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 25) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE practice_sessions ADD COLUMN completed_local_day TEXT;
+        CREATE TABLE practice_session_cards (
+          session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
+          card_id TEXT NOT NULL REFERENCES cards(id),
+          position INTEGER NOT NULL CHECK(position BETWEEN 0 AND 4),
+          PRIMARY KEY(session_id,card_id), UNIQUE(session_id,position)
+        ) STRICT;
+        CREATE INDEX practice_session_cards_by_card ON practice_session_cards(card_id,session_id);`);
+      const sessions=db.prepare(`SELECT ps.id,ps.card_ids,ps.completed_at,a.time_zone
+        FROM practice_sessions ps JOIN accounts a ON a.user_id=ps.user_id ORDER BY ps.started_at,ps.id`).all();
+      const insert=db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)");
+      const update=db.prepare("UPDATE practice_sessions SET completed_local_day=? WHERE id=?");
+      for (const session of sessions) {
+        const cardIds=JSON.parse(session.card_ids);
+        if (!Array.isArray(cardIds) || cardIds.length!==5 || cardIds.some(id=>typeof id!=="string")) throw new Error(`Invalid cards for practice session ${session.id}`);
+        cardIds.forEach((cardId,position)=>insert.run(session.id,cardId,position));
+        if (session.completed_at) update.run(localDay(session.time_zone,session.completed_at),session.id);
+      }
+      db.exec("PRAGMA user_version=26; COMMIT;");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 24) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE reviews RENAME TO practices;
+        ALTER TABLE review_cards RENAME TO practice_cards;
+        ALTER TABLE practice_cards RENAME COLUMN review_id TO practice_id;
+        ALTER TABLE practice_cards RENAME COLUMN reviewed_at TO practiced_at;
+        ALTER TABLE review_positions RENAME TO practice_positions;
+        ALTER TABLE practice_positions RENAME COLUMN review_id TO practice_id;
+        DROP INDEX reviews_by_version;
+        CREATE INDEX practices_by_version ON practices(version_id,user_id);
+        DROP INDEX review_cards_by_reader;
+        CREATE INDEX practice_cards_by_reader ON practice_cards(user_id,version_id,rowid);
+        DROP TRIGGER complete_review;
+        CREATE TRIGGER complete_practice AFTER INSERT ON practice_cards BEGIN
+          UPDATE practices SET completed_at=COALESCE(completed_at,CURRENT_TIMESTAMP)
+          WHERE id=NEW.practice_id AND
+            (SELECT count(*) FROM practice_cards WHERE practice_id=NEW.practice_id)=(SELECT count(*) FROM cards WHERE version_id=NEW.version_id);
+        END;
+        PRAGMA user_version=25;`);
+      db.exec("COMMIT");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 23) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE petal_wallets ADD COLUMN last_accrual_day TEXT;
+        CREATE TABLE practice_sessions (
+          id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+          topic TEXT NOT NULL CHECK(topic IN ('reading','read','saved','mixed')),
+          card_ids TEXT NOT NULL, card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
+          cost INTEGER NOT NULL CHECK(cost IN (2,3)), started_at TEXT NOT NULL, completed_at TEXT
+        ) STRICT;
+        CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL;
+        PRAGMA user_version=24;`);
+      const now = new Date();
+      const formatterCache = new Map();
+      for (const account of db.prepare("SELECT user_id,time_zone FROM accounts").all()) {
+        let formatter = formatterCache.get(account.time_zone);
+        if (!formatter) {
+          formatter = new Intl.DateTimeFormat("en-CA",{timeZone:account.time_zone,year:"numeric",month:"2-digit",day:"2-digit"});
+          formatterCache.set(account.time_zone,formatter);
+        }
+        const parts = Object.fromEntries(formatter.formatToParts(now).map(part=>[part.type,part.value]));
+        db.prepare("UPDATE petal_wallets SET last_accrual_day=? WHERE user_id=?").run(`${parts.year}-${parts.month}-${parts.day}`,account.user_id);
+      }
+      db.exec("COMMIT");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 22) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE practice_answers (
+        user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+        card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+        answer TEXT NOT NULL CHECK(answer IN ('soon','remembered')),
+        answered_at TEXT NOT NULL,
+        PRIMARY KEY(user_id,card_id)
+      ) STRICT;
+      PRAGMA user_version=23; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 21) {
     db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
     try {
@@ -122,7 +331,7 @@ export function initializeDatabase(db) {
       db.exec("COMMIT;");
     } catch(error) { db.exec("ROLLBACK;"); throw error; }
     finally { db.exec("PRAGMA foreign_keys=ON;"); }
-    return;
+    return initializeDatabase(db);
   }
   if (version === 19) {
     db.exec("BEGIN IMMEDIATE");
@@ -151,10 +360,10 @@ export function initializeDatabase(db) {
       INSERT INTO petal_wallets(user_id,balance) SELECT user_id,0 FROM accounts;
       PRAGMA user_version=21; COMMIT;`);
     } catch(error) { db.exec("ROLLBACK"); throw error; }
-    return;
+    return initializeDatabase(db);
   }
   if (version === 18) {
-    const schema=readFileSync(new URL("./schema.sql",import.meta.url),"utf8");
+    const schema=readFileSync(new URL("./fixtures/migrations/sqlite-v19.sql",import.meta.url),"utf8");
     // Rebuild with foreign keys disabled outside the transaction: dependent rows
     // keep their card IDs; no DELETE or UPDATE touches published card content.
     db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
@@ -297,6 +506,245 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 20) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE; LOCK TABLE decks,deck_versions,cards,studies,deck_selections IN ACCESS EXCLUSIVE MODE;");
+          const current=(await db.prepare("SELECT version FROM reed_schema").get()).version;
+          if(current>=21)return;
+          const multiple=await db.prepare("SELECT deck_id,COUNT(*) AS n FROM deck_versions GROUP BY deck_id HAVING COUNT(*)>1 LIMIT 1").get();
+          if(multiple)throw new Error(`Cannot remove deck versions: deck ${multiple.deck_id} has ${multiple.n} versions`);
+          const missing=await db.prepare("SELECT d.id FROM decks d LEFT JOIN deck_versions v ON v.deck_id=d.id WHERE v.id IS NULL LIMIT 1").get();
+          if(missing)throw new Error(`Cannot remove deck versions: deck ${missing.id} has no version`);
+          await db.exec(`ALTER TABLE decks ADD COLUMN status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived'));
+            ALTER TABLE decks ADD COLUMN editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft','reviewed'));
+            UPDATE decks d SET status=v.status,editorial_status=v.editorial_status FROM deck_versions v WHERE v.deck_id=d.id;
+            CREATE TABLE deck_translations(
+              deck_id TEXT NOT NULL REFERENCES decks(id),language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
+              title TEXT NOT NULL CHECK(length(btrim(title))>0),description TEXT NOT NULL CHECK(length(btrim(description))>0),
+              editorial_note TEXT NOT NULL CHECK(length(btrim(editorial_note))>0),PRIMARY KEY(deck_id,language));
+            INSERT INTO deck_translations SELECT v.deck_id,t.language,t.title,t.description,t.editorial_note
+              FROM deck_version_translations t JOIN deck_versions v ON v.id=t.version_id;
+            DROP TRIGGER freeze_version_translation_delete ON deck_version_translations;
+            DROP FUNCTION IF EXISTS reed_freeze_version_translation();
+            DROP FUNCTION IF EXISTS reed_keep_published_deck_translation();
+            DROP TRIGGER freeze_cards_delete ON cards;
+            DROP FUNCTION IF EXISTS reed_freeze_cards();
+            DROP FUNCTION IF EXISTS reed_keep_published_card();
+            DROP TRIGGER freeze_card_translation_delete ON card_translations;
+            DROP FUNCTION IF EXISTS reed_freeze_card_translation();
+            DROP FUNCTION IF EXISTS reed_keep_published_card_translation();
+            DROP TRIGGER no_card_cycles_insert ON cards;
+            DROP TRIGGER no_card_cycles_update ON cards;
+            DROP FUNCTION IF EXISTS reed_check_card_cycle();
+            DROP FUNCTION IF EXISTS reed_check_card_parent();
+            ALTER TABLE cards DROP CONSTRAINT cards_version_id_book_id_fkey;
+            ALTER TABLE cards DROP CONSTRAINT cards_parent_id_version_id_fkey;
+            ALTER TABLE cards DROP CONSTRAINT cards_id_version_id_key;
+            UPDATE cards c SET version_id=v.deck_id FROM deck_versions v WHERE v.id=c.version_id;
+            ALTER TABLE cards RENAME COLUMN version_id TO deck_id;
+            ALTER TABLE cards ADD CONSTRAINT cards_id_deck_id_key UNIQUE(id,deck_id);
+            ALTER TABLE cards ADD CONSTRAINT cards_deck_id_book_id_fkey FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id);
+            ALTER TABLE cards ADD CONSTRAINT cards_parent_id_deck_id_fkey FOREIGN KEY(parent_id,deck_id) REFERENCES cards(id,deck_id) DEFERRABLE INITIALLY DEFERRED;
+            DROP INDEX root_order; DROP INDEX sibling_order; DROP INDEX cards_by_version; DROP INDEX cards_by_note_date;
+            CREATE UNIQUE INDEX root_order ON cards(deck_id,position) WHERE parent_id IS NULL;
+            CREATE UNIQUE INDEX sibling_order ON cards(deck_id,parent_id,position) WHERE parent_id IS NOT NULL;
+            CREATE INDEX cards_by_deck ON cards(deck_id,parent_id,position);
+            CREATE INDEX cards_by_note_date ON cards(deck_id,created_at DESC) WHERE created_at IS NOT NULL;
+            ALTER TABLE studies DROP CONSTRAINT studies_version_id_fkey;
+            ALTER TABLE studies DROP CONSTRAINT studies_pkey;
+            ALTER TABLE studies RENAME COLUMN version_id TO deck_id;
+            UPDATE studies s SET deck_id=v.deck_id FROM deck_versions v WHERE v.id=s.deck_id;
+            ALTER TABLE studies ADD CONSTRAINT studies_deck_id_fkey FOREIGN KEY(deck_id) REFERENCES decks(id);
+            ALTER TABLE studies ADD CONSTRAINT studies_pkey PRIMARY KEY(user_id,deck_id);
+            ALTER TABLE deck_selections DROP CONSTRAINT deck_selections_version_id_book_id_fkey;
+            ALTER TABLE deck_selections RENAME COLUMN version_id TO deck_id;
+            UPDATE deck_selections s SET deck_id=v.deck_id FROM deck_versions v WHERE v.id=s.deck_id;
+            ALTER TABLE deck_selections ADD CONSTRAINT deck_selections_deck_id_book_id_fkey FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id);
+            DROP TABLE deck_version_translations; DROP TABLE deck_versions;
+            CREATE FUNCTION reed_check_card_parent() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              IF NEW.parent_id IS NOT NULL AND (SELECT COUNT(*) FROM cards WHERE id=NEW.parent_id AND deck_id=NEW.deck_id) <> 1 THEN RAISE EXCEPTION 'Parent must belong to the same deck'; END IF;
+              IF NEW.parent_id=NEW.id OR EXISTS(WITH RECURSIVE ancestors(id,parent_id) AS (
+                SELECT id,parent_id FROM cards WHERE id=NEW.parent_id AND deck_id=NEW.deck_id
+                UNION SELECT c.id,c.parent_id FROM cards c JOIN ancestors a ON c.id=a.parent_id AND c.deck_id=NEW.deck_id
+              ) SELECT 1 FROM ancestors WHERE id=NEW.id) THEN RAISE EXCEPTION 'Card tree cycle'; END IF;
+              RETURN NEW;
+            END $$;
+            CREATE TRIGGER no_card_cycles_insert BEFORE INSERT ON cards FOR EACH ROW EXECUTE FUNCTION reed_check_card_parent();
+            CREATE TRIGGER no_card_cycles_update BEFORE UPDATE OF parent_id ON cards FOR EACH ROW EXECUTE FUNCTION reed_check_card_parent();
+            CREATE FUNCTION reed_freeze_cards() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN IF (SELECT status FROM decks WHERE id=OLD.deck_id)<>'draft' THEN RAISE EXCEPTION 'Published content is immutable; cards cannot be deleted'; END IF; RETURN OLD; END $$;
+            CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards FOR EACH ROW EXECUTE FUNCTION reed_freeze_cards();
+            CREATE FUNCTION reed_freeze_card_translation() RETURNS trigger LANGUAGE plpgsql AS $$
+            DECLARE deck_status TEXT;
+            BEGIN SELECT d.status INTO deck_status FROM decks d JOIN cards c ON c.deck_id=d.id WHERE c.id=OLD.card_id;
+              IF deck_status<>'draft' THEN RAISE EXCEPTION 'Published content is immutable; card translations cannot be deleted'; END IF; RETURN OLD; END $$;
+            CREATE TRIGGER freeze_card_translation_delete BEFORE DELETE ON card_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_card_translation();
+            CREATE FUNCTION reed_keep_published_deck_translation() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN IF (SELECT status FROM decks WHERE id=OLD.deck_id)<>'draft' THEN RAISE EXCEPTION 'Published content is immutable; deck translations cannot be deleted'; END IF; RETURN OLD; END $$;
+            CREATE TRIGGER freeze_deck_translation_delete BEFORE DELETE ON deck_translations FOR EACH ROW EXECUTE FUNCTION reed_keep_published_deck_translation();
+            CREATE FUNCTION reed_keep_published_deck() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN IF OLD.status<>'draft' THEN RAISE EXCEPTION 'Published deck cannot be deleted'; END IF; RETURN OLD; END $$;
+            CREATE TRIGGER keep_published_deck BEFORE DELETE ON decks FOR EACH ROW EXECUTE FUNCTION reed_keep_published_deck();
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=21;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=21);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 19) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 20) return;
+          await db.exec(`DROP TRIGGER freeze_cards_insert ON cards;
+            DROP TRIGGER freeze_cards_update ON cards;
+            DROP TRIGGER freeze_cards_delete ON cards;
+            DROP FUNCTION reed_freeze_cards();
+            CREATE FUNCTION reed_freeze_cards() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              IF (SELECT status FROM deck_versions WHERE id=OLD.version_id) <> 'draft' THEN RAISE EXCEPTION 'Published content is immutable; cards cannot be deleted'; END IF;
+              RETURN OLD;
+            END $$;
+            CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards FOR EACH ROW EXECUTE FUNCTION reed_freeze_cards();
+            DROP TRIGGER freeze_card_translation_insert ON card_translations;
+            DROP TRIGGER freeze_card_translation_update ON card_translations;
+            DROP TRIGGER freeze_card_translation_delete ON card_translations;
+            DROP FUNCTION reed_freeze_card_translation();
+            CREATE FUNCTION reed_freeze_card_translation() RETURNS trigger LANGUAGE plpgsql AS $$
+            DECLARE version_status TEXT;
+            BEGIN
+              SELECT v.status INTO version_status FROM deck_versions v JOIN cards c ON c.version_id=v.id WHERE c.id=OLD.card_id;
+              IF version_status <> 'draft' THEN RAISE EXCEPTION 'Published content is immutable; card translations cannot be deleted'; END IF;
+              RETURN OLD;
+            END $$;
+            CREATE TRIGGER freeze_card_translation_delete BEFORE DELETE ON card_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_card_translation();
+            DROP TRIGGER freeze_version_translation_insert ON deck_version_translations;
+            DROP TRIGGER freeze_version_translation_update ON deck_version_translations;
+            DROP TRIGGER freeze_version_translation_delete ON deck_version_translations;
+            DROP FUNCTION reed_freeze_version_translation();
+            CREATE FUNCTION reed_freeze_version_translation() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              IF (SELECT status FROM deck_versions WHERE id=OLD.version_id) <> 'draft' THEN RAISE EXCEPTION 'Published content is immutable; deck translations cannot be deleted'; END IF;
+              RETURN OLD;
+            END $$;
+            CREATE TRIGGER freeze_version_translation_delete BEFORE DELETE ON deck_version_translations FOR EACH ROW EXECUTE FUNCTION reed_freeze_version_translation();
+            DROP TRIGGER freeze_version ON deck_versions;
+            DROP FUNCTION reed_freeze_version();
+            DROP TRIGGER keep_published_version ON deck_versions;
+            DROP FUNCTION reed_keep_published_version();
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=20;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=20);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 18) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 19) return;
+          await db.exec(`DROP TRIGGER complete_practice ON practice_cards;
+            DROP FUNCTION reed_complete_practice();
+            DROP TABLE practice_positions;
+            DROP TABLE practice_cards;
+            DROP TABLE practices;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=19;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=19);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 17) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 18) return;
+          await db.exec(`ALTER TABLE practice_sessions ADD COLUMN completed_local_day TEXT;
+            CREATE TABLE practice_session_cards(
+              session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
+              card_id TEXT NOT NULL REFERENCES cards(id), position INTEGER NOT NULL CHECK(position BETWEEN 0 AND 4),
+              PRIMARY KEY(session_id,card_id), UNIQUE(session_id,position)
+            );
+            CREATE INDEX practice_session_cards_by_card ON practice_session_cards(card_id,session_id);
+            ALTER TABLE practice_session_cards ENABLE ROW LEVEL SECURITY;`);
+          const sessions=await db.prepare(`SELECT ps.id,ps.card_ids,ps.completed_at,a.time_zone
+            FROM practice_sessions ps JOIN accounts a ON a.user_id=ps.user_id ORDER BY ps.started_at,ps.id`).all();
+          for (const session of sessions) {
+            const cardIds=JSON.parse(session.card_ids);
+            if (!Array.isArray(cardIds) || cardIds.length!==5 || cardIds.some(id=>typeof id!=="string")) throw new Error(`Invalid cards for practice session ${session.id}`);
+            for (const [position,cardId] of cardIds.entries()) await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)").run(session.id,cardId,position);
+            if (session.completed_at) await db.prepare("UPDATE practice_sessions SET completed_local_day=? WHERE id=?").run(localDay(session.time_zone,session.completed_at),session.id);
+          }
+          await db.exec(`ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=18;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=18);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 16) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 17) return;
+          await db.exec(`ALTER TABLE reviews RENAME TO practices;
+            ALTER TABLE review_cards RENAME TO practice_cards;
+            ALTER TABLE practice_cards RENAME COLUMN review_id TO practice_id;
+            ALTER TABLE practice_cards RENAME COLUMN reviewed_at TO practiced_at;
+            ALTER TABLE review_positions RENAME TO practice_positions;
+            ALTER TABLE practice_positions RENAME COLUMN review_id TO practice_id;
+            ALTER INDEX reviews_by_version RENAME TO practices_by_version;
+            ALTER INDEX review_cards_by_reader RENAME TO practice_cards_by_reader;
+            DROP TRIGGER complete_review ON practice_cards;
+            DROP FUNCTION reed_complete_review();
+            CREATE FUNCTION reed_complete_practice() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              UPDATE practices SET completed_at=COALESCE(completed_at,CURRENT_TIMESTAMP)
+              WHERE id=NEW.practice_id AND (SELECT count(*) FROM practice_cards WHERE practice_id=NEW.practice_id)=(SELECT count(*) FROM cards WHERE version_id=NEW.version_id);
+              RETURN NEW;
+            END $$;
+            CREATE TRIGGER complete_practice AFTER INSERT ON practice_cards FOR EACH ROW EXECUTE FUNCTION reed_complete_practice();
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=17;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=17);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 15) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 16) return;
+          await db.exec(`ALTER TABLE petal_wallets ADD COLUMN last_accrual_day TEXT;
+            UPDATE petal_wallets p SET last_accrual_day=to_char(CURRENT_TIMESTAMP AT TIME ZONE a.time_zone,'YYYY-MM-DD')
+              FROM accounts a WHERE a.user_id=p.user_id;
+            CREATE TABLE practice_sessions (
+              id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+              topic TEXT NOT NULL CHECK(topic IN ('reading','read','saved','mixed')),
+              card_ids TEXT NOT NULL, card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
+              cost INTEGER NOT NULL CHECK(cost IN (2,3)), started_at TIMESTAMPTZ NOT NULL, completed_at TIMESTAMPTZ
+            );
+            CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL;
+            ALTER TABLE practice_sessions ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=16;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=16);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 14) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 15) return;
+          await db.exec(`CREATE TABLE practice_answers (
+            user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+            card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+            answer TEXT NOT NULL CHECK(answer IN ('soon','remembered')),
+            answered_at TIMESTAMPTZ NOT NULL,
+            PRIMARY KEY(user_id,card_id)
+          );
+          ALTER TABLE practice_answers ENABLE ROW LEVEL SECURITY;
+          ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+          UPDATE reed_schema SET version=15;
+          ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=15);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 13) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");

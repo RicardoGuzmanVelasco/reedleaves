@@ -132,13 +132,3 @@ export function selectDaily(roots, day, saved, random = Math.random) {
   const index = Math.min(roots.length - 1, Math.max(0, Math.floor(random() * roots.length)));
   return { day, id: roots[index].id };
 }
-
-export function restoreProgress(saved, model) {
-  const value = saved && typeof saved === "object" ? saved : {};
-  const rootIds = new Set(model.roots.map(card => card.id));
-  return {
-    reviewed: Array.isArray(value.reviewed) ? [...new Set(value.reviewed.filter(id => rootIds.has(id)))] : [],
-    currentId: rootIds.has(value.currentId) ? value.currentId : model.roots[0]?.id,
-    dailyReviewedDay: typeof value.dailyReviewedDay === "string" ? value.dailyReviewedDay : null
-  };
-}

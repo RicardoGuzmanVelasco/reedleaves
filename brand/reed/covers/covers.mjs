@@ -33,7 +33,7 @@ function render() {
   if (!catalog) return;
   const language=document.querySelector("#study-language").value;
   state={catalog,language,showOriginalTitles:document.querySelector("#study-original").checked,
-    statuses:Object.fromEntries(catalog.books.map(book=>[book.id,"reading"])),reviews:{},enrolledIds:[...catalog.selectedVersions.values()],
+    statuses:Object.fromEntries(catalog.books.map(book=>[book.id,"reading"])),practices:{},enrolledIds:[...catalog.selectedDecks.values()],
     growth:Object.fromEntries(catalog.books.map((book,index)=>[book.id,{added:true,spentDays:[0,1,2,3,5][index%5]}]))};
   const template=document.createElement("template");
   template.innerHTML=document.querySelector("#study-surface").value === "home" ? homeView(state) : libraryResultsMarkup(state);
