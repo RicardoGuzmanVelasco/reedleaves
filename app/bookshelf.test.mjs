@@ -70,6 +70,15 @@ test("Explicitly adding an unread book makes it a shelf member and exposes its a
   assert.match(libraryView({...s,openBookId:"atomic-habits"}),/class="collection-object-state"[^>]*>.*En tu Estantería/);
 });
 
+test("Saved cards are the first deck tile for signed-in readers",async()=>{
+  const s=await fixture(),bookId="seven-habits",choices=featuredDecks(s.catalog,bookId);
+  const html=deckView({...s,bookId,deckChoices:choices});
+  const gridStart=html.indexOf('<div class="deck-grid"'),savedTile=html.indexOf('data-saved-cards-entry'),firstDeck=html.indexOf('<article class="deck-tile"');
+  assert.ok(gridStart>=0);assert.ok(savedTile>gridStart);assert.ok(firstDeck>savedTile);
+  const anonymous=deckView({...s,userId:null,bookId,deckChoices:choices});
+  assert.ok(!anonymous.includes('data-saved-cards-entry'));
+});
+
 test("A book with pending and practiced cards appears once in both groups",async()=>{
   const s=await fixture();
   reviewed(s,"seven-habits-editorial-v1",true);

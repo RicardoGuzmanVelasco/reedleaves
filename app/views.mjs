@@ -482,8 +482,8 @@ export function deckView(s) {
   return `<section class="deck-screen">${["library","bookshelf","daily"].includes(s.bookOrigin) ? `<button type="button" class="text-button collection-back" data-action="${s.bookOrigin}">${s.bookOrigin === "library" ? collectionIconMarkup("library",18) : s.bookOrigin === "bookshelf" ? collectionIconMarkup("shelf",18) : ""}${s.bookOrigin === "library" ? c.booksBack : s.bookOrigin === "bookshelf" ? c.shelfBack : c.back}</button>` : ""}
     <div class="screen-heading deck-heading"><div><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.chooseDeck}</h1></div>
     ${mascotEntry(s,s.bookId)}</div>
-    ${s.userId ? `<div data-saved-cards-entry></div><div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
-    ${!choices.length ? `<div class="empty-state">${c.noDecks}</div>` : `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${choices.map(item => {
+    ${s.userId ? `<div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
+    ${choices.length || s.userId ? `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${s.userId ? `<div data-saved-cards-entry></div>` : ""}${choices.map(item => {
       const {deck,version} = item,language=languageName(deck.language);
       const flag=["es","en"].includes(deck.language) ? `<img class="deck-language-flag" src="../brand/icons/languages/${deck.language}.svg" width="16" height="12" alt="">` : `<svg class="deck-language-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span>${esc(deck.language)}</span>`;
       const reviewing=deck.metrics.reviewingBy,recommended=deck.isRecommended;
@@ -493,7 +493,7 @@ export function deckView(s) {
         <span class="deck-creator deck-tile-creator">${deckCreator(deck)}</span>
         <span class="deck-tile-metadata"><span class="deck-tile-count" aria-hidden="true" title="${esc(c.noteCardsCount(version.cardCount))}">${cardsIconMarkup}<span>${version.cardCount}</span></span><span class="deck-tile-reviewing" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><span>${reviewing}</span></span><span class="deck-tile-count deck-tile-language" aria-hidden="true" title="${esc(language)}">${flag}</span>${deckStatusMarkup(s,version,{compact:true})}</span>
         </span></article>`;
-    }).join("")}</div>`}
+    }).join("")}</div>` : `<div class="empty-state">${c.noDecks}</div>`}
     ${(() => { const selected = choices.find(item => item.version.id === s.openDeckId); return selected ? `<dialog class="deck-modal" data-version="${esc(selected.version.id)}" aria-labelledby="deck-dialog-title" aria-describedby="deck-dialog-description">
       <article class="deck-card"><button class="deck-modal-close" type="button" data-action="close-deck" aria-label="${c.closeDeck}" autofocus>×</button>${deckDetails(selected,true)}</article>
     </dialog>` : ""; })()}

@@ -56,7 +56,7 @@ export function CardActions({record,saved,c,onVote,onSave,error,onRetry}){
   </div>;
 }
 
-function SavedCardsEntry({count,c,onClick}){return <button type="button" className="saved-cards-entry" onClick={onClick}><Bookmark/><span>{c.savedCards}</span><strong>{count}</strong></button>}
+export function SavedCardsEntry({count,c,onClick}){return <article className="deck-tile saved-cards-tile"><button type="button" className="deck-tile-open" onClick={onClick} aria-label={`${c.savedCards}, ${c.noteCardsCount(count)}`}/><span className="deck-tile-copy"><strong>{c.savedCards}</strong></span><span className="deck-tile-metadata"><span className="deck-tile-count"><Bookmark/><span>{c.noteCardsCount(count)}</span></span></span></article>}
 function SavedCards({rows,catalog,c,language,onOpen,error,onRetry,onReady}){
   useLayoutEffect(()=>{onReady()},[rows,onReady]);
   return <>{error&&<div className="sync-note" role="status"><span>{c[error]||c.connectionError}</span><button type="button" className="text-button" onClick={onRetry}>{c.retry}</button></div>}
