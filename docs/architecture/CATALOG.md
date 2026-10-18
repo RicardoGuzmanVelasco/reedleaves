@@ -31,13 +31,7 @@ La importación valida orden consecutivo, referencias, textos, estructura y dere
 
 ## Métricas reales
 
-La API devuelve me gusta, no me gusta, personas que empezaron y personas que están repasando.
-Los recuentos de personas son únicos por baraja, incluso si alguien completa varias prácticas.
-Sin actividad, todo vale cero. No hay usuarios, votos ni popularidad inventados.
-
-Más popular cuenta personas que empezaron.
-“Preferida por la comunidad” contará me gusta, no me gusta menos no me gusta.
-La cuadrícula muestra primero la recomendación, después las ganadoras reales deduplicadas y finalmente otras propuestas. No otorga etiquetas por cero actividad.
+La API devuelve me gusta y no me gusta por baraja. Sin actividad, todo vale cero. La cuadrícula distingue la recomendación editorial del equipo; las distinciones de comunidad están pendientes de activarse.
 
 ## Archivos y ejecución
 
@@ -78,7 +72,7 @@ El esquema v8 añadió `books.original_title` y `books.original_language`, oblig
 
 El esquema v9 añadió cuentas, sesiones, límites de acceso, barajas elegidas, posiciones, filtros, intereses e idea diaria por usuario. Añade comprobación SQL del recorrido y finalización con todas las cartas. La base v8 y su original están archivados antes del cambio; ver `ACCOUNTS.md`. No se migra progreso anónimo del navegador.
 
-El esquema actual es SQLite v29 / PostgreSQL v21. Ya no hay tablas ni columnas de versión de baraja: tarjetas, textos, selección, biblioteca y prácticas usan IDs estables de baraja o tarjeta. La migración aborta de forma transaccional si encuentra una baraja con más de una versión o sin versión; así no combina árboles editoriales distintos. Las tarjetas de una baraja se consultan sin guardar avance por tarjeta ni una posición de lectura. `practices`, `practice_cards` y `practice_positions` se eliminaron; el tipo con descuento de los repasos se calcula con la fecha de creación de cuenta o de la última sesión completada, sin guardar el tipo elegido. Las sesiones breves de cinco tarjetas viven en `practice_sessions`; persisten tema, tarjetas, avance, coste y fechas para cobrar una vez y reanudar la sesión pagada. `practice_session_cards` normaliza las cinco tarjetas y conserva su orden; al completar la sesión se fija el día local para contar crecimiento por libro. Cada cuenta recibe nueve pétalos diarios hasta quince. PostgreSQL usa `BIGINT` para monederos; ambos motores limitan la representación a enteros exactos de JavaScript. La migración de guardadas añade `card_saves` con claves foráneas e índice por cuenta/fecha.
+El esquema actual es SQLite v29 / PostgreSQL v21. No hay tablas ni columnas de versión de baraja: tarjetas, textos, selección, biblioteca y prácticas usan IDs estables de baraja o tarjeta. La migración aborta de forma transaccional si encuentra un caso histórico ambiguo con más de una versión o sin una versión identificable; así evita combinar o perder árboles editoriales. Las tarjetas de una baraja se consultan sin guardar avance por tarjeta ni una posición de lectura. `practices`, `practice_cards` y `practice_positions` se eliminaron; el tipo con descuento de los repasos se calcula con la fecha de creación de cuenta o de la última sesión completada, sin guardar el tipo elegido. Las sesiones breves de cinco tarjetas viven en `practice_sessions`; persisten tema, tarjetas, avance, coste y fechas para cobrar una vez y reanudar la sesión pagada. `practice_session_cards` normaliza las cinco tarjetas y conserva su orden; al completar la sesión se fija el día local para contar crecimiento por libro. Cada cuenta recibe nueve pétalos diarios hasta quince. PostgreSQL usa `BIGINT` para monederos; ambos motores limitan la representación a enteros exactos de JavaScript. La migración de guardadas añade `card_saves` con claves foráneas e índice por cuenta/fecha.
 
 `app/book-search.mjs` filtra el catálogo recibido de la API por todos los títulos originales, completos y cortos, sin idioma activo como filtro. La consulta es estado temporal de la vista: no se escribe en SQLite ni en localStorage. Para este catálogo pequeño se consulta localmente el resultado SQL ya cargado; no hay una base simulada en JSON. Cuando el volumen requiera paginación, habrá que trasladar esa búsqueda a un endpoint con índices SQL, conservando las mismas reglas de coincidencia.
 
@@ -101,10 +95,10 @@ Las métricas SQL se incrementan con actividad real de cuentas: primera carta y 
 
 La idea aleatoria sigue siendo independiente: no altera el repaso ni los monederos.
 Se sortea entre las cartas principales de la baraja elegida para cada libro; cambiar elección no sustituye la idea ya asignada hoy.
-Los filtros de repaso agrupan libros con tarjetas pendientes o ya repasadas. Un libro puede pertenecer a ambos grupos si varias barajas tienen progreso distinto. Este aprendizaje es independiente de `status=draft/published/archived`.
+Las respuestas registradas ordenan la selección de tarjetas de práctica. El detalle de baraja no mantiene posición ni progreso propio. La lectura del libro sigue siendo independiente de `status=draft/published/archived`.
 
-El contrato 3 del catálogo todavía expone nuestros borradores editoriales para la prueba interna.
-Las barajas y tarjetas creadas por cuentas se incluyen en el catálogo compartido aunque la baraja siga como borrador. Compartir el contenido no concede permisos de edición: solo el creador puede modificar sus tarjetas y textos. El estado publicado o archivado no crea copias ni versiones distintas.
+El contrato 4 del catálogo entrega cada baraja con su estado y metadatos; las tarjetas referencian directamente el ID estable de la baraja.
+Las barajas y tarjetas creadas por cuentas se incluyen en el catálogo compartido aunque la baraja siga como borrador. Compartir el contenido no concede permisos de edición: solo el creador puede modificar sus tarjetas y textos. El estado publicado o archivado no crea copias de una baraja.
 
 Producción usa PostgreSQL gestionado, `DATABASE_URL`, TLS del proveedor, backups, supervisión y HTTPS. SQLite se conserva para desarrollo y pruebas. `node:sqlite` sigue siendo experimental en el Node 24.11 local; el runtime requerido se fija en `.node-version`.
 

@@ -1,6 +1,6 @@
 # Primer recorrido funcional
 
-Documento de diseño del primer recorrido. Las reglas de acceso por tarjeta descritas en versiones anteriores se eliminaron el 18 de octubre de 2026.
+Archivo del primer prototipo de lectura. Sus referencias al modelo de barajas por versión tampoco describen el modelo vigente: tarjetas y lecturas usan IDs directos de baraja y tarjeta, según [ADR 0002](../adr/0002-barajas-en-catalogo-comun.md).
 
 ## Decisiones
 

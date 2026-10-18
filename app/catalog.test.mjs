@@ -60,8 +60,8 @@ test("Storage preserves v2 book keys, reads live changes and fails closed withou
   blocked.probe(); assert.equal(blocked.available, false);
 });
 test("Views expose every review card and preserve book attribution", async () => {
-  const catalog=prepareCatalog(await payload()),versionId="atomic-habits-editorial-v1";
-  const state = { catalog, versionId, language: "es", bookId: "atomic-habits", requestedId: "atomic-8", daily: { id: "rich-dad-2", bookId: "rich-dad-poor-dad", day:"2026-10-06" },dailyToday:{day:"2026-10-06"},dailyHistory:[{id:"rich-dad-2",bookId:"rich-dad-poor-dad",day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",
+  const catalog=prepareCatalog(await payload()),deckId="atomic-habits-editorial";
+  const state = { catalog, deckId, language: "es", bookId: "atomic-habits", requestedId: "atomic-8", daily: { id: "rich-dad-2", bookId: "rich-dad-poor-dad", day:"2026-10-06" },dailyToday:{day:"2026-10-06"},dailyHistory:[{id:"rich-dad-2",bookId:"rich-dad-poor-dad",day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",
     statuses: {}, today: "2026-10-06", storageAvailable: true };
   const daily = dailyView(state);
   assert.match(daily, /Robert T\. Kiyosaki/); assert.match(daily, /daily-calendar/);assert.match(daily,/data-day="2026-10-06"/);
@@ -165,8 +165,8 @@ test("Mascot collection opens from review album and deck selection, not library,
   assert.match(deckView(state),/data-action="open-mascots" data-book="seven-habits"/);
   assert.match(deckView({...state,growth:{"seven-habits":{added:true,reviewDays:1}}}),/mascot-entry[^>]*data-book="seven-habits"[^>]*>.*?<img src="\/brand\/reed\/growth\/bodies\/seed\.svg"/);
   assert.doesNotMatch(homeView(state),/data-action="open-mascots"/);
-  const version=catalog.versions.find(item=>item.bookId==="seven-habits");
-  const reviewing={...state,versionId:version.id,requestedId:null,today:"2026-10-11",budget:null,storageAvailable:true,
+  const version=catalog.decks.find(item=>item.bookId==="seven-habits");
+  const reviewing={...state,deckId:version.id,requestedId:null,today:"2026-10-11",budget:null,storageAvailable:true,
     growth:{"seven-habits":{added:true,reviewDays:1}}};
   const review=reviewView(reviewing);
   assert.match(review,/review-mascot-callout/);assert.match(review,/review-mascot-button/);
@@ -183,14 +183,14 @@ test("Mascot collection opens from review album and deck selection, not library,
   const flowerReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,reviewDays:15}}});
   assert.match(flowerReview,/brand\/reed\/growth\/bodies\/flower\.png/);
   assert.doesNotMatch(flowerReview,/<p lang="es"><\/p>|undefined/);
-  const first=catalog.cards.find(card=>card.versionId===version.id);
+  const first=catalog.cards.find(card=>card.deckId===version.id);
   for (const html of [reviewView({...reviewing,requestedId:first.id}),authorView({...reviewing,requestedId:first.id})]) {
     const modal=html.match(/<dialog class="exclusive-card-modal"[^>]*>([\s\S]*?)<\/dialog>/)?.[1];
     assert.ok(modal);assert.doesNotMatch(modal,/data-action="open-mascots"/);
   }
 });
 test("Home book cover uses that book's earned mascot as a body-only icon",async()=>{
-  const catalog=prepareCatalog(await payload()),version=catalog.versions[0],bookId=version.bookId;
+  const catalog=prepareCatalog(await payload()),version=catalog.decks[0],bookId=version.bookId;
   const state=readerState(catalog,{statuses:{[bookId]:"reading"},enrolledIds:[version.id],growth:{[bookId]:{added:true,reviewDays:1}}});
   // Cover artwork has its own contract; the practice entrance can have a full mascot.
   const cover=overrides=>{

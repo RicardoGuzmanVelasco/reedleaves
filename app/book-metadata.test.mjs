@@ -24,7 +24,7 @@ test("Only incomplete owned books offer completion; optional links do not keep t
   assert.equal(missingBookInformation(minimal).length,7);
   const complete={...minimal,...bookMetadata};
   assert.equal(missingBookInformation(complete).length,0);
-  const catalog={...state.catalog,books:[minimal],booksById:new Map([["mine",minimal]]),decks:[],versions:[]};
+  const catalog={...state.catalog,books:[minimal],booksById:new Map([["mine",minimal]]),decks:[]};
   const reader={...state,catalog,userId:"owner",statuses:{mine:"reading"},enrolledIds:[],storageAvailable:true};
   for (const view of [libraryView,bookshelfView]) {
     const html=view(reader);assert.match(html,/data-action="complete-book"/);assert.match(html,/aria-label="Falta información\. Completar información:/);

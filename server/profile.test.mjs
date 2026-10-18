@@ -16,8 +16,7 @@ async function fixture(t) {
   return {db,a:await session("profile.reader"),b:await session("profile.visitor")};
 }
 const day=n=>new Date(`2026-10-${String(n).padStart(2,"0")}T12:00:00Z`);
-async function recordCompletedPractice(db,session,bookId,now,versionId=null) {
-  const deckId=versionId?.replace(/-v1$/,"")??null;
+async function recordCompletedPractice(db,session,bookId,now,deckId=null) {
   const cards=await db.prepare(`SELECT c.id FROM cards c JOIN decks d ON d.id=c.deck_id
     WHERE d.book_id=? AND (? IS NULL OR d.id=?) ORDER BY c.id LIMIT 5`).all(bookId,deckId,deckId);
   assert.equal(cards.length,5);
@@ -28,7 +27,7 @@ async function recordCompletedPractice(db,session,bookId,now,versionId=null) {
 }
 
 test("Profile counts unique views; daily assignment alone is not a view",async t=>{
-  const {db,a}=await fixture(t),version="seven-habits-editorial-v1";
+  const {db,a}=await fixture(t),version="seven-habits-editorial";
   await openCard(db,a,version,"habit-1",day(10));
   await openCard(db,a,version,"habit-1",day(10));
   db.prepare("INSERT INTO daily_ideas VALUES ('2026-10-10','habit-2')").run();
@@ -46,11 +45,11 @@ test("Profile counts unique views; daily assignment alone is not a view",async t
 });
 
 test("Profile counts one current pet per book rather than all unlocked stages, including completion",async t=>{
-  const {db,a}=await fixture(t),v="seven-habits-editorial-v1";
+  const {db,a}=await fixture(t),v="seven-habits-editorial";
   await changeReading(db,a,"atomic-habits","read",day(10));
   await changeReading(db,a,"same-as-ever","reading",day(10));
   await changeReading(db,a,"seven-habits","reading",day(10));
-  await selectDeck(db,a,"getting-things-done-editorial-v1",day(10));
+  await selectDeck(db,a,"getting-things-done-editorial",day(10));
   for(let n=1;n<=7;n++) await recordCompletedPractice(db,a,"seven-habits",day(9+n));
   const p=(await readProfile(db,a.user_id,a.user_id)).profile;
   assert.equal(p.counts.booksRead,1);assert.equal(p.counts.booksReading,2);
@@ -64,22 +63,22 @@ test("Nonconsecutive review days across decks earn Tallo at ten and Flor at fift
   await changeReading(db,a,bookId,"reading",day(1));
   const decks=[];
   for(let n=0;n<2;n++) {
-    const {versionId}=await createDeck(db,a,{requestId:randomUUID(),bookId,title:`Stem test ${n}`,language:"es"});
+    const {deckId}=await createDeck(db,a,{requestId:randomUUID(),bookId,title:`Stem test ${n}`,language:"es"});
     const cards=[];
-    for(let i=0;i<8;i++) cards.push((await addCard(db,a,{requestId:randomUUID(),versionId,title:`Card ${i}`,body:"Test content",parentId:null,isQuote:false})).cardId);
-    decks.push({versionId,cards});
+    for(let i=0;i<8;i++) cards.push((await addCard(db,a,{requestId:randomUUID(),deckId,title:`Card ${i}`,body:"Test content",parentId:null,isQuote:false})).cardId);
+    decks.push({deckId,cards});
   }
   for(let n=0;n<15;n++) {
     const deck=decks[n%2];
-    await selectDeck(db,a,deck.versionId,day(1+n*2));
-    await recordCompletedPractice(db,a,bookId,day(1+n*2),deck.versionId);
+    await selectDeck(db,a,deck.deckId,day(1+n*2));
+    await recordCompletedPractice(db,a,bookId,day(1+n*2),deck.deckId);
     const profile=(await readProfile(db,a.user_id,a.user_id)).profile;
     if(n===8) {assert.equal(profile.mascots.sprout,1);assert.equal(profile.mascots.stem,0);}
     if(n===9 || n===13) {assert.equal(profile.mascots.stem,1);assert.equal(profile.mascots.flower,0);}
   }
   // Another completed session on an existing local date adds no growth day.
-  await selectDeck(db,a,decks[1].versionId,day(29));
-  await recordCompletedPractice(db,a,bookId,day(29),decks[1].versionId);
+  await selectDeck(db,a,decks[1].deckId,day(29));
+  await recordCompletedPractice(db,a,bookId,day(29),decks[1].deckId);
   assert.equal((await readReaderState(db,a,day(29))).growth[bookId].reviewDays,15);
   const {mascots}=(await readProfile(db,a.user_id,a.user_id)).profile;
   assert.equal(mascots.flower,1);assert.equal(mascots.stem,0);assert.equal(mascots.sprout,0);
@@ -88,9 +87,9 @@ test("Nonconsecutive review days across decks earn Tallo at ten and Flor at fift
 test("Author stats include quotes as a subset; shared libraries expose content but not account data or author permissions",async t=>{
   const {db,a,b}=await fixture(t);
   const {bookId}=await createBook(db,a,{requestId:randomUUID(),title:"Shared book",author:"Book author",language:"es"});
-  const {versionId}=await createDeck(db,a,{requestId:randomUUID(),bookId,title:"Shared deck",language:"es"});
-  const {cardId}=await addCard(db,a,{requestId:randomUUID(),versionId,title:"Personal card",body:"Personal text",parentId:null,isQuote:false});
-  await addCard(db,a,{requestId:randomUUID(),versionId,body:"A personal quote",parentId:null,isQuote:true});
+  const {deckId}=await createDeck(db,a,{requestId:randomUUID(),bookId,title:"Shared deck",language:"es"});
+  const {cardId}=await addCard(db,a,{requestId:randomUUID(),deckId,title:"Personal card",body:"Personal text",parentId:null,isQuote:false});
+  await addCard(db,a,{requestId:randomUUID(),deckId,body:"A personal quote",parentId:null,isQuote:true});
   await recordCardView(db,a,{cardId,context:"author"},day(10));
   await createDeck(db,a,{requestId:randomUUID(),bookId:"atomic-habits",title:"Shared draft",language:"es"});
   const own=await readProfile(db,a.user_id,a.user_id),foreign=await readProfile(db,a.user_id,b.user_id);

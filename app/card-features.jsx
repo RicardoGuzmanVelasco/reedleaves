@@ -61,10 +61,10 @@ function SavedCards({rows,catalog,c,language,onOpen,error,onRetry,onReady}){
   useLayoutEffect(()=>{onReady()},[rows,onReady]);
   return <>{error&&<div className="sync-note" role="status"><span>{c[error]||c.connectionError}</span><button type="button" className="text-button" onClick={onRetry}>{c.retry}</button></div>}
     {!rows.length?<p className="empty-state">{c.noSavedCards}</p>:<ul className="saved-cards-list">{rows.map(row=>{
-      const card=catalog.cardsById.get(row.cardId),version=catalog.versionsById.get(card.versionId);
+      const card=catalog.cardsById.get(row.cardId),deck=catalog.decksById.get(card.deckId);
       const title=card.isQuote?quoteExcerpt(contentText(card.body,language,card.deckLanguage)):contentText(card.title,language,card.deckLanguage);
       return <li key={card.id}><button type="button" className={'saved-card-row'+(card.isQuote?' saved-card-row--quote':'')} data-card={card.id} onClick={()=>onOpen(card.id)}>
-        <span className="saved-card-name" lang={contentLocale(card.isQuote?card.body:card.title,language,card.deckLanguage)} dir="auto">{card.isQuote?'❝ ':''}{title}</span><span className="saved-card-source" lang={contentLocale(version.title,language,version.language)} dir="auto">{contentText(version.title,language,version.language)}</span>
+        <span className="saved-card-name" lang={contentLocale(card.isQuote?card.body:card.title,language,card.deckLanguage)} dir="auto">{card.isQuote?'❝ ':''}{title}</span><span className="saved-card-source" lang={contentLocale(deck.title,language,deck.language)} dir="auto">{contentText(deck.title,language,deck.language)}</span>
       </button></li>})}</ul>}
   </>;
 }
@@ -76,46 +76,46 @@ function Features({context,api,callbacks}){
   const [optimistic,dispatch]=useOptimistic(confirmed,optimisticCardAction);
   const optimisticRef=useRef(optimistic);optimisticRef.current=optimistic;
   const [errors,setErrors]=useState({}),[collectionError,setCollectionError]=useState(null);
-  const versions=useRef({}),latest=useRef({}),intent=useRef({});
+  const generations=useRef({}),latest=useRef({}),intent=useRef({});
   const transport=useRef(null);transport.current ||= createCardActionTransport(api,value=>callbacks.onPending(context.userId,value));
   const current=userId=>alive.current && latestContext.current.userId===userId;
 
   useEffect(()=>{setConfirmed(state=>({...state,saves:savedReferences(context.cardSaves)}))},[context.cardSaves]);
   function putRecord(cardId,row){startTransition(()=>setConfirmed(state=>({...state,records:{...state.records,[cardId]:{...state.records[cardId],...row,loaded:true}}})))}
   async function load(cardId){
-    if(!cardId)return;const userId=context.userId,version=(versions.current[cardId]||0)+1;versions.current[cardId]=version;
+    if(!cardId)return;const userId=context.userId,deck=(generations.current[cardId]||0)+1;generations.current[cardId]=deck;
     try{
-      const row=await transport.current.read(userId,cardId);if(!current(userId)||versions.current[cardId]!==version)return;
+      const row=await transport.current.read(userId,cardId);if(!current(userId)||generations.current[cardId]!==deck)return;
       putRecord(cardId,row);
       const bookId=context.catalog.cardsById.get(cardId)?.bookId;
       startTransition(()=>setConfirmed(state=>optimisticCardAction(state,{kind:'save',cardId,bookId,saved:row.saved,savedAt:row.savedAt})));
       callbacks.onSavedConfirm({...row,bookId},userId);setErrors(e=>({...e,[cardId+':read']:null}));
     }
-    catch(error){if(current(userId)&&versions.current[cardId]===version)setErrors(e=>({...e,[cardId+':read']:{code:error.code||'connectionError'}}))}
+    catch(error){if(current(userId)&&generations.current[cardId]===deck)setErrors(e=>({...e,[cardId+':read']:{code:error.code||'connectionError'}}))}
   }
   useEffect(()=>{if(!transport.current.pending)load(context.cardId)},[context.cardId,context.revision]);
 
   async function loadCollection(){
-    const {userId,bookId}=context;const version=(versions.current.collection||0)+1;versions.current.collection=version;
+    const {userId,bookId}=context;const deck=(generations.current.collection||0)+1;generations.current.collection=deck;
     try{
       const result=await api.request(`/api/reader/saved/${encodeURIComponent(bookId)}`,undefined,{queueKey:`saved-read:${userId}:${bookId}`});
-      if(!current(userId)||versions.current.collection!==version)return;
+      if(!current(userId)||generations.current.collection!==deck)return;
       callbacks.onCollectionConfirm(result,userId);
       setConfirmed(state=>({...state,saves:{...Object.fromEntries(Object.entries(state.saves).filter(([,row])=>row.bookId!==bookId)),...savedReferences(result.cards)}}));setCollectionError(null);
-    }catch(error){if(current(userId)&&versions.current.collection===version)setCollectionError(error.code||'connectionError')}
+    }catch(error){if(current(userId)&&generations.current.collection===deck)setCollectionError(error.code||'connectionError')}
   }
   useEffect(()=>{if(context.mode==='saved'&&!transport.current.pending)loadCollection()},[context.mode,context.bookId,context.revision]);
 
   function mutate(action){
     const userId=context.userId,key=action.cardId+':'+action.kind;
     const id=(latest.current[key]||0)+1;latest.current[key]=id;intent.current[key]=action;
-    versions.current[action.cardId]=(versions.current[action.cardId]||0)+1;versions.current.collection=(versions.current.collection||0)+1;
+    generations.current[action.cardId]=(generations.current[action.cardId]||0)+1;generations.current.collection=(generations.current.collection||0)+1;
     callbacks.onActionStart();setErrors(e=>({...e,[key]:null}));
     startTransition(async()=>{
       dispatch(action);
       try{
         const row=await transport.current.write(userId,action);if(!current(userId))return;
-        versions.current[action.cardId]=(versions.current[action.cardId]||0)+1;
+        generations.current[action.cardId]=(generations.current[action.cardId]||0)+1;
         if(action.kind==='vote')putRecord(action.cardId,row);
         else{
           startTransition(()=>setConfirmed(state=>optimisticCardAction(state,{kind:'save',cardId:row.cardId,bookId:row.bookId,saved:row.saved,savedAt:row.savedAt})));
@@ -127,9 +127,9 @@ function Features({context,api,callbacks}){
         if(error.status===401){callbacks.onSessionExpired();return}
         // A lost response may hide a committed write. Read server state before rolling back.
         try{
-          const recoveryVersion=versions.current[action.cardId];
+          const recoveryGeneration=generations.current[action.cardId];
           const row=await transport.current.read(userId,action.cardId);if(!current(userId))return;
-          if(versions.current[action.cardId]===recoveryVersion){
+          if(generations.current[action.cardId]===recoveryGeneration){
             putRecord(action.cardId,row);
             startTransition(()=>setConfirmed(state=>optimisticCardAction(state,{kind:'save',cardId:action.cardId,bookId:action.bookId,saved:row.saved,savedAt:row.savedAt})));
             callbacks.onSavedConfirm({...row,bookId:action.bookId},userId);

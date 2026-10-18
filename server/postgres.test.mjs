@@ -31,7 +31,7 @@ test("PostgreSQL schema and production catalog seed initialize and repeat safely
   await initializeDatabase(db); await seedCatalog(db); await seedCatalog(db);
   const data = await readCatalog(db);
   assert.equal(data.books.length,5); assert.equal(data.cards.length,42);
-  assert.equal(data.decks.length,6); assert.equal(data.versions.length,6);
+  assert.equal(data.decks.length,6); assert.equal(data.decks.length,6);
   assert.equal(data.books.find(book => book.id === "seven-habits").genres.includes("productivity"),true);
 });
 
@@ -40,11 +40,11 @@ test("PostgreSQL persists account, daily leaves and freely opened cards", async 
   await initializeDatabase(db); await seedCatalog(db);
   await authenticate(db,"register",{username:"postgres.reader",password:"correct horse battery staple"});
   const id = (await db.prepare("SELECT user_id FROM accounts WHERE username = ?").get("postgres.reader")).user_id;
-  const session = {user_id:id,csrf_token:"test"}, versionId = "seven-habits-editorial-v1", day = "2026-10-08", now = new Date("2026-10-08T12:00:00Z");
+  const session = {user_id:id,csrf_token:"test"}, deckId = "seven-habits-editorial", day = "2026-10-08", now = new Date("2026-10-08T12:00:00Z");
   assert.equal((await readLeafWallet(db,id,day)).balance,1);
-  const first = await openCard(db,session,versionId,"habit-1",now);
+  const first = await openCard(db,session,deckId,"habit-1",now);
   assert.equal(first.state.wallet.balance,1);
-  const repeated = await openCard(db,session,versionId,"habit-1",now);
+  const repeated = await openCard(db,session,deckId,"habit-1",now);
   assert.equal((await readLeafWallet(db,id,day)).balance,1);
   const state = await readReaderState(db,session,now);
   assert.equal("practices" in state,false);

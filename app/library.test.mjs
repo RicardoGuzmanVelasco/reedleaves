@@ -48,20 +48,20 @@ test("A book modal shows metadata, three reading choices and one explicit deck a
   assert.equal(disabled.length,3); assert.ok(disabled.every(([tag])=>tag.includes("disabled")));
 });
 
-test("Book grid and modal translate, escape content and count decks rather than published versions", async () => {
+test("Book grid and modal translate, escape content and count current decks", async () => {
   const s = {...await state(),language:"en",openBookId:"atomic-habits"};
-  const v = s.catalog.versions.find(v => v.bookId === "atomic-habits");
-  s.catalog.versions.push({...v,id:v.id+"-second",number:2});
+  const v = s.catalog.decks.find(v => v.bookId === "atomic-habits");
+  s.catalog.decks.push({...v,id:v.id+"-second"});
   const book = s.catalog.booksById.get("atomic-habits");
   book.title.en = '<script>alert("title")</script>';
   book.author = '<img src=x onerror="bad">';
   const html = libraryView(s);
-  assert.match(html,/Library/); assert.match(html,/View decks/); assert.match(html,/1 deck/);
+  assert.match(html,/Library/); assert.match(html,/View decks/); assert.match(html,/2 decks/);
   assert.doesNotMatch(html,/<script|<img src=x/);
   assert.match(html,/&lt;script&gt;/); assert.match(html,/&lt;img/);
   const modal = html.slice(html.indexOf('<dialog'));
-  assert.doesNotMatch(modal,/2 decks/);
-  assert.match(modal,/data-action="open-book"[^>]*>View decks · 1<\/button>/);
+  assert.doesNotMatch(modal,/1 deck<\/button>/);
+  assert.match(modal,/data-action="open-book"[^>]*>View decks · 2<\/button>/);
 });
 
 test("Library has an empty state; deck selection can return to the catalog", async () => {

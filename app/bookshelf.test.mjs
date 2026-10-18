@@ -22,7 +22,7 @@ test("Bookshelf excludes untouched recommendations and includes reading, enrolme
   const s=await fixture();
   assert.deepEqual(bookshelfBooks(s),[]);
   s.statuses={"atomic-habits":"reading","getting-things-done":"read"};
-  s.enrolledIds=["seven-habits-editorial-v1","missing"];
+  s.enrolledIds=["seven-habits-editorial","missing"];
   const before=structuredClone({enrolledIds:s.enrolledIds,statuses:s.statuses});
   assert.deepEqual(ids(bookshelfBooks(s)),["seven-habits","getting-things-done","atomic-habits"]);
   const book=s.catalog.booksById.get("same-as-ever"); book.creatorUserId=s.userId;
@@ -37,7 +37,7 @@ test("Bookshelf excludes untouched recommendations and includes reading, enrolme
 test("Reading filters work independently from deck membership",async()=>{
   const s=await fixture();
   s.statuses={"atomic-habits":"reading","seven-habits":"read","getting-things-done":"read"};
-  s.enrolledIds=["seven-habits-editorial-v1"];
+  s.enrolledIds=["seven-habits-editorial"];
   const filter=reading=>ids(bookshelfBooks({...s,bookshelfFilters:{reading}}));
   assert.deepEqual(filter("read"),["seven-habits","getting-things-done"]);
   assert.deepEqual(filter("reading"),["atomic-habits"]);
@@ -72,7 +72,7 @@ test("Saved cards are the first deck tile for signed-in readers",async()=>{
 
 test("Deck membership keeps a book on the shelf without card progress groups",async()=>{
   const s=await fixture();
-  s.enrolledIds=["seven-habits-inside-out-v1"];
+  s.enrolledIds=["seven-habits-inside-out"];
   const entries=bookshelfBooks(s);
   assert.equal(entries.length,1); assert.equal(entries[0].group,"unread");
   assert.equal((bookshelfView(s).match(/data-book="seven-habits"/g)||[]).length,1);
@@ -104,15 +104,15 @@ test("Collection filters, empty states, book details and origin navigation trans
   }
 });
 
-test("Decks tab shows enrolled versions and automatically includes the reader's own decks",async()=>{
-  const s=await fixture(),version=s.catalog.versionsById.get("seven-habits-editorial-v1"),ownDeck=s.catalog.decks.find(deck=>deck.bookId==="atomic-habits");
+test("Decks tab shows enrolled decks and automatically includes the reader's own decks",async()=>{
+  const s=await fixture(),version=s.catalog.decksById.get("seven-habits-editorial"),ownDeck=s.catalog.decks.find(deck=>deck.bookId==="atomic-habits");
   ownDeck.creator.userId=s.userId;
-  s.catalog.versionsById.get("atomic-habits-editorial-v1").status="draft";
+  s.catalog.decksById.get("atomic-habits-editorial").status="draft";
   const html=bookshelfView({...s,bookshelfTab:"decks",enrolledIds:[version.id]});
   assert.match(html,/href="#bookshelf\/decks" aria-current="page"/);
   assert.ok(html.includes(words.es.deckCollection));
-  assert.match(html,/data-action="review-collection-deck" data-version="seven-habits-editorial-v1"/);
-  assert.match(html,/data-action="manage-collection-deck" data-version="atomic-habits-editorial-v1"/);
+  assert.match(html,/data-action="review-collection-deck" data-deck="seven-habits-editorial"/);
+  assert.match(html,/data-action="manage-collection-deck" data-deck="atomic-habits-editorial"/);
   assert.doesNotMatch(html,/for="bookshelf-reading"/);
   const empty=await fixture();
   assert.match(bookshelfView({...empty,bookshelfTab:"decks"}),/Todavía no has añadido barajas a tu tarjetero/);
@@ -120,19 +120,19 @@ test("Decks tab shows enrolled versions and automatically includes the reader's 
 
 test("Deck details distinguish adding to Decks from starting practice",async()=>{
   const s=await fixture(),deck=featuredDecks(s.catalog,"atomic-habits")[0];
-  const state={...s,bookId:"atomic-habits",deckChoices:[deck],openDeckId:deck.version.id};
+  const state={...s,bookId:"atomic-habits",deckChoices:[deck],openDeckId:deck.deck.id};
   const notAdded=deckView(state);
   assert.match(notAdded,/data-action="add-deck-to-collection"/);
   assert.match(notAdded,/Costs one leaf|Cuesta una hoja/);
   assert.doesNotMatch(notAdded,/data-action="select-deck"/);
-  const added=deckView({...state,enrolledDeckIds:[deck.deck.id]});
+  const added=deckView({...state,enrolledIds:[deck.deck.id]});
   assert.doesNotMatch(added,/data-action="add-deck-to-collection"/);
   assert.ok(added.includes(words.es.deckInCollection));
 });
 
 test("Own empty drafts remain pending, while completed books stay out of simplified Home",async()=>{
   const s=await fixture();
-  const version=s.catalog.versions.find(v=>v.bookId==="atomic-habits"); version.status="draft"; version.cardCount=0;
+  const version=s.catalog.decks.find(v=>v.bookId==="atomic-habits"); version.status="draft"; version.cardCount=0;
   s.enrolledIds=[version.id];
   assert.equal(bookshelfBooks(s)[0].group,"unread");
   s.enrolledIds=[];

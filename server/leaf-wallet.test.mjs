@@ -62,7 +62,7 @@ for (const dialect of ["sqlite","postgres"]) {
 
   test(`${dialect}: legacy wallet migration preserves balances and permits manual credit`,async t => {
     const db=await historicalDatabase(t,dialect,dialect === "postgres" ? 5 : 13),session=await historicalReader(db,"reader");
-    const now=migrationNow,versionId="seven-habits-editorial-v1";
+    const now=migrationNow,deckId="seven-habits-editorial";
     await historicalUnlock(db,session);
     const before=await migrationData(db);
     await assert.rejects(async()=>db.prepare("UPDATE leaf_wallets SET balance=100 WHERE user_id='reader'").run(),/CHECK|check/i);
@@ -73,7 +73,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.deepEqual(await readCatalog(db),catalog);
     await setLeafBalance(db,"reader",100,now);
     const nextDay = new Date("2026-10-12T12:00:00Z");
-    const result = await openCard(db,session,versionId,"habit-2",nextDay);
+    const result = await openCard(db,session,deckId,"habit-2",nextDay);
     assert.equal(result.state.wallet.balance,100);
     assert.equal((await readLeafWallet(db,"reader","2026-10-13")).balance,100);
     assert.equal("practices" in result.state,false);

@@ -12,7 +12,7 @@ import {readProfile} from "./profile-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 import {serverDay} from "./auth.mjs";
 const date = day=>new Date(day+"T12:00:00Z"), today = date("2026-10-06");
-const version = "seven-habits-editorial-v1", other = "atomic-habits-editorial-v1";
+const version = "seven-habits-editorial", other = "atomic-habits-editorial";
 async function fixture(t,path = ":memory:") {
   const db = openDatabase(path); initializeDatabase(db); await seedCatalog(db); t.after(async()=>db.close());
   for (const id of ["a","b"]) {
@@ -83,8 +83,8 @@ test("Practice answers persist per account and overwrite the last answer",async 
   for(const input of [{cardId:"habit-1",answer:"later"},{cardId:"missing",answer:"soon"},{cardId:"",answer:"soon"}]) await assert.rejects(savePracticeAnswer(db,a,input));
 });
 test("Leaves accrue independently of card views",async t=>{
-  const {db,a} = await fixture(t), v = "seven-habits-inside-out-v1";
-  const catalog=await readCatalog(db),modelCards=catalog.cards.filter(c=>c.versionId===v),root=modelCards.find(c=>c.parentId===null),child=modelCards.find(c=>c.parentId===root.id);
+  const {db,a} = await fixture(t), v = "seven-habits-inside-out";
+  const catalog=await readCatalog(db),modelCards=catalog.cards.filter(c=>c.deckId===v),root=modelCards.find(c=>c.parentId===null),child=modelCards.find(c=>c.parentId===root.id);
   await readReaderState(db,a,today);
   const later = date("2026-10-12"); assert.equal((await readReaderState(db,a,later)).wallet.balance,3);
   assert.equal((await openCard(db,a,v,child.id,later)).state.wallet.balance,3);

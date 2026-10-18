@@ -13,8 +13,6 @@ import {accruePetalWallet,MAX_PETALS} from "./petal-wallet-repository.mjs";
 import {practiceDiscountTopic} from "./practice-economy.mjs";
 
 const globalDay = now => now.toISOString().slice(0,10);
-const canonicalDeckId = value => value.endsWith("-v1") ? value.slice(0,-3) : value;
-const deckVersionRef = value => value + "-v1";
 export async function readReaderState(db,session,now=new Date()) {
   return transaction(db,()=>stateInside(db,session,now));
 }
@@ -60,9 +58,8 @@ async function stateInside(db,session,now) {
   return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,showOriginalTitles:display?.show_original_titles === 1,today,wallet,petals:petalWallet.balance,petalMaximum:MAX_PETALS,practiceDiscountTopic:discountTopic,activePracticeSession,practiceAnswers,growth,cardSaves:await cardSavesInside(db,userId),
     noteActivity,noteDeckActivity,
     statuses:Object.fromEntries((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])),
-    enrolledIds:(await db.prepare("SELECT deck_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>deckVersionRef(r.deck_id)),
-    enrolledDeckIds:(await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(r=>r.deck_id),
-    selections:Object.fromEntries((await db.prepare("SELECT book_id,deck_id FROM deck_selections WHERE user_id = ?").all(userId)).map(r=>[r.book_id,deckVersionRef(r.deck_id)])),
+    enrolledIds:(await db.prepare("SELECT deck_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.deck_id),
+    selections:Object.fromEntries((await db.prepare("SELECT book_id,deck_id FROM deck_selections WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.deck_id])),
     daily:idea,dailyHistory};
 }
 export async function savePracticeAnswer(db,session,input,now=new Date()) {
@@ -74,62 +71,62 @@ export async function savePracticeAnswer(db,session,input,now=new Date()) {
     .run(session.user_id,input.cardId,input.answer,now.toISOString());
   return {saved:true};
 }
-async function knownVersion(db,versionId,userId) {
-  if(typeof versionId!=="string") throw new ApiError(400,"invalidRequest");
-  const canonicalId=canonicalDeckId(versionId),deck=await db.prepare("SELECT * FROM decks WHERE id = ?").get(canonicalId);
-  const enrolled=await db.prepare("SELECT 1 FROM studies WHERE user_id = ? AND deck_id = ?").get(userId,canonicalId);
+async function knownDeck(db,deckId,userId) {
+  if(typeof deckId!=="string") throw new ApiError(400,"invalidRequest");
+  const deck=await db.prepare("SELECT * FROM decks WHERE id = ?").get(deckId);
+  const enrolled=await db.prepare("SELECT 1 FROM studies WHERE user_id = ? AND deck_id = ?").get(userId,deckId);
   if(!deck||(deck.status==="archived"&&!enrolled)) throw new ApiError(404,"deckUnavailable");
-  return {...deck,id:deckVersionRef(deck.id),deck_id:deck.id,canonicalId:deck.id};
+  return deck;
 }
-async function enrol(db,userId,version) {
-  await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?) ON CONFLICT DO NOTHING").run(userId,version.canonicalId);
+async function enrol(db,userId,deck) {
+  await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?) ON CONFLICT DO NOTHING").run(userId,deck.id);
   await db.prepare("INSERT INTO deck_selections VALUES (?,?,?) ON CONFLICT(user_id,book_id) DO UPDATE SET deck_id=excluded.deck_id")
-    .run(userId,version.book_id,version.canonicalId);
+    .run(userId,deck.book_id,deck.id);
 }
-async function deckIsOwned(db,userId,version) {
-  return !!await db.prepare("SELECT 1 FROM decks WHERE id=? AND creator_user_id=?").get(version.deck_id,userId);
+async function deckIsOwned(db,userId,deck) {
+  return !!await db.prepare("SELECT 1 FROM decks WHERE id=? AND creator_user_id=?").get(deck.id,userId);
 }
-async function requireDeckInCollection(db,userId,version) {
-  const added=await db.prepare("SELECT 1 FROM studies WHERE user_id=? AND deck_id=?").get(userId,version.deck_id);
-  const owned=await deckIsOwned(db,userId,version);
+async function requireDeckInCollection(db,userId,deck) {
+  const added=await db.prepare("SELECT 1 FROM studies WHERE user_id=? AND deck_id=?").get(userId,deck.id);
+  const owned=await deckIsOwned(db,userId,deck);
   if(!added&&!owned) throw new ApiError(409,"deckNotInCollection");
-  if(!added) await enrol(db,userId,version);
+  if(!added) await enrol(db,userId,deck);
 }
-export async function addDeckToCollection(db,session,versionId,now=new Date()) {
+export async function addDeckToCollection(db,session,deckId,now=new Date()) {
   return transaction(db,async()=>{
-    const userId=session.user_id,version=await knownVersion(db,versionId,userId);
+    const userId=session.user_id,deck=await knownDeck(db,deckId,userId);
     if(isPostgres(db)) await db.prepare("SELECT user_id FROM accounts WHERE user_id=? FOR UPDATE").get(userId);
-    const existing=await db.prepare("SELECT 1 FROM studies WHERE user_id=? AND deck_id=?").get(userId,version.deck_id);
+    const existing=await db.prepare("SELECT 1 FROM studies WHERE user_id=? AND deck_id=?").get(userId,deck.id);
     if(existing) {
-      await enrol(db,userId,version);
+      await enrol(db,userId,deck);
       return {state:await stateInside(db,session,now)};
     }
-    if(await deckIsOwned(db,userId,version)) {
-      await enrol(db,userId,version);
+    if(await deckIsOwned(db,userId,deck)) {
+      await enrol(db,userId,deck);
       return {state:await stateInside(db,session,now)};
     }
     await stateInside(db,session,now);
     const spent=await db.prepare("UPDATE leaf_wallets SET balance=balance-1 WHERE user_id=? AND balance>=1").run(userId);
     if(spent.changes!==1) throw new ApiError(409,"insufficientLeaves");
-    await enrol(db,userId,version);
+    await enrol(db,userId,deck);
     return {state:await stateInside(db,session,now)};
   });
 }
-export async function selectDeck(db,session,versionId,now=new Date(),{requireCollection=false}={}) {
+export async function selectDeck(db,session,deckId,now=new Date(),{requireCollection=false}={}) {
   return transaction(db,async()=>{
-    const version=await knownVersion(db,versionId,session.user_id);
-    if(requireCollection) await requireDeckInCollection(db,session.user_id,version);
-    await enrol(db,session.user_id,version);
+    const deck=await knownDeck(db,deckId,session.user_id);
+    if(requireCollection) await requireDeckInCollection(db,session.user_id,deck);
+    await enrol(db,session.user_id,deck);
     return stateInside(db,session,now);
   });
 }
-export async function openCard(db,session,versionId,cardId,now=new Date(),{requireCollection=false}={}) {
+export async function openCard(db,session,deckId,cardId,now=new Date(),{requireCollection=false}={}) {
   return transaction(db,async()=>{
-    const userId=session.user_id,version=await knownVersion(db,versionId,userId),catalog=prepareCatalog(await readCatalog(db,session.user_id)),model=catalog.versionModels.get(version.id);
+    const userId=session.user_id,deck=await knownDeck(db,deckId,userId),catalog=prepareCatalog(await readCatalog(db,session.user_id)),model=catalog.deckModels.get(deck.id);
     if(typeof cardId!=="string"||!model.byId.has(cardId)) throw new ApiError(404,"cardUnavailable");
-    if(requireCollection) await requireDeckInCollection(db,userId,version);
+    if(requireCollection) await requireDeckInCollection(db,userId,deck);
     const state=await stateInside(db,session,now);
-    await enrol(db,userId,version);
+    await enrol(db,userId,deck);
     await insertCardView(db,userId,cardId);
     return {state:await stateInside(db,session,now)};
   });
@@ -167,7 +164,7 @@ export async function dailyIdea(db,session,now=new Date()) {
     const raced=await db.prepare("SELECT 1 FROM daily_ideas WHERE day=?").get(day);
     if(raced) return stateInside(db,session,now);
     const catalog=prepareCatalog(await readCatalog(db,session.user_id));
-    const candidates=catalog.allCards.filter(card=>card.parentId===null && card.versionId===catalog.selectedVersions.get(card.bookId));
+    const candidates=catalog.allCards.filter(card=>card.parentId===null && card.deckId===catalog.selectedDecks.get(card.bookId));
     if(candidates.length) {
       const seen=new Set((await db.prepare("SELECT DISTINCT card_id FROM daily_ideas").all()).map(row=>row.card_id));
       const unused=candidates.filter(card=>!seen.has(card.id));

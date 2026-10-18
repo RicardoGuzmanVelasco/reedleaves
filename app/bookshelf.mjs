@@ -4,7 +4,7 @@ export const bookshelfDefaults = {reading:"all"};
 export function bookshelfBooks({catalog,statuses = {},enrolledIds = [],cardSaves = [],userId,bookshelfFilters = bookshelfDefaults}) {
   const enrolled = new Set(enrolledIds);
   const personal = new Set(catalog.decks.filter(deck=>userId && deck.creator.userId === userId).map(deck=>deck.bookId));
-  const selected = new Set(catalog.versions.filter(version=>enrolled.has(version.id)).map(version=>version.bookId));
+  const selected = new Set(catalog.decks.filter(deck=>enrolled.has(deck.id)).map(deck=>deck.bookId));
   const saved = new Set(cardSaves.map(card=>card.bookId));
   return catalog.books.flatMap(book=>{
     const reading = statuses[book.id] || "unread";

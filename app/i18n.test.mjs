@@ -115,7 +115,7 @@ test("Missing Spanish or English metadata rejects the seed, API payload and inco
     const seed = readSeed(); mutate(seed); assert.throws(() => validateSeed(seed));
   }
   const c = await catalog(), payload = {
-    schemaVersion:3, books:c.books, cards:c.allCards, genres:c.genres, decks:c.decks, versions:c.versions
+    schemaVersion:4, books:c.books, cards:c.allCards, genres:c.genres, decks:c.decks
   };
   delete payload.books[0].title.en;
   assert.throws(() => prepareCatalog(payload), /translation/);

@@ -200,10 +200,10 @@ BEGIN
 END $$;
 CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards FOR EACH ROW EXECUTE FUNCTION reed_keep_published_card();
 CREATE FUNCTION reed_keep_published_card_translation() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE version_status TEXT;
+DECLARE deck_status TEXT;
 BEGIN
-  SELECT d.status INTO version_status FROM decks d JOIN cards c ON c.deck_id=d.id WHERE c.id=OLD.card_id;
-  IF version_status <> 'draft' THEN RAISE EXCEPTION 'Published content is immutable; card translations cannot be deleted'; END IF;
+  SELECT d.status INTO deck_status FROM decks d JOIN cards c ON c.deck_id=d.id WHERE c.id=OLD.card_id;
+  IF deck_status <> 'draft' THEN RAISE EXCEPTION 'Published content is immutable; card translations cannot be deleted'; END IF;
   RETURN OLD;
 END $$;
 CREATE TRIGGER freeze_card_translation_delete BEFORE DELETE ON card_translations FOR EACH ROW EXECUTE FUNCTION reed_keep_published_card_translation();

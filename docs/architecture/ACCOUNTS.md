@@ -23,7 +23,7 @@ Añadir una baraja al Tarjetero cuesta una hoja y añadirla otra vez no vuelve a
 
 Todas las tarjetas de una baraja añadida se pueden abrir desde el principio, incluidas las hijas y las citas. Abrir una tarjeta no cobra hojas ni pétalos y no guarda avance por baraja. Las sesiones breves de cinco tarjetas se registran en `practice_sessions` y cobran pétalos.
 
-La idea del día se sortea al primer acceso de cada fecha UTC y queda fijada para todo el mundo. Se elige al azar entre las tarjetas raíz de las versiones predeterminadas del catálogo y se agotan las candidatas antes de repetir; al empezar otro ciclo se evita la tarjeta del día anterior si hay alternativa. Una cita raíz también puede salir. El calendario permite consultar las asignaciones anteriores.
+La idea del día se sortea al primer acceso de cada fecha UTC y queda fijada para todo el mundo. Se elige al azar entre las tarjetas raíz de las barajas predeterminadas del catálogo y se agotan las candidatas antes de repetir; al empezar otro ciclo se evita la tarjeta del día anterior si hay alternativa. Una cita raíz también puede salir. El calendario permite consultar las asignaciones anteriores.
 
 Las guardadas se consultan por cuenta y libro, sin aparecer en perfiles o bibliotecas ajenas. Todas las tarjetas disponibles en el catálogo se pueden guardar. Repetir el mismo destino conserva la fecha; quitar y volver a guardar crea una nueva. Abrir desde Guardadas valida pertenencia y registra contexto `saved`, sin alterar el repaso. La cuenta propia incluye `cardSaves`; esa relación permite incorporar el libro a Biblioteca sin cambiar su estado de lectura o repaso.
 
@@ -40,8 +40,8 @@ El navegador muestra el estado confirmado y consulta cambios al volver al primer
 | `/api/auth/login` | POST | Sesión |
 | `/api/auth/logout` | POST | Revocar sesión actual |
 | `/api/reader/state` | GET / HEAD | Estado autenticado |
-| `/api/reader/select` | POST | Elegir versión de baraja, gratis |
-| `/api/reader/open` | POST | Abrir tarjeta y guardar el progreso |
+| `/api/reader/select` | POST | Elegir baraja, gratis |
+| `/api/reader/open` | POST | Abrir tarjeta y registrar su vista |
 | `/api/reader/reading` | POST | Estado manual del libro original |
 | `/api/reader/preferences` | POST | Idioma y títulos originales |
 | `/api/reader/daily` | POST | Obtener o asignar la idea de hoy |

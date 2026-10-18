@@ -32,8 +32,8 @@ for (const dialect of ["sqlite","postgres"]) {
     await initializeDatabase(db);
     const book=await createBook(db,session,{requestId:randomUUID(),author:"Daniel Kahneman",metadata:bookMetadata});
     const deck=await createDeck(db,session,{requestId:randomUUID(),bookId:book.bookId,title:"Notas",language:"es"});
-    const card=await addCard(db,session,{requestId:randomUUID(),versionId:deck.versionId,title:"Idea",body:"Texto conservado",isQuote:false,parentId:null});
-    await finishDeck(db,session,{versionId:deck.versionId});
+    const card=await addCard(db,session,{requestId:randomUUID(),deckId:deck.deckId,title:"Idea",body:"Texto conservado",isQuote:false,parentId:null});
+    await finishDeck(db,session,{deckId:deck.deckId});
     await db.prepare("INSERT INTO card_votes(user_id,card_id,value) VALUES (?,?,1)").run(session.user_id,"habit-1");
     await db.prepare("INSERT INTO card_saves(user_id,card_id,saved_at) VALUES (?,?,?)").run(session.user_id,"habit-1","2026-10-17T12:00:00Z");
     await db.prepare("INSERT INTO reader_display_preferences VALUES (?,1)").run(session.user_id);

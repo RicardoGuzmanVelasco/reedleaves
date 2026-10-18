@@ -9,7 +9,7 @@ import {deckView,reviewView,homeView,practiceView,authorView,authorFormView,esca
 import {readerState} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
 
-const versionId = "seven-habits-inside-out-v1";
+const deckId = "seven-habits-inside-out";
 async function fixture() {
   const db = openDatabase(":memory:");
   try { initializeDatabase(db); await seedCatalog(db); return prepareCatalog(await readCatalog(db)); }
@@ -28,7 +28,7 @@ test("Deck recommendations and community likes stay separate", async () => {
   assert.equal(featuredDecks(catalog,"seven-habits").some(c => c.tags.includes("preferred")),false);
 });
 test("Deck grid opens a complete modal; every review card is visible and openable", async () => {
-  const catalog = await fixture(), deckId=catalog.versionsById.get(versionId).deckId,base = {catalog,language:"es",versionId,bookId:"seven-habits",requestedId:"inside-out-2",storageAvailable:true,userId:"reader",enrolledDeckIds:[deckId]};
+  const catalog = await fixture(),base = {catalog,language:"es",deckId,bookId:"seven-habits",requestedId:"inside-out-2",storageAvailable:true,userId:"reader",enrolledIds:[deckId]};
   const html = reviewView(base);
   assert.match(html,/Equipo Reedleaves/); assert.match(html,/class="tree-map/);
   assert.doesNotMatch(html,/tree-node--seen|tree-node--unseen|Ya repasada|Sin repasar/);
@@ -38,7 +38,7 @@ test("Deck grid opens a complete modal; every review card is visible and openabl
   const grid = deckView({...base,deckChoices,openDeckId:null});
   assert.match(grid,/class="deck-grid"/); assert.match(grid,/Ideas esenciales/); assert.match(grid,/From the inside out/);
   assert.doesNotMatch(grid,/<dialog/); assert.doesNotMatch(grid,/deck-carousel/);
-  const modal = deckView({...base,deckChoices,openDeckId:versionId});
+  const modal = deckView({...base,deckChoices,openDeckId:deckId});
   assert.match(modal,/<dialog class="deck-modal"/); assert.match(modal,/7 tarjetas · 2 niveles/);
   assert.match(modal,/href="#profile\//); assert.match(modal,/inglés/i); assert.match(modal,/Ver baraja/);
   assert.doesNotMatch(modal,/Más popular/);
@@ -46,22 +46,22 @@ test("Deck grid opens a complete modal; every review card is visible and openabl
 
 test("Deck tiles only label ongoing creation and retain the change warning in their details, in both languages",async()=>{
   const catalog=await fixture(),choices=featuredDecks(catalog,"seven-habits");
-  const deckChoices=choices.slice(0,2).map((item,i)=>({...item,version:{...item.version,status:i ? "published" : "draft"}}));
+  const deckChoices=choices.slice(0,2).map((item,i)=>({...item,deck:{...item.deck,status:i ? "published" : "draft"}}));
   for (const language of ["es","en"]) {
     const c=words[language],state=readerState(catalog,{language,bookId:"seven-habits",deckChoices});
     for (const choice of deckChoices) {
       const tags=["recommended","popular","preferred"];
       const taggedChoice={...choice,tags:[...tags]};
-      const html=deckView({...state,deckChoices:[taggedChoice]}),version=choice.version;
+      const html=deckView({...state,deckChoices:[taggedChoice]}),deck=choice.deck;
       for (const tag of ["popular","preferred","otherDeck"]) assert.ok(!html.includes(c[tag]),"Community and fallback labels stay hidden");
       assert.deepEqual(taggedChoice.tags,tags,"Rendering preserves the underlying distinctions");
       const openButton=html.match(/<button\b[^>]*data-action="open-deck"[^>]*>/)[0];
       const label=openButton.match(/aria-label="([^"]*)"/)[1];
-      assert.ok(label.includes(c.noteCardsCount(version.cardCount)),"The tile describes its card count accessibly");
+      assert.ok(label.includes(c.noteCardsCount(deck.cardCount)),"The tile describes its card count accessibly");
       const languageName=new Intl.DisplayNames([language],{type:"language"}).of(choice.deck.language);
       assert.ok(label.includes(languageName),"The flag retains an accessible language description");
-      assert.ok(!html.includes(c.deckSize(version.cardCount,version.depth)),"The selector omits the old count and level summary");
-      if (version.status === "draft") {
+      assert.ok(!html.includes(c.deckSize(deck.cardCount,deck.depth)),"The selector omits the old count and level summary");
+      if (deck.status === "draft") {
         assert.ok(label.includes(c.deckInProgress));
         assert.ok(html.replace(/<[^>]*>/g,"").includes(c.deckInProgressShort),"The tile has a short visible ongoing label");
       } else {
@@ -70,7 +70,7 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
         assert.ok(!html.includes(c.deckInProgressShort),"A finished tile has no ongoing chip");
       }
     }
-    const details=deckView({...state,openDeckId:deckChoices[0].version.id}).split("<dialog")[1];
+    const details=deckView({...state,openDeckId:deckChoices[0].deck.id}).split("<dialog")[1];
     assert.ok(details.includes(c.deckInProgress));
     assert.ok(details.includes(c.deckMayChangeUnadded));
     for (const tag of ["recommended","popular","preferred","otherDeck"]) assert.ok(!details.includes(c[tag]),"Deck details also omit distinctions and fallback labels");
@@ -81,7 +81,7 @@ test("Deck authors link to their profiles independently of deck opening, includi
   const catalog=await fixture(),choice=featuredDecks(catalog,"seven-habits")[0];
   for (const language of ["es","en"]) {
     const state=readerState(catalog,{language,bookId:"seven-habits",deckChoices:[choice]});
-    for (const html of [deckView(state),deckView({...state,openDeckId:choice.version.id}),reviewView({...state,versionId:choice.version.id,today:"2026-10-16"})]) {
+    for (const html of [deckView(state),deckView({...state,openDeckId:choice.deck.id}),reviewView({...state,deckId:choice.deck.id,today:"2026-10-16"})]) {
       assert.ok(html.includes(`href="#profile/${encodeURIComponent(choice.deck.creator.userId)}"`));
       assert.ok(html.includes(escapeHtml(choice.deck.creator.name)));
       assert.doesNotMatch(html,/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?<a\b/,"Profile links must not be nested inside deck buttons");
@@ -98,9 +98,9 @@ test("Deck authors link to their profiles independently of deck opening, includi
 });
 
 test("Deck albums show cards without per-deck progress",async()=>{
-  const catalog=await fixture(),model=catalog.versionModels.get(versionId),version=catalog.versionsById.get(versionId),deck=catalog.decksById.get(version.deckId);
+  const catalog=await fixture(),model=catalog.deckModels.get(deckId),deck=catalog.decksById.get(deckId);
   const card=model.roots[0];
-  const base={catalog,language:"es",versionId,bookId:version.bookId,storageAvailable:true};
+  const base={catalog,language:"es",deckId,bookId:deck.bookId,storageAvailable:true};
   for (const [mode,view] of [["review",reviewView],["author",authorView]]) {
     const state={...base,mode,userId:deck.creator.userId};
     const album=view(state);
@@ -109,34 +109,34 @@ test("Deck albums show cards without per-deck progress",async()=>{
     if(mode === "author") {
       const noteButtons=album.match(/data-action="take-child-note"/g) || [];
       assert.equal(noteButtons.length,model.cards.length,"Every authored tree card has a child-note action");
-      for(const card of model.cards) assert.match(album,new RegExp(`data-action="take-child-note" data-card="${card.id}" data-version="${versionId}"[^>]*aria-label="Tomar nota:`));
+      for(const card of model.cards) assert.match(album,new RegExp(`data-action="take-child-note" data-card="${card.id}" data-deck="${deckId}"[^>]*aria-label="Tomar nota:`));
       const grid=view({...state,deckPreview:true});
       assert.equal((grid.match(/data-action="take-child-note"/g) || []).length,model.cards.length,"Every authored grid card has a child-note action");
-      for(const card of model.cards) assert.match(grid,new RegExp(`data-action="take-child-note" data-card="${card.id}" data-version="${versionId}"[^>]*aria-label="Tomar nota:`));
+      for(const card of model.cards) assert.match(grid,new RegExp(`data-action="take-child-note" data-card="${card.id}" data-deck="${deckId}"[^>]*aria-label="Tomar nota:`));
       const parent=model.roots[0];
-      const form=authorFormView({...state,authorForm:{kind:"card",requestId:"child-note",noteBookId:version.bookId,noteVersionId:version.id,parentId:parent.id,title:"",body:"",language:version.language}});
+      const form=authorFormView({...state,authorForm:{kind:"card",requestId:"child-note",noteBookId:deck.bookId,noteDeckId:deck.id,parentId:parent.id,title:"",body:"",language:deck.language}});
       assert.match(form,new RegExp(`<option value="${parent.id}" selected>`),"The parent selected from a card action is preselected in the note form");
     } else assert.doesNotMatch(album,/data-action="take-child-note"/);
     const detail=view({...state,requestedId:card.id});
     const modal=detail.match(/<dialog\b[^>]*class="exclusive-card-modal"[\s\S]*?<\/dialog>/)?.[0];
     assert.ok(modal,"An explicitly opened card has its own exclusive dialog");
-    assert.ok(modal.includes(escapeHtml(card.body[version.language])));
+    assert.ok(modal.includes(escapeHtml(card.body[deck.language])));
     assert.match(modal,/data-action="close-exclusive"/);
     assert.doesNotMatch(modal,/tree-map|data-action="choose-book"|data-action="home"/);
     assert.doesNotMatch(detail,/tarjetas repasadas|<progress/,"The album stays behind the dialog without a progress indicator");
     const empty=view({...state});
     assert.doesNotMatch(empty,/idea-card/);
-    const emptyDeck=view({...state,catalog:{...catalog,versionModels:new Map([[versionId,{...model,cards:[],roots:[]}]])}});
+    const emptyDeck=view({...state,catalog:{...catalog,deckModels:new Map([[deckId,{...model,cards:[],roots:[]}]])}});
     assert.doesNotMatch(emptyDeck,/NaN|Infinity|Repaso completo|idea-card/);
     assert.doesNotMatch(emptyDeck,/NaN|Infinity|Repaso completo|idea-card/);
   }
   const openable=reviewView({...base,requestedId:model.cards.at(-1).id});
-  assert.match(openable,/tree-map/);assert.match(openable,new RegExp(escapeHtml(model.cards.at(-1).body[version.language])));
+  assert.match(openable,/tree-map/);assert.match(openable,new RegExp(escapeHtml(model.cards.at(-1).body[deck.language])));
 });
 
 test("Home shows one closed book per active book, without exposing trees or spending leaves", async () => {
   const catalog = await fixture();
-  const second = "atomic-habits-editorial-v1";
+  const second = "atomic-habits-editorial";
   const state = {catalog,language:"es",statuses:{"seven-habits":"reading","atomic-habits":"reading"},enrolledIds:[second],storageAvailable:true};
   const html = homeView(state);
   assert.match(html,/data-action="practice" aria-label="¡Vamos a repasar!"/);
@@ -147,7 +147,7 @@ test("Home shows one closed book per active book, without exposing trees or spen
   assert.match(html,/Los 7 hábitos/); assert.match(html,/Stephen R\. Covey/);
   assert.doesNotMatch(html,/Choose your response|Make room for what matters|tree-node|tree-map|open-card|idea-card|Una idea al día/);
   assert.equal(homeView({...state,budget:null}),html);
-  assert.equal((homeView({...state,enrolledIds:[second,"seven-habits-editorial-v1"]}).match(/class="study-book"/g) || []).length,2);
+  assert.equal((homeView({...state,enrolledIds:[second,"seven-habits-editorial"]}).match(/class="study-book"/g) || []).length,2);
   const empty = homeView({...state,statuses:{},enrolledIds:[]});
   assert.ok(empty.includes(words.es.noReadingBooks)); assert.doesNotMatch(empty,/study-book"/);
   assert.match(homeView({...state,language:"en"}),/Go to the library/);
@@ -182,13 +182,13 @@ test("Practice prices show one discounted topic, the wallet cap, and useful empt
 
 
 test("Draft creation status stays distinct from practice sessions across deck surfaces",async()=>{
-  const catalog=await fixture(),version=catalog.versionsById.get(versionId),deck=catalog.decksById.get(version.deckId);
-  version.status="draft";
+  const catalog=await fixture(),deck=catalog.decksById.get(deckId);
+  deck.status="draft";
   for(const language of ["es","en"]){
-    const c=words[language],base=readerState(catalog,{language,bookId:version.bookId,versionId,today:"2026-10-17",deckChoices:featuredDecks(catalog,version.bookId)});
+    const c=words[language],base=readerState(catalog,{language,bookId:deck.bookId,deckId,today:"2026-10-17",deckChoices:featuredDecks(catalog,deck.bookId)});
     for(const userId of [deck.creator.userId,"another-reader"]){
       const state={...base,userId},explanation=userId===deck.creator.userId?c.deckDraftOwnerExplanation:c.deckMayChangeUnadded;
-      const surfaces=[deckView({...state,openDeckId:versionId}),reviewView(state)];
+      const surfaces=[deckView({...state,openDeckId:deckId}),reviewView(state)];
       if(userId===deck.creator.userId)surfaces.push(authorView({...state,mode:"author"}));
       for(const html of surfaces){
         assert.ok(html.includes(c.deckInProgress));
@@ -197,12 +197,12 @@ test("Draft creation status stays distinct from practice sessions across deck su
       }
       assert.doesNotMatch(reviewView(state),/Repaso completo|Practice complete/);
     }
-    version.status="published";
+    deck.status="published";
     const html=reviewView({...base,userId:deck.creator.userId});
     assert.ok(html.includes(c.deckFinished));
     assert.ok(!html.includes(c.deckDraftOwnerExplanation));
     assert.ok(!html.includes(c.deckMayChange));
-    version.status="draft";
+    deck.status="draft";
   }
 });
 
@@ -213,7 +213,7 @@ test("Only the explicit team recommendation gets the translated visible and acce
     const c=words[language];
     for(const status of ["draft","published"]){
       for(const recommended of [true,false]){
-        const item={...choice,deck:{...choice.deck,isRecommended:recommended},version:{...choice.version,status},tags:["recommended","popular","preferred"]};
+        const item={...choice,deck:{...choice.deck,isRecommended:recommended,status},tags:["recommended","popular","preferred"]};
         const html=deckView(readerState(catalog,{language,bookId:"seven-habits",deckChoices:[item]}));
         const open=html.match(/<button\b[^>]*data-action="open-deck"[^>]*>([\s\S]*?)<\/button>/)[0];
         const label=open.match(/aria-label="([^"]*)"/)[1];

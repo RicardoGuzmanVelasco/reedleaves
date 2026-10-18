@@ -25,7 +25,7 @@ test("Account client serializes changes, sends cookies/CSRF and recovers after f
     return {ok:true,json:async()=>({user:{id:"u"},csrfToken:"secret"})};
   });
   await client.request("/api/session");
-  const result = await Promise.allSettled([client.request("/bad",{}),client.request("/next",{versionId:"v"})]);
+  const result = await Promise.allSettled([client.request("/bad",{}),client.request("/next",{deckId:"v"})]);
   assert.equal(result[0].status,"rejected"); assert.equal(result[0].reason.code,"invalidRequest"); assert.equal(result[1].status,"fulfilled");
   assert.deepEqual(calls.map(c=>c[0]),["/api/session","/bad","/next"]);
   assert.equal(calls[2][1].credentials,"same-origin"); assert.equal(calls[2][1].headers["X-CSRF-Token"],"secret");

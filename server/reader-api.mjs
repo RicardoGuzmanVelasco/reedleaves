@@ -136,9 +136,9 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         const result = path === "/api/author/notes" ? await takeFirstNote(db,active,input) : path === "/api/author/decks/finish-notes" ? await finishNoteDecks(db,active,input) : path === "/api/author/decks/finish" ? await finishDeck(db,active,input) : path.endsWith("complete") ? await completeBook(db,active,input) : path.endsWith("books") ? await createBook(db,active,input) : path.endsWith("decks") ? await createDeck(db,active,input) : await addCard(db,active,input);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
-      const result = path === "/api/reader/collect" ? await addDeckToCollection(db,active,input.versionId,currentTime) :
-        path === "/api/reader/select" ? await selectDeck(db,active,input.versionId,currentTime,{requireCollection:true}) :
-        path === "/api/reader/open" ? await openCard(db,active,input.versionId,input.cardId,currentTime,{requireCollection:true}) :
+      const result = path === "/api/reader/collect" ? await addDeckToCollection(db,active,input.deckId,currentTime) :
+        path === "/api/reader/select" ? await selectDeck(db,active,input.deckId,currentTime,{requireCollection:true}) :
+        path === "/api/reader/open" ? await openCard(db,active,input.deckId,input.cardId,currentTime,{requireCollection:true}) :
         path === "/api/reader/reading" ? await changeReading(db,active,input.bookId,input.status,currentTime) :
         path === "/api/reader/preferences" ? await changePreferences(db,active,input,currentTime) : await dailyIdea(db,active,currentTime);
       send(200,result);

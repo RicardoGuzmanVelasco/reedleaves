@@ -12,10 +12,10 @@ async function state() {
   const db=openDatabase(":memory:");
   try {
     initializeDatabase(db); await seedCatalog(db);
-    const catalog=prepareCatalog(await readCatalog(db)),versionId="seven-habits-editorial-v1";
-    return {catalog,versionId,bookId:"seven-habits",language:"es",showOriginalTitles:true,
+    const catalog=prepareCatalog(await readCatalog(db)),deckId="seven-habits-editorial";
+    return {catalog,deckId,bookId:"seven-habits",language:"es",showOriginalTitles:true,
       statuses:{"seven-habits":"reading"},
-      enrolledIds:[versionId],storageAvailable:true,budget:{balance:1},daily:{id:"habit-1"},
+      enrolledIds:[deckId],storageAvailable:true,budget:{balance:1},daily:{id:"habit-1"},
       deckChoices:featuredDecks(catalog,"seven-habits")};
   } finally { db.close(); }
 }

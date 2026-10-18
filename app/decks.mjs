@@ -1,13 +1,9 @@
-export function availableVersions(catalog, bookId) {
-  return catalog.decks.filter(d => d.bookId === bookId).map(deck => {
-    const versions = catalog.versions.filter(v => v.deckId === deck.id && v.status !== "archived").sort((a,b) => b.number - a.number);
-    const version = versions.find(v => v.status === "published") || versions[0];
-    return version ? {deck,version,tags:[]} : null;
-  }).filter(Boolean);
+export function availableDecks(catalog, bookId) {
+  return catalog.decks.filter(deck => deck.bookId === bookId && deck.status !== "archived").map(deck => ({deck,tags:[]}));
 }
 
 export function featuredDecks(catalog, bookId) {
-  const choices = availableVersions(catalog,bookId), winners = [];
+  const choices = availableDecks(catalog,bookId), winners = [];
   const recommended = choices.find(c => c.deck.isRecommended);
   if (recommended) { recommended.tags.push("recommended"); winners.push(recommended); }
   for (const [tag,metric] of [["preferred","likes"]]) {
