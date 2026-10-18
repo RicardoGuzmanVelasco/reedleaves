@@ -323,20 +323,19 @@ body.is-reading{background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de
 .daily-screen .screen-heading h1{font-size:28px;line-height:1.2;letter-spacing:-.035em;color:var(--ink);font-weight:850}
 .daily-screen .screen-heading h1.daily-title{display:flex;align-items:center;gap:9px}.daily-title .calendar-icon{width:23px;height:23px;flex:none}
 .daily-screen .reading-stage{margin:0 auto 25px}
-.daily-calendar{margin:0 auto 25px;max-width:380px;padding:17px 18px 19px;border:1px solid var(--line);border-radius:22px;background:#eef3df}
-.daily-calendar-heading{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;text-align:center;margin-bottom:12px}
+.daily-calendar{margin:0 auto 18px;max-width:380px;padding:12px 15px 13px;border:1px solid var(--line);border-radius:22px;background:#eef3df}
+.daily-calendar-heading{display:grid;grid-template-columns:40px 1fr 40px;align-items:center;text-align:center;margin-bottom:8px}
 .daily-calendar-heading h2{font-size:15px;line-height:1.3;text-transform:capitalize;letter-spacing:-.01em}
-.calendar-nav{width:40px;height:40px;border:0;border-radius:13px;background:transparent;font-size:26px;line-height:1;color:var(--ink)}
+.calendar-nav{width:36px;height:36px;border:0;border-radius:13px;background:transparent;font-size:26px;line-height:1;color:var(--ink)}
 .calendar-nav:hover:not(:disabled){background:#fffdf6}.calendar-nav:disabled{opacity:.28}
-.daily-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
-.daily-calendar-weekday{min-height:30px;display:grid;place-items:center;font-size:10px;font-weight:750;color:var(--muted);text-transform:capitalize}
+.daily-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;text-align:center}
+.daily-calendar-weekday{min-height:24px;display:grid;place-items:center;font-size:10px;font-weight:750;color:var(--muted);text-transform:capitalize}
 .daily-calendar-day,.daily-calendar-empty{width:100%;aspect-ratio:1;max-height:42px;display:grid;place-items:center;border:0;border-radius:13px;background:transparent;font-size:12px;color:var(--muted)}
 button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .daily-calendar-day.has-idea{background:#fffdf6;box-shadow:0 2px 0 #d9e1cd}
 .daily-calendar-day.has-idea:hover{background:#fff}
-.daily-calendar-day.is-selected{background:var(--green);color:#fff;box-shadow:0 3px 0 var(--shadow)}
+.daily-calendar-day.is-selected{background:var(--light);color:var(--ink);box-shadow:0 3px 0 var(--shadow)}
 .daily-calendar-day.is-today:not(.is-selected){outline:1px solid var(--green);outline-offset:-2px}
-.daily-date{max-width:680px;margin:0 auto 10px;color:var(--muted);font-size:12px;font-weight:750;text-align:center}
 .daily-card-preview.reading-stage{margin:0 auto;perspective:none}
 .daily-card-preview.reading-stage::before,.daily-card-preview.reading-stage::after{content:none}
 .daily-action{max-width:680px;margin-left:auto;margin-right:auto}
@@ -401,11 +400,11 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .review-mascot-callout p{font-style:italic;font-weight:650}
 .album-heading--mascot{display:grid;grid-template-columns:minmax(0,1fr) 220px;align-items:center;gap:24px}
 .album-heading-copy{min-width:0}
-.album-heading--mascot .review-mascot-callout{width:100%;min-width:0;display:flex;flex-direction:column;gap:8px;margin:0;text-align:center}
+.album-heading--mascot .review-mascot-callout{width:100%;min-width:0;display:flex;flex-direction:column;gap:14px;margin:0;text-align:center}
 /* Shared mascot size for deck and growth headers. */
 .album-heading--mascot .review-mascot-button,.mascots-heading>.mascot-art{width:160px;height:160px;padding:0;border-radius:0}
-.album-heading--mascot .review-mascot-callout p{max-width:100%;font-family:"Avenir Next",system-ui,sans-serif;font-size:13px;font-style:italic;font-weight:400;line-height:1.5;color:#6f756c;text-wrap:balance;overflow-wrap:anywhere}
-@media(max-width:520px){.album-heading--mascot{grid-template-columns:minmax(0,1fr) 124px;gap:16px}.album-heading--mascot .review-mascot-button,.mascots-heading>.mascot-art{width:112px;height:112px}.album-heading--mascot .review-mascot-callout p{font-size:12px}}
+.album-heading--mascot .review-mascot-callout p{max-width:100%;font-family:"Avenir Next",system-ui,sans-serif;font-size:14px;font-style:italic;font-weight:400;line-height:1.5;color:#6f756c;text-wrap:balance;overflow-wrap:anywhere}
+@media(max-width:520px){.album-heading--mascot{grid-template-columns:minmax(0,1fr) 124px;gap:16px}.album-heading--mascot .review-mascot-button,.mascots-heading>.mascot-art{width:112px;height:112px}.album-heading--mascot .review-mascot-callout{gap:12px}.album-heading--mascot .review-mascot-callout p{font-size:13px}}
 .mascot-entry{background:transparent;box-shadow:none;transition:none}
 .mascot-entry:hover,.mascot-entry:active{box-shadow:none}
 .mascot-collection{position:relative;display:grid;gap:0;margin:4px 0 0;padding:0;list-style:none}
