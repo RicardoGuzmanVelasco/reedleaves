@@ -61,6 +61,15 @@ test("Saved-only books belong to the personal bookshelf without inventing readin
   assert.deepEqual(bookshelfBooks({...s,cardSaves:[]}),[]);
 });
 
+test("Saved cards are the first deck tile for signed-in readers",async()=>{
+  const s=await fixture(),bookId="seven-habits",choices=featuredDecks(s.catalog,bookId);
+  const html=deckView({...s,bookId,deckChoices:choices});
+  const gridStart=html.indexOf('<div class="deck-grid"'),savedTile=html.indexOf('data-saved-cards-entry'),firstDeck=html.indexOf('<article class="deck-tile"');
+  assert.ok(gridStart>=0);assert.ok(savedTile>gridStart);assert.ok(firstDeck>savedTile);
+  const anonymous=deckView({...s,userId:null,bookId,deckChoices:choices});
+  assert.ok(!anonymous.includes('data-saved-cards-entry'));
+});
+
 test("One book with active and finished decks appears once, and matches both review states",async()=>{
   const s=await fixture();
   reviewed(s,"seven-habits-editorial-v1",true);
