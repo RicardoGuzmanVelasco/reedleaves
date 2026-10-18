@@ -7,8 +7,8 @@ import { Pool, types } from "pg";
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 20;
-export const POSTGRES_SCHEMA_VERSION = 12;
+export const SQLITE_SCHEMA_VERSION = 21;
+export const POSTGRES_SCHEMA_VERSION = 13;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -97,6 +97,18 @@ export function initializeDatabase(db) {
       COMMIT;`);
     } catch(error) { db.exec("ROLLBACK"); throw error; }
     return initializeDatabase(db);
+  }
+  if (version === 20) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE petal_wallets (
+        user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        balance INTEGER NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991)
+      ) STRICT;
+      INSERT INTO petal_wallets(user_id,balance) SELECT user_id,0 FROM accounts;
+      PRAGMA user_version=21; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return;
   }
   if (version === 18) {
     const schema=readFileSync(new URL("./schema.sql",import.meta.url),"utf8");
@@ -244,6 +256,21 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 12) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 13) return;
+          await db.exec(`CREATE TABLE petal_wallets (
+            user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            balance BIGINT NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991)
+          );
+          INSERT INTO petal_wallets(user_id,balance) SELECT user_id,0 FROM accounts;
+          ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+          UPDATE reed_schema SET version=13;
+          ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=13);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 11) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
@@ -258,7 +285,7 @@ async function initializePostgresDatabase(db) {
             UPDATE reed_schema SET version=12;
             ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=12);`);
         });
-        return;
+        return initializePostgresDatabase(db);
       }
       if (version?.version === 10) {
         await transaction(db,async()=>{
@@ -270,7 +297,7 @@ async function initializePostgresDatabase(db) {
             UPDATE reed_schema SET version=11;
             ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=11);`);
         });
-        return;
+        return initializePostgresDatabase(db);
       }
       if (version?.version === 9) {
         await transaction(db,async()=>{

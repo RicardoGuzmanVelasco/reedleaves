@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 12));
-INSERT INTO reed_schema VALUES (12);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 13));
+INSERT INTO reed_schema VALUES (13);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -117,6 +117,10 @@ CREATE INDEX reviews_by_version ON reviews(version_id,user_id);
 CREATE TABLE leaf_wallets(
   user_id TEXT PRIMARY KEY REFERENCES users(id), balance BIGINT NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991),
   last_accrual_day TEXT NOT NULL CHECK(last_accrual_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(last_accrual_day,'YYYY-MM-DD'),'YYYY-MM-DD') = last_accrual_day)
+);
+CREATE TABLE petal_wallets(
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  balance BIGINT NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991)
 );
 CREATE TABLE review_unlocks(
   rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE, review_id TEXT NOT NULL, user_id TEXT NOT NULL, version_id TEXT NOT NULL,

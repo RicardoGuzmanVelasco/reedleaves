@@ -209,6 +209,10 @@ CREATE TABLE leaf_wallets (
     date(last_accrual_day,'+0 days') IS last_accrual_day
   )
 ) STRICT;
+CREATE TABLE petal_wallets (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  balance INTEGER NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991)
+) STRICT;
 CREATE TABLE review_unlocks (
   review_id TEXT NOT NULL,
   user_id TEXT NOT NULL,
@@ -343,4 +347,4 @@ WHEN OLD.status <> 'draft' AND (NEW.id <> OLD.id OR NEW.deck_id <> OLD.deck_id O
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
 CREATE TRIGGER keep_published_version BEFORE DELETE ON deck_versions WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published version is immutable'); END;
-PRAGMA user_version = 20;
+PRAGMA user_version = 21;

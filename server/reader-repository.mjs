@@ -19,6 +19,7 @@ async function stateInside(db,session,now) {
   const account=await db.prepare("SELECT * FROM accounts WHERE user_id = ?").get(session.user_id);
   if(!account) throw new ApiError(401,"signInRequired");
   const userId=account.user_id,today=serverDay(account.time_zone,now),wallet=await accrueLeafWallet(db,userId,today);
+  const petals=await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId);
   const reviews={};
   for(const row of await db.prepare("SELECT * FROM reviews WHERE user_id = ? ORDER BY started_at,id").all(userId)) {
     const unlocks=await db.prepare("SELECT card_id,local_day FROM review_unlocks WHERE review_id = ? ORDER BY rowid").all(row.id);
@@ -48,7 +49,7 @@ async function stateInside(db,session,now) {
     noteDeckActivity[row.deck_id]=date;
     if (!noteActivity[row.book_id] || date > noteActivity[row.book_id]) noteActivity[row.book_id]=date;
   }
-  return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,showOriginalTitles:display?.show_original_titles === 1,today,wallet,reviews,growth,cardSaves:await cardSavesInside(db,userId),
+  return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,showOriginalTitles:display?.show_original_titles === 1,today,wallet,petals:petals?.balance ?? 0,reviews,growth,cardSaves:await cardSavesInside(db,userId),
     noteActivity,noteDeckActivity,
     statuses:Object.fromEntries((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])),
     enrolledIds:(await db.prepare("SELECT version_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.version_id),
