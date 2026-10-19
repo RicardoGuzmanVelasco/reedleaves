@@ -57,6 +57,7 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 ## Vista exclusiva de tarjetas
 
 - La valoración («Me gusta» / «No me gusta») y las acciones «Guardar tarjeta» / «Quitar de guardadas» aparecen únicamente dentro de la vista exclusiva de la tarjeta. Nunca aparecen en previsualizaciones fuera de esa vista, incluida la tarjeta del calendario de la idea del día.
+- Si la baraja de la tarjeta está en borrador, mostrar «Baraja en borrador / Draft deck» como chip informativo en su vista exclusiva.
 - Al pulsar la tarjeta compacta de la idea del día, se abre su vista exclusiva. Las acciones de valoración y guardado viven dentro de esa vista.
 
 ## Enlaces de atribución
