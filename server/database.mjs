@@ -8,8 +8,8 @@ import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH,USERNAME_MIN_LENGTH
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 32;
-export const POSTGRES_SCHEMA_VERSION = 24;
+export const SQLITE_SCHEMA_VERSION = 33;
+export const POSTGRES_SCHEMA_VERSION = 25;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -106,6 +106,15 @@ export function initializeDatabase(db) {
         PRIMARY KEY(user_id,day)
       ) STRICT;
       PRAGMA user_version=31; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 32) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`INSERT INTO genres(id) VALUES ('society') ON CONFLICT(id) DO NOTHING;
+        INSERT INTO genre_translations(genre_id,language,name) VALUES ('society','es','Sociedad'),('society','en','Society') ON CONFLICT(genre_id,language) DO NOTHING;
+        PRAGMA user_version=33; COMMIT;`);
     } catch(error) { db.exec("ROLLBACK"); throw error; }
     return initializeDatabase(db);
   }
@@ -569,6 +578,18 @@ async function initializePostgresDatabase(db) {
           ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
           UPDATE reed_schema SET version=23;
           ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=23);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 24) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,genres,genre_translations IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 25) return;
+          await db.exec(`INSERT INTO genres(id) VALUES ('society') ON CONFLICT(id) DO NOTHING;
+            INSERT INTO genre_translations(genre_id,language,name) VALUES ('society','es','Sociedad'),('society','en','Society') ON CONFLICT(genre_id,language) DO NOTHING;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=25;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=25);`);
         });
         return initializePostgresDatabase(db);
       }

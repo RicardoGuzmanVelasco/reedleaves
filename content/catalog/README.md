@@ -13,6 +13,8 @@ La app consulta SQLite, no estos archivos. Los CSV son el formato plano de autor
 
 `decks.csv` declara una etiqueta de idioma BCP 47 en `language`, por ejemplo `fr`, `pt-BR` o `zh-Hant`. Esa columna fija el idioma original de la baraja. Las columnas traducidas usan sufijos de idioma, por ejemplo `title_fr` y `body_fr`. Añade una columna y rellénala solo si quieres ofrecer esa traducción; cada tarjeta siempre debe tener título y texto en el idioma principal.
 
+El catálogo de intereses incluye Sociedad (`society`) en español e inglés. Está disponible para futuras asignaciones; ningún libro actual tiene ese interés.
+
 Comas, saltos de línea y comillas dentro de un campo siguen CSV estándar: rodear el campo con comillas y duplicar las interiores. No incluir citas largas ni transcribir capítulos. Mantener IDs y orden estables. Cada tarjeta tiene `deck_id` y `parent_id`; el orden es entre hermanas. Las correcciones actualizan la misma baraja y conservan los IDs de las tarjetas.
 
 Editar → `npm run db:seed` → `npm run db:check` → `npm test`. La importación es transaccional y repetible; rechaza datos incompletos, referencias ausentes y cambios de posición de tarjetas existentes. Los libros y tarjetas no se borran por omitirlos del CSV.

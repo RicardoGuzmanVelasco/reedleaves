@@ -19,6 +19,7 @@ cuentas ni copias de bases reales.
 | c3f20cc | 28 | 20 |
 | 117e406 | 29 | 21 |
 | 3e482fd | 30 | 22 |
+| ff3c943 | 32 | 24 |
 
 Estas copias son inmutables. Al añadir una migración, guardar aquí el esquema
 anterior con otro nombre y añadir una prueba que migre desde él. No regenerar

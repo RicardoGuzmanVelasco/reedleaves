@@ -3,7 +3,7 @@ import {readFileSync} from "node:fs";
 import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase} from "../server/database.mjs";
 import {seedCatalog} from "./historical-seed.mjs";
-import {seedCatalog as seedCurrentCatalog} from "../server/seed.mjs";
+import {seedCatalog as seedCurrentCatalog,readSeed as readCurrentSeed} from "../server/seed.mjs";
 
 // Load a real released schema, never a current schema with its version lowered.
 export async function historicalDatabase(t,dialect,version) {
@@ -24,7 +24,11 @@ export async function historicalDatabase(t,dialect,version) {
   // seeding editorial books (all NULL), then restore the exact old table shape.
   const beforePersonalBooks=version < (dialect === "postgres" ? 3 : 11);
   if (beforePersonalBooks) await db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
-  if (version >= (dialect === "postgres" ? 21 : 29)) await seedCurrentCatalog(db);
+  if (version >= (dialect === "postgres" ? 21 : 29)) {
+    const seed=readCurrentSeed();
+    if (version < (dialect === "postgres" ? 25 : 33)) seed.genres=seed.genres.filter(genre=>genre.id!=="society");
+    await seedCurrentCatalog(db,seed);
+  }
   else await seedCatalog(db);
   if (beforePersonalBooks) await db.exec("ALTER TABLE books DROP COLUMN creator_user_id;");
   return db;
@@ -77,7 +81,10 @@ export async function migrationData(db) {
     "book_translations","book_genres","decks","card_translations","deck_votes","book_reading","leaf_wallets","daily_ideas"];
   const columns={books:"id,author,position,editorial_status,original_title,original_language,updated_at",
     decks:"id,book_id,creator_user_id,language,is_recommended,created_at"};
-  for (const table of tables) result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${table} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();
+  for (const table of tables) {
+    const additiveGenre=table === "genres" ? " WHERE id<>'society'" : table === "genre_translations" ? " WHERE genre_id<>'society'" : "";
+    result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${table}${additiveGenre} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();
+  }
   const flattened=await has("deck_versions");
   result.deckStatus=flattened
     ? await db.prepare("SELECT deck_id,status,editorial_status FROM deck_versions ORDER BY deck_id").all()
