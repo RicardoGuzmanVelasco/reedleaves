@@ -5,7 +5,7 @@ import {readCatalog} from "./catalog-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
 import {selectPracticeCards} from "../app/practice-progress.mjs";
 import {accruePetalWallet} from "./petal-wallet-repository.mjs";
-import {serverDay} from "./auth.mjs";
+import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
 
 export const PRACTICE_TOPICS=["reading","read","saved","mixed"];
 export const PRACTICE_BASE_COST=3;
@@ -46,7 +46,7 @@ export async function startPracticeSession(db,session,topic,now=new Date()) {
     if(isPostgres(db)) await db.prepare("SELECT user_id FROM accounts WHERE user_id=? FOR UPDATE").get(userId);
     const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(userId);
     if(!account) throw new ApiError(401,"signInRequired");
-    const today=serverDay(account.time_zone,now),wallet=await accruePetalWallet(db,userId,today);
+    const cycleDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.currencyRefill),wallet=await accruePetalWallet(db,userId,cycleDay);
     const active=await db.prepare("SELECT * FROM practice_sessions WHERE user_id=? AND completed_at IS NULL").get(userId);
     if(active) return {session:sessionFromRow(active),resumed:true,discountTopic:await currentDiscount(db,userId),balance:wallet.balance};
 
@@ -81,7 +81,7 @@ export async function answerPracticeSession(db,session,input,now=new Date()) {
     if(row.completed_at||input.index!==current.index||current.cardIds[current.index]!==input.cardId) throw new ApiError(409,"invalidRequest");
     const answeredAt=now.toISOString(),nextIndex=current.index+1,completedAt=nextIndex===PRACTICE_SESSION_SIZE?answeredAt:null;
     const account=completedAt ? await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id) : null;
-    const completedLocalDay=account ? serverDay(account.time_zone,now) : null;
+    const completedLocalDay=account ? dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.mascotGrowth) : null;
     await db.prepare(`INSERT INTO practice_answers(user_id,card_id,answer,answered_at) VALUES (?,?,?,?)
       ON CONFLICT(user_id,card_id) DO UPDATE SET answer=excluded.answer,answered_at=excluded.answered_at`)
       .run(session.user_id,input.cardId,input.answer,answeredAt);

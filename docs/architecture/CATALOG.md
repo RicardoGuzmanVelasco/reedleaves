@@ -86,12 +86,12 @@ El progreso actual guarda prácticas y respuestas por usuario y tarjeta en SQL. 
 Las claves locales antiguas se conservan sin borrar, pero no se usan como fuente verificada ni se importan en la cuenta nueva.
 Archivar una baraja no elimina sus tarjetas, historial de prácticas ni referencias de usuarios.
 
-Cada usuario recibe una hoja al día cuando su saldo está por debajo de tres. Un nuevo monedero empieza con una. Los días ausentes suman hasta tres; las fechas excedentes no se guardan para después. Un ajuste manual puede dejar 100 hojas y se conserva el saldo. Añadir una baraja de otra persona a Decks cuesta una hoja; las barajas propias aparecen automáticamente. Repasar tarjetas no gasta hojas.
+Cada usuario recibe una hoja al día cuando su saldo está por debajo de tres. Un nuevo monedero empieza con una. Los días ausentes suman hasta tres; las fechas excedentes no se guardan para después. El ciclo diario de hojas y pétalos empieza a las 11:11 locales de la cuenta. Un ajuste manual puede dejar 100 hojas y se conserva el saldo. Añadir una baraja de otra persona a Decks cuesta una hoja; las barajas propias aparecen automáticamente. Repasar tarjetas no gasta hojas.
 Cada cuenta nueva recibe diez pétalos. Cada sesión de cinco tarjetas cuesta tres pétalos, o dos si coincide con el tipo rebajado. El descuento se deriva de la fecha de la última sesión completada y cambia al completar una sesión.
 Finalizar exige todas las tarjetas, incluidas las hijas; no solo las raíces.
 La tabla `leaf_wallets` guarda el saldo y la última fecha de abono por usuario. Las hojas se aíslan por usuario y se comparten entre sus barajas. `card_views` registra la primera visualización de cada tarjeta para el perfil; no se usa para secuencia, acceso ni crecimiento de mascotas.
 La autenticación identifica al usuario y el servidor calcula la fecha en la zona horaria fijada de su cuenta. Un doble clic o reintento no duplica el progreso. Borrar almacenamiento local o cambiar el reloj del navegador no altera el progreso SQL.
-Las métricas SQL se incrementan con actividad real de cuentas: primera carta y finalización completa, no al añadir, elegir baraja ni explorarla.
+Las métricas SQL se incrementan con actividad real de cuentas: primera carta y finalización completa, no al añadir, elegir baraja ni explorarla. Para el crecimiento de mascotas, las sesiones completadas se agrupan por fecha local de la cuenta.
 
 La idea aleatoria sigue siendo independiente: no altera el repaso ni los monederos.
 Se sortea entre las cartas principales de la baraja elegida para cada libro; cambiar elección no sustituye la idea ya asignada hoy.

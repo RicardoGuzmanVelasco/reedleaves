@@ -1,6 +1,6 @@
 import {transaction,isPostgres} from "./database.mjs";
 import {restoreWallet,MAX_DAILY_LEAVES} from "../app/wallet.mjs";
-import {serverDay} from "./auth.mjs";
+import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
 
 // Administrative operation, available only through the database CLI.
 // Set a total rather than add leaves so rerunning the command is safe.
@@ -10,14 +10,14 @@ export async function setLeafBalance(db, username, balance, now = new Date()) {
   return transaction(db,async() => {
     const account = await db.prepare("SELECT user_id,username,time_zone FROM accounts WHERE username = ?").get(username.trim().toLowerCase());
     if (!account) throw new Error("No existe una cuenta con ese nombre de usuario");
-    const today = serverDay(account.time_zone,now);
+    const today = dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.currencyRefill);
     await db.prepare("INSERT INTO leaf_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET balance=excluded.balance,last_accrual_day=excluded.last_accrual_day")
       .run(account.user_id,balance,today);
     return {username:account.username,balance,lastAccrualDay:today};
   });
 }
 
-// Caller supplies the server date in the account's fixed time zone.
+// Caller supplies the current account currency-refill date.
 export async function readLeafWallet(db, userId, today) {
   return transaction(db,() => accrueLeafWallet(db,userId,today));
 }

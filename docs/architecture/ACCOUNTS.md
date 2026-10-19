@@ -13,17 +13,17 @@ Estado: implementado para la prueba interna. Usuario y contraseña, sin correo n
 - Mutaciones con origen exacto y token CSRF por sesión. JSON limitado a 8 KiB; respuestas de cuenta sin caché.
 - El usuario siempre sale de la sesión. La API no acepta un usuario, saldo o fecha elegidos por el cliente.
 
-La zona horaria se valida y se fija al crear la cuenta. La fecha se calcula con el reloj del servidor en esa zona. No hay una API para cambiarla y obtener abonos adicionales.
+La zona horaria se valida y se fija al crear la cuenta. El servidor calcula los ciclos diarios según esa zona: recarga de hojas y pétalos a las 11:11, idea del día a las 06:00 y crecimiento de mascotas a las 00:00. No hay una API para cambiar la zona horaria y obtener abonos adicionales.
 
 ## Persistencia
 
-SQLite local o PostgreSQL en producción guarda, por usuario: barajas añadidas al Tarjetero, lectura del libro, idioma, monederos, votos y tarjetas guardadas. `card_views` registra tarjetas vistas una sola vez por usuario para los perfiles. La idea diaria se guarda una sola vez por fecha UTC y es común a todas las cuentas.
+SQLite local o PostgreSQL en producción guarda, por usuario: barajas añadidas al Tarjetero, lectura del libro, idioma, monederos, votos y tarjetas guardadas. `card_views` registra tarjetas vistas una sola vez por usuario para los perfiles. La idea diaria se guarda una sola vez por fecha local de ciclo: cuentas en la misma fecha local comparten asignación, aunque zonas horarias distintas pueden ver fechas e ideas diferentes al mismo tiempo.
 
 Añadir una baraja al Tarjetero cuesta una hoja y añadirla otra vez no vuelve a cobrarla. Elegir una baraja no cuesta nada.
 
 Todas las tarjetas de una baraja añadida se pueden abrir desde el principio, incluidas las hijas y las citas. Abrir una tarjeta no cobra hojas ni pétalos y no guarda avance por baraja. Las sesiones breves de cinco tarjetas se registran en `practice_sessions` y cobran pétalos.
 
-La idea del día se sortea al primer acceso de cada fecha UTC y queda fijada para todo el mundo. Se elige al azar entre las tarjetas raíz de las barajas predeterminadas del catálogo y se agotan las candidatas antes de repetir; al empezar otro ciclo se evita la tarjeta del día anterior si hay alternativa. Una cita raíz también puede salir. El calendario permite consultar las asignaciones anteriores.
+La idea del día se sortea al primer acceso desde las 06:00 de cada fecha local de ciclo. Se elige al azar entre las tarjetas raíz de las barajas predeterminadas del catálogo y se agotan las candidatas antes de repetir; al empezar otro ciclo se evita la tarjeta del día anterior si hay alternativa. Una cita raíz también puede salir. El calendario permite consultar las asignaciones anteriores.
 
 Las guardadas se consultan por cuenta y libro, sin aparecer en perfiles o bibliotecas ajenas. Todas las tarjetas disponibles en el catálogo se pueden guardar. Repetir el mismo destino conserva la fecha; quitar y volver a guardar crea una nueva. Abrir desde Guardadas valida pertenencia y registra contexto `saved`, sin alterar el repaso. La cuenta propia incluye `cardSaves`; esa relación permite incorporar el libro a Biblioteca sin cambiar su estado de lectura o repaso.
 
@@ -73,4 +73,4 @@ Referencias primarias: [contraseñas, OWASP](https://cheatsheetseries.owasp.org/
 - `POST /api/reader/view` requiere origen, sesión y CSRF. Registra una tarjeta distinta por usuario al mostrarse en idea diaria, una sesión de práctica o autoría. Comprueba que sea la idea asignada, una tarjeta válida de práctica o contenido propio en borrador, según el contexto. Los reintentos no duplican vistas. No modifica los monederos ni la sesión.
 - `card_views` guarda `user_id`, `card_id` y primera fecha de vista. La migración histórica conserva el progreso de repaso anterior y rellena vistas desde ese registro. Las ideas diarias anteriores solo prueban asignación, no visualización; no se inventa su historial de vistas.
 - Métricas del perfil: libros leídos y en lectura son estados manuales; tarjetas vistas cuenta IDs distintos; las contribuciones cuentan barajas, tarjetas y citas creadas. No hay métricas de barajas empezadas, tarjetas repasadas ni barajas completadas.
-- Mascotas: una etapa actual por libro, compartida con la UI. El crecimiento cuenta días distintos con sesiones pagadas completadas. Totales de creador incluyen sus barajas y tarjetas, con citas como subconjunto. La biblioteca ajena muestra fichas de libros compartidos asociadas al perfil. Ver [ADR 0001](../adr/0001-libros-en-catalogo-comun.md) y [ADR 0002](../adr/0002-barajas-en-catalogo-comun.md).
+- Mascotas: una etapa actual por libro, compartida con la UI. El crecimiento cuenta fechas locales distintas con sesiones pagadas completadas; el día cambia a las 00:00 de la cuenta. Totales de creador incluyen sus barajas y tarjetas, con citas como subconjunto. La biblioteca ajena muestra fichas de libros compartidos asociadas al perfil. Ver [ADR 0001](../adr/0001-libros-en-catalogo-comun.md) y [ADR 0002](../adr/0002-barajas-en-catalogo-comun.md).

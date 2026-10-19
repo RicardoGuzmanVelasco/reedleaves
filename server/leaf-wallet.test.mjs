@@ -26,10 +26,10 @@ async function fixture(t,dialect) {
 }
 
 for (const dialect of ["sqlite","postgres"]) {
-  test(`${dialect}: manual balance persists, uses account date and grants no extra leaves on reload`,async t => {
+  test(`${dialect}: manual balance persists, uses account refill date and grants no extra leaves on reload`,async t => {
     const db = await fixture(t,dialect), now = new Date("2026-10-11T22:30:00Z");
     const result = await setLeafBalance(db," Reader.Name ",100,now);
-    assert.deepEqual(result,{username:"reader.name",balance:100,lastAccrualDay:"2026-10-12"});
+    assert.deepEqual(result,{username:"reader.name",balance:100,lastAccrualDay:"2026-10-11"});
     assert.deepEqual(await setLeafBalance(db,"reader.name",100,now),result);
     assert.deepEqual(await readLeafWallet(db,"reader","2026-10-12"),{balance:100,lastAccrualDay:"2026-10-12"});
     await db.prepare("UPDATE leaf_wallets SET balance=balance-1 WHERE user_id=?").run("reader");
@@ -41,7 +41,7 @@ for (const dialect of ["sqlite","postgres"]) {
     await setLeafBalance(db,"reader.name",Number.MAX_SAFE_INTEGER,now);
     assert.equal((await readLeafWallet(db,"reader","2026-10-20")).balance,Number.MAX_SAFE_INTEGER);
     await setLeafBalance(db,"reader.name",0,now);
-    assert.equal((await readLeafWallet(db,"reader","2026-10-12")).balance,0);
+    assert.equal((await readLeafWallet(db,"reader","2026-10-11")).balance,0);
     assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM leaf_wallets WHERE user_id='other'").get()).n,0);
   });
 
