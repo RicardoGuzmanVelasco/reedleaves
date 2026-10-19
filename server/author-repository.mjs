@@ -1,6 +1,6 @@
 import {transaction,isPostgres} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
-import {isCanonicalLocale,quoteExcerpt,LANGUAGES,validateCards} from "../app/core.mjs";
+import {isCanonicalLocale,quoteExcerpt,LANGUAGES,validateCards,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH,BOOK_AUTHOR_MAX_LENGTH,MAX_CARDS_PER_DECK} from "../app/core.mjs";
 import {normalizeBookMetadata,mergeBookMetadata} from "../app/book-metadata.mjs";
 import {defaultNoteDeckTitle} from "../app/note-defaults.mjs";
 import {isDeepStrictEqual} from "node:util";
@@ -57,7 +57,7 @@ export async function completeBook(db,session,input) {
 export async function createBook(db,session,input) {
   let metadata;
   try { metadata=normalizeBookMetadata(input.metadata); } catch { throw new ApiError(400,"invalidRequest"); }
-  const id=requestId(input.requestId),title=text(metadata.originalTitle || input.title,240),author=text(input.author,160),language=metadata.originalLanguage || input.language;
+  const id=requestId(input.requestId),title=text(metadata.originalTitle || input.title,TITLE_MAX_LENGTH),author=text(input.author,BOOK_AUTHOR_MAX_LENGTH),language=metadata.originalLanguage || input.language;
   if (!isCanonicalLocale(language)) throw new ApiError(400,"invalidRequest");
   metadata.originalTitle=title; metadata.originalLanguage=language;
   for (const genre of metadata.genres) if (!await db.prepare("SELECT 1 FROM genres WHERE id=?").get(genre)) throw new ApiError(400,"invalidRequest");
@@ -90,7 +90,7 @@ export async function createDeck(db,session,input) {
   return transaction(db,()=>writeDeck(db,session,input));
 }
 async function writeDeck(db,session,input) {
-  const id=requestId(input.requestId),title=text(input.title,160),description=text(input.description ?? "",1000,false),language=input.language;
+  const id=requestId(input.requestId),title=text(input.title,TITLE_MAX_LENGTH),description=text(input.description ?? "",DESCRIPTION_MAX_LENGTH,false),language=input.language;
   if (!isCanonicalLocale(language) || typeof input.bookId !== "string") throw new ApiError(400,"invalidRequest");
   if (!await db.prepare("SELECT 1 FROM books WHERE id=?").get(input.bookId)) throw new ApiError(404,"bookUnavailable");
   await db.prepare("UPDATE users SET can_create_decks=1 WHERE id=?").run(session.user_id);
@@ -110,9 +110,9 @@ export async function addCard(db,session,input) {
   return transaction(db,()=>writeCard(db,session,input));
 }
 async function writeCard(db,session,input) {
-  const id=requestId(input.requestId),body=text(input.body,4000);
+  const id=requestId(input.requestId),body=text(input.body,CARD_BODY_MAX_LENGTH);
   if (typeof input.isQuote !== "boolean" || typeof input.deckId !== "string" || input.parentId !== null && typeof input.parentId !== "string") throw new ApiError(400,"invalidRequest");
-  const title=input.isQuote ? quoteExcerpt(body) : text(input.title,160);
+  const title=input.isQuote ? quoteExcerpt(body) : text(input.title,TITLE_MAX_LENGTH);
   // Serializes sibling allocation against other author sessions in PostgreSQL.
   const deckId=input.deckId;
   const deck=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db) ? " FOR UPDATE OF d" : ""}`).get(deckId);
@@ -124,6 +124,8 @@ async function writeCard(db,session,input) {
     if (previous.deck_id !== deck.id || previous.parent_id !== input.parentId || !!previous.is_quote !== input.isQuote || (!input.isQuote && saved?.title !== title) || saved?.body !== body) throw new ApiError(409,"invalidRequest");
     return {deckId:deck.id,cardId:id};
   }
+  const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(deck.id);
+  if (total>=MAX_CARDS_PER_DECK) throw new ApiError(409,"deckCardLimitReached");
   if (input.parentId !== null && !await db.prepare("SELECT 1 FROM cards WHERE id=? AND deck_id=?").get(input.parentId,deck.id)) throw new ApiError(400,"invalidParent");
   const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM cards WHERE deck_id=? AND (parent_id=? OR (parent_id IS NULL AND CAST(? AS TEXT) IS NULL))").get(deck.id,input.parentId,input.parentId);
   await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)").run(id,deck.id,deck.book_id,input.parentId,position,input.isQuote ? 1 : 0,new Date().toISOString());
@@ -132,9 +134,9 @@ async function writeCard(db,session,input) {
 }
 
 export async function takeFirstNote(db,session,input) {
-  const id=requestId(input.requestId),body=text(input.body,4000),language=input.language;
+  const id=requestId(input.requestId),body=text(input.body,CARD_BODY_MAX_LENGTH),language=input.language;
   if (!LANGUAGES.includes(language) || typeof input.bookId !== "string" || typeof input.isQuote !== "boolean") throw new ApiError(400,"invalidRequest");
-  const title=input.isQuote ? quoteExcerpt(body) : text(input.title,160);
+  const title=input.isQuote ? quoteExcerpt(body) : text(input.title,TITLE_MAX_LENGTH);
   return transaction(db,async()=>{
     const previous=await db.prepare(`SELECT c.*,d.creator_user_id,d.language,t.title,t.body FROM cards c
       JOIN decks d ON d.id=c.deck_id
@@ -210,15 +212,15 @@ export async function finishNoteDecks(db,session,input) {
 // The caller must be an authenticated MCP
 // integration; never accept the owner ID from tool input.
 export async function createTeamDeck(db,input) {
-  const id=requestId(input.requestId),title=text(input.title,160),description=text(input.description ?? "",1000,false),language=input.language;
-  if (!isCanonicalLocale(language) || typeof input.bookId !== "string" || !Array.isArray(input.cards) || !input.cards.length || input.cards.length>120) throw new ApiError(400,"invalidRequest");
-  const editorialNote=text(input.editorialNote ?? title,1000);
+  const id=requestId(input.requestId),title=text(input.title,TITLE_MAX_LENGTH),description=text(input.description ?? "",DESCRIPTION_MAX_LENGTH,false),language=input.language;
+  if (!isCanonicalLocale(language) || typeof input.bookId !== "string" || !Array.isArray(input.cards) || !input.cards.length || input.cards.length>MAX_CARDS_PER_DECK) throw new ApiError(400,"invalidRequest");
+  const editorialNote=text(input.editorialNote ?? title,EDITORIAL_NOTE_MAX_LENGTH);
   const normalizedCards=[];
   const siblingPositions=new Map();
   for (let index=0;index<input.cards.length;index++) {
     const item=input.cards[index];
     if (!item || typeof item !== "object" || Array.isArray(item) || typeof item.isQuote!=="boolean") throw new ApiError(400,"invalidRequest");
-    const body=text(item.body,4000),cardTitle=item.isQuote?quoteExcerpt(body):text(item.title,160);
+    const body=text(item.body,CARD_BODY_MAX_LENGTH),cardTitle=item.isQuote?quoteExcerpt(body):text(item.title,TITLE_MAX_LENGTH);
     let parentId=null;
     if (item.parentIndex!==undefined && item.parentIndex!==null) {
       if (!Number.isInteger(item.parentIndex) || item.parentIndex<0 || item.parentIndex>=input.cards.length || item.parentIndex===index) throw new ApiError(400,"invalidParent");
@@ -264,7 +266,7 @@ export async function createTeamDeck(db,input) {
 
 export async function appendTeamDeckCards(db,input) {
   const request=requestId(input.requestId),deckId=text(input.deckId,280),cards=input.cards;
-  if (!Array.isArray(cards)||!cards.length||cards.length>120) throw new ApiError(400,"invalidRequest");
+  if (!Array.isArray(cards)||!cards.length||cards.length>MAX_CARDS_PER_DECK) throw new ApiError(400,"invalidRequest");
   const team=await db.prepare("SELECT id,can_create_decks FROM users WHERE id='reed-team'").get();
   if (!team||!team.can_create_decks) throw new ApiError(500,"teamAuthorUnavailable");
   return transaction(db,async()=>{
@@ -280,7 +282,7 @@ export async function appendTeamDeckCards(db,input) {
       const item=cards[index];
       if (!item||typeof item!=="object"||Array.isArray(item)||typeof item.isQuote!=="boolean") throw new ApiError(400,"invalidRequest");
       if (item.parentId!==undefined&&item.parentIndex!==undefined&&item.parentIndex!==null) throw new ApiError(400,"invalidParent");
-      const body=text(item.body,4000),title=item.isQuote?quoteExcerpt(body):text(item.title,160);
+      const body=text(item.body,CARD_BODY_MAX_LENGTH),title=item.isQuote?quoteExcerpt(body):text(item.title,TITLE_MAX_LENGTH);
       let parentId=item.parentId??null;
       if (item.parentIndex!==undefined&&item.parentIndex!==null) {
         if (!Number.isInteger(item.parentIndex)||item.parentIndex<0||item.parentIndex>=index) throw new ApiError(400,"invalidParent");
@@ -300,6 +302,7 @@ export async function appendTeamDeckCards(db,input) {
       if (found.length!==normalized.length||!isDeepStrictEqual(actual,expected)) throw new ApiError(409,"invalidRequest");
       return {deckId,cardIds:normalized.map(card=>card.id),cardCount:normalized.length,idempotent:true};
     }
+    if (existingIds.size+normalized.length>MAX_CARDS_PER_DECK) throw new ApiError(409,"deckCardLimitReached");
     const createdAt=new Date().toISOString();
     for (const card of normalized) {
       await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)")

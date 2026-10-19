@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync, chmodSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Pool, types } from "pg";
+import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH,USERNAME_MIN_LENGTH,USERNAME_MAX_LENGTH} from "../app/core.mjs";
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
@@ -14,6 +15,14 @@ export const isPostgres = db => db?.dialect === "postgres";
 const postgresScope = new AsyncLocalStorage();
 const sqliteQueues = new WeakMap();
 types.setTypeParser(20, value => Number(value));
+
+function currentSchema(filename) {
+  return readFileSync(new URL(filename,import.meta.url),"utf8")
+    .replaceAll("__USERNAME_MIN_LENGTH__",String(USERNAME_MIN_LENGTH))
+    .replaceAll("__USERNAME_MAX_LENGTH__",String(USERNAME_MAX_LENGTH))
+    .replaceAll("__FEEDBACK_MESSAGE_MAX_LENGTH__",String(FEEDBACK_MESSAGE_MAX_LENGTH))
+    .replaceAll("__FEEDBACK_PAGE_MAX_LENGTH__",String(FEEDBACK_PAGE_MAX_LENGTH));
+}
 
 function localDay(timeZone,value) {
   const parts=new Intl.DateTimeFormat("en-CA",{timeZone,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(value));
@@ -437,7 +446,7 @@ export function initializeDatabase(db) {
     return initializeDatabase(db);
   }
   if (version === 13) {
-    const schema = readFileSync(new URL("./schema.sql", import.meta.url),"utf8");
+    const schema = currentSchema("./schema.sql");
     db.exec("BEGIN IMMEDIATE");
     try {
       db.exec("DROP TRIGGER spend_unlock_leaf;");
@@ -465,7 +474,7 @@ export function initializeDatabase(db) {
     return initializeDatabase(db);
   }
   if (version === 9) {
-    const schema = readFileSync(new URL("./schema.sql", import.meta.url),"utf8");
+    const schema = currentSchema("./schema.sql");
     db.exec("BEGIN IMMEDIATE");
     try {
       db.exec("ALTER TABLE cards ADD COLUMN is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)); DROP TRIGGER IF EXISTS check_unlock_path;");
@@ -497,7 +506,7 @@ export function initializeDatabase(db) {
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all();
   if (tables.length) throw new Error("Outdated development database. Back it up, then use a fresh database file; no migrations.");
   db.exec("BEGIN IMMEDIATE");
-  try { db.exec(readFileSync(new URL("./schema.sql", import.meta.url),"utf8")); db.exec("COMMIT"); }
+  try { db.exec(currentSchema("./schema.sql")); db.exec("COMMIT"); }
   catch(error) { db.exec("ROLLBACK"); throw error; }
 }
 
@@ -916,7 +925,7 @@ async function initializePostgresDatabase(db) {
           if (current >= 4) return;
           if (current === 1) {
             await db.exec("ALTER TABLE cards ADD COLUMN is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1));");
-            const schema = readFileSync(new URL("./schema.postgres.sql", import.meta.url),"utf8");
+            const schema = currentSchema("./schema.postgres.sql");
             await db.exec(schema.slice(schema.indexOf("CREATE FUNCTION reed_check_unlock"),schema.indexOf("CREATE TRIGGER spend_unlock_leaf")).replace("CREATE FUNCTION","CREATE OR REPLACE FUNCTION"));
           }
           if (current < 3) await db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id); ALTER TABLE cards ALTER COLUMN source_id DROP NOT NULL;");
@@ -927,7 +936,7 @@ async function initializePostgresDatabase(db) {
       }
       throw new Error("Outdated PostgreSQL database. Use a fresh database; no migrations.");
     }
-    await transaction(db,async()=>{ await db.exec(readFileSync(new URL("./schema.postgres.sql", import.meta.url),"utf8")); });
+    await transaction(db,async()=>{ await db.exec(currentSchema("./schema.postgres.sql")); });
 }
 
 export async function backupDatabase(db, destination) {

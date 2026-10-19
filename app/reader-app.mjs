@@ -1,18 +1,18 @@
 import {loadCatalog} from "./catalog.mjs";
-import {localDay, restoreLanguage} from "./core.mjs";
+import {localDay, restoreLanguage, FEEDBACK_MESSAGE_MAX_LENGTH} from "./core.mjs";
 import {featuredDecks} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=practice-domain-1";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup} from "./views.mjs?v=practice-domain-1";
+import {words} from "./i18n.mjs?v=domain-limits-1";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup} from "./views.mjs?v=domain-limits-1";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
 import {createReadingPresentation} from "./reading-presentation.mjs?v=typewriter-middle-speed";
 import {updateSavedReferences} from "./card-interactions.mjs";
-import {editableNoteDecks,isHomeBook} from "./notes.mjs";
+import {editableNoteDecks,noteDecksWithSpace,isHomeBook} from "./notes.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -421,7 +421,7 @@ export function startReader({createCardFeatures} = {}) {
       bookId=id;deckId=draft.noteDeckId;requestedId=null;bookOrigin="home";noteDestination=null;
       openAuthorForm(draft.kind,{origin:"home",noteBookId:id,noteDeckId:draft.noteDeckId});return;
     }
-    const noteDecks=editableNoteDecks(catalog,id,snapshot.user.id);
+    const noteDecks=noteDecksWithSpace(catalog,id,snapshot.user.id);
     if (!noteDecks.length) {
       bookId=id;deckId=null;requestedId=null;bookOrigin="home";noteDestination=null;
       openAuthorForm("card",{origin:"home",noteBookId:id,createNoteDeck:true,noteLanguage:language,parentId:null});return;
@@ -431,7 +431,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   function openHomeNoteDeck(id,targetDeckId) {
     if (!snapshot.user || mode !== "home" || !isHomeBook(catalog,statuses,id,snapshot.user.id)) return;
-    if (!editableNoteDecks(catalog,id,snapshot.user.id).some(deck=>deck.id === targetDeckId)) return;
+    if (!noteDecksWithSpace(catalog,id,snapshot.user.id).some(deck=>deck.id === targetDeckId)) return;
     bookId=id; deckId=targetDeckId; requestedId=null; bookOrigin="home";noteDestination=null;
     openAuthorForm("card",{origin:"home",noteBookId:id,noteDeckId:deckId,parentId:null});
   }
@@ -443,7 +443,7 @@ export function startReader({createCardFeatures} = {}) {
   function openBookNote(id) {
     if (!snapshot.user || mode !== "library" || openBookId !== id || !catalog.booksById.has(id)) return;
     const draft=findNoteDraft(id);
-    const noteDecks=editableNoteDecks(catalog,id,snapshot.user.id);
+    const noteDecks=noteDecksWithSpace(catalog,id,snapshot.user.id);
     if (noteDecks.length > 1 && !draft) {
       noteDestination={bookId:id,all:false,source:"book-details"};render();
       main.querySelector(".book-note-destination [data-action='choose-note-deck']")?.focus({preventScroll:true});return;
@@ -455,7 +455,7 @@ export function startReader({createCardFeatures} = {}) {
     openAuthorForm("card",{noteBookId:id,noteDeckId:noteDecks[0].id,parentId:null,noteReturn});
   }
   function openBookNoteDeck(id,targetDeckId) {
-    if (!snapshot.user || mode !== "library" || openBookId !== id || !editableNoteDecks(catalog,id,snapshot.user.id).some(deck=>deck.id === targetDeckId)) return;
+    if (!snapshot.user || mode !== "library" || openBookId !== id || !noteDecksWithSpace(catalog,id,snapshot.user.id).some(deck=>deck.id === targetDeckId)) return;
     const noteReturn={hash:location.hash,openDeckId,openBookId,scrollY:window.scrollY,dialogScrollTop:main.querySelector(".book-modal")?.scrollTop || 0,action:"take-note-from-book",bookId:id};
     noteDestination=null;
     openAuthorForm("card",{noteBookId:id,noteDeckId:targetDeckId,parentId:null,noteReturn});
@@ -789,6 +789,7 @@ export function startReader({createCardFeatures} = {}) {
   document.getElementById("open-settings").addEventListener("click",()=>settings.showModal());
   document.getElementById("close-settings").addEventListener("click",()=>settings.close());
   const feedback=document.getElementById("feedback"),feedbackForm=document.getElementById("feedback-form"),feedbackError=document.getElementById("feedback-error");
+  feedbackForm.elements.message.maxLength=FEEDBACK_MESSAGE_MAX_LENGTH;
   document.getElementById("open-feedback").addEventListener("click",()=>feedback.showModal());
   document.getElementById("close-feedback").addEventListener("click",()=>feedback.close());
   document.getElementById("feedback-sign-in-button").addEventListener("click",()=>{feedback.close();settings.close();authReturn=location.hash || "#home";navigate("#account")});

@@ -192,8 +192,10 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   assert.equal(owned.cards.find(c=>c.deckId===deckId).isQuote,true);
   assert.equal(Object.hasOwn(owned.cards.find(c=>c.deckId===deckId),"sourceUrl"),false);
   assert.equal(owned.books.find(b=>b.id===bookId).originalTitle,"Mon livre");
-  const unicodeInput={...cardInput,requestId:randomUUID(),body:"葉".repeat(4000)};
+  const unicodeInput={...cardInput,requestId:randomUUID(),body:"葉".repeat(300)};
   assert.equal((await post("/api/author/cards",unicodeInput,headers)).status,200);
+  const tooLongInput={...cardInput,requestId:randomUUID(),body:"葉".repeat(301)};
+  assert.equal((await post("/api/author/cards",tooLongInput,headers)).status,400);
   const guest=await fetch(base+"/api/catalog").then(r=>r.json());assert.equal(guest.decks.some(v=>v.id===deckId),true);
   assert.equal(guest.cards.some(card=>card.id===cardId),true);
   assert.equal(guest.books.some(b=>b.id===bookId),true);
