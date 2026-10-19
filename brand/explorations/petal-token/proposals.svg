@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="title desc">
+  <title id="title">Propuesta de icono de pétalo</title>
+  <desc id="desc">Silueta rosa en forma de gota, con punta abajo a la izquierda y extremo redondo arriba a la derecha, mostrada grande y a tamaño de monedero.</desc>
+  <rect width="760" height="360" rx="30" fill="#f8f3e8"/>
+  <text x="42" y="64" fill="#173d2c" font-family="system-ui, sans-serif" font-size="30" font-weight="700">Propuesta de pétalo</text>
+  <text x="42" y="98" fill="#42624c" font-family="system-ui, sans-serif" font-size="17">Silueta basada en la referencia</text>
+  <rect x="42" y="126" width="676" height="194" rx="24" fill="#fffdf6" stroke="#d6dfc8" stroke-width="2"/>
+  <path d="M144 284C132 230 154 170 196 140C226 118 256 122 272 142C298 178 256 218 210 242C180 258 158 264 144 284Z" fill="#F4A6A0" stroke="#173D2C" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+  <text x="344" y="204" fill="#173d2c" font-family="system-ui, sans-serif" font-size="22" font-weight="700">Forma de gota, en diagonal</text>
+  <text x="344" y="239" fill="#42624c" font-family="system-ui, sans-serif" font-size="16">Punta abajo a la izquierda;</text>
+  <text x="344" y="264" fill="#42624c" font-family="system-ui, sans-serif" font-size="16">curva suave hacia la punta.</text>
+  <g transform="translate(645 269) scale(.32)">
+    <path d="M18 88C12 61 23 31 44 16C59 5 74 7 82 17C95 35 74 55 51 67C36 75 25 78 18 88Z" fill="#F4A6A0" stroke="#173D2C" stroke-width="4.8" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+</svg>
