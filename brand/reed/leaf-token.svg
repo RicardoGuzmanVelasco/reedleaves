@@ -1,3 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <path d="M4 28C1 13 10 5 28 2c2 16-6 25-24 26Z" fill="#58BE59" stroke="#173D2C" stroke-width="1.8" stroke-linejoin="round"/>
+  <defs>
+    <clipPath id="leaf-shape">
+      <path d="M4 28C1 13 10 5 28 2c2 16-6 25-24 26Z"/>
+    </clipPath>
+  </defs>
+  <path d="M4 28C1 13 10 5 28 2c2 16-6 25-24 26Z" fill="#58BE59"/>
+  <g clip-path="url(#leaf-shape)">
+    <path d="M4 28C12 21 21 10 28 2L36 -4V36H-4Z" fill="#B7DE76"/>
+  </g>
+  <path d="M4 28C1 13 10 5 28 2c2 16-6 25-24 26Z" stroke="#173D2C" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
 </svg>
