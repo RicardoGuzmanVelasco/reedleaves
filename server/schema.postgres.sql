@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 22));
-INSERT INTO reed_schema VALUES (22);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 23));
+INSERT INTO reed_schema VALUES (23);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -149,6 +149,13 @@ CREATE TABLE deck_selections(
   PRIMARY KEY(user_id,book_id), FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id)
 );
 CREATE TABLE daily_ideas(day TEXT PRIMARY KEY, card_id TEXT NOT NULL REFERENCES cards(id));
+CREATE TABLE daily_idea_views(
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day TEXT NOT NULL,
+  seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(user_id,day)
+);
+ALTER TABLE daily_idea_views ENABLE ROW LEVEL SECURITY;
 CREATE TABLE feedback_submissions(
   id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   username TEXT NOT NULL, message TEXT NOT NULL CHECK(length(btrim(message)) BETWEEN 1 AND __FEEDBACK_MESSAGE_MAX_LENGTH__),

@@ -4,6 +4,7 @@ import {readCatalog} from "./catalog-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
 import {currentMascotStage} from "../app/mascot-progress.mjs";
 import {bookshelfBooks} from "../app/bookshelf.mjs";
+import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
 
 export async function insertCardView(db,userId,cardId) {
   await db.prepare("INSERT INTO card_views(user_id,card_id) VALUES (?,?) ON CONFLICT(user_id,card_id) DO NOTHING").run(userId,cardId);
@@ -26,7 +27,17 @@ export async function recordCardView(db,session,{cardId,context} = {},now=new Da
     }
     if (!allowed) throw new ApiError(403,"notAllowed");
     await insertCardView(db,session.user_id,cardId);
-    return {viewed:true};
+    let seenCurrentDay=false;
+    if(context==="daily") {
+      const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id);
+      const day=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea);
+      const current=await db.prepare("SELECT 1 FROM daily_ideas WHERE day=? AND card_id=?").get(day,cardId);
+      if(current) {
+        await db.prepare("INSERT INTO daily_idea_views(user_id,day) VALUES (?,?) ON CONFLICT(user_id,day) DO NOTHING").run(session.user_id,day);
+        seenCurrentDay=true;
+      }
+    }
+    return {viewed:true,seenCurrentDay};
   });
 }
 

@@ -66,7 +66,7 @@ CREATE TABLE reader_display_preferences (
 ) STRICT;
 CREATE TABLE sessions (
   token_hash TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   csrf_token TEXT NOT NULL,
   expires_at INTEGER NOT NULL
 ) STRICT;
@@ -256,6 +256,12 @@ CREATE TABLE daily_ideas (
   card_id TEXT NOT NULL REFERENCES cards(id),
   PRIMARY KEY(day)
 ) STRICT;
+CREATE TABLE daily_idea_views (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  day TEXT NOT NULL,
+  seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(user_id,day)
+) STRICT;
 
 CREATE TABLE feedback_submissions (
   id TEXT PRIMARY KEY,
@@ -268,4 +274,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 30;
+PRAGMA user_version = 31;

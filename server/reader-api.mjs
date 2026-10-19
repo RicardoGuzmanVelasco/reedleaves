@@ -2,7 +2,7 @@ import {randomUUID} from "node:crypto";
 import {authenticate, readSession, revokeSession, checkCsrf, sessionCookie} from "./auth.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {ApiError} from "./errors.mjs";
-import {readReaderState, selectDeck, addDeckToCollection, openCard, changeReading, changePreferences, dailyIdea, savePracticeAnswer} from "./reader-repository.mjs";
+import {readReaderState, selectDeck, addDeckToCollection, openCard, changeReading, changePreferences, dailyIdea, dailyIdeaStatus, savePracticeAnswer} from "./reader-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 
 import {createBook,createDeck,changeDeckLanguage,changeDeckTitle,addCard,takeFirstNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
@@ -39,7 +39,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
   return async (request,response,path,send) => {
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
       ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/collect",["POST"]],
-      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
+      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
     routes.set("/api/feedback",["POST"]);
     routes.set("/api/author/decks/finish-notes",["POST"]);
     routes.set("/api/author/decks/language",["POST"]);
@@ -77,6 +77,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       }
       if (!session) throw new ApiError(401,"signInRequired");
       if (profileMatch) { send(200,await readProfile(db,profileMatch[1],session.user_id)); return true; }
+      if (path === "/api/reader/daily-status") { send(200,await dailyIdeaStatus(db,session,time)); return true; }
       if (cardVotesMatch) { send(200,await readCardVotes(db,session,decodeURIComponent(cardVotesMatch[1]))); return true; }
       if (cardActionsMatch) { send(200,await readCardActions(db,session,decodeURIComponent(cardActionsMatch[1]))); return true; }
       if (savedCardsMatch) { send(200,await readSavedCards(db,session,decodeURIComponent(savedCardsMatch[1]))); return true; }

@@ -208,7 +208,7 @@ export function homeView(s) {
   return `<section class="home-screen"><h1 class="sr-only" tabindex="-1">${c.home}</h1>
     <nav class="home-actions" aria-label="${c.home}">
       <button class="home-action" type="button" data-action="profile">${c.goProfile}</button>
-      <button class="home-action home-action--icon primary" type="button" data-action="daily" aria-label="${esc(c.daily)}">${calendarIconMarkup()}</button>
+      <button class="home-action home-action--icon primary${s.dailyStatus?.animate ? " daily-badge-entering" : ""}" type="button" data-action="daily" aria-label="${esc(s.dailyStatus?.unseen ? c.dailyNew : c.daily)}">${calendarIconMarkup()}${s.dailyStatus?.unseen ? '<span class="daily-new-badge" aria-hidden="true"></span>' : ""}</button>
       <button class="home-action" type="button" data-action="library">${collectionIconMarkup("library",20)}${c.goLibrary}</button>
     </nav>
     <button class="practice-launch" type="button" data-action="practice" aria-label="${esc(c.practiceLaunch)}"><span class="practice-launch-mascot">${mascotArt("sprout","practice-launch-art")}</span><span class="practice-launch-label" aria-hidden="true">${practiceLaunchLabel(c.practiceLaunch)}</span></button>
@@ -379,7 +379,9 @@ export function dailyView(s) {
     const day=`${month}-${String(dayNumber).padStart(2,"0")}`,saved=history.get(day),today=day===s.dailyToday?.day;
     if(!saved)return `<span class="daily-calendar-day${today?" is-today":""}" aria-label="${dayNumber}">${dayNumber}</span>`;
     const label=new Intl.DateTimeFormat(locale,{dateStyle:"full",timeZone:"UTC"}).format(new Date(`${day}T12:00:00Z`));
-    return `<button type="button" class="daily-calendar-day has-idea${day===s.selectedDailyDay?" is-selected":""}${today?" is-today":""}" data-action="daily-date" data-day="${day}" aria-label="${esc(label)}" aria-pressed="${day===s.selectedDailyDay}">${dayNumber}</button>`;
+    const seenLabel=saved.seenInDay?c.dailySeenInDay:today?c.dailyCurrent:c.dailyMissed;
+    const seenIcon=saved.seenInDay?'<svg class="daily-calendar-seen" viewBox="0 0 12 12" aria-hidden="true"><path d="m2 6 2.4 2.4L10 3"/></svg>':"";
+    return `<button type="button" class="daily-calendar-day has-idea${saved.seenInDay?" was-seen-in-day":""}${day===s.selectedDailyDay?" is-selected":""}${today?" is-today":""}" data-action="daily-date" data-day="${day}" aria-label="${esc(label+", "+seenLabel)}" aria-pressed="${day===s.selectedDailyDay}"><span class="daily-calendar-number">${dayNumber}</span>${seenIcon}</button>`;
   }).join("");
   const calendar=`<section class="daily-calendar" aria-labelledby="daily-calendar-title"><div class="daily-calendar-heading"><button type="button" class="calendar-nav" data-action="daily-month" data-direction="previous" data-month="${monthShift(-1)}" aria-label="${esc(c.previousMonth)}" ${monthShift(-1)<earliestMonth?"disabled":""}>‹</button><h2 id="daily-calendar-title">${esc(monthLabel)}</h2><button type="button" class="calendar-nav" data-action="daily-month" data-direction="next" data-month="${monthShift(1)}" aria-label="${esc(c.nextMonth)}" ${monthShift(1)>(s.dailyToday?.day?.slice(0,7)||month)?"disabled":""}>›</button></div><div class="daily-calendar-grid" role="group" aria-label="${esc(monthLabel)}">${weekdayLabels.map(label=>`<span class="daily-calendar-weekday">${esc(label)}</span>`).join("")}${cells}</div></section>`;
   const exclusive=card&&s.dailyExclusiveCardId===card.id?exclusiveCardMarkup(s,card):"";

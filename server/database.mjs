@@ -8,8 +8,8 @@ import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH,USERNAME_MIN_LENGTH
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 30;
-export const POSTGRES_SCHEMA_VERSION = 22;
+export const SQLITE_SCHEMA_VERSION = 31;
+export const POSTGRES_SCHEMA_VERSION = 23;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -96,6 +96,19 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 30) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE daily_idea_views (
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day TEXT NOT NULL,
+        seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY(user_id,day)
+      ) STRICT;
+      PRAGMA user_version=31; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return;
+  }
   if (version === 29) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -526,6 +539,23 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 22) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 23) return;
+          await db.exec(`CREATE TABLE daily_idea_views (
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            day TEXT NOT NULL,
+            seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(user_id,day)
+          );
+          ALTER TABLE daily_idea_views ENABLE ROW LEVEL SECURITY;
+          ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+          UPDATE reed_schema SET version=23;
+          ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=23);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 21) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,decks IN ACCESS EXCLUSIVE MODE;");

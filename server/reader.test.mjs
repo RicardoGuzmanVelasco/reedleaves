@@ -7,8 +7,8 @@ import {join} from "node:path";
 import {openDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
-import {readReaderState,selectDeck,addDeckToCollection,openCard,changeReading,changePreferences,dailyIdea,savePracticeAnswer} from "./reader-repository.mjs";
-import {readProfile} from "./profile-repository.mjs";
+import {readReaderState,selectDeck,addDeckToCollection,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus,savePracticeAnswer} from "./reader-repository.mjs";
+import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 import {serverDay} from "./auth.mjs";
 const date = day=>new Date(day+"T12:00:00Z"), today = date("2026-10-06");
@@ -129,6 +129,23 @@ test("Daily idea follows each account's 06:00 local cycle date",async t=>{
   assert.equal(losAngeles.daily.day,"2026-10-18");
   assert.deepEqual((await readReaderState(db,a,now)).daily,madrid.daily);
   assert.deepEqual((await readReaderState(db,b,now)).daily,losAngeles.daily);
+});
+test("Daily status is non-generating and only marks the account's assigned idea as seen that day",async t=>{
+  const {db,a,b}=await fixture(t),day1=date("2026-10-06"),day2=date("2026-10-07");
+  assert.deepEqual(await dailyIdeaStatus(db,a,day1),{day:"2026-10-06",unseen:true});
+  assert.equal(db.prepare("SELECT count(*) AS n FROM daily_ideas").get().n,0);
+  const first=await dailyIdea(db,a,day1),cardId=first.daily.id;
+  assert.equal((await dailyIdeaStatus(db,a,day1)).unseen,true);
+  assert.equal((await dailyIdeaStatus(db,b,day1)).unseen,true);
+  await recordCardView(db,a,{cardId,context:"daily"},day1);
+  assert.equal((await dailyIdeaStatus(db,a,day1)).unseen,false);
+  assert.equal((await dailyIdeaStatus(db,b,day1)).unseen,true);
+  assert.equal((await readReaderState(db,a,day1)).dailyHistory[0].seenInDay,true);
+  await dailyIdea(db,a,day2);
+  await recordCardView(db,a,{cardId,context:"daily"},day2);
+  assert.equal((await dailyIdeaStatus(db,a,day2)).unseen,true);
+  assert.equal((await readReaderState(db,a,day2)).dailyHistory.find(row=>row.day==="2026-10-06").seenInDay,true);
+  assert.equal((await readReaderState(db,a,day2)).dailyHistory.find(row=>row.day==="2026-10-07").seenInDay,false);
 });
 test("Account date handles time zones and DST; older server time does not change wallet accrual",async t=>{
   assert.equal(serverDay("Europe/Madrid",new Date("2026-10-06T22:30:00Z")),"2026-10-07");
