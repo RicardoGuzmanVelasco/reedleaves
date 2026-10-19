@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 24));
-INSERT INTO reed_schema VALUES (24);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 25));
+INSERT INTO reed_schema VALUES (25);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(

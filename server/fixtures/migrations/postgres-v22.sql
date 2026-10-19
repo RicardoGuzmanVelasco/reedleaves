@@ -1,3 +1,4 @@
+-- Snapshot from 3e482fd: server/schema.postgres.sql (postgres v22)
 CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 22));
 INSERT INTO reed_schema VALUES (22);
 

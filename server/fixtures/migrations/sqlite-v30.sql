@@ -1,3 +1,4 @@
+-- Snapshot from 3e482fd: server/schema.sql (sqlite v30)
 CREATE TABLE genres (
   id TEXT PRIMARY KEY CHECK(length(trim(id)) > 0)
 ) STRICT;
