@@ -4,7 +4,7 @@ import {featuredDecks} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=domain-limits-1";
+import {words} from "./i18n.mjs?v=currency-recovery-a2-domain-limits-1";
 import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup} from "./views.mjs?v=domain-limits-1";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
@@ -13,6 +13,29 @@ import {pageTitle} from "./brand.mjs";
 import {createReadingPresentation} from "./reading-presentation.mjs?v=typewriter-middle-speed";
 import {updateSavedReferences} from "./card-interactions.mjs";
 import {editableNoteDecks,noteDecksWithSpace,isHomeBook} from "./notes.mjs";
+import {MAX_DAILY_LEAVES} from "./wallet.mjs";
+
+const zonedDayFormatters=new Map();
+function zonedDayKey(timestamp,timeZone) {
+  let formatter=zonedDayFormatters.get(timeZone);
+  if(!formatter){
+    try{formatter=new Intl.DateTimeFormat("en-CA",{timeZone,year:"numeric",month:"2-digit",day:"2-digit"})}
+    catch{formatter=new Intl.DateTimeFormat("en-CA",{year:"numeric",month:"2-digit",day:"2-digit"})}
+    zonedDayFormatters.set(timeZone,formatter);
+  }
+  const parts=Object.fromEntries(formatter.formatToParts(timestamp).map(part=>[part.type,part.value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+function nextZonedDayBoundary(timestamp,timeZone) {
+  const currentDay=zonedDayKey(timestamp,timeZone);
+  let low=timestamp,high=timestamp+36*60*60*1000;
+  while(zonedDayKey(high,timeZone)===currentDay)high+=24*60*60*1000;
+  while(high-low>1000){
+    const middle=Math.floor((low+high)/2);
+    if(zonedDayKey(middle,timeZone)===currentDay)low=middle;else high=middle;
+  }
+  return high;
+}
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -72,6 +95,18 @@ export function startReader({createCardFeatures} = {}) {
   function choicesForBook() {
     return featuredDecks(catalog,bookId);
   }
+  function setCurrencyRecoveryOpen(open) {
+    const trigger=document.getElementById("currency-wallets"),popover=document.getElementById("currency-recovery");
+    const expanded=!!open&&!trigger.hidden;
+    trigger.setAttribute("aria-expanded",String(expanded));popover.hidden=!expanded;
+  }
+  function updateCurrencyCountdown() {
+    const countdown=document.getElementById("currency-recovery-countdown");
+    if(!ready||!snapshot.user){countdown.textContent="—";return;}
+    const now=Date.now(),boundary=nextZonedDayBoundary(now,snapshot.user.timeZone),minutesLeft=Math.max(0,Math.ceil((boundary-now)/60000));
+    const hours=Math.floor(minutesLeft/60),minutes=minutesLeft%60;
+    countdown.textContent=words[language].currencyCountdown(hours,minutes);
+  }
   function header() {
     const c = words[language]; document.documentElement.lang = language;
     document.title = pageTitle(["card","quote"].includes(authorForm?.kind) ? c.takeNote : mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.books : mode === "bookshelf" ? c.bookcase : mode === "public-bookshelf" ? c.shelf : mode === "profile" ? c.profile : mode === "daily" ? c.daily : mode === "practice" ? c.practice : mode === "saved" ? c.savedCards : mode === "book" ? c.chooseDeck : mode === "mascots" ? c.mascots : mode === "author" ? c.manageDeck : c.review);
@@ -91,17 +126,22 @@ export function startReader({createCardFeatures} = {}) {
     document.getElementById("original-titles").checked = showOriginalTitles;
     const settingsError = document.getElementById("settings-error");
     settingsError.hidden = !syncError; settingsError.textContent = syncError ? c[syncError] || c.connectionError : "";
-    const wallet = document.getElementById("leaf-wallet"), signedIn = !!snapshot.user;
-    wallet.hidden = !signedIn;
-    const petalWallet = document.getElementById("petal-wallet");
-    petalWallet.hidden = !signedIn;
+    const signedIn = !!snapshot.user,currencyWallets=document.getElementById("currency-wallets");
+    currencyWallets.hidden = !signedIn;
+    if(!signedIn)setCurrencyRecoveryOpen(false);
     document.getElementById("brand-name").hidden = signedIn;
     document.querySelector(".brand").classList.toggle("brand-with-name",!signedIn);
-    document.getElementById("leaf-count").textContent = ready && budget ? String(budget.balance) : "—";
-    wallet.setAttribute("aria-label",ready && budget ? c.leafBalance(budget.balance) : c.loading);
     const petals = Number.isSafeInteger(snapshot.petals) ? snapshot.petals : 0,petalMaximum=Number.isSafeInteger(snapshot.petalMaximum)?snapshot.petalMaximum:15;
-    document.getElementById("petal-count").textContent = ready ? `${petals}/${petalMaximum}` : "—";
-    petalWallet.setAttribute("aria-label",ready ? c.petalBalance(petals,petalMaximum) : c.loading);
+    document.getElementById("petal-count").textContent = ready ? String(petals) : "—";
+    document.getElementById("petal-maximum").textContent=`/${petalMaximum}`;
+    document.getElementById("leaf-maximum").textContent=`/${MAX_DAILY_LEAVES}`;
+    const leaves=ready&&budget?budget.balance:0;
+    document.getElementById("leaf-count").textContent=ready&&budget?String(leaves):"—";
+    currencyWallets.setAttribute("aria-label",ready&&budget?c.currencyBalancesLabel(petals,petalMaximum,leaves,MAX_DAILY_LEAVES):c.loading);
+    document.getElementById("currency-recovery-title").textContent=c.nextCurrencyRefill;
+    document.getElementById("petal-refill-label").textContent=c.petalsRefillLabel;
+    document.getElementById("leaf-refill-label").textContent=c.leafRefillLabel;
+    updateCurrencyCountdown();
     document.querySelectorAll("[data-language]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.language === language)));
     document.getElementById("account-controls").innerHTML = snapshot.user ? `<button type="button" class="text-button" data-account-action="profile">${escapeHtml(snapshot.user.username)} ↗</button><button type="button" class="text-button" data-account-action="logout">${c.signOut}</button>` : `<button type="button" class="text-button" data-account-action="login">${c.signIn}</button>`;
   }
@@ -775,6 +815,10 @@ export function startReader({createCardFeatures} = {}) {
   document.querySelectorAll("[data-language]").forEach(b=>b.addEventListener("click",async()=>{
     if (snapshot.user) await mutation("/api/reader/preferences",{language:b.dataset.language}); else { language = restoreLanguage(b.dataset.language); store.save(keys.language,language); render(); }
   }));
+  const currencyWallets=document.getElementById("currency-wallets"),currencyRecovery=document.getElementById("currency-recovery");
+  currencyWallets.addEventListener("click",()=>setCurrencyRecoveryOpen(currencyWallets.getAttribute("aria-expanded")!=="true"));
+  document.addEventListener("pointerdown",event=>{if(!currencyWallets.contains(event.target)&&!currencyRecovery.contains(event.target))setCurrencyRecoveryOpen(false)});
+  document.addEventListener("keydown",event=>{if(event.key==="Escape"&&currencyWallets.getAttribute("aria-expanded")==="true")setCurrencyRecoveryOpen(false)});
   document.getElementById("original-titles").addEventListener("change",async event=>{
     if (snapshot.user) await mutation("/api/reader/preferences",{showOriginalTitles:event.target.checked});
     else { showOriginalTitles = event.target.checked; store.save(keys.originalTitles,showOriginalTitles); render(); }
@@ -963,8 +1007,8 @@ export function startReader({createCardFeatures} = {}) {
   window.addEventListener("hashchange",()=>{
     const cardId=requestedId,returning=cardId && location.hash === "#"+mode+"/"+(mode === "saved" ? bookId : deckId);
     persistNoteDraft(); authorForm = null; deckCompletion=null; route(!returning); if (returning) restoreAlbumPosition(cardId);
-  }); document.addEventListener("visibilitychange",()=>{ if (document.hidden) persistNoteDraft(); else { recordDisplayedCard(); sync(); } });
+  }); document.addEventListener("visibilitychange",()=>{ if (document.hidden) persistNoteDraft(); else { updateCurrencyCountdown();recordDisplayedCard();sync(); } });
   window.addEventListener("pagehide",persistNoteDraft);
   window.addEventListener("resize",positionNoteDestination);window.addEventListener("scroll",positionNoteDestination,{passive:true});
-  window.addEventListener("focus",()=>sync()); window.addEventListener("online",()=>sync()); setInterval(()=>{ if (!document.hidden) sync(); },30000); load();
+  window.addEventListener("focus",()=>sync()); window.addEventListener("online",()=>sync()); setInterval(()=>{ if (!document.hidden) sync(); },30000); setInterval(()=>{if(!document.hidden)updateCurrencyCountdown()},60000); load();
 }
