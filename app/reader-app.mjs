@@ -14,28 +14,7 @@ import {createReadingPresentation} from "./reading-presentation.mjs?v=typewriter
 import {updateSavedReferences} from "./card-interactions.mjs";
 import {editableNoteDecks,noteDecksWithSpace,isHomeBook} from "./notes.mjs";
 import {MAX_DAILY_LEAVES} from "./wallet.mjs";
-
-const zonedDayFormatters=new Map();
-function zonedDayKey(timestamp,timeZone) {
-  let formatter=zonedDayFormatters.get(timeZone);
-  if(!formatter){
-    try{formatter=new Intl.DateTimeFormat("en-CA",{timeZone,year:"numeric",month:"2-digit",day:"2-digit"})}
-    catch{formatter=new Intl.DateTimeFormat("en-CA",{year:"numeric",month:"2-digit",day:"2-digit"})}
-    zonedDayFormatters.set(timeZone,formatter);
-  }
-  const parts=Object.fromEntries(formatter.formatToParts(timestamp).map(part=>[part.type,part.value]));
-  return `${parts.year}-${parts.month}-${parts.day}`;
-}
-function nextZonedDayBoundary(timestamp,timeZone) {
-  const currentDay=zonedDayKey(timestamp,timeZone);
-  let low=timestamp,high=timestamp+36*60*60*1000;
-  while(zonedDayKey(high,timeZone)===currentDay)high+=24*60*60*1000;
-  while(high-low>1000){
-    const middle=Math.floor((low+high)/2);
-    if(zonedDayKey(middle,timeZone)===currentDay)low=middle;else high=middle;
-  }
-  return high;
-}
+import {nextDailyCycleBoundary} from "./daily-cycle.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -106,7 +85,7 @@ export function startReader({createCardFeatures} = {}) {
   function updateCurrencyCountdown() {
     const countdown=document.getElementById("currency-recovery-countdown");
     if(!ready||!snapshot.user){countdown.textContent="—";return;}
-    const now=Date.now(),boundary=nextZonedDayBoundary(now,snapshot.user.timeZone),minutesLeft=Math.max(0,Math.ceil((boundary-now)/60000));
+    const now=Date.now(),boundary=nextDailyCycleBoundary(snapshot.user.timeZone,new Date(now)),minutesLeft=Math.max(0,Math.ceil((boundary.getTime()-now)/60000));
     const hours=Math.floor(minutesLeft/60),minutes=minutesLeft%60;
     countdown.textContent=words[language].currencyCountdown(hours,minutes);
   }

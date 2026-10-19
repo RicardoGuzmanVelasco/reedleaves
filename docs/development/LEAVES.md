@@ -4,7 +4,7 @@ El monedero `leaf_wallets` admite saldos enteros no negativos, incluidos 10 o 10
 
 La migración inicial del monedero amplió el saldo máximo permitido por el esquema y conservó las filas existentes. El esquema vigente es SQLite v22 / PostgreSQL v14. Su migración más reciente retira los cobros por abrir tarjetas y conserva el saldo de hojas y el gasto histórico.
 
-`user_id` es el ID interno de `users`, no el nombre de acceso. Solo hay un monedero por usuario: insertar otra fila para la misma cuenta falla por clave duplicada. `last_accrual_day` es obligatorio y usa `YYYY-MM-DD`. El ciclo de recarga empieza a las 11:11 de la zona de la cuenta; el valor centralizado en el servidor está en `server/daily-cycle.mjs`.
+`user_id` es el ID interno de `users`, no el nombre de acceso. Solo hay un monedero por usuario: insertar otra fila para la misma cuenta falla por clave duplicada. `last_accrual_day` es obligatorio y usa `YYYY-MM-DD`. El ciclo de recarga empieza a las 11:11 de la zona de la cuenta; el cálculo compartido por navegador y servidor está centralizado en `app/daily-cycle.mjs` y se reexporta desde `server/daily-cycle.mjs` para los consumidores del servidor.
 
 ## Desde SQL Editor de Supabase
 
