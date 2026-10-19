@@ -81,3 +81,20 @@ test("a session costs three petals when its topic is not discounted",async t=>{
   const topic=discount==="reading"?"mixed":"reading",started=await startPracticeSession(db,session,topic,now);
   assert.equal(started.session.cost,3);assert.equal((await readReaderState(db,session,now)).petals,7);
 });
+
+test("mascot growth starts a new local day at midnight",async t=>{
+  const {db,session}=await fixture(t),completePractice=async now=>{
+    const started=await startPracticeSession(db,session,"reading",now);
+    let result;
+    for(let index=0;index<started.session.cardIds.length;index++) result=await answerPracticeSession(db,session,{
+      sessionId:started.session.id,index,cardId:started.session.cardIds[index],answer:"remembered"
+    },new Date(now.getTime()+index+1));
+    return result;
+  };
+  await completePractice(new Date("2026-10-06T21:58:00Z"));
+  await completePractice(new Date("2026-10-06T22:00:00Z"));
+  const state=await readReaderState(db,session,new Date("2026-10-06T22:01:00Z"));
+  assert.equal(state.growth["seven-habits"].reviewDays,2);
+  const days=await db.prepare("SELECT completed_local_day FROM practice_sessions WHERE completed_at IS NOT NULL ORDER BY completed_local_day").all();
+  assert.deepEqual(days.map(row=>row.completed_local_day),["2026-10-06","2026-10-07"]);
+});

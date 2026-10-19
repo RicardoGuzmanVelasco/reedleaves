@@ -92,6 +92,15 @@ test("Leaves accrue independently of card views",async t=>{
   assert.equal((await openCard(db,a,other,"atomic-1",later)).state.wallet.balance,3);
   assert.equal((await readReaderState(db,a,date("2026-10-13"))).wallet.balance,3);
 });
+test("Leaf and petal refills switch together at 11:11 local",async t=>{
+  const {db,a}=await fixture(t);
+  db.prepare("INSERT INTO leaf_wallets(user_id,balance,last_accrual_day) VALUES ('a',1,'2026-10-18')").run();
+  db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES ('a',10,'2026-10-18')").run();
+  const before=await readReaderState(db,a,new Date("2026-10-19T09:10:00Z"));
+  assert.equal(before.wallet.balance,1);assert.equal(before.petals,10);
+  const after=await readReaderState(db,a,new Date("2026-10-19T09:11:00Z"));
+  assert.equal(after.wallet.balance,2);assert.equal(after.petals,15);
+});
 test("Reading and language preferences remain separate from wallets and practices",async t=>{
   const {db,a} = await fixture(t), before = await readReaderState(db,a,today);
   const reading = await changeReading(db,a,"seven-habits","read",today); assert.equal(reading.statuses["seven-habits"],"read");
@@ -110,6 +119,16 @@ test("One daily idea is shared and daily assignment does not create a card view"
   const other=await readReaderState(db,b,today);
   assert.deepEqual(other.daily,first.daily);assert.deepEqual(other.dailyHistory.map(row=>row.day),["2026-10-07","2026-10-06"]);
   assert.equal(db.prepare("SELECT count(*) AS n FROM card_views").get().n,0);
+});
+test("Daily idea follows each account's 06:00 local cycle date",async t=>{
+  const {db,a,b}=await fixture(t);
+  db.prepare("UPDATE accounts SET time_zone='America/Los_Angeles' WHERE user_id='b'").run();
+  const now=new Date("2026-10-19T10:30:00Z");
+  const madrid=await dailyIdea(db,a,now),losAngeles=await dailyIdea(db,b,now);
+  assert.equal(madrid.daily.day,"2026-10-19");
+  assert.equal(losAngeles.daily.day,"2026-10-18");
+  assert.deepEqual((await readReaderState(db,a,now)).daily,madrid.daily);
+  assert.deepEqual((await readReaderState(db,b,now)).daily,losAngeles.daily);
 });
 test("Account date handles time zones and DST; older server time does not change wallet accrual",async t=>{
   assert.equal(serverDay("Europe/Madrid",new Date("2026-10-06T22:30:00Z")),"2026-10-07");

@@ -2,6 +2,7 @@ import {randomInt} from "node:crypto";
 import {isPostgres,transaction} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
 import {serverDay} from "./auth.mjs";
+import {dailyCycleDay,DAILY_CYCLE_STARTS,previousCalendarDay} from "./daily-cycle.mjs";
 import {accrueLeafWallet} from "./leaf-wallet-repository.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
@@ -12,15 +13,14 @@ import {cardSavesInside} from "./card-saves.mjs";
 import {accruePetalWallet,MAX_PETALS} from "./petal-wallet-repository.mjs";
 import {practiceDiscountTopic} from "./practice-economy.mjs";
 
-const globalDay = now => now.toISOString().slice(0,10);
 export async function readReaderState(db,session,now=new Date()) {
   return transaction(db,()=>stateInside(db,session,now));
 }
 async function stateInside(db,session,now) {
   const account=await db.prepare("SELECT * FROM accounts WHERE user_id = ?").get(session.user_id);
   if(!account) throw new ApiError(401,"signInRequired");
-  const userId=account.user_id,today=serverDay(account.time_zone,now),wallet=await accrueLeafWallet(db,userId,today);
-  const petalWallet=await accruePetalWallet(db,userId,today);
+  const userId=account.user_id,today=serverDay(account.time_zone,now),cycleDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.currencyRefill),ideaDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea),wallet=await accrueLeafWallet(db,userId,cycleDay);
+  const petalWallet=await accruePetalWallet(db,userId,cycleDay);
   const practiceAnswers=Object.fromEntries((await db.prepare("SELECT card_id,answer FROM practice_answers WHERE user_id=?").all(userId))
     .map(row=>[row.card_id,row.answer]));
   const activePracticeRow=await db.prepare("SELECT id,topic,card_ids,card_index,cost,started_at FROM practice_sessions WHERE user_id=? AND completed_at IS NULL").get(userId);
@@ -45,7 +45,7 @@ async function stateInside(db,session,now) {
   for(const value of Object.values(growth)) value.added=!!value.added;
   const dailyRows=await db.prepare("SELECT d.day,c.id,c.book_id FROM daily_ideas d JOIN cards c ON c.id=d.card_id ORDER BY d.day DESC").all();
   const dailyHistory=dailyRows.map(row=>({day:row.day,id:row.id,bookId:row.book_id}));
-  const idea=dailyHistory.find(row=>row.day===globalDay(now)) || null;
+  const idea=dailyHistory.find(row=>row.day===ideaDay) || null;
   const activityRows=await db.prepare(`SELECT d.id AS deck_id,c.book_id,MAX(c.created_at) AS last_note_at
     FROM decks d JOIN cards c ON c.deck_id=d.id
     WHERE d.creator_user_id=? AND c.created_at IS NOT NULL GROUP BY d.id,c.book_id`).all(userId);
@@ -155,10 +155,12 @@ export async function changePreferences(db,session,input,now=new Date()) {
 }
 export async function dailyIdea(db,session,now=new Date()) {
   return transaction(db,async()=>{
-    const day=globalDay(now);
+    const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id);
+    if(!account) throw new ApiError(401,"signInRequired");
+    const day=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea);
     const existing=await db.prepare("SELECT 1 FROM daily_ideas WHERE day=?").get(day);
     if(existing) return stateInside(db,session,now);
-    // Serialize assignments across UTC dates so concurrent first requests cannot
+    // Serialize assignments across account-local dates so concurrent first requests cannot
     // pick the same unused card on PostgreSQL.
     if(isPostgres(db)) await db.prepare("SELECT pg_advisory_xact_lock(731942, 1)").get();
     const raced=await db.prepare("SELECT 1 FROM daily_ideas WHERE day=?").get(day);
@@ -168,8 +170,8 @@ export async function dailyIdea(db,session,now=new Date()) {
     if(candidates.length) {
       const seen=new Set((await db.prepare("SELECT DISTINCT card_id FROM daily_ideas").all()).map(row=>row.card_id));
       const unused=candidates.filter(card=>!seen.has(card.id));
-      const latest=await db.prepare("SELECT card_id FROM daily_ideas ORDER BY day DESC LIMIT 1").get();
-      const cycle=unused.length ? unused : candidates.filter(card=>candidates.length===1 || card.id!==latest?.card_id);
+      const previous=await db.prepare("SELECT card_id FROM daily_ideas WHERE day=?").get(previousCalendarDay(day));
+      const cycle=unused.length ? unused : candidates.filter(card=>candidates.length===1 || card.id!==previous?.card_id);
       const selected=cycle[randomInt(cycle.length)];
       await db.prepare("INSERT INTO daily_ideas(day,card_id) VALUES (?,?) ON CONFLICT(day) DO NOTHING").run(day,selected.id);
     }

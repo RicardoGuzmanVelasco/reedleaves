@@ -1,6 +1,7 @@
 import {randomBytes, randomUUID, scrypt, timingSafeEqual, createHash} from "node:crypto";
 import {promisify} from "node:util";
 import {transaction} from "./database.mjs";
+import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
 import {ApiError} from "./errors.mjs";
 import {INVITE_CODE_MIN_LENGTH, LANGUAGES, USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH} from "../app/core.mjs";
 
@@ -91,7 +92,7 @@ export async function authenticate(db,kind,input,{now = new Date(),ip = "unknown
       const userId = randomUUID();
       await db.prepare("INSERT INTO users(id,display_name) VALUES (?,?)").run(userId,username);
       await db.prepare("INSERT INTO accounts VALUES (?,?,?,?,?)").run(userId,username,`scrypt$131072$8$1$${salt}$${result.toString("hex")}`,timeZone,language);
-      await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run(userId,10,serverDay(timeZone,now));
+      await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run(userId,10,dailyCycleDay(timeZone,now,DAILY_CYCLE_STARTS.currencyRefill));
       return issueSession(db,userId,now,previous);
     });
   }
