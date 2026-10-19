@@ -103,6 +103,8 @@ Si el «+» de Inicio no tiene una baraja propia en borrador, abre el editor de 
 
 Borrador describe creación y no privacidad. Guardar comparte el contenido con quienes tienen acceso al catálogo; terminar cierra cambios, no lo hace visible por primera vez. El estado editorial `draft/reviewed` es independiente de `status`. Los nombres internos `deckInProgress` y `notesInProgress` conservan su contrato, pero su copy de creación usa Borrador. Las notas sin guardar solo se recuperan en el navegador y dispositivo donde se conservaron.
 
+En Gestionar baraja, su creador puede corregir el título y el idioma mientras esté en borrador. Cambiar idioma conserva las traducciones ya existentes y actualiza el idioma del texto original cuando no hay traducción de destino.
+
 ## Cómo usarla
 
 Aplicar estos criterios con juicio en cada cambio; no asumir que describen la interfaz actual ni que anticipan decisiones futuras. Para entender el comportamiento vigente, consultar la implementación. Para conocer el arte vigente, consultar los recursos usados por la aplicación. Los archivos de exploración de marca son propuestas salvo confirmación explícita.

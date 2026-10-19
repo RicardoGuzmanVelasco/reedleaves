@@ -108,7 +108,11 @@ test("Creation permissions, one optional vote and independent book reading / dec
   assert.throws(() => db.prepare("INSERT INTO decks(id,book_id,creator_user_id) VALUES ('denied','seven-habits','test-reader')").run(),/permission/);
   db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language) VALUES ('allowed','seven-habits','test-author','fr')").run();
   assert.equal(db.prepare("SELECT language FROM decks WHERE id = 'allowed'").get().language,"fr");
-  assert.throws(() => db.prepare("UPDATE decks SET language = 'en' WHERE id = 'allowed'").run(),/immutable/);
+  db.prepare("UPDATE decks SET language = 'en' WHERE id = 'allowed'").run();
+  assert.equal(db.prepare("SELECT language FROM decks WHERE id = 'allowed'").get().language,"en");
+  db.prepare("UPDATE decks SET status = 'published' WHERE id = 'allowed'").run();
+  assert.throws(() => db.prepare("UPDATE decks SET language = 'fr' WHERE id = 'allowed'").run(),/immutable/);
+  db.prepare("UPDATE decks SET status = 'draft' WHERE id = 'allowed'").run();
   db.prepare("DELETE FROM decks WHERE id = 'allowed'").run();
   db.prepare("INSERT INTO book_reading VALUES ('test-reader','seven-habits','read')").run();
   db.prepare("INSERT INTO deck_votes(user_id,deck_id,value) VALUES ('test-reader','seven-habits-editorial',1)").run();
