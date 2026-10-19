@@ -2,7 +2,7 @@ import {randomBytes, randomUUID, scrypt, timingSafeEqual, createHash} from "node
 import {promisify} from "node:util";
 import {transaction} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
-import {INVITE_CODE_MIN_LENGTH, LANGUAGES} from "../app/core.mjs";
+import {INVITE_CODE_MIN_LENGTH, LANGUAGES, USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH} from "../app/core.mjs";
 
 const derive = promisify(scrypt);
 const parameters = {N:131072,r:8,p:1,maxmem:256 * 1024 * 1024};
@@ -16,8 +16,9 @@ export function requireProductionInviteCode(value) {
 
 const digest = value => createHash("sha256").update(value).digest("hex");
 const usernameOf = value => typeof value === "string" ? value.trim().toLowerCase() : "";
-const validUsername = value => /^[a-z0-9][a-z0-9._-]{2,31}$/.test(value);
-const validPassword = value => typeof value === "string" && [...value].length >= 8 && [...value].length <= 128 && Buffer.byteLength(value) <= 512;
+const usernamePattern = new RegExp(`^[a-z0-9][a-z0-9._-]{${USERNAME_MIN_LENGTH - 1},${USERNAME_MAX_LENGTH - 1}}$`);
+const validUsername = value => usernamePattern.test(value);
+const validPassword = value => typeof value === "string" && [...value].length >= PASSWORD_MIN_LENGTH && [...value].length <= PASSWORD_MAX_LENGTH && Buffer.byteLength(value) <= 512;
 let activeHashes = 0;
 async function hash(password,salt) {
   if (activeHashes >= 2) throw new ApiError(429,"tryLater");

@@ -9,6 +9,7 @@ import {createBook,createDeck,addCard,takeFirstNote,finishDeck,finishNoteDecks,c
 import {createBookAutofill} from "./book-autofill.mjs";
 import {readCardVotes,setCardVote} from "./card-votes.mjs";
 import {readCardActions,readSavedCards,setCardSave} from "./card-saves.mjs";
+import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH} from "../app/core.mjs";
 
 async function readBody(request,maxBytes = 8192) {
   if (request.headers["content-type"]?.split(";")[0].trim() !== "application/json") throw new ApiError(415,"invalidRequest");
@@ -100,7 +101,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       }
       if (path === "/api/feedback") {
         const message=typeof input.message === "string" ? input.message.trim() : "",page=input.page;
-        if (!message || message.length > 5000 || typeof page !== "string" || !/^\/[A-Za-z0-9/_%.-]*(?:#[A-Za-z0-9/_%.-]*)?$/.test(page) || page.length > 512 || !["es","en"].includes(input.language)) throw new ApiError(400,"invalidFeedback");
+        if (!message || message.length > FEEDBACK_MESSAGE_MAX_LENGTH || typeof page !== "string" || !/^\/[A-Za-z0-9/_%.-]*(?:#[A-Za-z0-9/_%.-]*)?$/.test(page) || page.length > FEEDBACK_PAGE_MAX_LENGTH || !["es","en"].includes(input.language)) throw new ApiError(400,"invalidFeedback");
         const account=await db.prepare("SELECT username FROM accounts WHERE user_id=?").get(active.user_id);
         if (!account) throw new ApiError(401,"signInRequired");
         const id=randomUUID();

@@ -1,4 +1,6 @@
-export const AI_SHORT_TITLE_MAX=32;
+import {BOOK_SHORT_TITLE_MAX_LENGTH} from "../app/core.mjs";
+
+export const AI_SHORT_TITLE_MAX=BOOK_SHORT_TITLE_MAX_LENGTH;
 
 const clean=value=>typeof value === "string" ? value.normalize("NFC").replace(/\s+/gu," ").trim() : "";
 const comparable=value=>clean(value).normalize("NFD").replace(/\p{M}/gu,"").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu," ").trim();
