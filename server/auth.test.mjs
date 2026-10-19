@@ -5,9 +5,10 @@ import {openDatabase,initializeDatabase} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {createCatalogServer} from "./http.mjs";
 import {readSession,sessionCookie,SESSION_SECONDS,requireProductionInviteCode} from "./auth.mjs";
-test("Production invitation configuration accepts twelve characters and rejects missing or shorter codes",()=>{
-  for (const code of ["a".repeat(12),"b".repeat(24),"c".repeat(32)]) assert.equal(requireProductionInviteCode(code),code);
-  for (const code of [undefined,null,"","a".repeat(11)]) assert.throws(()=>requireProductionInviteCode(code),/at least 12 characters/);
+import {INVITE_CODE_MIN_LENGTH} from "../app/core.mjs";
+test("Production invitation configuration accepts the minimum length and rejects missing or shorter codes",()=>{
+  for (const code of ["a".repeat(INVITE_CODE_MIN_LENGTH),"b".repeat(24),"c".repeat(32)]) assert.equal(requireProductionInviteCode(code),code);
+  for (const code of [undefined,null,"","a".repeat(INVITE_CODE_MIN_LENGTH-1)]) assert.throws(()=>requireProductionInviteCode(code),new RegExp(`at least ${INVITE_CODE_MIN_LENGTH} characters`));
 });
 
 const password = "A test passphrase for Reedleaves";
@@ -28,7 +29,7 @@ async function fixture(t,{inviteCode}={}) {
   return {db,call,register,base,setClock:date=>clock=date};
 }
 test("Configured invitation gates registration and catalog access",async t=>{
-  const code = "a".repeat(12), {call,register,db,setClock} = await fixture(t,{inviteCode:code});
+  const code = "a".repeat(INVITE_CODE_MIN_LENGTH), {call,register,db,setClock} = await fixture(t,{inviteCode:code});
   assert.deepEqual((await call("/api/session")).body,{user:null,inviteRequired:true});
   assert.equal((await call("/api/catalog")).status,401);
   assert.equal((await call("/api/auth/register",{username:"invite.reader",password})).status,403);

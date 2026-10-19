@@ -1,5 +1,6 @@
 export const LANGUAGES = ["es", "en"];
 export const CONTENT_LANGUAGES = ["es", "en"];
+export const INVITE_CODE_MIN_LENGTH = 12;
 
 export function restoreLanguage(saved) {
   return LANGUAGES.includes(saved) ? saved : "es";
