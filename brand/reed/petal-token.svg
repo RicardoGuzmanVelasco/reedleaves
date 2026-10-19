@@ -1,3 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <path d="M9 29C3 22 2 15 5 9C8 3 14 1 19 3L19 7L24 5C31 11 30 19 24 24C20 27 15 29 9 29Z" fill="#F4A6A0" stroke="#173D2C" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <clipPath id="petal-shape">
+      <path d="M18 88C12 61 23 31 44 16C59 5 74 7 82 17C95 35 74 55 51 67C36 75 25 78 18 88Z"/>
+    </clipPath>
+  </defs>
+  <path d="M18 88C12 61 23 31 44 16C59 5 74 7 82 17C95 35 74 55 51 67C36 75 25 78 18 88Z" fill="#F4A6A0"/>
+  <g clip-path="url(#petal-shape)">
+    <path d="M18 88C32 64 57 50 68 33C73 25 76 15 75 4H105V105H0Z" fill="#FAD7CE"/>
+  </g>
+  <path d="M18 88C12 61 23 31 44 16C59 5 74 7 82 17C95 35 74 55 51 67C36 75 25 78 18 88Z" stroke="#173D2C" stroke-width="5.625" stroke-linejoin="round" stroke-linecap="round"/>
 </svg>

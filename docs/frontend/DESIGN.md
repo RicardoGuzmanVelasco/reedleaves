@@ -13,6 +13,12 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - Diseñar primero para uso táctil (touch first). Las acciones, el atractivo visual y las animaciones principales deben funcionar sin hover. El hover es un refuerzo opcional para dispositivos con cursor preciso, nunca el centro de la experiencia ni un requisito para descubrir una acción.
 - Las respuestas de hover de un contenedor no deben sustituir, reiniciar ni mover la animación propia de una mascota. Separar las capas visuales cuando sea necesario.
 
+## Iconos de saldo
+
+- El pétalo usa la silueta diagonal rosa de `brand/reed/petal-token.svg`, con el pliegue lateral claro de P2 (`#FAD7CE`).
+- La hoja usa `brand/reed/leaf-token.svg`, con dos planos longitudinales de H1: verde `#58BE59` y lima `#B7DE76`.
+- Mantener tratamientos distintos para que cada forma conserve su lectura. Revisarlos también al tamaño de monedero (24–30 px).
+
 ## Modo Repasar
 
 - Inicio ofrece «¡Vamos a repasar!» en una sola línea, sin flecha, con Plántula dentro de un círculo grande. Mascota y texto ocupan el mayor tamaño que admite el ancho del botón; el conjunto se adapta a móvil sin desbordarse y evita altura sobrante. El degradado conserva el extremo claro a la derecha, oscurece más el lado izquierdo y mantiene el tono medio hacia la derecha para distinguirse de Plántula. El fondo permanece fijo; un brillo estrecho cruza durante unos 0,75 s cada 7,5 s y una ola rápida recorre el texto carácter por carácter: las letras suben y bajan con easing y se solapan. Movimiento reducido desactiva ambas animaciones.
