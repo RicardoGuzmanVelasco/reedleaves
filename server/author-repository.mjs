@@ -106,6 +106,40 @@ async function writeDeck(db,session,input) {
   await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,id);
   return {deckId:id};
 }
+export async function changeDeckTitle(db,session,input) {
+  if (typeof input.deckId !== "string" || !input.deckId || input.deckId.length > 256) throw new ApiError(400,"invalidRequest");
+  const title=text(input.title,TITLE_MAX_LENGTH),previousTitle=text(input.previousTitle,TITLE_MAX_LENGTH);
+  return transaction(db,async()=>{
+    const deck=await db.prepare(`SELECT * FROM decks WHERE id=?${isPostgres(db) ? " FOR UPDATE" : ""}`).get(input.deckId);
+    if (!deck || deck.creator_user_id !== session.user_id) throw new ApiError(404,"deckUnavailable");
+    if (deck.status !== "draft") throw new ApiError(409,"deckReadOnly");
+    const saved=await db.prepare("SELECT title FROM deck_translations WHERE deck_id=? AND language=?").get(deck.id,deck.language);
+    if (saved.title === title) return {deckId:deck.id};
+    if (saved.title !== previousTitle) throw new ApiError(409,"deckTitleChanged");
+    await db.prepare("UPDATE deck_translations SET title=? WHERE deck_id=? AND language=?").run(title,deck.id,deck.language);
+    return {deckId:deck.id};
+  });
+}
+export async function changeDeckLanguage(db,session,input) {
+  if (typeof input.deckId !== "string" || !input.deckId || input.deckId.length > 256 ||
+      !isCanonicalLocale(input.language) || !isCanonicalLocale(input.previousLanguage)) throw new ApiError(400,"invalidRequest");
+  return transaction(db,async()=>{
+    const deck=await db.prepare(`SELECT * FROM decks WHERE id=?${isPostgres(db) ? " FOR UPDATE" : ""}`).get(input.deckId);
+    if (!deck || deck.creator_user_id !== session.user_id) throw new ApiError(404,"deckUnavailable");
+    if (deck.status !== "draft") throw new ApiError(409,"deckReadOnly");
+    if (deck.language === input.language) return {deckId:deck.id};
+    if (deck.language !== input.previousLanguage) throw new ApiError(409,"deckLanguageChanged");
+    // Keep any existing target-language translation; otherwise relabel the source text.
+    await db.prepare(`UPDATE deck_translations SET language=? WHERE deck_id=? AND language=?
+      AND NOT EXISTS (SELECT 1 FROM deck_translations target WHERE target.deck_id=deck_translations.deck_id AND target.language=?)`)
+      .run(input.language,deck.id,deck.language,input.language);
+    await db.prepare(`UPDATE card_translations SET language=? WHERE card_id IN (SELECT id FROM cards WHERE deck_id=?) AND language=?
+      AND NOT EXISTS (SELECT 1 FROM card_translations target WHERE target.card_id=card_translations.card_id AND target.language=?)`)
+      .run(input.language,deck.id,deck.language,input.language);
+    await db.prepare("UPDATE decks SET language=? WHERE id=?").run(input.language,deck.id);
+    return {deckId:deck.id};
+  });
+}
 export async function addCard(db,session,input) {
   return transaction(db,()=>writeCard(db,session,input));
 }

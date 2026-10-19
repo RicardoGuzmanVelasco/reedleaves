@@ -134,6 +134,25 @@ test("Deck albums show cards without per-deck progress",async()=>{
   assert.match(openable,/tree-map/);assert.match(openable,new RegExp(escapeHtml(model.cards.at(-1).body[deck.language])));
 });
 
+test("Draft deck owner can edit its name and language from management",async()=>{
+  const catalog=await fixture(),deck=catalog.decksById.get(deckId);
+  deck.status="draft";
+  for(const language of ["es","en"]) {
+    const state=readerState(catalog,{language,deckId,bookId:deck.bookId,userId:deck.creator.userId,mode:"author"});
+    const html=authorView(state);
+    assert.match(html,/data-action="edit-deck-title"/);
+    assert.match(html,/data-deck-language/);
+    assert.match(html,new RegExp(`value="${deck.language}" selected`));
+    const editing=authorView({...state,deckTitleEdit:{title:"Nombre <nuevo>"}});
+    assert.match(editing,/name="title" value="Nombre &lt;nuevo&gt;"/);
+    assert.match(editing,/data-deck-title-form/);
+    assert.doesNotMatch(authorView({...state,userId:"other"}),/data-action="edit-deck-title"|data-deck-language/);
+    deck.status="published";
+    assert.doesNotMatch(authorView(state),/data-action="edit-deck-title"|data-deck-language/);
+    deck.status="draft";
+  }
+});
+
 test("Home shows one closed book per active book, without exposing trees or spending leaves", async () => {
   const catalog = await fixture();
   const second = "atomic-habits-editorial";

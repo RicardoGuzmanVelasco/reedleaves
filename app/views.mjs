@@ -3,7 +3,7 @@ import { availableDecks } from "./decks.mjs";
 import {homeBooks,editableNoteDecks,noteDecksWithSpace,recentNoteDecks} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=domain-limits-1";
+import { words } from "./i18n.mjs?v=draft-deck-management-1";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
@@ -555,12 +555,17 @@ function treeMapMarkup(s,model,review,deck) {
   return `<section class="tree-map" aria-label="${c.treeMap}"><div class="tree-map-viewport"><ul class="mini-tree">${model.roots.filter(c=>!c.isQuote && (!s.quotesOnly || containsQuote(c))).map(node).join("")}${model.roots.some(c=>c.isQuote) ? `<li class="virtual-quotes"><span class="virtual-quotes-title">${c.unclassifiedQuotes}</span><ul>${model.roots.filter(c=>c.isQuote).map(node).join("")}</ul></li>` : ""}</ul></div></section>`;
 }
 
-function albumSummary(s,deck,model,review,mascot="") {
+function albumSummary(s,deck,model,review,mascot="",management=false) {
   const c=words[s.language],book=s.catalog.booksById.get(deck.bookId);
   const language=new Intl.DisplayNames([s.language],{type:"language"}).of(deck.language) || deck.language;
+  const editable=management && deck.status === "draft" && deck.creator.userId === s.userId;
+  const title=contentText(deck.title,s.language,deck.language),titleLanguage=contentLocale(deck.title,s.language,deck.language);
+  const titleMarkup=editable && s.deckTitleEdit ? `<form class="deck-title-editor" data-deck-title-form><label class="sr-only" for="deck-title">${esc(c.editDeckTitle)}</label><input id="deck-title" name="title" value="${esc(s.deckTitleEdit.title)}" maxlength="160" required aria-describedby="deck-title-error"><p id="deck-title-error" class="deck-edit-error" role="alert" ${s.deckTitleEdit.error ? "" : "hidden"}>${esc(c[s.deckTitleEdit.error] || c.deckTitleSaveError)}</p><div class="deck-title-editor-actions"><button class="primary" type="submit">${esc(c.save)}</button><button class="text-button" type="button" data-action="cancel-deck-title">${esc(c.cancel)}</button></div></form>`
+    : `<div class="deck-title-row"><h1 tabindex="-1" lang="${esc(titleLanguage)}" dir="auto">${esc(title)}</h1>${editable ? `<button class="text-button deck-title-edit" type="button" data-action="edit-deck-title" aria-label="${esc(c.editDeckTitle)}">${esc(c.editDeckTitle)}</button>` : ""}</div>`;
+  const languageControl=editable ? `<label class="deck-language-control" for="deck-language"><span>${esc(c.deckLanguage)}</span><select id="deck-language" data-deck-language aria-describedby="deck-language-error">${CONTENT_LANGUAGES.map(tag=>`<option value="${tag}" ${deck.language===tag?"selected":""}>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(tag))}</option>`).join("")}</select></label><p id="deck-language-error" class="deck-edit-error" role="alert" ${s.deckLanguageError ? "" : "hidden"}>${esc(c[s.deckLanguageError] || c.deckLanguageSaveError)}</p>` : "";
   return `<header class="album-heading${mascot ? " album-heading--mascot" : ""}"><div class="album-heading-copy"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>
-    <h1 tabindex="-1" lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</h1>
-    <p class="deck-creator">${deckCreator(deck)}</p><p class="album-meta">${esc(language)} · ${esc(c.deckCardCount(model.cards.length))}</p>${deckStatusMarkup(s,deck)}</div>${mascot}</header>`;
+    ${titleMarkup}
+    <p class="deck-creator">${deckCreator(deck)}</p><p class="album-meta">${esc(language)} · ${esc(c.deckCardCount(model.cards.length))}</p>${languageControl}${deckStatusMarkup(s,deck)}</div>${mascot}</header>`;
 }
 
 export function reviewView(s) {
@@ -591,7 +596,7 @@ export function authorView(s) {
   const c=words[s.language],deck=s.catalog.decksById.get(s.deckId),model=s.catalog.deckModels.get(s.deckId),review=null;
   const card=model.byId.get(s.requestedId);
   return `<section class="author-screen album-screen"><div class="review-heading"><button type="button" class="text-button" data-action="choose-book">${c.deckBack}</button><button type="button" class="text-button" data-action="select-deck" data-deck="${esc(deck.id)}" ${!model.cards.length ? "disabled" : ""}>${c.review} →</button></div>
-    ${albumSummary(s,deck,model,review)}
+    ${albumSummary(s,deck,model,review,"",true)}
     <div class="author-actions"><button class="primary note-icon-only" type="button" data-action="take-deck-note" data-deck="${esc(deck.id)}" aria-haspopup="dialog" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}" ${model.cards.length >= MAX_CARDS_PER_DECK ? "disabled" : ""}>${takeNoteIconMarkup}</button><button class="text-button finish-deck-action" type="button" data-action="finish-deck" ${!model.cards.length || s.hasPendingNoteDraft ? 'disabled aria-describedby="finish-deck-hint"' : ""}>${c.finishDeck}</button></div>
     ${!model.cards.length || s.hasPendingNoteDraft ? `<p class="finish-deck-hint" id="finish-deck-hint">${s.hasPendingNoteDraft ? c.pendingNoteBeforeFinish : c.emptyDeckCannotFinish}</p>` : ""}
     ${model.cards.length ? `<div class="content-tools deck-content-tools">${deckBrowsingControls(s)}</div>`+deckContentMarkup(s,model,review,deck,true) : `<div class="empty-state">${c.emptyAuthor}</div>`}

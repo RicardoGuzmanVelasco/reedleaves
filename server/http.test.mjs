@@ -183,7 +183,10 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   assert.equal((await post("/api/author/decks",deckInput,{Cookie:headers.Cookie})).status,403);
   const deckResponse=await post("/api/author/decks",deckInput,headers);assert.equal(deckResponse.status,200);
   const {deckId}=await deckResponse.json();
-  const cardInput={requestId:randomUUID(),deckId,isQuote:true,parentId:null,body:"Citation personnelle"};
+  assert.equal((await post("/api/author/decks/language",{deckId,language:"en",previousLanguage:"fr"})).status,401);
+  const languageResponse=await post("/api/author/decks/language",{deckId,language:"en",previousLanguage:"fr"},headers);assert.equal(languageResponse.status,200);
+  const titleResponse=await post("/api/author/decks/title",{deckId,title:"Reading",previousTitle:"Lecture"},headers);assert.equal(titleResponse.status,200);
+  const cardInput={requestId:randomUUID(),deckId,isQuote:true,parentId:null,body:"Personal quote"};
   const createdCard=await post("/api/author/cards",cardInput,headers);assert.equal(createdCard.status,200);
   const {cardId}=await createdCard.json();
   assert.equal((await post("/api/author/cards",cardInput,headers)).status,200);
@@ -205,6 +208,7 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   assert.equal(shared.decks.some(v=>v.id===deckId),true);
   assert.equal(shared.books.find(b=>b.id===bookId).creatorUserId,state.user.id);
   const otherHeaders={Cookie:otherCookie,"X-CSRF-Token":(await other.json()).csrfToken};
+  assert.equal((await post("/api/author/decks/title",{deckId,title:"Otro nombre",previousTitle:"Reading"},otherHeaders)).status,404);
   assert.equal((await post("/api/reader/collect",{deckId},otherHeaders)).status,200);
   assert.equal((await post("/api/reader/select",{deckId},otherHeaders)).status,200);
   assert.equal((await post("/api/author/cards",{...cardInput,requestId:randomUUID()},otherHeaders)).status,404);
@@ -221,6 +225,10 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   assert.equal(otherCatalog.decks.some(v=>v.id===deckId),true);
   const creatorCatalog=await fetch(base+"/api/catalog",{headers:{Cookie:headers.Cookie}}).then(r=>r.json());
   assert.equal(creatorCatalog.decks.some(v=>v.id===ownVersion),true);
+  const editedDeck=creatorCatalog.decks.find(deck=>deck.id===deckId);
+  assert.equal(editedDeck.language,"en");assert.equal(editedDeck.title.en,"Reading");
+  const finish=await post("/api/author/decks/finish",{deckId},headers);assert.equal(finish.status,200);
+  assert.equal((await post("/api/author/decks/language",{deckId,language:"es",previousLanguage:"en"},headers)).status,409);
 });
 
 test("Profiles require a session and view writes require origin, CSRF and a valid card",async t=>{

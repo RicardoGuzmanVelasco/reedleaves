@@ -94,7 +94,7 @@ CREATE UNIQUE INDEX one_recommendation_per_book ON decks(book_id) WHERE is_recom
 CREATE TRIGGER check_deck_author_insert BEFORE INSERT ON decks WHEN COALESCE((SELECT can_create_decks FROM users WHERE id = NEW.creator_user_id),0) <> 1
 BEGIN SELECT RAISE(ABORT,'Deck creation permission required'); END;
 CREATE TRIGGER keep_deck_owner BEFORE UPDATE OF creator_user_id,book_id,language ON decks
-WHEN NEW.creator_user_id IS NOT OLD.creator_user_id OR NEW.book_id <> OLD.book_id OR NEW.language <> OLD.language
+WHEN NEW.creator_user_id IS NOT OLD.creator_user_id OR NEW.book_id <> OLD.book_id OR (NEW.language <> OLD.language AND OLD.status <> 'draft')
 BEGIN SELECT RAISE(ABORT,'Deck ownership is immutable'); END;
 CREATE TRIGGER keep_published_deck BEFORE DELETE ON decks WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published deck cannot be deleted'); END;
@@ -268,4 +268,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 29;
+PRAGMA user_version = 30;

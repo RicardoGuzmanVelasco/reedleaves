@@ -46,7 +46,7 @@ La integración requiere `OPENAI_API_KEY` en el servidor. Ver [configuración](.
 
 Los libros propios ya creados muestran un icono de información pendiente en Inicio, Librería, Biblioteca y la ficha si faltan títulos completos/cortos o descripciones ES/EN, o intereses. Pulsarlo abre «Completar información», reutiliza la búsqueda y vista previa, y ofrece «Guardar» para completar el mismo libro. Identidad y datos previos son de solo lectura; los campos nuevos se pueden corregir. El servidor combina la propuesta con los datos más recientes bajo bloqueo y conserva los valores existentes, también si otra sesión ha completado el libro. Los reintentos no duplican datos ni alteran barajas, progreso o saldo. Enlaces y notas opcionales no mantienen el indicador. Solo el creador puede completar sus libros; no hay migración.
 
-Contenido editable: content/catalog/*.csv. Datos activos: var/catalog.sqlite, con libros, barajas y árboles. SQLite v29 y PostgreSQL v21. Las migraciones conservan cuentas, tarjetas y progreso; la migración actual elimina las entidades de versión y enlaza las referencias directamente a IDs de baraja.
+Contenido editable: content/catalog/*.csv. Datos activos: var/catalog.sqlite, con libros, barajas y árboles. SQLite v30 y PostgreSQL v22. Las migraciones conservan cuentas, tarjetas y progreso; la migración actual permite cambiar el idioma de una baraja propia mientras siga en borrador. Las anteriores eliminan las entidades de versión y enlazan las referencias directamente a IDs de baraja.
 
 Backend: server/database.mjs, seed.mjs, catalog-repository.mjs, author-repository.mjs, auth.mjs, reader-repository.mjs, reader-api.mjs y http.mjs.
 
