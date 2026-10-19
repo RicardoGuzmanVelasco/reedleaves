@@ -56,9 +56,18 @@ test("Explicitly adding an unread book makes it a shelf member and exposes its a
   const s=await fixture();
   assert.deepEqual(ids(bookshelfBooks(s)),[]);
   assert.match(libraryView({...s,openBookId:"atomic-habits"}),/data-action="add-book-to-shelf" data-book="atomic-habits"/);
-  s.statuses={"atomic-habits":"unread"};
+  s.statuses={"atomic-habits":"unread"};s.shelfBookIds=["atomic-habits"];
   assert.deepEqual(ids(bookshelfBooks(s)),["atomic-habits"]);
   assert.match(libraryView({...s,openBookId:"atomic-habits"}),/class="collection-object-state"[^>]*>.*En tu Estantería/);
+});
+
+test("Default unread statuses for the whole catalog do not make every book a shelf member",async()=>{
+  const s=await fixture();
+  s.statuses=Object.fromEntries(s.catalog.books.map(book=>[book.id,"unread"]));
+  s.shelfBookIds=[];
+  assert.deepEqual(bookshelfBooks(s),[]);
+  assert.ok(bookshelfView(s).includes(words.es.emptyBookshelf));
+  assert.match(libraryView({...s,openBookId:"atomic-habits"}),/data-action="add-book-to-shelf" data-book="atomic-habits"/);
 });
 
 test("Saved cards are the first deck tile for signed-in readers",async()=>{

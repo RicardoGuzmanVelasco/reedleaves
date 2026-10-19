@@ -832,7 +832,7 @@ export function startReader({createCardFeatures} = {}) {
     nudge.append(prompt,action);controls.insertAdjacentElement("afterend",nudge);
   }
   async function setBookReading(id,status,{refresh=false}={}) {
-    if (!snapshot.user || mode === "public-bookshelf" || !catalog.booksById.has(id) || !["unread","reading","read"].includes(status) || statuses[id] === status) return;
+    if (!snapshot.user || mode === "public-bookshelf" || !catalog.booksById.has(id) || !["unread","reading","read"].includes(status) || (statuses[id] === status && (status !== "unread" || snapshot.shelfBookIds?.includes(id)))) return;
     bookStatusError=null;const keepBookDialog=mode === "library" && openBookId === id;let preserveDialogDOM=keepBookDialog && !refresh;
     const saved=await mutation("/api/reader/reading",{bookId:id,status},()=>{
       live.textContent=words[language][refresh && status === "unread" ? "bookAddedToShelf" : status === "read" ? "bookMarkedRead" : status === "reading" ? "bookMarkedReading" : "bookMarkedUnread"];

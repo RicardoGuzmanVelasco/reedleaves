@@ -8,8 +8,8 @@ import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH,USERNAME_MIN_LENGTH
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 31;
-export const POSTGRES_SCHEMA_VERSION = 23;
+export const SQLITE_SCHEMA_VERSION = 32;
+export const POSTGRES_SCHEMA_VERSION = 24;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -107,7 +107,23 @@ export function initializeDatabase(db) {
       ) STRICT;
       PRAGMA user_version=31; COMMIT;`);
     } catch(error) { db.exec("ROLLBACK"); throw error; }
-    return;
+    return initializeDatabase(db);
+  }
+  if (version === 31) {
+    db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
+    try {
+      db.exec(`CREATE TABLE book_reading_new (
+          user_id TEXT NOT NULL REFERENCES users(id), book_id TEXT NOT NULL REFERENCES books(id),
+          status TEXT NOT NULL CHECK(status IN ('unread','reading','read')), PRIMARY KEY(user_id,book_id)
+        ) STRICT;
+        INSERT INTO book_reading_new SELECT user_id,book_id,status FROM book_reading;
+        DROP TABLE book_reading;
+        ALTER TABLE book_reading_new RENAME TO book_reading;`);
+      if (db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("Book reading migration broke database references");
+      db.exec("PRAGMA user_version=32; COMMIT;");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    finally { db.exec("PRAGMA foreign_keys=ON;"); }
+    return initializeDatabase(db);
   }
   if (version === 29) {
     db.exec("BEGIN IMMEDIATE");
@@ -553,6 +569,18 @@ async function initializePostgresDatabase(db) {
           ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
           UPDATE reed_schema SET version=23;
           ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=23);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 23) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,book_reading IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 24) return;
+          await db.exec(`ALTER TABLE book_reading DROP CONSTRAINT book_reading_status_check;
+            ALTER TABLE book_reading ADD CONSTRAINT book_reading_status_check CHECK(status IN ('unread','reading','read'));
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=24;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=24);`);
         });
         return initializePostgresDatabase(db);
       }

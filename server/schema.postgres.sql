@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 23));
-INSERT INTO reed_schema VALUES (23);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 24));
+INSERT INTO reed_schema VALUES (24);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -101,7 +101,7 @@ CREATE TABLE card_saves(
 CREATE INDEX saves_by_reader ON card_saves(user_id,saved_at,card_id);
 CREATE TABLE book_reading(
   user_id TEXT NOT NULL REFERENCES users(id), book_id TEXT NOT NULL REFERENCES books(id),
-  status TEXT NOT NULL CHECK(status IN ('reading','read')), PRIMARY KEY(user_id,book_id)
+  status TEXT NOT NULL CHECK(status IN ('unread','reading','read')), PRIMARY KEY(user_id,book_id)
 );
 CREATE TABLE leaf_wallets(
   user_id TEXT PRIMARY KEY REFERENCES users(id), balance BIGINT NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991),
