@@ -1,15 +1,15 @@
-import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES, INVITE_CODE_MIN_LENGTH, LANGUAGES} from "./core.mjs";
+import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES, INVITE_CODE_MIN_LENGTH, LANGUAGES, USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, CARD_BODY_MAX_LENGTH, BOOK_AUTHOR_MAX_LENGTH, MAX_CARDS_PER_DECK} from "./core.mjs";
 import { availableDecks } from "./decks.mjs";
-import {homeBooks,editableNoteDecks,recentNoteDecks} from "./notes.mjs";
+import {homeBooks,editableNoteDecks,noteDecksWithSpace,recentNoteDecks} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=deck-leaf-cost-6";
+import { words } from "./i18n.mjs?v=domain-limits-1";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
 import {currentMascotStage} from "./mascot-progress.mjs?v=flower-15-days";
 import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=flower-15-days";
-import {missingBookInformation} from "./book-metadata.mjs";
+import {missingBookInformation,TRANSLATION_FIELDS} from "./book-metadata.mjs";
 import {defaultNoteDeckTitle} from "./note-defaults.mjs";
 
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -112,8 +112,8 @@ function bookDetailsMarkup(s,book) {
 }
 
 function bookNoteDestinationMarkup(s,book) {
-  const {bookId,all}=s.noteDestination,c=words[s.language],eligible=editableNoteDecks(s.catalog,bookId,s.userId);
-  const choices=all ? eligible : recentNoteDecks(s.catalog,bookId,s.userId,s.noteDeckActivity);
+  const {bookId,all}=s.noteDestination,c=words[s.language],eligible=noteDecksWithSpace(s.catalog,bookId,s.userId);
+  const choices=all ? eligible : recentNoteDecks(s.catalog,bookId,s.userId,s.noteDeckActivity).filter(deck=>deck.cardCount<MAX_CARDS_PER_DECK);
   return `<div class="book-note-destination" role="group" aria-label="${esc(c.changeDeck+": "+displayedBookTitle(s,book).text)}"><div class="book-note-destination-heading"><p>${esc(c.changeDeck)}</p><button type="button" class="text-button" data-action="close-note-destination">${esc(c.cancel)}</button></div><div>${choices.map(deck=>{
     const title=contentText(deck.title,s.language,deck.language);
     return `<button type="button" class="note-destination-option" data-action="choose-note-deck" data-deck="${esc(deck.id)}"><span lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(title)}</span></button>`;
@@ -253,8 +253,8 @@ export function practiceView(s,session) {
 
 function noteDestinationMarkup(s) {
   const {bookId,all}=s.noteDestination,c=words[s.language],book=s.catalog.booksById.get(bookId);
-  const eligible=editableNoteDecks(s.catalog,bookId,s.userId);
-  const choices=all ? eligible : recentNoteDecks(s.catalog,bookId,s.userId,s.noteDeckActivity);
+  const eligible=noteDecksWithSpace(s.catalog,bookId,s.userId);
+  const choices=all ? eligible : recentNoteDecks(s.catalog,bookId,s.userId,s.noteDeckActivity).filter(deck=>deck.cardCount<MAX_CARDS_PER_DECK);
   return `<dialog class="deck-modal note-destination-dialog" id="note-destination-dialog" data-note-book="${esc(bookId)}" aria-labelledby="note-destination-title"><h2 class="sr-only" id="note-destination-title">${esc(c.changeDeck+": "+displayedBookTitle(s,book).text)}</h2><div class="note-destination-options">${choices.map(deck=>{
     const title=contentText(deck.title,s.language,deck.language);
     return `<button type="button" class="note-destination-option" data-action="choose-note-deck" data-deck="${esc(deck.id)}"><span lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(title)}</span></button>`;
@@ -397,9 +397,9 @@ export function accountView(s) {
   return `<section class="account-screen">
     <div class="account-welcome">${mascotArt("sprout")}<h1 tabindex="-1">${signup ? c.signUp : c.signIn}</h1></div>
     <form class="account-form" data-account-form>
-      <label for="account-username">${c.username}</label><input id="account-username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9][a-zA-Z0-9._\\-]{2,31}" aria-describedby="username-hint"><small id="username-hint">${c.usernameHint}</small>
+      <label for="account-username">${c.username}</label><input id="account-username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required minlength="${USERNAME_MIN_LENGTH}" maxlength="${USERNAME_MAX_LENGTH}" pattern="[a-zA-Z0-9][a-zA-Z0-9._\\-]{${USERNAME_MIN_LENGTH - 1},${USERNAME_MAX_LENGTH - 1}}" aria-describedby="username-hint"><small id="username-hint">${c.usernameHint}</small>
       ${signup && s.inviteRequired ? `<label for="account-invite">${c.inviteCode}</label><input id="account-invite" name="inviteCode" type="password" autocomplete="off" required minlength="${INVITE_CODE_MIN_LENGTH}" maxlength="256">` : ""}
-      <label for="account-password">${c.password}</label><input id="account-password" name="password" type="password" autocomplete="${signup ? "new-password" : "current-password"}" required minlength="8" maxlength="128" aria-describedby="password-hint"><small id="password-hint">${c.passwordHint}</small>
+      <label for="account-password">${c.password}</label><input id="account-password" name="password" type="password" autocomplete="${signup ? "new-password" : "current-password"}" required minlength="${PASSWORD_MIN_LENGTH}" maxlength="${PASSWORD_MAX_LENGTH}" aria-describedby="password-hint"><small id="password-hint">${c.passwordHint}</small>
       <p class="account-error" id="auth-error" role="alert" hidden></p><button class="primary" type="submit">${signup ? c.signUp : c.signIn}</button>
     </form><button class="text-button account-switch" type="button" data-action="toggle-auth">${signup ? c.switchToSignIn : c.switchToSignUp}</button>
     ${s.inviteRequired ? "" : `<button class="text-button account-explore" type="button" data-action="library">${c.exploreBooks} →</button>`}
@@ -461,7 +461,8 @@ function bookReadingControls(s,book) {
 function deckWritingActions(s,deck,className="") {
   if (s.userId !== deck.creator.userId || deck.status !== "draft") return "";
   const c=words[s.language];
-  return `<div class="deck-writing-actions${className ? ` ${className}` : ""}"><button class="text-button note-icon-only" type="button" data-action="take-deck-note" data-deck="${esc(deck.id)}" aria-haspopup="dialog" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}">${takeNoteIconMarkup}</button><button class="text-button" type="button" data-action="author-deck" data-deck="${esc(deck.id)}">${c.manageDeck} →</button></div>`;
+  const full=deck.cardCount >= MAX_CARDS_PER_DECK;
+  return `<div class="deck-writing-actions${className ? ` ${className}` : ""}"><button class="text-button note-icon-only" type="button" data-action="take-deck-note" data-deck="${esc(deck.id)}" aria-haspopup="dialog" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}" ${full ? "disabled" : ""}>${takeNoteIconMarkup}</button><button class="text-button" type="button" data-action="author-deck" data-deck="${esc(deck.id)}">${c.manageDeck} →</button></div>`;
 }
 
 export function deckView(s) {
@@ -557,7 +558,7 @@ function albumSummary(s,deck,model,review,mascot="") {
   const language=new Intl.DisplayNames([s.language],{type:"language"}).of(deck.language) || deck.language;
   return `<header class="album-heading${mascot ? " album-heading--mascot" : ""}"><div class="album-heading-copy"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>
     <h1 tabindex="-1" lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</h1>
-    <p class="deck-creator">${deckCreator(deck)}</p><p class="album-meta">${esc(language)}</p>${deckStatusMarkup(s,deck)}</div>${mascot}</header>`;
+    <p class="deck-creator">${deckCreator(deck)}</p><p class="album-meta">${esc(language)} · ${esc(c.deckCardCount(model.cards.length))}</p>${deckStatusMarkup(s,deck)}</div>${mascot}</header>`;
 }
 
 export function reviewView(s) {
@@ -589,7 +590,7 @@ export function authorView(s) {
   const card=model.byId.get(s.requestedId);
   return `<section class="author-screen album-screen"><div class="review-heading"><button type="button" class="text-button" data-action="choose-book">${c.deckBack}</button><button type="button" class="text-button" data-action="select-deck" data-deck="${esc(deck.id)}" ${!model.cards.length ? "disabled" : ""}>${c.review} →</button></div>
     ${albumSummary(s,deck,model,review)}
-    <div class="author-actions"><button class="primary note-icon-only" type="button" data-action="take-deck-note" data-deck="${esc(deck.id)}" aria-haspopup="dialog" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}">${takeNoteIconMarkup}</button><button class="text-button finish-deck-action" type="button" data-action="finish-deck" ${!model.cards.length || s.hasPendingNoteDraft ? 'disabled aria-describedby="finish-deck-hint"' : ""}>${c.finishDeck}</button></div>
+    <div class="author-actions"><button class="primary note-icon-only" type="button" data-action="take-deck-note" data-deck="${esc(deck.id)}" aria-haspopup="dialog" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}" ${model.cards.length >= MAX_CARDS_PER_DECK ? "disabled" : ""}>${takeNoteIconMarkup}</button><button class="text-button finish-deck-action" type="button" data-action="finish-deck" ${!model.cards.length || s.hasPendingNoteDraft ? 'disabled aria-describedby="finish-deck-hint"' : ""}>${c.finishDeck}</button></div>
     ${!model.cards.length || s.hasPendingNoteDraft ? `<p class="finish-deck-hint" id="finish-deck-hint">${s.hasPendingNoteDraft ? c.pendingNoteBeforeFinish : c.emptyDeckCannotFinish}</p>` : ""}
     ${model.cards.length ? `<div class="content-tools deck-content-tools">${deckBrowsingControls(s)}</div>`+deckContentMarkup(s,model,review,deck,true) : `<div class="empty-state">${c.emptyAuthor}</div>`}
     ${s.quotesOnly && model.cards.length && !model.cards.some(c=>c.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}${card ? exclusiveCardMarkup(s,card,c.position(model.cards.findIndex(item=>item.id===card.id)+1,model.cards.length)) : ""}</section>`;
@@ -633,12 +634,12 @@ export function authorFormView(s) {
   return `<dialog class="deck-modal author-modal" aria-labelledby="author-dialog-title" ${noteBook ? 'aria-describedby="note-book-context"' : ""}><article class="deck-card"><h2 id="author-dialog-title"${!f.bookId && !book && !deck ? ' class="take-note-heading"' : ""}>${f.bookId ? c.completeBook : book ? c.createBook : deck ? c.createDeck : `${takeNoteIconMarkup}<span>${c.takeNote}</span>`}</h2>${noteBook ? `<p class="note-book-context" id="note-book-context" lang="${esc(displayedBookTitle(s,noteBook).language)}" dir="auto">${esc(displayedBookTitle(s,noteBook).text)}${showNoteDeck ? `<span class="note-deck-context" lang="${esc(contentLocale(noteDeck.title,s.language,noteDeck.language))}" dir="auto">${esc(contentText(noteDeck.title,s.language,noteDeck.language))}</span>` : ""}</p>` : ""}${f.bookId ? `<p class="book-completion-note">${c.completeBookNote}</p>` : ""}<form class="author-form" data-author-form>
     ${!book && !deck ? `${f.createNoteDeck ? `<p class="note-default-deck-notice">${esc(c.defaultNoteDeckNotice(defaultNoteDeckTitle(f.noteLanguage)))}</p>` : ""}${f.draftRecovered ? `<p class="note-draft-status" role="status">${c.noteDraftRecovered}</p>` : ""}<p class="account-error" role="alert" data-note-draft-storage-error ${f.draftStorageUnavailable ? "" : "hidden"}>${c.noteDraftStorageUnavailable}</p>${f.draftDestinationUnavailable ? `<p class="account-error" role="alert">${c.noteDraftDestinationUnavailable}</p>` : ""}` : ""}
     ${!book && !deck ? `<div class="segmented-selector note-type-selector" role="group" aria-label="${esc(c.noteType)}">${[["card",c.noteIdea],["quote",c.noteQuote]].map(([kind,label])=>`<button type="button" data-action="note-kind" data-kind="${kind}" aria-pressed="${f.kind === kind}">${noteTypeIcon(kind)}<span>${esc(label)}</span></button>`).join("")}</div>` : ""}
-    ${quote ? "" : field("title",book ? c.bookTitle : deck ? c.deckTitle : c.cardTitle,f.title,book ? 240 : 160,true)}
-    ${deck || book ? `${book ? field("author",c.bookAuthor,f.author,160,true) : field("description",c.deckDescription,f.description,1000,false,true)}${languagePicker()}` : `${field("body",quote ? c.quoteBody : c.cardBody,f.body,4000,true,true)}${f.createNoteDeck ? "" : `<label for="author-parentId">${c.parentCard}</label><select id="author-parentId" name="parentId" ${f.draftDestinationUnavailable ? "disabled" : ""}><option value="" ${!f.parentId ? "selected" : ""}>${quote ? c.unclassifiedQuotes : c.rootCard}</option>${options.join("")}</select>`}`}
+    ${quote ? "" : field("title",book ? c.bookTitle : deck ? c.deckTitle : c.cardTitle,f.title,TITLE_MAX_LENGTH,true)}
+    ${deck || book ? `${book ? field("author",c.bookAuthor,f.author,BOOK_AUTHOR_MAX_LENGTH,true) : field("description",c.deckDescription,f.description,DESCRIPTION_MAX_LENGTH,false,true)}${languagePicker()}` : `${field("body",quote ? c.quoteBody : c.cardBody,f.body,CARD_BODY_MAX_LENGTH,true,true)}${f.createNoteDeck ? "" : `<label for="author-parentId">${c.parentCard}</label><select id="author-parentId" name="parentId" ${f.draftDestinationUnavailable ? "disabled" : ""}><option value="" ${!f.parentId ? "selected" : ""}>${quote ? c.unclassifiedQuotes : c.rootCard}</option>${options.join("")}</select>`}`}
     ${book ? `<button class="secondary book-autofill" type="button" data-action="autofill-book" ${f.autofilling ? 'disabled aria-busy="true"' : ""}>${f.autofilling ? `<span class="ai-spinner" aria-hidden="true"></span><span role="status">${c.aiLoading}</span>` : c.autofillBook}</button>` : ""}
     ${book && f.metadata && (!f.bookId || f.hasProposal) ? `<details class="book-metadata-editor"><summary>${c.bookDetails}</summary>
       <fieldset class="book-genre-fields" ${f.bookId && f.originalMetadata.genres.length ? "disabled" : ""}><legend>${c.genre}</legend>${s.catalog.genres.map(genre=>`<label class="check-row"><input type="checkbox" name="metadata.genres" value="${esc(genre.id)}" ${f.metadata.genres.includes(genre.id) ? "checked" : ""}><span>${esc(genre.name[s.language])}</span></label>`).join("")}</fieldset>
-      ${LANGUAGES.filter(language=>f.metadata.title[language]).map(language=>`<details class="book-translation-editor"><summary>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(language))}</summary>${field(`metadata.title.${language}`,c.bookTitle,f.metadata.title[language],240,true)}${field(`metadata.shortTitle.${language}`,c.shortBookTitle,f.metadata.shortTitle[language],240,true)}${field(`metadata.description.${language}`,c.bookDescription,f.metadata.description[language],2000,true,true)}${field(`metadata.editorialNote.${language}`,c.bookEditorialNote,f.metadata.editorialNote[language],500,true,true)}</details>`).join("")}
+      ${LANGUAGES.filter(language=>f.metadata.title[language]).map(language=>`<details class="book-translation-editor"><summary>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(language))}</summary>${field(`metadata.title.${language}`,c.bookTitle,f.metadata.title[language],TRANSLATION_FIELDS.title,true)}${field(`metadata.shortTitle.${language}`,c.shortBookTitle,f.metadata.shortTitle[language],TRANSLATION_FIELDS.shortTitle,true)}${field(`metadata.description.${language}`,c.bookDescription,f.metadata.description[language],TRANSLATION_FIELDS.description,true,true)}${field(`metadata.editorialNote.${language}`,c.bookEditorialNote,f.metadata.editorialNote[language],TRANSLATION_FIELDS.editorialNote,true,true)}</details>`).join("")}
       ${["amazon","goodreads"].map(platform=>field(`metadata.links.${platform}`,platform === "amazon" ? "Amazon" : "Goodreads",f.metadata.links[platform],2048,false)).join("")}
     </details>` : ""}
     <p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}${f.error && f.errorReference ? `<small class="error-reference">${c.errorReference}: ${esc(f.errorReference)}</small>` : ""}</p><div class="form-actions"><button class="text-button" type="button" data-action="cancel-author">${c.cancel}</button>${!f.bookId || f.hasProposal ? `<button class="primary" type="submit" ${f.draftDestinationUnavailable ? "disabled" : ""}>${book && !f.bookId ? c.createBook : deck ? c.createDeck : c.save}</button>` : ""}</div>

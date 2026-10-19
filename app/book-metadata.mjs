@@ -1,7 +1,7 @@
-import {isCanonicalLocale,LANGUAGES} from "./core.mjs";
+import {isCanonicalLocale,LANGUAGES,TITLE_MAX_LENGTH,BOOK_SHORT_TITLE_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH} from "./core.mjs";
 import {bookLinkUrl,BOOK_LINK_PLATFORMS} from "./book-links.mjs";
 
-export const TRANSLATION_FIELDS = {title:240,shortTitle:240,description:2000,editorialNote:500};
+export const TRANSLATION_FIELDS = {title:TITLE_MAX_LENGTH,shortTitle:BOOK_SHORT_TITLE_MAX_LENGTH,description:DESCRIPTION_MAX_LENGTH,editorialNote:EDITORIAL_NOTE_MAX_LENGTH};
 export function missingBookInformation(book) {
   const missing=[];
   for (const language of LANGUAGES) for (const field of ["title","shortTitle","description"]) {
@@ -19,7 +19,7 @@ function text(value,max) {
 export function normalizeBookMetadata(value={}, {completeTranslations=true}={}) {
   if (!object(value)) throw new Error("Invalid book metadata");
   const result={title:{},shortTitle:{},description:{},editorialNote:{},genres:[],links:{}};
-  if (value.originalTitle !== undefined) result.originalTitle=text(value.originalTitle,240);
+  if (value.originalTitle !== undefined) result.originalTitle=text(value.originalTitle,TITLE_MAX_LENGTH);
   if (value.originalLanguage !== undefined) {
     if (!isCanonicalLocale(value.originalLanguage)) throw new Error("Invalid book metadata");
     result.originalLanguage=value.originalLanguage;

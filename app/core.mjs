@@ -1,6 +1,20 @@
 export const LANGUAGES = ["es", "en"];
 export const CONTENT_LANGUAGES = ["es", "en"];
 export const INVITE_CODE_MIN_LENGTH = 12;
+export const USERNAME_MIN_LENGTH = 3;
+export const USERNAME_MAX_LENGTH = 32;
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_LENGTH = 128;
+export const TITLE_MAX_LENGTH = 72;
+export const BOOK_SHORT_TITLE_MAX_LENGTH = 32;
+export const CARD_BODY_MAX_LENGTH = 300;
+export const DESCRIPTION_MAX_LENGTH = 240;
+export const EDITORIAL_NOTE_MAX_LENGTH = 240;
+export const EDITORIAL_NOTE_PREFERRED_LENGTH = 120;
+export const BOOK_AUTHOR_MAX_LENGTH = 160;
+export const MAX_CARDS_PER_DECK = 25;
+export const FEEDBACK_MESSAGE_MAX_LENGTH = 5000;
+export const FEEDBACK_PAGE_MAX_LENGTH = 512;
 
 export function restoreLanguage(saved) {
   return LANGUAGES.includes(saved) ? saved : "es";
@@ -22,7 +36,7 @@ export function contentText(translations, interfaceLanguage, deckLanguage = inte
 
 export function quoteExcerpt(body) {
   const characters = Array.from(body.trim().replace(/\s+/g," "));
-  return characters.length > 80 ? characters.slice(0,77).join("") + "…" : characters.join("");
+  return characters.length > TITLE_MAX_LENGTH ? characters.slice(0,TITLE_MAX_LENGTH - 1).join("") + "…" : characters.join("");
 }
 
 export function contentLocale(translations, interfaceLanguage, deckLanguage = interfaceLanguage) {

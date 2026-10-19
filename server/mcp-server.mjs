@@ -4,6 +4,7 @@ import {StreamableHTTPServerTransport} from "@modelcontextprotocol/sdk/server/st
 import {z} from "zod/v4";
 import {readCatalog} from "./catalog-repository.mjs";
 import {appendTeamDeckCards,createTeamDeck,finishTeamDeck,readTeamDeckDrafts} from "./author-repository.mjs";
+import {TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH,MAX_CARDS_PER_DECK} from "../app/core.mjs";
 import {ApiError} from "./errors.mjs";
 
 function validBearer(request,token) {
@@ -55,11 +56,11 @@ function makeServer(db,publicBaseUrl) {
     description:"Save a complete finished deck (published) to the shared Reedleaves catalog, attributed to Equipo Reedleaves. Prepare all cards first: creating freezes the deck and prevents further additions. The user must have clearly asked to save/create it; saving makes it visible to other catalog users.",
     inputSchema:{
       requestId:z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i).describe("Stable UUID for this creation attempt; reuse it if retrying after a timeout."),
-      bookId:z.string().min(1).max(240),title:z.string().trim().min(1).max(160),
-      description:z.string().trim().max(1000).optional(),editorialNote:z.string().trim().min(1).max(1000).optional(),
+      bookId:z.string().min(1).max(240),title:z.string().trim().min(1).max(TITLE_MAX_LENGTH),
+      description:z.string().trim().max(DESCRIPTION_MAX_LENGTH).optional(),editorialNote:z.string().trim().min(1).max(EDITORIAL_NOTE_MAX_LENGTH).optional(),
       language:z.string().min(2).max(35),
-      cards:z.array(z.object({title:z.string().trim().max(160).optional(),body:z.string().trim().min(1).max(4000),
-        isQuote:z.boolean().default(false),parentIndex:z.number().int().nonnegative().nullable().optional()})).min(1).max(120)
+      cards:z.array(z.object({title:z.string().trim().max(TITLE_MAX_LENGTH).optional(),body:z.string().trim().min(1).max(CARD_BODY_MAX_LENGTH),
+        isQuote:z.boolean().default(false),parentIndex:z.number().int().nonnegative().nullable().optional()})).min(1).max(MAX_CARDS_PER_DECK)
     },
     annotations:{readOnlyHint:false,destructiveHint:true,openWorldHint:false}
   },safeTool(async(input)=>{
@@ -70,8 +71,8 @@ function makeServer(db,publicBaseUrl) {
     title:"Añadir tarjetas a borrador",
     description:"Append cards to a draft deck created by Equipo Reedleaves. Existing cards cannot be edited or removed by this tool. Saving updates the shared catalog.",
     inputSchema:{requestId:z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i).describe("Stable UUID for this append operation; reuse it when retrying."),deckId:z.string().min(1).max(280),
-      cards:z.array(z.object({title:z.string().trim().max(160).optional(),body:z.string().trim().min(1).max(4000),isQuote:z.boolean().default(false),
-        parentId:z.string().min(1).optional(),parentIndex:z.number().int().nonnegative().nullable().optional()})).min(1).max(120)},
+      cards:z.array(z.object({title:z.string().trim().max(TITLE_MAX_LENGTH).optional(),body:z.string().trim().min(1).max(CARD_BODY_MAX_LENGTH),isQuote:z.boolean().default(false),
+        parentId:z.string().min(1).optional(),parentIndex:z.number().int().nonnegative().nullable().optional()})).min(1).max(MAX_CARDS_PER_DECK)},
     annotations:{readOnlyHint:false,destructiveHint:true,openWorldHint:false}
   },safeTool(async(input)=>toolText(await appendTeamDeckCards(db,input))));
   server.registerTool("finish_deck",{
