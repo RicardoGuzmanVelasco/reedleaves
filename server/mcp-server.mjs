@@ -3,7 +3,7 @@ import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
 import {StreamableHTTPServerTransport} from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {z} from "zod/v4";
 import {readCatalog} from "./catalog-repository.mjs";
-import {appendTeamDeckCards,createTeamDeck,finishTeamDeck,readTeamDeckDrafts} from "./author-repository.mjs";
+import {appendTeamDeckCards,createTeamDeck,finishTeamDeck,reassignTeamDeckCreator,readTeamDeckDrafts} from "./author-repository.mjs";
 import {TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH,MAX_CARDS_PER_DECK} from "../app/core.mjs";
 import {ApiError} from "./errors.mjs";
 
@@ -31,8 +31,8 @@ function safeTool(handler) {
 }
 
 function makeServer(db,publicBaseUrl) {
-  const server=new McpServer({name:"reedleaves-deck-authoring",version:"1.1.0"},{
-    instructions:"Create finished Reedleaves team decks from the user's conversation. Saving publishes and freezes the complete deck in the shared catalog, attributed to Equipo Reedleaves. Prepare all cards before creating. Find a book only when unclear. Use list_team_drafts to identify older team drafts and finish_deck only when the user asks to finish them. Never invent source quotes; use isQuote only for wording supplied by the user.",
+  const server=new McpServer({name:"reedleaves-deck-authoring",version:"1.2.0"},{
+    instructions:"Create finished Reedleaves team decks from the user's conversation. Saving publishes and freezes the complete deck in the shared catalog, attributed to Equipo Reedleaves. Prepare all cards before creating. Find a book only when unclear. Use list_team_drafts to identify older team drafts and finish_deck only when the user asks to finish them. Use reassign_deck_creator only when the user explicitly requests changing attribution of a published team deck to an existing account by username. Never invent source quotes; use isQuote only for wording supplied by the user.",
     maxToolInputElements:5000
   });
   server.registerTool("find_book",{
@@ -87,6 +87,13 @@ function makeServer(db,publicBaseUrl) {
     inputSchema:{bookId:z.string().trim().min(1).max(240).optional()},
     annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false}
   },safeTool(async(input)=>toolText(await readTeamDeckDrafts(db,input))));
+  server.registerTool("reassign_deck_creator",{
+    title:"Cambiar creador de baraja del equipo",
+    description:"Reassign a published deck owned by Equipo Reedleaves to an existing author account by username. This changes visible attribution. Only use when the user explicitly asks for this specific change. It cannot transfer decks already owned by another account.",
+    inputSchema:{deckId:z.string().trim().min(1).max(256).describe("ID of the published team deck to reassign."),
+      username:z.string().trim().min(1).max(64).describe("Existing Reedleaves username to show as the deck creator.")},
+    annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:false}
+  },safeTool(async(input)=>toolText(await reassignTeamDeckCreator(db,input))));
   return server;
 }
 

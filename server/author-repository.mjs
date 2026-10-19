@@ -220,6 +220,28 @@ export async function readTeamDeckDrafts(db,{bookId}={}) {
     title:row.title,language:row.language,cardCount:row.card_count}))};
 }
 
+// Only the private MCP integration can transfer a published team deck to an
+// account that is explicitly enabled to create decks.
+export async function reassignTeamDeckCreator(db,{deckId,username}) {
+  if (typeof deckId!=="string" || !deckId.trim() || deckId.length>256 ||
+    typeof username!=="string" || !username.trim() || username.trim().length>64) throw new ApiError(400,"invalidRequest");
+  const normalizedUsername=username.trim();
+  return transaction(db,async()=>{
+    const deck=await db.prepare(`SELECT id,creator_user_id,status FROM decks WHERE id=?${isPostgres(db) ? " FOR UPDATE" : ""}`).get(deckId.trim());
+    if (!deck) throw new ApiError(404,"deckUnavailable");
+    const creator=await db.prepare(`SELECT u.id,u.display_name,a.username,u.can_create_decks FROM accounts a
+      JOIN users u ON u.id=a.user_id WHERE a.username=?${isPostgres(db) ? " FOR SHARE OF u" : ""}`).get(normalizedUsername);
+    if (!creator) throw new ApiError(404,"creatorUnavailable");
+    if (!creator.can_create_decks) throw new ApiError(409,"creatorCannotCreateDecks");
+    if (deck.creator_user_id===creator.id) return {deckId:deck.id,creatorUserId:creator.id,creatorUsername:creator.username,creatorName:creator.display_name,idempotent:true};
+    if (deck.creator_user_id!=="reed-team") throw new ApiError(404,"deckUnavailable");
+    if (deck.status!=="published") throw new ApiError(409,"deckNotPublished");
+    const changed=await db.prepare("UPDATE decks SET creator_user_id=? WHERE id=? AND creator_user_id='reed-team' AND status='published'").run(creator.id,deck.id);
+    if (changed.changes!==1) throw new ApiError(409,"deckUnavailable");
+    return {deckId:deck.id,creatorUserId:creator.id,creatorUsername:creator.username,creatorName:creator.display_name};
+  });
+}
+
 // Close exactly the decks and card counts shown in the confirmation dialog.
 export async function finishNoteDecks(db,session,input) {
   const {bookId,decks}=input;

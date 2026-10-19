@@ -8,8 +8,8 @@ import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH,USERNAME_MIN_LENGTH
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 33;
-export const POSTGRES_SCHEMA_VERSION = 25;
+export const SQLITE_SCHEMA_VERSION = 34;
+export const POSTGRES_SCHEMA_VERSION = 26;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -96,6 +96,20 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 33) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`DROP TRIGGER keep_deck_owner;
+        CREATE TRIGGER keep_deck_owner BEFORE UPDATE OF creator_user_id,book_id,language ON decks
+        WHEN (NEW.creator_user_id IS NOT OLD.creator_user_id AND NOT (
+          OLD.creator_user_id='reed-team' AND OLD.status='published' AND
+          COALESCE((SELECT can_create_decks FROM users WHERE id=NEW.creator_user_id),0)=1
+        )) OR NEW.book_id <> OLD.book_id OR (NEW.language <> OLD.language AND OLD.status <> 'draft')
+        BEGIN SELECT RAISE(ABORT,'Deck ownership is immutable'); END;
+        PRAGMA user_version=34; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 30) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -564,6 +578,26 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 25) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,decks,users IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 26) return;
+          await db.exec(`CREATE OR REPLACE FUNCTION reed_keep_deck_owner() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              IF (NEW.creator_user_id IS DISTINCT FROM OLD.creator_user_id AND NOT (
+                OLD.creator_user_id='reed-team' AND OLD.status='published' AND
+                COALESCE((SELECT can_create_decks FROM users WHERE id=NEW.creator_user_id),0)=1
+              )) OR NEW.book_id IS DISTINCT FROM OLD.book_id OR (NEW.language IS DISTINCT FROM OLD.language AND OLD.status <> 'draft') THEN
+                RAISE EXCEPTION 'Deck ownership is immutable';
+              END IF;
+              RETURN NEW;
+            END $$;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=26;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=26);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 22) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema IN ACCESS EXCLUSIVE MODE;");

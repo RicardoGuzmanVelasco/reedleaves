@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 25));
-INSERT INTO reed_schema VALUES (25);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 26));
+INSERT INTO reed_schema VALUES (26);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -174,7 +174,10 @@ END $$;
 CREATE TRIGGER check_deck_author_insert BEFORE INSERT ON decks FOR EACH ROW EXECUTE FUNCTION reed_check_deck_author();
 CREATE FUNCTION reed_keep_deck_owner() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF NEW.creator_user_id IS DISTINCT FROM OLD.creator_user_id OR NEW.book_id IS DISTINCT FROM OLD.book_id OR (NEW.language IS DISTINCT FROM OLD.language AND OLD.status <> 'draft') THEN
+  IF (NEW.creator_user_id IS DISTINCT FROM OLD.creator_user_id AND NOT (
+    OLD.creator_user_id='reed-team' AND OLD.status='published' AND
+    COALESCE((SELECT can_create_decks FROM users WHERE id=NEW.creator_user_id),0)=1
+  )) OR NEW.book_id IS DISTINCT FROM OLD.book_id OR (NEW.language IS DISTINCT FROM OLD.language AND OLD.status <> 'draft') THEN
     RAISE EXCEPTION 'Deck ownership is immutable';
   END IF;
   RETURN NEW;

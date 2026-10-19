@@ -46,7 +46,7 @@ test(`${dialect}: MCP creates finished team decks atomically and retries safely`
   assert.equal(unauthenticated.status,401);
 
   const {tools}=await client.listTools();
-  assert.deepEqual(tools.map(tool=>tool.name),["find_book","create_deck","append_cards_to_draft","finish_deck","list_team_drafts"]);
+  assert.deepEqual(tools.map(tool=>tool.name),["find_book","create_deck","append_cards_to_draft","finish_deck","list_team_drafts","reassign_deck_creator"]);
 
   const found=await client.callTool({name:"find_book",arguments:{query:"Atomic Habits"}});
   const matches=JSON.parse(found.content[0].text).matches;
@@ -142,5 +142,32 @@ test(`${dialect}: MCP finishing rejects foreign, empty and archived decks`,async
   const denied=await client.callTool({name:"finish_deck",arguments:{deckId:foreign}});
   assert.equal(denied.isError,true);
   assert.equal(JSON.parse(denied.content[0].text).error,"deckUnavailable");
+});
+
+test(`${dialect}: MCP reassigns only published team decks to enabled authors`,async t=>{
+  const {db,client}=await fixture(t,dialect);
+  await db.prepare("INSERT INTO users(id,display_name,can_create_decks) VALUES ('mcp-friend','joserbala',1),('mcp-other','Other author',1),('mcp-reader','Reader',0)").run();
+  await db.prepare("INSERT INTO accounts(user_id,username,password_hash,time_zone,language) VALUES ('mcp-friend','joserbala','test-only','Europe/Madrid','es'),('mcp-other','other-author','test-only','Europe/Madrid','es'),('mcp-reader','reader-only','test-only','Europe/Madrid','es')").run();
+  const deck=await createTeamDeck(db,{requestId:randomUUID(),bookId:"atomic-habits",title:"Deck para atribuir",language:"en",cards:[{title:"One idea",body:"A concise explanation.",isQuote:false}]});
+  const input={deckId:deck.deckId,username:"joserbala"};
+  const reassigned=await client.callTool({name:"reassign_deck_creator",arguments:input});
+  assert.equal(reassigned.isError,undefined);
+  const attribution=JSON.parse(reassigned.content[0].text);
+  assert.deepEqual(attribution,{deckId:deck.deckId,creatorUserId:"mcp-friend",creatorUsername:"joserbala",creatorName:"joserbala"});
+  assert.equal((await db.prepare("SELECT creator_user_id FROM decks WHERE id=?").get(deck.deckId)).creator_user_id,"mcp-friend");
+  assert.deepEqual(JSON.parse((await client.callTool({name:"reassign_deck_creator",arguments:input})).content[0].text),{...attribution,idempotent:true});
+
+  const draft=await createDeck(db,{user_id:"reed-team"},{requestId:randomUUID(),bookId:"atomic-habits",title:"Draft",language:"en"});
+  const draftResult=await client.callTool({name:"reassign_deck_creator",arguments:{deckId:draft.deckId,username:"joserbala"}});
+  assert.equal(JSON.parse(draftResult.content[0].text).error,"deckNotPublished");
+  const foreign=await createDeck(db,{user_id:"mcp-other"},{requestId:randomUUID(),bookId:"atomic-habits",title:"Foreign",language:"en"});
+  const foreignResult=await client.callTool({name:"reassign_deck_creator",arguments:{deckId:foreign.deckId,username:"joserbala"}});
+  assert.equal(JSON.parse(foreignResult.content[0].text).error,"deckUnavailable");
+  const disabledResult=await client.callTool({name:"reassign_deck_creator",arguments:{deckId:deck.deckId,username:"reader-only"}});
+  assert.equal(JSON.parse(disabledResult.content[0].text).error,"creatorCannotCreateDecks");
+  const missingResult=await client.callTool({name:"reassign_deck_creator",arguments:{deckId:deck.deckId,username:"missing-user"}});
+  assert.equal(JSON.parse(missingResult.content[0].text).error,"creatorUnavailable");
+  assert.equal((await db.prepare("SELECT creator_user_id FROM decks WHERE id=?").get(draft.deckId)).creator_user_id,"reed-team");
+  assert.equal((await db.prepare("SELECT creator_user_id FROM decks WHERE id=?").get(foreign.deckId)).creator_user_id,"mcp-other");
 });
 }
