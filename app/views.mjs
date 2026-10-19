@@ -321,15 +321,17 @@ function nameLink({icon,name,language=null,href=null}) {
   return href ? `<a class="card-attribution-row" href="${esc(href)}">${contents}</a>` : `<span class="card-attribution-row">${contents}</span>`;
 }
 
-function cardAttribution(s,card,book,{compact=false,linkBook=true}={}) {
-  const creator=s.catalog.decksById?.get(card.deckId)?.creator;
+function cardAttribution(s,card,book,{compact=false,linkBook=true,showDraftStatus=false}={}) {
+  const deck=s.catalog.decksById?.get(card.deckId);
+  const creator=deck?.creator;
   const title=displayedBookTitle(s,book,true);
   const rows=[
     ["book",title.text,title.language,`#library/book/${encodeURIComponent(book.id)}`],
     ["author",book.author,null,`#library/author/${encodeURIComponent(book.author)}`],
     ["user",creator?.name,null,creator ? `#profile/${encodeURIComponent(creator.userId)}` : null]
   ];
-  return `<div class="card-source">${(compact ? rows.slice(0,1) : rows).map(([icon,name,language,href])=>nameLink({icon,name,language,href:icon==="book"&&!linkBook?null:href})).join("")}</div>`;
+  const draftStatus=showDraftStatus && deck?.status === "draft" ? `<span class="deck-writing-badge exclusive-card-draft-badge">${esc(words[s.language].deckInProgress)}</span>` : "";
+  return `<div class="card-source">${draftStatus}${(compact ? rows.slice(0,1) : rows).map(([icon,name,language,href])=>nameLink({icon,name,language,href:icon==="book"&&!linkBook?null:href})).join("")}</div>`;
 }
 
 function cardActionsHost(card) {
@@ -352,7 +354,7 @@ function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = fal
   const type=cardTypeFor(card),bodyTag=type.bodyTag;
   const contentId=idPrefix ? `${idPrefix}-idea-content` : "idea-content",focusTarget=focusable || idPrefix ? ` id="${esc(contentId)}"${focusable ? ' tabindex="-1"' : ""}` : "";
   return `<div class="reading-stage reading-stage--${type.id}${layerClass ? ` ${layerClass}` : ""}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${decorative ? ' aria-hidden="true" inert' : ""}${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${type.className ? ' '+type.className : ''}"><span class="card-header-icon" aria-hidden="true">${type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto"${focusTarget}>${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : focusTarget}>${esc(body)}</${bodyTag}></div>
-    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book,{compact,linkBook})}</div>${exclusive ? cardActionsHost(card) : ""}</footer></article></div>`;
+    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book,{compact,linkBook,showDraftStatus:exclusive})}</div>${exclusive ? cardActionsHost(card) : ""}</footer></article></div>`;
 }
 
 function exclusiveCardMarkup(s,card,position="") {
