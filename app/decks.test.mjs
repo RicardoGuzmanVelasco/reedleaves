@@ -176,7 +176,8 @@ test("Practice prices show one discounted topic, the wallet cap, and useful empt
   assert.match(choice,/aria-label="3 pétalos"/);
   assert.match(choice,/petal-token\.svg/);
   assert.match(choice,/class="pricetag pricetag--discounted"[^>]*aria-label="2 pétalos"/);
-  assert.match(choice,/<s>3<\/s><strong>2<\/strong>/);
+  assert.match(choice,/<span class="pricetag-previous">3<svg class="pricetag-cross"/);
+  assert.match(choice,/<strong>2<\/strong>/);
   assert.match(choice,/class="pricetag-offer-icon"/);
   assert.doesNotMatch(choice,/practice-topic-cost/);
   const insufficient=practiceView({...state,practiceStage:"empty",practiceUnavailable:{reason:"notEnoughCards",topic:"mixed",available:4,required:5}},null);
