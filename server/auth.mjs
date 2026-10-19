@@ -2,7 +2,7 @@ import {randomBytes, randomUUID, scrypt, timingSafeEqual, createHash} from "node
 import {promisify} from "node:util";
 import {transaction} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
-import {LANGUAGES} from "../app/core.mjs";
+import {INVITE_CODE_MIN_LENGTH, LANGUAGES} from "../app/core.mjs";
 
 const derive = promisify(scrypt);
 const parameters = {N:131072,r:8,p:1,maxmem:256 * 1024 * 1024};
@@ -10,7 +10,7 @@ export const SESSION_SECONDS = 7 * 86400;
 export const COOKIE_NAME = "reedleaves_session";
 
 export function requireProductionInviteCode(value) {
-  if (typeof value !== "string" || value.length < 12) throw new Error("Production requires a REED_INVITE_CODE of at least 12 characters");
+  if (typeof value !== "string" || value.length < INVITE_CODE_MIN_LENGTH) throw new Error(`Production requires a REED_INVITE_CODE of at least ${INVITE_CODE_MIN_LENGTH} characters`);
   return value;
 }
 
