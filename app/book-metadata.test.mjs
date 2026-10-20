@@ -36,7 +36,7 @@ test("Only incomplete owned books offer completion; optional links do not keep t
   }
   assert.match(libraryView({...reader,openBookId:"mine"}),/book-detail-author-row/);
   assert.equal((libraryView({...reader,openBookId:"mine"}).match(/data-action="complete-book"/g)||[]).length,2);
-  assert.ok(homeView(reader).includes("Ir a mi perfil"));
+  assert.doesNotMatch(homeView(reader),/class="home-actions"|data-action="profile"/);
 });
 
 test("Completion reuses the preview but saves to the current book and locks existing fields",()=>{

@@ -169,7 +169,7 @@ test("Home shows one closed book per active book, without exposing trees or spen
   assert.equal((homeView({...state,enrolledIds:[second,"seven-habits-editorial"]}).match(/class="study-book"/g) || []).length,2);
   const empty = homeView({...state,statuses:{},enrolledIds:[]});
   assert.ok(empty.includes(words.es.noReadingBooks)); assert.doesNotMatch(empty,/study-book"/);
-  assert.match(homeView({...state,language:"en"}),/Go to the library/);
+  assert.doesNotMatch(homeView({...state,language:"en"}),/data-action="library"|Go to the library/);
 });
 
 test("Practice preloads the next card beneath the active one without duplicate IDs or accessible content",async()=>{
