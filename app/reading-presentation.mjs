@@ -3,7 +3,7 @@ export function createReadingPresentation({window: win = window, document: doc =
   const motion = win.matchMedia("(prefers-reduced-motion: reduce)");
   let previousKey = null, previousWasExclusive = false, dispose = () => {};
 
-  return function present(main) {
+  return function present(main, {arrival = true, delay = 180} = {}) {
     dispose();
     const stage = main.querySelector(".exclusive-card-modal [data-reading-card]") || main.querySelector("[data-reading-card]");
     doc.body.classList.toggle("is-reading", !!stage);
@@ -16,7 +16,7 @@ export function createReadingPresentation({window: win = window, document: doc =
     previousKey = key; previousWasExclusive = isExclusive;
     if (!fresh || motion.matches || doc.hidden || !text) { dispose = () => {}; return; }
 
-    stage.classList.add("is-arriving");
+    if (arrival) stage.classList.add("is-arriving");
     if (stage.dataset.readingMode === "complete") { dispose = () => {}; return; }
     // Reserve the final layout and expose the full text once to assistive technology.
     const full = doc.createElement("span"), space = doc.createElement("span"), ink = doc.createElement("span");
@@ -48,7 +48,7 @@ export function createReadingPresentation({window: win = window, document: doc =
     }
     function reveal(now) {
       start ??= now;
-      const elapsed = Math.max(0, now - start - 180);
+      const elapsed = Math.max(0, now - start - delay);
       let next = count;
       while (next < characters.length && timeline[next] * scale <= elapsed) next++;
       if (next !== count) { count = next; ink.textContent = characters.slice(0, count).join(""); }

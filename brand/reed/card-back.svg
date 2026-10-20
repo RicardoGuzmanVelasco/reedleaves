@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="336" viewBox="0 0 240 336" fill="none">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="240" y2="336" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#376C49"/><stop offset="1" stop-color="#214C36"/>
+    </linearGradient>
+    <pattern id="veins" width="48" height="64" patternUnits="userSpaceOnUse">
+      <path d="M24 64V0M24 32C4 32 3 16 3 8c13 0 21 9 21 24Zm0 0c20 0 21-16 21-24-13 0-21 9-21 24Z" stroke="#C8DDA7" stroke-opacity=".17" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="240" height="336" rx="23" fill="#E3EDC9"/>
+  <rect x="10" y="10" width="220" height="316" rx="15" fill="url(#paper)"/>
+  <rect x="10" y="10" width="220" height="316" rx="15" fill="url(#veins)"/>
+  <rect x="16" y="16" width="208" height="304" rx="10" stroke="#E3EDC9" stroke-width="1.8" stroke-opacity=".85"/>
+  <circle cx="120" cy="168" r="65" fill="#E3EDC9"/>
+  <!-- Static official sprout, enlarged and tilted beyond its circular medallion. -->
+  <g transform="translate(120 162) rotate(-12) scale(1) translate(-80 -80)">
+<path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+  <path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+  <path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+  <path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/>
+
+
+<g class="mascot-face-placement" transform="translate(79 104) rotate(0) scale(1) translate(-82 -104)" fill="#173D2C"><g class="mascot-eye mascot-eye--left" transform="translate(53 104)"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-eye mascot-eye--right" transform="translate(111 104)"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-mouth"><path d="M74 119q8 6 16 0" stroke="#173D2C" stroke-width="3" stroke-linecap="round" fill="none"/></g></g></g>
+  <g stroke="#E3EDC9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity=".85">
+    <g transform="translate(120 53)">
+      <path d="M0 10V0M0 1C-7 1-10-3-10-8 0-8 0-2 0 1ZM0-2C0-8 4-11 10-11 10-5 6-2 0-2Z"/>
+    </g>
+    <g transform="translate(120 283)">
+      <path d="M0 10V0M0 1C-7 1-10-3-10-8 0-8 0-2 0 1ZM0-2C0-8 4-11 10-11 10-5 6-2 0-2Z"/>
+    </g>
+  </g>
+</svg>
