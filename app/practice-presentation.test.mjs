@@ -41,6 +41,10 @@ test("Preparation hides the card from reading and input until the turn reveals i
   assert.ok(f.buttons.every(b=>b.disabled));assert.equal(f.readingCalls.length,0);
   await f.complete(); // Gather the pile.
   assert.equal(f.readingCalls.length,0);
+  await f.complete(); // Cut away the surplus before revealing the first card.
+  assert.equal(f.readingCalls.length,0);
+  assert.equal(f.backs.filter(b=>!b.hidden).length,4);
+  assert.ok(f.buttons.every(b=>b.disabled));
   await f.complete(); // Reverse reaches the edge of the turn.
   assert.equal(f.front.inert,false);assert.equal(f.readingCalls.length,1);
   assert.equal(ready,0);assert.ok(f.buttons.every(b=>b.disabled));
@@ -50,10 +54,11 @@ test("Preparation hides the card from reading and input until the turn reveals i
 });
 
 test("Unmounting during preparation or turning cancels continuations and cannot ready a later session",async()=>{
-  for(const phase of ["preparation","turning","front"]){
+  for(const phase of ["preparation","cut","turning","front"]){
     const f=fixture();let staleReady=0,newReady=0;
     f.controller.present(f.main,{intro:true,onReady:()=>staleReady++});
     if(phase!=="preparation")await f.complete();
+    if(phase==="turning"||phase==="front")await f.complete();
     if(phase==="front")await f.complete();
     const next=f.mount(2);
     f.controller.present(next.main,{ready:true,onReady:()=>newReady++});

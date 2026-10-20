@@ -103,6 +103,24 @@ export function createPracticePresentation({window: win = window, document: doc 
           ], {duration:1180,delay:index*65,easing:"cubic-bezier(.25,.7,.25,1)"});
         }));
         if (!alive()) return;
+        // Lift the session packet while the surplus slides out underneath it.
+        // Keep the first card face-down here; the flight replaces it at the turn.
+        await Promise.all(scene.backs.map((back, index) => {
+          const depth = (index + 1) * 4;
+          const keep = index < remaining;
+          return animate(scene, back, keep ? [
+            {transform:`translate3d(0,${depth}px,0) rotate(0deg)`},
+            {transform:`translate3d(-10px,${depth-26}px,0) rotate(-3deg)`,offset:.32},
+            {transform:`translate3d(-10px,${depth-26}px,0) rotate(-3deg)`,offset:.62},
+            {transform:`translate3d(0,${depth}px,0) rotate(0deg)`}
+          ] : [
+            {transform:`translate3d(0,${depth}px,0) rotate(0deg)`,opacity:1},
+            {transform:`translate3d(22%,${depth+6}px,0) rotate(4deg)`,opacity:1,offset:.32},
+            {transform:`translate3d(110%,${depth+16}px,0) rotate(9deg)`,opacity:1,offset:.7},
+            {transform:`translate3d(155%,${depth+22}px,0) rotate(12deg)`,opacity:0}
+          ], {duration:720,easing:"cubic-bezier(.4,0,.25,1)"});
+        }));
+        if (!alive()) return;
       }
       trimPile();
       root.dataset.phase = "flipping";
