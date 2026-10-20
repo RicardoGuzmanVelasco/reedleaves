@@ -10,7 +10,7 @@
   <rect width="240" height="336" rx="23" fill="#E3EDC9"/>
   <rect x="10" y="10" width="220" height="316" rx="15" fill="url(#paper)"/>
   <rect x="10" y="10" width="220" height="316" rx="15" fill="url(#veins)"/>
-  <rect x="16" y="16" width="208" height="304" rx="10" stroke="#E3EDC9" stroke-opacity=".4"/>
+  <rect x="16" y="16" width="208" height="304" rx="10" stroke="#E3EDC9" stroke-width="1.8" stroke-opacity=".85"/>
   <circle cx="120" cy="168" r="65" fill="#E3EDC9"/>
   <!-- Static official sprout, enlarged and tilted beyond its circular medallion. -->
   <g transform="translate(120 162) rotate(-12) scale(1) translate(-80 -80)">
