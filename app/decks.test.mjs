@@ -221,10 +221,13 @@ test("Draft creation status stays distinct from practice sessions across deck su
         assert.ok(html.includes(explanation));
         assert.ok(!html.includes(userId===deck.creator.userId?c.deckMayChangeUnadded:c.deckDraftOwnerExplanation));
       }
+      assert.ok(reviewView(state).includes(`data-action="share-deck"`));
       assert.doesNotMatch(reviewView(state),/Repaso completo|Practice complete/);
     }
     deck.status="published";
     const html=reviewView({...base,userId:deck.creator.userId});
+    assert.ok(html.includes(`data-action="share-deck"`));
+    assert.ok(reviewView({...base,userId:"another-reader"}).includes(`data-action="share-deck"`));
     assert.ok(html.includes(c.deckFinished));
     assert.ok(!html.includes(c.deckDraftOwnerExplanation));
     assert.ok(!html.includes(c.deckMayChange));

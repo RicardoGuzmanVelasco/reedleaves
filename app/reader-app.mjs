@@ -4,8 +4,8 @@ import {featuredDecks} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=draft-deck-management-1";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup} from "./views.mjs?v=draft-deck-management-1";
+import {words} from "./i18n.mjs?v=share-deck-link-1";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup} from "./views.mjs?v=share-deck-link-1";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -675,6 +675,27 @@ export function startReader({createCardFeatures} = {}) {
       completion.error=error.status === 401 ? "sessionExpired" : error.code || "connectionError";
     } finally {busy=false;completion.saving=false;render({focus:!deckCompletion});}
   }
+  async function shareDeck() {
+    const deck=catalog?.decksById.get(deckId);
+    if (busy || mode !== "review" || !deck) return;
+    const url=new URL(location.href);
+    url.hash=`review/${encodeURIComponent(deck.id)}`;
+    try {
+      if (typeof navigator.share === "function") {
+        try {
+          await navigator.share({title:deck.title[language] || deck.title[deck.language],url:url.href});
+          return;
+        } catch(error) {
+          if(error?.name === "AbortError") return;
+        }
+      }
+      if (typeof navigator.clipboard?.writeText !== "function") throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(url.href);
+      live.textContent=words[language].deckLinkCopied;
+    } catch {
+      live.textContent=words[language].deckShareError;
+    }
+  }
   function openBookCompletion(id) {
     const book=catalog.booksById.get(id);
     if (!snapshot.user || book?.creatorUserId !== snapshot.user.id || !missingBookInformation(book).length) return;
@@ -1009,6 +1030,7 @@ export function startReader({createCardFeatures} = {}) {
       case "finish-deck": openDeckCompletion(); break;
       case "cancel-finish-deck": closeDeckCompletion(); break;
       case "confirm-finish-deck": confirmDeckCompletion(); break;
+      case "share-deck": void shareDeck(); break;
       case "autofill-book": autofillBook(b.closest("form")); break;
       case "edit-book-preview": authorForm.title=authorForm.metadata.originalTitle; authorForm.preview=false; render(); break;
       case "author-deck": authorForm = null; quotesOnly = false; navigate("#author/"+b.dataset.deck); break;
