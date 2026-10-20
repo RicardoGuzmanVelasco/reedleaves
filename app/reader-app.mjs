@@ -1,5 +1,5 @@
 import {loadCatalog} from "./catalog.mjs";
-import {localDay, restoreLanguage, FEEDBACK_MESSAGE_MAX_LENGTH} from "./core.mjs";
+import {localDay, restoreLanguage, bookTitle, FEEDBACK_MESSAGE_MAX_LENGTH} from "./core.mjs";
 import {featuredDecks} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
@@ -19,6 +19,10 @@ import {nextDailyCycleBoundary} from "./daily-cycle.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
+  let shareImageFile=null;
+  if (typeof File === "function") fetch("/brand/reed/share-card.png").then(async response=>{
+    if (response.ok) shareImageFile=new File([await response.blob()],"reedleaves.png",{type:"image/png"});
+  }).catch(()=>{});
   const noteDrafts = createNoteDrafts(store);
   const settings = document.getElementById("settings");
   const presentReading = createReadingPresentation();
@@ -720,17 +724,24 @@ export function startReader({createCardFeatures} = {}) {
     if (busy || mode !== "review" || !deck) return;
     const url=new URL(location.href);
     url.hash=`review/${encodeURIComponent(deck.id)}`;
+    const copyLanguage=store.read(keys.language) ? language : "en";
+    const book=catalog.booksById.get(deck.bookId);
+    const bookName=book ? (book.title?.[copyLanguage]?.trim() || book.originalTitle || bookTitle(book,copyLanguage).text) : "";
+    const deckName=deck.title?.[copyLanguage]?.trim() || deck.title?.[deck.language] || Object.values(deck.title || {}).find(Boolean) || "";
+    const shareText=words[copyLanguage].deckShareText(bookName,deckName);
     try {
       if (typeof navigator.share === "function") {
         try {
-          await navigator.share({title:deck.title[language] || deck.title[deck.language],url:url.href});
+          const shareData={title:deckName,text:shareText,url:url.href};
+          if (shareImageFile && typeof navigator.canShare === "function" && navigator.canShare({files:[shareImageFile]})) shareData.files=[shareImageFile];
+          await navigator.share(shareData);
           return;
         } catch(error) {
           if(error?.name === "AbortError") return;
         }
       }
       if (typeof navigator.clipboard?.writeText !== "function") throw new Error("Clipboard unavailable");
-      await navigator.clipboard.writeText(url.href);
+      await navigator.clipboard.writeText(`${shareText}\n${url.href}`);
       live.textContent=words[language].deckLinkCopied;
     } catch {
       live.textContent=words[language].deckShareError;
