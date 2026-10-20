@@ -32,6 +32,15 @@ test('Own cards keep rating totals disabled while saving remains available',()=>
   assert.ok(buttons[0].includes('disabled'));assert.ok(buttons[1].includes('disabled'));assert.ok(!buttons[2].includes('disabled'));
   assert.ok(html.includes(words.es.ownCardVotes));
 });
+test('Anonymous readers can see and activate card actions while login totals are loading',()=>{
+  for(const language of ['es','en']){
+    const c=words[language],html=renderToStaticMarkup(createElement(CardActions,{record:{loaded:false,isOwn:false,vote:null},saved:false,c,requiresAuth:true}));
+    const buttons=[...html.matchAll(/<button\b[^>]*>/g)].map(match=>match[0]);
+    assert.equal(buttons.length,3);assert.ok(buttons.every(button=>!button.includes('disabled')));
+    assert.ok(buttons[0].includes(c.dislikeCard));assert.ok(buttons[1].includes(c.likeCard));assert.ok(buttons[2].includes(c.saveCard));
+    assert.doesNotMatch(buttons[0],/, /);assert.doesNotMatch(buttons[1],/, /);
+  }
+});
 
 test('Saved deck tile exposes only its name and card count in Spanish and English',()=>{
   for(const language of ['es','en']){

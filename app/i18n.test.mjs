@@ -27,12 +27,16 @@ test("All interface languages have the same complete set of messages and types",
   }
 });
 
-test("Personal collection copy distinguishes Bookcase from Library and lowercases tarjetero in phrases", () => {
-  assert.equal(words.es.goBookcase, "Ir a mi biblioteca");
-  assert.equal(words.es.viewBookshelf, "Ver mi biblioteca");
+test("Personal collection copy distinguishes Bookcase from Library and drops duplicate navigation labels", () => {
+  assert.equal(Object.hasOwn(words.es,"goBookcase"), false);
+  assert.equal(Object.hasOwn(words.es,"goLibrary"), false);
+  assert.equal(Object.hasOwn(words.es,"viewBookshelf"), false);
+  assert.equal(words.es.viewShelf, "Ver estantería");
   assert.equal(words.es.deckInCollection, "En tu tarjetero");
-  assert.equal(words.en.goBookcase, "Go to my Bookcase");
-  assert.equal(words.en.viewBookshelf, "View my Bookcase");
+  assert.equal(Object.hasOwn(words.en,"goBookcase"), false);
+  assert.equal(Object.hasOwn(words.en,"goLibrary"), false);
+  assert.equal(Object.hasOwn(words.en,"viewBookshelf"), false);
+  assert.equal(words.en.viewShelf, "View shelf");
   assert.equal(words.es.deckMayChangeUnadded, "Puedes previsualizar sus tarjetas. Añádela al tarjetero para guardarla en tu colección.");
   assert.equal(words.es.deckAddedToCollection, "Baraja añadida al tarjetero.");
 });

@@ -8,7 +8,7 @@ import {storageKeys} from "./storage.mjs";
 
 test("Official name stays Reedleaves on every screen and in every interface language", () => {
   assert.equal(APP_NAME,"Reedleaves");
-  for (const c of Object.values(words)) for (const screen of [c.home,c.goLibrary,c.daily,c.chooseDeck,c.mascots,c.review]) {
+  for (const c of Object.values(words)) for (const screen of [c.home,c.daily,c.chooseDeck,c.mascots,c.review]) {
     assert.equal(pageTitle(screen),`Reedleaves · ${screen}`);
   }
   const html = readFileSync(new URL("./index.html",import.meta.url),"utf8");

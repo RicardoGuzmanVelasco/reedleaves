@@ -169,7 +169,7 @@ test("Home shows one closed book per active book, without exposing trees or spen
   assert.equal((homeView({...state,enrolledIds:[second,"seven-habits-editorial"]}).match(/class="study-book"/g) || []).length,2);
   const empty = homeView({...state,statuses:{},enrolledIds:[]});
   assert.ok(empty.includes(words.es.noReadingBooks)); assert.doesNotMatch(empty,/study-book"/);
-  assert.match(homeView({...state,language:"en"}),/Go to the library/);
+  assert.doesNotMatch(homeView({...state,language:"en"}),/data-action="library"|Go to the library/);
 });
 
 test("Practice exposes only the active card, enables writing and keeps the pile decorative",async()=>{
@@ -220,10 +220,13 @@ test("Draft creation status stays distinct from practice sessions across deck su
         assert.ok(html.includes(explanation));
         assert.ok(!html.includes(userId===deck.creator.userId?c.deckMayChangeUnadded:c.deckDraftOwnerExplanation));
       }
+      assert.ok(reviewView(state).includes(`data-action="share-deck"`));
       assert.doesNotMatch(reviewView(state),/Repaso completo|Practice complete/);
     }
     deck.status="published";
     const html=reviewView({...base,userId:deck.creator.userId});
+    assert.ok(html.includes(`data-action="share-deck"`));
+    assert.ok(reviewView({...base,userId:"another-reader"}).includes(`data-action="share-deck"`));
     assert.ok(html.includes(c.deckFinished));
     assert.ok(!html.includes(c.deckDraftOwnerExplanation));
     assert.ok(!html.includes(c.deckMayChange));

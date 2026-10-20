@@ -1,6 +1,5 @@
 # Iconos de captura de notas
 
-- `rectangle-pen.svg`: versión horizontal aprobada por el usuario el 16 de octubre de 2026.
 - `cards-pen.svg`: icono aprobado para las acciones de toma de notas, con la segunda tarjeta desplazada arriba y a la izquierda.
 - `cards.svg`: icono de tarjetas para su recuento. Conserva las posiciones, proporciones y trazo de las dos tarjetas de `cards-pen.svg`, cierra sus contornos y elimina el lápiz. La tarjeta delantera oculta el contorno posterior que queda debajo. Es un recurso independiente del icono de «Tomar nota».
 

@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
+  <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#FFF9ED">
   <title>Reedleaves · Inicio</title>
   <meta name="application-name" content="Reedleaves">
@@ -13,11 +14,11 @@
   <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="/favicon.ico">
   <link rel="icon" type="image/svg+xml" sizes="any" href="../brand/reed/d-compacto.svg">
   <link rel="stylesheet" href="mascot-art.css?v=flower-15-days">
-  <link rel="stylesheet" href="reader.css?v=practice-shuffle-1">
+  <link rel="stylesheet" href="reader.css?v=practice-card-back-2">
 
   <link rel="stylesheet" href="card-themes.css?v=shared-card-types">
   <link rel="stylesheet" href="card-actions.css?v=saved-cards">
-  <script type="module" src="reader.mjs?v=practice-shuffle-1"></script>
+  <script type="module" src="reader.mjs?v=practice-card-back-2"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Ir al contenido</a>
@@ -34,11 +35,19 @@
     <section class="currency-recovery" id="currency-recovery" aria-labelledby="currency-recovery-title" hidden>
       <div class="currency-recovery-heading"><h2 id="currency-recovery-title">Próxima recarga</h2><span class="currency-recovery-time"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg><time id="currency-recovery-countdown">—</time></span></div>
       <div class="currency-recovery-gains">
-        <div class="currency-recovery-gain currency-recovery-gain--petals"><img src="../brand/reed/petal-token.svg" width="23" height="25" alt=""><span><strong>+9</strong><small id="petal-refill-label">pétalos</small></span></div>
-        <div class="currency-recovery-gain"><img src="../brand/reed/leaf-token.svg" width="23" height="25" alt=""><span><strong>+1</strong><small id="leaf-refill-label">hoja</small></span></div>
+        <div class="currency-recovery-gain currency-recovery-gain--petals"><img src="../brand/reed/petal-token.svg" width="23" height="25" alt=""><span><strong id="petal-refill-amount">+9</strong><small id="petal-refill-label">pétalos</small></span></div>
+        <div class="currency-recovery-gain"><img src="../brand/reed/leaf-token.svg" width="23" height="25" alt=""><span><strong id="leaf-refill-amount">+1</strong><small id="leaf-refill-label">hoja</small></span></div>
       </div>
+      <p class="currency-recovery-warning" id="currency-recovery-warning" role="status" hidden></p>
     </section>
   </header>
+  <nav class="bottom-navigation" id="main-navigation" aria-label="Secciones" hidden>
+    <a class="bottom-navigation-link" data-nav="library" href="#library"><img src="../brand/icons/collections/library.svg" width="21" height="21" alt=""><span id="nav-library-label">Librería</span></a>
+    <a class="bottom-navigation-link" data-nav="bookshelf" href="#bookshelf"><img src="../brand/icons/collections/bookcase.svg" width="21" height="21" alt=""><span id="nav-bookshelf-label">Biblioteca</span></a>
+    <a class="bottom-navigation-link bottom-navigation-home" data-nav="home" href="#home"><img src="../brand/reed/d-compacto.svg" width="23" height="23" alt=""><span id="nav-home-label">Inicio</span></a>
+    <a class="bottom-navigation-link" data-nav="profile" id="nav-profile" href="#profile"><span id="nav-profile-icon" aria-hidden="true"></span><span id="nav-profile-label">Perfil</span></a>
+    <a class="bottom-navigation-link" data-nav="daily" href="#daily"><span id="nav-daily-icon" aria-hidden="true"></span><span id="nav-daily-label">Idea del día</span></a>
+  </nav>
   <main id="main" tabindex="-1"><div class="loading" role="status"><span class="mascot-art initial-mascot" data-mascot="sprout" data-idle="float" aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="/brand/reed/growth/bodies/sprout.svg" width="160" height="160" alt="" draggable="false"><svg class="mascot-face" viewBox="0 0 160 160" aria-hidden="true" focusable="false" data-expression="neutral"><g class="mascot-face-placement" transform="translate(79 104) rotate(0) scale(1) translate(-82 -104)" fill="#173D2C"><g class="mascot-eye mascot-eye--left" transform="translate(53 104)"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-eye mascot-eye--right" transform="translate(111 104)"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-mouth"><path d="M74 119q8 6 16 0" stroke="#173D2C" stroke-width="3" stroke-linecap="round" fill="none"/></g></g></svg></span></span></span><p>Abriendo tu libro…</p></div></main>
   <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
   <dialog class="settings-modal" id="settings" aria-labelledby="settings-title">

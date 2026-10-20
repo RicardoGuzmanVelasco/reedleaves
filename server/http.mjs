@@ -46,7 +46,6 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
       if (path === "/api/health") { await db.prepare("SELECT 1").get(); send(200, { status: "ok" }); return; }
       if (path === "/api/catalog") {
         const session = await readSession(db,request,options.now?.() || new Date());
-        if (inviteCode !== undefined && !session) { send(401,{error:"signInRequired"}); return; }
         response.setHeader("Cache-Control","no-store");
         send(200, await readCatalog(db,session?.user_id)); return;
       }

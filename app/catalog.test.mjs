@@ -67,7 +67,7 @@ test("Views expose every review card and preserve book attribution", async () =>
   assert.match(daily, /Robert T\. Kiyosaki/); assert.match(daily, /daily-calendar/);assert.match(daily,/data-day="2026-10-06"/);
   assert.match(daily,/daily-calendar-seen/);assert.match(daily,/Vista durante su día/);
   const home=homeView({...state,dailyStatus:{day:"2026-10-06",unseen:true,animate:true}});
-  assert.match(home,/aria-label="Nueva idea del día"/);assert.match(home,/daily-new-badge/);assert.match(home,/daily-badge-entering/);
+  assert.doesNotMatch(home,/data-action="daily"|daily-new-badge|daily-badge-entering/);
   assert.doesNotMatch(daily,/data-source=|source-content|exclusive-card-modal/);
   assert.doesNotMatch(daily,/data-book-status=/);
   assert.doesNotMatch(libraryView(state),/data-book-status=/);

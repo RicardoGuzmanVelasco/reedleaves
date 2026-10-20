@@ -12,6 +12,9 @@ test("Account form is minimal, accessible and translated; passwords are not pers
     assert.match(login,/autocomplete="current-password"/); assert.match(login,/for="account-username"/); assert.match(login,/minlength="8"/); assert.ok(login.includes(words[language].passwordHint)); assert.match(login,/role="alert" hidden/);
     assert.doesNotMatch(login,/type="email"|repeat-password|dashboard/);
     assert.match(accountView({language,mode:"account",authMode:"register"}),/autocomplete="new-password"/);
+    const prompted=accountView({language,mode:"account",authMode:"register",accountLearningNotice:true});
+    assert.ok(prompted.includes(words[language].accountLearningNotice));assert.match(prompted,/class="account-learning-notice" role="status"/);
+    assert.ok(!accountView({language,mode:"account",authMode:"register"}).includes(words[language].accountLearningNotice));
     assert.match(accountView({language,mode:"account",authMode:"register",inviteRequired:true}),new RegExp(`name="inviteCode"[^>]*required minlength="${INVITE_CODE_MIN_LENGTH}"`));
     assert.doesNotMatch(login,/name="inviteCode"/);
   }

@@ -22,7 +22,7 @@ test("Profiles show book, card-view and contribution counts without old per-card
     assert.match(html,new RegExp(`<span>${language==="es"?"Plántula":"Seedling"}</span><strong>1</strong>`));
     for(const key of Object.keys(profileData.profile.counts)) assert.ok(html.includes(words[language][key]),key);
     assert.match(html,/href="#bookshelf\/test-user"/);assert.match(html,/datetime="2026-10-10"/);
-    assert.match(profileView({language,profileData,userId:"test-user"}),/href="#bookshelf"/);
+    assert.doesNotMatch(profileView({language,profileData,userId:"test-user"}),/href="#bookshelf(?:\/|")/);
     assert.match(profileView({language,profileError:"profileUnavailable"}),new RegExp(words[language].profileUnavailable.replace('.','\\.')));
   }
 });
