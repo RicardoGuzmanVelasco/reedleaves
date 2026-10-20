@@ -105,6 +105,7 @@ test("Collection filters, empty states, book details and origin navigation trans
     assert.ok(noMatches.includes(c.noBookshelfMatches)); assert.match(noMatches,/data-action="reset-bookshelf-filters"/);
     assert.match(bookshelfView({...state,openBookId:"atomic-habits"}),/<dialog class="deck-modal book-modal"/);
     assert.ok(libraryView(state).includes(c.books)); assert.match(libraryView(state),/collections\/library\.svg/);
+    assert.doesNotMatch(libraryView(state),/collection-entry|Ir a mi biblioteca|Go to my Bookcase/);
     assert.ok(libraryView({...state,libraryOrigin:"bookshelf"}).includes(c.shelfBack));
     assert.doesNotMatch(libraryView({...state,libraryOrigin:"home"}),/data-action="bookshelf"/);
     assert.doesNotMatch(homeView(state),/class="home-actions"|data-action="profile"/);
@@ -124,7 +125,9 @@ test("Decks tab shows enrolled decks and automatically includes the reader's own
   assert.match(html,/data-action="manage-collection-deck" data-deck="atomic-habits-editorial"/);
   assert.doesNotMatch(html,/for="bookshelf-reading"/);
   const empty=await fixture();
-  assert.match(bookshelfView({...empty,bookshelfTab:"decks"}),/Todavía no has añadido barajas a tu tarjetero/);
+  const emptyDecks=bookshelfView({...empty,bookshelfTab:"decks"});
+  assert.match(emptyDecks,/Todavía no has añadido barajas a tu tarjetero/);
+  assert.doesNotMatch(emptyDecks,/data-action="library"|Ir a la librería|Go to the library/);
 });
 
 test("Deck details distinguish adding to Decks from starting practice",async()=>{

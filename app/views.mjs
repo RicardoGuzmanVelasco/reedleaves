@@ -138,7 +138,7 @@ export function libraryView(s) {
   const selected = s.catalog.booksById.get(s.openBookId);
   return `<section class="library-screen">
     ${["bookshelf","decks"].includes(s.libraryOrigin) ? `<button class="text-button collection-back" type="button" data-action="bookshelf" ${s.libraryOrigin === "decks" ? 'data-tab="decks"' : ""}>${s.libraryOrigin === "decks" ? collectionIconMarkup("decks",18) : collectionIconMarkup("shelf",18)}${s.libraryOrigin === "decks" ? c.deckCollectionBack : c.shelfBack}</button>` : ""}
-    <div class="screen-heading library-heading"><h1 tabindex="-1">${collectionIconMarkup("library",30)}${c.books}</h1>${s.userId ? `<a class="collection-entry" href="#bookshelf">${collectionIconMarkup("bookcase",24)}${c.goBookcase}</a>` : ""}</div>
+    <div class="screen-heading library-heading"><h1 tabindex="-1">${collectionIconMarkup("library",30)}${c.books}</h1></div>
     ${s.userId ? `<div class="library-author-action">${button(c.createBook,"create-book")}</div>` : ""}
     <form class="book-search" role="search" data-book-search><label class="sr-only" for="book-search">${c.searchBooks}</label>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
@@ -166,7 +166,7 @@ function deckCollectionMarkup(s) {
   const entries=[...decksById.values()].map(deck=>({deck,book:s.catalog.booksById.get(deck.bookId)}))
     .filter(item=>item.deck&&item.book)
     .sort((a,b)=>contentText(a.deck.title,s.language,a.deck.language).localeCompare(contentText(b.deck.title,s.language,b.deck.language),s.language));
-  if (!entries.length) return `<div class="empty-state collection-empty"><p>${c.emptyDeckCollection}</p><button class="text-button collection-back" type="button" data-action="library">${collectionIconMarkup("library",18)}${c.goLibrary} →</button></div>`;
+  if (!entries.length) return `<div class="empty-state collection-empty"><p>${c.emptyDeckCollection}</p></div>`;
   return `<div class="collection-decks" role="list" aria-label="${esc(c.deckCollection)}">${entries.map(({deck,book})=>{
     const title=contentText(deck.title,s.language,deck.language),bookTitle=displayedBookTitle(s,book).text;
     const ownDraft=deck.creator.userId === s.userId && deck.status === "draft";
@@ -667,12 +667,13 @@ export function profileView(s) {
   const c=words[s.language];
   if (!s.profileData) return profilePendingView(s);
   const p=s.profileData.profile,counts=p.counts;
+  const shelfAction=s.userId === p.id ? "" : `<a class="text-button" href="#bookshelf/${encodeURIComponent(p.id)}">${c.viewShelf} →</a>`;
   const metrics=keys=>`<dl class="profile-metrics">${keys.map(key=>`<div><dt>${c[key]}</dt><dd>${new Intl.NumberFormat(s.language).format(counts[key])}</dd></div>`).join("")}</dl>`;
   const created=new Date(p.createdAt.endsWith("Z") || /[+-]\d\d:\d\d$/.test(p.createdAt) ? p.createdAt : p.createdAt.replace(" ","T")+"Z");
   const date=Number.isNaN(created.getTime()) ? "—" : new Intl.DateTimeFormat(s.language,{year:"numeric",month:"long",day:"numeric",timeZone:"UTC"}).format(created);
   return `<section class="profile-screen"><button class="text-button" type="button" data-action="profile-back">${c.mascotsBack}</button>
     <header class="profile-heading"><div class="profile-avatar" aria-hidden="true">${attributionIcon("user")}</div><div><h1 tabindex="-1"><bdi>${esc(p.name)}</bdi></h1>${p.username && p.username !== p.name ? `<p class="profile-username"><bdi>@${esc(p.username)}</bdi></p>` : ""}<p class="profile-date">${c.memberSince} <time datetime="${esc(Number.isNaN(created.getTime()) ? "" : created.toISOString().slice(0,10))}">${esc(date)}</time></p></div></header>
-    <section class="profile-section" aria-labelledby="profile-reader"><div class="profile-section-heading"><h2 id="profile-reader">${c.readerSummary}</h2><a class="text-button" href="${s.userId === p.id ? "#bookshelf" : `#bookshelf/${encodeURIComponent(p.id)}`}">${s.userId === p.id ? c.viewBookshelf : c.viewShelf} →</a></div>
+    <section class="profile-section" aria-labelledby="profile-reader"><div class="profile-section-heading"><h2 id="profile-reader">${c.readerSummary}</h2>${shelfAction}</div>
       ${metrics(["booksRead","booksReading","cardsViewed"])}</section>
     <section class="profile-section" aria-labelledby="profile-archivist"><h2 id="profile-archivist">${c.archivistSummary}</h2>${metrics(["decksCreated","cardsCreated","quotesCreated"])}</section>
     <section class="profile-section" aria-labelledby="profile-mascots"><h2 id="profile-mascots">${c.currentMascots}</h2><ul class="profile-mascots">${mascotStages.filter(stage=>stage.unlocked || p.mascots[stage.id]>0).map(stage=>`<li>${mascotIcon(stage.id)}<span>${c[stage.name]}</span><strong>${p.mascots[stage.id] ?? 0}</strong></li>`).join("")}</ul></section>
