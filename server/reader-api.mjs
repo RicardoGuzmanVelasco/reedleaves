@@ -66,6 +66,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         const state = session ? await readReaderState(db,session,time) : {user:null};
         send(200,inviteCode === undefined ? state : {...state,inviteRequired:true}); return true;
       }
+      if (cardVotesMatch && request.method !== "POST") { send(200,await readCardVotes(db,session,decodeURIComponent(cardVotesMatch[1]))); return true; }
       if (request.method === "POST") sameOrigin(request,origin);
       if (["/api/auth/register","/api/auth/login"].includes(path)) {
         const input = await readBody(request);

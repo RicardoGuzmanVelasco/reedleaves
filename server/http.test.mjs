@@ -28,6 +28,7 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   const app = await fetch(base + "/app/");
   const appHtml = await app.text();
   assert.equal(app.status, 200); assert.match(appHtml, /id="leaf-count"/);
+  assert.match(appHtml, /name="robots" content="noindex, nofollow"/);
   assert.match(app.headers.get("content-security-policy"), /script-src 'self'/);
   assert.match((await fetch(base + "/app/reader.mjs")).headers.get("content-type"), /javascript/);
   assert.equal((await fetch(base + "/brand/reed/d-compacto.svg")).status, 200);
@@ -68,19 +69,27 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   assert.equal((await fetch(base + "/app/%xx")).status, 400);
 });
 
-test("Internal mode protects the book catalog until an invited user signs in", async t => {
+test("Public catalog and card votes remain readable without a session when account creation is invite-only", async t => {
   const db = openDatabase(":memory:"); initializeDatabase(db); await seedCatalog(db);
   const server = createCatalogServer(db,undefined,{inviteCode:"r".repeat(32)});
   server.listen(0,"127.0.0.1"); await once(server,"listening");
   t.after(async()=>{server.closeAllConnections(); await new Promise(resolve=>server.close(resolve)); await db.close();});
   const base = `http://127.0.0.1:${server.address().port}`;
-  assert.equal((await fetch(base+"/api/catalog")).status,401);
+  const guestCatalogResponse=await fetch(base+"/api/catalog");assert.equal(guestCatalogResponse.status,200);
+  const guestCatalog=await guestCatalogResponse.json(),card=guestCatalog.cards[0];
+  assert.equal((await fetch(base+`/api/cards/${encodeURIComponent(card.id)}/votes`)).status,200);
+  assert.equal((await fetch(base+`/api/cards/${encodeURIComponent(card.id)}/actions`)).status,401);
+  assert.equal((await fetch(base+"/api/reader/state")).status,401);
   assert.equal((await fetch(base+"/apple-touch-icon.png")).status,200);
   const session = await fetch(base+"/api/session").then(r=>r.json()); assert.equal(session.inviteRequired,true);
   const response = await fetch(base+"/api/auth/register",{method:"POST",headers:{Origin:base,"Content-Type":"application/json"},body:JSON.stringify({username:"team.reader",password:"A private invitation test phrase",inviteCode:"r".repeat(32),language:"es",timeZone:"Europe/Madrid"})});
   assert.equal(response.status,200);
   const cookie = response.headers.get("set-cookie").split(";")[0];
   assert.equal((await fetch(base+"/api/catalog",{headers:{Cookie:cookie}})).status,200);
+  const vote=await fetch(base+"/api/cards/vote",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",Cookie:cookie,"X-CSRF-Token":(await response.clone().json()).csrfToken},body:JSON.stringify({cardId:card.id,value:1})});
+  assert.equal(vote.status,200);
+  const publicVotes=await fetch(base+`/api/cards/${encodeURIComponent(card.id)}/votes`).then(r=>r.json());
+  assert.equal(publicVotes.likes,1);assert.equal(publicVotes.vote,null);assert.equal(publicVotes.isOwn,false);
 });
 
 test("Safari Home Screen metadata and PNG fallbacks are public, with no redirects or SQL access", async t => {

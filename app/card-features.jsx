@@ -35,10 +35,10 @@ function useRibbonPath(saved){
 function Thumb(){return <><path d="M10 15h3l4-7 1-5c.2-2 2.6-2.3 4-.7 2.3 2.5 1.6 6.7-.4 10.7H28c3 0 4 2.1 3.2 4.8L28.7 28c-.6 2.1-2 3-4.3 3h-9.1c-2.2 0-3.8-1.1-5.3-3z"/><rect x="2" y="15" width="8" height="16" rx="2.3"/></>}
 function Bookmark(){return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4Z"/></svg>}
 
-export function CardActions({record,saved,c,onVote,onSave,error,onRetry}){
+export function CardActions({record,saved,c,onVote,onSave,error,onRetry,requiresAuth=false}){
   const ribbonPath=useRibbonPath(saved);
   const ready=record?.loaded===true,own=record?.isOwn===true;
-  const total=value=>ready?(value===1?record.likes:record.dislikes):'…';
+  const total=value=>ready?String(value===1?record.likes??'':record.dislikes??''):'';
   return <div className="card-actions" data-vote={record?.vote||0} role="group" aria-label={c.cardActions}>
     <div className={'card-vote-controls'+(own?' is-own':'')} role="group" aria-label={c.cardFeedback}>
       <svg className="vote-plate" viewBox="0 0 112 74" aria-hidden="true"><g transform="translate(2 2) rotate(-2 54 32)">
@@ -46,7 +46,7 @@ export function CardActions({record,saved,c,onVote,onSave,error,onRetry}){
         <g data-thumb="-1" transform="translate(14.9 21) scale(1.1) rotate(180 16.5 16.5)"><Thumb/></g><g data-thumb="1" transform="translate(56.8 6.7) scale(1.1)"><Thumb/></g>
         <text data-counter="-1" x="28" y="18">{total(-1)}</text><text data-counter="1" x="80" y="57">{total(1)}</text>
       </g></svg>
-      {[-1,1].map(value=><button key={value} className="vote-target" type="button" data-card-action="vote" data-value={value} aria-label={`${value===1?c.likeCard:c.dislikeCard}, ${total(value)}`} aria-pressed={record?.vote===value} disabled={!ready||own} title={own?c.ownCardVotes:value===1?c.likeCard:c.dislikeCard} onClick={()=>onVote(value)}/>)}
+      {[-1,1].map(value=>{const count=total(value);return <button key={value} className="vote-target" type="button" data-card-action="vote" data-value={value} aria-label={`${value===1?c.likeCard:c.dislikeCard}${count?`, ${count}`:''}`} aria-pressed={record?.vote===value} disabled={(!ready&&!requiresAuth)||own} title={own?c.ownCardVotes:value===1?c.likeCard:c.dislikeCard} onClick={()=>onVote(value)}/>})}
       {own&&<span className="sr-only">{c.ownCardVotes}</span>}
     </div>
     <button className="save-target" type="button" data-card-action="save" aria-label={saved?c.unsaveCard:c.saveCard} aria-pressed={saved} title={saved?c.unsaveCard:c.saveCard} onClick={onSave}>
@@ -54,6 +54,16 @@ export function CardActions({record,saved,c,onVote,onSave,error,onRetry}){
     </button>
     {error&&<div className="card-action-error" role="status"><span>{c[error.code]||c.connectionError}</span><button type="button" onClick={onRetry}>{c.retry}</button></div>}
   </div>;
+}
+
+function GuestFeatures({context,api,callbacks}){
+  const [record,setRecord]=useState(null);
+  useEffect(()=>{let active=true;setRecord(null);api.request(`/api/cards/${encodeURIComponent(context.cardId)}/votes`).then(row=>{if(active)setRecord({...row,loaded:true})}).catch(()=>{if(active)setRecord({likes:null,dislikes:null,vote:null,isOwn:false,loaded:true})});return()=>{active=false}},[context.cardId]);
+  const card=context.catalog.cardsById.get(context.cardId);
+  if(!context.actionSlot||!card)return null;
+  const askForVote=value=>callbacks.onAuthRequired({kind:'vote',value,cardId:card.id,deckId:card.deckId});
+  const askForSave=()=>callbacks.onAuthRequired({kind:'save',cardId:card.id,deckId:card.deckId});
+  return createPortal(<CardActions record={record||{likes:null,dislikes:null,vote:null,isOwn:false,loaded:false}} saved={false} c={words[context.language]} requiresAuth onVote={askForVote} onSave={askForSave} />,context.actionSlot);
 }
 
 export function SavedCardsEntry({count,c,onClick}){return <article className="deck-tile saved-cards-tile"><button type="button" className="deck-tile-open" onClick={onClick} aria-label={`${c.savedCards}, ${c.noteCardsCount(count)}`}/><span className="deck-tile-copy"><strong>{c.savedCards}</strong></span><span className="deck-tile-metadata"><span className="deck-tile-count"><Bookmark/><span>{c.noteCardsCount(count)}</span></span></span></article>}
@@ -157,5 +167,5 @@ export function createCardFeaturesBridge({api,...callbacks}){
   const element=document.createElement('div');element.className='card-feature-root';document.body.append(element);const root=createRoot(element);
   let userId=null;const pending=new Map();
   const handlers={...callbacks,onPending:(id,value)=>{if(value)pending.set(id,value);else pending.delete(id)}};
-  return {get pending(){return (pending.get(userId)||0)>0},update(context){userId=context.userId;root.render(context.userId&&context.catalog?<Features key={context.userId} context={context} api={api} callbacks={handlers}/>:null)},dispose(){root.unmount();element.remove()}};
+  return {get pending(){return (pending.get(userId)||0)>0},update(context){userId=context.userId;root.render(context.catalog?(context.userId?<Features key={context.userId} context={context} api={api} callbacks={handlers}/>:<GuestFeatures key="guest" context={context} api={api} callbacks={handlers}/>):null)},dispose(){root.unmount();element.remove()}};
 }
