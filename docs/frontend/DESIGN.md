@@ -68,6 +68,12 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - Sin destino, el componente muestra icono y nombre como texto, sin flecha ni interacción. Sin nombre, no se muestra.
 - La autoría de barajas usa este mismo enlace, sin el prefijo «Creada por». Su texto es secundario respecto al título: 11 px y peso 500 en la tarjeta del selector. El enlace abre el perfil de forma independiente de la apertura de la baraja; no anidar enlaces dentro de botones.
 
+## Compartir barajas
+
+- Compartir envía el texto funcional en el idioma de la interfaz elegida, con el título completo del libro traducido a ese idioma cuando exista y el nombre de la baraja. La copia empieza en inglés hasta que se elige un idioma de interfaz.
+- La tarjeta de imagen es genérica: plántula oficial con ojos y boca del componente compartido, grande sobre `#fff9ed`, sin nombres ni copy. Adjuntarla como PNG cuando Web Share admita archivos y usarla como imagen de preview social.
+- Si el dispositivo no abre Web Share, copiar el texto y el enlace juntos.
+
 ## Glosario
 
 Usar estos términos de forma consistente en la interfaz y en la documentación editorial vigente. Los nombres internos del código y los archivos de datos pueden conservar sus términos técnicos.
