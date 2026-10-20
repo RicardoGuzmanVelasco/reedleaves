@@ -3,7 +3,7 @@ import { availableDecks } from "./decks.mjs";
 import {homeBooks,editableNoteDecks,noteDecksWithSpace,recentNoteDecks} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=share-deck-link-1";
+import { words } from "./i18n.mjs?v=public-deck-reading-1";
 import { bookLinkUrl } from "./book-links.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
@@ -400,6 +400,7 @@ export function accountView(s) {
   const c = words[s.language], signup = s.authMode === "register";
   return `<section class="account-screen">
     <div class="account-welcome">${mascotArt("sprout")}<h1 tabindex="-1">${signup ? c.signUp : c.signIn}</h1></div>
+    ${s.accountLearningNotice ? `<p class="account-learning-notice" role="status">${esc(c.accountLearningNotice)}</p>` : ""}
     <form class="account-form" data-account-form>
       <label for="account-username">${c.username}</label><input id="account-username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required minlength="${USERNAME_MIN_LENGTH}" maxlength="${USERNAME_MAX_LENGTH}" pattern="[a-zA-Z0-9][a-zA-Z0-9._\\-]{${USERNAME_MIN_LENGTH - 1},${USERNAME_MAX_LENGTH - 1}}" aria-describedby="username-hint"><small id="username-hint">${c.usernameHint}</small>
       ${signup && s.inviteRequired ? `<label for="account-invite">${c.inviteCode}</label><input id="account-invite" name="inviteCode" type="password" autocomplete="off" required minlength="${INVITE_CODE_MIN_LENGTH}" maxlength="256">` : ""}

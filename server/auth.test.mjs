@@ -28,10 +28,10 @@ async function fixture(t,{inviteCode}={}) {
   };
   return {db,call,register,base,setClock:date=>clock=date};
 }
-test("Configured invitation gates registration and catalog access",async t=>{
+test("Configured invitation gates account creation while catalog reads remain public",async t=>{
   const code = "a".repeat(INVITE_CODE_MIN_LENGTH), {call,register,db,setClock} = await fixture(t,{inviteCode:code});
   assert.deepEqual((await call("/api/session")).body,{user:null,inviteRequired:true});
-  assert.equal((await call("/api/catalog")).status,401);
+  assert.equal((await call("/api/catalog")).status,200);
   assert.equal((await call("/api/auth/register",{username:"invite.reader",password})).status,403);
   assert.equal(db.prepare("SELECT count(*) AS n FROM accounts").get().n,0);
   const {result,headers} = await register("invite.reader",code);
@@ -40,7 +40,7 @@ test("Configured invitation gates registration and catalog access",async t=>{
   const wrong = await call("/api/auth/register",{username:"other.reader",password,inviteCode:"b".repeat(32)});
   assert.equal(wrong.status,403); assert.equal(db.prepare("SELECT count(*) AS n FROM accounts").get().n,1);
   setClock(new Date(Date.parse("2026-10-06T12:00:00Z")+SESSION_SECONDS*1000));
-  assert.equal((await call("/api/catalog",undefined,headers)).status,401);
+  assert.equal((await call("/api/catalog",undefined,headers)).status,200);
   assert.equal((await call("/api/reader/state",undefined,headers)).status,401);
 });
 test("Real registration, two sessions, spending, reconnecting and logout persist one server state",async t=>{

@@ -12,8 +12,8 @@ async function accessibleCard(db,session,cardId) {
 async function cardVoteState(db,session,card) {
   const likes=Number((await db.prepare("SELECT count(*) AS n FROM card_votes WHERE card_id=? AND value=1").get(card.id)).n);
   const dislikes=Number((await db.prepare("SELECT count(*) AS n FROM card_votes WHERE card_id=? AND value=-1").get(card.id)).n);
-  const current=await db.prepare("SELECT value FROM card_votes WHERE user_id=? AND card_id=?").get(session.user_id,card.id);
-  return {cardId:card.id,likes,dislikes,vote:current?.value ?? null,isOwn:card.creator_user_id === session.user_id};
+  const current=session ? await db.prepare("SELECT value FROM card_votes WHERE user_id=? AND card_id=?").get(session.user_id,card.id) : null;
+  return {cardId:card.id,likes,dislikes,vote:current?.value ?? null,isOwn:!!session && card.creator_user_id === session.user_id};
 }
 
 export async function readCardVotes(db,session,cardId) {
