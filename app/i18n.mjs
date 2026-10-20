@@ -2,6 +2,7 @@ import {USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_
 
 export const words = {
   es: {
+    navigation:"Secciones",navHome:"Inicio",navLibrary:"Librería",navBookcase:"Biblioteca",navProfile:"Perfil",navDaily:"Idea del día",
     deckViews:"Vista de la baraja",viewDeckPreview:"Ver preview",viewDeckTree:"Ver árbol",deckPreview:"Preview de la baraja",previewColumns:"Columnas",previewColumnCount:n=>`${n} ${n===1 ? "columna" : "columnas"}`,shareDeck:"Compartir",deckLinkCopied:"Enlace copiado.",deckShareError:"No se pudo compartir el enlace. Vuelve a intentarlo.",
     cardActions:"Acciones de tarjeta",saveCard:"Guardar tarjeta",unsaveCard:"Quitar de guardadas",savedCards:"Guardadas",noSavedCards:"No tienes tarjetas guardadas de este libro.",
     aiQuotaExceeded:"La IA no tiene saldo disponible. Revisa la facturación de OpenAI; tus datos siguen aquí.", aiConfigurationError:"Hay un problema con la configuración de la IA. Tus datos siguen aquí.", aiProviderBusy:"El servicio de IA está saturado o no está disponible. Vuelve a intentarlo en unos minutos.", errorReference:"Referencia del error",
@@ -37,12 +38,12 @@ export const words = {
     amazonEdition:"Edición en español · Amazon.es",
     chooseDeck:"Elige una baraja", recommended:"Recomendada por el equipo", teamRecommendationShort:"Te recomendamos", popular:"Más popular",
     preferred:"Preferida por la comunidad", otherDeck:"Otro enfoque",
-    by:"Creada por", bookAddedBy:"Añadido por", deckBack:"← Barajas", albumBack:"← Baraja", choose:"Ver baraja", viewDeck:"Ver baraja", resume:"Continuar repaso", closeDeck:"Cerrar detalle",
+    by:"Creada por", bookAddedBy:"Añadido por", deckBack:"← Barajas", albumBack:"← Baraja", choose:"Ver baraja", viewDeck:"Ver baraja", peekDeck:"Ojear baraja", deckPeekPage:"Ojear baraja", resume:"Continuar repaso", closeDeck:"Cerrar detalle",
     noDecks:"Todavía no hay barajas para este libro.",
     deckSize:(n,d) => `${n} tarjetas · ${d} ${d === 1 ? "nivel" : "niveles"}`,
     treeMap:"Tu recorrido",
     leafBalance:n => `${n} ${n === 1 ? "hoja disponible" : "hojas disponibles"}`,
-    petalBalance:(n,max) => `${n} de ${max} pétalos disponibles`, currencyBalancesLabel:(petals,petalMaximum,leaves,leafMaximum)=>`Saldos: ${petals} de ${petalMaximum} pétalos y ${leaves} de ${leafMaximum} hojas. Mostrar próxima recarga.`, nextCurrencyRefill:"Próxima recarga", petalsRefillLabel:"pétalos", leafRefillLabel:"hoja", currencyCountdown:(hours,minutes)=>hours?`${hours} h ${String(minutes).padStart(2,"0")} min`:`${minutes} min`, deckAddCost:"Cuesta una hoja",
+    petalBalance:(n,max) => `${n} de ${max} pétalos disponibles`, currencyBalancesLabel:(petals,petalMaximum,leaves,leafMaximum)=>`Saldos: ${petals} de ${petalMaximum} pétalos y ${leaves} de ${leafMaximum} hojas. Mostrar próxima recarga.`, nextCurrencyRefill:"Próxima recarga", petalsRefillLabel:"pétalos", leafRefillLabel:"hoja", currencyCountdown:(hours,minutes)=>hours?`${hours} h ${String(minutes).padStart(2,"0")} min`:`${minutes} min`, refillWaste:(leaves,petals)=>`Aprovecha la próxima recarga: perderás ${[leaves?"la hoja":"",petals?"los pétalos":""].filter(Boolean).join(" y ")}.`, deckAddCost:"Cuesta una hoja",
     breadth:"Seguir en anchura", depth:"Profundizar", parent:"↑ Volver a la tarjeta superior",
     firstCard:"Repasar la primera tarjeta", pendingBranch:"Seguir una rama pendiente",
     likesCount:n => `${n} me gusta`,
@@ -58,6 +59,7 @@ export const words = {
     date: d => new Intl.DateTimeFormat("es", { day: "numeric", month: "long" }).format(d), position: (n, total) => `${n} de ${total}`
   },
   en: {
+    navigation:"Sections",navHome:"Home",navLibrary:"Library",navBookcase:"Bookcase",navProfile:"Profile",navDaily:"Daily idea",
     deckViews:"Deck view",viewDeckPreview:"View preview",viewDeckTree:"View tree",deckPreview:"Deck preview",previewColumns:"Columns",previewColumnCount:n=>`${n} ${n===1 ? "column" : "columns"}`,shareDeck:"Share",deckLinkCopied:"Link copied.",deckShareError:"The link could not be shared. Try again.",
     cardActions:"Card actions",saveCard:"Save card",unsaveCard:"Remove from saved cards",savedCards:"Saved cards",noSavedCards:"You have no saved cards from this book.",
     aiQuotaExceeded:"AI has no available credit. Check OpenAI billing; your details are still here.", aiConfigurationError:"There is a problem with the AI configuration. Your details are still here.", aiProviderBusy:"The AI service is busy or unavailable. Try again in a few minutes.", errorReference:"Error reference",
@@ -92,12 +94,12 @@ export const words = {
     amazonEdition:"Spanish edition · Amazon.es",
     chooseDeck:"Choose a deck", recommended:"Team recommendation", teamRecommendationShort:"We recommend", popular:"Most popular",
     preferred:"Community favourite", otherDeck:"Another approach",
-    by:"Created by", bookAddedBy:"Added by", deckBack:"← Decks", albumBack:"← Deck", choose:"View deck", viewDeck:"View deck", resume:"Continue practicing", closeDeck:"Close details",
+    by:"Created by", bookAddedBy:"Added by", deckBack:"← Decks", albumBack:"← Deck", choose:"View deck", viewDeck:"View deck", peekDeck:"Browse deck", deckPeekPage:"Browse deck", resume:"Continue practicing", closeDeck:"Close details",
     noDecks:"There are no decks for this book yet.",
     deckSize:(n,d) => `${n} cards · ${d} ${d === 1 ? "level" : "levels"}`,
     treeMap:"Your path",
     leafBalance:n => `${n} ${n === 1 ? "leaf available" : "leaves available"}`,
-    petalBalance:(n,max) => `${n} of ${max} petals available`, currencyBalancesLabel:(petals,petalMaximum,leaves,leafMaximum)=>`Balances: ${petals} of ${petalMaximum} petals and ${leaves} of ${leafMaximum} leaves. Show next refill.`, nextCurrencyRefill:"Next refill", petalsRefillLabel:"petals", leafRefillLabel:"leaf", currencyCountdown:(hours,minutes)=>hours?`${hours} hr ${String(minutes).padStart(2,"0")} min`:`${minutes} min`, deckAddCost:"Costs one leaf",
+    petalBalance:(n,max) => `${n} of ${max} petals available`, currencyBalancesLabel:(petals,petalMaximum,leaves,leafMaximum)=>`Balances: ${petals} of ${petalMaximum} petals and ${leaves} of ${leafMaximum} leaves. Show next refill.`, nextCurrencyRefill:"Next refill", petalsRefillLabel:"petals", leafRefillLabel:"leaf", currencyCountdown:(hours,minutes)=>hours?`${hours} hr ${String(minutes).padStart(2,"0")} min`:`${minutes} min`, refillWaste:(leaves,petals)=>`Use the next refill: you’ll lose ${[leaves?"the leaf":"",petals?"the petals":""].filter(Boolean).join(" and ")}.`, deckAddCost:"Costs one leaf",
     breadth:"Go sideways", depth:"Go deeper", parent:"↑ Back to parent card",
     firstCard:"Practice the first card", pendingBranch:"Continue an unfinished branch",
     likesCount:n => `${n} ${n === 1 ? "like" : "likes"}`,

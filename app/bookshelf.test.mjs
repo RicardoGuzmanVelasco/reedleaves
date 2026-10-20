@@ -107,7 +107,7 @@ test("Collection filters, empty states, book details and origin navigation trans
     assert.ok(libraryView(state).includes(c.books)); assert.match(libraryView(state),/collections\/library\.svg/);
     assert.ok(libraryView({...state,libraryOrigin:"bookshelf"}).includes(c.shelfBack));
     assert.doesNotMatch(libraryView({...state,libraryOrigin:"home"}),/data-action="bookshelf"/);
-    assert.ok(homeView(state).includes(c.goProfile));
+    assert.doesNotMatch(homeView(state),/class="home-actions"|data-action="profile"/);
     const deckState={...state,bookId:"atomic-habits",deckChoices:featuredDecks(s.catalog,"atomic-habits")};
     for (const [bookOrigin,label] of [["bookshelf",c.shelfBack],["library",c.booksBack],["daily",c.back]]) assert.ok(deckView({...deckState,bookOrigin}).includes(label));
   }
