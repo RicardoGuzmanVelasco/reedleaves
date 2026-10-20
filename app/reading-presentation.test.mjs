@@ -54,6 +54,13 @@ test("Long cards finish within 4.25 seconds of writing, with their layout reserv
   f.advance(0); f.advance(4430);
   assert.equal(f.body.textContent,f.text); assert.equal(f.frames.size,0);
 });
+test("A choreographed flip can start the shared writing without a second arrival animation",()=>{
+  const f=fixture({text:"abc"});f.present(f.main,{arrival:false,delay:160});
+  assert.equal(f.stage.classList.contains("is-arriving"),false);
+  const ink=f.body.children[2];f.advance(0);f.advance(170);assert.equal(ink.textContent,"");
+  f.advance(182);assert.equal(ink.textContent,"ab");
+  f.advance(193);assert.equal(f.body.textContent,"abc");
+});
 test("Daily cards arrive with complete text and no typing control",()=>{
   const f=fixture(); f.stage.dataset.readingMode="complete";
   f.stage.querySelector=selector=>({".idea-body":f.body,"#idea-content":f.title})[selector];

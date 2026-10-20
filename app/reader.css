@@ -526,7 +526,7 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .practice-launch-char{display:inline-block;transform-origin:center;animation:practice-launch-char-wave 7.5s ease-in-out infinite}
 .practice-launch-char:nth-child(2){animation-delay:24ms}.practice-launch-char:nth-child(3){animation-delay:48ms}.practice-launch-char:nth-child(4){animation-delay:72ms}.practice-launch-char:nth-child(5){animation-delay:96ms}.practice-launch-char:nth-child(6){animation-delay:120ms}.practice-launch-char:nth-child(7){animation-delay:144ms}.practice-launch-char:nth-child(8){animation-delay:168ms}.practice-launch-char:nth-child(9){animation-delay:192ms}.practice-launch-char:nth-child(10){animation-delay:216ms}.practice-launch-char:nth-child(11){animation-delay:240ms}.practice-launch-char:nth-child(12){animation-delay:264ms}.practice-launch-char:nth-child(13){animation-delay:288ms}.practice-launch-char:nth-child(14){animation-delay:312ms}.practice-launch-char:nth-child(15){animation-delay:336ms}.practice-launch-char:nth-child(16){animation-delay:360ms}.practice-launch-char:nth-child(17){animation-delay:384ms}.practice-launch-char:nth-child(18){animation-delay:408ms}.practice-launch-char:nth-child(19){animation-delay:432ms}.practice-launch-char:nth-child(20){animation-delay:456ms}
 @keyframes practice-launch-char-wave{0%,64%,78%,100%{transform:translateY(0) scale(1)}64%{animation-timing-function:cubic-bezier(.2,.75,.3,1)}67%{transform:translateY(-3px) scale(1.045);animation-timing-function:cubic-bezier(.5,0,.8,.35)}70%{transform:translateY(0) scale(1)}72%{transform:translateY(1px) scale(.99);animation-timing-function:cubic-bezier(.2,.65,.3,1)}74%{transform:translateY(0) scale(1)}}
-.is-practicing{min-height:100dvh;background:#f5f4ec;color:#173d2c}
+.is-practicing{min-height:100dvh;background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de 53%,#e5ecd8 100%);background-attachment:fixed;color:#173d2c}
 .is-practice-choosing{background:radial-gradient(circle 170px at 100% 0%,rgb(203 228 166 / 68%),transparent 100%),radial-gradient(ellipse at 100% 100%,#d8efb3,transparent 52%),linear-gradient(25deg,#b7e56e,#edf3d9 70%)}
 .is-practicing .app-header{display:none}
 .is-practicing main{width:min(850px,calc(100% - 48px));margin:0 auto}
@@ -562,31 +562,43 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .practice-empty-link{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;border:1.5px solid #71896b;border-radius:13px;background:#f0f3e5;color:#31573a;font-weight:800;text-decoration:none;box-shadow:0 3px 0 #b7c8a8}
 .practice-empty-link:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .practice-session{display:flex;flex-direction:column;align-items:stretch;justify-content:center;padding-top:76px;padding-bottom:max(44px,env(safe-area-inset-bottom))}
-.practice-card-stack{position:relative;display:grid;width:100%;margin:7px auto 0;padding:0 0 13px}
-.practice-card-stack>.reading-stage{grid-area:1/1;width:100%;margin:0}
-.practice-card--front{z-index:1}
-.practice-card--behind{position:absolute;inset:0 0 -24px;z-index:0;overflow:hidden;transform-origin:top center;transform:translateY(13px) scale(.965);opacity:.84;pointer-events:none}
-.practice-card--behind .idea-card>*{visibility:hidden}
+/* One physical size for every face-down sheet. The readable face owns layout. */
+.practice-session{--pile-width:clamp(156px,48vw,238px);--pile-height:calc(var(--pile-width) * 1.4)}
+.practice-scene{position:relative;display:grid;align-items:center;width:100%;min-height:370px;margin:7px auto 0;perspective:1600px}
+.practice-pile{position:absolute;left:50%;top:min(50%,30dvh);width:var(--pile-width);height:var(--pile-height);transform:translate(-50%,-50%);pointer-events:none}
+.practice-card-back{position:absolute;inset:0;width:var(--pile-width);height:var(--pile-height);border:1.5px solid #64805a;border-radius:24px;background:#29573b url('../brand/reed/card-back.svg') center/100% 100% no-repeat;box-shadow:0 2px 0 #adc297,0 3px 0 #456345;pointer-events:none}
+.practice-pile>.practice-card-back{z-index:calc(10 - var(--depth));transform:translateY(calc(var(--depth) * 4px))}
+.practice-pile>.practice-card-back:nth-child(1){--depth:1}
+.practice-pile>.practice-card-back:nth-child(2){--depth:2}
+.practice-pile>.practice-card-back:nth-child(3){--depth:3}
+.practice-pile>.practice-card-back:nth-child(4){--depth:4}
+.practice-pile>.practice-card-back:nth-child(5){--depth:5}
+.practice-pile>.practice-card-back:nth-child(6){--depth:6}
+.practice-pile>.practice-card-back:nth-child(7){--depth:7}
+.practice-pile>.practice-card-back:nth-child(8){--depth:8}
+.practice-pile>.practice-card-back:nth-child(9){--depth:9}
+.practice-pile>.practice-card-back:last-child{box-shadow:0 2px 0 #adc297,0 3px 0 #456345,0 25px 40px -18px rgb(23 61 44 / 32%)}
+.practice-card-back[hidden]{display:none}
+.practice-card-flight{position:relative;width:100%;transform-style:preserve-3d;transform-origin:50% min(50%,30dvh)}
+.practice-card--front{width:100%;margin:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.practice-turn-back{inset:auto;left:calc(50% - var(--pile-width) / 2);top:calc(min(50%,30dvh) - var(--pile-height) / 2);transform:rotateY(180deg);backface-visibility:hidden;-webkit-backface-visibility:hidden;box-shadow:0 2px 0 #adc297,0 3px 0 #456345,0 20px 35px -12px rgb(23 61 44 / 24%)}
+.practice-card--front::before,.practice-card--front::after{content:none}
+.practice-session[data-phase="preparing"] .practice-card-flight{visibility:hidden}
+.practice-session[data-phase="preparing"] .practice-responses,.practice-session[data-phase="flipping"] .practice-responses{opacity:0;pointer-events:none}
+.practice-session[data-phase="reading"] .practice-card--front{filter:drop-shadow(0 0 30px rgb(255 239 203 / 35%))}
+.practice-session[data-phase="leaving"] .practice-responses{pointer-events:none}
+.is-practicing{overflow-x:clip}
 .practice-session .reading-stage .idea-card{min-height:clamp(310px,52dvh,470px);padding:46px clamp(25px,7vw,60px) 26px}
 .practice-session .reading-stage h2{font-size:clamp(29px,4vw,43px);margin:5px 0 24px}
 .practice-session .reading-content{padding-bottom:23px}
 .practice-session .reading-footer{margin-top:25px;padding-top:14px}
 .practice-session .reading-footer .card-source{font-size:11px}
-.practice-responses{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:clamp(48px,9dvh,84px) 0 0}
+.practice-responses{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:clamp(48px,9dvh,84px) 0 0;transition:opacity .24s ease}
 .practice-response{--practice-response-shadow:#cbb291;display:flex;align-items:center;justify-content:center;min-height:68px;padding:13px 18px;border:2px solid #9b7850;border-radius:19px;background:#f5e6cc;box-shadow:0 5px 0 var(--practice-response-shadow);color:#503a20;text-align:center;font-size:16px;font-weight:850;line-height:1.2;transition:transform .14s,box-shadow .14s}
 .practice-response:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 var(--practice-response-shadow)}
 .practice-response.is-selected{animation:practice-answer-confirm .18s cubic-bezier(.2,.78,.28,1) both}
 @keyframes practice-answer-confirm{0%{transform:translateY(0) scale(1)}35%{transform:translateY(4px) scale(.97);box-shadow:0 1px 0 var(--practice-response-shadow)}68%{transform:translateY(-2px) scale(1.025);box-shadow:0 7px 0 var(--practice-response-shadow)}100%{transform:translateY(0) scale(1);box-shadow:0 5px 0 var(--practice-response-shadow)}}
 .practice-response--remembered{--practice-response-shadow:#91bb72;border-color:#3f8850;background:#d9edb6;color:#1d542e}
-.practice-session--leaving-left .practice-card--front,.is-practicing .practice-session--leaving-left .practice-card--front.is-arriving{transform-origin:52% 52%;animation:practice-card-left .42s cubic-bezier(.3,.65,.3,1) .09s both}
-.practice-session--leaving-right .practice-card--front,.is-practicing .practice-session--leaving-right .practice-card--front.is-arriving{transform-origin:48% 52%;animation:practice-card-right .42s cubic-bezier(.3,.65,.3,1) .09s both}
-@keyframes practice-card-left{0%{opacity:1;transform:translateX(0) rotate(0) scale(1)}72%{opacity:1;transform:translateX(-8%) rotate(-.8deg) scale(.995)}100%{opacity:0;transform:translateX(-12%) rotate(-1.5deg) scale(.985)}}
-@keyframes practice-card-right{0%{opacity:1;transform:translateX(0) rotate(0) scale(1)}72%{opacity:1;transform:translateX(8%) rotate(.8deg) scale(.995)}100%{opacity:0;transform:translateX(12%) rotate(1.5deg) scale(.985)}}
-.is-practicing .practice-session .reading-stage.is-arriving{animation:practice-card-arrive .36s cubic-bezier(.18,.78,.25,1) both}
-.is-practicing .practice-session--stacked .practice-card--front.is-arriving{animation:practice-card-stack-arrive .36s cubic-bezier(.18,.78,.25,1) both}
-.is-practicing .practice-session .reading-stage.is-arriving::before,.is-practicing .practice-session .reading-stage.is-arriving::after{animation:reading-layer-release .28s cubic-bezier(.2,.72,.25,1) .08s both}
-@keyframes practice-card-arrive{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
-@keyframes practice-card-stack-arrive{from{opacity:.84;transform:translateY(13px) scale(.965)}to{opacity:1;transform:translateY(0) scale(1)}}
 .practice-done,.practice-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .practice-done-mascot{width:184px;height:184px;margin:0 auto 12px}
 .practice-done h1,.practice-empty h1{margin-bottom:22px}
@@ -609,7 +621,7 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
   .practice-choose h1,.practice-empty h1,.practice-done h1{font-size:clamp(28px,7.4vw,36px);margin-bottom:24px}
   .practice-choose h1{font-size:clamp(23px,7.7vw,36px);margin-bottom:22px}
   .practice-session{padding-top:76px}
-  .practice-card-stack{margin-top:4px}
+  .practice-scene{margin-top:4px;min-height:350px}
   .practice-session .reading-stage .idea-card{min-height:min(51dvh,430px);padding:45px 23px 20px}
   .practice-session .reading-stage h2{font-size:clamp(26px,7.2vw,35px);margin-bottom:20px}
   .practice-session .reading-content{padding-bottom:12px}
@@ -620,4 +632,4 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
   .practice-done-mascot{width:156px;height:156px}
 }
 @media(max-width:370px){.practice-topics{gap:7px}.practice-topic{min-height:205px;padding-right:5px;padding-left:5px}.practice-topic-pack{transform:scale(.91);transform-origin:bottom center;margin-bottom:5px}.practice-topic-label{font-size:14px}.practice-launch{grid-template-columns:clamp(63px,19.7vw,72px) minmax(0,1fr);gap:8px;padding:6px 8px;border-radius:20px}.practice-launch-mascot{width:clamp(63px,19.7vw,72px);height:clamp(63px,19.7vw,72px)}.practice-launch-label{font-size:clamp(20px,7vw,27px)}}
-@media(prefers-reduced-motion:reduce){.practice-launch,.practice-launch::before,.practice-launch::after,.practice-launch-label,.practice-launch-char,.practice-topic-pack,.practice-response,.practice-exit,.practice-session--leaving-left .practice-card--front,.practice-session--leaving-right .practice-card--front,.is-practicing .practice-session .reading-stage.is-arriving{animation:none!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){.practice-launch,.practice-launch::before,.practice-launch::after,.practice-launch-label,.practice-launch-char,.practice-topic-pack,.practice-response,.practice-exit,.practice-responses{animation:none!important;transition:none!important}}

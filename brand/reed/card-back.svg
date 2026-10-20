@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="336" viewBox="0 0 240 336" fill="none">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="240" y2="336" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#376C49"/><stop offset="1" stop-color="#214C36"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="89" y1="207" x2="158" y2="125" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#99C36E"/><stop offset="1" stop-color="#DAEBAD"/>
+    </linearGradient>
+    <pattern id="veins" width="48" height="64" patternUnits="userSpaceOnUse">
+      <path d="M24 64V0M24 32C4 32 3 16 3 8c13 0 21 9 21 24Zm0 0c20 0 21-16 21-24-13 0-21 9-21 24Z" stroke="#C8DDA7" stroke-opacity=".085" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="240" height="336" rx="23" fill="url(#paper)"/>
+  <rect width="240" height="336" rx="23" fill="url(#veins)"/>
+  <rect x="10" y="10" width="220" height="316" rx="17" stroke="#C9DFA2" stroke-opacity=".65"/>
+  <rect x="16" y="16" width="208" height="304" rx="12" stroke="#C9DFA2" stroke-opacity=".2"/>
+  <path d="M120 33v32m-6-20 6 6 6-6m-6 258v-32m-6 20 6-6 6 6" stroke="#CCE1AB" stroke-opacity=".65" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M43 168h15m124 0h15" stroke="#CCE1AB" stroke-opacity=".45" stroke-linecap="round"/>
+  <path d="M82 207c-14-63 10-97 79-99 5 65-19 103-79 99Z" fill="#122F23" fill-opacity=".2" transform="translate(2 5)"/>
+  <path d="M82 207c-14-63 10-97 79-99 5 65-19 103-79 99Z" fill="url(#leaf)"/>
+  <path d="M82 207c13-36 39-69 79-99 5 65-19 103-79 99Z" fill="#80AF5F" fill-opacity=".7"/>
+  <path d="M76 221c10-34 38-72 65-94" stroke="#DCEBB6" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="m93 184 30-4m-18-16-4-26m18 10 25-3" stroke="#DCEBB6" stroke-opacity=".65" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

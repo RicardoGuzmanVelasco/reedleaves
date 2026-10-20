@@ -8,6 +8,7 @@ Read the newest dated entry when recent progress, deployment state, or project h
 - [Archivo histórico de captura de notas](NOTE_CAPTURE_PLAN.md): diseño e implementación del flujo anterior a los IDs directos de baraja.
 - [Repasar](PRACTICE_PLAN.md): diseño en curso, botonera inicial, posiciones aprobadas e incrementos futuros con swipe y cuatro respuestas.
 
+- [2026-10-20 — Preparación animada del repaso, paso local](2026-10-20.md)
 - [2026-10-19 — Edición de barajas en borrador](2026-10-19.md)
 - [2026-10-18 — Repaso, títulos, guardado y acceso libre a tarjetas](2026-10-18.md)
 - [2026-10-17 — Barajas en borrador y selector calmado](2026-10-17.md)

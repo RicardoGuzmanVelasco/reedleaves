@@ -5,12 +5,13 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=draft-deck-management-1";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup} from "./views.mjs?v=draft-deck-management-1";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup} from "./views.mjs?v=practice-shuffle-1";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
-import {createReadingPresentation} from "./reading-presentation.mjs?v=typewriter-middle-speed";
+import {createReadingPresentation} from "./reading-presentation.mjs?v=practice-shuffle-1";
+import {createPracticePresentation} from "./practice-presentation.mjs";
 import {updateSavedReferences} from "./card-interactions.mjs";
 import {editableNoteDecks,noteDecksWithSpace,isHomeBook} from "./notes.mjs";
 import {MAX_DAILY_LEAVES} from "./wallet.mjs";
@@ -21,6 +22,7 @@ export function startReader({createCardFeatures} = {}) {
   const noteDrafts = createNoteDrafts(store);
   const settings = document.getElementById("settings");
   const presentReading = createReadingPresentation();
+  const practicePresentation = createPracticePresentation({presentReading});
   let showOriginalTitles = store.read(keys.originalTitles) === true;
   let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, budget, preferences, statuses, daily, dailyHistory=[],dailyStatus=null,dailyStatusRequest=null,dailyStatusGeneration=0,animatedDailyDays=new Set(),dailySeenDays=new Set(), selectedDailyDay=null, dailyExclusiveCardId=null, calendarMonth=null, dailyFocusDay=null,calendarNavFocus=null,bookId, deckId, requestedId, selections, enrolledIds;
   let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, scrollToCard = false;
@@ -168,6 +170,7 @@ export function startReader({createCardFeatures} = {}) {
     const [scrollBehavior,scrollBehaviorPriority]=savedRoot["scroll-behavior"];if(scrollBehavior)root.style.setProperty("scroll-behavior",scrollBehavior,scrollBehaviorPriority);else root.style.removeProperty("scroll-behavior");
   }
   function render({focus = false} = {}) {
+    practicePresentation.dispose();
     ++renderVersion; document.body.classList.toggle("is-practicing",mode === "practice"); document.body.classList.toggle("is-practice-choosing",mode === "practice" && practiceStage === "choose"); header();
     if (!ready) { setExclusivePageLock(false);main.innerHTML = loadingView(language,failed); presentReading(main); updateCardFeatures();return; }
     refreshState(); header();
@@ -180,7 +183,16 @@ export function startReader({createCardFeatures} = {}) {
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
       (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "bookshelf" ? bookshelfView(state) : mode === "public-bookshelf" ? profileData ? bookshelfView(state) : profilePendingView(state) : mode === "profile" ? profileView(state) : mode === "daily" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "");
     if (mode === "home" && dailyStatus?.animate) dailyStatus={...dailyStatus,animate:false};
-    if (!busy) { presentReading(main); recordDisplayedCard(); }
+    if (!busy) {
+      const session=practiceSession,index=session?.index;
+      const intro=!!session?.shuffle;
+      if(session)session.shuffle=false;
+      practicePresentation.present(main,{
+        intro,ready:session?.presentedIndex===index,
+        onReady:()=>{if(practiceSession===session&&session)session.presentedIndex=index;}
+      });
+      recordDisplayedCard();
+    }
     if (!snapshot.user && mode === "book") main.querySelector('[data-action="select-deck"]')?.removeAttribute("disabled");
     if (mode === "library" && !authorForm) live.textContent = libraryQuery ? words[language].searchResults(filterLibrary(catalog,libraryQuery,libraryFilters).length) : "";
     const dialog = main.querySelector(".notes-completion-modal") || main.querySelector(".deck-modal");
@@ -379,6 +391,7 @@ export function startReader({createCardFeatures} = {}) {
       const result=await api.request("/api/reader/practice/start",{topic});
       applyState(result.state);
       practiceSession=restorePracticeSession(result.session);
+      if(practiceSession)practiceSession.shuffle=true;
       practiceUnavailable=result.reason?result:null;
       practiceStage=practiceSession?"session":"empty";
       navigate(practiceSession?"#practice/session":"#practice/empty");
@@ -388,24 +401,24 @@ export function startReader({createCardFeatures} = {}) {
     }
   }
   async function answerPractice(answer) {
-    if(mode!=="practice" || practiceStage!=="session" || !practiceSession || practiceSession.advancing)return;
-    const cardId=practiceSession.cards[practiceSession.index]?.id,userId=snapshot.user?.id;
+    if(mode!=="practice" || practiceStage!=="session" || !practiceSession || practiceSession.advancing || practiceSession.presentedIndex!==practiceSession.index)return;
+    const session=practiceSession,cardId=session.cards[session.index]?.id,userId=snapshot.user?.id;
     if(!cardId||!userId)return;
-    practiceSession.advancing=true;practiceSession.answer=answer;practiceSession.leaving=answer === "soon" ? "left" : "right";render();
+    session.advancing=true;session.answer=answer;
+    const departure=practicePresentation.leave(answer === "soon" ? "left" : "right");
     try {
-      const result=await api.request("/api/reader/practice/answer",{sessionId:practiceSession.id,cardId,index:practiceSession.index,answer});
-      if(snapshot.user?.id!==userId||!practiceSession)return;
+      const result=await api.request("/api/reader/practice/answer",{sessionId:session.id,cardId,index:session.index,answer});
+      if(snapshot.user?.id!==userId||practiceSession!==session)return;
       applyState(result.state);
     } catch(error) {
-      if(snapshot.user?.id===userId){syncError=error.code||"connectionError";practiceSession.advancing=false;practiceSession.answer=null;practiceSession.leaving=null;if(mode==="practice")render();}
+      if(snapshot.user?.id===userId&&practiceSession===session){syncError=error.code||"connectionError";session.advancing=false;session.answer=null;if(mode==="practice")render();}
       return;
     }
-    setTimeout(()=>{
-      if(mode!=="practice" || !practiceSession?.advancing)return;
-      practiceSession.index++;practiceSession.advancing=false;practiceSession.leaving=null;practiceSession.answer=null;
-      if(practiceSession.index>=practiceSession.cards.length)practiceStage="done";
-      render({focus:true});
-    },window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 510);
+    await departure;
+    if(mode!=="practice" || practiceSession!==session)return;
+    session.index++;session.advancing=false;session.answer=null;
+    if(session.index>=session.cards.length)practiceStage="done";
+    render({focus:true});
   }
   function resumePractice() {
     practiceSession=restorePracticeSession();

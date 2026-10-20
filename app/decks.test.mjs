@@ -172,18 +172,17 @@ test("Home shows one closed book per active book, without exposing trees or spen
   assert.match(homeView({...state,language:"en"}),/Go to the library/);
 });
 
-test("Practice preloads the next card beneath the active one without duplicate IDs or accessible content",async()=>{
+test("Practice exposes only the active card, enables writing and keeps the pile decorative",async()=>{
   const catalog=await fixture(),cards=catalog.cards.slice(0,3),state=readerState(catalog,{practiceStage:"session"});
   const html=practiceView(state,{cards,index:0,advancing:false,leaving:null});
-  assert.equal((html.match(/class="reading-stage/g)||[]).length,2);
-  assert.match(html,new RegExp(`class="reading-stage[^\"]*practice-card--front"[^>]*data-reading-card="${cards[0].id}"`));
-  assert.match(html,/practice-card--behind[^>]*aria-hidden="true" inert/);
+  assert.deepEqual([...html.matchAll(/data-reading-card="([^"]+)"/g)].map(match=>match[1]),[cards[0].id]);
+  assert.doesNotMatch(html,/data-reading-mode="complete"/);
+  assert.match(html,/class="practice-pile" aria-hidden="true" inert/);
   const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]);
   assert.equal(ids.length,new Set(ids).size);
-  assert.match(html,new RegExp(`data-reading-card="${cards[1].id}"[^>]*aria-hidden="true" inert`));
   const next=practiceView(state,{cards,index:1,advancing:false,leaving:null});
-  assert.match(next,new RegExp(`class="reading-stage[^\"]*practice-card--front"[^>]*data-reading-card="${cards[1].id}"`));
-  assert.match(next,new RegExp(`data-reading-card="${cards[2].id}"[^>]*aria-hidden="true" inert`));
+  assert.deepEqual([...next.matchAll(/data-reading-card="([^"]+)"/g)].map(match=>match[1]),[cards[1].id]);
+  assert.ok(html.indexOf('data-answer="soon"')<html.indexOf('data-answer="remembered"'));
 });
 
 test("Practice prices show one discounted topic, the wallet cap, and useful empty-session paths",async()=>{
