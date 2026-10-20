@@ -108,17 +108,17 @@ export function createPracticePresentation({window: win = window, document: doc 
       root.dataset.phase = "flipping";
       // Separate half-turns let writing begin only once the front faces the reader.
       await animate(scene, scene.flight, [
-        {transform:"translateY(0) rotateY(180deg)"},
-        {transform:"translateY(-30px) rotateY(148deg)",offset:.45},
-        {transform:"translateY(-42px) rotateY(90deg)"}
+        {transform:"translateY(0) rotateY(180deg) scale(1)"},
+        {transform:"translateY(-30px) rotateY(148deg) scale(1.08)",offset:.45},
+        {transform:"translateY(-42px) rotateY(90deg) scale(1.16)"}
       ], {duration:390,easing:"cubic-bezier(.45,0,.65,.6)"});
       if (!alive()) return;
       setReadable(true);
       presentReading(main, {arrival:false,delay:160});
       await animate(scene, scene.flight, [
-        {transform:"translateY(-42px) rotateY(90deg) scale(.86)"},
-        {transform:"translateY(-6px) rotateY(-3deg) scale(1.012)",offset:.61},
-        {transform:"translateY(2px) rotateY(.6deg) scale(.998)",offset:.82},
+        {transform:"translateY(-42px) rotateY(90deg) scale(.92)"},
+        {transform:"translateY(-6px) rotateY(-3deg) scale(1.055)",offset:.61},
+        {transform:"translateY(2px) rotateY(.6deg) scale(1.012)",offset:.82},
         {transform:"translateY(0) rotateY(0) scale(1)"}
       ], {duration:680,easing:"cubic-bezier(.16,.8,.26,1)"});
       if (!alive()) return;
