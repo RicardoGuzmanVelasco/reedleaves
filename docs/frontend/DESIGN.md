@@ -24,14 +24,14 @@ Inventario de las familias visibles en la app, contrastado con `main` en `530c91
 | Salvia / neutros verdes | `#51654C` (`--muted`), `#779A72` (`--sage`), `#DADCC9` (`--line`); tarjetas: borde `#6E916A`, sombra `#B7C69D` | Texto secundario, líneas, bordes y profundidad de superficies verdes. Son funciones distintas, no colores intercambiables. |
 | Verde vivo / lima | `#58BE59` (`--green`), `#B9E877` (`--light`); hoja-moneda `#B7DE76` | Acciones destacadas, mascota y recursos de crecimiento. La pequeña diferencia entre las limas queda pendiente de revisar; no recalibrar el arte automáticamente. |
 | Crema vegetal / verde pálido | `#E3EDC9` (círculo y marco del reverso), `#E4F0CC` (portadas), `#D9EDB6` (respuesta de repaso); pestaña inferior activa `#C5DD9C` con profundidad `#8CA868` | Superficies suaves de marca. El «crema» del reverso tiene matiz verde; distinguirlo del papel cálido y de la miel. |
-| Miel / madera / arena | Base unificada `#E8D3A4` (`--wood`), borde y profundidad `#BCA06D` (`--wood-edge`, `--wood-shadow`); tabs inferiores, recomendación del equipo y ambas respuestas del repaso | Familia cálida reutilizable para controles neutros; base compartida aplicada a navegación, recomendación y respuestas del repaso. |
+| Miel / madera / arena | Base `#E8D3A4` (`--wood`), borde y profundidad `#BCA06D` (`--wood-edge`, `--wood-shadow`); tabs inferiores, recomendación del equipo y respuesta «Ver menos a menudo». «Ver más a menudo» usa la familia verde `#D9EDB6`, borde `#3F8850` y sombra `#91BB72` | Familia cálida reutilizable para controles neutros; base compartida aplicada a navegación, recomendación y respuestas del repaso. |
 | Melocotón / rosa pétalo | Pétalo `#F4A6A0` y pliegue `#FAD7CE`; precio `#F3D8B2`, oferta `#F6B27D` | Moneda, precios y acentos cálidos. El melocotón del precio es más anaranjado que el pétalo; mantener esa distinción hasta revisarla. |
 | Azul papel | `#E4EFFB` (`--quote-paper`), borde `#829FBD` (`--quote-edge`), sombra `#C1D4E8` (`--quote-shadow`); luz `#F1F7FD` | Tarjetas de cita y sus acciones. Ya tiene una familia coherente de superficie, borde y profundidad. |
 | Estados funcionales | Error `#B42318` (`--error`); avisos cálidos `#FFF0DD` con texto `#704219`; indicador de novedad `#F2A83B` | Reservar para comunicar estado. No convertirlos en la identidad de respuestas neutras de frecuencia. |
 
 ### Primera oportunidad de unificación
 
-- Unificados `#E8D3A4` (madera de navegación), la miel de recomendación y las dos respuestas de frecuencia bajo `--wood`. Se elimina su diferencia anterior; controles comparten borde y profundidad `#BCA06D`.
+- Unificados `#E8D3A4` (madera de navegación), la miel de recomendación y «Ver menos a menudo» bajo `--wood`. «Ver más a menudo» conserva la familia verde de la app, con borde y sombra verdes.
 - Mantener juntos superficie, borde y sombra de cada familia: madera con profundidad marrón, melocotón con profundidad cálida, azul con profundidad azul. El texto conserva `--ink` para mantener identidad y contraste.
 - Antes de crear más tonos, preferir las variables existentes y los tokens de `app/card-themes.css`.
 

@@ -603,7 +603,6 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .practice-response.is-selected{animation:practice-answer-confirm .18s cubic-bezier(.2,.78,.28,1) both}
 @keyframes practice-answer-confirm{0%{transform:translateY(0) scale(1)}35%{transform:translateY(4px) scale(.97);box-shadow:0 1px 0 var(--practice-response-shadow)}68%{transform:translateY(-2px) scale(1.025);box-shadow:0 7px 0 var(--practice-response-shadow)}100%{transform:translateY(0) scale(1);box-shadow:0 5px 0 var(--practice-response-shadow)}}
 .practice-response--remembered{--practice-response-shadow:#91bb72;border-color:#3f8850;background:#d9edb6;color:#1d542e}
-.practice-responses .practice-response--remembered{--practice-response-shadow:var(--wood-shadow);border-color:var(--wood-edge);background:var(--wood);color:var(--ink)}
 .practice-done,.practice-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .practice-done-mascot{width:184px;height:184px;margin:0 auto 12px}
 .practice-done h1,.practice-empty h1{margin-bottom:22px}
