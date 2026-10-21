@@ -5,16 +5,20 @@ import {startBottomNavigationBehavior} from "./bottom-navigation-behavior.mjs";
 function fixture({viewport=true,touch=false}={}) {
   const target=()=>{const events=new Map();return {addEventListener:(name,fn)=>{const set=events.get(name)||new Set();set.add(fn);events.set(name,set)},removeEventListener:(name,fn)=>events.get(name)?.delete(fn),emit:name=>events.get(name)?.forEach(fn=>fn())}};
   const classes=new Set(),styles=new Map(),frames=new Map();let now=500,id=0;
-  const nav={...target(),hidden:false,inert:false,getBoundingClientRect:()=>({height:117}),classList:{toggle:(key,on)=>on?classes.add(key):classes.delete(key),remove:key=>classes.delete(key)},style:{setProperty:(key,value)=>styles.set(key,value),removeProperty:key=>styles.delete(key)},contains:element=>element?.inNav===true};
+  const pieceStyles=Array.from({length:5},()=>new Map());
+  const pieces=pieceStyles.map(style=>({style:{setProperty:(key,value)=>style.set(key,value),removeProperty:key=>style.delete(key)}}));
+  const nav={...target(),querySelectorAll:()=>pieces,hidden:false,inert:false,getBoundingClientRect:()=>({height:117}),classList:{toggle:(key,on)=>on?classes.add(key):classes.delete(key),remove:key=>classes.delete(key)},style:{setProperty:(key,value)=>styles.set(key,value),removeProperty:key=>styles.delete(key)},contains:element=>element?.inNav===true};
   const reduced={...target(),matches:false},coarse={matches:touch};
   const doc={...target(),activeElement:null,documentElement:{scrollHeight:2400},body:{classList:{contains:()=>false}},getElementById:()=>nav};
   const win={...target(),scrollY:0,innerHeight:800,performance:{now:()=>now},visualViewport:viewport?{...target(),height:800}:null,matchMedia:query=>query.includes("reduced")?reduced:coarse,getComputedStyle:()=>({bottom:"14px"}),requestAnimationFrame:fn=>{frames.set(++id,fn);return id},cancelAnimationFrame:key=>frames.delete(key)};
   const stop=startBottomNavigationBehavior(win,doc);now+=500;
   const offset=()=>parseFloat(styles.get("--navigation-scroll-offset"));
-  const scroll=y=>{win.scrollY=y;win.emit("scroll");const pending=[...frames.values()];frames.clear();pending.forEach(fn=>fn())};
+  const scroll=y=>{win.scrollY=y;win.emit("scroll");const pending=[...frames.values()];frames.clear();pending.forEach(fn=>fn(now))};
   const focus=element=>{doc.activeElement=element;doc.emit("focusin")};
   const field={matches:selector=>selector!==":focus-visible"};
-  return {win,doc,nav,reduced,styles,classes,frames,stop,scroll,offset,focus,field,advance:()=>{now+=500}};
+  const tick=(count=1)=>{for(let i=0;i<count;i++){now+=16;const pending=[...frames.values()];frames.clear();pending.forEach(fn=>fn(now))}};
+  const positions=()=>pieceStyles.map(style=>parseFloat(style.get("--navigation-piece-offset")));
+  return {win,doc,nav,reduced,styles,classes,frames,stop,scroll,offset,focus,field,tick,positions,advance:()=>{now+=500}};
 }
 
 test("Navigation follows downward scroll and returns faster on reversal without changing page layout",()=>{
@@ -62,4 +66,16 @@ test("Reduced motion changes visibility directly and cleanup removes scroll list
 test("Touch browsers without Visual Viewport still hide navigation while editing",()=>{
   const f=fixture({viewport:false,touch:true});f.focus(f.field);assert.equal(f.nav.inert,true);
   f.focus(null);assert.equal(f.nav.inert,false);f.stop();
+});
+
+
+test("Pieces leave centre-first, return outside-first, and settle with a small spring overshoot",()=>{
+  const f=fixture();f.scroll(90);f.tick(12);
+  let [outer,inner,centre]=f.positions();assert.ok(centre>inner && inner>outer);
+  f.scroll(500);f.tick(160);assert.ok(f.positions().every(value=>Math.abs(value-f.offset())<.2));
+  f.scroll(490);f.tick(4);[outer,inner,centre]=f.positions();assert.ok(outer<inner && inner<centre);
+  f.scroll(0);let bounced=false;
+  for(let i=0;i<180;i++){f.tick();if(f.positions().some(value=>value<-.1))bounced=true}
+  assert.ok(bounced);assert.ok(f.positions().every(value=>value===0));
+  f.stop();assert.equal(f.frames.size,0);
 });

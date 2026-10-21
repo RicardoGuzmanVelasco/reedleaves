@@ -2,6 +2,10 @@
 export function startBottomNavigationBehavior(win=window,doc=document) {
   const nav=doc.getElementById("main-navigation");
   if (!nav) return ()=>{};
+  const pieces=[...nav.querySelectorAll(".bottom-navigation-link")];
+  const delays=[32,16,0,16,32];
+  const springs=pieces.map(()=>({position:0,velocity:0,target:0}));
+  let springFrame=0,springTime=0;
   const viewport=win.visualViewport;
   const reduced=win.matchMedia("(prefers-reduced-motion: reduce)");
   const touch=win.matchMedia("(any-pointer: coarse)");
@@ -23,10 +27,35 @@ export function startBottomNavigationBehavior(win=window,doc=document) {
     const target=doc.activeElement;
     return !!target && !target.disabled && !target.readOnly && (target.isContentEditable || target.matches?.('textarea,input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"])'));
   }
+  function animate(time) {
+    springFrame=0;
+    const dt=Math.min(1/30,Math.max(1/240,(time-springTime)/1000||1/60));springTime=time;
+    let moving=false;
+    springs.forEach((spring,i)=>{
+      spring.velocity+=(220*(spring.target-spring.position)-20*spring.velocity)*dt;
+      spring.position+=spring.velocity*dt;
+      if(Math.abs(spring.target-spring.position)<.15 && Math.abs(spring.velocity)<.4){spring.position=spring.target;spring.velocity=0}
+      else moving=true;
+      pieces[i].style.setProperty("--navigation-piece-offset",`${spring.position}px`);
+    });
+    if(moving)springFrame=win.requestAnimationFrame(animate);
+  }
   function paint() {
     const distance=travel(),hidden=keyboard || offset>=distance;
     const pixels=keyboard?distance:reduced.matches?(offset>distance/2?distance:0):offset;
     nav.style.setProperty("--navigation-scroll-offset",`${pixels}px`);
+    springs.forEach((spring,i)=>{
+      // The same stagger reverses naturally: outer pieces return before the centre.
+      const progress=Math.max(0,Math.min(1,(pixels-delays[i])/Math.max(1,distance-32)));
+      spring.target=progress*distance;
+      if(keyboard || reduced.matches || pixels===0&&win.performance.now()<ignoreUntil){
+        spring.position=spring.target;spring.velocity=0;
+        pieces[i].style.setProperty("--navigation-piece-offset",`${spring.position}px`);
+      }
+    });
+    if(!springFrame && !keyboard && !reduced.matches && springs.some(spring=>spring.position!==spring.target)){
+      springTime=win.performance.now();springFrame=win.requestAnimationFrame(animate);
+    }
     nav.classList.toggle("is-scroll-hidden",hidden || reduced.matches&&pixels===distance);
     // A tabbed focus can reveal scroll-hidden navigation; the keyboard state is inert.
     nav.inert=keyboard;
@@ -62,5 +91,5 @@ export function startBottomNavigationBehavior(win=window,doc=document) {
   listen(nav,"focusin",reveal);
   listen(reduced,"change",paint);
   reveal();updateViewport();
-  return ()=>{listeners.forEach(remove=>remove());if(frame)win.cancelAnimationFrame(frame);nav.style.removeProperty("--navigation-scroll-offset");nav.classList.remove("is-scroll-hidden");nav.inert=false};
+  return ()=>{listeners.forEach(remove=>remove());if(frame)win.cancelAnimationFrame(frame);if(springFrame)win.cancelAnimationFrame(springFrame);pieces.forEach(piece=>piece.style.removeProperty("--navigation-piece-offset"));nav.style.removeProperty("--navigation-scroll-offset");nav.classList.remove("is-scroll-hidden");nav.inert=false};
 }
