@@ -21,7 +21,7 @@ const practiceLaunchLabel = text => {
   return chars.map(char=>`<span class="practice-launch-char">${esc(char === " " ? "\u00a0" : char)}</span>`).join("");
 };
 export const takeNoteIconMarkup = '<span class="take-note-icon" aria-hidden="true"></span>';
-const practiceFrequencyLabel = (c, direction) => `<span class="practice-frequency-main">${c.practiceFrequencyVerb ? `${esc(c.practiceFrequencyVerb)} ` : ""}<strong>${esc(c[direction])}</strong></span><span class="practice-frequency-often">${esc(c.practiceOften)}</span>`;
+const practiceFrequencyLabel = (c, direction) => `<span class="practice-frequency-main">${c.practiceFrequencyVerb ? `<span class="practice-frequency-verb">${esc(c.practiceFrequencyVerb)}</span> ` : ""}<strong>${esc(c[direction])}</strong></span><span class="practice-frequency-often">${esc(c.practiceOften)}</span>`;
 export const calendarIconMarkup = () => '<svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/></svg>';
 const shareIconMarkup = '<svg class="share-deck-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-3.4M8.7 13.3l6.6 3.4"/></svg>';
 const cardsIconMarkup = '<span class="cards-icon" aria-hidden="true"></span>';
