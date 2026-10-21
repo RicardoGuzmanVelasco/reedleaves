@@ -1,3 +1,4 @@
+import {startBottomNavigationBehavior} from "./bottom-navigation-behavior.mjs";
 import {loadCatalog} from "./catalog.mjs";
 import {localDay, restoreLanguage, bookTitle, FEEDBACK_MESSAGE_MAX_LENGTH} from "./core.mjs";
 import {featuredDecks} from "./decks.mjs";
@@ -19,6 +20,7 @@ import {nextDailyCycleBoundary} from "./daily-cycle.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
+  startBottomNavigationBehavior();
   let shareImageFile=null;
   if (typeof File === "function") fetch("/brand/reed/share-card.png").then(async response=>{
     if (response.ok) shareImageFile=new File([await response.blob()],"reedleaves.png",{type:"image/png"});
