@@ -21,10 +21,6 @@ import {nextDailyCycleBoundary} from "./daily-cycle.mjs";
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
   startBottomNavigationBehavior();
-  let shareImageFile=null;
-  if (typeof File === "function") fetch("/brand/reed/share-card.png").then(async response=>{
-    if (response.ok) shareImageFile=new File([await response.blob()],"reedleaves.png",{type:"image/png"});
-  }).catch(()=>{});
   const noteDrafts = createNoteDrafts(store);
   const settings = document.getElementById("settings");
   const presentReading = createReadingPresentation();
@@ -736,7 +732,6 @@ export function startReader({createCardFeatures} = {}) {
       if (typeof navigator.share === "function") {
         try {
           const shareData={title:deckName,text:`${shareText}\n${url.href}`};
-          if (shareImageFile && typeof navigator.canShare === "function" && navigator.canShare({files:[shareImageFile]})) shareData.files=[shareImageFile];
           await navigator.share(shareData);
           return;
         } catch(error) {
