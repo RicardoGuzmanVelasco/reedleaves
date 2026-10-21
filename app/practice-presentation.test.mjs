@@ -8,13 +8,18 @@ function fixture({reduced=false,hidden=false}={}) {
   const motion=new EventTarget();motion.matches=reduced;
   const pending=new Set(),readingCalls=[];
   function element(dataset={}) {
-    const attributes=new Map(),classes=new Set();
+    const attributes=new Map(),classes=new Set(),listeners=new Map();let capturedPointer=null;
     const el={dataset,style:{},hidden:false,disabled:false,inert:false,
       setAttribute:(k,v)=>attributes.set(k,v),removeAttribute:k=>attributes.delete(k),getAttribute:k=>attributes.get(k),
       classList:{toggle:(k,on)=>on?classes.add(k):classes.delete(k),contains:k=>classes.has(k)},
-      animate:()=>{
+      addEventListener:(type,listener)=>{if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(listener);},
+      removeEventListener:(type,listener)=>listeners.get(type)?.delete(listener),
+      dispatch:(type,values={})=>{const event={type,target:el,preventDefault(){this.defaultPrevented=true;},...values};for(const listener of listeners.get(type)||[])listener(event);return event;},
+      closest:()=>null,getBoundingClientRect:()=>({width:300}),setPointerCapture:id=>{capturedPointer=id;},
+      hasPointerCapture:id=>capturedPointer===id,releasePointerCapture:id=>{if(capturedPointer===id)capturedPointer=null;},
+      animate:(frames,options)=>{
         let resolve,reject;
-        const animation={finished:new Promise((yes,no)=>{resolve=yes;reject=no;}),
+        const animation={frames,options,finished:new Promise((yes,no)=>{resolve=yes;reject=no;}),
           complete:()=>{pending.delete(animation);resolve();},
           cancel:()=>{pending.delete(animation);reject(new Error("cancelled"));}};
         pending.add(animation);return animation;
@@ -97,6 +102,35 @@ test("Departure locks duplicate answers, completes writing and resolves when nav
   assert.equal(f.readingCalls.length,2);
   f.controller.dispose();await departure;
   assert.equal(f.pending.size,0);
+});
+
+test("A horizontal swipe follows the finger, cues its side and selects the matching answer",()=>{
+  const f=fixture();let selected=null;
+  f.controller.present(f.main,{ready:true,onSwipe:(...values)=>{selected=values;}});
+  f.front.dispatch("pointerdown",{pointerId:4,isPrimary:true,button:0,clientX:200,clientY:100,timeStamp:0});
+  const move=f.front.dispatch("pointermove",{pointerId:4,clientX:125,clientY:103,timeStamp:20});
+  assert.equal(move.defaultPrevented,true);
+  assert.equal(f.root.dataset.swipeDirection,"left");
+  assert.match(f.flight.style.transform,/translateX\(-75px\)/);
+  f.front.dispatch("pointerup",{pointerId:4,clientX:100,clientY:103,timeStamp:40});
+  assert.deepEqual(selected,["soon",-100,300,-3]);
+  f.front.dispatch("pointerdown",{pointerId:5,isPrimary:true,button:0,clientX:100,clientY:100,timeStamp:100});
+  f.front.dispatch("pointermove",{pointerId:5,clientX:175,clientY:102,timeStamp:120});
+  assert.equal(f.root.dataset.swipeDirection,"right");
+  f.front.dispatch("pointerup",{pointerId:5,clientX:200,clientY:102,timeStamp:140});
+  assert.deepEqual(selected,["remembered",100,300,3]);
+});
+
+test("A short swipe springs back without answering",async()=>{
+  const f=fixture();let selected=0;
+  f.controller.present(f.main,{ready:true,onSwipe:()=>selected++});
+  f.front.dispatch("pointerdown",{pointerId:2,isPrimary:true,button:0,clientX:100,clientY:100,timeStamp:0});
+  f.front.dispatch("pointermove",{pointerId:2,clientX:120,clientY:101,timeStamp:20});
+  f.front.dispatch("pointerup",{pointerId:2,clientX:120,clientY:101,timeStamp:40});
+  assert.equal(selected,0);assert.equal(f.root.dataset.swiping,undefined);assert.equal(f.root.dataset.swipeDirection,undefined);
+  assert.equal(f.pending.size,1);
+  await f.complete();
+  assert.equal(f.flight.style.transform,"");assert.equal(f.root.dataset.phase,"reading");
 });
 
 test("The last card has no fake remaining cards and rerendering a ready card does not replay",()=>{

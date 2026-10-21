@@ -13,6 +13,30 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - Diseñar primero para uso táctil (touch first). Las acciones, el atractivo visual y las animaciones principales deben funcionar sin hover. El hover es un refuerzo opcional para dispositivos con cursor preciso, nunca el centro de la experiencia ni un requisito para descubrir una acción.
 - Las respuestas de hover de un contenedor no deben sustituir, reiniciar ni mover la animación propia de una mascota. Separar las capas visuales cuando sea necesario.
 
+## Paleta de reutilización · inventario preliminar
+
+Inventario de las familias visibles en la app, contrastado con `main` en `530c91f`, incluida la nueva navegación inferior de madera. No es una extracción exhaustiva ni una nueva paleta aprobada. Los valores siguientes son referencias existentes para reutilizar; los matices de ilustraciones, degradados y estados pueden variar.
+
+| Familia | Colores de referencia existentes | Uso actual / criterio de reutilización |
+| --- | --- | --- |
+| Bosque / tinta | `#173D2C` (`--ink`), `#1E4C2E` (`--shadow`); reverso `#376C49` → `#214C36` | Texto e iconos principales, profundidad de controles verdes y fondos oscuros de marca. |
+| Papel cálido | `#FFF9ED` (`--paper`), `#FFFDF6`; tarjetas `#FFFEF9` → `#FFFBED` | Fondo de página, diálogos y superficies de lectura. Reutilizar papel antes de introducir otro blanco cálido. |
+| Salvia / neutros verdes | `#51654C` (`--muted`), `#779A72` (`--sage`), `#DADCC9` (`--line`); tarjetas: borde `#6E916A`, sombra `#B7C69D` | Texto secundario, líneas, bordes y profundidad de superficies verdes. Son funciones distintas, no colores intercambiables. |
+| Verde vivo / lima | `#58BE59` (`--green`), `#B9E877` (`--light`); hoja-moneda `#B7DE76` | Acciones destacadas, mascota y recursos de crecimiento. La pequeña diferencia entre las limas queda pendiente de revisar; no recalibrar el arte automáticamente. |
+| Crema vegetal / verde pálido | `#E3EDC9` (círculo y marco del reverso), `#E4F0CC` (portadas), `#D9EDB6` (respuesta de repaso); pestaña inferior activa `#C5DD9C` con profundidad `#8CA868` | Superficies suaves de marca. El «crema» del reverso tiene matiz verde; distinguirlo del papel cálido y de la miel. |
+| Miel / madera / arena | Base `#E8D3A4` (`--wood`), borde y profundidad `#BCA06D` (`--wood-edge`, `--wood-shadow`); tabs inferiores, recomendación del equipo y respuesta «Ver menos a menudo». «Ver más a menudo» usa la familia verde `#D9EDB6`, borde `#3F8850` y sombra `#91BB72` | Familia cálida reutilizable para controles neutros; base compartida aplicada a navegación, recomendación y respuestas del repaso. |
+| Melocotón / rosa pétalo | Pétalo `#F4A6A0` y pliegue `#FAD7CE`; precio `#F3D8B2`, oferta `#F6B27D` | Moneda, precios y acentos cálidos. El melocotón del precio es más anaranjado que el pétalo; mantener esa distinción hasta revisarla. |
+| Azul papel | `#E4EFFB` (`--quote-paper`), borde `#829FBD` (`--quote-edge`), sombra `#C1D4E8` (`--quote-shadow`); luz `#F1F7FD` | Tarjetas de cita y sus acciones. Ya tiene una familia coherente de superficie, borde y profundidad. |
+| Estados funcionales | Error `#B42318` (`--error`); avisos cálidos `#FFF0DD` con texto `#704219`; indicador de novedad `#F2A83B` | Reservar para comunicar estado. No convertirlos en la identidad de respuestas neutras de frecuencia. |
+
+### Primera oportunidad de unificación
+
+- Unificados `#E8D3A4` (madera de navegación), la miel de recomendación y «Ver menos a menudo» bajo `--wood`. «Ver más a menudo» conserva la familia verde de la app, con borde y sombra verdes.
+- Mantener juntos superficie, borde y sombra de cada familia: madera con profundidad marrón, melocotón con profundidad cálida, azul con profundidad azul. El texto conserva `--ink` para mantener identidad y contraste.
+- Antes de crear más tonos, preferir las variables existentes y los tokens de `app/card-themes.css`.
+
+Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas y navegación inferior), `app/card-themes.css` y `app/card-actions.css` (superficie, borde y sombra por tipo de tarjeta), `brand/reed/card-back.svg`, `brand/reed/leaf-token.svg` y `brand/reed/petal-token.svg`. Los colores internos de mascotas, iconos y portadas siguen perteneciendo a su arte; este inventario no autoriza recolorearlos.
+
 ## Iconos de saldo
 
 - El pétalo usa la silueta diagonal rosa de `brand/reed/petal-token.svg`, con el pliegue lateral claro de P2 (`#FAD7CE`).
@@ -26,7 +50,7 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - La selección de tema y el cierre pueden dar protagonismo a Plántula. Mientras se muestra una tarjeta, retirar la mascota y concentrar la atención en el contenido.
 - La elección de tema usa un fondo verde suave con luz en ambas esquinas de la diagonal, Plántula sobre el título y cuatro barajas en cuadrícula de 2×2. Cada baraja tiene tres tarjetas en abanico y un único icono grande, semitransparente y recortado por la tarjeta frontal. Mantener los cuatro iconos y sus posiciones calibradas por separado. El cierre es una X centrada dentro de un círculo fino con fondo claro opaco. Conservar la tipografía de la app.
 - Los precios de Repasar reutilizan el componente `priceTag` de «Añadir a mi tarjetero». Comparten papel ondulado melocotón; varían moneda, cantidad y nombre accesible según el contexto. El tema rebajado muestra el precio anterior y el nuevo al mismo tamaño, aspas translúcidas sobre el anterior y un icono de oferta colgando a su derecha (43 px) y abajo (25 px). El icono recorta el porcentaje y el agujero para dejar ver el fondo. El precio rebajado usa un melocotón más vivo y conserva un brillo estrecho de unos 0,75 s cada 7,5 s. Movimiento reducido desactiva el brillo.
-- Durante la tarjeta, reservar espacio superior para salir y separar las respuestas del contenido: tarjeta algo más arriba y botonera algo más abajo, sin fijarlas sobre el texto. Conservar siempre «Quiero repasarla pronto» a la izquierda y «La recordaba» a la derecha.
+- Durante la tarjeta, reservar espacio superior para salir y separar las respuestas del contenido: tarjeta algo más arriba y botonera algo más abajo, sin fijarlas sobre el texto. Mantener «Ver menos a menudo» a la izquierda y «Ver más a menudo» a la derecha. Se puede arrastrar la tarjeta horizontalmente: sigue el dedo con una inclinación suave, realza la respuesta correspondiente y sale hacia ese lado al soltar más allá del umbral; un gesto corto vuelve al centro. Los botones siguen disponibles como alternativa.
 - Las respuestas conservan su paleta al pasar el cursor y al pulsar: fondo, texto, borde y tono de sombra. El feedback cambia solo el desplazamiento y la profundidad de sombra; no aplicar filtros de color.
 
 ## Chips informativos
@@ -49,7 +73,7 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 
 ## Selector de barajas
 
-- La recomendación del equipo (`deck.isRecommended`, procedente de `is_recommended`) se muestra en el selector con la etiqueta flotante «Te recomendamos / We recommend» y estrella de puntas redondeadas. Usar la opción aprobada de papel ondulado, fondo miel `#e7d6aa`, texto y estrella en el verde bosque existente `var(--ink)` (`#173d2c`), sin borde ni sombra. El nombre accesible incluye el texto de la etiqueta y el tooltip identifica al equipo. No depende de votos ni de que la baraja esté en borrador o terminada.
+- La recomendación del equipo (`deck.isRecommended`, procedente de `is_recommended`) se muestra en el selector con la etiqueta flotante «Te recomendamos / We recommend» y estrella de puntas redondeadas. Usar la opción aprobada de papel ondulado, fondo madera `var(--wood)` (`#e8d3a4`), texto y estrella en el verde bosque existente `var(--ink)` (`#173d2c`), sin borde ni sombra. El nombre accesible incluye el texto de la etiqueta y el tooltip identifica al equipo. No depende de votos ni de que la baraja esté en borrador o terminada.
 - Las distinciones de comunidad se conservan en datos y ordenación, pero siguen ocultas; el detalle no añade distintivos. No mostrar una etiqueta de relleno para barajas sin recomendación. Dar prioridad visual al título, con mayor tamaño que la autoría y todo el ancho disponible. Sus 26 px de margen superior dejan espacio al distintivo sin solapar el título.
 - El idioma se representa con un chip después del ojo y antes del estado de creación. Usar los SVG suaves de `brand/icons/languages/` (España para español y Reino Unido para inglés); para otros idiomas, globo neutro con su etiqueta de idioma. Conservar el nombre localizado del idioma en el nombre accesible y el tooltip de apertura. No reservar espacio lateral en el título para la bandera.
 - Las tarjetas de baraja terminadas no muestran un indicador de estado. Las barajas `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. En una baraja aún no añadida a Decks, indicar que puede previsualizarse y que hay que añadirla para repasarla. La fila de chips puede envolver en móvil estrecho.

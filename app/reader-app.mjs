@@ -5,8 +5,8 @@ import {featuredDecks} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=deck-detail-actions-1";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,deckPeekView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup} from "./views.mjs?v=share-deck-button-2";
+import {words} from "./i18n.mjs?v=practice-swipe-1";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,deckPeekView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup} from "./views.mjs?v=practice-swipe-1";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -213,7 +213,8 @@ export function startReader({createCardFeatures} = {}) {
       if(session)session.shuffle=false;
       practicePresentation.present(main,{
         intro,ready:session?.presentedIndex===index,
-        onReady:()=>{if(practiceSession===session&&session)session.presentedIndex=index;}
+        onReady:()=>{if(practiceSession===session&&session)session.presentedIndex=index;},
+        onSwipe:(answer,swipeX,cardWidth,rotation)=>answerPractice(answer,{swipeX,cardWidth,rotation})
       });
       recordDisplayedCard();
     }
@@ -430,12 +431,14 @@ export function startReader({createCardFeatures} = {}) {
       practiceUnavailable={reason:error.code||"connectionError",topic,cost:topic===snapshot.practiceDiscountTopic?2:3,balance:snapshot.petals||0};practiceStage="empty";navigate("#practice/empty");
     }
   }
-  async function answerPractice(answer) {
+  async function answerPractice(answer,{swipeX=0,cardWidth=1,rotation=0}={}) {
     if(mode!=="practice" || practiceStage!=="session" || !practiceSession || practiceSession.advancing || practiceSession.presentedIndex!==practiceSession.index)return;
     const session=practiceSession,cardId=session.cards[session.index]?.id,userId=snapshot.user?.id;
     if(!cardId||!userId)return;
     session.advancing=true;session.answer=answer;
-    const departure=practicePresentation.leave(answer === "soon" ? "left" : "right");
+    const departure=practicePresentation.leave(answer === "soon" ? "left" : "right",{
+      fromXPercent:swipeX/cardWidth*100,fromRotation:rotation
+    });
     try {
       const result=await api.request("/api/reader/practice/answer",{sessionId:session.id,cardId,index:session.index,answer});
       if(snapshot.user?.id!==userId||practiceSession!==session)return;
