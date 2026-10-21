@@ -122,3 +122,8 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 - Iconos grandes en reposo. El seleccionado crece y sube dentro del marcapáginas; el nombre se muestra dentro, bajo el icono. Los demás nombres quedan visualmente ocultos, conservando su nombre accesible.
 - Mantener los iconos existentes, los cinco destinos y el orden aprobado. El estudio `brand/explorations/bottom-navigation/index.html` recoge las proporciones aprobadas.
 - El movimiento acompaña el cambio de sección y respeta movimiento reducido. Dejar espacio inferior suficiente para que la barra y su marcapáginas no tapen el contenido.
+
+- Al entrar en una ruta, la barra reaparece. El scroll descendente la desplaza hacia abajo con relación 1:1; el ascendente la recupera con relación 3:1. Sin temporizador de desaparición ni cambios en el espacio reservado al contenido. Movimiento reducido omite el deslizamiento.
+- Ocultar durante Repasar y mientras un campo editable tiene abierto el teclado virtual. El foco en escritorio no la oculta. Con teclado de navegación, enfocar la barra la devuelve a la vista.
+
+- El desplazamiento de la barra se escalona por piezas: centro, interiores y exteriores al salir; el mismo orden al volver. Un muelle suaviza el seguimiento del scroll y añade un rebote visible al asentarse. Mantener solo unos 5–6 px entre el extremo inferior del marcapáginas y la zona segura del dispositivo.
