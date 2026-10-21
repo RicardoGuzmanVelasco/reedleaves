@@ -735,7 +735,7 @@ export function startReader({createCardFeatures} = {}) {
     try {
       if (typeof navigator.share === "function") {
         try {
-          const shareData={title:deckName,text:shareText,url:url.href};
+          const shareData={title:deckName,text:`${shareText}\n${url.href}`};
           if (shareImageFile && typeof navigator.canShare === "function" && navigator.canShare({files:[shareImageFile]})) shareData.files=[shareImageFile];
           await navigator.share(shareData);
           return;
