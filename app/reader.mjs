@@ -1,4 +1,4 @@
-import { startReader } from "./reader-app.mjs?v=practice-card-back-2";
+import { startReader } from "./reader-app.mjs?v=bookmark-navigation-1";
 import {createCardFeaturesBridge} from "./generated/card-features.js";
 
 startReader({createCardFeatures:createCardFeaturesBridge});
