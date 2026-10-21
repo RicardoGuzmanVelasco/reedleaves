@@ -653,5 +653,9 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 
 @media(max-width:380px){.has-bottom-navigation main{padding-bottom:calc(104px + env(safe-area-inset-bottom))}}
 
+.share-deck-button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:9px 15px;white-space:nowrap}
+.share-deck-icon{width:19px;height:19px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+@media(max-width:520px){.share-deck-button{min-height:44px;padding:8px 12px;font-size:12px}}
+
 /* A paper veil separates navigation from content without enclosing the wooden pieces. */
 .bottom-navigation::before{content:"";position:absolute;z-index:-2;top:-27px;bottom:calc(-4px - env(safe-area-inset-bottom));left:50%;width:100vw;pointer-events:none;transform:translate(-50%,var(--navigation-backdrop-offset,0px));opacity:var(--navigation-backdrop-opacity,1);background:var(--page-background);background-size:100vw 100dvh;background-position:center bottom;background-repeat:no-repeat;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);-webkit-mask-image:linear-gradient(to bottom,transparent,#000 26px);mask-image:linear-gradient(to bottom,transparent,#000 26px)}
