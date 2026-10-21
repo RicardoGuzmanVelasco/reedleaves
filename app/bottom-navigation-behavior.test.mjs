@@ -69,13 +69,13 @@ test("Touch browsers without Visual Viewport still hide navigation while editing
 });
 
 
-test("Pieces leave centre-first, return outside-first, and settle with a small spring overshoot",()=>{
+test("Pieces leave and return centre-first, with a visible spring overshoot",()=>{
   const f=fixture();f.scroll(90);f.tick(12);
   let [outer,inner,centre]=f.positions();assert.ok(centre>inner && inner>outer);
   f.scroll(500);f.tick(160);assert.ok(f.positions().every(value=>Math.abs(value-f.offset())<.2));
-  f.scroll(490);f.tick(4);[outer,inner,centre]=f.positions();assert.ok(outer<inner && inner<centre);
+  f.scroll(490);f.tick(4);[outer,inner,centre]=f.positions();assert.ok(centre<inner && inner<outer);
   f.scroll(0);let bounced=false;
-  for(let i=0;i<180;i++){f.tick();if(f.positions().some(value=>value<-.1))bounced=true}
+  for(let i=0;i<180;i++){f.tick();if(f.positions().some(value=>value<-5))bounced=true}
   assert.ok(bounced);assert.ok(f.positions().every(value=>value===0));
   f.stop();assert.equal(f.frames.size,0);
 });

@@ -5,7 +5,7 @@ export function startBottomNavigationBehavior(win=window,doc=document) {
   const pieces=[...nav.querySelectorAll(".bottom-navigation-link")];
   const delays=[32,16,0,16,32];
   const springs=pieces.map(()=>({position:0,velocity:0,target:0}));
-  let springFrame=0,springTime=0;
+  let springFrame=0,springTime=0,direction=1,motionStart=0,motionOrigins=pieces.map(()=>0);
   const viewport=win.visualViewport;
   const reduced=win.matchMedia("(prefers-reduced-motion: reduce)");
   const touch=win.matchMedia("(any-pointer: coarse)");
@@ -32,7 +32,7 @@ export function startBottomNavigationBehavior(win=window,doc=document) {
     const dt=Math.min(1/30,Math.max(1/240,(time-springTime)/1000||1/60));springTime=time;
     let moving=false;
     springs.forEach((spring,i)=>{
-      spring.velocity+=(220*(spring.target-spring.position)-20*spring.velocity)*dt;
+      spring.velocity+=(260*(spring.target-spring.position)-16*spring.velocity)*dt;
       spring.position+=spring.velocity*dt;
       if(Math.abs(spring.target-spring.position)<.15 && Math.abs(spring.velocity)<.4){spring.position=spring.target;spring.velocity=0}
       else moving=true;
@@ -45,9 +45,12 @@ export function startBottomNavigationBehavior(win=window,doc=document) {
     const pixels=keyboard?distance:reduced.matches?(offset>distance/2?distance:0):offset;
     nav.style.setProperty("--navigation-scroll-offset",`${pixels}px`);
     springs.forEach((spring,i)=>{
-      // The same stagger reverses naturally: outer pieces return before the centre.
-      const progress=Math.max(0,Math.min(1,(pixels-delays[i])/Math.max(1,distance-32)));
-      spring.target=progress*distance;
+      // Restart the stagger from the current positions on reversal, always centre first.
+      const remaining=direction>0?distance-motionStart:motionStart;
+      const delay=delays[i]*remaining/distance;
+      const moved=Math.abs(pixels-motionStart);
+      const progress=Math.max(0,Math.min(1,(moved-delay)/Math.max(1,remaining-delay)));
+      spring.target=keyboard?distance:motionOrigins[i]+((direction>0?distance:0)-motionOrigins[i])*progress;
       if(keyboard || reduced.matches || pixels===0&&win.performance.now()<ignoreUntil){
         spring.position=spring.target;spring.velocity=0;
         pieces[i].style.setProperty("--navigation-piece-offset",`${spring.position}px`);
@@ -61,13 +64,16 @@ export function startBottomNavigationBehavior(win=window,doc=document) {
     nav.inert=keyboard;
   }
   function reveal() {
-    offset=0;lastY=position();ignoreUntil=win.performance.now()+350;paint();
+    offset=0;direction=1;motionStart=0;motionOrigins=pieces.map(()=>0);lastY=position();ignoreUntil=win.performance.now()+350;paint();
   }
   function scroll() {
     frame=0;
     const next=position(),delta=next-lastY;lastY=next;
     if(keyboard || nav.hidden || doc.body.classList.contains("is-practicing"))return;
     if(win.performance.now()<ignoreUntil || nav.contains(doc.activeElement)&&doc.activeElement?.matches?.(":focus-visible"))return;
+    if(delta && Math.sign(delta)!==direction){
+      direction=Math.sign(delta);motionStart=offset;motionOrigins=springs.map(spring=>spring.position);
+    }
     if(next<=24)offset=0;
     else offset=Math.max(0,Math.min(travel(),offset+delta*(delta<0?3:1)));
     paint();
@@ -77,7 +83,7 @@ export function startBottomNavigationBehavior(win=window,doc=document) {
     const focused=editable(),height=viewport?.height??win.innerHeight;
     if(!focused)baseline=Math.max(win.innerHeight,height);
     const next=focused && (baseline-height>140 || baseline-win.innerHeight>140 || !viewport&&touch.matches);
-    if(next!==keyboard){keyboard=next;offset=0;lastY=position()}
+    if(next!==keyboard){keyboard=next;offset=0;direction=1;motionStart=0;motionOrigins=pieces.map(()=>0);lastY=position()}
     paint();
   }
   function orientation() {baseline=Math.max(win.innerHeight,viewport?.height||0);reveal();updateViewport()}

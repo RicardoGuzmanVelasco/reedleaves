@@ -126,4 +126,4 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 - Al entrar en una ruta, la barra reaparece. El scroll descendente la desplaza hacia abajo con relación 1:1; el ascendente la recupera con relación 3:1. Sin temporizador de desaparición ni cambios en el espacio reservado al contenido. Movimiento reducido omite el deslizamiento.
 - Ocultar durante Repasar y mientras un campo editable tiene abierto el teclado virtual. El foco en escritorio no la oculta. Con teclado de navegación, enfocar la barra la devuelve a la vista.
 
-- El desplazamiento de la barra se escalona por piezas: centro, interiores y exteriores al salir; orden inverso al volver. Un muelle amortiguado suaviza el seguimiento del scroll y añade un rebote pequeño. Mantener solo unos 5–6 px entre el extremo inferior del marcapáginas y la zona segura del dispositivo.
+- El desplazamiento de la barra se escalona por piezas: centro, interiores y exteriores al salir; el mismo orden al volver. Un muelle suaviza el seguimiento del scroll y añade un rebote visible al asentarse. Mantener solo unos 5–6 px entre el extremo inferior del marcapáginas y la zona segura del dispositivo.
