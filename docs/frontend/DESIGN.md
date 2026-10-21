@@ -128,4 +128,4 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 
 - El desplazamiento de la barra se escalona por piezas: centro, interiores y exteriores al salir; el mismo orden al volver. Un muelle suaviza el seguimiento del scroll y añade un rebote visible al asentarse. Mantener solo unos 5–6 px entre el extremo inferior del marcapáginas y la zona segura del dispositivo.
 
-- Base inferior en degradado crema y desenfoque suave para separar las piezas del contenido que pasa por detrás. Sin contenedor visible ni borde añadido. La base sigue la última pieza visible y desaparece con la barra, incluido al abrir el teclado.
+- Base inferior con el fondo compartido de la página (`--page-background`), máscara en degradado y desenfoque suave para separar las piezas del contenido que pasa por detrás. Reutiliza también el degradado verde de lectura, con su escala de viewport. Sin contenedor visible ni borde añadido. La base sigue la última pieza visible y desaparece con la barra, incluido al abrir el teclado.
