@@ -13,6 +13,31 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - Diseñar primero para uso táctil (touch first). Las acciones, el atractivo visual y las animaciones principales deben funcionar sin hover. El hover es un refuerzo opcional para dispositivos con cursor preciso, nunca el centro de la experiencia ni un requisito para descubrir una acción.
 - Las respuestas de hover de un contenedor no deben sustituir, reiniciar ni mover la animación propia de una mascota. Separar las capas visuales cuando sea necesario.
 
+## Paleta de reutilización · inventario preliminar
+
+Inventario de las familias visibles en la app, contrastado con `main` en `530c91f`, incluida la nueva navegación inferior de madera. No es una extracción exhaustiva ni una nueva paleta aprobada. Los valores siguientes son referencias existentes para reutilizar; los matices de ilustraciones, degradados y estados pueden variar.
+
+| Familia | Colores de referencia existentes | Uso actual / criterio de reutilización |
+| --- | --- | --- |
+| Bosque / tinta | `#173D2C` (`--ink`), `#1E4C2E` (`--shadow`); reverso `#376C49` → `#214C36` | Texto e iconos principales, profundidad de controles verdes y fondos oscuros de marca. |
+| Papel cálido | `#FFF9ED` (`--paper`), `#FFFDF6`; tarjetas `#FFFEF9` → `#FFFBED` | Fondo de página, diálogos y superficies de lectura. Reutilizar papel antes de introducir otro blanco cálido. |
+| Salvia / neutros verdes | `#51654C` (`--muted`), `#779A72` (`--sage`), `#DADCC9` (`--line`); tarjetas: borde `#6E916A`, sombra `#B7C69D` | Texto secundario, líneas, bordes y profundidad de superficies verdes. Son funciones distintas, no colores intercambiables. |
+| Verde vivo / lima | `#58BE59` (`--green`), `#B9E877` (`--light`); hoja-moneda `#B7DE76` | Acciones destacadas, mascota y recursos de crecimiento. La pequeña diferencia entre las limas queda pendiente de revisar; no recalibrar el arte automáticamente. |
+| Crema vegetal / verde pálido | `#E3EDC9` (círculo y marco del reverso), `#E4F0CC` (portadas), `#D9EDB6` (respuesta de repaso); pestaña inferior activa `#C5DD9C` con profundidad `#8CA868` | Superficies suaves de marca. El «crema» del reverso tiene matiz verde; distinguirlo del papel cálido y de la miel. |
+| Miel / madera / arena | Tabs inferiores `#E8D3A4`, borde y sombra `#BCA06D`; recomendación `#E7D6AA`; repaso pronto `#F5E6CC`, borde `#9B7850`, sombra `#CBB291`, texto `#503A20` | Familia cálida ya presente, candidata para controles neutros. Reutilizarla antes de añadir un nuevo «mantequilla». |
+| Melocotón / rosa pétalo | Pétalo `#F4A6A0` y pliegue `#FAD7CE`; precio `#F3D8B2`, oferta `#F6B27D` | Moneda, precios y acentos cálidos. El melocotón del precio es más anaranjado que el pétalo; mantener esa distinción hasta revisarla. |
+| Azul papel | `#E4EFFB` (`--quote-paper`), borde `#829FBD` (`--quote-edge`), sombra `#C1D4E8` (`--quote-shadow`); luz `#F1F7FD` | Tarjetas de cita y sus acciones. Ya tiene una familia coherente de superficie, borde y profundidad. |
+| Estados funcionales | Error `#B42318` (`--error`); avisos cálidos `#FFF0DD` con texto `#704219`; indicador de novedad `#F2A83B` | Reservar para comunicar estado. No convertirlos en la identidad de respuestas neutras de frecuencia. |
+
+### Primera oportunidad de unificación
+
+- Agrupar `#E8D3A4` (madera de navegación) y `#E7D6AA` (miel de recomendación) bajo una misma familia; son candidatos claros a compartir un tono base. `#F5E6CC` puede ser su superficie clara. **Propuesta pendiente**, sin reemplazos aplicados.
+- Para probar «mantequilla», partir de esa miel existente con su pareja de borde/sombra `#BCA06D`, en lugar del `#F3E7B9` introducido solo en la exploración. La lavanda `#E5DFF0` de aquella muestra tampoco forma parte de la paleta inventariada.
+- Mantener juntos superficie, borde y sombra de cada familia: madera con profundidad marrón, melocotón con profundidad cálida, azul con profundidad azul. No aplicar una sombra verde universal. El texto puede conservar `--ink` para mantener identidad y contraste.
+- Antes de crear más tonos, preferir las variables existentes y los tokens de `app/card-themes.css`. Los colores que hoy están escritos directamente podrán centralizarse después, cuando se apruebe su unificación.
+
+Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas y navegación inferior), `app/card-themes.css` y `app/card-actions.css` (superficie, borde y sombra por tipo de tarjeta), `brand/reed/card-back.svg`, `brand/reed/leaf-token.svg` y `brand/reed/petal-token.svg`. Los colores internos de mascotas, iconos y portadas siguen perteneciendo a su arte; este inventario no autoriza recolorearlos.
+
 ## Iconos de saldo
 
 - El pétalo usa la silueta diagonal rosa de `brand/reed/petal-token.svg`, con el pliegue lateral claro de P2 (`#FAD7CE`).
