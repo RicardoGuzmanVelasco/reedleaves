@@ -127,3 +127,5 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 - Ocultar durante Repasar y mientras un campo editable tiene abierto el teclado virtual. El foco en escritorio no la oculta. Con teclado de navegación, enfocar la barra la devuelve a la vista.
 
 - El desplazamiento de la barra se escalona por piezas: centro, interiores y exteriores al salir; el mismo orden al volver. Un muelle suaviza el seguimiento del scroll y añade un rebote visible al asentarse. Mantener solo unos 5–6 px entre el extremo inferior del marcapáginas y la zona segura del dispositivo.
+
+- Base inferior en degradado crema y desenfoque suave para separar las piezas del contenido que pasa por detrás. Sin contenedor visible ni borde añadido. La base sigue la última pieza visible y desaparece con la barra, incluido al abrir el teclado.

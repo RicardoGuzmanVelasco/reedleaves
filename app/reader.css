@@ -652,3 +652,6 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .bottom-navigation.is-scroll-hidden{pointer-events:none}
 
 @media(max-width:380px){.has-bottom-navigation main{padding-bottom:calc(133px + env(safe-area-inset-bottom))}}
+
+/* A paper veil separates navigation from content without enclosing the wooden pieces. */
+.bottom-navigation::before{content:"";position:absolute;z-index:-2;top:-50px;bottom:calc(-4px - env(safe-area-inset-bottom));left:50%;width:100vw;pointer-events:none;transform:translate(-50%,var(--navigation-backdrop-offset,0px));opacity:var(--navigation-backdrop-opacity,1);background:linear-gradient(to bottom,rgb(255 249 237 / 0),rgb(255 249 237 / 88%) 24%,rgb(255 249 237 / 98%) 50%,#fff9ed 78%);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);-webkit-mask-image:linear-gradient(to bottom,transparent,#000 40px);mask-image:linear-gradient(to bottom,transparent,#000 40px)}
