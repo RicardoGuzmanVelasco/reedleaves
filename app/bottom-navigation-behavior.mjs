@@ -27,6 +27,13 @@ export function startBottomNavigationBehavior(win=window,doc=document) {
     const target=doc.activeElement;
     return !!target && !target.disabled && !target.readOnly && (target.isContentEditable || target.matches?.('textarea,input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"])'));
   }
+  function paintBackdrop() {
+    const distance=travel();
+    // Stay behind the last visible piece, including its spring motion.
+    const pixels=keyboard?distance:Math.max(0,Math.min(distance,...springs.map(spring=>spring.position)));
+    nav.style.setProperty("--navigation-backdrop-offset",`${pixels}px`);
+    nav.style.setProperty("--navigation-backdrop-opacity",String(1-pixels/distance));
+  }
   function animate(time) {
     springFrame=0;
     const dt=Math.min(1/30,Math.max(1/240,(time-springTime)/1000||1/60));springTime=time;
@@ -38,6 +45,7 @@ export function startBottomNavigationBehavior(win=window,doc=document) {
       else moving=true;
       pieces[i].style.setProperty("--navigation-piece-offset",`${spring.position}px`);
     });
+    paintBackdrop();
     if(moving)springFrame=win.requestAnimationFrame(animate);
   }
   function paint() {
@@ -59,6 +67,7 @@ export function startBottomNavigationBehavior(win=window,doc=document) {
     if(!springFrame && !keyboard && !reduced.matches && springs.some(spring=>spring.position!==spring.target)){
       springTime=win.performance.now();springFrame=win.requestAnimationFrame(animate);
     }
+    paintBackdrop();
     nav.classList.toggle("is-scroll-hidden",hidden || reduced.matches&&pixels===distance);
     // A tabbed focus can reveal scroll-hidden navigation; the keyboard state is inert.
     nav.inert=keyboard;
@@ -97,5 +106,5 @@ export function startBottomNavigationBehavior(win=window,doc=document) {
   listen(nav,"focusin",reveal);
   listen(reduced,"change",paint);
   reveal();updateViewport();
-  return ()=>{listeners.forEach(remove=>remove());if(frame)win.cancelAnimationFrame(frame);if(springFrame)win.cancelAnimationFrame(springFrame);pieces.forEach(piece=>piece.style.removeProperty("--navigation-piece-offset"));nav.style.removeProperty("--navigation-scroll-offset");nav.classList.remove("is-scroll-hidden");nav.inert=false};
+  return ()=>{listeners.forEach(remove=>remove());if(frame)win.cancelAnimationFrame(frame);if(springFrame)win.cancelAnimationFrame(springFrame);pieces.forEach(piece=>piece.style.removeProperty("--navigation-piece-offset"));nav.style.removeProperty("--navigation-scroll-offset");nav.style.removeProperty("--navigation-backdrop-offset");nav.style.removeProperty("--navigation-backdrop-opacity");nav.classList.remove("is-scroll-hidden");nav.inert=false};
 }
