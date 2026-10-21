@@ -10,6 +10,7 @@ export function createPracticePresentation({window: win = window, document: doc 
     current.cancelled = true;
     for (const animation of current.animations) animation.cancel();
     current.cleanup();
+    current.inputCleanup();
     current = null;
   }
 
@@ -28,7 +29,7 @@ export function createPracticePresentation({window: win = window, document: doc 
     });
   }
 
-  function present(main, {intro = false, ready = false, onReady = () => {}} = {}) {
+  function present(main, {intro = false, ready = false, onReady = () => {}, onSwipe = () => {}} = {}) {
     dispose();
     const root = main.querySelector(".practice-session");
     if (!root) { presentReading(main); return; }
@@ -37,7 +38,7 @@ export function createPracticePresentation({window: win = window, document: doc 
       front:root.querySelector("[data-reading-card]"),
       backs:[...root.querySelectorAll(".practice-pile > .practice-card-back")],
       buttons:[...root.querySelectorAll('[data-action="practice-answer"]')],
-      animations:new Set(), cancelled:false, settled:false, cleanup:() => {}
+      animations:new Set(), cancelled:false, settled:false, cleanup:() => {}, inputCleanup:() => {}
     };
     const responsesLocked = scene.buttons.some(button => button.disabled);
     const remaining = Number(root.dataset.practiceRemaining);
@@ -49,6 +50,92 @@ export function createPracticePresentation({window: win = window, document: doc 
       if (readable) scene.front.removeAttribute("aria-hidden");
       else scene.front.setAttribute("aria-hidden", "true");
     }
+    const gesture = {pointerId:null,startX:0,startY:0,lastX:0,lastAt:0,active:false,width:1};
+    const clearCue = () => {
+      delete root.dataset.swiping;
+      delete root.dataset.swipeDirection;
+    };
+    const releasePointer = () => {
+      if (gesture.pointerId !== null && scene.front.hasPointerCapture?.(gesture.pointerId)) {
+        try { scene.front.releasePointerCapture(gesture.pointerId); } catch {}
+      }
+      gesture.pointerId = null;
+      gesture.active = false;
+    };
+    const resetGesture = () => {
+      const wasSwiping = root.dataset.swiping === "true";
+      const transform = scene.flight.style.transform || "translateX(0) rotate(0deg)";
+      releasePointer();
+      clearCue();
+      if (!wasSwiping) return;
+      if (motion.matches || !scene.flight.animate) {
+        scene.flight.style.transform = "";
+        return;
+      }
+      void animate(scene, scene.flight, [
+        {transform},
+        {transform:"translateX(0) rotate(0deg)"}
+      ], {duration:230,easing:"cubic-bezier(.2,.75,.25,1)"}).then(() => {
+        if (!scene.cancelled && root.dataset.phase === "reading") scene.flight.style.transform = "";
+      });
+    };
+    const onPointerDown = event => {
+      if (!scene.settled || scene.cancelled || root.dataset.phase !== "reading" || gesture.pointerId !== null || event.isPrimary === false || event.button > 0 || scene.buttons.some(button => button.disabled)) return;
+      if (event.target.closest?.("a,button,input,select,textarea,[contenteditable='true']")) return;
+      gesture.pointerId = event.pointerId;
+      gesture.startX = gesture.lastX = event.clientX;
+      gesture.startY = event.clientY;
+      gesture.lastAt = event.timeStamp;
+      gesture.width = Math.max(scene.front.getBoundingClientRect().width, 1);
+      gesture.active = false;
+    };
+    const onPointerMove = event => {
+      if (event.pointerId !== gesture.pointerId) return;
+      const dx = event.clientX - gesture.startX, dy = event.clientY - gesture.startY;
+      if (!gesture.active) {
+        if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { releasePointer(); return; }
+        if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy) * 1.15) return;
+        gesture.active = true;
+        try { scene.front.setPointerCapture?.(event.pointerId); } catch {}
+      }
+      event.preventDefault();
+      gesture.lastX = event.clientX;
+      gesture.lastAt = event.timeStamp;
+      root.dataset.swiping = "true";
+      const side = dx < 0 ? "left" : "right";
+      if (Math.abs(dx) >= 34) root.dataset.swipeDirection = side;
+      else delete root.dataset.swipeDirection;
+      const rotation = Math.max(-5, Math.min(5, dx / gesture.width * 9));
+      scene.flight.style.transform = `translateX(${dx}px) rotate(${rotation}deg)`;
+    };
+    const onPointerUp = event => {
+      if (event.pointerId !== gesture.pointerId) return;
+      if (!gesture.active) { releasePointer(); return; }
+      const dx = event.clientX - gesture.startX;
+      const elapsed = Math.max(event.timeStamp - gesture.lastAt, 1);
+      const velocity = (event.clientX - gesture.lastX) / elapsed;
+      const accepted = Math.abs(dx) >= 72 || Math.abs(dx) >= 42 && Math.abs(velocity) >= .55;
+      const side = dx < 0 ? "left" : "right";
+      const width = gesture.width;
+      const rotation = Math.max(-5, Math.min(5, dx / width * 9));
+      scene.flight.style.transform = `translateX(${dx}px) rotate(${rotation}deg)`;
+      releasePointer();
+      if (!accepted) { resetGesture(); return; }
+      root.dataset.swipeDirection = side;
+      onSwipe(side === "left" ? "soon" : "remembered", dx, width, rotation);
+    };
+    const onPointerCancel = event => { if (event.pointerId === gesture.pointerId) resetGesture(); };
+    scene.front.addEventListener("pointerdown", onPointerDown);
+    scene.front.addEventListener("pointermove", onPointerMove, {passive:false});
+    scene.front.addEventListener("pointerup", onPointerUp);
+    scene.front.addEventListener("pointercancel", onPointerCancel);
+    scene.inputCleanup = () => {
+      releasePointer();
+      scene.front.removeEventListener("pointerdown", onPointerDown);
+      scene.front.removeEventListener("pointermove", onPointerMove);
+      scene.front.removeEventListener("pointerup", onPointerUp);
+      scene.front.removeEventListener("pointercancel", onPointerCancel);
+    };
     function finish() {
       if (scene.cancelled || scene.settled) return;
       scene.settled = true;
@@ -145,7 +232,7 @@ export function createPracticePresentation({window: win = window, document: doc 
     void enter();
   }
 
-  async function leave(direction) {
+  async function leave(direction, {fromXPercent = 0, fromRotation = 0} = {}) {
     const scene = current;
     if (!scene || !scene.settled || scene.cancelled) return;
     scene.buttons.forEach(button => {
@@ -155,7 +242,13 @@ export function createPracticePresentation({window: win = window, document: doc 
     // Finish any remaining typewriting without remounting the card.
     presentReading(scene.main, {arrival:false});
     scene.root.dataset.phase = "leaving";
-    if (motion.matches || doc.hidden || !scene.flight.animate) return;
+    delete scene.root.dataset.swiping;
+    delete scene.root.dataset.swipeDirection;
+    if (motion.matches || doc.hidden || !scene.flight.animate) {
+      scene.flight.style.transform = "";
+      scene.flight.style.opacity = "0";
+      return;
+    }
     const skipDeparture = () => {
       if (!motion.matches && !doc.hidden) return;
       for (const animation of scene.animations) animation.cancel();
@@ -169,7 +262,7 @@ export function createPracticePresentation({window: win = window, document: doc 
     };
     const sign = direction === "left" ? -1 : 1;
     await animate(scene, scene.flight, [
-      {transform:"translateX(0) rotate(0)",opacity:1,offset:0},
+      {transform:`translateX(${fromXPercent}%) rotate(${fromRotation}deg)`,opacity:1,offset:0},
       {transform:`translateX(${sign*42}%) rotate(${sign*4}deg)`,opacity:1,offset:.78},
       {transform:`translateX(${sign*68}%) rotate(${sign*6}deg)`,opacity:0,offset:1}
     ], {duration:620,easing:"cubic-bezier(.3,.65,.3,1)"});

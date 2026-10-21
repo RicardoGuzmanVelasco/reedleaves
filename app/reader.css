@@ -584,7 +584,7 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .practice-pile>.practice-card-back:last-child{box-shadow:0 2px 0 #adc297,0 3px 0 #456345,0 25px 40px -18px rgb(23 61 44 / 32%)}
 .practice-card-back[hidden]{display:none}
 .practice-card-flight{position:relative;width:100%;transform-style:preserve-3d;transform-origin:50% min(50%,30dvh)}
-.practice-card--front{width:100%;margin:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.practice-card--front{width:100%;margin:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;touch-action:pan-y}
 .practice-turn-back{inset:auto;left:calc(50% - var(--pile-width) / 2);top:calc(min(50%,30dvh) - var(--pile-height) / 2);transform:rotateY(180deg);backface-visibility:hidden;-webkit-backface-visibility:hidden;box-shadow:0 2px 0 #adc297,0 3px 0 #456345,0 20px 35px -12px rgb(23 61 44 / 24%)}
 .practice-card--front::before,.practice-card--front::after{content:none}
 .practice-session[data-phase="preparing"] .practice-card-flight{visibility:hidden}
@@ -603,6 +603,9 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .practice-response.is-selected{animation:practice-answer-confirm .18s cubic-bezier(.2,.78,.28,1) both}
 @keyframes practice-answer-confirm{0%{transform:translateY(0) scale(1)}35%{transform:translateY(4px) scale(.97);box-shadow:0 1px 0 var(--practice-response-shadow)}68%{transform:translateY(-2px) scale(1.025);box-shadow:0 7px 0 var(--practice-response-shadow)}100%{transform:translateY(0) scale(1);box-shadow:0 5px 0 var(--practice-response-shadow)}}
 .practice-response--remembered{--practice-response-shadow:#91bb72;border-color:#3f8850;background:#d9edb6;color:#1d542e}
+.practice-session[data-swiping="true"] .practice-responses{opacity:1}
+.practice-session[data-swiping="true"] .practice-response{opacity:.58}
+.practice-session[data-swipe-direction="left"] .practice-response--soon,.practice-session[data-swipe-direction="right"] .practice-response--remembered{position:relative;z-index:1;opacity:1;transform:translateY(-4px) scale(1.055);box-shadow:0 8px 0 var(--practice-response-shadow)}
 .practice-done,.practice-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .practice-done-mascot{width:184px;height:184px;margin:0 auto 12px}
 .practice-done h1,.practice-empty h1{margin-bottom:22px}

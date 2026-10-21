@@ -213,7 +213,8 @@ export function startReader({createCardFeatures} = {}) {
       if(session)session.shuffle=false;
       practicePresentation.present(main,{
         intro,ready:session?.presentedIndex===index,
-        onReady:()=>{if(practiceSession===session&&session)session.presentedIndex=index;}
+        onReady:()=>{if(practiceSession===session&&session)session.presentedIndex=index;},
+        onSwipe:(answer,swipeX,cardWidth,rotation)=>answerPractice(answer,{swipeX,cardWidth,rotation})
       });
       recordDisplayedCard();
     }
@@ -430,12 +431,14 @@ export function startReader({createCardFeatures} = {}) {
       practiceUnavailable={reason:error.code||"connectionError",topic,cost:topic===snapshot.practiceDiscountTopic?2:3,balance:snapshot.petals||0};practiceStage="empty";navigate("#practice/empty");
     }
   }
-  async function answerPractice(answer) {
+  async function answerPractice(answer,{swipeX=0,cardWidth=1,rotation=0}={}) {
     if(mode!=="practice" || practiceStage!=="session" || !practiceSession || practiceSession.advancing || practiceSession.presentedIndex!==practiceSession.index)return;
     const session=practiceSession,cardId=session.cards[session.index]?.id,userId=snapshot.user?.id;
     if(!cardId||!userId)return;
     session.advancing=true;session.answer=answer;
-    const departure=practicePresentation.leave(answer === "soon" ? "left" : "right");
+    const departure=practicePresentation.leave(answer === "soon" ? "left" : "right",{
+      fromXPercent:swipeX/cardWidth*100,fromRotation:rotation
+    });
     try {
       const result=await api.request("/api/reader/practice/answer",{sessionId:session.id,cardId,index:session.index,answer});
       if(snapshot.user?.id!==userId||practiceSession!==session)return;
