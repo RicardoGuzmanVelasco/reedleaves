@@ -115,3 +115,10 @@ En Gestionar baraja, su creador puede corregir el título y el idioma mientras e
 ## Cómo usarla
 
 Aplicar estos criterios con juicio en cada cambio; no asumir que describen la interfaz actual ni que anticipan decisiones futuras. Para entender el comportamiento vigente, consultar la implementación. Para conocer el arte vigente, consultar los recursos usados por la aplicación. Los archivos de exploración de marca son propuestas salvo confirmación explícita.
+
+## Barra inferior
+
+- Cinco piezas de madera separadas, con relieve y pequeñas inclinaciones. La sección activa se convierte en un marcapáginas verde con contorno completo y relieve que siguen la muesca inferior.
+- Iconos grandes en reposo. El seleccionado crece y sube dentro del marcapáginas; el nombre se muestra dentro, bajo el icono. Los demás nombres quedan visualmente ocultos, conservando su nombre accesible.
+- Mantener los iconos existentes, los cinco destinos y el orden aprobado. El estudio `brand/explorations/bottom-navigation/index.html` recoge las proporciones aprobadas.
+- El movimiento acompaña el cambio de sección y respeta movimiento reducido. Dejar espacio inferior suficiente para que la barra y su marcapáginas no tapen el contenido.

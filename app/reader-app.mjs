@@ -109,6 +109,7 @@ export function startReader({createCardFeatures} = {}) {
     document.getElementById("nav-bookshelf-label").textContent=c.navBookcase;
     document.getElementById("nav-profile-label").textContent=c.navProfile;
     document.getElementById("nav-daily-label").textContent=c.navDaily;
+    navigation.querySelectorAll(".bottom-navigation-link").forEach(link=>{link.title=link.querySelector(".bottom-navigation-label").textContent;});
     document.getElementById("nav-profile").href=signedIn?`#profile/${encodeURIComponent(snapshot.user.id)}`:"#profile";
     const activeNavigation=mode==="home"||["book","preview","review"].includes(mode)&&bookOrigin==="home"?"home":mode==="library"||["book","preview"].includes(mode)&&bookOrigin==="library"?"library":mode==="bookshelf"||["book","preview"].includes(mode)&&bookOrigin==="bookshelf"?"bookshelf":mode==="profile"||mode==="public-bookshelf"||mode==="account"?"profile":mode==="daily"||["review","preview"].includes(mode)&&bookOrigin==="daily"?"daily":null;
     navigation.querySelectorAll("[data-nav]").forEach(link=>{if(link.dataset.nav===activeNavigation)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current")});
