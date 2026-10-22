@@ -1,5 +1,4 @@
 import {startBottomNavigationBehavior} from "./bottom-navigation-behavior.mjs";
-import {updateBrandNavigation} from "./brand-navigation.mjs";
 import {loadCatalog} from "./catalog.mjs";
 import {localDay, restoreLanguage, bookTitle, FEEDBACK_MESSAGE_MAX_LENGTH} from "./core.mjs";
 import {featuredDecks} from "./decks.mjs";
@@ -113,7 +112,7 @@ export function startReader({createCardFeatures} = {}) {
     const activeNavigation=mode==="home"||["book","preview","review"].includes(mode)&&bookOrigin==="home"?"home":mode==="library"||["book","preview"].includes(mode)&&bookOrigin==="library"?"library":mode==="bookshelf"||["book","preview"].includes(mode)&&bookOrigin==="bookshelf"?"bookshelf":mode==="profile"||mode==="public-bookshelf"||mode==="account"?"profile":mode==="daily"||["review","preview"].includes(mode)&&bookOrigin==="daily"?"daily":null;
     navigation.querySelectorAll("[data-nav]").forEach(link=>{if(link.dataset.nav===activeNavigation)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current")});
     document.title = pageTitle(["card","quote"].includes(authorForm?.kind) ? c.takeNote : mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.books : mode === "bookshelf" ? c.bookcase : mode === "public-bookshelf" ? c.shelf : mode === "profile" ? c.profile : mode === "daily" ? c.daily : mode === "practice" ? c.practice : mode === "saved" ? c.savedCards : mode === "book" ? c.chooseDeck : mode === "preview" ? c.deckPeekPage : mode === "mascots" ? c.mascots : mode === "author" ? c.manageDeck : c.review);
-    updateBrandNavigation(document.querySelector(".brand"),signedIn,pageTitle(c.home)); document.querySelector(".skip-link").textContent = c.skip;
+    document.querySelector(".skip-link").textContent = c.skip;
     for (const [id,text] of [["settings-title",c.settings],["language-label",c.language],["original-titles-label",c.showOriginalTitles]]) document.getElementById(id).textContent = text;
     document.getElementById("open-settings").setAttribute("aria-label",c.settings); document.getElementById("close-settings").setAttribute("aria-label",c.closeSettings);
     document.getElementById("open-feedback").textContent=c.feedback;
@@ -132,8 +131,6 @@ export function startReader({createCardFeatures} = {}) {
     const currencyWallets=document.getElementById("currency-wallets");
     currencyWallets.hidden = !signedIn;
     if(!signedIn)setCurrencyRecoveryOpen(false);
-    document.getElementById("brand-name").hidden = signedIn;
-    document.querySelector(".brand").classList.toggle("brand-with-name",!signedIn);
     const petals = Number.isSafeInteger(snapshot.petals) ? snapshot.petals : 0,petalMaximum=Number.isSafeInteger(snapshot.petalMaximum)?snapshot.petalMaximum:15;
     document.getElementById("petal-count").textContent = ready ? String(petals) : "—";
     document.getElementById("petal-maximum").textContent=`/${petalMaximum}`;
