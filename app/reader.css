@@ -72,7 +72,7 @@
 .deck-modal .deck-detail-actions .deck-collection-primary{gap:6px;padding-inline:8px}
 @keyframes deck-pop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(min-width:600px){.deck-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.deck-tile{min-height:176px;padding:26px 17px 17px}.deck-tile-copy strong{font-size:20px}}
-@media(max-width:520px){.deck-grid{gap:11px}.deck-tile{min-height:157px;padding:26px 13px 13px;border-radius:19px}.deck-tile-copy strong{font-size:18px}.deck-modal{width:calc(100% - 24px);max-height:90dvh;border-radius:25px}.deck-modal .deck-card{padding:27px 22px 25px;border-radius:25px}.deck-modal h2{font-size:27px}.deck-modal-close{top:11px;right:11px;width:38px;height:38px}}
+@media(max-width:520px){.deck-grid{gap:11px}.deck-tile{min-height:157px;padding:26px 13px 13px;border-radius:19px}.deck-tile-copy strong{font-size:18px}.deck-modal{width:calc(100% - 24px);max-height:90dvh;border-radius:25px}.deck-modal .deck-card{padding:27px 22px 25px;border-radius:25px}.deck-modal h2{font-size:27px}.deck-modal-close{top:11px;right:11px;width:38px;height:38px}.deck-modal .deck-detail-actions{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)}}
 @media(prefers-reduced-motion:reduce){.deck-modal[open]{animation:none}.deck-tile{transition:none}}
 
 /* Home header and closed books for active studies. */
