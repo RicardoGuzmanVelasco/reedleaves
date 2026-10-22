@@ -93,15 +93,14 @@ test("Only Spanish and English are restored as interface languages", () => {
 test("The SQL catalog requires Spanish and English book metadata independently from deck languages", async () => {
   const c = await catalog();
   for (const book of c.books) {
-    for (const field of ["title", "shortTitle", "description", "editorialNote"]) {
+    for (const field of ["title", "description", "editorialNote"]) {
       assert.deepEqual(Object.keys(book[field]).sort(), [...LANGUAGES].sort());
       for (const language of LANGUAGES) assert.ok(book[field][language].trim());
     }
   }
   assert.equal(c.booksById.get("same-as-ever").title.es, "Lo que nunca cambia");
-  assert.equal(c.booksById.get("getting-things-done").shortTitle.es, "Organízate con eficacia");
-  assert.equal(c.booksById.get("seven-habits").shortTitle.en, "The 7 Habits");
-  assert.notEqual(c.booksById.get("seven-habits").shortTitle.en, c.booksById.get("seven-habits").title.en);
+  assert.equal(c.booksById.get("getting-things-done").title.es, "Organízate con eficacia");
+  assert.equal(c.booksById.get("seven-habits").title.en, "The 7 Habits of Highly Effective People");
   assert.equal(c.decks.length, 6);
   assert.equal(c.decks.some(deck => deck.language === "fr"), false);
   assert.equal(c.allCards.length, 42);
@@ -111,11 +110,11 @@ test("The SQL catalog requires Spanish and English book metadata independently f
   }
 });
 
-test("Spanish and English book previews use their separate short and full title fields", async () => {
+test("Spanish and English book previews use the full title in details", async () => {
   const s = {catalog:await catalog(), language:"en", statuses:{}, openBookId:"seven-habits", storageAvailable:true};
   const html = libraryView(s);
   assert.match(html, /Library/);
-  for (const book of s.catalog.books) assert.ok(html.includes(escapeHtml(book.shortTitle.en)));
+  for (const book of s.catalog.books) assert.ok(html.includes(escapeHtml(book.title.en)));
   assert.match(html, /<h2 id="book-dialog-title"[^>]*>The 7 Habits of Highly Effective People<\/h2>/);
   assert.match(html, /Personal growth/);
   assert.match(html, /Productivity/);
@@ -125,7 +124,7 @@ test("Spanish and English book previews use their separate short and full title 
 });
 
 test("Missing Spanish or English metadata rejects the seed, API payload and incomplete persisted catalog", async () => {
-  for (const mutate of [s => s.books[0].title_en = "", s => s.books[0].short_title_es = "", s => s.genres[0].name_en = ""]) {
+  for (const mutate of [s => s.books[0].title_en = "", s => s.books[0].description_es = "", s => s.genres[0].name_en = ""]) {
     const seed = readSeed(); mutate(seed); assert.throws(() => validateSeed(seed));
   }
   const c = await catalog(), payload = {

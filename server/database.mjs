@@ -8,8 +8,8 @@ import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH,USERNAME_MIN_LENGTH
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 34;
-export const POSTGRES_SCHEMA_VERSION = 26;
+export const SQLITE_SCHEMA_VERSION = 35;
+export const POSTGRES_SCHEMA_VERSION = 27;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -96,6 +96,12 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 34) {
+    db.exec("BEGIN IMMEDIATE");
+    try { db.exec("ALTER TABLE book_translations DROP COLUMN short_title; PRAGMA user_version=35; COMMIT;"); }
+    catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 33) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -578,6 +584,17 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 26) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,book_translations IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 27) return;
+          await db.exec(`ALTER TABLE book_translations DROP COLUMN short_title;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=27;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=27);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 25) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,decks,users IN ACCESS EXCLUSIVE MODE;");

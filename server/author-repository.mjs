@@ -17,11 +17,11 @@ export async function ownedBookInformation(db,session,bookId,{lock=false}={}) {
   if (typeof bookId !== "string" || !bookId.trim() || bookId.length > 240) throw new ApiError(400,"invalidRequest");
   const book=await db.prepare(`SELECT * FROM books WHERE id=? AND creator_user_id=?${lock && isPostgres(db) ? " FOR UPDATE" : ""}`).get(bookId,session.user_id);
   if (!book) throw new ApiError(404,"bookUnavailable");
-  const metadata={originalTitle:book.original_title,originalLanguage:book.original_language,title:{},shortTitle:{},description:{},editorialNote:{},
+  const metadata={originalTitle:book.original_title,originalLanguage:book.original_language,title:{},description:{},editorialNote:{},
     genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY genre_id").all(bookId)).map(row=>row.genre_id),
     links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id=?").all(bookId)).map(row=>[row.platform,row.url]))};
   for (const row of await db.prepare("SELECT * FROM book_translations WHERE book_id=?").all(bookId)) {
-    metadata.title[row.language]=row.title; metadata.shortTitle[row.language]=row.short_title;
+    metadata.title[row.language]=row.title;
     metadata.description[row.language]=row.description; metadata.editorialNote[row.language]=row.editorial_note;
   }
   return {title:book.original_title,author:book.author,language:book.original_language,metadata};
@@ -29,12 +29,7 @@ export async function ownedBookInformation(db,session,bookId,{lock=false}={}) {
 
 export function mergeOwnedBookMetadata(existing,proposal) {
   const current=structuredClone(existing.metadata);
-  // Preserve displayed original-title fallbacks when adding that translation row.
-  // Other original languages need no fabricated description or translation row.
-  if (proposal?.title?.[existing.language]) {
-    current.title[existing.language] ||= existing.title;
-    current.shortTitle[existing.language] ||= existing.title;
-  }
+  if (proposal?.title?.[existing.language]) current.title[existing.language] ||= existing.title;
   return mergeBookMetadata(current,proposal);
 }
 
@@ -47,8 +42,8 @@ export async function completeBook(db,session,input) {
     let metadata;
     try { metadata=mergeOwnedBookMetadata(existing,proposal); } catch { throw new ApiError(400,"invalidRequest"); }
     for (const genre of metadata.genres) if (!await db.prepare("SELECT 1 FROM genres WHERE id=?").get(genre)) throw new ApiError(400,"invalidRequest");
-    for (const language of Object.keys(metadata.title)) await db.prepare(`INSERT INTO book_translations(book_id,language,title,short_title,description,editorial_note) VALUES (?,?,?,?,?,?)
-      ON CONFLICT(book_id,language) DO NOTHING`).run(input.bookId,language,metadata.title[language],metadata.shortTitle[language],metadata.description[language],metadata.editorialNote[language]);
+    for (const language of Object.keys(metadata.title)) await db.prepare(`INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)
+      ON CONFLICT(book_id,language) DO NOTHING`).run(input.bookId,language,metadata.title[language],metadata.description[language],metadata.editorialNote[language]);
     for (const genre of metadata.genres) await db.prepare("INSERT INTO book_genres(book_id,genre_id) VALUES (?,?) ON CONFLICT(book_id,genre_id) DO NOTHING").run(input.bookId,genre);
     for (const [platform,url] of Object.entries(metadata.links)) await db.prepare("INSERT INTO book_links(book_id,platform,url) VALUES (?,?,?) ON CONFLICT(book_id,platform) DO NOTHING").run(input.bookId,platform,url);
     return {bookId:input.bookId};
@@ -67,11 +62,11 @@ export async function createBook(db,session,input) {
     const previous=await db.prepare("SELECT * FROM books WHERE id=?").get(id);
     if (previous) {
       if (previous.creator_user_id !== session.user_id || previous.original_title !== title || previous.author !== author || previous.original_language !== language) throw new ApiError(409,"invalidRequest");
-      const saved={originalTitle:title,originalLanguage:language,title:{},shortTitle:{},description:{},editorialNote:{},
+      const saved={originalTitle:title,originalLanguage:language,title:{},description:{},editorialNote:{},
         genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY genre_id").all(id)).map(row=>row.genre_id),
         links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id=?").all(id)).map(row=>[row.platform,row.url]))};
       for (const row of await db.prepare("SELECT * FROM book_translations WHERE book_id=?").all(id)) {
-        saved.title[row.language]=row.title; saved.shortTitle[row.language]=row.short_title;
+        saved.title[row.language]=row.title;
         saved.description[row.language]=row.description; saved.editorialNote[row.language]=row.editorial_note;
       }
       if (!isDeepStrictEqual(normalizeBookMetadata(saved),metadata)) throw new ApiError(409,"invalidRequest");
@@ -79,7 +74,7 @@ export async function createBook(db,session,input) {
     }
     const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM books").get();
     await db.prepare("INSERT INTO books(id,author,original_title,original_language,position,creator_user_id) VALUES (?,?,?,?,?,?)").run(id,author,title,language,position,session.user_id);
-    for (const language of Object.keys(metadata.title)) await db.prepare("INSERT INTO book_translations(book_id,language,title,short_title,description,editorial_note) VALUES (?,?,?,?,?,?)").run(id,language,metadata.title[language],metadata.shortTitle[language],metadata.description[language],metadata.editorialNote[language]);
+    for (const language of Object.keys(metadata.title)) await db.prepare("INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,metadata.title[language],metadata.description[language],metadata.editorialNote[language]);
     for (const genre of metadata.genres) await db.prepare("INSERT INTO book_genres(book_id,genre_id) VALUES (?,?)").run(id,genre);
     for (const [platform,url] of Object.entries(metadata.links)) await db.prepare("INSERT INTO book_links(book_id,platform,url) VALUES (?,?,?)").run(id,platform,url);
     await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'reading')").run(session.user_id,id);

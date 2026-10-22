@@ -1,10 +1,10 @@
-import {isCanonicalLocale,LANGUAGES,TITLE_MAX_LENGTH,BOOK_SHORT_TITLE_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH} from "./core.mjs";
+import {isCanonicalLocale,LANGUAGES,TITLE_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH} from "./core.mjs";
 import {bookLinkUrl,BOOK_LINK_PLATFORMS} from "./book-links.mjs";
 
-export const TRANSLATION_FIELDS = {title:TITLE_MAX_LENGTH,shortTitle:BOOK_SHORT_TITLE_MAX_LENGTH,description:DESCRIPTION_MAX_LENGTH,editorialNote:EDITORIAL_NOTE_MAX_LENGTH};
+export const TRANSLATION_FIELDS = {title:TITLE_MAX_LENGTH,description:DESCRIPTION_MAX_LENGTH,editorialNote:EDITORIAL_NOTE_MAX_LENGTH};
 export function missingBookInformation(book) {
   const missing=[];
-  for (const language of LANGUAGES) for (const field of ["title","shortTitle","description"]) {
+  for (const language of LANGUAGES) for (const field of ["title","description"]) {
     if (!book[field]?.[language]?.trim()) missing.push({field,language});
   }
   if (!book.genres?.length) missing.push({field:"genres"});
@@ -18,7 +18,7 @@ function text(value,max) {
 // Shared by preview generation and saving. Unknown fields never enter the catalog.
 export function normalizeBookMetadata(value={}, {completeTranslations=true}={}) {
   if (!object(value)) throw new Error("Invalid book metadata");
-  const result={title:{},shortTitle:{},description:{},editorialNote:{},genres:[],links:{}};
+  const result={title:{},description:{},editorialNote:{},genres:[],links:{}};
   if (value.originalTitle !== undefined) result.originalTitle=text(value.originalTitle,TITLE_MAX_LENGTH);
   if (value.originalLanguage !== undefined) {
     if (!isCanonicalLocale(value.originalLanguage)) throw new Error("Invalid book metadata");

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {mainBookTitle,generatedBookTitles} from "./book-title-policy.mjs";
+import {mainBookTitle,generatedBookTitle} from "./book-title-policy.mjs";
 
 test("Only identified subtitles and alternate headings are removed; intrinsic punctuation is preserved",()=>{
   assert.equal(mainBookTitle("Rompe la barrera del no / Never Split de Difference",["Never Split de Difference"]),"Rompe la barrera del no");
@@ -12,12 +12,8 @@ test("Only identified subtitles and alternate headings are removed; intrinsic pu
   assert.equal(mainBookTitle("A / B: C",["Different subtitle"]),"A / B: C");
 });
 
-test("Generated short titles have a Unicode character bound and are not silently cut",()=>{
-  assert.deepEqual(generatedBookTitles({title:"Rompe la barrera del no / Never Split de Difference",shortTitle:"Rompe la barrera del no",alternateTitle:"Never Split de Difference"},"Never Split the Difference"),
-    {title:"Rompe la barrera del no",shortTitle:"Rompe la barrera del no"});
-  assert.deepEqual(generatedBookTitles({title:"🌿".repeat(32),shortTitle:"🌿".repeat(32)},"Original"),{title:"🌿".repeat(32),shortTitle:"🌿".repeat(32)});
-  assert.throws(()=>generatedBookTitles({title:"Título largo",shortTitle:"x".repeat(33)},"Original"));
-  assert.throws(()=>generatedBookTitles({title:"x".repeat(33),shortTitle:null},"Original"));
-  assert.throws(()=>generatedBookTitles({title:"Título completo",shortTitle:"Título…"},"Original"));
-  assert.throws(()=>generatedBookTitles({title:"Título",shortTitle:"Título más largo"},"Original"));
+test("Generated titles remove identified subtitles and retain complete long titles",()=>{
+  assert.equal(generatedBookTitle({title:"Rompe la barrera del no / Never Split de Difference",alternateTitle:"Never Split de Difference"},"Never Split the Difference"),"Rompe la barrera del no");
+  assert.equal(generatedBookTitle({title:"🌿".repeat(32)},"Original"),"🌿".repeat(32));
+  assert.throws(()=>generatedBookTitle({title:"  "},"Original"));
 });

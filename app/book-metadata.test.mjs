@@ -21,7 +21,7 @@ test("Existing metadata survives autofill; invalid translations and unsafe links
 
 test("Only incomplete owned books offer completion; optional links do not keep the indicator visible",()=>{
   const minimal={...normalizeBookMetadata(),id:"mine",creatorUserId:"owner",author:"Daniel Kahneman",originalTitle:bookMetadata.originalTitle,originalLanguage:"en"};
-  assert.equal(missingBookInformation(minimal).length,7);
+  assert.equal(missingBookInformation(minimal).length,5);
   const complete={...minimal,...bookMetadata};
   assert.equal(missingBookInformation(complete).length,0);
   const catalog={...state.catalog,books:[minimal],booksById:new Map([["mine",minimal]]),decks:[]};
@@ -40,7 +40,7 @@ test("Only incomplete owned books offer completion; optional links do not keep t
 });
 
 test("Completion reuses the preview but saves to the current book and locks existing fields",()=>{
-  const metadata=structuredClone(bookMetadata),original=normalizeBookMetadata({title:{en:bookMetadata.originalTitle},shortTitle:{en:bookMetadata.originalTitle}},{completeTranslations:false});
+  const metadata=structuredClone(bookMetadata),original=normalizeBookMetadata({title:{en:bookMetadata.originalTitle}},{completeTranslations:false});
   const form={kind:"book",bookId:"mine",title:bookMetadata.originalTitle,author:"Autor guardado",language:"en",metadata,originalMetadata:original};
   const initial=authorFormView({...state,authorForm:form});
   assert.match(initial,/Completar información/);assert.match(initial,/Solo se rellenarán los datos que faltan/);

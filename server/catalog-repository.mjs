@@ -15,16 +15,15 @@ export async function readCatalog(db, userId) {
     FROM books b LEFT JOIN users u ON u.id=b.creator_user_id ORDER BY b.position`).all()) {
     const book = {schemaVersion:1,id:row.id,author:row.author,editorialStatus:row.editorial_status,
       creatorUserId:row.creator_user_id,creatorName:row.creator_name || null,creatorProfileUserId:row.creator_profile_user_id || null,
-      originalTitle:row.original_title,originalLanguage:row.original_language,title:{},shortTitle:{},description:{},editorialNote:{},
+      originalTitle:row.original_title,originalLanguage:row.original_language,title:{},description:{},editorialNote:{},
       links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id = ? ORDER BY platform").all(row.id)).map(link=>[link.platform,link.url])),
       genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id = ? ORDER BY genre_id").all(row.id)).map(t=>t.genre_id)};
     for (const t of await db.prepare("SELECT * FROM book_translations WHERE book_id = ?").all(row.id)) {
-      book.title[t.language]=t.title; book.shortTitle[t.language]=t.short_title;
+      book.title[t.language]=t.title;
       book.description[t.language]=t.description; book.editorialNote[t.language]=t.editorial_note;
     }
     if (book.creatorUserId) {
       book.title[book.originalLanguage] ||= book.originalTitle;
-      book.shortTitle[book.originalLanguage] ||= book.originalTitle;
     }
     validateBookLinks(book.links,{required:!book.creatorUserId}); books.push(validateBook(book,LANGUAGES,{requireOriginal:true}));
   }

@@ -6,7 +6,6 @@ export const USERNAME_MAX_LENGTH = 32;
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
 export const TITLE_MAX_LENGTH = 72;
-export const BOOK_SHORT_TITLE_MAX_LENGTH = 32;
 export const CARD_BODY_MAX_LENGTH = 300;
 export const DESCRIPTION_MAX_LENGTH = 240;
 export const EDITORIAL_NOTE_MAX_LENGTH = 240;
@@ -48,19 +47,15 @@ export function contentLocale(translations, interfaceLanguage, deckLanguage = in
   return entries.find(([language]) => language.split("-")[0] === deckLanguage.split("-")[0])?.[0] || entries[0]?.[0] || deckLanguage;
 }
 
-export function bookTitle(book, interfaceLanguage, {original = false, short = false} = {}) {
+export function bookTitle(book, interfaceLanguage, {original = false} = {}) {
   if (original && book.originalTitle) return {text:book.originalTitle, language:book.originalLanguage};
-  const translations = short ? book.shortTitle : book.title;
+  const translations = book.title;
   return {text:contentText(translations,interfaceLanguage,book.originalLanguage) || book.originalTitle,
     language:contentLocale(translations,interfaceLanguage,book.originalLanguage)};
 }
 
 export function bookCoverTitle(book, interfaceLanguage, {original = false} = {}) {
-  const full=bookTitle(book,interfaceLanguage,{original});
-  if (original) return full;
-  const short=book.shortTitle?.[full.language]?.trim() || full.text;
-  const abbreviated=Array.from(short).length < Array.from(full.text).length;
-  return {text:short + (abbreviated && !/(?:…|\.{3})$/u.test(short) ? "…" : ""),language:full.language};
+  return bookTitle(book,interfaceLanguage,{original});
 }
 
 export function validateBook(book, requiredLanguages = ["es", "en"], {requireOriginal = false} = {}) {
@@ -70,7 +65,7 @@ export function validateBook(book, requiredLanguages = ["es", "en"], {requireOri
   if (requireOriginal || book.originalTitle !== undefined || book.originalLanguage !== undefined) {
     if (typeof book.originalTitle !== "string" || !book.originalTitle.trim() || !isCanonicalLocale(book.originalLanguage)) throw new Error("Invalid original book title or language");
   }
-  const fields = ["title","shortTitle","description","editorialNote"];
+  const fields = ["title","description","editorialNote"];
   if (book.creatorUserId != null) {
     if (typeof book.creatorUserId !== "string" || !book.creatorUserId.trim() || !isCanonicalLocale(book.originalLanguage)) throw new Error("Invalid book owner");
     for (const field of fields) {
@@ -78,7 +73,7 @@ export function validateBook(book, requiredLanguages = ["es", "en"], {requireOri
         if (!isCanonicalLocale(language) || typeof value !== "string" || !value.trim()) throw new Error("Invalid book translation");
       }
     }
-    if (!book.title?.[book.originalLanguage]?.trim() || !book.shortTitle?.[book.originalLanguage]?.trim()) throw new Error("Missing book title");
+    if (!book.title?.[book.originalLanguage]?.trim()) throw new Error("Missing book title");
     return book;
   }
   for (const field of fields) {

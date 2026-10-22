@@ -44,7 +44,7 @@ function makeServer(db,publicBaseUrl) {
     const catalog=await readCatalog(db);
     const needle=query.trim().toLocaleLowerCase("es");
     const matches=catalog.books.filter(book=>[
-      book.originalTitle,book.author,...Object.values(book.title),...Object.values(book.shortTitle)
+      book.originalTitle,book.author,...Object.values(book.title)
     ].some(value=>value?.toLocaleLowerCase("es").includes(needle))).slice(0,12).map(book=>({
       bookId:book.id,title:book.originalTitle,author:book.author,originalLanguage:book.originalLanguage,
       localizedTitles:book.title,deckCount:catalog.decks.filter(deck=>deck.bookId===book.id).length

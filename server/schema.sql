@@ -30,7 +30,6 @@ CREATE TABLE book_translations (
   book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
   title TEXT NOT NULL CHECK(length(trim(title)) > 0),
-  short_title TEXT NOT NULL CHECK(length(trim(short_title)) > 0),
   description TEXT NOT NULL CHECK(length(trim(description)) > 0),
   editorial_note TEXT NOT NULL CHECK(length(trim(editorial_note)) > 0),
   PRIMARY KEY(book_id, language)
@@ -277,4 +276,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 34;
+PRAGMA user_version = 35;

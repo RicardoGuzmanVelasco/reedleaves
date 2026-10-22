@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 26));
-INSERT INTO reed_schema VALUES (26);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 27));
+INSERT INTO reed_schema VALUES (27);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -23,7 +23,7 @@ CREATE TABLE book_links(
 CREATE TABLE book_translations(
   book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
-  title TEXT NOT NULL CHECK(length(btrim(title)) > 0), short_title TEXT NOT NULL CHECK(length(btrim(short_title)) > 0),
+  title TEXT NOT NULL CHECK(length(btrim(title)) > 0),
   description TEXT NOT NULL CHECK(length(btrim(description)) > 0), editorial_note TEXT NOT NULL CHECK(length(btrim(editorial_note)) > 0),
   PRIMARY KEY(book_id,language)
 );

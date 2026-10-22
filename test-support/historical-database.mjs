@@ -26,6 +26,8 @@ export async function historicalDatabase(t,dialect,version) {
   if (beforePersonalBooks) await db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
   if (version >= (dialect === "postgres" ? 21 : 29)) {
     const seed=readCurrentSeed();
+    // Historical schemas still require this retired field until the migration runs.
+    for (const book of seed.books) for (const language of ["es","en"]) book[`short_title_${language}`]=book[`title_${language}`];
     if (version < (dialect === "postgres" ? 25 : 33)) seed.genres=seed.genres.filter(genre=>genre.id!=="society");
     await seedCurrentCatalog(db,seed);
   }
@@ -84,6 +86,7 @@ export async function migrationData(db) {
   for (const table of tables) {
     const additiveGenre=table === "genres" ? " WHERE id<>'society'" : table === "genre_translations" ? " WHERE genre_id<>'society'" : "";
     result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${table}${additiveGenre} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();
+    if (table === "book_translations") result[table]=result[table].map(({short_title,...translation})=>translation);
   }
   const flattened=await has("deck_versions");
   result.deckStatus=flattened
