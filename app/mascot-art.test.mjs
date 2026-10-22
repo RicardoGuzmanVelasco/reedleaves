@@ -60,7 +60,7 @@ test("Active mascots share a face inside body motion; unknown stages stay facele
     const html=mascotArt(stage);
     assert.match(html,/mascot-art-motion"><img[^>]*><svg class="mascot-face"/);
     const body=readFileSync(new URL(`..${mascotAssets[stage]}`,import.meta.url));
-    if(!["root","stem","flower"].includes(stage)) assert.doesNotMatch(body.toString(),/<ellipse|id="face"|#173D2C/i);
+    if(!["root","flower"].includes(stage)) assert.doesNotMatch(body.toString(),/<ellipse|id="face"|#173D2C/i);
     assert.equal((html.match(/class="mascot-eye-expression"/g)||[]).length,2);
     assert.match(html,/class="mascot-mouth"/);
   }

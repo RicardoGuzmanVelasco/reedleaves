@@ -20,9 +20,9 @@ En tarjetas propias, la placa y los pulgares de voto tienen contorno discontinuo
 
 ## Revisión visual
 
-Revisadas ideas y citas en móvil y escritorio. En escritorio ambas tienen padding `58px 72px 30px`, radio `32px` y la misma altura mínima; en móvil comparten padding `54px 22px 21px` y radio `25px`. Se conservan Courier/Garamond y las paletas Salvia/azul. Las comillas siguen completas y las cintas pueden sobresalir. Capturas locales en `var/shared-cards-qa/`, fuera de Git.
+Revisadas ideas y citas en móvil y escritorio. En escritorio ambas tienen padding `58px 72px 30px`, radio `32px` y la misma altura mínima; en móvil comparten padding `54px 22px 21px` y radio `25px`. Ideas y citas usan Courier; las citas van en cursiva y conservan las paletas Salvia/azul. Las comillas siguen completas y las cintas pueden sobresalir. Capturas locales en `var/shared-cards-qa/`, fuera de Git.
 
-Tipografía aprobada: Cormorant Garamond Light 300 en citas, servida como WOFF2 desde la app. Peso parametrizado con `--card-body-weight`; las ideas usan Courier 400. EB Garamond permanece como alternativa.
+Las ideas usan Courier 400. Las citas reutilizan esa familia con cursiva. `--card-body-style` define la variación tipográfica por tipo de tarjeta.
 
 Ajuste posterior: tamaño de citas reducido 1 px en todo el rango responsive, a 23 px en móvil y un máximo de 31 px en escritorio. El tamaño de las ideas no cambia.
 
