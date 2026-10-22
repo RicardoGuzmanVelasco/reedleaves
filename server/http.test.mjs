@@ -29,6 +29,8 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   const appHtml = await app.text();
   assert.equal(app.status, 200); assert.match(appHtml, /id="leaf-count"/);
   assert.match(appHtml, /name="robots" content="noindex, nofollow"/);
+  assert.match(appHtml,/class="dialog-close" id="close-settings"[^>]*aria-label="Cerrar ajustes"[^>]*><svg/);
+  assert.match(appHtml,/class="dialog-close" id="close-feedback"[^>]*aria-label="Cerrar comentarios"[^>]*><svg/);
   assert.match(app.headers.get("content-security-policy"), /script-src 'self'/);
   assert.match((await fetch(base + "/app/reader.mjs")).headers.get("content-type"), /javascript/);
   assert.equal((await fetch(base + "/brand/reed/d-compacto.svg")).status, 200);
@@ -52,14 +54,10 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   const touchIconHead = await fetch(base + "/apple-touch-icon-v2.png", { method: "HEAD" });
   assert.equal(touchIconHead.status, 200); assert.equal(Number(touchIconHead.headers.get("content-length")), touchIconBytes.length);
   assert.equal(await touchIconHead.text(), "");
-  const fontPath = "/app/fonts/eb-garamond-latin-400-normal-v5.3.0.woff2";
-  const font = await fetch(base + fontPath);
-  assert.equal(font.status, 200); assert.equal(font.headers.get("content-type"), "font/woff2");
-  assert.equal(font.headers.get("cache-control"), "public, max-age=31536000, immutable");
-  const fontBytes = Buffer.from(await font.arrayBuffer()); assert.equal(fontBytes.subarray(0,4).toString(), "wOF2");
-  const fontHead = await fetch(base + fontPath, {method:"HEAD"});
-  assert.equal(fontHead.status, 200); assert.equal(Number(fontHead.headers.get("content-length")),fontBytes.length); assert.equal(await fontHead.text(), "");
-  assert.equal((await fetch(base + "/app/reader.css")).headers.get("cache-control"), "no-cache");
+  const styles = await fetch(base + "/app/reader.css");
+  assert.equal(styles.headers.get("cache-control"), "no-cache");
+  assert.doesNotMatch(await styles.text(), /@font-face/);
+  assert.equal((await fetch(base + "/app/fonts/card-body.woff2")).status, 404);
   for (const path of ["/var/catalog.sqlite", "/content/catalog/books.csv", "/content/books/seven-habits.ndjson", "/server/index.mjs", "/AGENTS.md", "/app/core.test.mjs", "/app/../server/index.mjs", "/app/%2e%2e%2fserver/index.mjs", "/brand/"]) {
     assert.equal((await fetch(base + path)).status, 404, path);
   }

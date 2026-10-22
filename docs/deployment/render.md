@@ -61,7 +61,7 @@ Referencia: [DNS de Cloudflare en Render](https://render.com/docs/configure-clou
 
 Verificación del 13 de octubre de 2026: Guardadas y acciones optimistas desplegadas desde `ce40727`, despliegue `dep-db72voa6192c73dker10` activo. Salud, app, módulo generado y paletas responden HTTP 200; Guardadas sin sesión devuelve 401. La versión integrada pasó 216/216 pruebas antes de publicar. Los logs de arranque no muestran errores.
 
-Las marcas de agua y comillas reducidas están publicadas desde `5d849cf`; Render confirma activo `dep-db73c7ojo6nc738d8qp0`. Salud y stylesheet responden 200 y la versión servida contiene el tamaño reducido. El usuario aprueba también la composición compartida, la comilla superior y Cormorant Garamond Light 300, con citas de 23 px en móvil y máximo de 31 px en escritorio, para publicar al cerrar esta sesión.
+Las marcas de agua y comillas reducidas están publicadas desde `5d849cf`; Render confirma activo `dep-db73c7ojo6nc738d8qp0`. Salud y stylesheet responden 200 y la versión servida contiene el tamaño reducido. El usuario aprueba también la composición compartida, la comilla superior y una serif ligera para las citas, con 23 px en móvil y máximo de 31 px en escritorio, para publicar al cerrar esta sesión.
 
 ## Límites del plan gratuito
 

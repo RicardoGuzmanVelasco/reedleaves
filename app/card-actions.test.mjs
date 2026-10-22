@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {createElement} from 'react';
 import {build} from 'esbuild';
@@ -42,12 +43,27 @@ test('Anonymous readers can see and activate card actions while login totals are
   }
 });
 
-test('Saved deck tile exposes only its name and card count in Spanish and English',()=>{
+test('Saved deck tile omits an empty count and describes a positive count accessibly',()=>{
   for(const language of ['es','en']){
-    const c=words[language],html=renderToStaticMarkup(createElement(SavedCardsEntry,{count:2,c,onClick(){}}));
+    const c=words[language],empty=renderToStaticMarkup(createElement(SavedCardsEntry,{count:0,c,onClick(){}}));
+    assert.match(empty,/class="deck-tile saved-cards-tile"/);
+    assert.match(empty,new RegExp(`aria-label="${c.savedCards}"`));
+    assert.doesNotMatch(empty,/deck-tile-count/);
+    const html=renderToStaticMarkup(createElement(SavedCardsEntry,{count:2,c,onClick(){}}));
     assert.match(html,/class="deck-tile saved-cards-tile"/);
     assert.match(html,new RegExp(`aria-label="${c.savedCards}, ${c.noteCardsCount(2)}"`));
     assert.ok(html.includes(c.savedCards));assert.ok(html.includes(c.noteCardsCount(2)));
     assert.doesNotMatch(html,/deck-creator|deck-language|deck-status|popular|likes/i);
   }
+});
+
+test('Quote cards keep the default card typeface and use italics',()=>{
+  const themes=readFileSync(new URL('./card-themes.css',import.meta.url),'utf8');
+  const readerStyles=readFileSync(new URL('./reader.css',import.meta.url),'utf8');
+  const savedStyles=readFileSync(new URL('./card-actions.css',import.meta.url),'utf8');
+  assert.match(themes,/\.reading-stage\s*\{[^}]*--card-body-font:Courier,"Courier New",monospace;[^}]*--card-body-style:normal;/s);
+  assert.match(themes,/\.reading-stage\[data-card-type="quote"\]\s*\{[^}]*--card-body-font:Courier,"Courier New",monospace;[^}]*--card-body-style:italic;/s);
+  assert.match(readerStyles,/font-style:var\(--card-body-style\)/);
+  assert.match(savedStyles,/\.saved-card-row--quote \.saved-card-name\{font-style:italic\}/);
+  assert.doesNotMatch(`${themes}${readerStyles}${savedStyles}`,/font-face/);
 });

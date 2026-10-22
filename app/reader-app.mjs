@@ -6,7 +6,7 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=practice-swipe-1";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,deckPeekView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup} from "./views.mjs?v=practice-swipe-1";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,deckPeekView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup} from "./views.mjs?v=feedback-swipe-2026-10-22";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -17,6 +17,8 @@ import {updateSavedReferences} from "./card-interactions.mjs";
 import {editableNoteDecks,noteDecksWithSpace,isHomeBook} from "./notes.mjs";
 import {MAX_DAILY_LEAVES} from "./wallet.mjs";
 import {nextDailyCycleBoundary} from "./daily-cycle.mjs";
+import {createModalPageLock} from "./modal-page-lock.mjs";
+import {adjacentCard,swipeStep} from "./card-reading-navigation.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -42,7 +44,9 @@ export function startReader({createCardFeatures} = {}) {
   let listPositions = {};
   let libraryOrigin = "home", appliedAuthorRoute = null;
   let libraryQuery = "", authMode = "login", authReturn = "#home", accountLearningNotice=false, pendingDeck = null, pendingIntent = null, pendingCardAction=null, pendingNavigation = null, busy = false, syncError = null, syncGeneration = 0;
-  let exclusivePageLock = null;
+  const setModalPageLock=createModalPageLock({document,window,getComputedStyle});
+  function syncModalPageLock(){setModalPageLock(!!document.querySelector("dialog[open]"));}
+  function showAppModal(dialog){if(!dialog.open)dialog.showModal();setModalPageLock(true);dialog.addEventListener("close",syncModalPageLock,{once:true});}
   const cardFeatures = createCardFeatures?.({api,
     onActionStart:()=>{syncGeneration++},
     onAuthRequired:action=>requestAccountForCardAction(action),
@@ -170,31 +174,10 @@ export function startReader({createCardFeatures} = {}) {
       }
     }
   }
-  function setExclusivePageLock(locked) {
-    const body=document.body,root=document.documentElement;
-    if(locked){
-      if(exclusivePageLock)return;
-      const bodyProperties=["position","top","left","right","width","overflow","padding-right"];
-      const savedBody=Object.fromEntries(bodyProperties.map(property=>[property,[body.style.getPropertyValue(property),body.style.getPropertyPriority(property)]]));
-      const savedRoot=Object.fromEntries(["overflow","scroll-behavior"].map(property=>[property,[root.style.getPropertyValue(property),root.style.getPropertyPriority(property)]]));
-      const scrollY=window.scrollY,scrollbarWidth=Math.max(0,window.innerWidth-root.clientWidth);
-      exclusivePageLock={scrollY,savedBody,savedRoot};
-      body.style.setProperty("position","fixed");body.style.setProperty("top",`-${scrollY}px`);body.style.setProperty("left","0");body.style.setProperty("right","0");body.style.setProperty("width","auto");body.style.setProperty("overflow","hidden");
-      if(scrollbarWidth)body.style.setProperty("padding-right",`${(parseFloat(getComputedStyle(body).paddingRight)||0)+scrollbarWidth}px`);
-      root.style.setProperty("overflow","hidden");root.style.setProperty("scroll-behavior","auto");
-      return;
-    }
-    if(!exclusivePageLock)return;
-    const {scrollY,savedBody,savedRoot}=exclusivePageLock;exclusivePageLock=null;
-    for(const [property,[value,priority]] of Object.entries(savedBody)){if(value)body.style.setProperty(property,value,priority);else body.style.removeProperty(property)}
-    const [rootOverflow,rootOverflowPriority]=savedRoot.overflow;if(rootOverflow)root.style.setProperty("overflow",rootOverflow,rootOverflowPriority);else root.style.removeProperty("overflow");
-    window.scrollTo(0,scrollY);
-    const [scrollBehavior,scrollBehaviorPriority]=savedRoot["scroll-behavior"];if(scrollBehavior)root.style.setProperty("scroll-behavior",scrollBehavior,scrollBehaviorPriority);else root.style.removeProperty("scroll-behavior");
-  }
   function render({focus = false} = {}) {
     practicePresentation.dispose();
     ++renderVersion; document.body.classList.toggle("is-practicing",mode === "practice"); document.body.classList.toggle("is-practice-choosing",mode === "practice" && practiceStage === "choose"); header();
-    if (!ready) { setExclusivePageLock(false);main.innerHTML = loadingView(language,failed); presentReading(main); updateCardFeatures();return; }
+    if (!ready) { main.innerHTML = loadingView(language,failed);syncModalPageLock();presentReading(main);updateCardFeatures();return; }
     refreshState(); header();
     if (["review","author"].includes(mode) && previewDeckId !== deckId) { deckPreview=false;previewColumns=2;previewDeckId=deckId; }
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
@@ -220,7 +203,7 @@ export function startReader({createCardFeatures} = {}) {
     if (mode === "library" && !authorForm) live.textContent = libraryQuery ? words[language].searchResults(filterLibrary(catalog,libraryQuery,libraryFilters).length) : "";
     const dialog = main.querySelector(".notes-completion-modal") || main.querySelector(".deck-modal");
     if (dialog) {
-      dialog.showModal(); const isNoteDestination=dialog.classList.contains("note-destination-dialog");
+      showAppModal(dialog); const isNoteDestination=dialog.classList.contains("note-destination-dialog");
       const close = ()=>dialog.classList.contains("notes-completion-modal") ? closeNotesCompletion() : dialog.classList.contains("deck-completion-modal") ? closeDeckCompletion() : isNoteDestination ? closeNoteDestination() : dialog.classList.contains("author-modal") ? closeAuthorForm() : dialog.dataset.book ? closeBookDetails(dialog.dataset.book) : closeDeck(dialog.dataset.deck);
       if (isNoteDestination) { positionNoteDestination();dialog.querySelector("button")?.focus({preventScroll:true}); }
       if (authorForm) dialog.querySelector(authorForm.preview ? "#author-dialog-title" : authorForm.bookId ? '[data-action="autofill-book"]' : "input,textarea")?.focus();
@@ -233,7 +216,7 @@ export function startReader({createCardFeatures} = {}) {
     }
     const bookshelfFilterDialog=main.querySelector(".bookshelf-filter-modal");
     if(bookshelfFilterDialog){
-      bookshelfFilterDialog.showModal();
+      showAppModal(bookshelfFilterDialog);
       bookshelfFilterDialog.addEventListener("cancel",event=>{event.preventDefault();closeBookshelfFilters();});
       bookshelfFilterDialog.addEventListener("click",event=>{
         if(event.target!==bookshelfFilterDialog)return;
@@ -244,16 +227,31 @@ export function startReader({createCardFeatures} = {}) {
     }
     const exclusive=main.querySelector(".exclusive-card-modal");
     if (exclusive) {
-      setExclusivePageLock(true);
-      exclusive.showModal();
+      showAppModal(exclusive);
       exclusive.addEventListener("cancel",event=>{event.preventDefault();closeExclusive();});
       exclusive.addEventListener("click",event=>{if(event.target===exclusive)closeExclusive();});
+      let swipeStart=null;
+      exclusive.addEventListener("pointerdown",event=>{
+        if(mode!=="review"||event.button>0||event.target.closest("button,a,input,textarea,select,[contenteditable='true']"))return;
+        swipeStart={x:event.clientX,y:event.clientY,pointerId:event.pointerId};
+      });
+      exclusive.addEventListener("pointerup",event=>{
+        if(!swipeStart||event.pointerId!==swipeStart.pointerId)return;
+        const direction=swipeStep(swipeStart,{x:event.clientX,y:event.clientY});swipeStart=null;
+        if(direction)moveReadingCard(direction);
+      });
+      exclusive.addEventListener("pointercancel",()=>{swipeStart=null;});
+      exclusive.addEventListener("keydown",event=>{
+        if(mode!=="review"||event.target.closest("input,textarea,select,[contenteditable='true']")||!(["ArrowLeft","ArrowRight"].includes(event.key)))return;
+        event.preventDefault();moveReadingCard(event.key==="ArrowLeft"?-1:1);
+      });
       exclusive.querySelector(".exclusive-card-close")?.addEventListener("click",event=>{
         event.preventDefault();event.stopPropagation();
         if(exclusive.open) exclusive.close();
         closeExclusive();
       });
-    } else setExclusivePageLock(false);
+    }
+    syncModalPageLock();
     lockControls();
     updateCardFeatures();
     if (focus) {
@@ -912,11 +910,17 @@ export function startReader({createCardFeatures} = {}) {
     await mutation("/api/reader/collect",{deckId:id},()=>{ openDeckId=id;live.textContent=words[language].deckAddedToCollection; });
   }
   async function openCard(id,activeDeck = deckId) {
-    albumPosition={deckId:activeDeck,mode:"review",scrollY:window.scrollY};
+    const savedScrollY=albumPosition?.deckId===activeDeck&&albumPosition.mode==="review"?albumPosition.scrollY:window.scrollY;
+    albumPosition={deckId:activeDeck,mode:"review",scrollY:savedScrollY};
     if (!snapshot.user) { requestedId=id;scrollToCard=true;navigate("#review/"+activeDeck+"/"+id);return; }
     await mutation("/api/reader/open",{deckId:activeDeck,cardId:id},()=>{
       requestedId = id; scrollToCard = true; navigate("#review/"+activeDeck+"/"+id);
     });
+  }
+  function moveReadingCard(direction){
+    if(mode!=="review"||!deckId||!requestedId)return;
+    const cards=catalog.deckModels.get(deckId)?.cards||[],target=adjacentCard(cards,requestedId,direction);
+    if(target)void openCard(target,deckId);
   }
   async function ensureDaily() { if (!busy) await mutation("/api/reader/daily",{}); }
   async function sync(force = false) {
@@ -963,11 +967,11 @@ export function startReader({createCardFeatures} = {}) {
     if (location.hash !== target) profileReturnHash=location.hash || "#home";
     navigate(target);
   }
-  document.getElementById("open-settings").addEventListener("click",()=>settings.showModal());
+  document.getElementById("open-settings").addEventListener("click",()=>showAppModal(settings));
   document.getElementById("close-settings").addEventListener("click",()=>settings.close());
   const feedback=document.getElementById("feedback"),feedbackForm=document.getElementById("feedback-form"),feedbackError=document.getElementById("feedback-error");
   feedbackForm.elements.message.maxLength=FEEDBACK_MESSAGE_MAX_LENGTH;
-  document.getElementById("open-feedback").addEventListener("click",()=>feedback.showModal());
+  document.getElementById("open-feedback").addEventListener("click",()=>showAppModal(feedback));
   document.getElementById("close-feedback").addEventListener("click",()=>feedback.close());
   document.getElementById("feedback-sign-in-button").addEventListener("click",()=>{feedback.close();settings.close();authMode="login";accountLearningNotice=false;authReturn=location.hash || "#home";navigate("#account")});
   feedback.addEventListener("click",event=>{if(event.target===feedback)feedback.close()});
@@ -1155,6 +1159,8 @@ export function startReader({createCardFeatures} = {}) {
       case "review-collection-deck": bookOrigin="bookshelf";enterDeck(b.dataset.deck);break;
       case "manage-collection-deck": bookOrigin="bookshelf";navigate("#author/"+encodeURIComponent(b.dataset.deck));break;
       case "open-card": openCard(b.dataset.card,b.dataset.deck); break;
+      case "previous-reading-card": moveReadingCard(-1); break;
+      case "next-reading-card": moveReadingCard(1); break;
     }
   });
   window.addEventListener("hashchange",()=>{

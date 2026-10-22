@@ -26,7 +26,7 @@
 .cover-sample .study-book::after{width:17px;border-right:1px solid rgb(0 0 0 / 20%);border-radius:6px 0 0 6px;background:var(--cover-spine);box-shadow:inset 3px 0 3px rgb(255 255 255 / 20%),inset -3px 0 5px rgb(0 0 0 / 12%)}
 [data-design="current"] .study-book::after{width:14px;border-right:1.5px solid #779a72;border-radius:13px 0 0 13px;background:var(--cover-spine);box-shadow:inset 4px 0 0 rgb(255 255 255 / 22%)}
 .cover-sample .study-book-cover{position:relative;align-items:center;width:100%;padding:24px 23px var(--cover-stamp-bottom) 36px;border-radius:6px 3px 3px 6px;background:var(--cover-paper);text-align:center}
-.cover-sample .study-book-cover>strong{font-family:"EB Garamond",Georgia,serif;font-size:31px;font-weight:400;line-height:1.04;letter-spacing:-.025em;z-index:1}
+.cover-sample .study-book-cover>strong{font-family:Georgia,serif;font-size:31px;font-weight:400;line-height:1.04;letter-spacing:-.025em;z-index:1}
 .cover-sample .study-book-author{order:-1;color:var(--ink);font-size:var(--cover-author-size);line-height:1.4;letter-spacing:.03em;margin:0 0 15px!important;z-index:1}
 .cover-sample .study-book-mark{width:min(100%,var(--cover-stamp-size));height:auto;aspect-ratio:1;margin:20px 0 0;flex:none;z-index:1;opacity:var(--cover-stamp-opacity)}
 .cover-sample .study-book-cover:has(.study-book-mark)>strong{margin-bottom:auto}

@@ -23,7 +23,7 @@ test("Tallo exports all fourteen controls and renders its adjusted face independ
   const edited=normalizeCalibration({...baseline,faceX:75,leftEyeX:2,rightEyeY:-1,mouthWidth:3},baseline);
   const config=calibrationConfiguration("stem",edited);
   const html=mascotArt("stem","",{face:config.face,mouth:config.mouth});
-  assert.match(html,/growth\/bodies\/stem\.png/);
+  assert.match(html,/growth\/bodies\/stem-flat\.svg/);
   assert.match(html,/translate\(75 115.5\)/);
   assert.match(html,/mascot-eye--left" transform="translate\(55 104\)"/);
   assert.match(html,/mascot-eye--right" transform="translate\(111 103\)"/);
