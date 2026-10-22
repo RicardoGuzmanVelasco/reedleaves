@@ -14,10 +14,11 @@ test("Official name stays Reedleaves on every screen and in every interface lang
   const html = readFileSync(new URL("./index.html",import.meta.url),"utf8");
   assert.match(html,/<title>Reedleaves · Inicio<\/title>/);
   assert.match(html,/<meta name="application-name" content="Reedleaves">/);
-  assert.match(html,/class="brand" aria-label="Reedleaves · Inicio"><img/);
+  const header=html.match(/<header class="app-header">([\s\S]*?)<\/header>/)?.[1] || "";
+  assert.doesNotMatch(header,/class="brand"|brand-name|d-compacto\.svg/);
   const app = readFileSync(new URL("./reader-app.mjs",import.meta.url),"utf8");
   assert.match(app,/document\.title = pageTitle\(/);
-  assert.match(app,/updateBrandNavigation\(document\.querySelector\("\.brand"\),signedIn,pageTitle\(c\.home\)\)/);
+  assert.doesNotMatch(app,/updateBrandNavigation|querySelector\("\.brand"\)|brand-name/);
 });
 
 test("Renaming the team changes only its public label, not creator identity or progress keys", () => {
