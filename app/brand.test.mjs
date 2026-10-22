@@ -17,7 +17,7 @@ test("Official name stays Reedleaves on every screen and in every interface lang
   assert.match(html,/class="brand" aria-label="Reedleaves · Inicio"><img/);
   const app = readFileSync(new URL("./reader-app.mjs",import.meta.url),"utf8");
   assert.match(app,/document\.title = pageTitle\(/);
-  assert.match(app,/setAttribute\("aria-label",pageTitle\(c\.home\)\)/);
+  assert.match(app,/updateBrandNavigation\(document\.querySelector\("\.brand"\),signedIn,pageTitle\(c\.home\)\)/);
 });
 
 test("Renaming the team changes only its public label, not creator identity or progress keys", () => {
