@@ -35,9 +35,9 @@ Editar → `npm run db:seed` → `npm run db:check` → `npm test`. La importaci
 
 `books.csv` incluye `original_title` y `original_language`, obligatorios e importados como columnas propias de `books`. La etiqueta de idioma debe ser BCP 47 canónica. Los cinco libros actuales fueron escritos en inglés; futuros libros pueden tener otro idioma original. La ficha muestra ese título siempre, incluso si coincide con el título localizado. No deducirlo de `title_en`.
 
-La búsqueda del catálogo cruza el título original y todos los títulos completos y cortos disponibles, sin depender del idioma de pantalla. Ignora mayúsculas, tildes y puntuación; no añade traducciones ni cambia el contenido del libro.
+La búsqueda del catálogo cruza el título original y todos los títulos completos disponibles, sin depender del idioma de pantalla. Ignora mayúsculas, tildes y puntuación; no añade traducciones ni cambia el contenido del libro.
 
-Cada idioma guarda `title` y `short_title` por separado en `book_translations`. `short_title` es una decisión editorial para las portadas pequeñas, no un recorte automático. `title` es el título completo del libro (sin añadir obligatoriamente subtítulos comerciales) y se usa en la ficha y en su etiqueta accesible. No cambiar IDs al traducir títulos. Las descripciones y notas francesas son traducciones de nuestros textos propios.
+Cada idioma guarda el título completo en `book_translations.title`. En las portadas pequeñas, los títulos largos se limitan visualmente a tres líneas; la ficha y la etiqueta accesible conservan el título completo. No cambiar IDs al traducir títulos. Las descripciones y notas francesas son traducciones de nuestros textos propios.
 
 ## Comprar y reseñar
 

@@ -45,10 +45,10 @@ test("AI can create a preview without provider citations or a stored bibliograph
   assert.equal(Object.hasOwn(JSON.parse(fake.calls[1].body.input),"sources"),false);
 });
 
-test("AI separates the Voss mixed heading and subtitles, generates short cover names and preserves personal edits",async()=>{
+test("AI separates mixed headings and subtitles, preserves personal edits and omits retired short-title metadata",async()=>{
   const translations=JSON.parse(extractionResponse().output[0].content[0].text).translations;
-  Object.assign(translations.es,{title:"Rompe la barrera del no / Never Split de Difference",alternateTitle:"Never Split de Difference",shortTitle:"Rompe la barrera del no"});
-  Object.assign(translations.en,{title:"Never Split the Difference: Negotiating as if Your Life Depended on It",subtitle:"Negotiating as if Your Life Depended on It",shortTitle:"Never Split the Difference"});
+  Object.assign(translations.es,{title:"Rompe la barrera del no / Never Split de Difference",alternateTitle:"Never Split de Difference"});
+  Object.assign(translations.en,{title:"Never Split the Difference: Negotiating as if Your Life Depended on It",subtitle:"Negotiating as if Your Life Depended on It"});
   const response=extractionResponse({originalTitle:translations.en.title,originalSubtitle:translations.en.subtitle,author:"Chris Voss",translations});
   const fake=fakeProvider([researchResponse(),response]);
   const result=await createBookAutofill({apiKey:"key",...fake})("r",{title:"rompe la barrera del no",author:"",language:""},genres);
@@ -57,8 +57,8 @@ test("AI separates the Voss mixed heading and subtitles, generates short cover n
   assert.doesNotMatch(JSON.stringify(result.metadata),/Never Split de Difference|Un manuel|Negotiating as/);
   assert.deepEqual(Object.keys(fake.calls[1].body.text.format.schema.properties.translations.properties).sort(),["en","es"]);
   assert.equal(fake.calls[1].body.instructions.includes("francés"),false);
-  const edited=await createBookAutofill({apiKey:"key",...fakeProvider([researchResponse(),response])})("r",{...input,metadata:{title:{es:"Título personal"},shortTitle:{fr:"Un titre legacy"}}},genres);
-  assert.equal(edited.metadata.title.es,"Título personal");assert.equal(edited.metadata.shortTitle.fr,"Un titre legacy");
+  const edited=await createBookAutofill({apiKey:"key",...fakeProvider([researchResponse(),response])})("r",{...input,metadata:{title:{es:"Título personal"}}},genres);
+  assert.equal(edited.metadata.title.es,"Título personal");assert.equal(Object.hasOwn(edited.metadata,"shortTitle"),false);
 });
 
 test("AI missing configuration, invalid input, ambiguity, refusal, incomplete responses and invented links are handled",async()=>{

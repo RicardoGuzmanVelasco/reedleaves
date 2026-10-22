@@ -36,8 +36,8 @@ function bookGenres(s,book) {
   return book.genres.map(id => s.catalog.genres.find(genre => genre.id === id)?.name[s.language]).filter(Boolean);
 }
 
-function displayedBookTitle(s,book,short = false) {
-  return bookTitle(book,s.language,{original:s.showOriginalTitles,short});
+function displayedBookTitle(s,book) {
+  return bookTitle(book,s.language,{original:s.showOriginalTitles});
 }
 
 function completeBookButton(s,book) {
@@ -276,7 +276,8 @@ function mascotState(s,bookId) {
   return {g,unlocked,latest:currentMascotStage(g)};
 }
 function mascotEntry(s,bookId,className="") {
-  return `<button class="mascot-entry${className ? ` ${esc(className)}` : ""}" type="button" data-action="open-mascots" data-book="${esc(bookId)}" aria-label="${esc(words[s.language].mascotProgress)} · ${esc(contentText(s.catalog.booksById.get(bookId).shortTitle,s.language,s.catalog.booksById.get(bookId).originalLanguage))}">${mascotArt(mascotState(s,bookId).latest)}</button>`;
+  const book=s.catalog.booksById.get(bookId);
+  return `<button class="mascot-entry${className ? ` ${esc(className)}` : ""}" type="button" data-action="open-mascots" data-book="${esc(bookId)}" aria-label="${esc(words[s.language].mascotProgress)} · ${esc(displayedBookTitle(s,book).text)}">${mascotArt(mascotState(s,bookId).latest)}</button>`;
 }
 function mascotMotto(s,bookId) {
   const current=mascotState(s,bookId).latest, stage=mascotStages.find(item=>item.id===current);
@@ -293,7 +294,7 @@ export function mascotsView(s) {
   const reached=new Set(Object.values(s.growth||{}).filter(Boolean).map(g=>currentMascotStage(g)));
   const maximumKnown=mascotStages.reduce((maximum,stage,index)=>reached.has(stage.id)?index:maximum,-1);
   return `<section class="mascots-screen"><button class="text-button" type="button" data-action="close-mascots">${c.mascotsBack}</button>
-    <header class="mascots-heading"><div><p class="small-book">${esc(contentText(book.shortTitle,s.language,book.originalLanguage))}</p><h1 tabindex="-1">${c.mascots}</h1></div>${mascotArt(latest)}</header>
+    <header class="mascots-heading"><div><p class="small-book">${esc(displayedBookTitle(s,book).text)}</p><h1 tabindex="-1">${c.mascots}</h1></div>${mascotArt(latest)}</header>
     <ol class="mascot-collection">${mascotStages.map((stage,index)=>{
       const earned=unlocked.includes(stage.id),implemented=!!stage.unlocked,current=latest===stage.id;
       const knownArtwork=earned || index<=maximumKnown;
@@ -642,7 +643,7 @@ export function authorFormView(s) {
       <p class="preview-language">${c.originalLanguage}: <span>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(preview.originalLanguage))}</span></p>
       ${description ? `<p class="deck-description" lang="${esc(contentLocale(preview.description,s.language,preview.originalLanguage))}" dir="auto">${esc(description)}</p>` : ""}
       ${bookLinksMarkup(s,preview)}
-      ${LANGUAGES.some(language=>preview.title[language]) ? `<details class="book-translations"><summary>${c.bookTranslations}</summary>${LANGUAGES.filter(language=>preview.title[language]).map(language=>`<section lang="${esc(language)}" dir="auto"><h3>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(language))}</h3><p><strong>${esc(preview.title[language])}</strong></p>${preview.shortTitle[language] !== preview.title[language] ? `<p>${esc(preview.shortTitle[language])}</p>` : ""}<p>${esc(preview.description[language])}</p><small>${esc(preview.editorialNote[language])}</small></section>`).join("")}</details>` : ""}
+      ${LANGUAGES.some(language=>preview.title[language]) ? `<details class="book-translations"><summary>${c.bookTranslations}</summary>${LANGUAGES.filter(language=>preview.title[language]).map(language=>`<section lang="${esc(language)}" dir="auto"><h3>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(language))}</h3><p><strong>${esc(preview.title[language])}</strong></p><p>${esc(preview.description[language])}</p><small>${esc(preview.editorialNote[language])}</small></section>`).join("")}</details>` : ""}
       <form class="author-form" data-author-form><p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}${f.error && f.errorReference ? `<small class="error-reference">${c.errorReference}: ${esc(f.errorReference)}</small>` : ""}</p>
         <div class="form-actions"><button class="text-button" type="button" data-action="edit-book-preview">${c.editBook}</button><button class="primary" type="submit">${f.bookId ? c.save : c.createBook}</button></div>
         <button class="text-button preview-cancel" type="button" data-action="cancel-author">${c.cancel}</button>
@@ -658,7 +659,7 @@ export function authorFormView(s) {
     ${book ? `<button class="secondary book-autofill" type="button" data-action="autofill-book" ${f.autofilling ? 'disabled aria-busy="true"' : ""}>${f.autofilling ? `<span class="ai-spinner" aria-hidden="true"></span><span role="status">${c.aiLoading}</span>` : c.autofillBook}</button>` : ""}
     ${book && f.metadata && (!f.bookId || f.hasProposal) ? `<details class="book-metadata-editor"><summary>${c.bookDetails}</summary>
       <fieldset class="book-genre-fields" ${f.bookId && f.originalMetadata.genres.length ? "disabled" : ""}><legend>${c.genre}</legend>${s.catalog.genres.map(genre=>`<label class="check-row"><input type="checkbox" name="metadata.genres" value="${esc(genre.id)}" ${f.metadata.genres.includes(genre.id) ? "checked" : ""}><span>${esc(genre.name[s.language])}</span></label>`).join("")}</fieldset>
-      ${LANGUAGES.filter(language=>f.metadata.title[language]).map(language=>`<details class="book-translation-editor"><summary>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(language))}</summary>${field(`metadata.title.${language}`,c.bookTitle,f.metadata.title[language],TRANSLATION_FIELDS.title,true)}${field(`metadata.shortTitle.${language}`,c.shortBookTitle,f.metadata.shortTitle[language],TRANSLATION_FIELDS.shortTitle,true)}${field(`metadata.description.${language}`,c.bookDescription,f.metadata.description[language],TRANSLATION_FIELDS.description,true,true)}${field(`metadata.editorialNote.${language}`,c.bookEditorialNote,f.metadata.editorialNote[language],TRANSLATION_FIELDS.editorialNote,true,true)}</details>`).join("")}
+      ${LANGUAGES.filter(language=>f.metadata.title[language]).map(language=>`<details class="book-translation-editor"><summary>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(language))}</summary>${field(`metadata.title.${language}`,c.bookTitle,f.metadata.title[language],TRANSLATION_FIELDS.title,true)}${field(`metadata.description.${language}`,c.bookDescription,f.metadata.description[language],TRANSLATION_FIELDS.description,true,true)}${field(`metadata.editorialNote.${language}`,c.bookEditorialNote,f.metadata.editorialNote[language],TRANSLATION_FIELDS.editorialNote,true,true)}</details>`).join("")}
       ${["amazon","goodreads"].map(platform=>field(`metadata.links.${platform}`,platform === "amazon" ? "Amazon" : "Goodreads",f.metadata.links[platform],2048,false)).join("")}
     </details>` : ""}
     <p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}${f.error && f.errorReference ? `<small class="error-reference">${c.errorReference}: ${esc(f.errorReference)}</small>` : ""}</p><div class="form-actions"><button class="text-button" type="button" data-action="cancel-author">${c.cancel}</button>${!f.bookId || f.hasProposal ? `<button class="primary" type="submit" ${f.draftDestinationUnavailable ? "disabled" : ""}>${book && !f.bookId ? c.createBook : deck ? c.createDeck : c.save}</button>` : ""}</div>

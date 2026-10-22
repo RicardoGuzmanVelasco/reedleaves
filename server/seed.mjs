@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { parseCsv } from "./csv.mjs";
-import { transaction } from "./database.mjs";
+import { transaction,isPostgres } from "./database.mjs";
 import { checkCatalog } from "./catalog-repository.mjs";
 import { validateCards, LANGUAGES } from "../app/core.mjs";
 import { bookLinkUrl, BOOK_LINK_PLATFORMS } from "../app/book-links.mjs";
@@ -49,7 +49,7 @@ export function validateSeed(seed) {
     positions.add(Number(b.position));
     if (!b.genres?.split("|").every(id => genres.has(id))) throw new Error("Unknown book genre");
     if (!["draft", "reviewed"].includes(b.editorial_status)) throw new Error("Invalid editorial status");
-    for (const language of LANGUAGES) for (const field of ["title", "short_title", "description", "editorial_note"]) {
+    for (const language of LANGUAGES) for (const field of ["title", "description", "editorial_note"]) {
       if (!text(b[field + "_" + language])) throw new Error("Missing book text");
     }
   }
@@ -99,6 +99,10 @@ export function validateSeed(seed) {
 export async function seedCatalog(db, seed = readSeed()) {
   validateSeed(seed);
   return transaction(db, async () => {
+    const translationColumns=isPostgres(db)
+      ? await db.prepare("SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='book_translations'").all()
+      : db.prepare("PRAGMA table_info(book_translations)").all();
+    const hasLegacyShortTitle=translationColumns.some(column=>(column.column_name || column.name)==="short_title");
     for (const u of seed.users) await db.prepare(`INSERT INTO users(id,display_name,can_create_decks) VALUES (?,?,?)
       ON CONFLICT(id) DO UPDATE SET display_name = excluded.display_name, can_create_decks = excluded.can_create_decks`).run(u.id,u.display_name,Number(u.can_create_decks));
     for (const g of seed.genres) {
@@ -111,9 +115,13 @@ export async function seedCatalog(db, seed = readSeed()) {
         ON CONFLICT(id) DO UPDATE SET author = excluded.author, position = excluded.position,
         original_title = excluded.original_title, original_language = excluded.original_language,
         editorial_status = excluded.editorial_status, updated_at = CURRENT_TIMESTAMP`).run(b.id, b.author, Number(b.position), b.editorial_status, b.original_title, b.original_language);
-      for (const language of LANGUAGES) await db.prepare(`INSERT INTO book_translations VALUES (?, ?, ?, ?, ?, ?)
+      for (const language of LANGUAGES) await db.prepare(hasLegacyShortTitle ? `INSERT INTO book_translations(book_id,language,title,short_title,description,editorial_note) VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(book_id, language) DO UPDATE SET title = excluded.title, short_title = excluded.short_title,
-        description = excluded.description, editorial_note = excluded.editorial_note`).run(b.id, language, ...["title", "short_title", "description", "editorial_note"].map(field => b[field + "_" + language]));
+        description = excluded.description, editorial_note = excluded.editorial_note` : `INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(book_id, language) DO UPDATE SET title = excluded.title,
+        description = excluded.description, editorial_note = excluded.editorial_note`).run(...(hasLegacyShortTitle
+          ? [b.id,language,b[`title_${language}`],b[`short_title_${language}`] || b[`title_${language}`],b[`description_${language}`],b[`editorial_note_${language}`]]
+          : [b.id, language, ...["title", "description", "editorial_note"].map(field => b[field + "_" + language])]));
       await db.prepare("DELETE FROM book_genres WHERE book_id = ?").run(b.id);
       for (const id of new Set(b.genres.split("|"))) await db.prepare("INSERT INTO book_genres VALUES (?, ?)").run(b.id, id);
     }

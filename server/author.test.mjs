@@ -112,7 +112,7 @@ for (const dialect of ["sqlite","postgres"]) {
   test(`${dialect}: preserve existing metadata and later additions, reject invalid completion atomically, support other original languages`,async t=>{
     const {db,session}=await fixture(t,dialect);
     const original=structuredClone(bookMetadata);
-    for (const field of ["title","shortTitle","description","editorialNote"]) original[field]={es:original[field].es};
+    for (const field of ["title","description","editorialNote"]) original[field]={es:original[field].es};
     original.genres=["productivity"]; original.description.es="Descripción guardada";
     original.links.goodreads="https://www.goodreads.com/book/show/999-existing";
     const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:bookMetadata.originalTitle,author:"Daniel Kahneman",language:"en",metadata:original});

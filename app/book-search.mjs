@@ -5,7 +5,7 @@ const normalize = value => String(value ?? "").normalize("NFKD").replace(/\p{M}/
 export function filterBooks(books, query = "") {
   const terms = normalize(query).split(/\s+/).filter(Boolean);
   if (!terms.length) return books;
-  return books.filter(book => [book.originalTitle, ...Object.values(book.title || {}), ...Object.values(book.shortTitle || {})]
+  return books.filter(book => [book.originalTitle, ...Object.values(book.title || {})]
     .some(title => { const candidate = normalize(title); return terms.every(term => candidate.includes(term)); }));
 }
 

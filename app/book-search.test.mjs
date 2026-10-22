@@ -17,9 +17,9 @@ async function fixture() {
 }
 const ids = books => books.map(book => book.id);
 
-test("One query searches all full and short titles regardless of interface language", async () => {
+test("One query searches all full titles regardless of interface language", async () => {
   const data = await fixture(), books = data.books;
-  for (const book of books) for (const field of ["title", "shortTitle"]) for (const title of Object.values(book[field])) {
+  for (const book of books) for (const title of Object.values(book.title)) {
     assert.ok(ids(filterBooks(books,title)).includes(book.id),title);
   }
   for (const [query,id] of [["ATOMIC HABITS","atomic-habits"],["hábitos atómicos","atomic-habits"],["padre rico padre pobre","rich-dad-poor-dad"],["organizate con eficacia","getting-things-done"],["  7 HABITS  ","seven-habits"],["habitos de la gente","seven-habits"]]) {
@@ -29,14 +29,14 @@ test("One query searches all full and short titles regardless of interface langu
   for (const language of ["es","en"]) {
     const html = libraryResultsMarkup(readerState(catalog,{language,libraryQuery:"Atomic Habits"}));
     assert.match(html,/data-book="atomic-habits"/);
-    assert.ok(html.includes(catalog.booksById.get("atomic-habits").shortTitle[language]));
+    assert.ok(html.includes(catalog.booksById.get("atomic-habits").title[language]));
     assert.equal((html.match(/data-action="open-book-details"/g)||[]).length,1);
   }
 });
 
 test("Original titles and future translations are searchable without assuming English", async () => {
   const book = {...(await fixture()).books[0],originalTitle:"La croissance intérieure",originalLanguage:"fr",
-    title:{es:"Un nombre distinto",en:"Different name",fr:"Un autre nom",de:"Neue Gewohnheiten"},shortTitle:{es:"Breve",en:"Short",fr:"Court",de:"Neu"}};
+    title:{es:"Un nombre distinto",en:"Different name",fr:"Un autre nom",de:"Neue Gewohnheiten"}};
   assert.deepEqual(filterBooks([book],"croissance interieure"),[book]);
   assert.deepEqual(filterBooks([book],"NEUE GEWOHNHEITEN"),[book]);
   assert.deepEqual(filterBooks([book],"Different croissance"),[]);

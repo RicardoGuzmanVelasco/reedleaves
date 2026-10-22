@@ -1,7 +1,3 @@
-import {BOOK_SHORT_TITLE_MAX_LENGTH} from "../app/core.mjs";
-
-export const AI_SHORT_TITLE_MAX=BOOK_SHORT_TITLE_MAX_LENGTH;
-
 const clean=value=>typeof value === "string" ? value.normalize("NFC").replace(/\s+/gu," ").trim() : "";
 const comparable=value=>clean(value).normalize("NFD").replace(/\p{M}/gu,"").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu," ").trim();
 
@@ -21,10 +17,8 @@ export function mainBookTitle(value,additions=[]) {
   return title;
 }
 
-export function generatedBookTitles(translation,originalTitle) {
-  const additions=[translation.subtitle,translation.alternateTitle,originalTitle];
-  const title=mainBookTitle(translation.title,additions);
-  const shortTitle=mainBookTitle(translation.shortTitle,additions) || (Array.from(title).length <= AI_SHORT_TITLE_MAX ? title : "");
-  if (!title || !shortTitle || Array.from(shortTitle).length > Math.min(AI_SHORT_TITLE_MAX,Array.from(title).length) || /(?:…|\.{3})$/u.test(shortTitle)) throw new Error("Invalid generated book titles");
-  return {title,shortTitle};
+export function generatedBookTitle(translation,originalTitle) {
+  const title=mainBookTitle(translation.title,[translation.subtitle,translation.alternateTitle,originalTitle]);
+  if (!title) throw new Error("Invalid generated book title");
+  return title;
 }
