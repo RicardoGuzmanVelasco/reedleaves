@@ -5,7 +5,7 @@ Revisión secuencial de los 17 comentarios. Los puntos implementados están en l
 ## Estado por punto
 
 1. **Día seleccionado del calendario** — implementado: se añadió una prueba de regresión para el estado seleccionado y su tratamiento visual verde.
-2. **Primera baraja Guardadas vacía** — aparcado: normalmente no hay notas guardadas y la baraja ocupa espacio sin utilidad. Revisarlo con el resto.
+2. **Primera baraja Guardadas vacía** — resuelto en local tras aprobación del usuario el 23 de octubre: Guardadas pasa a ser un botón principal con marcapáginas junto al título de la cabecera del libro. No ocupa una posición en la cuadrícula; el contador aparece solo si hay tarjetas. Pendiente de publicación.
 3. **Navegación de vuelta en el perfil** — pendiente: explorar una flecha tipo Apple solo cuando haya un destino anterior con sentido; no mostrarla si volver equivale a ir a Home, ya disponible en la barra inferior.
 4. **Mayúsculas en usernames** — ignorado por ahora, según indicación del usuario.
 5. **Contador de Guardadas** — la rama actual oculta el contador cuando vale cero. El usuario no tiene claro este comportamiento; revisarlo por separado.

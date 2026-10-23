@@ -66,7 +66,7 @@ function GuestFeatures({context,api,callbacks}){
   return createPortal(<CardActions record={record||{likes:null,dislikes:null,vote:null,isOwn:false,loaded:false}} saved={false} c={words[context.language]} requiresAuth onVote={askForVote} onSave={askForSave} />,context.actionSlot);
 }
 
-export function SavedCardsEntry({count,c,onClick}){const hasSavedCards=count>0;return <article className="deck-tile saved-cards-tile"><button type="button" className="deck-tile-open" onClick={onClick} aria-label={hasSavedCards?`${c.savedCards}, ${c.noteCardsCount(count)}`:c.savedCards}/><span className="deck-tile-copy"><strong>{c.savedCards}</strong></span>{hasSavedCards&&<span className="deck-tile-metadata"><span className="deck-tile-count"><Bookmark/><span>{c.noteCardsCount(count)}</span></span></span>}</article>}
+export function SavedCardsEntry({count,c,onClick}){const hasSavedCards=count>0;return <button type="button" className="primary saved-cards-entry" onClick={onClick} aria-label={hasSavedCards?`${c.savedCards}, ${c.noteCardsCount(count)}`:c.savedCards}><Bookmark/><span>{c.savedCards}</span>{hasSavedCards&&<span aria-hidden="true">{count}</span>}</button>}
 function SavedCards({rows,catalog,c,language,onOpen,error,onRetry,onReady}){
   useLayoutEffect(()=>{onReady()},[rows,onReady]);
   return <>{error&&<div className="sync-note" role="status"><span>{c[error]||c.connectionError}</span><button type="button" className="text-button" onClick={onRetry}>{c.retry}</button></div>}

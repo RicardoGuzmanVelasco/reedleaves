@@ -7,7 +7,7 @@
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
 
 /* Deck selection and daily leaves reuse the approved book/paper palette. */
-.deck-screen{padding:18px 0 34px}.deck-heading{margin:14px 0 22px}.small-book{font-size:12px;color:var(--muted);margin-bottom:7px;line-height:1.5}
+.deck-screen{padding:18px 0 34px}.deck-heading{display:block;margin:14px 0 22px}.deck-heading-book,.deck-heading-title{display:flex;align-items:center;justify-content:space-between;gap:12px}.deck-heading-book{margin-bottom:8px}.deck-heading-book .small-book,.deck-heading-title h1{min-width:0;overflow-wrap:anywhere}.deck-heading-title [data-saved-cards-entry]{flex:none}.small-book{font-size:12px;color:var(--muted);margin-bottom:7px;line-height:1.5}
 .deck-card{border:2px solid var(--sage);border-radius:28px;background:#fffdf6;box-shadow:0 6px 0 #ccd8b9;padding:28px}
 .deck-tags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px}.deck-tags span{background:#e4f0cc;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:750;line-height:1.4}
 .deck-card h2{font-size:30px;line-height:1.18;overflow-wrap:anywhere}.deck-creator{display:flex;align-items:center;flex-wrap:wrap;gap:5px;font-size:12px;font-weight:500;color:var(--muted);line-height:1.5;margin-top:10px;overflow-wrap:anywhere}
