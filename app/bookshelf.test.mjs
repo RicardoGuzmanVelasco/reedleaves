@@ -70,11 +70,15 @@ test("Default unread statuses for the whole catalog do not make every book a she
   assert.match(libraryView({...s,openBookId:"atomic-habits"}),/data-action="add-book-to-shelf" data-book="atomic-habits"/);
 });
 
-test("Saved cards are the first deck tile for signed-in readers",async()=>{
+test("Saved cards stay in the book header without taking a deck grid position",async()=>{
   const s=await fixture(),bookId="seven-habits",choices=featuredDecks(s.catalog,bookId);
   const html=deckView({...s,bookId,deckChoices:choices});
-  const gridStart=html.indexOf('<div class="deck-grid"'),savedTile=html.indexOf('data-saved-cards-entry'),firstDeck=html.indexOf('<article class="deck-tile"');
-  assert.ok(gridStart>=0);assert.ok(savedTile>gridStart);assert.ok(firstDeck>savedTile);
+  const gridStart=html.indexOf('<div class="deck-grid"'),savedEntry=html.indexOf('data-saved-cards-entry'),firstDeck=html.indexOf('<article class="deck-tile"');
+  assert.ok(savedEntry>=0);assert.ok(gridStart>savedEntry);assert.ok(firstDeck>gridStart);
+  assert.equal((html.match(/data-saved-cards-entry/g)||[]).length,1);
+  const noDecks=deckView({...s,bookId,deckChoices:[]});
+  assert.ok(noDecks.includes('data-saved-cards-entry'));
+  assert.ok(!noDecks.includes('class="deck-grid"'));
   const anonymous=deckView({...s,userId:null,bookId,deckChoices:choices});
   assert.ok(!anonymous.includes('data-saved-cards-entry'));
 });
