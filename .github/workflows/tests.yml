@@ -7,6 +7,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to resume after updating its branch
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -31,9 +36,10 @@ jobs:
     name: Merge PR
     needs: test
     if: >-
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      !github.event.pull_request.draft
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       !github.event.pull_request.draft) ||
+      (github.event_name == 'workflow_dispatch' && inputs.pr_number != '')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -43,21 +49,68 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      PR_HEAD_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
     steps:
+      - name: Check PR freshness
+        id: freshness
+        run: |
+          pr=$(gh api "repos/$GH_REPO/pulls/$PR_NUMBER")
+          current_head=$(jq -r '.head.sha' <<<"$pr")
+          mergeable_state=$(jq -r '.mergeable_state' <<<"$pr")
+
+          if [[ "$current_head" != "$PR_HEAD_SHA" ]]; then
+            echo "::notice::PR head changed after this run started; the newer synchronize run must test it."
+            echo "defer_merge=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "$mergeable_state" == "behind" ]]; then
+            echo "PR is behind its base; updating the branch and dispatching tests for the new SHA."
+            if ! result=$(gh api --method PUT "repos/$GH_REPO/pulls/$PR_NUMBER/update-branch" \
+              -f expected_head_sha="$PR_HEAD_SHA" 2>&1); then
+              printf 'Could not update the stale PR branch: %s\n' "$result" >&2
+              exit 1
+            fi
+            echo "$result"
+
+            # update-branch uses GITHUB_TOKEN, so its synchronize event may
+            # not start a workflow. Wait for the new head, then dispatch a
+            # run on that branch; its test job gates the merge job as usual.
+            updated_head="$PR_HEAD_SHA"
+            for attempt in {1..30}; do
+              pr=$(gh api "repos/$GH_REPO/pulls/$PR_NUMBER")
+              updated_head=$(jq -r '.head.sha' <<<"$pr")
+              [[ "$updated_head" != "$PR_HEAD_SHA" ]] && break
+              sleep 2
+            done
+            if [[ "$updated_head" == "$PR_HEAD_SHA" ]]; then
+              echo "PR branch update was accepted, but its head SHA did not change in time." >&2
+              exit 1
+            fi
+
+            gh workflow run tests.yml --repo "$GH_REPO" --ref "$PR_HEAD_REF" \
+              -f pr_number="$PR_NUMBER"
+            echo "defer_merge=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "defer_merge=false" >> "$GITHUB_OUTPUT"
+          fi
       # Only merge the tested head. GitHub still enforces branch protection
       # and refuses a stale/conflicting PR. This job never checks out PR code.
       - name: Merge the passing PR
+        id: merge
+        if: steps.freshness.outputs.defer_merge != 'true'
         run: >-
           gh api --method PUT "repos/$GH_REPO/pulls/$PR_NUMBER/merge"
           -f sha="$PR_HEAD_SHA" -f merge_method=squash
       # A merge made with GITHUB_TOKEN does not trigger push workflows.
       # Dispatch main explicitly so it gets checked before Render deploys.
       - name: Validate main for deployment
+        if: steps.freshness.outputs.defer_merge != 'true' && steps.merge.outcome == 'success'
         run: gh workflow run tests.yml --repo "$GH_REPO" --ref main
       - name: Delete the merged branch
+        if: steps.freshness.outputs.defer_merge != 'true' && steps.merge.outcome == 'success'
         run: |
           # GitHub's repository setting can leave the branch behind. Make
           # cleanup explicit; a branch already deleted by GitHub is also OK.
