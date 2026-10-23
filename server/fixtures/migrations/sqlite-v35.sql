@@ -55,7 +55,7 @@ ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);
 
 CREATE TABLE accounts (
   user_id TEXT PRIMARY KEY REFERENCES users(id),
-  username TEXT NOT NULL UNIQUE CHECK(length(username) BETWEEN __USERNAME_MIN_LENGTH__ AND __USERNAME_MAX_LENGTH__),
+  username TEXT NOT NULL UNIQUE CHECK(length(username) BETWEEN 3 AND 32),
   password_hash TEXT NOT NULL,
   time_zone TEXT NOT NULL,
   language TEXT NOT NULL CHECK(language IN ('es','en','fr'))
@@ -270,8 +270,8 @@ CREATE TABLE feedback_submissions (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   username TEXT NOT NULL,
-  message TEXT NOT NULL CHECK(length(trim(message)) BETWEEN 1 AND __FEEDBACK_MESSAGE_MAX_LENGTH__),
-  page TEXT NOT NULL CHECK(length(page) BETWEEN 1 AND __FEEDBACK_PAGE_MAX_LENGTH__),
+  message TEXT NOT NULL CHECK(length(trim(message)) BETWEEN 1 AND 5000),
+  page TEXT NOT NULL CHECK(length(page) BETWEEN 1 AND 512),
   language TEXT NOT NULL CHECK(language IN ('es','en')),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) STRICT;
