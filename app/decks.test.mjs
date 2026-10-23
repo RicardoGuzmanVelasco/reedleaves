@@ -5,7 +5,7 @@ import {readCatalog} from "../server/catalog-repository.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {featuredDecks,treeLinks} from "./decks.mjs";
-import {deckView,reviewView,homeView,practiceView,authorView,authorFormView,escapeHtml} from "./views.mjs";
+import {deckView,deckPeekView,reviewView,homeView,practiceView,authorView,authorFormView,bookshelfView,escapeHtml} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
 
@@ -41,7 +41,7 @@ test("Deck grid opens a complete modal; every review card is visible and openabl
   assert.match(grid,/class="deck-grid"/); assert.match(grid,/Ideas esenciales/); assert.match(grid,/From the inside out/);
   assert.doesNotMatch(grid,/<dialog/); assert.doesNotMatch(grid,/deck-carousel/);
   const modal = deckView({...base,deckChoices,openDeckId:deckId});
-  assert.match(modal,/<dialog class="deck-modal"/); assert.match(modal,/7 tarjetas · 2 niveles/);
+  assert.match(modal,/<dialog class="deck-modal"/); assert.match(modal,/0 citas/);
   assert.match(modal,/href="#profile\//); assert.match(modal,/inglés/i); assert.match(modal,/Ver baraja/);
   assert.doesNotMatch(modal,/Más popular/);
 });
@@ -66,15 +66,18 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
       assert.deepEqual(taggedChoice.tags,tags,"Rendering preserves the underlying distinctions");
       const openButton=html.match(/<button\b[^>]*data-action="open-deck"[^>]*>/)[0];
       const label=openButton.match(/aria-label="([^"]*)"/)[1];
-      assert.ok(label.includes(c.noteCardsCount(deck.cardCount)),"The tile describes its card count accessibly");
+      const quoteCount=catalog.deckModels.get(deck.id).cards.filter(card=>card.isQuote).length;
+      assert.ok(label.includes(c.quoteCount(quoteCount)),"The tile describes its quote count accessibly");
       const languageName=new Intl.DisplayNames([language],{type:"language"}).of(choice.deck.language);
       assert.ok(label.includes(languageName),"The flag retains an accessible language description");
-      assert.ok(!html.includes(c.deckSize(deck.cardCount,deck.depth)),"The selector omits the old count and level summary");
+      assert.ok(html.includes(c.quoteCount(quoteCount)),"Every tile shows its quote count, including zero");
+      assert.ok(!html.includes(c.noteCardsCount(deck.cardCount)),"The selector no longer displays the total card count");
+      assert.equal(html.includes('class="deck-tile deck-tile--quote-dominant"'),quoteCount>deck.cardCount-quoteCount,"Quote dominant decks use blue tones");
       if (deck.status === "draft") {
         assert.ok(label.includes(c.deckInProgress));
         assert.ok(html.replace(/<[^>]*>/g,"").includes(c.deckInProgressShort),"The tile has a short visible ongoing label");
       } else {
-        assert.ok(!html.includes(c.deckFinished),"A finished tile has no visual or accessible status label");
+        assert.doesNotMatch(html,/Terminada|Finished/,"A finished tile has no visual or accessible status label");
         assert.ok(!html.includes(c.deckInProgress),"A finished tile has no ongoing indicator");
         assert.ok(!html.includes(c.deckInProgressShort),"A finished tile has no ongoing chip");
       }
@@ -84,6 +87,24 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
     assert.ok(details.includes(c.deckMayChangeUnadded));
     for (const tag of ["recommended","popular","preferred","otherDeck"]) assert.ok(!details.includes(c[tag]),"Deck details also omit distinctions and fallback labels");
   }
+});
+
+test("Quote counts use the existing quote mark and quote dominant deck previews use blue",async()=>{
+  const catalog=await fixture(),decks=catalog.decks.filter(deck=>deck.bookId==="seven-habits"),first=decks[0],second=decks[1];
+  const firstCards=catalog.deckModels.get(first.id).cards,secondCards=catalog.deckModels.get(second.id).cards;
+  firstCards.forEach((card,index)=>{card.isQuote=index<4;});
+  secondCards.forEach(card=>{card.isQuote=false;});
+  const choices=decks.map(deck=>({deck,tags:[]})),state=readerState(catalog,{language:"es",bookId:"seven-habits",deckId:first.id,deckChoices:choices,enrolledIds:decks.map(deck=>deck.id)});
+  const selector=deckView(state);
+  assert.match(selector,/class="deck-tile deck-tile--quote-dominant"/);
+  assert.match(selector,/class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="4 citas"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4<\/span><\/span>/);
+  assert.match(selector,/title="0 citas"/);
+  assert.match(deckView({...state,openDeckId:first.id}),/class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span>/);
+  assert.match(deckPeekView(state),/class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span>/);
+  const collection=bookshelfView({...state,bookshelfTab:"decks"});
+  assert.match(collection,/class="collection-deck collection-deck--quote-dominant"/);
+  assert.match(collection,/4 citas/);
+  assert.match(collection,/0 citas/);
 });
 
 test("Deck authors link to their profiles independently of deck opening, including safe fallbacks",async()=>{
@@ -237,7 +258,7 @@ test("Draft creation status stays distinct from practice sessions across deck su
     const html=reviewView({...base,userId:deck.creator.userId});
     assert.ok(html.includes(`data-action="share-deck"`));
     assert.ok(reviewView({...base,userId:"another-reader"}).includes(`data-action="share-deck"`));
-    assert.ok(html.includes(c.deckFinished));
+    assert.doesNotMatch(html,/Terminada|Finished/);
     assert.ok(!html.includes(c.deckDraftOwnerExplanation));
     assert.ok(!html.includes(c.deckMayChange));
     deck.status="draft";

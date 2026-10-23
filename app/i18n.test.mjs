@@ -44,7 +44,7 @@ test("Personal collection copy distinguishes Bookcase from Library and drops dup
 test("Spanish interface calls review items tarjetas, never cartas", () => {
   const dynamicSamples = Object.entries(words.es).flatMap(([key, value]) => {
     if (typeof value !== "function") return [];
-    const args = key === "date" ? [new Date(2026,0,1)] : key === "deckSize" ? [2,2] : key === "progress" || key === "position" ? [2,3] : [2];
+    const args = key === "date" ? [new Date(2026,0,1)] : key === "progress" || key === "position" ? [2,3] : [2];
     return [value(...args)];
   });
   for (const message of [...Object.values(words.es).filter(value => typeof value === "string"), ...dynamicSamples]) {
