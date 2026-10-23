@@ -50,8 +50,6 @@
   --card-body-font:Courier,"Courier New",monospace;
   --card-body-style:italic;
   --card-body-weight:400;
-  --card-body-size:clamp(23px,calc(3.3vw - 1px),31px);
-  --card-body-size-mobile:23px;
   --card-body-leading:1.65;
   --card-body-align:justify;
   --watermark-opacity:.13;
