@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
 import {openDatabase,initializeDatabase} from "../server/database.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
@@ -48,4 +49,14 @@ test("All three card attributions are escaped links with three filled icons and 
   assert.equal((footer.match(/class="attribution-arrow"/g)||[]).length,3);
   assert.match(footer,/#library\/book\//);assert.match(footer,/#library\/author\//);assert.match(footer,/#profile\/reed-team/);
   assert.doesNotMatch(footer,/ · /);
+});
+
+test("Selected daily calendar day exposes its selected state and green style",async()=>{
+  const catalog=await fixture(),card=catalog.allCards[0];
+  const s={catalog,language:"es",daily:{id:card.id,day:"2026-10-06"},dailyToday:{day:"2026-10-06"},dailyHistory:[{id:card.id,day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",storageAvailable:true};
+  const html=dailyView(s),selected=html.match(/<button[^>]*data-action="daily-date"[^>]*aria-pressed="true"[^>]*>/)?.[0];
+  assert.ok(selected,"the selected date remains a semantic pressed button");
+  assert.match(selected,/is-selected/);
+  const styles=readFileSync(new URL("./reader.css",import.meta.url),"utf8");
+  assert.match(styles,/\.daily-calendar-day\.is-selected\{background:var\(--light\);color:var\(--ink\);/);
 });

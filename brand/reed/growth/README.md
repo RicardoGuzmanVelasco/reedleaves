@@ -17,7 +17,7 @@ The implemented sequence is **Flowerpot → Seed → Root → Sprout → Seedlin
 | Root | Spend leaves on cards for the book on two distinct local days. | `root-cutout.png` (original: `root.png`) |
 | Sprout | Spend leaves on three distinct local days across any deck for the book. | `seedling.svg` |
 | Seedling | Spend leaves on five distinct local days across any deck for the book. | `../mascot.svg` |
-| Stem | Spend leaves on ten distinct local days across any deck for the book. | `bodies/stem.png` (A · Carnoso), shared component and calibration editor. |
+| Stem | Spend leaves on ten distinct local days across any deck for the book. | `bodies/stem-flat.svg`, shared component and calibration editor. |
 | Flower | Spend leaves on fifteen distinct local days across any deck for the book. | `bodies/flower.png`: approved A · Flor, without stem, shared SVG face and separate shadow. |
 | Fruit | TBD; not active in the app; no approved artwork or motto. | Hidden silhouette in the app. |
 | Evergreen | TBD; not active in the app. | Hidden silhouette in the app. |

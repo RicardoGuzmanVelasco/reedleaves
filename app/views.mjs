@@ -23,6 +23,7 @@ const practiceLaunchLabel = text => {
 export const takeNoteIconMarkup = '<span class="take-note-icon" aria-hidden="true"></span>';
 const practiceFrequencyLabel = (c, direction) => `<span class="practice-frequency-main">${c.practiceFrequencyVerb ? `<span class="practice-frequency-verb">${esc(c.practiceFrequencyVerb)}</span> ` : ""}<strong>${esc(c[direction])}</strong></span><span class="practice-frequency-often">${esc(c.practiceOften)}</span>`;
 export const calendarIconMarkup = () => '<svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/></svg>';
+const closeIconMarkup = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg>';
 const shareIconMarkup = '<svg class="share-deck-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-3.4M8.7 13.3l6.6 3.4"/></svg>';
 const cardsIconMarkup = '<span class="cards-icon" aria-hidden="true"></span>';
 const takeNoteLabelMarkup = label => `<span class="take-note-content">${takeNoteIconMarkup}<span>${esc(label)}</span></span>`;
@@ -98,7 +99,7 @@ function bookDetailsMarkup(s,book) {
   const noteNudge=s.mode === "library" && s.noteNudgeBookId === book.id && ["reading","read"].includes(s.statuses[book.id] || "unread");
   const noteChoices=s.noteDestination?.source === "book-details" && s.noteDestination.bookId === book.id ? bookNoteDestinationMarkup(s,book) : "";
   return `<dialog class="deck-modal book-modal" data-book="${esc(book.id)}" aria-labelledby="book-dialog-title" ${contentText(book.description,s.language,book.originalLanguage) ? 'aria-describedby="book-dialog-description"' : ""}><article class="deck-card book-detail">
-    <button class="deck-modal-close" type="button" data-action="close-book-details" aria-label="${c.closeBook}" autofocus>×</button>
+    <button class="dialog-close deck-modal-close" type="button" data-action="close-book-details" aria-label="${c.closeBook}" autofocus>${closeIconMarkup}</button>
     <div class="deck-tags">${genres.map(genre => `<span>${esc(genre)}</span>`).join("")}</div>
     <h2 id="book-dialog-title" lang="${esc(displayedBookTitle(s,book).language)}" dir="auto">${esc(displayedBookTitle(s,book).text)}</h2><div class="book-detail-author-row"><p class="book-detail-author">${esc(book.author)}</p>${completeBookButton(s,book)}</div>
     ${s.userId ? inShelf ? `<p class="collection-object-state"><img src="../brand/icons/collections/shelf.svg" alt="" width="21" height="21">${c.bookOnShelf}</p>` : `<button class="collection-add-action" type="button" data-action="add-book-to-shelf" data-book="${esc(book.id)}"><img src="../brand/icons/collections/shelf-add.svg" alt="" width="24" height="24">${c.addBookToShelf}</button>` : ""}
@@ -186,7 +187,7 @@ export function bookshelfView(s) {
   const selected = s.catalog.booksById.get(s.openBookId);
   const select = (axis,label,options) => `<label class="bookshelf-filter-select" for="bookshelf-filter-${axis}"><span>${esc(label)}</span><select id="bookshelf-filter-${axis}" data-bookshelf-filter="${axis}">${options.map(([value,text])=>`<option value="${value}" ${filterDraft[axis] === value ? "selected" : ""}>${esc(text)}</option>`).join("")}</select></label>`;
   const groups = [["reading",c.readingStatus],["read",c.readStatus],["unread",c.unread]];
-  const filterDialog=s.bookshelfFiltersOpen ? `<dialog class="bookshelf-filter-modal" aria-labelledby="bookshelf-filter-title"><header class="bookshelf-filter-modal-heading"><h2 id="bookshelf-filter-title">${c.filterBooks}</h2><button class="deck-modal-close" type="button" data-action="close-bookshelf-filters" aria-label="${c.closeFilters}">×</button></header><div class="bookshelf-filter-fields">
+  const filterDialog=s.bookshelfFiltersOpen ? `<dialog class="bookshelf-filter-modal" aria-labelledby="bookshelf-filter-title"><header class="bookshelf-filter-modal-heading"><h2 id="bookshelf-filter-title">${c.filterBooks}</h2><button class="dialog-close deck-modal-close" type="button" data-action="close-bookshelf-filters" aria-label="${c.closeFilters}">${closeIconMarkup}</button></header><div class="bookshelf-filter-fields">
       ${select("reading",c.bookStatus,[["all",c.allBooks],["unread",c.unread],["reading",c.readingStatus],["read",c.readStatus]])}</div>
       <footer class="bookshelf-filter-actions"><button class="text-button" type="button" data-action="reset-bookshelf-filter-draft">${c.resetFilters}</button><span><button class="text-button" type="button" data-action="close-bookshelf-filters">${c.cancel}</button><button class="primary" type="button" data-action="apply-bookshelf-filters">${c.applyFilters}</button></span></footer></dialog>` : "";
   return `<section class="bookshelf-screen">
@@ -352,9 +353,11 @@ function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = fal
     <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book,{compact,linkBook,showDraftStatus:exclusive})}</div>${exclusive ? cardActionsHost(card) : ""}</footer></article></div>`;
 }
 
-function exclusiveCardMarkup(s,card,position="") {
+function exclusiveCardMarkup(s,card,position="",navigation=null) {
   const c=words[s.language],type=cardTypeFor(card);
-  return `<dialog class="exclusive-card-modal" aria-label="${c.exclusiveCard}"><div class="exclusive-card-shell"><div class="exclusive-card-controls"><span>${esc(position)}</span><button class="exclusive-card-close" type="button" data-action="close-exclusive" aria-label="${c.closeCard}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>${type.accessibleHeading ? `<h1 class="sr-only">${c[type.accessibleHeading]}</h1>` : ""}${cardMarkup(s,card,"h1",{exclusive:true})}</div></dialog>`;
+  const previous=navigation?.previous?`<button class="exclusive-card-step exclusive-card-step--previous" type="button" data-action="previous-reading-card" aria-label="${esc(c.previous)}" title="${esc(c.previous)}">‹</button>`:"";
+  const next=navigation?.next?`<button class="exclusive-card-step exclusive-card-step--next" type="button" data-action="next-reading-card" aria-label="${esc(c.next)}" title="${esc(c.next)}">›</button>`:"";
+  return `<dialog class="exclusive-card-modal" aria-label="${c.exclusiveCard}"><div class="exclusive-card-shell"><div class="exclusive-card-controls">${previous}<span>${esc(position)}</span>${next}<button class="dialog-close exclusive-card-close" type="button" data-action="close-exclusive" aria-label="${c.closeCard}">${closeIconMarkup}</button></div>${type.accessibleHeading ? `<h1 class="sr-only">${c[type.accessibleHeading]}</h1>` : ""}${cardMarkup(s,card,"h1",{exclusive:true})}</div></dialog>`;
 }
 
 export function dailyView(s) {
@@ -493,7 +496,7 @@ export function deckView(s) {
         <span class="deck-tile-copy"><strong lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</strong><span class="deck-creator deck-tile-creator">${deckCreator(deck)}</span>
         <span class="deck-tile-metadata"><span class="deck-tile-count" aria-hidden="true" title="${esc(c.noteCardsCount(deck.cardCount))}">${cardsIconMarkup}<span>${deck.cardCount}</span></span><span class="deck-tile-count deck-tile-language" aria-hidden="true" title="${esc(language)}">${flag}</span>${deckStatusMarkup(s,deck,{compact:true})}</span></span></article>`;
     }).join("")}</div>` : `<div class="empty-state">${c.noDecks}</div>`}
-    ${(() => { const selected = choices.find(item => item.deck.id === s.openDeckId); return selected ? `<dialog class="deck-modal" data-deck="${esc(selected.deck.id)}" aria-labelledby="deck-dialog-title" aria-describedby="deck-dialog-description"><article class="deck-card"><button class="deck-modal-close" type="button" data-action="close-deck" aria-label="${c.closeDeck}" autofocus>×</button>${deckDetails(selected.deck,true)}</article></dialog>` : ""; })()}
+    ${(() => { const selected = choices.find(item => item.deck.id === s.openDeckId); return selected ? `<dialog class="deck-modal" data-deck="${esc(selected.deck.id)}" aria-labelledby="deck-dialog-title" aria-describedby="deck-dialog-description"><article class="deck-card"><button class="dialog-close deck-modal-close" type="button" data-action="close-deck" aria-label="${c.closeDeck}" autofocus>${closeIconMarkup}</button>${deckDetails(selected.deck,true)}</article></dialog>` : ""; })()}
   </section>`;
 }
 
@@ -575,7 +578,7 @@ export function reviewView(s) {
   return `<section class="review-screen album-screen"><div class="review-heading"><button class="text-button" type="button" data-action="choose-book">${c.deckBack}</button>${shareAction}</div>
     ${albumSummary(s,deck,model,review,reviewMascotCallout(s,deck.bookId))}
     <div class="content-tools deck-content-tools">${model.cards.length ? deckBrowsingControls(s) : ""}${deckWritingActions(s,deck,"deck-content-edit")}</div>
-    ${model.cards.length ? deckContentMarkup(s,model,review,deck) : `<div class="empty-state">${c.emptyAuthor}</div>`}${card ? exclusiveCardMarkup(s,card,c.position(model.cards.findIndex(item=>item.id===card.id)+1,model.cards.length)) : ""}
+    ${model.cards.length ? deckContentMarkup(s,model,review,deck) : `<div class="empty-state">${c.emptyAuthor}</div>`}${card ? (()=>{const index=model.cards.findIndex(item=>item.id===card.id);return exclusiveCardMarkup(s,card,c.position(index+1,model.cards.length),{previous:model.cards[index-1]?.id,next:model.cards[index+1]?.id});})() : ""}
     ${s.quotesOnly && model.cards.length && !model.cards.some(card=>card.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}</section>`;
 }
 

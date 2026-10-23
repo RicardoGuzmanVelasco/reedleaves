@@ -30,6 +30,8 @@ test("Deck recommendations and community likes stay separate", async () => {
 test("Deck grid opens a complete modal; every review card is visible and openable", async () => {
   const catalog = await fixture(),base = {catalog,language:"es",deckId,bookId:"seven-habits",requestedId:"inside-out-2",storageAvailable:true,userId:"reader",enrolledIds:[deckId]};
   const html = reviewView(base);
+  assert.match(html,/data-action="previous-reading-card" aria-label="← Anterior"/);
+  assert.match(html,/data-action="next-reading-card" aria-label="Siguiente →"/);
   assert.match(html,/Equipo Reedleaves/); assert.match(html,/class="tree-map/);
   assert.doesNotMatch(html,/tree-node--seen|tree-node--unseen|Ya repasada|Sin repasar/);
   assert.match(html,/Make room for what matters/); assert.doesNotMatch(html,/leaf-token|Bloqueada|tree-node-hidden/);
@@ -42,6 +44,13 @@ test("Deck grid opens a complete modal; every review card is visible and openabl
   assert.match(modal,/<dialog class="deck-modal"/); assert.match(modal,/7 tarjetas · 2 niveles/);
   assert.match(modal,/href="#profile\//); assert.match(modal,/inglés/i); assert.match(modal,/Ver baraja/);
   assert.doesNotMatch(modal,/Más popular/);
+});
+
+test("Reading navigation offers an alternative control at deck boundaries",async()=>{
+  const catalog=await fixture(),cards=catalog.deckModels.get(deckId).cards,base={catalog,language:"en",deckId,bookId:"seven-habits",storageAvailable:true,userId:"reader",enrolledIds:[deckId]};
+  const first=reviewView({...base,requestedId:cards[0].id}),last=reviewView({...base,requestedId:cards.at(-1).id});
+  assert.doesNotMatch(first,/data-action="previous-reading-card"/);assert.match(first,/data-action="next-reading-card"/);
+  assert.match(last,/data-action="previous-reading-card"/);assert.doesNotMatch(last,/data-action="next-reading-card"/);
 });
 
 test("Deck tiles only label ongoing creation and retain the change warning in their details, in both languages",async()=>{
@@ -121,7 +130,8 @@ test("Deck albums show cards without per-deck progress",async()=>{
     const modal=detail.match(/<dialog\b[^>]*class="exclusive-card-modal"[\s\S]*?<\/dialog>/)?.[0];
     assert.ok(modal,"An explicitly opened card has its own exclusive dialog");
     assert.ok(modal.includes(escapeHtml(card.body[deck.language])));
-    assert.match(modal,/data-action="close-exclusive"/);
+    assert.match(modal,/class="dialog-close exclusive-card-close" type="button" data-action="close-exclusive" aria-label=/);
+    assert.match(modal,/<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"\/><\/svg>/);
     assert.doesNotMatch(modal,/tree-map|data-action="choose-book"|data-action="home"/);
     assert.doesNotMatch(detail,/tarjetas repasadas|<progress/,"The album stays behind the dialog without a progress indicator");
     const empty=view({...state});

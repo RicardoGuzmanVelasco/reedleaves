@@ -11,7 +11,7 @@ export const mascotAssets = Object.freeze({
   seedling: "/brand/reed/growth/bodies/seedling.svg",
   sprout: "/brand/reed/growth/bodies/sprout.svg",
   mystery: "/brand/reed/growth/mystery.svg",
-  stem: "/brand/reed/growth/bodies/stem.png",
+  stem: "/brand/reed/growth/bodies/stem-flat.svg",
   plant: "/brand/reed/growth/plant.svg",
   flower: "/brand/reed/growth/bodies/flower.png",
   infinity: "/brand/reed/growth/infinity.svg"

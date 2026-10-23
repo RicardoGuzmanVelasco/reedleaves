@@ -99,9 +99,9 @@ test("Book mascot collection shows earned art, ordered names and a shared unknow
   assert.match(fiveDays,/class="mascot-stage is-earned is-known"[^>]*>.*?<span class="mascot-art mascot-stage-art"[^>]*>.*?<img src="\/brand\/reed\/growth\/bodies\/sprout\.svg"/s);
   for(const language of ["es","en"]) {
     const stemView=days=>mascotsView({...state,language,growth:{"seven-habits":{added:true,reviewDays:days}}});
-    assert.doesNotMatch(stemView(9),/growth\/bodies\/stem\.png/);
+    assert.doesNotMatch(stemView(9),/growth\/bodies\/stem-flat\.svg/);
     const stemRow=stemView(10).match(/<li class="mascot-stage is-earned is-known is-current"[^>]*>[\s\S]*?<\/li>/)[0];
-    assert.match(stemRow,/growth\/bodies\/stem\.png/);
+    assert.match(stemRow,/growth\/bodies\/stem-flat\.svg/);
     assert.ok(stemRow.includes(words[language].mascotStem));
     assert.ok(!stemRow.includes(words[language].mascotNotUnlocked));
   }
@@ -180,7 +180,7 @@ test("Mascot collection opens from review album and deck selection, not library,
   const sproutReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,reviewDays:5}}});
   assert.match(sproutReview,/brand\/reed\/growth\/bodies\/sprout\.svg/);assert.doesNotMatch(sproutReview,/Las hojas verdes son el siguiente paso|mascotMotto/);
   const stemReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,reviewDays:10}}});
-  assert.match(stemReview,/review-mascot-callout/);assert.match(stemReview,/brand\/reed\/growth\/bodies\/stem\.png/);
+  assert.match(stemReview,/review-mascot-callout/);assert.match(stemReview,/brand\/reed\/growth\/bodies\/stem-flat\.svg/);
   assert.doesNotMatch(stemReview,/<p lang="es"><\/p>|undefined/);
   const flowerReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,reviewDays:15}}});
   assert.match(flowerReview,/brand\/reed\/growth\/bodies\/flower\.png/);
@@ -206,6 +206,6 @@ test("Home book cover uses that book's earned mascot as a body-only icon",async(
   assert.match(cover({growth:{[bookId]:{added:true,reviewDays:2}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/root\.png"/);
   assert.match(cover({growth:{[bookId]:{added:true,reviewDays:3}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/seedling\.svg"/);
   assert.match(cover({growth:{[bookId]:{added:true,reviewDays:5}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/sprout\.svg"/);
-  assert.match(cover({growth:{[bookId]:{added:true,reviewDays:10}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/stem\.png"/);
+  assert.match(cover({growth:{[bookId]:{added:true,reviewDays:10}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/stem-flat\.svg"/);
   assert.match(cover({growth:{[bookId]:{added:true,reviewDays:15}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/flower\.png"/);
 });
