@@ -3,6 +3,7 @@ import {ApiError} from "./errors.mjs";
 import {isCanonicalLocale,quoteExcerpt,LANGUAGES,validateCards,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH,BOOK_AUTHOR_MAX_LENGTH,MAX_CARDS_PER_DECK} from "../app/core.mjs";
 import {normalizeBookMetadata,mergeBookMetadata} from "../app/book-metadata.mjs";
 import {defaultNoteDeckTitle} from "../app/note-defaults.mjs";
+import {normalizeQuoteSourceUrl} from "../app/quote-source.mjs";
 import {isDeepStrictEqual} from "node:util";
 
 function text(value,max,required=true) {
@@ -265,6 +266,8 @@ export async function finishNoteDecks(db,session,input) {
 export async function createTeamDeck(db,input) {
   const id=requestId(input.requestId),title=text(input.title,TITLE_MAX_LENGTH),description=text(input.description ?? "",DESCRIPTION_MAX_LENGTH,false),language=input.language;
   if (!isCanonicalLocale(language) || typeof input.bookId !== "string" || !Array.isArray(input.cards) || !input.cards.length || input.cards.length>MAX_CARDS_PER_DECK) throw new ApiError(400,"invalidRequest");
+  const quoteSourceUrl=input.quoteSourceUrl === undefined ? null : normalizeQuoteSourceUrl(input.quoteSourceUrl);
+  if (input.quoteSourceUrl !== undefined && (!quoteSourceUrl || !input.cards.some(card=>card?.isQuote === true))) throw new ApiError(400,"invalidRequest");
   const editorialNote=text(input.editorialNote ?? title,EDITORIAL_NOTE_MAX_LENGTH);
   const normalizedCards=[];
   const siblingPositions=new Map();
@@ -292,7 +295,7 @@ export async function createTeamDeck(db,input) {
       if (previous.creator_user_id!=="reed-team" || previous.book_id!==input.bookId || previous.language!==language) throw new ApiError(409,"invalidRequest");
       const deck=await db.prepare(`SELECT * FROM decks WHERE id=?${isPostgres(db) ? " FOR UPDATE" : ""}`).get(id);
       const metadata=await db.prepare("SELECT title,description,editorial_note FROM deck_translations WHERE deck_id=? AND language=?").get(id,language);
-      if (!deck || !["draft","published"].includes(deck.status) || !metadata || metadata.title!==title || metadata.description!==(description||title) || metadata.editorial_note!==editorialNote) throw new ApiError(409,"invalidRequest");
+      if (!deck || !["draft","published"].includes(deck.status) || deck.quote_source_url!==quoteSourceUrl || !metadata || metadata.title!==title || metadata.description!==(description||title) || metadata.editorial_note!==editorialNote) throw new ApiError(409,"invalidRequest");
       const rows=await db.prepare(`SELECT c.id,c.parent_id,c.position,c.is_quote,t.title,t.body FROM cards c JOIN card_translations t ON t.card_id=c.id AND t.language=? WHERE c.deck_id=? ORDER BY c.position,c.id`).all(language,id);
       const actual=rows.map(row=>({id:row.id,parentId:row.parent_id,order:row.position,isQuote:!!row.is_quote,title:row.title,body:row.body})).sort((a,b)=>a.id.localeCompare(b.id));
       const expected=normalizedCards.map(card=>({id:card.id,parentId:card.parentId,order:card.order,isQuote:card.isQuote,title:card.title[language],body:card.body[language]})).sort((a,b)=>a.id.localeCompare(b.id));
@@ -300,7 +303,7 @@ export async function createTeamDeck(db,input) {
       if (deck.status==="draft") await db.prepare("UPDATE decks SET status='published' WHERE id=? AND status='draft'").run(deck.id);
       return {deckId:id,status:"published",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:true};
     }
-    await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language,status) VALUES (?,?, 'reed-team',?,'draft')").run(id,input.bookId,language);
+    await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language,status,quote_source_url) VALUES (?,?, 'reed-team',?,'draft',?)").run(id,input.bookId,language,quoteSourceUrl);
     await db.prepare("INSERT INTO deck_translations(deck_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,title,description||title,editorialNote);
     await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES ('reed-team',?)").run(id);
     const createdAt=new Date().toISOString();

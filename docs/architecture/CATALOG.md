@@ -8,7 +8,7 @@ No se simula la base mediante JSON. JSON solo transporta la respuesta HTTP.
 - Libro: autor, título original e idioma original propios, títulos localizados e intereses. No contiene un único árbol.
 - Los libros creados por cuentas se incorporan directamente al catálogo común, incluidos los ya guardados. Se conserva `creator_user_id` para atribución y para completar metadatos; no controla visibilidad. Todas las cuentas pueden registrar su lectura y crear su propia baraja sobre ellos. Fichas mínimas sin traducciones, intereses, enlaces o barajas visibles son válidas. Ver [ADR 0001](../adr/0001-libros-en-catalogo-comun.md): la gestión de privacidad de libros queda pospuesta.
 - Enlace de libro: plataforma y URL de su ficha, en `book_links`; único por libro y plataforma. Amazon para comprar, Goodreads para reseñar; no ejecutamos esas acciones desde Reedleaves.
-- Baraja: libro, usuario creador autorizado, idioma principal, estado editorial y recomendación opcional. Contiene directamente sus textos localizados y tarjetas.
+- Baraja: libro, usuario creador autorizado, idioma principal, estado editorial y recomendación opcional. Puede tener una URL HTTPS de fuente para sus citas, que el equipo fija al crearla mediante MCP. La API omite el campo cuando no existe; la autoría de cuentas no puede editarlo.
 - Tarjeta: baraja, padre opcional, orden entre hermanas y texto en el idioma de la baraja; otras traducciones son opcionales.
 - Usuario: identidad interna y permiso de creación. Las cuentas de lectores tienen acceso mediante usuario y contraseña; las sesiones y el progreso se guardan en servidor. Ver `ACCOUNTS.md`.
 - Lectura: estado por usuario y libro, independiente de las barajas añadidas al Tarjetero.
