@@ -9,7 +9,7 @@ Revisión secuencial de los 17 comentarios. Los puntos implementados están en l
 3. **Navegación de vuelta en el perfil** — pendiente: explorar una flecha tipo Apple solo cuando haya un destino anterior con sentido; no mostrarla si volver equivale a ir a Home, ya disponible en la barra inferior.
 4. **Mayúsculas en usernames** — ignorado por ahora, según indicación del usuario.
 5. **Contador de Guardadas** — la rama actual oculta el contador cuando vale cero. El usuario no tiene claro este comportamiento; revisarlo por separado.
-6. **Tipografía de tarjetas** — implementado: cuerpo en tipografía normal; citas en cursiva. Se retiraron las fuentes empaquetadas y todas las referencias textuales del proyecto.
+6. **Tipografía de tarjetas** — cuerpo en tipografía normal y citas en cursiva; fuentes anteriores retiradas. Corrección de tamaño implementada en local tanto en vista exclusiva como en las previews: las citas usan el mismo tamaño de cuerpo que las demás tarjetas de cada vista. Pendiente de publicación.
 7. **Botones de cierre** — se unificaron en esta rama; el usuario no sigue el cambio y pidió dejar el tema para más adelante.
 8. **Scroll bajo modales** — implementado: los diálogos bloquean el desplazamiento de fondo y restauran el estado al cerrarse.
 9. **«Ver/Ojear baraja»** — aparcado expresamente para más adelante: ambos controles aparecen en el detalle de una baraja guardada; no se cambió el flujo.
