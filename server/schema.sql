@@ -84,6 +84,7 @@ CREATE TABLE decks (
   is_recommended INTEGER NOT NULL DEFAULT 0 CHECK(is_recommended IN (0,1)),
   status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived')),
   editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft','reviewed')),
+  quote_source_url TEXT CHECK(quote_source_url IS NULL OR (quote_source_url LIKE 'https://%' AND length(trim(quote_source_url)) BETWEEN 9 AND 2048)),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(id,book_id)
 ) STRICT;
@@ -92,6 +93,12 @@ CREATE UNIQUE INDEX one_recommendation_per_book ON decks(book_id) WHERE is_recom
 
 CREATE TRIGGER check_deck_author_insert BEFORE INSERT ON decks WHEN COALESCE((SELECT can_create_decks FROM users WHERE id = NEW.creator_user_id),0) <> 1
 BEGIN SELECT RAISE(ABORT,'Deck creation permission required'); END;
+CREATE TRIGGER team_only_deck_quote_source BEFORE INSERT ON decks
+WHEN NEW.quote_source_url IS NOT NULL AND NEW.creator_user_id <> 'reed-team'
+BEGIN SELECT RAISE(ABORT,'Only team decks can have a quote source'); END;
+CREATE TRIGGER keep_deck_quote_source BEFORE UPDATE OF quote_source_url ON decks
+WHEN NEW.quote_source_url IS NOT OLD.quote_source_url
+BEGIN SELECT RAISE(ABORT,'Deck quote source is immutable'); END;
 CREATE TRIGGER keep_deck_owner BEFORE UPDATE OF creator_user_id,book_id,language ON decks
 WHEN (NEW.creator_user_id IS NOT OLD.creator_user_id AND NOT (
   OLD.creator_user_id='reed-team' AND OLD.status='published' AND
@@ -276,4 +283,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 35;
+PRAGMA user_version = 36;

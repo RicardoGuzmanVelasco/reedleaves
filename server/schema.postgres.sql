@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 27));
-INSERT INTO reed_schema VALUES (27);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 28));
+INSERT INTO reed_schema VALUES (28);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -57,10 +57,27 @@ CREATE TABLE decks(
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35), is_recommended SMALLINT NOT NULL DEFAULT 0 CHECK(is_recommended IN (0,1)),
   status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived')),
   editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft','reviewed')),
+  quote_source_url TEXT CHECK(quote_source_url IS NULL OR (quote_source_url LIKE 'https://%' AND length(btrim(quote_source_url)) BETWEEN 9 AND 2048)),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(id,book_id)
 );
 CREATE INDEX decks_by_book ON decks(book_id);
 CREATE UNIQUE INDEX one_recommendation_per_book ON decks(book_id) WHERE is_recommended = 1;
+CREATE FUNCTION reed_team_only_deck_quote_source() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.quote_source_url IS NOT NULL AND NEW.creator_user_id <> 'reed-team' THEN
+    RAISE EXCEPTION 'Only team decks can have a quote source';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER team_only_deck_quote_source BEFORE INSERT ON decks FOR EACH ROW EXECUTE FUNCTION reed_team_only_deck_quote_source();
+CREATE FUNCTION reed_keep_deck_quote_source() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.quote_source_url IS DISTINCT FROM OLD.quote_source_url THEN
+    RAISE EXCEPTION 'Deck quote source is immutable';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER keep_deck_quote_source BEFORE UPDATE OF quote_source_url ON decks FOR EACH ROW EXECUTE FUNCTION reed_keep_deck_quote_source();
 CREATE TABLE deck_translations(
   deck_id TEXT NOT NULL REFERENCES decks(id), language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
   title TEXT NOT NULL CHECK(length(btrim(title)) > 0), description TEXT NOT NULL CHECK(length(btrim(description)) > 0),

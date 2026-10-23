@@ -5,6 +5,7 @@ import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
 import { words } from "./i18n.mjs?v=deck-detail-actions-1";
 import { bookLinkUrl } from "./book-links.mjs";
+import { validQuoteSourceUrl } from "./quote-source.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks, bookshelfDefaults} from "./bookshelf.mjs";
 import {currentMascotStage} from "./mascot-progress.mjs?v=flower-15-days";
@@ -31,6 +32,11 @@ const collectionIconMarkup = (name,size=22) => `<img src="../brand/icons/collect
 const priceTag = ({amount,icon,label,originalAmount}) => `<span class="pricetag${originalAmount!==undefined?" pricetag--discounted":""}" role="img" aria-label="${esc(label)}"><svg class="pricetag-paper" viewBox="0 0 160 32" preserveAspectRatio="none" aria-hidden="true"><path d="M17 4C47 8 83-1 139 3C150 4 156 9 153 17C151 25 146 28 135 27C89 23 53 32 18 28C8 27 2 23 3 16C4 8 8 3 17 4Z" fill="currentColor"/></svg>${originalAmount!==undefined?'<span class="pricetag-glint" aria-hidden="true"></span>':""}<img src="../brand/reed/${esc(icon)}-token.svg" alt="" width="20" height="20">${originalAmount!==undefined?`<span class="pricetag-discount-numbers" aria-hidden="true"><span class="pricetag-previous">${esc(originalAmount)}<svg class="pricetag-cross" viewBox="0 0 16 20" aria-hidden="true"><path d="m2 4 12 12M14 4 2 16"/></svg></span><strong>${esc(amount)}</strong></span><svg class="pricetag-offer-icon" viewBox="0 0 32 32" aria-hidden="true"><path fill-rule="evenodd" d="M7 6 16 5c1-.1 2 .3 2.8 1.1L29 16.4c1.3 1.3 1.3 3.4 0 4.7l-8 8c-1.3 1.3-3.4 1.3-4.7 0L6.1 18.8A3.6 3.6 0 0 1 5 16L6 8a2 2 0 0 1 1-2Z M9.5 7.7a2.3 2.3 0 1 0 0 4.6a2.3 2.3 0 1 0 0-4.6Z M16.2 11.1 20 27l1.5-.4-3.8-15.9Z M14 15.9a2.1 2.1 0 1 0 0 4.2a2.1 2.1 0 1 0 0-4.2Z M23 17.9a2.1 2.1 0 1 0 0 4.2a2.1 2.1 0 1 0 0-4.2Z"/><path d="m9.4 8.8 1-6.9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>`:`<span>${esc(amount)}</span>`}</span>`;
 const filterIconMarkup = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6.5 7.2v5.1l-3 1.7v-6.8L4 5Z"/></svg>';
 const deckCreator = deck => nameLink({icon:"user",name:deck.creator?.name,href:deck.creator?.userId ? `#profile/${encodeURIComponent(deck.creator.userId)}` : null});
+const quoteSourceLink = (deck,c) => validQuoteSourceUrl(deck.quoteSourceUrl) ? `<a class="book-external-link deck-quote-source" href="${esc(deck.quoteSourceUrl)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(c.quoteSource+". "+c.newTab)}" title="${esc(c.newTab)}">
+  <svg class="deck-quote-source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 10H5.8a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2.7a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2ZM20.2 10h-3.7a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2.7a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2Z"/><path d="M4 10c0-3 1.4-4.7 4.2-5.5M14.7 10c0-3 1.4-4.7 4.2-5.5"/></svg>
+  <span class="book-external-link-copy"><strong>${esc(c.quoteSource)}</strong></span>
+  <svg class="external-link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4 10 14M10 4H4v16h16v-6"/></svg>
+</a>` : "";
 const button = (text, action, disabled = false) => `<button type="button" class="primary" data-action="${action}" ${disabled ? "disabled" : ""}>${esc(text)}</button>`;
 
 function bookGenres(s,book) {
@@ -477,6 +483,7 @@ export function deckView(s) {
     return `<h2 ${dialog ? 'id="deck-dialog-title"' : ""} lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</h2>
       <p class="deck-creator">${deckCreator(deck)}<span class="deck-language" lang="${esc(deck.language)}">${esc(languageName(deck.language))}</span></p>
       <p class="deck-description" ${dialog ? 'id="deck-dialog-description"' : ""} lang="${esc(contentLocale(deck.description,s.language,deck.language))}" dir="auto">${esc(contentText(deck.description,s.language,deck.language))}</p>
+      ${quoteSourceLink(deck,c)}
       ${deckStatusMarkup(s,deck,{canPractice:inCollection})}
       <p class="deck-size">${c.deckSize(deck.cardCount,deck.depth)}</p>
       ${metrics.length ? `<p class="deck-metrics">${metrics.map(esc).join(" · ")}</p>` : ""}

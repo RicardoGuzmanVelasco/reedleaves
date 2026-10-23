@@ -56,6 +56,7 @@ export async function readCatalog(db, userId) {
     const deck = decks.find(item=>item.id===row.id);
     Object.assign(deck,{status:row.status,
       editorialStatus:row.editorial_status,language:row.language,cardCount:model.cards.length,depth,title:{},description:{},editorialNote:{}});
+    if(row.quote_source_url) deck.quoteSourceUrl=row.quote_source_url;
     for (const t of await db.prepare("SELECT * FROM deck_translations WHERE deck_id = ?").all(row.id)) {
       deck.title[t.language]=t.title; deck.description[t.language]=t.description; deck.editorialNote[t.language]=t.editorial_note;
     }

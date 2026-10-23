@@ -8,8 +8,8 @@ import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH,USERNAME_MIN_LENGTH
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 35;
-export const POSTGRES_SCHEMA_VERSION = 27;
+export const SQLITE_SCHEMA_VERSION = 36;
+export const POSTGRES_SCHEMA_VERSION = 28;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -96,6 +96,20 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 35) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE decks ADD COLUMN quote_source_url TEXT CHECK(quote_source_url IS NULL OR (quote_source_url LIKE 'https://%' AND length(trim(quote_source_url)) BETWEEN 9 AND 2048));
+        CREATE TRIGGER team_only_deck_quote_source BEFORE INSERT ON decks
+        WHEN NEW.quote_source_url IS NOT NULL AND NEW.creator_user_id <> 'reed-team'
+        BEGIN SELECT RAISE(ABORT,'Only team decks can have a quote source'); END;
+        CREATE TRIGGER keep_deck_quote_source BEFORE UPDATE OF quote_source_url ON decks
+        WHEN NEW.quote_source_url IS NOT OLD.quote_source_url
+        BEGIN SELECT RAISE(ABORT,'Deck quote source is immutable'); END;
+        PRAGMA user_version=36; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 34) {
     db.exec("BEGIN IMMEDIATE");
     try { db.exec("ALTER TABLE book_translations DROP COLUMN short_title; PRAGMA user_version=35; COMMIT;"); }
@@ -584,6 +598,34 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 27) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,decks IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 28) return;
+          await db.exec(`ALTER TABLE decks ADD COLUMN quote_source_url TEXT
+              CHECK(quote_source_url IS NULL OR (quote_source_url LIKE 'https://%' AND length(btrim(quote_source_url)) BETWEEN 9 AND 2048));
+            CREATE FUNCTION reed_team_only_deck_quote_source() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              IF NEW.quote_source_url IS NOT NULL AND NEW.creator_user_id <> 'reed-team' THEN
+                RAISE EXCEPTION 'Only team decks can have a quote source';
+              END IF;
+              RETURN NEW;
+            END $$;
+            CREATE TRIGGER team_only_deck_quote_source BEFORE INSERT ON decks FOR EACH ROW EXECUTE FUNCTION reed_team_only_deck_quote_source();
+            CREATE FUNCTION reed_keep_deck_quote_source() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              IF NEW.quote_source_url IS DISTINCT FROM OLD.quote_source_url THEN
+                RAISE EXCEPTION 'Deck quote source is immutable';
+              END IF;
+              RETURN NEW;
+            END $$;
+            CREATE TRIGGER keep_deck_quote_source BEFORE UPDATE OF quote_source_url ON decks FOR EACH ROW EXECUTE FUNCTION reed_keep_deck_quote_source();
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=28;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=28);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 26) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,book_translations IN ACCESS EXCLUSIVE MODE;");
