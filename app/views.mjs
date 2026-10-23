@@ -261,15 +261,15 @@ function noteDestinationMarkup(s) {
 }
 
 const mascotStages = [
-  {id:"pot",name:"mascotNamePot",milestone:"mascotPot",motto:"mascotMottoPot",unlocked:g=>g.added},
-  {id:"seed",name:"mascotNameSeed",milestone:"mascotSeed",motto:"mascotMottoSeed",unlocked:g=>g.reviewDays>=1},
-  {id:"root",name:"mascotNameRoot",milestone:"mascotRoot",motto:"mascotMottoRoot",unlocked:g=>g.reviewDays>=2},
-  {id:"seedling",name:"mascotNameSeedling",milestone:"mascotSeedling",motto:"mascotMottoSeedling",unlocked:g=>g.reviewDays>=3},
-  {id:"sprout",name:"mascotNameSprout",milestone:"mascotSprout",motto:"mascotMottoSprout",unlocked:g=>g.reviewDays>=5},
+  {id:"pot",name:"mascotNamePot",milestone:"mascotPot",unlocked:g=>g.added},
+  {id:"seed",name:"mascotNameSeed",milestone:"mascotSeed",unlocked:g=>g.reviewDays>=1},
+  {id:"root",name:"mascotNameRoot",milestone:"mascotRoot",unlocked:g=>g.reviewDays>=2},
+  {id:"seedling",name:"mascotNameSeedling",milestone:"mascotSeedling",unlocked:g=>g.reviewDays>=3},
+  {id:"sprout",name:"mascotNameSprout",milestone:"mascotSprout",unlocked:g=>g.reviewDays>=5},
   {id:"stem",name:"mascotNameStem",milestone:"mascotStem",unlocked:g=>g.reviewDays>=10},
   {id:"flower",name:"mascotNameFlower",milestone:"mascotFlower",unlocked:g=>g.reviewDays>=15},
   {id:"fruit",name:"mascotNameFruit"},
-  {id:"infinity",name:"mascotNameInfinity",motto:"mascotMottoInfinity"}
+  {id:"infinity",name:"mascotNameInfinity"}
 ];
 function mascotState(s,bookId) {
   const g=s.growth?.[bookId] || {added:false,reviewDays:0};
@@ -280,14 +280,9 @@ function mascotEntry(s,bookId,className="") {
   const book=s.catalog.booksById.get(bookId);
   return `<button class="mascot-entry${className ? ` ${esc(className)}` : ""}" type="button" data-action="open-mascots" data-book="${esc(bookId)}" aria-label="${esc(words[s.language].mascotProgress)} · ${esc(displayedBookTitle(s,book).text)}">${mascotArt(mascotState(s,bookId).latest)}</button>`;
 }
-function mascotMotto(s,bookId) {
-  const current=mascotState(s,bookId).latest, stage=mascotStages.find(item=>item.id===current);
-  return stage?.motto ? {text:words[s.language][stage.motto],language:s.language} : null;
-}
 function reviewMascotCallout(s,bookId) {
   if (!mascotState(s,bookId).latest) return "";
-  const motto=mascotMotto(s,bookId);
-  return `<div class="review-mascot-callout">${mascotEntry(s,bookId,"review-mascot-button")}${motto ? `<p lang="${esc(motto.language)}">${esc(motto.text)}</p>` : ""}</div>`;
+  return `<div class="review-mascot-callout">${mascotEntry(s,bookId,"review-mascot-button")}</div>`;
 }
 export function mascotsView(s) {
   const c=words[s.language],book=s.catalog.booksById.get(s.bookId),{unlocked,latest}=mascotState(s,s.bookId);
@@ -300,9 +295,9 @@ export function mascotsView(s) {
       const earned=unlocked.includes(stage.id),implemented=!!stage.unlocked,current=latest===stage.id;
       const knownArtwork=earned || index<=maximumKnown;
       const marker=earned?`<span class="mascot-stage-marker mascot-check"><svg viewBox="0 0 24 24" role="img" aria-label="${c.mascotEarned}"><path d="m4 12 5 5L20 6"/></svg></span>`:`<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true"></span>`;
-      const showMotto=knownArtwork&&!!stage.motto;
-      const unlock=implemented?c[stage.milestone]:"???",motto=showMotto?c[stage.motto]:earned?"":c.mascotNotUnlocked;
-      return `<li class="mascot-stage${earned?" is-earned":""}${knownArtwork?" is-known":" is-mystery"}${!earned?" is-locked":""}${current?" is-current":""}"${current?' aria-current="step"':""}>${marker}${mascotArt(knownArtwork?stage.id:"mystery","mascot-stage-art",{idle:false})}<div class="mascot-stage-copy"><h2>${c[stage.name]}</h2><p class="mascot-stage-unlock">${esc(unlock)}</p>${motto ? `<p class="mascot-stage-motto${showMotto?"":" is-locked"}">${esc(motto)}</p>` : ""}</div></li>`;
+      const unlock=implemented?c[stage.milestone]:"???";
+      const locked=!earned?c.mascotNotUnlocked:"";
+      return `<li class="mascot-stage${earned?" is-earned":""}${knownArtwork?" is-known":" is-mystery"}${!earned?" is-locked":""}${current?" is-current":""}"${current?' aria-current="step"':""}>${marker}${mascotArt(knownArtwork?stage.id:"mystery","mascot-stage-art",{idle:false})}<div class="mascot-stage-copy"><h2>${c[stage.name]}</h2><p class="mascot-stage-unlock">${esc(unlock)}</p>${locked?`<p class="mascot-stage-lock">${esc(locked)}</p>`:""}</div></li>`;
     }).join("")}</ol>
   </section>`;
 }

@@ -61,25 +61,12 @@ test("Old per-deck practice progress copy is gone", () => {
   }
 });
 
-test("Sprout precedes Seedling in both languages without changing earned stage IDs", () => {
+test("Germ precedes Sprout in both languages without changing earned stage IDs", () => {
   const stages=[currentMascotStage({added:true,reviewDays:3}),currentMascotStage({added:true,reviewDays:5})];
   assert.deepEqual(stages,["seedling","sprout"]);
-  assert.deepEqual(stages.map(id=>words.es[id==="seedling"?"mascotNameSeedling":"mascotNameSprout"]),["Brote","Plántula"]);
-  assert.deepEqual(stages.map(id=>words.en[id==="seedling"?"mascotNameSeedling":"mascotNameSprout"]),["Sprout","Seedling"]);
-});
-
-test("Mascot names and approved mottos match the editable reference document", () => {
-  const reference=readFileSync(new URL("../brand/reed/growth/mottos.md",import.meta.url),"utf8");
-  const rows=reference.split("\n").filter(line=>/^\|\s*\d+\s*\|/.test(line)).map(line=>line.split("|").slice(1,-1).map(cell=>cell.trim()));
-  const keys=["Pot","Seed","Root","Seedling","Sprout","Stem","Plant","Flower","Fruit","Infinity"];
-  assert.equal(rows.length,keys.length);
-  for (const [index,key] of keys.entries()) {
-    assert.equal(Number(rows[index][0]),index+1);
-    for (const [language,nameColumn,mottoColumn] of [["es",1,3],["en",2,4]]) {
-      assert.equal(words[language][`mascotName${key}`],rows[index][nameColumn]);
-      if (rows[index][mottoColumn]!=="PLACEHOLDER") assert.equal(words[language][`mascotMotto${key}`],rows[index][mottoColumn]);
-    }
-  }
+  assert.deepEqual(stages.map(id=>words.es[id==="seedling"?"mascotNameSeedling":"mascotNameSprout"]),["Germen","Brote"]);
+  assert.deepEqual(stages.map(id=>words.en[id==="seedling"?"mascotNameSeedling":"mascotNameSprout"]),["Seedling","Sprout"]);
+  for (const language of ["es","en"]) assert.equal(Object.keys(words[language]).some(key=>key.startsWith("mascotMotto")),false);
 });
 
 test("Only Spanish and English are restored as interface languages", () => {

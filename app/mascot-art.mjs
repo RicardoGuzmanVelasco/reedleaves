@@ -16,7 +16,7 @@ export const mascotAssets = Object.freeze({
   flower: "/brand/reed/growth/bodies/flower.png",
   infinity: "/brand/reed/growth/infinity.svg"
 });
-// New stages hop by default. The historical seedling/sprout IDs name Sprout/Seedling.
+// New stages hop by default. The historical seedling/sprout IDs name Seedling/Sprout.
 export const mascotIdlePatterns = Object.freeze({seed:"float",seedling:"float",sprout:"float",mystery:"float"});
 const escapeAttribute = value => String(value).replace(/[&<>"']/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character]));
 
