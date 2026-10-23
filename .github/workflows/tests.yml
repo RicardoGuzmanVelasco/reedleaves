@@ -32,9 +32,49 @@ jobs:
       # no production credentials or external AI provider are needed.
       - run: npm test
 
+  publish_status:
+    name: Publish passing test status
+    needs: test
+    if: >-
+      needs.test.result == 'success' &&
+      ((github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository) ||
+       (github.event_name == 'workflow_dispatch' && inputs.pr_number != ''))
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      pull-requests: read
+      statuses: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      PR_HEAD_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
+    steps:
+      - name: Publish status for the tested SHA
+        run: |
+          pr=$(gh api "repos/$GH_REPO/pulls/$PR_NUMBER")
+          current_head=$(jq -r '.head.sha' <<<"$pr")
+          current_ref=$(jq -r '.head.ref' <<<"$pr")
+          head_repo=$(jq -r '.head.repo.full_name // empty' <<<"$pr")
+
+          if [[ "$head_repo" != "$GH_REPO" || \
+                "$current_ref" != "$PR_HEAD_REF" || \
+                "$current_head" != "$PR_HEAD_SHA" ]]; then
+            echo "PR identity or head SHA changed; refusing to publish a passing status." >&2
+            exit 1
+          fi
+
+          gh api --method POST "repos/$GH_REPO/statuses/$PR_HEAD_SHA" \
+            -f state=success \
+            -f context='Build and tests' \
+            -f description='npm test passed for this SHA' \
+            -f target_url="https://github.com/$GH_REPO/actions/runs/$GITHUB_RUN_ID"
+
   merge:
     name: Merge PR
-    needs: test
+    needs: [test, publish_status]
     if: >-
       (github.event_name == 'pull_request' &&
        github.event.pull_request.head.repo.full_name == github.repository &&
