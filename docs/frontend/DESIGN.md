@@ -78,8 +78,8 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 - La recomendación del equipo (`deck.isRecommended`, procedente de `is_recommended`) se muestra en el selector con la etiqueta flotante «Te recomendamos / We recommend» y estrella de puntas redondeadas. Usar la opción aprobada de papel ondulado, fondo madera `var(--wood)` (`#e8d3a4`), texto y estrella en el verde bosque existente `var(--ink)` (`#173d2c`), sin borde ni sombra. El nombre accesible incluye el texto de la etiqueta y el tooltip identifica al equipo. No depende de votos ni de que la baraja esté en borrador o terminada.
 - Las distinciones de comunidad se conservan en datos y ordenación, pero siguen ocultas; el detalle no añade distintivos. No mostrar una etiqueta de relleno para barajas sin recomendación. Dar prioridad visual al título, con mayor tamaño que la autoría y todo el ancho disponible. Sus 26 px de margen superior dejan espacio al distintivo sin solapar el título.
 - El idioma se representa con un chip después del ojo y antes del estado de creación. Usar los SVG suaves de `brand/icons/languages/` (España para español y Reino Unido para inglés); para otros idiomas, globo neutro con su etiqueta de idioma. Conservar el nombre localizado del idioma en el nombre accesible y el tooltip de apertura. No reservar espacio lateral en el título para la bandera.
-- Las tarjetas de baraja terminadas no muestran un indicador de estado. Las barajas `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. En una baraja aún no añadida a Decks, indicar que puede previsualizarse y que hay que añadirla para repasarla. La fila de chips puede envolver en móvil estrecho.
-- Antes del ojo, mostrar un chip con el icono de dos tarjetas cerradas y su número. Sustituye a «X tarjetas · Y niveles»; el selector omite los niveles también en su nombre accesible. El icono `cards.svg` deriva de `cards-pen.svg` y mantiene sus dos tarjetas sin lápiz; no sustituye al icono de «Tomar nota». Todos los chips de la fila comparten estilo sin borde.
+- Las barajas terminadas no muestran un indicador de estado en ninguna vista. Las barajas `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. En una baraja aún no añadida a Decks, indicar que puede previsualizarse y que hay que añadirla para repasarla. La fila de chips puede envolver en móvil estrecho.
+- Antes del ojo, mostrar un chip con el icono de cita existente y el número de citas, incluso si es cero. No mostrar el número de tarjetas ni niveles. Si hay más citas que ideas normales, usar los tonos azules en las fichas de baraja del selector y del Tarjetero.
 
 ## Vista exclusiva de tarjetas
 
@@ -114,7 +114,7 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 | Barajas de la colección personal | Tarjetero | Decks |
 | Conjunto de repaso | Baraja | Deck |
 | Creación abierta (`status=draft`) | Borrador / Baraja en borrador | Draft / Draft deck |
-| Creación cerrada (`status=published`) | Terminada | Finished |
+| Creación cerrada (`status=published`) | Sin etiqueta de estado | No status label |
 | Contenido pendiente del editor | Nota sin guardar | Unsaved note |
 | Aprendizaje activo | Barajas en repaso | Decks being practiced |
 | Coste de añadir una baraja ajena | Una hoja | One leaf |
