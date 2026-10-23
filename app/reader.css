@@ -324,7 +324,7 @@ body.is-reading{--page-background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,
 .daily-calendar-day,.daily-calendar-empty{position:relative;width:100%;aspect-ratio:1;max-height:42px;display:grid;place-items:center;border:0;border-radius:13px;background:transparent;font-size:12px;color:var(--muted)}
 button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .daily-calendar-day.has-idea{background:#fffdf6;box-shadow:0 2px 0 #d9e1cd}
-.daily-calendar-day.has-idea:hover{background:#fff}
+.daily-calendar-day.has-idea:hover:not(.is-selected){background:#fff}
 .daily-calendar-day.is-selected{background:var(--light);color:var(--ink);box-shadow:0 3px 0 var(--shadow)}
 .daily-calendar-day.is-today:not(.is-selected){outline:1px solid var(--green);outline-offset:-2px}
 .daily-calendar-seen{position:absolute;top:3px;right:3px;width:10px;height:10px;overflow:visible;fill:none;stroke:#31834a;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
