@@ -63,3 +63,30 @@
   --actions-ribbon-saved:#d8e7f6;
   --actions-accent:#5c87ab;
 }
+.reading-stage[data-card-type="reading-guide"] {
+  --card-paper-start:#fff9ed;
+  --card-paper-end:#f1dfb9;
+  --card-edge:#b38d50;
+  --card-shadow:#d8c394;
+  --card-shadow-rgb:116 83 37;
+  --card-layer-back:#e7d5ab;
+  --card-layer-front:#f2e5c7;
+  --card-layer-edge:#bda574;
+  --card-tab:#e8d3a4;
+  --card-tab-edge:#bca06d;
+  --card-divider:#e4d4af;
+  --card-body-font:inherit;
+  --card-body-leading:1.65;
+  --card-body-size:clamp(18px,2.1vw,22px);
+  --card-body-size-mobile:17px;
+  --watermark-ink:#97733e;
+  --watermark-opacity:.11;
+  --actions-ink:#8f703d;
+  --actions-edge:#c5ad7e;
+  --actions-counter:#765b32;
+  --actions-surface:#f5e9cb;
+  --actions-shadow:#dfcea4;
+  --actions-ribbon:#fff9ed;
+  --actions-ribbon-shadow:#dfcea4;
+  --actions-ribbon-saved:#f3e7c6;
+}

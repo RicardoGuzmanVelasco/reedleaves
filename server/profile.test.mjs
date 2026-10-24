@@ -117,6 +117,15 @@ test("Author stats include quotes as a subset; shared libraries expose content b
   assert.equal((await readProfile(db,"reed-team",b.user_id)).profile.counts.cardsCreated,42);
 });
 
+test("Public bookshelf distinguishes Para leer from books present only through decks",async t=>{
+  const {db,a,b}=await fixture(t);
+  await changeReading(db,a,"atomic-habits","to-read",day(10));
+  await createDeck(db,a,{requestId:randomUUID(),bookId:"seven-habits",title:"Another deck",language:"es"});
+  const shelf=(await readProfile(db,a.user_id,b.user_id)).bookshelf;
+  assert.deepEqual(shelf.find(entry=>entry.bookId==="atomic-habits"),{bookId:"atomic-habits",reading:"unread",group:"to-read"});
+  assert.deepEqual(shelf.find(entry=>entry.bookId==="seven-habits"),{bookId:"seven-habits",reading:"unread"});
+});
+
 test("SQLite v12 view migration preserves accounts and unlocks, backfills once and is repeatable",async t=>{
   const db=await historicalDatabase(t,"sqlite",12),a=await historicalReader(db);
   await historicalUnlock(db,a);

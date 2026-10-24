@@ -54,8 +54,9 @@ export async function readProfile(db,userId,viewerId) {
     const catalog=prepareCatalog(await readCatalog(db,viewerId));
     const statuses=Object.fromEntries((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(r=>[r.book_id,r.status]));
     const enrolledIds=(await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(r=>r.deck_id+"-v1");
-    const shelfBookIds=[...new Set([...Object.keys(statuses),...catalog.decks.filter(deck=>enrolledIds.includes(deck.id)).map(deck=>deck.bookId)])];
-    const entries=bookshelfBooks({catalog,statuses,shelfBookIds,enrolledIds,userId});
+    const shelfBookIds=Object.keys(statuses);
+    const toReadBookIds=shelfBookIds.filter(bookId=>statuses[bookId]==="unread");
+    const entries=bookshelfBooks({catalog,statuses,shelfBookIds,toReadBookIds,enrolledIds,userId});
     const days=new Map((await db.prepare(`SELECT v.book_id,COUNT(DISTINCT ps.completed_local_day) AS n
       FROM practice_sessions ps JOIN practice_session_cards psc ON psc.session_id=ps.id
       JOIN cards c ON c.id=psc.card_id JOIN decks v ON v.id=c.deck_id
@@ -72,10 +73,10 @@ export async function readProfile(db,userId,viewerId) {
       booksReading:Object.values(statuses).filter(s=>s==="reading").length,
       cardsViewed:await count("SELECT COUNT(*) AS n FROM card_views WHERE user_id=?",userId),
       decksCreated:await count("SELECT COUNT(*) AS n FROM decks WHERE creator_user_id=?",userId),
-      cardsCreated:await count("SELECT COUNT(*) AS n FROM cards c JOIN decks d ON d.id=c.deck_id WHERE d.creator_user_id=?",userId),
-      quotesCreated:await count("SELECT COUNT(*) AS n FROM cards c JOIN decks d ON d.id=c.deck_id WHERE d.creator_user_id=? AND c.is_quote=1",userId)
+      cardsCreated:await count("SELECT COUNT(*) AS n FROM cards c WHERE c.creator_user_id=?",userId),
+      quotesCreated:await count("SELECT COUNT(*) AS n FROM cards c WHERE c.creator_user_id=? AND c.is_quote=1",userId)
     };
-    const bookshelf=entries.map(({book,reading})=>({bookId:book.id,reading}));
+    const bookshelf=entries.map(({book,reading,group})=>({bookId:book.id,reading,...(group==="to-read"?{group}:{})}));
     return {profile:{id:user.id,name:user.display_name,username:user.username||null,createdAt:user.created_at,counts,mascots},bookshelf};
   });
 }

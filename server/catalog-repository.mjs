@@ -25,12 +25,13 @@ export async function readCatalog(db, userId) {
     validateBookLinks(book.links,{required:!book.creatorUserId}); books.push(validateBook(book,LANGUAGES,{requirePopular:true}));
   }
   const cards = [];
-  const cardRows = await db.prepare(`SELECT c.*,deck.language AS deck_language FROM cards c
-    JOIN decks deck ON deck.id=c.deck_id JOIN books b ON b.id=c.book_id
+  const cardRows = await db.prepare(`SELECT c.*,deck.language AS deck_language,creator.display_name AS creator_name FROM cards c
+    JOIN decks deck ON deck.id=c.deck_id JOIN books b ON b.id=c.book_id LEFT JOIN users creator ON creator.id=c.creator_user_id
     ORDER BY b.position,c.deck_id,c.position,c.id`).all();
   for (const row of cardRows) {
     const card = {id:row.id,bookId:row.book_id,deckId:row.deck_id,deckLanguage:row.deck_language,
-      isQuote:!!row.is_quote,parentId:row.parent_id,order:row.position,title:{},body:{}};
+      language:row.language || row.deck_language,creatorUserId:row.creator_user_id || null,creatorName:row.creator_name || null,
+      isQuote:!!row.is_quote,isReadingGuide:!!row.is_reading_guide,parentId:row.parent_id,order:row.position,title:{},body:{}};
     for (const t of await db.prepare("SELECT language,title,body FROM card_translations WHERE card_id = ?").all(row.id)) {
       card.title[t.language]=t.title; card.body[t.language]=t.body;
     }
@@ -40,7 +41,7 @@ export async function readCatalog(db, userId) {
   for (const row of await db.prepare(`SELECT d.*,u.display_name FROM decks d
     JOIN users u ON u.id=d.creator_user_id ORDER BY d.book_id,d.is_recommended DESC,d.id`).all()) {
     const metric = async (sql,...values) => (await db.prepare(sql).get(...values)).n;
-    decks.push({id:row.id,bookId:row.book_id,language:row.language,isRecommended:!!row.is_recommended,
+    decks.push({id:row.id,bookId:row.book_id,language:row.language,kind:row.kind || "standard",contributionPolicy:row.contribution_policy || "owner",maxCardsPerContributor:row.max_cards_per_contributor ?? null,isRecommended:!!row.is_recommended,
       creator:{kind:"user",userId:row.creator_user_id,name:row.display_name || null},metrics:{
         likes:await metric("SELECT count(*) AS n FROM deck_votes WHERE deck_id = ? AND value = 1",row.id),
         dislikes:await metric("SELECT count(*) AS n FROM deck_votes WHERE deck_id = ? AND value = -1",row.id)
@@ -59,7 +60,7 @@ export async function readCatalog(db, userId) {
     }
     for (const key of ["title","description","editorialNote"]) if(!deck[key][deck.language]?.trim()) throw new Error("Missing deck-language metadata");
     for (const siblings of model.children.values()) if(siblings.some((c,i)=>c.order!==i+1)) throw new Error("Non-contiguous sibling order");
-    if(model.cards.some(card=>!card.title[row.language]||!card.body[row.language])) throw new Error("Card is missing text in its deck language");
+    if(model.cards.some(card=>!card.title[card.language]||!card.body[card.language])) throw new Error("Card is missing text in its language");
   }
   // Account-created decks and their cards join the shared catalog as they are saved.
   return {schemaVersion:5,genres,books,decks,cards};
