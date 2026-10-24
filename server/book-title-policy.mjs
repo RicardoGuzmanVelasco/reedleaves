@@ -17,8 +17,8 @@ export function mainBookTitle(value,additions=[]) {
   return title;
 }
 
-export function generatedBookTitle(translation,originalTitle) {
-  const title=mainBookTitle(translation.title,[translation.subtitle,translation.alternateTitle,originalTitle]);
+export function generatedBookTitle(translation,popularTitle) {
+  const title=mainBookTitle(translation.title,[translation.subtitle,translation.alternateTitle,popularTitle]);
   if (!title) throw new Error("Invalid generated book title");
   return title;
 }

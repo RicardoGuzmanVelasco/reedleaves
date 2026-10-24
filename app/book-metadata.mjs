@@ -19,10 +19,10 @@ function text(value,max,required=true) {
 export function normalizeBookMetadata(value={}, {completeTranslations=true,canonicalTitles=false}={}) {
   if (!object(value)) throw new Error("Invalid book metadata");
   const result={title:{},description:{},editorialNote:{},genres:[],links:{}};
-  if (value.originalTitle !== undefined) result.originalTitle=text(value.originalTitle,TITLE_MAX_LENGTH);
-  if (value.originalLanguage !== undefined) {
-    if (!isCanonicalLocale(value.originalLanguage)) throw new Error("Invalid book metadata");
-    result.originalLanguage=value.originalLanguage;
+  if (value.popularTitle !== undefined) result.popularTitle=text(value.popularTitle,TITLE_MAX_LENGTH);
+  if (value.popularLanguage !== undefined) {
+    if (!isCanonicalLocale(value.popularLanguage)) throw new Error("Invalid book metadata");
+    result.popularLanguage=value.popularLanguage;
   }
   const languages=new Set();
   for (const [field,max] of Object.entries(TRANSLATION_FIELDS)) {
@@ -34,12 +34,12 @@ export function normalizeBookMetadata(value={}, {completeTranslations=true,canon
       languages.add(language); result[field][language]=text(translation,max,field !== "title");
     }
   }
-  // A preferred title is optional; the original title is the display fallback.
+  // A preferred title is optional; the popular title is the display fallback.
   if (completeTranslations) for (const language of new Set([...LANGUAGES.filter(language=>languages.has(language)),...Object.keys(result.title)])) {
     for (const field of ["description","editorialNote"]) if (!result[field][language]) throw new Error("Incomplete book translation");
     result.title[language] ||= "";
   }
-  if(canonicalTitles) for (const language of Object.keys(result.title)) if (language === result.originalLanguage || result.title[language] === result.originalTitle) result.title[language]="";
+  if(canonicalTitles) for (const language of Object.keys(result.title)) if (result.title[language] === result.popularTitle) result.title[language]="";
   if (value.genres !== undefined) {
     if (!Array.isArray(value.genres) || value.genres.length > 20) throw new Error("Invalid book metadata");
     result.genres=[...new Set(value.genres.map(id=>text(id,80)))].sort();
@@ -57,7 +57,7 @@ export function normalizeBookMetadata(value={}, {completeTranslations=true,canon
 
 export function mergeBookMetadata(current,proposal) {
   const next=normalizeBookMetadata(current,{completeTranslations:false}),generated=normalizeBookMetadata(proposal);
-  for (const field of ["originalTitle","originalLanguage"]) next[field] ||= generated[field];
+  for (const field of ["popularTitle","popularLanguage"]) next[field] ||= generated[field];
   for (const field of Object.keys(TRANSLATION_FIELDS)) next[field]={...generated[field],...next[field]};
   if (!next.genres.length) next.genres=generated.genres;
   next.links={...generated.links,...next.links};

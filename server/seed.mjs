@@ -44,7 +44,7 @@ export function validateSeed(seed) {
   for (const g of seed.genres) if (LANGUAGES.some(language => !text(g["name_" + language]))) throw new Error("Missing genre text");
   const positions = new Set();
   for (const b of seed.books) {
-    if (!text(b.original_title) || !locale(b.original_language)) throw new Error("Invalid original book title or language");
+    if (!text(b.popular_title) || !locale(b.popular_language)) throw new Error("Invalid popular book title or language");
     if (!text(b.author) || !/^\d+$/.test(b.position) || Number(b.position) < 1 || positions.has(Number(b.position))) throw new Error("Invalid book position or author");
     positions.add(Number(b.position));
     if (!b.genres?.split("|").every(id => genres.has(id))) throw new Error("Unknown book genre");
@@ -112,10 +112,10 @@ export async function seedCatalog(db, seed = readSeed()) {
         ON CONFLICT(genre_id, language) DO UPDATE SET name = excluded.name`).run(g.id, language, g["name_" + language]);
     }
     for (const b of seed.books) {
-      await db.prepare(`INSERT INTO books(id, author, position, editorial_status, original_title, original_language) VALUES (?, ?, ?, ?, ?, ?)
+      await db.prepare(`INSERT INTO books(id, author, position, editorial_status, popular_title, popular_language) VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET author = excluded.author, position = excluded.position,
-        original_title = excluded.original_title, original_language = excluded.original_language,
-        editorial_status = excluded.editorial_status, updated_at = CURRENT_TIMESTAMP`).run(b.id, b.author, Number(b.position), b.editorial_status, b.original_title, b.original_language);
+        popular_title = excluded.popular_title, popular_language = excluded.popular_language,
+        editorial_status = excluded.editorial_status, updated_at = CURRENT_TIMESTAMP`).run(b.id, b.author, Number(b.position), b.editorial_status, b.popular_title, b.popular_language);
       for (const language of LANGUAGES) await db.prepare(hasLegacyShortTitle ? `INSERT INTO book_translations(book_id,language,title,short_title,description,editorial_note) VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(book_id, language) DO UPDATE SET title = excluded.title, short_title = excluded.short_title,
         description = excluded.description, editorial_note = excluded.editorial_note` : `INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?, ?, ?, ?, ?)

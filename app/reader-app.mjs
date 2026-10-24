@@ -27,7 +27,6 @@ export function startReader({createCardFeatures} = {}) {
   const settings = document.getElementById("settings");
   const presentReading = createReadingPresentation();
   const practicePresentation = createPracticePresentation({presentReading});
-  let showOriginalTitles = store.read(keys.originalTitles) === true;
   let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, budget, preferences, statuses, daily, dailyHistory=[],dailyStatus=null,dailyStatusRequest=null,dailyStatusGeneration=0,animatedDailyDays=new Set(),dailySeenDays=new Set(), selectedDailyDay=null, dailyExclusiveCardId=null, calendarMonth=null, dailyFocusDay=null,calendarNavFocus=null,bookId, deckId, requestedId, selections, enrolledIds;
   let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, scrollToCard = false;
   let practiceStage="choose",practiceSession=null,practiceUnavailable=null;
@@ -73,7 +72,7 @@ export function startReader({createCardFeatures} = {}) {
     if (snapshot.user?.id !== state.user?.id) { bookshelfFilters = {...bookshelfDefaults}; publicBookshelfFilters={...bookshelfDefaults}; bookshelfFiltersOpen=false; bookshelfFilterDraft={...bookshelfDefaults}; libraryFilters = {...libraryDefaults}; libraryQuery = ""; listPositions = {}; profileId=null; profileError=null; profileData=null; profileRequest=null; profileGeneration++; recordedViews.clear(); pendingViews.clear(); libraryOrigin = "home"; openBookId = null; }
     snapshot = state;
     if (state.inviteRequired !== undefined) inviteRequired = state.inviteRequired;
-    if (state.user) { language = restoreLanguage(state.language); store.save(keys.language,language); showOriginalTitles = state.showOriginalTitles === true; }
+    if (state.user) { language = restoreLanguage(state.language); store.save(keys.language,language); }
     refreshState();
   }
   function refreshState() {
@@ -117,7 +116,7 @@ export function startReader({createCardFeatures} = {}) {
     navigation.querySelectorAll("[data-nav]").forEach(link=>{if(link.dataset.nav===activeNavigation)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current")});
     document.title = pageTitle(["card","quote"].includes(authorForm?.kind) ? c.takeNote : mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.books : mode === "bookshelf" ? c.bookcase : mode === "public-bookshelf" ? c.shelf : mode === "profile" ? c.profile : mode === "daily" ? c.daily : mode === "practice" ? c.practice : mode === "saved" ? c.savedCards : mode === "book" ? c.chooseDeck : mode === "preview" ? c.deckPeekPage : mode === "mascots" ? c.mascots : mode === "author" ? c.manageDeck : c.review);
     document.querySelector(".skip-link").textContent = c.skip;
-    for (const [id,text] of [["settings-title",c.settings],["language-label",c.language],["original-titles-label",c.showOriginalTitles]]) document.getElementById(id).textContent = text;
+    for (const [id,text] of [["settings-title",c.settings],["language-label",c.language]]) document.getElementById(id).textContent = text;
     document.getElementById("open-settings").setAttribute("aria-label",c.settings); document.getElementById("close-settings").setAttribute("aria-label",c.closeSettings);
     document.getElementById("open-feedback").textContent=c.feedback;
     document.getElementById("feedback-title").textContent=c.feedback;
@@ -129,7 +128,6 @@ export function startReader({createCardFeatures} = {}) {
     document.getElementById("feedback-sign-in").hidden=!!snapshot.user;
     document.getElementById("feedback-sign-in-button").hidden=!!snapshot.user;
     document.getElementById("feedback-submit").hidden=!snapshot.user;
-    document.getElementById("original-titles").checked = showOriginalTitles;
     const settingsError = document.getElementById("settings-error");
     settingsError.hidden = !syncError; settingsError.textContent = syncError ? c[syncError] || c.connectionError : "";
     const currencyWallets=document.getElementById("currency-wallets");
@@ -182,7 +180,7 @@ export function startReader({createCardFeatures} = {}) {
     if (["review","author"].includes(mode) && previewDeckId !== deckId) { deckPreview=false;previewColumns=2;previewDeckId=deckId; }
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
     const selectedDaily=dailyHistory.find(item=>item.day===selectedDailyDay)||daily;
-    const state = {userId:snapshot.user?.id,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,showOriginalTitles,catalog,budget,preferences,statuses,noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily:selectedDaily,dailyToday:daily,dailyHistory,dailyStatus,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountTopic:snapshot.practiceDiscountTopic,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
+    const state = {userId:snapshot.user?.id,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,budget,preferences,statuses,noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily:selectedDaily,dailyToday:daily,dailyHistory,dailyStatus,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountTopic:snapshot.practiceDiscountTopic,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,libraryQuery,libraryFilters,libraryFiltersOpen,bookshelfFilters:mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters,bookshelfFiltersOpen,bookshelfFilterDraft,bookshelfTab,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
       profileData,profileError,readOnly:mode === "public-bookshelf",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,accountLearningNotice};
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
@@ -727,7 +725,7 @@ export function startReader({createCardFeatures} = {}) {
     url.hash=`review/${encodeURIComponent(deck.id)}`;
     const copyLanguage=store.read(keys.language) ? language : "en";
     const book=catalog.booksById.get(deck.bookId);
-    const bookName=book ? (book.title?.[copyLanguage]?.trim() || book.originalTitle || bookTitle(book,copyLanguage).text) : "";
+    const bookName=book ? (book.title?.[copyLanguage]?.trim() || book.popularTitle || bookTitle(book,copyLanguage).text) : "";
     const deckName=deck.title?.[copyLanguage]?.trim() || deck.title?.[deck.language] || Object.values(deck.title || {}).find(Boolean) || "";
     const shareText=words[copyLanguage].deckShareText(bookName,deckName);
     try {
@@ -750,7 +748,7 @@ export function startReader({createCardFeatures} = {}) {
     const book=catalog.booksById.get(id);
     if (!snapshot.user || book?.creatorUserId !== snapshot.user.id || !missingBookInformation(book).length) return;
     const metadata=normalizeBookMetadata(book,{completeTranslations:false});
-    authorForm={kind:"book",bookId:id,requestId:crypto.randomUUID(),title:book.originalTitle,author:book.author,language:book.originalLanguage,
+    authorForm={kind:"book",bookId:id,requestId:crypto.randomUUID(),title:book.popularTitle,author:book.author,language:book.popularLanguage,
       metadata,originalMetadata:structuredClone(metadata),returnBookDetails:openBookId === id};
     openBookId=null; openDeckId=null; render();
   }
@@ -797,7 +795,7 @@ export function startReader({createCardFeatures} = {}) {
     try {
       const result=await api.request("/api/author/books/autofill",{bookId:savedForm.bookId,title:savedForm.title,author:savedForm.author,language:savedForm.language,metadata:savedForm.bookId && !savedForm.hasProposal ? undefined : savedForm.metadata});
       savedForm.author=result.author; savedForm.metadata=result.metadata;
-      savedForm.language ||= result.metadata.originalLanguage;
+      savedForm.language = result.metadata.popularLanguage;
       savedForm.preview=true; savedForm.hasProposal=true; live.textContent=words[language].bookPreview;
     } catch(error) { savedForm.error=error.status === 401 ? "sessionExpired" : error.code || "connectionError"; savedForm.errorReference=error.reference; }
     finally {
@@ -827,10 +825,9 @@ export function startReader({createCardFeatures} = {}) {
         return;
       }
       if (input.name === "title") {
-        if (metadata.title[metadata.originalLanguage] === metadata.originalTitle) metadata.title[metadata.originalLanguage]=input.value;
-        metadata.originalTitle=input.value;
+        metadata.popularTitle=input.value;
       }
-      if (input.name === "language") { if (input.value) metadata.originalLanguage=input.value; else delete metadata.originalLanguage; }
+      if (input.name === "language") { if (input.value) metadata.popularLanguage=input.value; else delete metadata.popularLanguage; }
     }
     authorForm[input.name]=input.value;
     persistNoteDraft();
@@ -959,10 +956,6 @@ export function startReader({createCardFeatures} = {}) {
   currencyWallets.addEventListener("click",()=>setCurrencyRecoveryOpen(currencyWallets.getAttribute("aria-expanded")!=="true"));
   document.addEventListener("pointerdown",event=>{if(!currencyWallets.contains(event.target)&&!currencyRecovery.contains(event.target))setCurrencyRecoveryOpen(false)});
   document.addEventListener("keydown",event=>{if(event.key==="Escape"&&currencyWallets.getAttribute("aria-expanded")==="true")setCurrencyRecoveryOpen(false)});
-  document.getElementById("original-titles").addEventListener("change",async event=>{
-    if (snapshot.user) await mutation("/api/reader/preferences",{showOriginalTitles:event.target.checked});
-    else { showOriginalTitles = event.target.checked; store.save(keys.originalTitles,showOriginalTitles); render(); }
-  });
   function openOwnProfile() {
     if (!snapshot.user) return;
     profileData=null;
@@ -996,7 +989,7 @@ export function startReader({createCardFeatures} = {}) {
     if (action === "logout" && !busy) await mutation("/api/auth/logout",{},()=>{ settings.close(); pendingDeck = null;pendingIntent=null; authReturn = "#home"; navigate("#home"); });
   });
   main.addEventListener("toggle",e=>{ if (e.target.classList?.contains("library-filters")) libraryFiltersOpen=e.target.open; },true);
-  function updateBookSearch() { main.querySelector("#book-search-results").innerHTML = libraryResultsMarkup({catalog,language,showOriginalTitles,libraryQuery,libraryFilters,userId:snapshot.user?.id}); main.querySelector("[data-book-search] button").hidden = !libraryQuery; live.textContent = words[language].searchResults(filterLibrary(catalog,libraryQuery,libraryFilters).length); }
+  function updateBookSearch() { main.querySelector("#book-search-results").innerHTML = libraryResultsMarkup({catalog,language,libraryQuery,libraryFilters,userId:snapshot.user?.id}); main.querySelector("[data-book-search] button").hidden = !libraryQuery; live.textContent = words[language].searchResults(filterLibrary(catalog,libraryQuery,libraryFilters).length); }
   main.addEventListener("input",e=>{
     if (e.target.id === "preview-columns") {
       previewColumns=Math.max(1,Math.min(4,Math.round(Number(e.target.value)||2)));
@@ -1112,7 +1105,7 @@ export function startReader({createCardFeatures} = {}) {
       case "confirm-finish-deck": confirmDeckCompletion(); break;
       case "share-deck": void shareDeck(); break;
       case "autofill-book": autofillBook(b.closest("form")); break;
-      case "edit-book-preview": authorForm.title=authorForm.metadata.originalTitle; authorForm.preview=false; render(); break;
+      case "edit-book-preview": authorForm.title=authorForm.metadata.popularTitle; authorForm.preview=false; render(); break;
       case "author-deck": authorForm = null; quotesOnly = false; navigate("#author/"+b.dataset.deck); break;
       case "inspect-card": albumPosition={deckId,mode:"author",scrollY:window.scrollY}; navigate("#author/"+deckId+"/"+b.dataset.card); break;
       case "view-deck-tree":

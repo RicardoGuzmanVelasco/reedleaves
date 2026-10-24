@@ -133,7 +133,7 @@ Para iniciar la captura de una idea o cita, usar siempre **Tomar nota / Take a n
 
 «Tomar nota» abre el editor directamente cuando la baraja ya está determinada. Guardar o cancelar devuelve al punto de partida, conservando vista, filtros, posición y foco. «Gestionar baraja / Manage deck» es el acceso a revisar las notas propias y marcar la baraja como terminada; no es un paso previo para tomar una nota.
 
-Si el «+» de Inicio no tiene una baraja propia en borrador, abre el editor de nota directamente. Se avisa de que se creará «Notas de lectura» / «Reading notes». La baraja nace al guardar la primera nota, con el idioma elegido para la app al abrir el editor, independiente del idioma original del libro. No se pide configurar nombre o idioma. Cancelar no crea una baraja vacía.
+Si el «+» de Inicio no tiene una baraja propia en borrador, abre el editor de nota directamente. Se avisa de que se creará «Notas de lectura» / «Reading notes». La baraja nace al guardar la primera nota, con el idioma elegido para la app al abrir el editor, independiente del idioma del título popular del libro. No se pide configurar nombre o idioma. Cancelar no crea una baraja vacía.
 
 Borrador describe creación y no privacidad. Guardar comparte el contenido con quienes tienen acceso al catálogo; terminar cierra cambios, no lo hace visible por primera vez. El estado editorial `draft/reviewed` es independiente de `status`. Los nombres internos `deckInProgress` y `notesInProgress` conservan su contrato, pero su copy de creación usa Borrador. Las notas sin guardar solo se recuperan en el navegador y dispositivo donde se conservaron.
 
@@ -158,3 +158,18 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 - Base inferior con el fondo compartido de la página (`--page-background`), máscara en degradado y desenfoque suave para separar las piezas del contenido que pasa por detrás. Reutiliza también el degradado verde de lectura, con su escala de viewport. Sin contenedor visible ni borde añadido. La base sigue la última pieza visible y desaparece con la barra, incluido al abrir el teclado.
 
 - Barra compacta: piezas de 64 px de alto (60 px en móvil estrecho), conservando los iconos de 46/66 px y 42/60 px respectivamente. El marcapáginas sobresale menos, con muesca más corta y texto próximo al icono. Etiquetas en una línea, con tamaño de fuente proporcional al ancho de la pieza mediante unidades de contenedor.
+
+
+## Intereses de libros
+
+- Cada interés muestra su nombre localizado junto a un icono decorativo en las fichas, la preview del libro y el editor. El selector de filtro conserva opciones de texto nativas y muestra el icono del interés elegido junto a su etiqueta.
+- Software usa un símbolo de código; Mindfulness, una flor de loto. Los intereses sin icono específico usan una etiqueta genérica. El icono no sustituye el nombre accesible.
+- Software y Mindfulness están disponibles en español e inglés. No asignar Mindfulness a libros de crecimiento personal por asociación general; clasificar según el contenido del libro.
+
+## Título popular y títulos preferidos
+
+- El título popular es el nombre base por el que se conoce el libro. Puede estar en inglés aunque la obra se haya escrito en otro idioma. No se conserva un título original histórico como dato distinto. Su idioma describe el texto del título popular, no el idioma de escritura de la obra.
+- Cada idioma de interfaz puede tener un título preferido opcional. Si está vacío, se muestra el popular. No copiar el nombre inglés al preferido castellano para obtener ese resultado. Vaciar el título conserva descripciones y notas editoriales.
+- La ficha y la vista previa muestran el título preferido del idioma de interfaz en grande. Justo debajo aparece el popular en cursiva gris y a menor tamaño, solo cuando es distinto. Sin etiquetas «Título original», «Título popular» ni «Título preferido» junto a los nombres.
+- Se retira de Ajustes la opción de forzar títulos originales: la presentación usa siempre el preferido del idioma de interfaz, con fallback al popular.
+- Surrounded by Idiots es un título popular inglés válido; su preferido castellano queda vacío. No hace falta guardar Omgiven av idioter para mostrar el libro.

@@ -89,7 +89,7 @@ for (const dialect of ["sqlite","postgres"]) {
 
   test(`${dialect}: complete an existing book without duplicates, identity changes or loss of decks`,async t=>{
     const {db,session,other}=await fixture(t,dialect);
-    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:bookMetadata.originalTitle,author:"Autor ya escrito",language:"en"});
+    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:bookMetadata.popularTitle,author:"Autor ya escrito",language:"en"});
     const {deckId}=await createDeck(db,session,{requestId:randomUUID(),bookId,title:"Mi baraja",language:"es"});
     const {cardId}=await addCard(db,session,{requestId:randomUUID(),deckId,title:"Idea",body:"Texto propio",parentId:null,isQuote:false});
     await openCard(db,session,deckId,cardId,new Date("2026-10-10T12:00:00Z"));
@@ -98,7 +98,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal((await completeBook(db,session,request)).bookId,bookId);
     assert.equal((await completeBook(db,session,request)).bookId,bookId);
     const saved=(await readCatalog(db,session.user_id)).books.find(book=>book.id===bookId);
-    assert.equal(saved.author,"Autor ya escrito");assert.equal(saved.originalTitle,bookMetadata.originalTitle);assert.equal(saved.originalLanguage,"en");
+    assert.equal(saved.author,"Autor ya escrito");assert.equal(saved.popularTitle,bookMetadata.popularTitle);assert.equal(saved.popularLanguage,"en");
     for (const field of Object.keys(bookMetadata)) assert.deepEqual(saved[field],field === "title" ? {es:bookMetadata.title.es} : bookMetadata[field]);
     assert.equal((await db.prepare("SELECT count(*) AS n FROM books").get()).n,bookCount);
     assert.equal((await db.prepare("SELECT count(*) AS n FROM book_translations WHERE book_id=?").get(bookId)).n,2);
@@ -115,7 +115,7 @@ for (const dialect of ["sqlite","postgres"]) {
     for (const field of ["title","description","editorialNote"]) original[field]={es:original[field].es};
     original.genres=["productivity"]; original.description.es="Descripción guardada";
     original.links.goodreads="https://www.goodreads.com/book/show/999-existing";
-    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:bookMetadata.originalTitle,author:"Daniel Kahneman",language:"en",metadata:original});
+    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:bookMetadata.popularTitle,author:"Daniel Kahneman",language:"en",metadata:original});
     await completeBook(db,session,{bookId,metadata:bookMetadata});
     const first=(await readCatalog(db,session.user_id)).books.find(book=>book.id===bookId);
     const stale=structuredClone(bookMetadata);stale.description.fr="Otra propuesta";stale.title.es="Otro título";
@@ -131,7 +131,7 @@ for (const dialect of ["sqlite","postgres"]) {
     await assert.rejects(completeBook(db,session,{bookId:japanese,metadata:unsafe}),e=>e.status===400);
     await completeBook(db,session,{bookId:japanese,metadata:bookMetadata});
     const result=(await readCatalog(db,session.user_id)).books.find(book=>book.id===japanese);
-    assert.equal(result.originalTitle,"本の原題");assert.equal(result.originalLanguage,"ja");assert.equal(result.author,"著者");
+    assert.equal(result.popularTitle,"本の原題");assert.equal(result.popularLanguage,"ja");assert.equal(result.author,"著者");
     assert.equal(result.title.ja,undefined);assert.equal(result.description.ja,undefined);assert.equal(result.description.fr,bookMetadata.description.fr);
   });
   test(`${dialect}: save the full AI preview atomically, repeat safely and share its metadata`,async t=>{
@@ -165,7 +165,7 @@ for (const dialect of ["sqlite","postgres"]) {
     }
     let catalog=prepareCatalog(await readCatalog(db,session.user_id));
     const book=catalog.booksById.get(bookId);
-    assert.equal(book.originalTitle,"L’Étranger"); assert.equal(book.author,"Albert Camus");
+    assert.equal(book.popularTitle,"L’Étranger"); assert.equal(book.author,"Albert Camus");
     assert.deepEqual(book.title,{}); assert.equal(Object.hasOwn(book,"sources"),false);
     assert.deepEqual(book.description,{}); assert.deepEqual(book.links,{});
     assert.equal(book.creatorUserId,session.user_id);

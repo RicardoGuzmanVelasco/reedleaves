@@ -4,6 +4,7 @@ import {openDatabase,initializeDatabase} from "../server/database.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
 import {prepareCatalog} from "./catalog.mjs";
+import {bookTitle} from "./core.mjs";
 import {featuredDecks} from "./decks.mjs";
 import {libraryView,libraryResultsMarkup,deckView} from "./views.mjs";
 
@@ -19,7 +20,7 @@ test("Add book lists the whole catalog as closed books, with essential data and 
   const s = await state(), before = structuredClone(s.budget), html = libraryView(s);
   assert.equal((html.match(/data-action="open-book-details"/g) || []).length,s.catalog.books.length);
   for (const book of s.catalog.books) {
-    assert.ok(html.includes(book.title.es)); assert.ok(html.includes(book.author));
+    assert.ok(html.includes(bookTitle(book,s.language).text)); assert.ok(html.includes(book.author));
   }
   assert.match(html,/catalog-book/); assert.match(html,/aria-haspopup="dialog"/);
   assert.match(html,/2 barajas/); assert.match(html,/1 baraja/);

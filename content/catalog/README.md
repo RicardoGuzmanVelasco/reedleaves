@@ -33,11 +33,13 @@ Editar → `npm run db:seed` → `npm run db:check` → `npm test`. La importaci
 
 ## Títulos localizados
 
-`books.csv` incluye `original_title` y `original_language`, obligatorios e importados como columnas propias de `books`. La etiqueta de idioma debe ser BCP 47 canónica. Los cinco libros actuales fueron escritos en inglés; futuros libros pueden tener otro idioma original. La ficha muestra ese título siempre, incluso si coincide con el título localizado. No deducirlo de `title_en`.
+`books.csv` incluye `popular_title` y `popular_language`, obligatorios e importados como columnas propias de `books`. El primero es el nombre base reconocido del libro; el segundo es el idioma de ese nombre (BCP 47 canónico), independiente del idioma en que se escribió la obra. Por ejemplo: Surrounded by Idiots, en inglés. No se conserva un título original histórico como campo separado.
 
-La búsqueda del catálogo cruza el título original y todos los títulos completos disponibles, sin depender del idioma de pantalla. Ignora mayúsculas, tildes y puntuación; no añade traducciones ni cambia el contenido del libro.
+La búsqueda cruza el título popular y todos los títulos preferidos disponibles. Ignora mayúsculas, tildes y puntuación.
 
-Cada idioma puede guardar un título preferido completo en `book_translations.title`. El campo es opcional: vacío indica que debe mostrarse el título original. No se inventan traducciones si el libro se conoce por su título original, aunque exista una edición traducida. El idioma original y las traducciones que duplican exactamente su título se guardan vacíos. En las portadas pequeñas, los títulos largos se limitan visualmente a tres líneas; la ficha y la etiqueta accesible conservan el título completo. No cambiar IDs al ajustar títulos.
+Cada idioma puede guardar un título preferido opcional en `book_translations.title`. Vacío indica fallback al popular. No guardar el inglés en el preferido castellano para forzar ese resultado. La ficha muestra el preferido del idioma de interfaz en grande y, si son distintos, el popular debajo en cursiva gris y más pequeño, sin etiquetas. Las descripciones y notas no se eliminan al vaciar un título.
+
+El contrato del catálogo es `schemaVersion: 5`, con `popularTitle` y `popularLanguage` para cada libro.
 
 ## Comprar y reseñar
 

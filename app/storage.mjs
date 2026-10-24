@@ -1,5 +1,4 @@
 export const storageKeys = {
-  originalTitles: "leaf-reader:original-titles:v1",
   language: "leaf-reader:language:v1",
   noteDrafts: (userId,bookId) => `leaf-reader:note-drafts:v1:${encodeURIComponent(userId)}:${encodeURIComponent(bookId)}`
 };

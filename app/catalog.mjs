@@ -3,7 +3,7 @@ import { validateBookLinks } from "./book-links.mjs";
 import { validQuoteSourceUrl } from "./quote-source.mjs";
 
 export function prepareCatalog(payload) {
-  if (payload?.schemaVersion !== 4 || !Array.isArray(payload.books) || !payload.books.length ||
+  if (payload?.schemaVersion !== 5 || !Array.isArray(payload.books) || !payload.books.length ||
       !Array.isArray(payload.cards) || !Array.isArray(payload.genres) ||
       !Array.isArray(payload.decks)) throw new Error("Invalid catalog");
   const genres = payload.genres;
@@ -11,7 +11,7 @@ export function prepareCatalog(payload) {
   const genreIds = new Set(genres.map(g => g.id));
   const books = payload.books.map(book => {
     validateBookLinks(book.links, {required:!book.creatorUserId});
-    return validateBook(book, LANGUAGES, {requireOriginal:true});
+    return validateBook(book, LANGUAGES, {requirePopular:true});
   }), booksById = new Map(books.map(b => [b.id,b]));
   if (booksById.size !== books.length || books.some(b => !Array.isArray(b.genres) || !b.creatorUserId && !b.genres.length || b.genres.some(id => !genreIds.has(id)))) throw new Error("Invalid book references");
   const decks = payload.decks, decksById = new Map(decks.map(d => [d.id,d]));

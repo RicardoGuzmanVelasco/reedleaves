@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 29));
-INSERT INTO reed_schema VALUES (29);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 31));
+INSERT INTO reed_schema VALUES (31);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -9,8 +9,8 @@ CREATE TABLE genre_translations(
 );
 CREATE TABLE books(
   id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0), author TEXT NOT NULL CHECK(length(btrim(author)) > 0),
-  original_title TEXT NOT NULL CHECK(length(btrim(original_title)) > 0),
-  original_language TEXT NOT NULL CHECK(length(original_language) BETWEEN 2 AND 35),
+  popular_title TEXT NOT NULL CHECK(length(btrim(popular_title)) > 0),
+  popular_language TEXT NOT NULL CHECK(length(popular_language) BETWEEN 2 AND 35),
   position INTEGER NOT NULL UNIQUE CHECK(position > 0),
   editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft','reviewed')),
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
