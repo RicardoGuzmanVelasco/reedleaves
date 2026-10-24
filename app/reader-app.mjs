@@ -63,9 +63,10 @@ export function startReader({createCardFeatures} = {}) {
   });
   const busyDisabledState=new WeakMap();
   function updateCardFeatures() {
-    const cardId=main.querySelector("[data-card-actions]")?.dataset.cardActions;
+    const actionSlots=[...main.querySelectorAll("[data-card-actions]")].filter(slot=>!slot.closest(".presentation-outgoing"));
+    const cardId=actionSlots[0]?.dataset.cardActions;
     cardFeatures?.update({userId:snapshot.user?.id,catalog,language,bookId:catalog?.cardsById.get(cardId)?.bookId||bookId,mode,quotesOnly,cardId,
-      cardSaves:snapshot.cardSaves||[],revision:syncGeneration,actionSlot:main.querySelector("[data-card-actions]"),entrySlot:main.querySelector("[data-saved-cards-entry]"),listSlot:main.querySelector("[data-saved-cards-list]")});
+      cardSaves:snapshot.cardSaves||[],revision:syncGeneration,actionSlots,actionSlot:main.querySelector("[data-card-actions]"),entrySlot:main.querySelector("[data-saved-cards-entry]"),listSlot:main.querySelector("[data-saved-cards-list]")});
   }
   function applyState(state) {
     if (snapshot.user?.id !== state.user?.id) { dailyStatus=null;dailyStatusGeneration++;dailyStatusRequest=null;animatedDailyDays.clear();dailySeenDays.clear(); }
@@ -743,13 +744,15 @@ export function startReader({createCardFeatures} = {}) {
     const screen=main.querySelector('[data-deck-presentation="carousel"]'),flight=screen?.querySelector('[data-presentation-flight]');
     if(!flight)return;
     const direction=index>presentationIndex?1:-1;
+    const outgoing=flight.firstElementChild?.cloneNode(true),origin=flight.style.transform,previousHeight=flight.offsetHeight;
     presentationIndex=index;screen.dataset.index=String(index);
     flight.innerHTML=presentationCardMarkup({...presentationState,presentationIndex:index});
     screen.querySelectorAll('[data-action="presentation-card"]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.index)===index)));
     screen.querySelector('[data-direction="-1"]').disabled=index===0;
     screen.querySelector('[data-direction="1"]').disabled=index===count-1;
     screen.querySelector('.presentation-position').textContent=words[language].position(index+1,count);
-    disposeDeckPresentation.refresh?.(direction);
+    disposeDeckPresentation.refresh?.(direction,outgoing,origin,previousHeight);
+    updateCardFeatures();
 
   }
   async function shareDeck() {
@@ -934,7 +937,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   function requestAccountForCardAction(action) {
     pendingCardAction=action;accountLearningNotice=true;authMode="register";
-    authReturn="#review/"+encodeURIComponent(action.deckId)+"/"+encodeURIComponent(action.cardId);
+    authReturn=mode==="preview"?location.hash:"#review/"+encodeURIComponent(action.deckId)+"/"+encodeURIComponent(action.cardId);
     navigate("#account");
   }
   async function addDeckToCollection(id) {

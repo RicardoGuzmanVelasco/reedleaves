@@ -52,10 +52,8 @@ export function mountDeckPresentation(root,{onSelect,onClose}={}){
     const dx=event.clientX-gesture.x,width=flight.getBoundingClientRect().width;
     const target=presentationTarget(index(),count,dx,width);
     if(target===index()){reset();return;}
-    departing=true;release();flight.style.transition=reduced?'none':'transform 140ms ease-in, opacity 140ms ease-in';
-    flight.style.transform=reduced?'':`translateX(${dx<0?-60:60}px)`;
-    flight.style.opacity=reduced?'1':'.35';
-    timer=setTimeout(()=>{if(!disposed){departing=false;onSelect?.(target);}},reduced?0:140);
+    departing=true;release();
+    timer=setTimeout(()=>{if(!disposed){departing=false;onSelect?.(target);}},0);
   });
   listen(flight,'pointercancel',reset);
   listen(flight,'lostpointercapture',()=>{if(gesture)reset();});
@@ -66,10 +64,25 @@ export function mountDeckPresentation(root,{onSelect,onClose}={}){
     if(next===null)return;event.preventDefault();if(next>=0&&next<count)onSelect?.(next);
   });
   const dispose=()=>{disposed=true;clearTimeout(timer);arrival?.cancel();release();listeners.forEach(remove=>remove());};
-  dispose.refresh=(direction=0)=>{
+  dispose.refresh=(direction=0,previous=null,origin='',previousHeight=0)=>{
     clearTimeout(timer);departing=false;release();arrival?.cancel();arrival=null;
-    if(flight){flight.style.transition='none';flight.style.transform='';flight.style.opacity='1';
-      if(!reduced&&direction&&flight.animate)arrival=flight.animate([{transform:`translateX(${direction*28}px)`,opacity:.65},{transform:'translateX(0)',opacity:1}],{duration:220,easing:'cubic-bezier(.2,.8,.3,1)'});
+    if(flight){
+      flight.style.transition='none';flight.style.transform='';flight.style.opacity='1';
+      const incoming=flight.firstElementChild;
+      if(!reduced&&direction&&previous&&incoming?.animate){
+        previous.classList.add('presentation-outgoing');previous.setAttribute('aria-hidden','true');previous.inert=true;
+        previous.querySelectorAll('[id]').forEach(element=>element.removeAttribute('id'));
+        previous.querySelectorAll('[data-card-actions]').forEach(element=>element.removeAttribute('data-card-actions'));
+        flight.append(previous);
+        const distance=(flight.offsetWidth||flight.getBoundingClientRect().width)+16;
+        const options={duration:340,easing:'cubic-bezier(.22,.75,.22,1)',fill:'both'};
+        const outgoingAnimation=previous.animate([{transform:origin||'translateX(0)'},{transform:`translateX(${-direction*distance}px)`}],options);
+        const incomingAnimation=incoming.animate([{transform:`translateX(${direction*distance}px)`},{transform:'translateX(0)'}],options);
+        const heightAnimation=previousHeight?flight.animate([{height:previousHeight+'px'},{height:incoming.offsetHeight+'px'}],options):null;
+        const transition={cancel(){outgoingAnimation.cancel();incomingAnimation.cancel();heightAnimation?.cancel();previous.remove();}};
+        arrival=transition;
+        Promise.allSettled([outgoingAnimation.finished,incomingAnimation.finished,...(heightAnimation?[heightAnimation.finished]:[])]).then(()=>{transition.cancel();if(arrival===transition)arrival=null;});
+      }
     }
     center(true);
   };

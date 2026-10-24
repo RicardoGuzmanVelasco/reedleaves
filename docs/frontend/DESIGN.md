@@ -83,7 +83,7 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 
 ## Vista exclusiva de tarjetas
 
-- La valoración («Me gusta» / «No me gusta») y las acciones «Guardar tarjeta» / «Quitar de guardadas» aparecen únicamente dentro de la vista exclusiva de la tarjeta. Nunca aparecen en previsualizaciones fuera de esa vista, incluida la tarjeta del calendario de la idea del día.
+- La valoración («Me gusta» / «No me gusta») y las acciones «Guardar tarjeta» / «Quitar de guardadas» aparecen en la vista exclusiva y en las tarjetas completas del modo presentación, tanto en lista como en carrusel. Las miniaturas y la preview del calendario no incluyen estas acciones. Las tarjetas completas se ajustan al contenido; las atribuciones de libro, autor y usuario se agrupan de forma compacta.
 - Si la baraja de la tarjeta está en borrador, mostrar «Baraja en borrador / Draft deck» como chip informativo en su vista exclusiva.
 - Al pulsar la tarjeta compacta de la idea del día, se abre su vista exclusiva. Las acciones de valoración y guardado viven dentro de esa vista.
 

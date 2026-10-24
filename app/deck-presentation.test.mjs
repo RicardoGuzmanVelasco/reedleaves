@@ -60,3 +60,21 @@ test('Repeated swipes use the current selection without remounting the carousel'
   }
   assert.deepEqual(selected,[2,3,2,3]);dispose();
 });
+
+test('Incoming cards push the outgoing card in the chosen direction while height follows content',async()=>{
+  for(const direction of [-1,1]){
+    const root=element(),screen=element({index:'1',count:'3'}),flight=element();
+    root.querySelector=()=>screen;screen.querySelector=selector=>selector==='[data-presentation-flight]'?flight:null;
+    const animations=[];let removed=false;
+    const animate=(frames,options)=>{animations.push({frames,options});return {finished:Promise.resolve(),cancel(){}};};
+    const incoming={offsetHeight:230,animate},previous={animate,classList:{add(){}},setAttribute(){},querySelectorAll:()=>[],remove(){removed=true;}};
+    flight.firstElementChild=incoming;flight.offsetWidth=320;flight.animate=animate;flight.append=()=>{};
+    const dispose=mountDeckPresentation(root);
+    dispose.refresh(direction,previous,'translateX(-30px)',450);
+    assert.equal(animations[0].frames[1].transform,`translateX(${-direction*336}px)`);
+    assert.equal(animations[1].frames[0].transform,`translateX(${direction*336}px)`);
+    assert.deepEqual(animations[2].frames,[{height:'450px'},{height:'230px'}]);
+    await Promise.resolve();await Promise.resolve();await Promise.resolve();
+    assert.equal(removed,true);dispose();
+  }
+});
