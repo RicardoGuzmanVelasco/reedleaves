@@ -132,6 +132,7 @@ export async function changeDeckLanguage(db,session,input) {
     await db.prepare(`UPDATE card_translations SET language=? WHERE card_id IN (SELECT id FROM cards WHERE deck_id=?) AND language=?
       AND NOT EXISTS (SELECT 1 FROM card_translations target WHERE target.card_id=card_translations.card_id AND target.language=?)`)
       .run(input.language,deck.id,deck.language,input.language);
+    await db.prepare("UPDATE cards SET language=? WHERE deck_id=?").run(input.language,deck.id);
     await db.prepare("UPDATE decks SET language=? WHERE id=?").run(input.language,deck.id);
     return {deckId:deck.id};
   });
@@ -158,7 +159,7 @@ async function writeCard(db,session,input) {
   if (total>=MAX_CARDS_PER_DECK) throw new ApiError(409,"deckCardLimitReached");
   if (input.parentId !== null && !await db.prepare("SELECT 1 FROM cards WHERE id=? AND deck_id=?").get(input.parentId,deck.id)) throw new ApiError(400,"invalidParent");
   const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM cards WHERE deck_id=? AND (parent_id=? OR (parent_id IS NULL AND CAST(? AS TEXT) IS NULL))").get(deck.id,input.parentId,input.parentId);
-  await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)").run(id,deck.id,deck.book_id,input.parentId,position,input.isQuote ? 1 : 0,new Date().toISOString());
+  await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,creator_user_id,language,created_at) VALUES (?,?,?,?,?,?,?,?,?)").run(id,deck.id,deck.book_id,input.parentId,position,input.isQuote ? 1 : 0,session.user_id,deck.language,new Date().toISOString());
   await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)").run(id,deck.language,title,body);
   return {deckId:deck.id,cardId:id};
 }
@@ -308,8 +309,8 @@ export async function createTeamDeck(db,input) {
     await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES ('reed-team',?)").run(id);
     const createdAt=new Date().toISOString();
     for (const card of normalizedCards) {
-      await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)")
-        .run(card.id,id,input.bookId,card.parentId,card.order,card.isQuote?1:0,createdAt);
+      await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,creator_user_id,language,created_at) VALUES (?,?,?,?,?,?,?,?,?)")
+        .run(card.id,id,input.bookId,card.parentId,card.order,card.isQuote?1:0,"reed-team",language,createdAt);
       await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)")
         .run(card.id,language,card.title[language],card.body[language]);
     }
@@ -359,8 +360,8 @@ export async function appendTeamDeckCards(db,input) {
     if (existingIds.size+normalized.length>MAX_CARDS_PER_DECK) throw new ApiError(409,"deckCardLimitReached");
     const createdAt=new Date().toISOString();
     for (const card of normalized) {
-      await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)")
-        .run(card.id,deckId,deck.book_id,card.parentId,card.order,card.isQuote?1:0,createdAt);
+      await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,creator_user_id,language,created_at) VALUES (?,?,?,?,?,?,?,?,?)")
+        .run(card.id,deckId,deck.book_id,card.parentId,card.order,card.isQuote?1:0,"reed-team",deck.language,createdAt);
       await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)")
         .run(card.id,deck.language,card.title,card.body);
     }

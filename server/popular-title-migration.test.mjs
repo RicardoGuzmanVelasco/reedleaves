@@ -31,9 +31,9 @@ for(const [dialect,version] of [["sqlite",37],["postgres",29]]) {
     const snapshot=async()=>({
       books:await db.prepare("SELECT id,author,position,editorial_status,creator_user_id,updated_at FROM books ORDER BY id").all(),
       text:await db.prepare("SELECT book_id,language,description,editorial_note FROM book_translations ORDER BY book_id,language").all(),
-      cards:await db.prepare("SELECT * FROM cards ORDER BY id").all(),
+      cards:await db.prepare("SELECT id,deck_id,book_id,parent_id,position,is_quote,created_at FROM cards ORDER BY id").all(),
       cardText:await db.prepare("SELECT * FROM card_translations ORDER BY card_id,language").all(),
-      decks:await db.prepare("SELECT * FROM decks ORDER BY id").all(),
+      decks:await db.prepare("SELECT id,book_id,creator_user_id,language,is_recommended,status,editorial_status,quote_source_url,created_at FROM decks ORDER BY id").all(),
       deckText:await db.prepare("SELECT * FROM deck_translations ORDER BY deck_id,language").all()
     });
     const before=await snapshot();

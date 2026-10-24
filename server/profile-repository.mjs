@@ -73,8 +73,8 @@ export async function readProfile(db,userId,viewerId) {
       booksReading:Object.values(statuses).filter(s=>s==="reading").length,
       cardsViewed:await count("SELECT COUNT(*) AS n FROM card_views WHERE user_id=?",userId),
       decksCreated:await count("SELECT COUNT(*) AS n FROM decks WHERE creator_user_id=?",userId),
-      cardsCreated:await count("SELECT COUNT(*) AS n FROM cards c JOIN decks d ON d.id=c.deck_id WHERE d.creator_user_id=?",userId),
-      quotesCreated:await count("SELECT COUNT(*) AS n FROM cards c JOIN decks d ON d.id=c.deck_id WHERE d.creator_user_id=? AND c.is_quote=1",userId)
+      cardsCreated:await count("SELECT COUNT(*) AS n FROM cards c WHERE c.creator_user_id=?",userId),
+      quotesCreated:await count("SELECT COUNT(*) AS n FROM cards c WHERE c.creator_user_id=? AND c.is_quote=1",userId)
     };
     const bookshelf=entries.map(({book,reading,group})=>({bookId:book.id,reading,...(group==="to-read"?{group}:{})}));
     return {profile:{id:user.id,name:user.display_name,username:user.username||null,createdAt:user.created_at,counts,mascots},bookshelf};

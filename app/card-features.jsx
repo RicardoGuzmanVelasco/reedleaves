@@ -72,9 +72,11 @@ function SavedCards({rows,catalog,c,language,onOpen,error,onRetry,onReady}){
   return <>{error&&<div className="sync-note" role="status"><span>{c[error]||c.connectionError}</span><button type="button" className="text-button" onClick={onRetry}>{c.retry}</button></div>}
     {!rows.length?<p className="empty-state">{c.noSavedCards}</p>:<ul className="saved-cards-list">{rows.map(row=>{
       const card=catalog.cardsById.get(row.cardId),deck=catalog.decksById.get(card.deckId);
-      const title=card.isQuote?quoteExcerpt(contentText(card.body,language,card.deckLanguage)):contentText(card.title,language,card.deckLanguage);
-      return <li key={card.id}><button type="button" className={'saved-card-row'+(card.isQuote?' saved-card-row--quote':'')} data-card={card.id} onClick={()=>onOpen(card.id)}>
-        <span className="saved-card-name" lang={contentLocale(card.isQuote?card.body:card.title,language,card.deckLanguage)} dir="auto">{card.isQuote?'❝ ':''}{title}</span><span className="saved-card-source" lang={contentLocale(deck.title,language,deck.language)} dir="auto">{contentText(deck.title,language,deck.language)}</span>
+      const cardLanguage=card.language||card.deckLanguage,isGuide=card.isReadingGuide;
+      const title=isGuide?contentText(card.body,language,cardLanguage):card.isQuote?quoteExcerpt(contentText(card.body,language,cardLanguage)):contentText(card.title,language,cardLanguage);
+      const guideLanguage=isGuide?new Intl.DisplayNames([language],{type:'language'}).of(cardLanguage)||cardLanguage:null;
+      return <li key={card.id}><button type="button" className={'saved-card-row'+(card.isQuote?' saved-card-row--quote':'')+(isGuide?' saved-card-row--reading-guide':'')} data-card={card.id} onClick={()=>onOpen(card.id)}>
+        <span className="saved-card-name" lang={contentLocale(isGuide||card.isQuote?card.body:card.title,language,cardLanguage)} dir="auto">{isGuide?'↗ ':card.isQuote?'❝ ':''}{title}</span><span className="saved-card-source" lang={contentLocale(deck.title,language,deck.language)} dir="auto">{contentText(deck.title,language,deck.language)}{isGuide?` · ${c.readingGuideLanguage}: ${guideLanguage}`:''}</span>
       </button></li>})}</ul>}
   </>;
 }

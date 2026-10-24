@@ -11,8 +11,8 @@ import {POPULAR_TITLE_RENAME_SQL,POPULAR_TITLE_UPDATES} from "./popular-title-mi
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 39;
-export const POSTGRES_SCHEMA_VERSION = 31;
+export const SQLITE_SCHEMA_VERSION = 40;
+export const POSTGRES_SCHEMA_VERSION = 32;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -99,6 +99,39 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 39) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE decks ADD COLUMN kind TEXT NOT NULL DEFAULT 'standard' CHECK(kind IN ('standard','collective'));
+        ALTER TABLE decks ADD COLUMN contribution_policy TEXT NOT NULL DEFAULT 'owner' CHECK(contribution_policy IN ('owner','open','selected'));
+        ALTER TABLE decks ADD COLUMN max_cards_per_contributor INTEGER CHECK(max_cards_per_contributor IS NULL OR max_cards_per_contributor > 0);
+        ALTER TABLE cards ADD COLUMN is_reading_guide INTEGER NOT NULL DEFAULT 0 CHECK(is_reading_guide IN (0,1));
+        ALTER TABLE cards ADD COLUMN creator_user_id TEXT REFERENCES users(id);
+        ALTER TABLE cards ADD COLUMN language TEXT NOT NULL DEFAULT 'en' CHECK(length(language) BETWEEN 2 AND 35);
+        UPDATE cards SET creator_user_id=(SELECT creator_user_id FROM decks WHERE decks.id=cards.deck_id),
+          language=(SELECT language FROM decks WHERE decks.id=cards.deck_id);
+        CREATE INDEX cards_by_creator ON cards(creator_user_id,deck_id);
+        CREATE UNIQUE INDEX one_reading_guide_per_contributor ON cards(deck_id,creator_user_id) WHERE is_reading_guide=1;
+        CREATE TABLE deck_contributors (
+          deck_id TEXT NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          added_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY(deck_id,user_id)
+        ) STRICT;
+        CREATE INDEX deck_contributors_by_user ON deck_contributors(user_id,deck_id);
+        CREATE TRIGGER freeze_collective_contributors_insert BEFORE INSERT ON deck_contributors
+        WHEN (SELECT status FROM decks WHERE id=NEW.deck_id) <> 'draft'
+        BEGIN SELECT RAISE(ABORT,'Published contributor list is immutable'); END;
+        CREATE TRIGGER freeze_collective_contributors_update BEFORE UPDATE ON deck_contributors
+        WHEN (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft'
+        BEGIN SELECT RAISE(ABORT,'Published contributor list is immutable'); END;
+        CREATE TRIGGER freeze_collective_contributors_delete BEFORE DELETE ON deck_contributors
+        WHEN (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft'
+        BEGIN SELECT RAISE(ABORT,'Published contributor list is immutable'); END;
+        PRAGMA user_version=40; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 38) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -640,6 +673,42 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 31) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,decks,cards IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 32) return;
+          await db.exec(`ALTER TABLE decks ADD COLUMN kind TEXT NOT NULL DEFAULT 'standard' CHECK(kind IN ('standard','collective'));
+            ALTER TABLE decks ADD COLUMN contribution_policy TEXT NOT NULL DEFAULT 'owner' CHECK(contribution_policy IN ('owner','open','selected'));
+            ALTER TABLE decks ADD COLUMN max_cards_per_contributor INTEGER CHECK(max_cards_per_contributor IS NULL OR max_cards_per_contributor > 0);
+            ALTER TABLE decks ADD CONSTRAINT decks_collective_policy_check CHECK((kind='standard' AND contribution_policy='owner' AND max_cards_per_contributor IS NULL) OR (kind='collective' AND contribution_policy IN ('open','selected')));
+            ALTER TABLE cards ADD COLUMN is_reading_guide INTEGER NOT NULL DEFAULT 0 CHECK(is_reading_guide IN (0,1));
+            ALTER TABLE cards ADD COLUMN creator_user_id TEXT REFERENCES users(id);
+            ALTER TABLE cards ADD COLUMN language TEXT NOT NULL DEFAULT 'en' CHECK(length(language) BETWEEN 2 AND 35);
+            UPDATE cards c SET creator_user_id=d.creator_user_id,language=d.language FROM decks d WHERE d.id=c.deck_id;
+            CREATE INDEX cards_by_creator ON cards(creator_user_id,deck_id);
+            CREATE UNIQUE INDEX one_reading_guide_per_contributor ON cards(deck_id,creator_user_id) WHERE is_reading_guide=1;
+            CREATE TABLE deck_contributors(
+              deck_id TEXT NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+              user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+              added_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY(deck_id,user_id));
+            ALTER TABLE deck_contributors ENABLE ROW LEVEL SECURITY;
+            CREATE INDEX deck_contributors_by_user ON deck_contributors(user_id,deck_id);
+            CREATE FUNCTION reed_freeze_collective_contributors() RETURNS trigger LANGUAGE plpgsql AS $$
+            DECLARE target_deck TEXT; deck_status TEXT;
+            BEGIN
+              target_deck := CASE WHEN TG_OP='DELETE' THEN OLD.deck_id ELSE NEW.deck_id END;
+              SELECT status INTO deck_status FROM decks WHERE id=target_deck;
+              IF deck_status <> 'draft' THEN RAISE EXCEPTION 'Published contributor list is immutable'; END IF;
+              IF TG_OP='DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
+            END $$;
+            CREATE TRIGGER freeze_collective_contributors BEFORE INSERT OR UPDATE OR DELETE ON deck_contributors FOR EACH ROW EXECUTE FUNCTION reed_freeze_collective_contributors();
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=32;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=32);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 30) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,books,book_translations IN ACCESS EXCLUSIVE MODE;");

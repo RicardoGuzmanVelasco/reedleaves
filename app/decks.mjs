@@ -1,5 +1,5 @@
 export function availableDecks(catalog, bookId) {
-  return catalog.decks.filter(deck => deck.bookId === bookId && deck.status !== "archived").map(deck => ({deck,tags:[]}));
+  return catalog.decks.filter(deck => deck.bookId === bookId && deck.status !== "archived" && (deck.kind || "standard") === "standard").map(deck => ({deck,tags:[]}));
 }
 
 export function featuredDecks(catalog, bookId) {
