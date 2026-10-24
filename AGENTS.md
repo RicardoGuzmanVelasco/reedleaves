@@ -5,7 +5,7 @@
 - Respetar siempre los tres pilares: simplicidad funcional, pomposidad estética y pocos casos de uso.
 - Copy de interfaz: incluir solo texto funcional, necesario o ya aprobado. No inventar slogans, frases promocionales ni texto decorativo de relleno. Ejemplo: «Entrar / Sign in» sí; «Tus libros, allá donde estés…» no.
 - Mantener el carácter expresivo, amable y animado de las referencias Duolingo y Forest.
-- La interfaz y las traducciones editoriales de libros tendrán español e inglés. El idioma original de libros y barajas es independiente. La plataforma sigue pendiente de decisión.
+- La interfaz y las traducciones editoriales de libros tendrán español e inglés. El idioma del título popular de un libro y el idioma del contenido de sus barajas son independientes. La plataforma sigue pendiente de decisión.
 - Las exploraciones en `brand/` son propuestas; no convertirlas en decisiones aprobadas.
 - El primer logo de tarjetas y estrella está descartado.
 - Entorno Node: usar la versión de `.node-version`; al abrir un worktree nuevo, ejecutar `npm ci` si falta `node_modules` antes de iniciar la app o las pruebas.

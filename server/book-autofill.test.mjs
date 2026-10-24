@@ -37,7 +37,7 @@ test("AI can create a preview without provider citations or a stored bibliograph
   delete research.output[1].content[0].annotations;
   const fake=fakeProvider([research,extractionResponse()]);
   const result=await createBookAutofill({apiKey:"key",...fake})("reader",input,genres);
-  assert.equal(result.metadata.originalTitle,bookMetadata.originalTitle);
+  assert.equal(result.metadata.popularTitle,bookMetadata.popularTitle);
   assert.deepEqual(result.metadata.description,bookMetadata.description);
   assert.deepEqual(result.metadata.links,{});
   assert.equal(Object.hasOwn(result.metadata,"sources"),false);
@@ -49,10 +49,10 @@ test("AI separates mixed headings and subtitles, preserves personal edits and om
   const translations=JSON.parse(extractionResponse().output[0].content[0].text).translations;
   Object.assign(translations.es,{title:"Rompe la barrera del no / Never Split de Difference",alternateTitle:"Never Split de Difference"});
   Object.assign(translations.en,{title:"Never Split the Difference: Negotiating as if Your Life Depended on It",subtitle:"Negotiating as if Your Life Depended on It"});
-  const response=extractionResponse({originalTitle:translations.en.title,originalSubtitle:translations.en.subtitle,author:"Chris Voss",translations});
+  const response=extractionResponse({popularTitle:translations.en.title,popularSubtitle:translations.en.subtitle,author:"Chris Voss",translations});
   const fake=fakeProvider([researchResponse(),response]);
   const result=await createBookAutofill({apiKey:"key",...fake})("r",{title:"rompe la barrera del no",author:"",language:""},genres);
-  assert.equal(result.metadata.originalTitle,"Never Split the Difference");
+  assert.equal(result.metadata.popularTitle,"Never Split the Difference");
   assert.deepEqual(result.metadata.title,{es:"Rompe la barrera del no",en:""});
   assert.doesNotMatch(JSON.stringify(result.metadata),/Never Split de Difference|Un manuel|Negotiating as/);
   assert.deepEqual(Object.keys(fake.calls[1].body.text.format.schema.properties.translations.properties).sort(),["en","es"]);
@@ -61,14 +61,25 @@ test("AI separates mixed headings and subtitles, preserves personal edits and om
   assert.equal(edited.metadata.title.es,"Título personal");assert.equal(Object.hasOwn(edited.metadata,"shortTitle"),false);
 });
 
-test("AI leaves preferred titles empty when the original title is the common title",async()=>{
+test("AI leaves preferred titles empty when the popular title is the common title",async()=>{
   const translations=JSON.parse(extractionResponse().output[0].content[0].text).translations;
   translations.es.title=null;translations.en.title=null;
-  const fake=fakeProvider([researchResponse(),extractionResponse({originalTitle:"Clean Code",translations})]);
+  const fake=fakeProvider([researchResponse(),extractionResponse({popularTitle:"Clean Code",translations})]);
   const result=await createBookAutofill({apiKey:"key",...fake})("r",{title:"Clean Code",author:"",language:""},genres);
-  assert.equal(result.metadata.originalTitle,"Clean Code");
+  assert.equal(result.metadata.popularTitle,"Clean Code");
   assert.deepEqual(result.metadata.title,{es:"",en:""});
   assert.match(fake.calls[1].body.instructions,/Never invent or mechanically translate a title/);
+});
+
+test("Autofill can choose an English popular title for a work identified by its Swedish title",async()=>{
+  const translations=JSON.parse(extractionResponse().output[0].content[0].text).translations;
+  translations.es.title=null;translations.en.title="Surrounded by Idiots";
+  const fake=fakeProvider([researchResponse(),extractionResponse({popularTitle:"Surrounded by Idiots",popularLanguage:"en",author:"Thomas Erikson",translations})]);
+  const result=await createBookAutofill({apiKey:"key",...fake})("r",{title:"Omgiven av idioter",author:"Thomas Erikson",language:"sv"},genres);
+  assert.equal(result.metadata.popularTitle,"Surrounded by Idiots");
+  assert.equal(result.metadata.popularLanguage,"en");
+  assert.deepEqual(result.metadata.title,{es:"",en:""});
+  assert.equal(Object.hasOwn(result.metadata,"originalTitle"),false);
 });
 
 test("AI missing configuration, invalid input, ambiguity, refusal, incomplete responses and invented links are handled",async()=>{
@@ -171,7 +182,7 @@ test("Existing-book HTTP autofill uses stored identity, enforces ownership and p
   const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);
   let calls=0,release;
   const server=createCatalogServer(db,undefined,{bookAutofill:async(_user,input)=>{
-    calls++;assert.equal(input.title,bookMetadata.originalTitle);assert.equal(input.author,"Autor guardado");assert.equal(input.language,"en");
+    calls++;assert.equal(input.title,bookMetadata.popularTitle);assert.equal(input.author,"Autor guardado");assert.equal(input.language,"en");
     await new Promise(resolve=>{release=resolve;});return {author:"Autor generado",metadata:structuredClone(bookMetadata)};
   }});
   server.listen(0,"127.0.0.1");await once(server,"listening");
@@ -184,7 +195,7 @@ test("Existing-book HTTP autofill uses stored identity, enforces ownership and p
   };
   const owner=await login("fill.owner"),other=await login("fill.other");
   const bookId=randomUUID();
-  assert.equal((await post("/api/author/books",{requestId:bookId,title:bookMetadata.originalTitle,author:"Autor guardado",language:"en"},owner)).status,200);
+  assert.equal((await post("/api/author/books",{requestId:bookId,title:bookMetadata.popularTitle,author:"Autor guardado",language:"en"},owner)).status,200);
   const fill={bookId,title:"Identidad manipulada",author:"Otro autor",language:"fr"};
   const complete={bookId,metadata:bookMetadata};
   for (const path of ["/api/author/books/autofill","/api/author/books/complete"]) {

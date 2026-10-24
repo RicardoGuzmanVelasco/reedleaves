@@ -7,7 +7,7 @@ import {words} from "./i18n.mjs";
 import {readerState,emptyCatalog} from "../test-support/reader-state.mjs";
 
 const state=readerState({...emptyCatalog(),genres:[{id:"personal-growth",name:{es:"Crecimiento personal"}}]});
-test("Preferred titles are optional and an empty preference preserves the original title",()=>{
+test("Preferred titles are optional and an empty preference preserves the popular title",()=>{
   const value={...structuredClone(bookMetadata),title:{es:"",en:""}};
   assert.deepEqual(normalizeBookMetadata(value).title,{es:"",en:""});
   assert.deepEqual(normalizeBookMetadata({...value,title:undefined}).title,{es:"",en:""});
@@ -28,7 +28,7 @@ test("Existing metadata survives autofill; invalid translations and unsafe links
 });
 
 test("Only incomplete owned books offer completion; optional links do not keep the indicator visible",()=>{
-  const minimal={...normalizeBookMetadata(),id:"mine",creatorUserId:"owner",author:"Daniel Kahneman",originalTitle:bookMetadata.originalTitle,originalLanguage:"en"};
+  const minimal={...normalizeBookMetadata(),id:"mine",creatorUserId:"owner",author:"Daniel Kahneman",popularTitle:bookMetadata.popularTitle,popularLanguage:"en"};
   assert.equal(missingBookInformation(minimal).length,3);
   const complete={...minimal,...bookMetadata};
   assert.equal(missingBookInformation(complete).length,0);
@@ -48,15 +48,15 @@ test("Only incomplete owned books offer completion; optional links do not keep t
 });
 
 test("Completion reuses the preview but saves to the current book and locks existing fields",()=>{
-  const metadata=structuredClone(bookMetadata),original=normalizeBookMetadata({title:{en:bookMetadata.originalTitle}},{completeTranslations:false});
-  const form={kind:"book",bookId:"mine",title:bookMetadata.originalTitle,author:"Autor guardado",language:"en",metadata,originalMetadata:original};
+  const metadata=structuredClone(bookMetadata),original=normalizeBookMetadata({title:{en:bookMetadata.popularTitle}},{completeTranslations:false});
+  const form={kind:"book",bookId:"mine",title:bookMetadata.popularTitle,author:"Autor guardado",language:"en",metadata,originalMetadata:original};
   const initial=authorFormView({...state,authorForm:form});
   assert.match(initial,/Completar información/);assert.match(initial,/Solo se rellenarán los datos que faltan/);
   assert.match(initial,/name="title"[^>]*readonly/);assert.doesNotMatch(initial,/type="submit"/);
   const preview=authorFormView({...state,authorForm:{...form,preview:true,hasProposal:true}});
   assert.match(preview,/type="submit">Guardar/);assert.doesNotMatch(preview,/type="submit">Añadir libro a la librería/);
   const editing=authorFormView({...state,authorForm:{...form,hasProposal:true}});
-  assert.doesNotMatch(editing,/name="metadata.title.en"/);
+  assert.match(editing,/name="metadata.title.en"/);
   assert.doesNotMatch(editing,/name="metadata.description.es"[^>]*readonly/);
 });
 test("Book form keeps loading, retry, translations and save; book interfaces omit research sources",()=>{

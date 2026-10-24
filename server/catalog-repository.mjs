@@ -9,20 +9,20 @@ export async function readCatalog(db, userId) {
     genres.push({id,name:Object.fromEntries(translations.map(t=>[t.language,t.name]))});
   }
   const books = [];
-  for (const row of await db.prepare(`SELECT b.id,b.author,b.original_title,b.original_language,b.editorial_status,b.creator_user_id,
+  for (const row of await db.prepare(`SELECT b.id,b.author,b.popular_title,b.popular_language,b.editorial_status,b.creator_user_id,
     COALESCE(u.display_name,(SELECT display_name FROM users WHERE id='reed-team'),'Equipo Reedleaves') AS creator_name,
     COALESCE(u.id,(SELECT id FROM users WHERE id='reed-team')) AS creator_profile_user_id
     FROM books b LEFT JOIN users u ON u.id=b.creator_user_id ORDER BY b.position`).all()) {
     const book = {schemaVersion:1,id:row.id,author:row.author,editorialStatus:row.editorial_status,
       creatorUserId:row.creator_user_id,creatorName:row.creator_name || null,creatorProfileUserId:row.creator_profile_user_id || null,
-      originalTitle:row.original_title,originalLanguage:row.original_language,title:{},description:{},editorialNote:{},
+      popularTitle:row.popular_title,popularLanguage:row.popular_language,title:{},description:{},editorialNote:{},
       links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id = ? ORDER BY platform").all(row.id)).map(link=>[link.platform,link.url])),
       genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id = ? ORDER BY genre_id").all(row.id)).map(t=>t.genre_id)};
     for (const t of await db.prepare("SELECT * FROM book_translations WHERE book_id = ?").all(row.id)) {
-      if(t.language!==book.originalLanguage && t.title.trim() && t.title.trim()!==book.originalTitle.trim()) book.title[t.language]=t.title;
+      if(t.title.trim() && t.title.trim()!==book.popularTitle.trim()) book.title[t.language]=t.title;
       book.description[t.language]=t.description; book.editorialNote[t.language]=t.editorial_note;
     }
-    validateBookLinks(book.links,{required:!book.creatorUserId}); books.push(validateBook(book,LANGUAGES,{requireOriginal:true}));
+    validateBookLinks(book.links,{required:!book.creatorUserId}); books.push(validateBook(book,LANGUAGES,{requirePopular:true}));
   }
   const cards = [];
   const cardRows = await db.prepare(`SELECT c.*,deck.language AS deck_language FROM cards c
@@ -62,7 +62,7 @@ export async function readCatalog(db, userId) {
     if(model.cards.some(card=>!card.title[row.language]||!card.body[row.language])) throw new Error("Card is missing text in its deck language");
   }
   // Account-created decks and their cards join the shared catalog as they are saved.
-  return {schemaVersion:4,genres,books,decks,cards};
+  return {schemaVersion:5,genres,books,decks,cards};
 }
 
 export async function checkCatalog(db) {

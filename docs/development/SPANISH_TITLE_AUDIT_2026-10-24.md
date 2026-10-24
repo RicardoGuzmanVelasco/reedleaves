@@ -1,5 +1,7 @@
 # Propuesta de títulos preferidos en castellano — 24 de octubre de 2026
 
+**Actualización de modelo acordada después de esta auditoría:** el título base pasa a ser el título popular. Surrounded by Idiots será el popular inglés, con preferido castellano vacío. Ya no se necesita conservar su título sueco ni resolver un fallback al sueco. Reality Transurfing conserva su nombre popular inglés; su idioma pasa a describir ese título, no el idioma ruso de la obra. El análisis que sigue documenta el estado anterior a esa decisión. La implementación actual se recoge en [2026-10-24.md](2026-10-24.md).
+
 Revisión de los **24 libros reales** del catálogo facilitado. Este documento es una propuesta: **no se han cambiado libros, traducciones, código ni datos**.
 
 El campo `books.original_title` conserva el título original de la obra, y `original_language` debe indicar su idioma real de origen. El campo opcional `book_translations.title` para `es` solo se rellena si queremos un nombre en castellano. **Regla expresa del usuario: si preferimos el inglés, borrar el título preferido castellano; nunca copiar inglés a ese campo.** Un título vacío utiliza el original. Con originales suecos o rusos, ese fallback requiere una decisión funcional pendiente para poder mostrar el inglés sin adulterar el original.

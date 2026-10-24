@@ -87,7 +87,8 @@ test("The SQL catalog requires Spanish and English descriptions and notes, while
     for (const title of Object.values(book.title)) assert.ok(title.trim());
   }
   assert.equal(c.booksById.get("same-as-ever").title.es, "Lo que nunca cambia");
-  assert.equal(c.booksById.get("getting-things-done").title.es, "Organízate con eficacia");
+  assert.equal(c.booksById.get("getting-things-done").title.es, undefined);
+  assert.deepEqual(bookTitle(c.booksById.get("getting-things-done"),"es"),{text:"Getting Things Done",language:"en"});
   assert.equal(c.booksById.get("seven-habits").title.en, undefined);
   assert.deepEqual(bookTitle(c.booksById.get("seven-habits"),"en"),{text:"The 7 Habits of Highly Effective People",language:"en"});
   assert.equal(c.decks.length, 6);
@@ -99,7 +100,7 @@ test("The SQL catalog requires Spanish and English descriptions and notes, while
   }
 });
 
-test("Book details show a preferred title or fall back to the original", async () => {
+test("Book details show a preferred title or fall back to the popular title", async () => {
   const s = {catalog:await catalog(), language:"en", statuses:{}, openBookId:"seven-habits", storageAvailable:true};
   const html = libraryView(s);
   assert.match(html, /Library/);
@@ -117,7 +118,7 @@ test("Missing required descriptions or genre metadata rejects the seed, API payl
     const seed = readSeed(); mutate(seed); assert.throws(() => validateSeed(seed));
   }
   const c = await catalog(), payload = {
-    schemaVersion:4, books:c.books, cards:c.allCards, genres:c.genres, decks:c.decks
+    schemaVersion:5, books:c.books, cards:c.allCards, genres:c.genres, decks:c.decks
   };
   delete payload.books[0].description.en;
   assert.throws(() => prepareCatalog(payload), /translation/);

@@ -133,7 +133,7 @@ Para iniciar la captura de una idea o cita, usar siempre **Tomar nota / Take a n
 
 «Tomar nota» abre el editor directamente cuando la baraja ya está determinada. Guardar o cancelar devuelve al punto de partida, conservando vista, filtros, posición y foco. «Gestionar baraja / Manage deck» es el acceso a revisar las notas propias y marcar la baraja como terminada; no es un paso previo para tomar una nota.
 
-Si el «+» de Inicio no tiene una baraja propia en borrador, abre el editor de nota directamente. Se avisa de que se creará «Notas de lectura» / «Reading notes». La baraja nace al guardar la primera nota, con el idioma elegido para la app al abrir el editor, independiente del idioma original del libro. No se pide configurar nombre o idioma. Cancelar no crea una baraja vacía.
+Si el «+» de Inicio no tiene una baraja propia en borrador, abre el editor de nota directamente. Se avisa de que se creará «Notas de lectura» / «Reading notes». La baraja nace al guardar la primera nota, con el idioma elegido para la app al abrir el editor, independiente del idioma del título popular del libro. No se pide configurar nombre o idioma. Cancelar no crea una baraja vacía.
 
 Borrador describe creación y no privacidad. Guardar comparte el contenido con quienes tienen acceso al catálogo; terminar cierra cambios, no lo hace visible por primera vez. El estado editorial `draft/reviewed` es independiente de `status`. Los nombres internos `deckInProgress` y `notesInProgress` conservan su contrato, pero su copy de creación usa Borrador. Las notas sin guardar solo se recuperan en el navegador y dispositivo donde se conservaron.
 
@@ -166,8 +166,10 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 - Software usa un símbolo de código; Mindfulness, una flor de loto. Los intereses sin icono específico usan una etiqueta genérica. El icono no sustituye el nombre accesible.
 - Software y Mindfulness están disponibles en español e inglés. No asignar Mindfulness a libros de crecimiento personal por asociación general; clasificar según el contenido del libro.
 
-## Títulos originales y preferidos
+## Título popular y títulos preferidos
 
-- El título original corresponde al idioma original real del libro. El título preferido por idioma es opcional y no tiene por qué coincidir con el título de una edición traducida.
-- Si en la interfaz castellana se utiliza el nombre inglés mediante el fallback, dejar vacío el título preferido castellano; no duplicar el título inglés en ese campo. Vaciar el título conserva la descripción y la nota editorial de esa traducción.
-- Si el original real está en un tercer idioma, no sustituirlo por el inglés para forzar el fallback. Resolver ese caso por separado antes de aplicar cambios editoriales.
+- El título popular es el nombre base por el que se conoce el libro. Puede estar en inglés aunque la obra se haya escrito en otro idioma. No se conserva un título original histórico como dato distinto. Su idioma describe el texto del título popular, no el idioma de escritura de la obra.
+- Cada idioma de interfaz puede tener un título preferido opcional. Si está vacío, se muestra el popular. No copiar el nombre inglés al preferido castellano para obtener ese resultado. Vaciar el título conserva descripciones y notas editoriales.
+- La ficha y la vista previa muestran el título preferido del idioma de interfaz en grande. Justo debajo aparece el popular en cursiva gris y a menor tamaño, solo cuando es distinto. Sin etiquetas «Título original», «Título popular» ni «Título preferido» junto a los nombres.
+- Se retira de Ajustes la opción de forzar títulos originales: la presentación usa siempre el preferido del idioma de interfaz, con fallback al popular.
+- Surrounded by Idiots es un título popular inglés válido; su preferido castellano queda vacío. No hace falta guardar Omgiven av idioter para mostrar el libro.

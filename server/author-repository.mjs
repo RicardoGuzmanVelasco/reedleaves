@@ -18,14 +18,14 @@ export async function ownedBookInformation(db,session,bookId,{lock=false}={}) {
   if (typeof bookId !== "string" || !bookId.trim() || bookId.length > 240) throw new ApiError(400,"invalidRequest");
   const book=await db.prepare(`SELECT * FROM books WHERE id=? AND creator_user_id=?${lock && isPostgres(db) ? " FOR UPDATE" : ""}`).get(bookId,session.user_id);
   if (!book) throw new ApiError(404,"bookUnavailable");
-  const metadata={originalTitle:book.original_title,originalLanguage:book.original_language,title:{},description:{},editorialNote:{},
+  const metadata={popularTitle:book.popular_title,popularLanguage:book.popular_language,title:{},description:{},editorialNote:{},
     genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY genre_id").all(bookId)).map(row=>row.genre_id),
     links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id=?").all(bookId)).map(row=>[row.platform,row.url]))};
   for (const row of await db.prepare("SELECT * FROM book_translations WHERE book_id=?").all(bookId)) {
     metadata.title[row.language]=row.title;
     metadata.description[row.language]=row.description; metadata.editorialNote[row.language]=row.editorial_note;
   }
-  return {title:book.original_title,author:book.author,language:book.original_language,metadata};
+  return {title:book.popular_title,author:book.author,language:book.popular_language,metadata};
 }
 
 export function mergeOwnedBookMetadata(existing,proposal) {
@@ -52,9 +52,9 @@ export async function completeBook(db,session,input) {
 export async function createBook(db,session,input) {
   let metadata;
   try { metadata=normalizeBookMetadata(input.metadata); } catch { throw new ApiError(400,"invalidRequest"); }
-  const id=requestId(input.requestId),title=text(metadata.originalTitle || input.title,TITLE_MAX_LENGTH),author=text(input.author,BOOK_AUTHOR_MAX_LENGTH),language=metadata.originalLanguage || input.language;
+  const id=requestId(input.requestId),title=text(metadata.popularTitle || input.title,TITLE_MAX_LENGTH),author=text(input.author,BOOK_AUTHOR_MAX_LENGTH),language=metadata.popularLanguage || input.language;
   if (!isCanonicalLocale(language)) throw new ApiError(400,"invalidRequest");
-  metadata.originalTitle=title; metadata.originalLanguage=language;
+  metadata.popularTitle=title; metadata.popularLanguage=language;
   metadata=normalizeBookMetadata(metadata,{canonicalTitles:true});
   for (const genre of metadata.genres) if (!await db.prepare("SELECT 1 FROM genres WHERE id=?").get(genre)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
@@ -62,8 +62,8 @@ export async function createBook(db,session,input) {
     if (isPostgres(db)) await db.exec("LOCK TABLE books IN SHARE ROW EXCLUSIVE MODE;");
     const previous=await db.prepare("SELECT * FROM books WHERE id=?").get(id);
     if (previous) {
-      if (previous.creator_user_id !== session.user_id || previous.original_title !== title || previous.author !== author || previous.original_language !== language) throw new ApiError(409,"invalidRequest");
-      const saved={originalTitle:title,originalLanguage:language,title:{},description:{},editorialNote:{},
+      if (previous.creator_user_id !== session.user_id || previous.popular_title !== title || previous.author !== author || previous.popular_language !== language) throw new ApiError(409,"invalidRequest");
+      const saved={popularTitle:title,popularLanguage:language,title:{},description:{},editorialNote:{},
         genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY genre_id").all(id)).map(row=>row.genre_id),
         links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id=?").all(id)).map(row=>[row.platform,row.url]))};
       for (const row of await db.prepare("SELECT * FROM book_translations WHERE book_id=?").all(id)) {
@@ -74,7 +74,7 @@ export async function createBook(db,session,input) {
       return {bookId:id};
     }
     const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM books").get();
-    await db.prepare("INSERT INTO books(id,author,original_title,original_language,position,creator_user_id) VALUES (?,?,?,?,?,?)").run(id,author,title,language,position,session.user_id);
+    await db.prepare("INSERT INTO books(id,author,popular_title,popular_language,position,creator_user_id) VALUES (?,?,?,?,?,?)").run(id,author,title,language,position,session.user_id);
     for (const language of Object.keys(metadata.title)) await db.prepare("INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,metadata.title[language],metadata.description[language],metadata.editorialNote[language]);
     for (const genre of metadata.genres) await db.prepare("INSERT INTO book_genres(book_id,genre_id) VALUES (?,?)").run(id,genre);
     for (const [platform,url] of Object.entries(metadata.links)) await db.prepare("INSERT INTO book_links(book_id,platform,url) VALUES (?,?,?)").run(id,platform,url);
@@ -206,7 +206,7 @@ export async function finishTeamDeck(db,input) {
 
 export async function readTeamDeckDrafts(db,{bookId}={}) {
   if (bookId!==undefined && (typeof bookId!=="string" || !bookId.trim() || bookId.length>240)) throw new ApiError(400,"invalidRequest");
-  const rows=await db.prepare(`SELECT d.id AS deck_id,d.book_id,d.language,b.original_title AS book_title,t.title,
+  const rows=await db.prepare(`SELECT d.id AS deck_id,d.book_id,d.language,b.popular_title AS book_title,t.title,
     (SELECT COUNT(*) FROM cards c WHERE c.deck_id=d.id) AS card_count
     FROM decks d JOIN books b ON b.id=d.book_id
     JOIN deck_translations t ON t.deck_id=d.id AND t.language=d.language

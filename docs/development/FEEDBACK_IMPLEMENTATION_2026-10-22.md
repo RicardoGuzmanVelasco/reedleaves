@@ -26,7 +26,7 @@ Actualizado el 24 de octubre: los PR #71, #72, #73, #75, #78 y #80 están integr
 10. **Mascota Tallo plana** — integrado en `main` (#72): arte y parámetros aprobados por el usuario.
 11. **Swipe al leer una baraja** — gesto integrado en #71; botones accesibles junto al contador integrados en #80.
 12. **Intereses Software/Mindfulness, libros e iconos** — implementado en local, pendiente de publicación: ambos intereses disponibles en español e inglés e iconos en fichas, preview de libros, filtro y editor. Revisados los 24 libros actuales: «Tidy First?» de Kent Beck pasa de Crecimiento personal/Productividad a Software; los otros 23 conservan su clasificación. Mindfulness queda disponible sin asignaciones forzadas. La migración preserva los demás intereses, sus nombres y las tarjetas.
-13. **Títulos traducidos preferidos** — integrado en `main` (#80): título original y preferido opcional por idioma, con fallback al original. La migración conserva los títulos y textos guardados, y permite títulos preferidos vacíos.
+13. **Títulos preferidos** — base integrada en `main` (#80). Decisión posterior implementada en local: el título original pasa a ser título popular, con preferidos opcionales por idioma. La ficha y la preview muestran el preferido en grande y el popular debajo, en cursiva gris y sin etiquetas, solo si son distintos. Migraciones y correcciones editoriales preparadas; ver [2026-10-24.md](2026-10-24.md).
 14. **Vista de lomos** — pospuesta para tratarla por separado.
 15. **Racha de idea del día** — integrado en `main` (#80): sustituye la preview bajo el calendario; cuenta al abrir la idea actual en exclusiva.
 16. **Racha en lugar de preview bajo el calendario** — cubierto por #80 junto al 15. Corrección de seguimiento: el comentario original no pedía una racha de repasos.
@@ -36,10 +36,11 @@ Actualizado el 24 de octubre: los PR #71, #72, #73, #75, #78 y #80 están integr
 
 ## Revisión editorial asociada al punto 12
 
-Propuesta de los 24 libros en [SPANISH_TITLE_AUDIT_2026-10-24.md](SPANISH_TITLE_AUDIT_2026-10-24.md). Ningún título cambiado. Regla del usuario: vaciar el preferido castellano cuando se usa el inglés por fallback; conservar descripciones y notas. Pendientes los fallbacks de obras con original sueco/ruso.
+Propuesta de los 24 libros en [SPANISH_TITLE_AUDIT_2026-10-24.md](SPANISH_TITLE_AUDIT_2026-10-24.md). Ningún título cambiado en producción. Correcciones preparadas en la migración local. Regla del usuario: vaciar el preferido castellano cuando se usa el inglés por fallback; conservar descripciones y notas. Decisión posterior: el nombre base pasa a ser el título popular, con preferidos opcionales. Surrounded by Idiots funciona como popular inglés; no hay fallback al sueco. Implementación local en [2026-10-24.md](2026-10-24.md).
 
 ## Verificación
 
+- Nuevo modelo de título popular: `npm test` completo con build, 318 pruebas y salida 0; lint correcto. Migraciones SQLite 39/PostgreSQL 31 probadas con conservación de textos, tarjetas y RLS.
 - Puntos 12 y 18: `npm test` completo con build, 315 pruebas, Node 24.21.0, salida 0.
 - `npm run lint` correcto.
 - La nueva migración se prueba desde SQLite 37 y PostgreSQL 29, con inicialización repetida: conserva libros, tarjetas, asignaciones de los demás libros, etiquetas existentes y RLS de PostgreSQL.

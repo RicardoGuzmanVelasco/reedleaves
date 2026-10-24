@@ -12,8 +12,8 @@ CREATE TABLE genre_translations (
 CREATE TABLE books (
   id TEXT PRIMARY KEY CHECK(length(trim(id)) > 0),
   author TEXT NOT NULL CHECK(length(trim(author)) > 0),
-  original_title TEXT NOT NULL CHECK(length(trim(original_title)) > 0),
-  original_language TEXT NOT NULL CHECK(length(original_language) BETWEEN 2 AND 35),
+  popular_title TEXT NOT NULL CHECK(length(trim(popular_title)) > 0),
+  popular_language TEXT NOT NULL CHECK(length(popular_language) BETWEEN 2 AND 35),
   position INTEGER NOT NULL UNIQUE CHECK(position > 0),
   editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft', 'reviewed')),
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -283,4 +283,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 38;
+PRAGMA user_version = 39;

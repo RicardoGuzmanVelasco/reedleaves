@@ -52,7 +52,12 @@ function bookGenresMarkup(s,book) {
 }
 
 function displayedBookTitle(s,book) {
-  return bookTitle(book,s.language,{original:s.showOriginalTitles});
+  return bookTitle(book,s.language);
+}
+
+function popularBookTitleMarkup(s,book) {
+  if (displayedBookTitle(s,book).text.trim() === book.popularTitle.trim()) return "";
+  return `<p class="book-popular-title" lang="${esc(book.popularLanguage)}" dir="auto">${esc(book.popularTitle)}</p>`;
 }
 
 function completeBookButton(s,book) {
@@ -86,7 +91,7 @@ function bookReadingIcon(status) {
 
 function closedBookMarkup(s,book,{caption=words[s.language].review,catalog=false,note=false}={}) {
   const c = words[s.language];
-  const title=bookCoverTitle(book,s.language,{original:s.showOriginalTitles});
+  const title=bookCoverTitle(book,s.language);
   const noteDecks=note ? editableNoteDecks(s.catalog,book.id,s.userId) : [];
   const status=s.statuses[book.id] || "unread",statusLines=note ? [{label:status === "reading" ? c.readingStatus : status === "read" ? c.readStatus : c.unread,icon:bookReadingIcon(status)},{label:noteDecks.length ? c.notesInProgress : ""}].filter(row=>row.label) : [];
   const cover=`<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="open-book-details" data-book="${esc(book.id)}" aria-haspopup="dialog" ${note ? `aria-describedby="home-book-state-${esc(book.id)}"` : ""} aria-label="${esc(catalog ? displayedBookTitle(s,book).text + ", " + book.author + ", " + caption : c.bookInfo + ": " + displayedBookTitle(s,book).text)}">
@@ -112,16 +117,15 @@ function bookDetailsMarkup(s,book) {
   const inShelf=!!s.userId && !s.readOnly && bookshelfBooks({...s,bookshelfFilters:bookshelfDefaults}).some(item=>item.book.id === book.id);
   const noteNudge=s.mode === "library" && s.noteNudgeBookId === book.id && ["reading","read"].includes(s.statuses[book.id] || "unread");
   const noteChoices=s.noteDestination?.source === "book-details" && s.noteDestination.bookId === book.id ? bookNoteDestinationMarkup(s,book) : "";
-  return `<dialog class="deck-modal book-modal" data-book="${esc(book.id)}" aria-labelledby="book-dialog-title" ${contentText(book.description,s.language,book.originalLanguage) ? 'aria-describedby="book-dialog-description"' : ""}><button class="dialog-close deck-modal-close" type="button" data-action="close-book-details" aria-label="${c.closeBook}" autofocus>${closeIconMarkup}</button><article class="deck-card book-detail">
+  return `<dialog class="deck-modal book-modal" data-book="${esc(book.id)}" aria-labelledby="book-dialog-title" ${contentText(book.description,s.language,book.popularLanguage) ? 'aria-describedby="book-dialog-description"' : ""}><button class="dialog-close deck-modal-close" type="button" data-action="close-book-details" aria-label="${c.closeBook}" autofocus>${closeIconMarkup}</button><article class="deck-card book-detail">
     <div class="deck-tags">${bookGenresMarkup(s,book)}</div>
-    <h2 id="book-dialog-title" lang="${esc(displayedBookTitle(s,book).language)}" dir="auto">${esc(displayedBookTitle(s,book).text)}</h2><div class="book-detail-author-row"><p class="book-detail-author">${esc(book.author)}</p>${completeBookButton(s,book)}</div>
+    <h2 id="book-dialog-title" lang="${esc(displayedBookTitle(s,book).language)}" dir="auto">${esc(displayedBookTitle(s,book).text)}</h2>${popularBookTitleMarkup(s,book)}<div class="book-detail-author-row"><p class="book-detail-author">${esc(book.author)}</p>${completeBookButton(s,book)}</div>
     ${s.userId ? inShelf ? `<p class="collection-object-state"><img src="../brand/icons/collections/shelf.svg" alt="" width="21" height="21">${c.bookOnShelf}</p>` : `<button class="collection-add-action" type="button" data-action="add-book-to-shelf" data-book="${esc(book.id)}"><img src="../brand/icons/collections/shelf-add.svg" alt="" width="24" height="24">${c.addBookToShelf}</button>` : ""}
     ${bookReadingControls(s,book)}
     ${noteNudge ? `<div class="book-note-nudge"><span>${c.bookNoteNudge}</span><button class="primary book-note-nudge-action note-icon-only" type="button" data-action="take-note-from-book" data-book="${esc(book.id)}" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}">${takeNoteIconMarkup}</button></div>` : ""}
     ${noteChoices}
-    <p class="book-original-title"><span>${c.originalTitle}</span><span lang="${esc(book.originalLanguage)}" dir="auto">${esc(book.originalTitle)}</span></p>
     ${book.creatorName ? `<p class="book-added-by"><span>${c.bookAddedBy}</span>${nameLink({icon:"user",name:book.creatorName,href:creatorProfileId ? `#profile/${encodeURIComponent(creatorProfileId)}` : null})}</p>` : ""}
-    ${contentText(book.description,s.language,book.originalLanguage) ? `<p class="deck-description" id="book-dialog-description" lang="${esc(contentLocale(book.description,s.language,book.originalLanguage))}" dir="auto">${esc(contentText(book.description,s.language,book.originalLanguage))}</p>` : ""}
+    ${contentText(book.description,s.language,book.popularLanguage) ? `<p class="deck-description" id="book-dialog-description" lang="${esc(contentLocale(book.description,s.language,book.popularLanguage))}" dir="auto">${esc(contentText(book.description,s.language,book.popularLanguage))}</p>` : ""}
     ${bookLinksMarkup(s, book)}
     <button class="primary" type="button" data-action="open-book" data-book="${esc(book.id)}" ${!choices.length && !s.userId ? "disabled" : ""}>${c.viewDecks} · ${choices.length}</button>
   </article></dialog>`;
@@ -639,7 +643,7 @@ export function authorFormView(s) {
   const locked=name=>!!f.bookId && (!name.startsWith("metadata.") || (()=>{ const [,key,language]=name.split("."); return !!f.originalMetadata?.[key]?.[language]; })());
   const field=(name,label,value,max,required,area=false)=>`<label for="author-${name}">${label}</label>${area ? `<textarea id="author-${name}" name="${name}" rows="${name === "body" ? 6 : 3}" maxlength="${max}" ${required ? "required" : ""} ${locked(name) ? "readonly" : ""}>${esc(value || "")}</textarea>` : `<input id="author-${name}" name="${name}" value="${esc(value || "")}" maxlength="${max}" ${required ? "required" : ""} ${locked(name) ? "readonly" : ""}>`}`;
   const languagePicker=()=>{
-    const label=book ? c.originalLanguage : c.deckLanguage;
+    const label=book ? c.language : c.deckLanguage;
     const languageName=tag=>new Intl.DisplayNames([s.language],{type:"language"}).of(tag);
     if (f.bookId) return `<label for="author-language">${label}</label><input id="author-language" value="${esc(languageName(f.language))}" readonly><input type="hidden" name="language" value="${esc(f.language)}">`;
     // Preserve an original language found by AI, even outside the current manual choices.
@@ -652,14 +656,12 @@ export function authorFormView(s) {
   }
   if (!deck && !book && model) walk(model.roots);
   if (book && f.preview && f.metadata) {
-    const preview={...f.metadata,id:f.requestId,author:f.author,creatorUserId:s.userId,originalTitle:f.metadata.originalTitle || f.title,originalLanguage:f.metadata.originalLanguage || f.language};
-    const translated=displayedBookTitle(s,preview),description=contentText(preview.description,s.language,preview.originalLanguage);
+    const preview={...f.metadata,id:f.requestId,author:f.author,creatorUserId:s.userId,popularTitle:f.metadata.popularTitle || f.title,popularLanguage:f.metadata.popularLanguage || f.language};
+    const translated=displayedBookTitle(s,preview),description=contentText(preview.description,s.language,preview.popularLanguage);
     return `<dialog class="deck-modal author-modal book-preview-modal" aria-labelledby="author-dialog-title"><article class="deck-card book-detail">
-      <p class="preview-label">${c.bookPreview}</p><h2 id="author-dialog-title" tabindex="-1" lang="${esc(translated.language)}" dir="auto">${esc(translated.text)}</h2><p class="book-detail-author">${esc(preview.author)}</p>
+      <p class="preview-label">${c.bookPreview}</p><h2 id="author-dialog-title" tabindex="-1" lang="${esc(translated.language)}" dir="auto">${esc(translated.text)}</h2>${popularBookTitleMarkup(s,preview)}<p class="book-detail-author">${esc(preview.author)}</p>
       <div class="deck-tags">${bookGenresMarkup(s,preview)}</div>
-      <p class="book-original-title"><span>${c.originalTitle}</span><span lang="${esc(preview.originalLanguage)}" dir="auto">${esc(preview.originalTitle)}</span></p>
-      <p class="preview-language">${c.originalLanguage}: <span>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(preview.originalLanguage))}</span></p>
-      ${description ? `<p class="deck-description" lang="${esc(contentLocale(preview.description,s.language,preview.originalLanguage))}" dir="auto">${esc(description)}</p>` : ""}
+      ${description ? `<p class="deck-description" lang="${esc(contentLocale(preview.description,s.language,preview.popularLanguage))}" dir="auto">${esc(description)}</p>` : ""}
       ${bookLinksMarkup(s,preview)}
       ${LANGUAGES.some(language=>preview.title[language]) ? `<details class="book-translations"><summary>${c.bookTranslations}</summary>${LANGUAGES.filter(language=>preview.description[language] || preview.editorialNote[language]).map(language=>`<section lang="${esc(language)}" dir="auto"><h3>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(language))}</h3><p><strong>${esc(bookTitle(preview,language).text)}</strong></p><p>${esc(preview.description[language])}</p><small>${esc(preview.editorialNote[language])}</small></section>`).join("")}</details>` : ""}
       <form class="author-form" data-author-form><p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}${f.error && f.errorReference ? `<small class="error-reference">${c.errorReference}: ${esc(f.errorReference)}</small>` : ""}</p>
@@ -677,7 +679,7 @@ export function authorFormView(s) {
     ${book ? `<button class="secondary book-autofill" type="button" data-action="autofill-book" ${f.autofilling ? 'disabled aria-busy="true"' : ""}>${f.autofilling ? `<span class="ai-spinner" aria-hidden="true"></span><span role="status">${c.aiLoading}</span>` : c.autofillBook}</button>` : ""}
     ${book && f.metadata && (!f.bookId || f.hasProposal) ? `<details class="book-metadata-editor"><summary>${c.bookDetails}</summary>
       <fieldset class="book-genre-fields" ${f.bookId && f.originalMetadata.genres.length ? "disabled" : ""}><legend>${c.genre}</legend>${s.catalog.genres.map(genre=>`<label class="check-row"><input type="checkbox" name="metadata.genres" value="${esc(genre.id)}" ${f.metadata.genres.includes(genre.id) ? "checked" : ""}><span>${interestIcon(genre.id)}${esc(genre.name[s.language])}</span></label>`).join("")}</fieldset>
-      ${LANGUAGES.filter(language=>f.metadata.description[language] || f.metadata.editorialNote[language] || f.metadata.title[language]).map(language=>`<details class="book-translation-editor"><summary>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(language))}</summary>${language === (f.metadata.originalLanguage || f.language) ? "" : field(`metadata.title.${language}`,c.bookPreferredTitle,f.metadata.title[language],TRANSLATION_FIELDS.title,false)}${field(`metadata.description.${language}`,c.bookDescription,f.metadata.description[language],TRANSLATION_FIELDS.description,true,true)}${field(`metadata.editorialNote.${language}`,c.bookEditorialNote,f.metadata.editorialNote[language],TRANSLATION_FIELDS.editorialNote,true,true)}</details>`).join("")}
+      ${LANGUAGES.filter(language=>f.metadata.description[language] || f.metadata.editorialNote[language] || f.metadata.title[language]).map(language=>`<details class="book-translation-editor"><summary>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(language))}</summary>${field(`metadata.title.${language}`,c.bookTitle,f.metadata.title[language] || "",TRANSLATION_FIELDS.title,false)}${field(`metadata.description.${language}`,c.bookDescription,f.metadata.description[language],TRANSLATION_FIELDS.description,true,true)}${field(`metadata.editorialNote.${language}`,c.bookEditorialNote,f.metadata.editorialNote[language],TRANSLATION_FIELDS.editorialNote,true,true)}</details>`).join("")}
       ${["amazon","goodreads"].map(platform=>field(`metadata.links.${platform}`,platform === "amazon" ? "Amazon" : "Goodreads",f.metadata.links[platform],2048,false)).join("")}
     </details>` : ""}
     <p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}${f.error && f.errorReference ? `<small class="error-reference">${c.errorReference}: ${esc(f.errorReference)}</small>` : ""}</p><div class="form-actions"><button class="text-button" type="button" data-action="cancel-author">${c.cancel}</button>${!f.bookId || f.hasProposal ? `<button class="primary" type="submit" ${f.draftDestinationUnavailable ? "disabled" : ""}>${book && !f.bookId ? c.createBook : deck ? c.createDeck : c.save}</button>` : ""}</div>

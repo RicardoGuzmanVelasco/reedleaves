@@ -7,10 +7,12 @@ import { Pool, types } from "pg";
 import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH,USERNAME_MIN_LENGTH,USERNAME_MAX_LENGTH} from "../app/core.mjs";
 import {INTEREST_MIGRATION_SQL,SOFTWARE_BOOK_IDENTITY,SOFTWARE_RECLASSIFICATION_QUERIES} from "./interest-migration.mjs";
 
+import {POPULAR_TITLE_RENAME_SQL,POPULAR_TITLE_UPDATES} from "./popular-title-migration.mjs";
+
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 38;
-export const POSTGRES_SCHEMA_VERSION = 30;
+export const SQLITE_SCHEMA_VERSION = 39;
+export const POSTGRES_SCHEMA_VERSION = 31;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -97,6 +99,15 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 38) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(POPULAR_TITLE_RENAME_SQL);
+      for(const {sql,values} of POPULAR_TITLE_UPDATES)db.prepare(sql).run(...values);
+      db.exec("PRAGMA user_version=39; COMMIT;");
+    } catch(error) { db.exec("ROLLBACK");throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 37) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -629,6 +640,18 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 30) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,books,book_translations IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 31) return;
+          await db.exec(POPULAR_TITLE_RENAME_SQL);
+          for(const {sql,values} of POPULAR_TITLE_UPDATES)await db.prepare(sql).run(...values);
+          await db.exec(`ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=31;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=31);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 29) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,genres,genre_translations,book_genres,books IN ACCESS EXCLUSIVE MODE;");
