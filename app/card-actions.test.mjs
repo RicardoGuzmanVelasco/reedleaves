@@ -70,3 +70,15 @@ test('Quote cards keep the default card typeface and use italics',()=>{
   assert.match(savedStyles,/\.saved-card-row--quote \.saved-card-name\{font-style:italic\}/);
   assert.doesNotMatch(`${themes}${readerStyles}${savedStyles}`,/font-face/);
 });
+
+test('Quote previews retain the grid typography at every column density',()=>{
+  const css=readFileSync(new URL('./reader.css',import.meta.url),'utf8');
+  assert.match(css,/\.deck-preview-grid\[data-columns="4"\]\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)\}/);
+  assert.match(css,/\.deck-preview-item \.reading-stage \.idea-body\{[^}]*font-size:3\.2cqw;/);
+  const quoteRules=[...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([,selector])=>selector.includes('.deck-preview-item') && selector.includes('[data-card-type="quote"]') && selector.includes('.idea-body'));
+  assert.ok(quoteRules.length>0);
+  for(const [,selector,declarations] of quoteRules){
+    assert.doesNotMatch(declarations,/font-size\s*:/,`Quote preview size must follow the card container: ${selector.trim()}`);
+  }
+});
