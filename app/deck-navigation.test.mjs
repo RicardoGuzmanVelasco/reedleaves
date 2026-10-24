@@ -35,6 +35,13 @@ test('One deck page handles discovery, collection and ownership while clean read
     const reading=deckPeekView(base);
     assert.ok(reading.includes(c.viewDeck));assert.match(reading,/data-action="back-from-deck-preview"/);
     assert.equal((reading.match(/<li>/g)||[]).length,model.cards.length);
+    const carousel=deckPeekView({...base,presentationLayout:'carousel',presentationIndex:1});
+    assert.match(carousel,/data-deck-presentation="carousel" data-index="1"/);
+    assert.equal((carousel.match(/data-reading-card=/g)||[]).length,1);
+    assert.equal((carousel.match(/data-action="presentation-card"/g)||[]).length,model.cards.length);
+    assert.match(carousel,/data-action="presentation-step"/);
+    assert.ok(carousel.includes(c.closePresentation));
+    assert.doesNotMatch(carousel,/class="deck-facts"|data-action="share-deck"|data-action="add-deck-to-collection"/);
     assert.doesNotMatch(reading,/class="deck-facts"|class="deck-description"|class="deck-creator"|data-action="add-deck-to-collection"|data-action="share-deck"/);
   }
 });

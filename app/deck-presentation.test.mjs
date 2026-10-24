@@ -1,0 +1,48 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {presentationTarget,mountDeckPresentation} from './deck-presentation.mjs';
+import {deckReadingHash,deckShareUrl} from './deck-navigation.mjs';
+
+test('Presentation has distinct entry layouts and dragging respects threshold and boundaries',()=>{
+  assert.equal(deckReadingHash('deck','carousel'),'#preview/deck/carousel');
+  assert.equal(deckShareUrl('https://reedleaves.com/app/#preview/deck/carousel','deck'),'https://reedleaves.com/app/#preview/deck');
+  assert.equal(presentationTarget(2,7,-90,320),3);
+  assert.equal(presentationTarget(2,7,90,320),1);
+  assert.equal(presentationTarget(2,7,20,320),2);
+  assert.equal(presentationTarget(0,7,180,320),0);
+  assert.equal(presentationTarget(6,7,-180,320),6);
+  assert.equal(presentationTarget(0,1,-180,320),0);
+});
+function element(dataset={}){
+  const listeners=new Map();let capture=null;
+  return {dataset,style:{},closest:()=>null,querySelector:()=>null,
+    addEventListener(type,callback){const group=listeners.get(type)||new Set();group.add(callback);listeners.set(type,group);},
+    removeEventListener(type,callback){listeners.get(type)?.delete(callback);},
+    emit(type,values={}){const event={target:this,isPrimary:true,button:0,pointerId:1,preventDefault(){this.prevented=true;},...values};for(const callback of listeners.get(type)||[])callback(event);return event;},
+    setPointerCapture(id){capture=id;},hasPointerCapture(id){return capture===id;},releasePointerCapture(){capture=null;},getBoundingClientRect:()=>({width:320})};
+}
+const pause=()=>new Promise(resolve=>setTimeout(resolve,190));
+test('Presentation distinguishes page scroll from drag, springs back and cancels pending navigation on disposal',async()=>{
+  const root=element(),screen=element({index:'1',count:'3'}),flight=element();
+  root.querySelector=()=>screen;screen.querySelector=selector=>selector==='[data-presentation-flight]'?flight:null;
+  const selected=[];let closed=0;
+  const dispose=mountDeckPresentation(root,{onSelect:index=>selected.push(index),onClose:()=>closed++});
+  flight.emit('pointerdown',{clientX:150,clientY:100});
+  const vertical=flight.emit('pointermove',{clientX:151,clientY:160});
+  assert.ok(!vertical.prevented);flight.emit('pointerup',{clientX:20});await pause();assert.deepEqual(selected,[]);
+  flight.emit('pointerdown',{clientX:150,clientY:100});flight.emit('pointermove',{clientX:120,clientY:102});flight.emit('pointerup',{clientX:120});
+  assert.equal(flight.style.transform,'');assert.deepEqual(selected,[]);
+  flight.emit('pointerdown',{clientX:200,clientY:100});flight.emit('pointermove',{clientX:60,clientY:102});flight.emit('pointerup',{clientX:60});
+  dispose();await pause();assert.deepEqual(selected,[]);
+  screen.emit('keydown',{key:'Escape'});assert.equal(closed,0);
+});
+test('Presentation supports drag, keyboard navigation and Escape without accepting duplicate departures',async()=>{
+  const root=element(),screen=element({index:'1',count:'3'}),flight=element();
+  root.querySelector=()=>screen;screen.querySelector=selector=>selector==='[data-presentation-flight]'?flight:null;
+  const selected=[];let closed=0;const dispose=mountDeckPresentation(root,{onSelect:index=>selected.push(index),onClose:()=>closed++});
+  screen.emit('keydown',{key:'ArrowLeft'});assert.deepEqual(selected,[0]);
+  screen.emit('keydown',{key:'Escape'});assert.equal(closed,1);
+  flight.emit('pointerdown',{clientX:200,clientY:100});flight.emit('pointermove',{clientX:60,clientY:102});flight.emit('pointerup',{clientX:60});
+  flight.emit('pointerdown',{clientX:200,clientY:100});flight.emit('pointermove',{clientX:60,clientY:102});flight.emit('pointerup',{clientX:60});await pause();
+  assert.deepEqual(selected,[0,2]);dispose();
+});
