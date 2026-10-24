@@ -17,8 +17,7 @@
       </g>
     </mask>
   </defs>
-  <rect x="-11" y="-3.55" width="28" height="18" rx="2" mask="url(#cards-front-cutout)" />
+  <rect x="-11" y="-3.55" width="28" height="18" rx="2" mask="url(#cards-read-front-cutout)" />
   <rect x="-7" y="3" width="28" height="18" rx="2" />
-  <path d="M0 12s2.5-4 7-4 7 4 7 4-2.5 4-7 4-7-4-7-4Z" />
-  <circle cx="7" cy="12" r="1.7" />
+  <path d="M0 12h14m-5-5 5 5-5 5" />
 </svg>
