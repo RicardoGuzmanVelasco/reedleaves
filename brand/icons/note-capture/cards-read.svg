@@ -1,0 +1,23 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="156"
+  height="122.2"
+  viewBox="-14 -6.55 39 30.55"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <defs>
+    <mask id="cards-read-front-cutout" maskUnits="userSpaceOnUse" x="-14" y="-6.55" width="39" height="30.55">
+      <g stroke="none">
+        <rect x="-14" y="-6.55" width="39" height="30.55" fill="white" />
+        <rect x="-8" y="2" width="30" height="20" rx="3" fill="black" />
+      </g>
+    </mask>
+  </defs>
+  <rect x="-11" y="-3.55" width="28" height="18" rx="2" mask="url(#cards-read-front-cutout)" />
+  <rect x="-7" y="3" width="28" height="18" rx="2" />
+  <path d="M0 12h14m-5-5 5 5-5 5" />
+</svg>

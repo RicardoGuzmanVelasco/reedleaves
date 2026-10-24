@@ -27,7 +27,6 @@ test("Deck recommendations and community likes stay separate", async () => {
   for (const deck of catalog.decks) deck.metrics = {likes:0,dislikes:0};
   assert.equal(featuredDecks(catalog,"seven-habits").some(c => c.tags.includes("preferred")),false);
 });
-
 test("Collective decks remain ordinary book decks, while reading-guide cards stay in their dedicated view",async()=>{
   const catalog=await fixture(),deck=catalog.decks.find(item=>item.bookId==="seven-habits"),card=catalog.deckModels.get(deck.id).cards[0];
   deck.kind="collective";deck.contributionPolicy="selected";
@@ -36,17 +35,15 @@ test("Collective decks remain ordinary book decks, while reading-guide cards sta
   assert.ok(!availableDecks(catalog,deck.bookId).some(item=>item.deck.id===deck.id));
 });
 
-test("Collective draft UI lets invited contributors add cards without exposing deck management",async()=>{
+test("Collective draft review UI lets invited contributors add cards without exposing deck management",async()=>{
   const catalog=await fixture(),deck=catalog.decks.find(item=>item.bookId==="seven-habits"),userId="contributor";
   deck.kind="collective";deck.contributionPolicy="selected";deck.status="draft";deck.canContribute=true;
   const state=readerState(catalog,{userId,deckId:deck.id,bookId:deck.bookId,language:"en"});
-  const html=authorView(state),grid=deckView({...state,deckChoices:featuredDecks(catalog,deck.bookId),openDeckId:deck.id});
+  const html=reviewView(state);
   assert.match(html,/data-action="take-deck-note"/);
-  assert.doesNotMatch(html,/data-action="finish-deck"|data-contributor-form/);
-  assert.match(grid,/data-action="take-deck-note"/);
-  assert.doesNotMatch(grid,/data-action="author-deck"/);
+  assert.doesNotMatch(html,/data-action="author-deck"|data-action="finish-deck"|data-contributor-form/);
 });
-test("Deck grid opens a complete modal; every review card is visible and openable", async () => {
+test("Deck grid links to one page; every card is visible and openable", async () => {
   const catalog = await fixture(),base = {catalog,language:"es",deckId,bookId:"seven-habits",requestedId:"inside-out-2",storageAvailable:true,userId:"reader",enrolledIds:[deckId]};
   const html = reviewView(base);
   assert.match(html,/data-action="previous-reading-card" aria-label="← Anterior"/);
@@ -63,12 +60,11 @@ test("Deck grid opens a complete modal; every review card is visible and openabl
   const grid = deckView({...base,deckChoices,openDeckId:null});
   assert.match(grid,/class="deck-grid"/); assert.match(grid,/Ideas esenciales/); assert.match(grid,/From the inside out/);
   assert.doesNotMatch(grid,/<dialog/); assert.doesNotMatch(grid,/deck-carousel/);
-  const modal = deckView({...base,deckChoices,openDeckId:deckId});
-  assert.match(modal,/<dialog class="deck-modal deck-detail-modal"/); assert.match(modal,/0 citas/);
-  assert.match(modal,/<dialog class="deck-modal deck-detail-modal"[^>]*><button class="dialog-close deck-modal-close"[^>]*>[\s\S]*?<\/button><article class="deck-card">/);
-  assert.match(modal,/class="deck-facts"><span class="deck-card-count">7 tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>0 citas<\/span>/);
-  assert.match(modal,/href="#profile\//); assert.match(modal,/inglés/i); assert.match(modal,/Ver baraja/);
-  assert.doesNotMatch(modal,/Más popular/);
+  assert.doesNotMatch(deckView({...base,deckChoices,openDeckId:deckId}),/<dialog/);
+  assert.match(html,/class="deck-information|sources deck-information/);
+  assert.match(html,/0 citas/);assert.match(html,/href="#profile\//);assert.match(html,/inglés/i);
+  assert.match(html,/data-action="preview-deck"/);assert.match(html,/Leer tarjetas/);
+
 });
 
 test("Reading navigation offers an alternative control at deck boundaries",async()=>{
@@ -111,7 +107,7 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
         assert.ok(!html.includes(c.deckInProgressShort),"A finished tile has no ongoing chip");
       }
     }
-    const details=deckView({...state,openDeckId:deckChoices[0].deck.id}).split("<dialog")[1];
+    const details=reviewView({...state,deckId:deckChoices[0].deck.id,catalog:{...catalog,decksById:new Map(catalog.decksById).set(deckChoices[0].deck.id,deckChoices[0].deck)}});
     assert.ok(details.includes(c.deckInProgress));
     assert.ok(details.includes(c.deckMayChangeUnadded));
     for (const tag of ["recommended","popular","preferred","otherDeck"]) assert.ok(!details.includes(c[tag]),"Deck details also omit distinctions and fallback labels");
@@ -129,8 +125,8 @@ test("Quote counts use the existing quote mark and quote dominant deck previews 
   assert.match(selector,/class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="\d+ tarjetas"><span class="cards-icon" aria-hidden="true"><\/span><span>\d+<\/span><\/span>/);
   assert.match(selector,/class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="4 citas"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4<\/span><\/span>/);
   assert.match(selector,/title="0 citas"/);
-  assert.match(deckView({...state,openDeckId:first.id}),/class="deck-facts"><span class="deck-card-count">\d+ tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span><\/span>/);
-  assert.match(deckPeekView(state),/class="deck-facts"><span class="deck-card-count">\d+ tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span><\/span>/);
+  assert.match(reviewView(state),/class="deck-facts"><span class="deck-card-count">\d+ tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span><\/span>/);
+  assert.doesNotMatch(deckPeekView(state),/class="deck-facts"/);
   const collection=bookshelfView({...state,bookshelfTab:"decks"});
   assert.match(collection,/class="collection-deck collection-deck--quote-dominant"/);
   assert.match(collection,/class="deck-card-count">\d+ tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count">/);
@@ -275,7 +271,7 @@ test("Draft creation status stays distinct from practice sessions across deck su
     const c=words[language],base=readerState(catalog,{language,bookId:deck.bookId,deckId,today:"2026-10-17",deckChoices:featuredDecks(catalog,deck.bookId)});
     for(const userId of [deck.creator.userId,"another-reader"]){
       const state={...base,userId},explanation=userId===deck.creator.userId?c.deckDraftOwnerExplanation:c.deckMayChangeUnadded;
-      const surfaces=[deckView({...state,openDeckId:deckId}),reviewView(state)];
+      const surfaces=[reviewView(state)];
       if(userId===deck.creator.userId)surfaces.push(authorView({...state,mode:"author"}));
       for(const html of surfaces){
         assert.ok(html.includes(c.deckInProgress));

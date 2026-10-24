@@ -7,7 +7,7 @@ Actualizado el 24 de octubre: los PR #71, #72, #73, #75, #78 y #80 están integr
 | Punto | Trabajo | Estado |
 | --- | --- | --- |
 | 3 | Flecha de vuelta en perfil solo si existe un destino anterior útil, distinto de Home. | Saltado por el usuario. |
-| 9 | Resolver la duplicidad entre Ver baraja y Ojear baraja. | Aparcado. |
+| 9 | Página única de baraja y lectura limpia independiente. | Aprobado; publicación en curso. |
 | 14 | Vista de lomos: comparar aspecto horizontal y vertical, pensado para móvil. | Exploración visual en curso; cuándo y dónde quedan aparcados. |
 | 17 | Definir coste en pétalos: fijo o aleatorio asignado a cada baraja. | Decisión pendiente. |
 | 19 | Valorar app móvil y widget flotante para tomar notas mientras se lee en ReadEra. | Comentario nuevo de producto. |
@@ -22,7 +22,7 @@ Actualizado el 24 de octubre: los PR #71, #72, #73, #75, #78 y #80 están integr
 6. **Tipografía de tarjetas** — integrado en `main` (#71 y #78): fuentes anteriores retiradas, citas en cursiva y mismo tamaño de cuerpo que las demás tarjetas en cada vista, incluidas las previews.
 7. **Botones de cierre** — integrado en `main` (#80): cierre circular fuera de las fichas de libro y baraja, por encima de su contenido.
 8. **Scroll bajo modales** — implementado: los diálogos bloquean el desplazamiento de fondo y restauran el estado al cerrarse.
-9. **«Ver/Ojear baraja»** — aparcado expresamente para más adelante: ambos controles aparecen en el detalle de una baraja guardada; no se cambió el flujo.
+9. **«Ver/Ojear baraja»** — nueva implementación local: entrada directa a una única página de baraja, sin modal intermedio. «Leer tarjetas» conserva el ojeo como pantalla limpia con acceso a «Ver baraja». Los nuevos enlaces compartidos abren esa lectura. Aprobado por el usuario; publicación en curso.
 10. **Mascota Tallo plana** — integrado en `main` (#72): arte y parámetros aprobados por el usuario.
 11. **Swipe al leer una baraja** — gesto integrado en #71; botones accesibles junto al contador integrados en #80.
 12. **Intereses Software/Mindfulness, libros e iconos** — implementado en local, pendiente de publicación: ambos intereses disponibles en español e inglés e iconos en fichas, preview de libros, filtro y editor. Revisados los 24 libros actuales: «Tidy First?» de Kent Beck pasa de Crecimiento personal/Productividad a Software; los otros 23 conservan su clasificación. Mindfulness queda disponible sin asignaciones forzadas. La migración preserva los demás intereses, sus nombres y las tarjetas.
