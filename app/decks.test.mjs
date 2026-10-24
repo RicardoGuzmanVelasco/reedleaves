@@ -47,6 +47,7 @@ test("Deck grid opens a complete modal; every review card is visible and openabl
   const modal = deckView({...base,deckChoices,openDeckId:deckId});
   assert.match(modal,/<dialog class="deck-modal deck-detail-modal"/); assert.match(modal,/0 citas/);
   assert.match(modal,/<dialog class="deck-modal deck-detail-modal"[^>]*><button class="dialog-close deck-modal-close"[^>]*>[\s\S]*?<\/button><article class="deck-card">/);
+  assert.match(modal,/class="deck-facts"><span class="deck-card-count">7 tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>0 citas<\/span>/);
   assert.match(modal,/href="#profile\//); assert.match(modal,/inglés/i); assert.match(modal,/Ver baraja/);
   assert.doesNotMatch(modal,/Más popular/);
 });
@@ -74,11 +75,13 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
       const openButton=html.match(/<button\b[^>]*data-action="open-deck"[^>]*>/)[0];
       const label=openButton.match(/aria-label="([^"]*)"/)[1];
       const quoteCount=catalog.deckModels.get(deck.id).cards.filter(card=>card.isQuote).length;
+      assert.ok(label.includes(c.noteCardsCount(deck.cardCount)),"The tile describes its card count accessibly");
       assert.ok(label.includes(c.quoteCount(quoteCount)),"The tile describes its quote count accessibly");
       const languageName=new Intl.DisplayNames([language],{type:"language"}).of(choice.deck.language);
       assert.ok(label.includes(languageName),"The flag retains an accessible language description");
       assert.ok(html.includes(c.quoteCount(quoteCount)),"Every tile shows its quote count, including zero");
-      assert.ok(!html.includes(c.noteCardsCount(deck.cardCount)),"The selector no longer displays the total card count");
+      assert.ok(html.includes(c.noteCardsCount(deck.cardCount)),"Every tile shows its card count");
+      assert.ok(html.includes(`title="${c.noteCardsCount(deck.cardCount)}"`),"The card count chip has a localized title");
       assert.equal(html.includes('class="deck-tile deck-tile--quote-dominant"'),quoteCount>deck.cardCount-quoteCount,"Quote dominant decks use blue tones");
       if (deck.status === "draft") {
         assert.ok(label.includes(c.deckInProgress));
@@ -104,12 +107,14 @@ test("Quote counts use the existing quote mark and quote dominant deck previews 
   const choices=decks.map(deck=>({deck,tags:[]})),state=readerState(catalog,{language:"es",bookId:"seven-habits",deckId:first.id,deckChoices:choices,enrolledIds:decks.map(deck=>deck.id)});
   const selector=deckView(state);
   assert.match(selector,/class="deck-tile deck-tile--quote-dominant"/);
+  assert.match(selector,/class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="\d+ tarjetas"><span class="cards-icon" aria-hidden="true"><\/span><span>\d+<\/span><\/span>/);
   assert.match(selector,/class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="4 citas"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4<\/span><\/span>/);
   assert.match(selector,/title="0 citas"/);
-  assert.match(deckView({...state,openDeckId:first.id}),/class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span>/);
-  assert.match(deckPeekView(state),/class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span>/);
+  assert.match(deckView({...state,openDeckId:first.id}),/class="deck-facts"><span class="deck-card-count">\d+ tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span><\/span>/);
+  assert.match(deckPeekView(state),/class="deck-facts"><span class="deck-card-count">\d+ tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span><\/span>/);
   const collection=bookshelfView({...state,bookshelfTab:"decks"});
   assert.match(collection,/class="collection-deck collection-deck--quote-dominant"/);
+  assert.match(collection,/class="deck-card-count">\d+ tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count">/);
   assert.match(collection,/4 citas/);
   assert.match(collection,/0 citas/);
 });
