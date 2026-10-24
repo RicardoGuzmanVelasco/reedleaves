@@ -128,8 +128,9 @@ test("Quote counts use the existing quote mark and quote dominant deck previews 
   assert.match(reviewView(state),/class="deck-facts"><span class="deck-card-count">\d+ tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span><\/span>/);
   assert.doesNotMatch(deckPeekView(state),/class="deck-facts"/);
   const collection=bookshelfView({...state,bookshelfTab:"decks"});
-  assert.match(collection,/class="collection-deck collection-deck--quote-dominant"/);
-  assert.match(collection,/class="deck-card-count">\d+ tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count">/);
+  assert.match(collection,/class="deck-tile deck-tile--quote-dominant deck-tile--collection"/);
+  assert.match(collection,/class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="\d+ tarjetas"/);
+  assert.match(collection,/class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="4 citas"/);
   assert.match(collection,/4 citas/);
   assert.match(collection,/0 citas/);
 });

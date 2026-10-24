@@ -133,6 +133,9 @@ test("Decks tab shows enrolled decks and automatically includes the reader's own
   assert.ok(html.includes(words.es.deckCollection));
   assert.match(html,/data-action="review-collection-deck" data-deck="seven-habits-editorial"/);
   assert.match(html,/data-action="review-collection-deck" data-deck="atomic-habits-editorial"/);
+  assert.match(html,/class="deck-grid collection-decks"/);
+  assert.equal((html.match(/class="deck-tile(?:\s|\")/g)||[]).length,2);
+  assert.doesNotMatch(html,/class="collection-deck(?:\s|\")/);
   assert.doesNotMatch(html,/for="bookshelf-reading"/);
   const empty=await fixture();
   const emptyDecks=bookshelfView({...empty,bookshelfTab:"decks"});

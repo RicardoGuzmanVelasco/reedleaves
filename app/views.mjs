@@ -193,6 +193,18 @@ function collectionTabs(s,active) {
   </nav>`;
 }
 
+function deckTileMarkup(s,deck,{book,action="open-deck"}={}) {
+  const c=words[s.language],quoteCount=deckQuoteCount(s,deck);
+  const language=(()=>{try{return new Intl.DisplayNames([s.language],{type:"language"}).of(deck.language)||deck.language;}catch{return deck.language;}})();
+  const flag=["es","en"].includes(deck.language) ? `<img class="deck-language-flag" src="../brand/icons/languages/${deck.language}.svg" width="16" height="12" alt="">` : `<svg class="deck-language-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span>${esc(deck.language)}</span>`;
+  const recommended=deck.isRecommended,quoteClass=quoteDominant(s,deck,quoteCount) ? " deck-tile--quote-dominant" : "";
+  const bookTitle=book ? displayedBookTitle(s,book,true) : null;
+  const name=[contentText(deck.title,s.language,deck.language),`${c.by} ${deck.creator.name}`,bookTitle?.text,c.noteCardsCount(deck.cardCount),c.quoteCount(quoteCount),language,deck.status === "draft" ? c.deckInProgress : null,recommended ? c.teamRecommendationShort : null].filter(Boolean).join(", ");
+  return `<article class="deck-tile${quoteClass}${book ? " deck-tile--collection" : ""}"${book ? ' role="listitem"' : ""}><button class="deck-tile-open" type="button" data-action="${action}" data-deck="${esc(deck.id)}" ${action === "open-deck" ? 'aria-haspopup="dialog"' : ""} title="${esc(language)}${recommended ? ` · ${esc(c.recommended)}` : ""}" aria-label="${esc(name)}">${recommended ? teamRecommendationMarkup(c) : ""}</button>
+    <span class="deck-tile-copy"><strong lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</strong>${bookTitle ? `<span class="deck-tile-book" lang="${esc(bookTitle.language)}" dir="auto">${esc(bookTitle.text)}</span>` : ""}<span class="deck-creator deck-tile-creator">${deckCreator(deck)}</span>
+    <span class="deck-tile-metadata"><span class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="${esc(c.noteCardsCount(deck.cardCount))}">${cardsIconMarkup}<span>${deck.cardCount}</span></span><span class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="${esc(c.quoteCount(quoteCount))}">${quoteMarkMarkup}<span>${quoteCount}</span></span><span class="deck-tile-count deck-tile-language" aria-hidden="true" title="${esc(language)}">${flag}</span>${deckStatusMarkup(s,deck,{compact:true})}</span></span></article>`;
+}
+
 function deckCollectionMarkup(s) {
   const c=words[s.language], decksById=new Map();
   for (const id of s.enrolledIds || []) {
@@ -204,10 +216,8 @@ function deckCollectionMarkup(s) {
     .filter(item=>item.deck&&item.book)
     .sort((a,b)=>contentText(a.deck.title,s.language,a.deck.language).localeCompare(contentText(b.deck.title,s.language,b.deck.language),s.language));
   if (!entries.length) return `<div class="empty-state collection-empty"><p>${c.emptyDeckCollection}</p></div>`;
-  return `<div class="collection-decks" role="list" aria-label="${esc(c.deckCollection)}">${entries.map(({deck,book})=>{
-    const title=contentText(deck.title,s.language,deck.language),bookTitle=displayedBookTitle(s,book).text;
-    const quoteCount=deckQuoteCount(s,deck),quoteClass=quoteDominant(s,deck,quoteCount) ? " collection-deck--quote-dominant" : "";
-    return `<article class="collection-deck${quoteClass}" role="listitem"><div class="collection-deck-copy"><h2 lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(title)}</h2><p lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(bookTitle)}</p><small>${deckFactsMarkup(c,deck,quoteCount)}</small></div><button class="text-button" type="button" data-action="review-collection-deck" data-deck="${esc(deck.id)}">${c.viewDeck} →</button></article>`;
+  return `<div class="deck-grid collection-decks" role="list" aria-label="${esc(c.deckCollection)}">${entries.map(({deck,book})=>{
+    return deckTileMarkup(s,deck,{book,action:"review-collection-deck"});
   }).join("")}</div>`;
 }
 
@@ -517,15 +527,7 @@ export function deckView(s) {
   return `<section class="deck-screen">${["library","bookshelf","daily"].includes(s.bookOrigin) ? `<button type="button" class="text-button collection-back" data-action="${s.bookOrigin}">${s.bookOrigin === "library" ? collectionIconMarkup("library",18) : s.bookOrigin === "bookshelf" ? collectionIconMarkup("shelf",18) : ""}${s.bookOrigin === "library" ? c.booksBack : s.bookOrigin === "bookshelf" ? c.shelfBack : c.back}</button>` : ""}
     <div class="screen-heading deck-heading"><div class="deck-heading-book"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>${mascotEntry(s,s.bookId)}</div><div class="deck-heading-title"><h1 tabindex="-1">${c.chooseDeck}</h1>${s.userId ? `<div data-saved-cards-entry></div>` : ""}</div></div>
     ${s.userId ? `<div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
-    ${choices.length ? `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${choices.map(({deck}) => {
-      const language=languageName(deck.language);
-      const quoteCount=deckQuoteCount(s,deck),quoteClass=quoteDominant(s,deck,quoteCount) ? " deck-tile--quote-dominant" : "";
-      const flag=["es","en"].includes(deck.language) ? `<img class="deck-language-flag" src="../brand/icons/languages/${deck.language}.svg" width="16" height="12" alt="">` : `<svg class="deck-language-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span>${esc(deck.language)}</span>`;
-      const recommended=deck.isRecommended;
-      return `<article class="deck-tile${quoteClass}"><button class="deck-tile-open" type="button" data-action="open-deck" data-deck="${esc(deck.id)}" title="${esc(language)}${recommended ? ` · ${esc(c.recommended)}` : ""}" aria-label="${esc(contentText(deck.title,s.language,deck.language))}, ${esc(c.by)} ${esc(deck.creator.name)}, ${esc(c.noteCardsCount(deck.cardCount))}, ${esc(c.quoteCount(quoteCount))}, ${esc(language)}${deck.status === "draft" ? `, ${esc(c.deckInProgress)}` : ""}${recommended ? `, ${esc(c.teamRecommendationShort)}` : ""}">${recommended ? teamRecommendationMarkup(c) : ""}</button>
-        <span class="deck-tile-copy"><strong lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</strong><span class="deck-creator deck-tile-creator">${deckCreator(deck)}</span>
-        <span class="deck-tile-metadata"><span class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="${esc(c.noteCardsCount(deck.cardCount))}">${cardsIconMarkup}<span>${deck.cardCount}</span></span><span class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="${esc(c.quoteCount(quoteCount))}">${quoteMarkMarkup}<span>${quoteCount}</span></span><span class="deck-tile-count deck-tile-language" aria-hidden="true" title="${esc(language)}">${flag}</span>${deckStatusMarkup(s,deck,{compact:true})}</span></span></article>`;
-    }).join("")}</div>` : `<div class="empty-state">${c.noDecks}</div>`}
+    ${choices.length ? `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${choices.map(({deck}) => deckTileMarkup(s,deck)).join("")}</div>` : `<div class="empty-state">${c.noDecks}</div>`}
     ${guideDeck ? `<button class="reading-guides-entry" type="button" data-action="open-reading-guides" data-book="${esc(s.bookId)}"><span class="reading-guides-entry-icon" aria-hidden="true">↗</span><span><strong>${c.readingGuides}</strong><small>${c.noteCardsCount(guideDeck.cardCount)}</small></span><span aria-hidden="true">→</span></button>` : canContribute ? `<button class="reading-guides-entry reading-guides-entry--empty" type="button" data-action="open-reading-guides" data-book="${esc(s.bookId)}"><span class="reading-guides-entry-icon" aria-hidden="true">↗</span><span><strong>${c.readingGuideAdd}</strong><small>${c.readingGuideContribution}</small></span><span aria-hidden="true">→</span></button>` : ""}
   </section>`;
 }
