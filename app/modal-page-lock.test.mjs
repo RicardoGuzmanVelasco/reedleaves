@@ -16,10 +16,14 @@ test("Modal page lock prevents background scrolling, preserves styles, and resto
   const calls=[],window={scrollY:120,innerWidth:1000,scrollTo:(...args)=>calls.push(args)};
   const lock=createModalPageLock({document:{body,documentElement},window,getComputedStyle:()=>({paddingRight:"4px"})});
   lock(true);
+  assert.equal(lock.scrollY(),120);
+  window.scrollY=0;
+  assert.equal(lock.scrollY(),120,"A modal retains the page position after the body is fixed");
   assert.equal(body.style.getPropertyValue("position"),"fixed");assert.equal(body.style.getPropertyValue("top"),"-120px");
   assert.equal(body.style.getPropertyValue("overflow"),"hidden");assert.equal(body.style.getPropertyValue("padding-right"),"19px");
   assert.equal(documentElement.style.getPropertyValue("overflow"),"hidden");
   lock(false);
+  assert.equal(lock.scrollY(),0);
   assert.equal(body.style.getPropertyValue("position"),"relative");assert.equal(body.style.getPropertyValue("overflow"),"auto");
   assert.equal(body.style.getPropertyValue("top"),"");assert.equal(body.style.getPropertyValue("padding-right"),"");
   assert.equal(documentElement.style.getPropertyValue("overflow"),"");assert.equal(documentElement.style.getPropertyValue("scroll-behavior"),"smooth");
