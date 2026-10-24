@@ -29,15 +29,15 @@ test("Add book lists the whole catalog as closed books, with essential data and 
   assert.deepEqual(s.budget,before);
 });
 
-test("A book modal shows metadata, three reading choices and one explicit deck action", async () => {
+test("A book modal shows metadata, four reading choices and one explicit deck action", async () => {
   const s = {...await state(),openBookId:"seven-habits"}, book = s.catalog.booksById.get(s.openBookId);
   const html = libraryView(s), modal = html.match(/<dialog\b[\s\S]*?<\/dialog>/)[0];
   assert.ok(modal.includes(book.title.es)); assert.ok(modal.includes(book.description.es));
   assert.match(modal,/Crecimiento personal/); assert.match(modal,/Productividad/);
   assert.match(modal,/aria-labelledby="book-dialog-title"/); assert.match(modal,/aria-describedby="book-dialog-description"/);
   const controls=[...modal.matchAll(/<button[^>]*data-action="set-book-reading"[^>]*>/g)].map(match=>match[0]);
-  assert.equal(controls.length,3);
-  for (const [index,status] of ["unread","reading","read"].entries()) {
+  assert.equal(controls.length,4);
+  for (const [index,status] of ["unread","to-read","reading","read"].entries()) {
     assert.ok(controls[index].includes(`data-status="${status}"`));
     assert.ok(controls[index].includes(`aria-pressed="${status === "read"}"`));
     assert.doesNotMatch(controls[index],/disabled/);
@@ -46,7 +46,7 @@ test("A book modal shows metadata, three reading choices and one explicit deck a
   assert.doesNotMatch(libraryView({...s,openBookId:"missing"}),/<dialog/);
   const unavailable=libraryView({...s,storageAvailable:false});
   const disabled=[...unavailable.matchAll(/<button[^>]*data-action="set-book-reading"[^>]*>/g)];
-  assert.equal(disabled.length,3); assert.ok(disabled.every(([tag])=>tag.includes("disabled")));
+  assert.equal(disabled.length,4); assert.ok(disabled.every(([tag])=>tag.includes("disabled")));
 });
 
 test("Book grid and modal translate, escape content and count current decks", async () => {

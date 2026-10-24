@@ -86,7 +86,7 @@ function bookLinksMarkup(s, book) {
 }
 
 function bookReadingIcon(status) {
-  const path=status === "reading"
+  const path=status === "to-read" ? '<path d="M5 2.5h10v15l-5-3.5-5 3.5V2.5Z"/>' : status === "reading"
     ? '<path d="M10 5.5C7.4 3.7 4.6 3.3 2 4v11.5c2.6-.7 5.4-.3 8 1.5 2.6-1.8 5.4-2.2 8-1.5V4c-2.6-.7-5.4-.3-8 1.5Z"/><path d="M10 5.5V17"/>'
     : status === "read" ? '<path d="M5 2.5h10.5v15H5a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2Z"/><path d="M3 14h12.5M7 8l2 2 3.5-4"/>' : status === "unread" ? '<path d="M5 2.5h10.5v15H5a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2Z"/><path d="M3 14h12.5"/>' : "";
   return path ? `<svg class="reading-status-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>` : "";
@@ -132,13 +132,11 @@ function bookDetailsMarkup(s,book) {
   const c = words[s.language];
   const choices = availableDecks(s.catalog,book.id);
   const creatorProfileId=book.creatorProfileUserId || book.creatorUserId;
-  const inShelf=!!s.userId && !s.readOnly && bookshelfBooks({...s,bookshelfFilters:bookshelfDefaults}).some(item=>item.book.id === book.id);
   const noteNudge=s.mode === "library" && s.noteNudgeBookId === book.id && ["reading","read"].includes(s.statuses[book.id] || "unread");
   const noteChoices=s.noteDestination?.source === "book-details" && s.noteDestination.bookId === book.id ? bookNoteDestinationMarkup(s,book) : "";
   return `<dialog class="deck-modal book-modal" data-book="${esc(book.id)}" aria-labelledby="book-dialog-title" ${contentText(book.description,s.language,book.popularLanguage) ? 'aria-describedby="book-dialog-description"' : ""}><button class="dialog-close deck-modal-close" type="button" data-action="close-book-details" aria-label="${c.closeBook}" autofocus>${closeIconMarkup}</button><article class="deck-card book-detail">
     <div class="deck-tags">${bookGenresMarkup(s,book)}</div>
     <h2 id="book-dialog-title" lang="${esc(displayedBookTitle(s,book).language)}" dir="auto">${esc(displayedBookTitle(s,book).text)}</h2>${popularBookTitleMarkup(s,book)}<div class="book-detail-author-row"><p class="book-detail-author">${esc(book.author)}</p>${completeBookButton(s,book)}</div>
-    ${s.userId ? inShelf ? `<p class="collection-object-state"><img src="../brand/icons/collections/shelf.svg" alt="" width="21" height="21">${c.bookOnShelf}</p>` : `<button class="collection-add-action" type="button" data-action="add-book-to-shelf" data-book="${esc(book.id)}"><img src="../brand/icons/collections/shelf-add.svg" alt="" width="24" height="24">${c.addBookToShelf}</button>` : ""}
     ${bookReadingControls(s,book)}
     ${noteNudge ? `<div class="book-note-nudge"><span>${c.bookNoteNudge}</span><button class="primary book-note-nudge-action note-icon-only" type="button" data-action="take-note-from-book" data-book="${esc(book.id)}" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}">${takeNoteIconMarkup}</button></div>` : ""}
     ${noteChoices}
@@ -489,11 +487,11 @@ export function notesCompletionView(s) {
 }
 
 function bookReadingControls(s,book) {
-  const c=words[s.language],status=s.statuses[book.id] || "unread",disabled=!s.storageAvailable || s.readOnly;
+  const c=words[s.language],reading=s.statuses[book.id] || "unread",status=reading === "unread" && s.shelfBookIds?.includes(book.id) ? "to-read" : reading,disabled=!s.storageAvailable || s.readOnly;
   const error=s.bookStatusError?.bookId === book.id ? s.bookStatusError.code : null;
   return `<div class="book-reading-controls">
-    <div class="segmented-selector book-reading-selector" role="group" aria-label="${esc(c.bookStatus)}">${[["unread",c.unread],["reading",c.readingStatus],["read",c.readStatus]].map(([value,label])=>`<button type="button" data-action="set-book-reading" data-book="${esc(book.id)}" data-status="${value}" aria-pressed="${status === value}" ${disabled ? "disabled" : ""}>${bookReadingIcon(value)}<span>${esc(label)}</span></button>`).join("")}</div>
-    ${status === "read" && !s.readOnly && editableNoteDecks(s.catalog,book.id,s.userId).length ? `<button class="text-button book-notes-pending" type="button" data-action="finish-book-notes" data-book="${esc(book.id)}" aria-haspopup="dialog">${c.notesInProgress}</button>` : ""}
+    <div class="segmented-selector book-reading-selector" role="group" aria-label="${esc(c.bookStatus)}">${[["unread",c.unread],["to-read",c.toRead],["reading",c.readingStatus],["read",c.readStatus]].map(([value,label])=>`<button type="button" data-action="set-book-reading" data-book="${esc(book.id)}" data-status="${value}" aria-pressed="${status === value}" ${disabled ? "disabled" : ""}>${bookReadingIcon(value)}<span>${esc(label)}</span></button>`).join("")}</div>
+    ${reading === "read" && !s.readOnly && editableNoteDecks(s.catalog,book.id,s.userId).length ? `<button class="text-button book-notes-pending" type="button" data-action="finish-book-notes" data-book="${esc(book.id)}" aria-haspopup="dialog">${c.notesInProgress}</button>` : ""}
     ${error ? `<p class="account-error" role="alert">${esc(c[error] || c.connectionError)}</p>` : ""}
   </div>`;
 }

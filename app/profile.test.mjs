@@ -35,7 +35,7 @@ test("Foreign shelf shows target reading/review states without mutation controls
     assert.doesNotMatch(html,/Repasando|Tarjetas repasadas|Continuar repaso/);assert.match(html,/href="#profile\/test-user"/);
   assert.match(html,/data-action="open-book" data-book="seven-habits"/);
   const controls=[...html.matchAll(/<button[^>]*data-action="set-book-reading"[^>]*>/g)];
-  assert.equal(controls.length,3); assert.ok(controls.every(([tag])=>tag.includes("disabled")));
+  assert.equal(controls.length,4); assert.ok(controls.every(([tag])=>tag.includes("disabled")));
   assert.doesNotMatch(html,/data-book-status|data-action="(?:library|complete-book|create-book)"/);
   assert.match(bookshelfView({...s,openBookId:null,bookshelfFilters:{reading:"reading"}}),/No hay libros con estos filtros/);
 });

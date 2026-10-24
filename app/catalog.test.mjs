@@ -72,7 +72,7 @@ test("Views expose every review card and preserve book attribution", async () =>
   assert.doesNotMatch(daily,/data-source=|source-content|exclusive-card-modal/);
   assert.doesNotMatch(daily,/data-book-status=/);
   assert.doesNotMatch(libraryView(state),/data-book-status=/);
-  assert.equal((libraryView({...state,openBookId:"atomic-habits"}).match(/data-action="set-book-reading"/g) || []).length, 3);
+  assert.equal((libraryView({...state,openBookId:"atomic-habits"}).match(/data-action="set-book-reading"/g) || []).length, 4);
   assert.doesNotMatch(reviewView(state), /Vuelve tras un fallo/);
   const review=reviewView(state);
   assert.match(review,/Small changes count/);

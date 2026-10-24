@@ -491,6 +491,7 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 
 .book-reading-controls{margin-top:18px}
 .book-reading-selector{display:flex;width:fit-content;margin-inline:auto}.book-reading-selector>button{flex:0 0 auto;gap:4px;padding-inline:7px;font-size:11px;white-space:nowrap}
+@media(max-width:380px){.book-reading-selector>button{gap:3px;padding-inline:5px;font-size:10px}}
 .book-reading-selector .reading-status-icon{width:13px;height:13px}.book-reading-selector>button:disabled{opacity:.6;cursor:default}
 .book-reading-controls .account-error{margin-top:9px}
 .book-note-nudge{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 2px;padding:9px 12px;border:1px solid #cbd7bd;border-radius:13px;background:var(--control-surface);color:var(--muted);font-size:12px;line-height:1.45}
