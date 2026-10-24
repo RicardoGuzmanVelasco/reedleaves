@@ -63,6 +63,9 @@ test('Quote cards keep the default card typeface and use italics',()=>{
   const savedStyles=readFileSync(new URL('./card-actions.css',import.meta.url),'utf8');
   assert.match(themes,/\.reading-stage\s*\{[^}]*--card-body-font:Courier,"Courier New",monospace;[^}]*--card-body-style:normal;/s);
   assert.match(themes,/\.reading-stage\[data-card-type="quote"\]\s*\{[^}]*--card-body-font:Courier,"Courier New",monospace;[^}]*--card-body-style:italic;/s);
+  const quoteTheme=themes.match(/\.reading-stage\[data-card-type="quote"\]\s*\{[^}]*\}/s)?.[0];
+  assert.ok(quoteTheme);
+  assert.doesNotMatch(quoteTheme,/--card-body-size(?:-mobile)?:/);
   assert.match(readerStyles,/font-style:var\(--card-body-style\)/);
   assert.match(savedStyles,/\.saved-card-row--quote \.saved-card-name\{font-style:italic\}/);
   assert.doesNotMatch(`${themes}${readerStyles}${savedStyles}`,/font-face/);

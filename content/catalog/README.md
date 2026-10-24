@@ -37,7 +37,7 @@ Editar → `npm run db:seed` → `npm run db:check` → `npm test`. La importaci
 
 La búsqueda del catálogo cruza el título original y todos los títulos completos disponibles, sin depender del idioma de pantalla. Ignora mayúsculas, tildes y puntuación; no añade traducciones ni cambia el contenido del libro.
 
-Cada idioma guarda el título completo en `book_translations.title`. En las portadas pequeñas, los títulos largos se limitan visualmente a tres líneas; la ficha y la etiqueta accesible conservan el título completo. No cambiar IDs al traducir títulos. Las descripciones y notas francesas son traducciones de nuestros textos propios.
+Cada idioma puede guardar un título preferido completo en `book_translations.title`. El campo es opcional: vacío indica que debe mostrarse el título original. No se inventan traducciones si el libro se conoce por su título original, aunque exista una edición traducida. El idioma original y las traducciones que duplican exactamente su título se guardan vacíos. En las portadas pequeñas, los títulos largos se limitan visualmente a tres líneas; la ficha y la etiqueta accesible conservan el título completo. No cambiar IDs al ajustar títulos.
 
 ## Comprar y reseñar
 

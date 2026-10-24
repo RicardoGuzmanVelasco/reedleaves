@@ -19,11 +19,8 @@ export async function readCatalog(db, userId) {
       links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id = ? ORDER BY platform").all(row.id)).map(link=>[link.platform,link.url])),
       genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id = ? ORDER BY genre_id").all(row.id)).map(t=>t.genre_id)};
     for (const t of await db.prepare("SELECT * FROM book_translations WHERE book_id = ?").all(row.id)) {
-      book.title[t.language]=t.title;
+      if(t.language!==book.originalLanguage && t.title.trim() && t.title.trim()!==book.originalTitle.trim()) book.title[t.language]=t.title;
       book.description[t.language]=t.description; book.editorialNote[t.language]=t.editorial_note;
-    }
-    if (book.creatorUserId) {
-      book.title[book.originalLanguage] ||= book.originalTitle;
     }
     validateBookLinks(book.links,{required:!book.creatorUserId}); books.push(validateBook(book,LANGUAGES,{requireOriginal:true}));
   }

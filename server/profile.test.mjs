@@ -45,6 +45,17 @@ test("Profile counts unique views; daily assignment alone is not a view",async t
   await recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(11));
 });
 
+test("Opening a past daily idea does not credit today when the same card was reused",async t=>{
+  const {db,a}=await fixture(t);
+  db.prepare("INSERT INTO daily_ideas VALUES ('2026-10-09','habit-2'),('2026-10-10','habit-2')").run();
+  const past=await recordCardView(db,a,{cardId:"habit-2",context:"daily",day:"2026-10-09"},day(10));
+  assert.equal(past.seenCurrentDay,false);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM daily_idea_views WHERE user_id=?").get(a.user_id).n,0);
+  const current=await recordCardView(db,a,{cardId:"habit-2",context:"daily",day:"2026-10-10"},day(10));
+  assert.equal(current.seenCurrentDay,true);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM daily_idea_views WHERE user_id=?").get(a.user_id).n,1);
+});
+
 test("Profile counts one current pet per book rather than all unlocked stages, including completion",async t=>{
   const {db,a}=await fixture(t),v="seven-habits-editorial";
   await changeReading(db,a,"atomic-habits","read",day(10));

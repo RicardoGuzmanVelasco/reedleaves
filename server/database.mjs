@@ -8,8 +8,8 @@ import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH,USERNAME_MIN_LENGTH
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 36;
-export const POSTGRES_SCHEMA_VERSION = 28;
+export const SQLITE_SCHEMA_VERSION = 37;
+export const POSTGRES_SCHEMA_VERSION = 29;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -96,6 +96,26 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 36) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE book_translations_new (
+          book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+          language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
+          title TEXT NOT NULL DEFAULT '',
+          description TEXT NOT NULL CHECK(length(trim(description)) > 0),
+          editorial_note TEXT NOT NULL CHECK(length(trim(editorial_note)) > 0),
+          PRIMARY KEY(book_id,language)
+        ) STRICT;
+        INSERT INTO book_translations_new SELECT t.book_id,t.language,
+          t.title,
+          t.description,t.editorial_note FROM book_translations t JOIN books b ON b.id=t.book_id;
+        DROP TABLE book_translations;
+        ALTER TABLE book_translations_new RENAME TO book_translations;
+        PRAGMA user_version=37; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 35) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -598,6 +618,18 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 28) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,book_translations IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 29) return;
+          await db.exec(`ALTER TABLE book_translations DROP CONSTRAINT book_translations_title_check;
+            ALTER TABLE book_translations ALTER COLUMN title SET DEFAULT '';
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=29;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=29);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 27) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,decks IN ACCESS EXCLUSIVE MODE;");

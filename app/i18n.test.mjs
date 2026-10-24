@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {LANGUAGES, restoreLanguage, validateBook, contentText, contentLocale} from "./core.mjs";
+import {LANGUAGES, restoreLanguage, validateBook, contentText, contentLocale, bookTitle} from "./core.mjs";
 import {words} from "./i18n.mjs";
 import {currentMascotStage} from "./mascot-progress.mjs";
 import {prepareCatalog} from "./catalog.mjs";
@@ -77,17 +77,19 @@ test("Only Spanish and English are restored as interface languages", () => {
   assert.doesNotMatch(html, /data-language="fr"|Français/);
 });
 
-test("The SQL catalog requires Spanish and English book metadata independently from deck languages", async () => {
+test("The SQL catalog requires Spanish and English descriptions and notes, while preferred titles are optional", async () => {
   const c = await catalog();
   for (const book of c.books) {
-    for (const field of ["title", "description", "editorialNote"]) {
+    for (const field of ["description", "editorialNote"]) {
       assert.deepEqual(Object.keys(book[field]).sort(), [...LANGUAGES].sort());
       for (const language of LANGUAGES) assert.ok(book[field][language].trim());
     }
+    for (const title of Object.values(book.title)) assert.ok(title.trim());
   }
   assert.equal(c.booksById.get("same-as-ever").title.es, "Lo que nunca cambia");
   assert.equal(c.booksById.get("getting-things-done").title.es, "Organízate con eficacia");
-  assert.equal(c.booksById.get("seven-habits").title.en, "The 7 Habits of Highly Effective People");
+  assert.equal(c.booksById.get("seven-habits").title.en, undefined);
+  assert.deepEqual(bookTitle(c.booksById.get("seven-habits"),"en"),{text:"The 7 Habits of Highly Effective People",language:"en"});
   assert.equal(c.decks.length, 6);
   assert.equal(c.decks.some(deck => deck.language === "fr"), false);
   assert.equal(c.allCards.length, 42);
@@ -97,11 +99,11 @@ test("The SQL catalog requires Spanish and English book metadata independently f
   }
 });
 
-test("Spanish and English book previews use the full title in details", async () => {
+test("Book details show a preferred title or fall back to the original", async () => {
   const s = {catalog:await catalog(), language:"en", statuses:{}, openBookId:"seven-habits", storageAvailable:true};
   const html = libraryView(s);
   assert.match(html, /Library/);
-  for (const book of s.catalog.books) assert.ok(html.includes(escapeHtml(book.title.en)));
+  for (const book of s.catalog.books) assert.ok(html.includes(escapeHtml(bookTitle(book,"en").text)));
   assert.match(html, /<h2 id="book-dialog-title"[^>]*>The 7 Habits of Highly Effective People<\/h2>/);
   assert.match(html, /Personal growth/);
   assert.match(html, /Productivity/);
@@ -110,14 +112,14 @@ test("Spanish and English book previews use the full title in details", async ()
   assert.doesNotMatch(html, /undefined|Français/);
 });
 
-test("Missing Spanish or English metadata rejects the seed, API payload and incomplete persisted catalog", async () => {
-  for (const mutate of [s => s.books[0].title_en = "", s => s.books[0].description_es = "", s => s.genres[0].name_en = ""]) {
+test("Missing required descriptions or genre metadata rejects the seed, API payload and incomplete persisted catalog", async () => {
+  for (const mutate of [s => s.books[0].description_es = "", s => s.genres[0].name_en = ""]) {
     const seed = readSeed(); mutate(seed); assert.throws(() => validateSeed(seed));
   }
   const c = await catalog(), payload = {
     schemaVersion:4, books:c.books, cards:c.allCards, genres:c.genres, decks:c.decks
   };
-  delete payload.books[0].title.en;
+  delete payload.books[0].description.en;
   assert.throws(() => prepareCatalog(payload), /translation/);
   const db = openDatabase(":memory:");
   try {

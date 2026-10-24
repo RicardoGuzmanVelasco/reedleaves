@@ -53,12 +53,22 @@ test("AI separates mixed headings and subtitles, preserves personal edits and om
   const fake=fakeProvider([researchResponse(),response]);
   const result=await createBookAutofill({apiKey:"key",...fake})("r",{title:"rompe la barrera del no",author:"",language:""},genres);
   assert.equal(result.metadata.originalTitle,"Never Split the Difference");
-  assert.deepEqual(result.metadata.title,{es:"Rompe la barrera del no",en:"Never Split the Difference"});
+  assert.deepEqual(result.metadata.title,{es:"Rompe la barrera del no",en:""});
   assert.doesNotMatch(JSON.stringify(result.metadata),/Never Split de Difference|Un manuel|Negotiating as/);
   assert.deepEqual(Object.keys(fake.calls[1].body.text.format.schema.properties.translations.properties).sort(),["en","es"]);
   assert.equal(fake.calls[1].body.instructions.includes("francés"),false);
   const edited=await createBookAutofill({apiKey:"key",...fakeProvider([researchResponse(),response])})("r",{...input,metadata:{title:{es:"Título personal"}}},genres);
   assert.equal(edited.metadata.title.es,"Título personal");assert.equal(Object.hasOwn(edited.metadata,"shortTitle"),false);
+});
+
+test("AI leaves preferred titles empty when the original title is the common title",async()=>{
+  const translations=JSON.parse(extractionResponse().output[0].content[0].text).translations;
+  translations.es.title=null;translations.en.title=null;
+  const fake=fakeProvider([researchResponse(),extractionResponse({originalTitle:"Clean Code",translations})]);
+  const result=await createBookAutofill({apiKey:"key",...fake})("r",{title:"Clean Code",author:"",language:""},genres);
+  assert.equal(result.metadata.originalTitle,"Clean Code");
+  assert.deepEqual(result.metadata.title,{es:"",en:""});
+  assert.match(fake.calls[1].body.instructions,/Never invent or mechanically translate a title/);
 });
 
 test("AI missing configuration, invalid input, ambiguity, refusal, incomplete responses and invented links are handled",async()=>{

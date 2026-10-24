@@ -7,6 +7,14 @@ import {words} from "./i18n.mjs";
 import {readerState,emptyCatalog} from "../test-support/reader-state.mjs";
 
 const state=readerState({...emptyCatalog(),genres:[{id:"personal-growth",name:{es:"Crecimiento personal"}}]});
+test("Preferred titles are optional and an empty preference preserves the original title",()=>{
+  const value={...structuredClone(bookMetadata),title:{es:"",en:""}};
+  assert.deepEqual(normalizeBookMetadata(value).title,{es:"",en:""});
+  assert.deepEqual(normalizeBookMetadata({...value,title:undefined}).title,{es:"",en:""});
+  assert.equal(missingBookInformation(value).length,0);
+  assert.equal(mergeBookMetadata(value,bookMetadata).title.es,"");
+  assert.equal(mergeBookMetadata(bookMetadata,bookMetadata).title.en,"");
+});
 test("Existing metadata survives autofill; invalid translations and unsafe links cannot enter the catalog",()=>{
   const current=structuredClone(bookMetadata);current.title.es="Título escrito";current.genres=["productivity"];
   const merged=mergeBookMetadata(current,bookMetadata);
@@ -21,7 +29,7 @@ test("Existing metadata survives autofill; invalid translations and unsafe links
 
 test("Only incomplete owned books offer completion; optional links do not keep the indicator visible",()=>{
   const minimal={...normalizeBookMetadata(),id:"mine",creatorUserId:"owner",author:"Daniel Kahneman",originalTitle:bookMetadata.originalTitle,originalLanguage:"en"};
-  assert.equal(missingBookInformation(minimal).length,5);
+  assert.equal(missingBookInformation(minimal).length,3);
   const complete={...minimal,...bookMetadata};
   assert.equal(missingBookInformation(complete).length,0);
   const catalog={...state.catalog,books:[minimal],booksById:new Map([["mine",minimal]]),decks:[]};
@@ -48,7 +56,7 @@ test("Completion reuses the preview but saves to the current book and locks exis
   const preview=authorFormView({...state,authorForm:{...form,preview:true,hasProposal:true}});
   assert.match(preview,/type="submit">Guardar/);assert.doesNotMatch(preview,/type="submit">Añadir libro a la librería/);
   const editing=authorFormView({...state,authorForm:{...form,hasProposal:true}});
-  assert.match(editing,/name="metadata.title.en"[^>]*readonly/);
+  assert.doesNotMatch(editing,/name="metadata.title.en"/);
   assert.doesNotMatch(editing,/name="metadata.description.es"[^>]*readonly/);
 });
 test("Book form keeps loading, retry, translations and save; book interfaces omit research sources",()=>{
