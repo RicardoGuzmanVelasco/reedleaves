@@ -1,55 +1,65 @@
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lomos verticales y horizontales · Reedleaves</title><style>html{color-scheme:light dark}body{margin:0;padding:20px 10px;background:light-dark(#fff9ed,#252c24);font-family:system-ui,sans-serif}.study-switch{display:flex;justify-content:center;gap:10px;margin:12px 0 0}.study-switch button{padding:10px 16px;border:1px solid #779a72;border-radius:12px;background:light-dark(#fff9ed,#252c24);color:light-dark(#173d2c,#eeefdf);font:650 14px system-ui,sans-serif;touch-action:manipulation}.study-switch button[aria-pressed="true"]{background:light-dark(#e4f0cc,#3c4b33)}</style></head><body><nav class="study-switch" aria-label="Orientación de los lomos"><button type="button" data-show="Vertical" aria-pressed="true">Vertical</button><button type="button" data-show="Horizontal" aria-pressed="false">Horizontal</button></nav><style>
-  #reed-spines-mobile .rm-stage{min-height:770px;padding:18px 8px 24px;box-sizing:border-box}
-  #reed-spines-mobile .rm-phone{--rm-paper:light-dark(#fff9ed,#252c24);--rm-ink:light-dark(#173d2c,#eeefdf);--rm-secondary:light-dark(#51654c,#c5cdb9);--rm-cover:light-dark(#e4f0cc,#3c4b33);--rm-spine:light-dark(#9fca82,#5a6f47);--rm-edge:light-dark(#779a72,#839272);--rm-shadow:light-dark(#1e4c2e,#151f12);--rm-wood:light-dark(#e8d3a4,#756443);--rm-wood-edge:light-dark(#bca06d,#51472e);box-sizing:border-box;max-width:390px;min-height:718px;margin:auto;background:var(--rm-paper);color:var(--rm-ink);border:1px solid light-dark(#dadcc9,#515b46);border-radius:24px;box-shadow:0 8px 24px light-dark(#173d2c12,#00000032);font-family:"Nunito Sans","Avenir Next",system-ui,sans-serif}
-  #reed-spines-mobile .rm-header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:25px 21px 21px}
-  #reed-spines-mobile .rm-header h2{margin:0;color:var(--rm-ink);font:850 24px/1.2 "Nunito Sans","Avenir Next",system-ui,sans-serif;letter-spacing:-.6px}
-  #reed-spines-mobile .rm-count{font-size:12px;color:var(--rm-secondary);white-space:nowrap}
-  #reed-spines-mobile .rm-shelves{padding:9px 20px 23px}
-  #reed-spines-mobile .rm-shelf{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:9px;height:285px;margin-bottom:20px;padding:0 2px 14px;box-sizing:border-box;isolation:isolate}
-  #reed-spines-mobile .rm-shelf:last-child{margin-bottom:0}
-  #reed-spines-mobile .rm-shelf:after,#reed-spines-mobile .rm-stack:after{position:absolute;content:"";left:-7px;right:-7px;bottom:0;height:11px;border-radius:3px 3px 5px 5px;border-top:1px solid light-dark(#f7e7c4,#a28c5d);background:var(--rm-wood);box-shadow:0 4px 0 var(--rm-wood-edge),0 9px 12px light-dark(#173d2c12,#00000028);z-index:-1}
-  #reed-spines-mobile .rm-book{position:relative;box-sizing:border-box;margin:0;color:var(--rm-ink);border:1px solid var(--rm-edge);background:var(--rm-cover);box-shadow:2px 3px 0 var(--rm-shadow),4px 6px 8px light-dark(#173d2c12,#00000022);overflow-wrap:normal}
-  #reed-spines-mobile .rm-book h3{margin:0;color:var(--rm-ink);font-weight:850}
-  #reed-spines-mobile .rm-book p{margin:0;color:var(--rm-secondary);font-weight:500}
-  #reed-spines-mobile .rm-upright{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:11px;min-width:0;height:var(--book-height);padding:19px 8px 12px;border-radius:9px 6px 6px 8px;background:linear-gradient(90deg,var(--rm-spine) 0 5px,transparent 5px 9px,light-dark(#ffffff32,#ffffff08) 9px 17px,transparent 17px),var(--rm-cover)}
-  #reed-spines-mobile .rm-upright:before{content:"";position:absolute;left:10px;right:8px;top:9px;border-top:2px solid var(--rm-edge);opacity:.4}
-  #reed-spines-mobile .rm-upright h3{justify-self:center;height:100%;max-width:100%;writing-mode:vertical-rl;text-orientation:mixed;font-size:20px;line-height:1.1;letter-spacing:-.4px}
-  #reed-spines-mobile .rm-upright p{justify-self:center;min-height:28px;max-width:100%;font-size:11px;line-height:1.2;text-align:center}
-  #reed-spines-mobile .rm-stack{position:relative;display:flex;flex-direction:column;gap:7px;margin:7px 21px 26px;padding:0 2px 16px;isolation:isolate}
-  #reed-spines-mobile .rm-horizontal{display:flex;flex-direction:column;justify-content:center;gap:7px;min-height:89px;min-width:0;padding:14px 15px 13px 24px;border-radius:5px 10px 10px 5px;background:linear-gradient(90deg,var(--rm-spine) 0 7px,transparent 7px 12px,light-dark(#ffffff32,#ffffff08) 12px 14px,transparent 14px),var(--rm-cover);box-shadow:1px 3px 0 var(--rm-shadow),3px 6px 8px light-dark(#173d2c10,#00000022)}
-  #reed-spines-mobile .rm-horizontal h3{font-size:19px;line-height:1.12;letter-spacing:-.3px}
-  #reed-spines-mobile .rm-horizontal p{font-size:11px;line-height:1.2}
-  @media(max-width:370px){#reed-spines-mobile .rm-stage{padding-left:0;padding-right:0;min-height:770px}#reed-spines-mobile .rm-header{padding-left:17px;padding-right:17px}#reed-spines-mobile .rm-shelves{padding-left:14px;padding-right:14px}#reed-spines-mobile .rm-shelf{gap:7px}#reed-spines-mobile .rm-upright{padding-left:7px;padding-right:6px}#reed-spines-mobile .rm-upright h3{font-size:19px;line-height:1.08}#reed-spines-mobile .rm-stack{margin-left:15px;margin-right:15px}#reed-spines-mobile .rm-horizontal{padding-left:21px;padding-right:12px}#reed-spines-mobile .rm-horizontal h3{font-size:18px}}
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lomos verticales y horizontales · Reedleaves</title><style>html{color-scheme:light dark}body{margin:0;padding:20px 10px;background:light-dark(#fff9ed,#252c24);font-family:"Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif}.study-switch{display:flex;justify-content:center;gap:10px;margin:12px 0 0}.study-switch button{padding:10px 16px;border:1px solid #779a72;border-radius:12px;background:light-dark(#fff9ed,#252c24);color:light-dark(#173d2c,#eeefdf);font:650 14px "Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif;touch-action:manipulation}.study-switch button[aria-pressed="true"]{background:light-dark(#e4f0cc,#3c4b33)}</style></head><body><nav class="study-switch" aria-label="Orientación de los lomos"><button type="button" data-show="Vertical" aria-pressed="true">Vertical</button><button type="button" data-show="Horizontal" aria-pressed="false">Horizontal</button></nav><style>
+  #reed-spines-slim .sf-stage{min-height:800px;padding:18px 8px 24px;box-sizing:border-box}
+  #reed-spines-slim .sf-phone{--sf-paper:light-dark(#fff9ed,#252c24);--sf-ink:light-dark(#173d2c,#eeefdf);--sf-muted:light-dark(#51654c,#c5cdb9);--sf-cover:light-dark(#e4f0cc,#3c4b33);--sf-spine:light-dark(#9fca82,#5a6f47);--sf-edge:light-dark(#779a72,#839272);--sf-shadow:light-dark(#1e4c2e,#151f12);--sf-wood:light-dark(#e8d3a4,#756443);--sf-wood-edge:light-dark(#bca06d,#51472e);box-sizing:border-box;max-width:390px;min-height:744px;margin:auto;border:1px solid light-dark(#dadcc9,#515b46);border-radius:24px;background:var(--sf-paper);color:var(--sf-ink);box-shadow:0 8px 24px light-dark(#173d2c12,#00000032);font-family:"Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif;font-synthesis:none}
+  #reed-spines-slim .sf-header{display:flex;justify-content:space-between;align-items:baseline;gap:15px;padding:25px 20px 20px}
+  #reed-spines-slim .sf-header h2{margin:0;color:var(--sf-ink);font-family:inherit;font-size:28px;font-weight:800;line-height:1.15;letter-spacing:-.045em}
+  #reed-spines-slim .sf-count{font-size:12px;color:var(--sf-muted);white-space:nowrap}
+  #reed-spines-slim .sf-shelves{padding:8px 18px 24px}
+  #reed-spines-slim .sf-shelf{position:relative;isolation:isolate;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:end;gap:4px;height:303px;margin-bottom:21px;padding:0 2px 12px;box-sizing:border-box}
+  #reed-spines-slim .sf-shelf:last-child{margin-bottom:0}
+  #reed-spines-slim .sf-shelf:after,#reed-spines-slim .sf-stack:after{content:"";position:absolute;left:-6px;right:-6px;bottom:0;z-index:-1;height:9px;border-radius:3px 3px 5px 5px;background:var(--sf-wood);border-top:1px solid light-dark(#f7e7c4,#a28c5d);box-shadow:0 3px 0 var(--sf-wood-edge),0 7px 10px light-dark(#173d2c12,#00000028)}
+  #reed-spines-slim .sf-book{position:relative;box-sizing:border-box;min-width:0;margin:0;border:1px solid var(--sf-edge);background-color:var(--sf-spine);color:var(--sf-ink);box-shadow:1px 2px 0 var(--sf-shadow),2px 4px 6px light-dark(#173d2c10,#00000022)}
+  #reed-spines-slim .sf-book h3{margin:0;color:var(--sf-ink);font-family:inherit;font-weight:800;letter-spacing:-.035em;overflow-wrap:normal}
+  #reed-spines-slim .sf-book p{margin:0;color:var(--sf-ink);font-family:inherit;font-size:11px;font-weight:400;line-height:1.1}
+  #reed-spines-slim .sf-upright{height:var(--book-height);padding:13px 4px 13px;border-radius:5px 4px 4px 5px;background-image:linear-gradient(90deg,var(--sf-cover) 0 2px,transparent 2px calc(100% - 2px),var(--sf-cover) calc(100% - 2px))}
+  #reed-spines-slim .sf-upright h3{height:100%;width:100%;writing-mode:vertical-rl;text-orientation:mixed;font-size:15.5px;line-height:1.04}
+  #reed-spines-slim .sf-upright p{display:none}
+  #reed-spines-slim .sf-stack{position:relative;isolation:isolate;display:flex;flex-direction:column;gap:4px;margin:8px 20px 26px;padding-bottom:14px}
+  #reed-spines-slim .sf-horizontal{display:flex;flex-direction:column;justify-content:center;gap:3px;min-height:44px;padding:7px 11px 6px;border-radius:4px 6px 6px 4px;background-image:linear-gradient(180deg,var(--sf-cover) 0 2px,transparent 2px calc(100% - 2px),var(--sf-cover) calc(100% - 2px))}
+  #reed-spines-slim .sf-horizontal h3{font-size:16px;line-height:1.08}
+  @media(max-width:370px){#reed-spines-slim .sf-stage{padding-left:0;padding-right:0}#reed-spines-slim .sf-header{padding-left:16px;padding-right:16px}#reed-spines-slim .sf-shelves{padding-left:13px;padding-right:13px}#reed-spines-slim .sf-stack{margin-left:15px;margin-right:15px}#reed-spines-slim .sf-horizontal{padding-left:9px;padding-right:9px}}
 </style>
-<div id="reed-spines-mobile" class="bookshelf-study" aria-label="Lomos verdes para móvil" data-previous-label="Anterior" data-next-label="Siguiente">
-  <section class="rm-stage" data-variant="Vertical" aria-label="Lomos verticales con el título destacado">
-    <div class="rm-phone">
-      <header class="rm-header"><h2>Estantería</h2><span class="rm-count">6 libros</span></header>
-      <div class="rm-shelves">
-        <div class="rm-shelf" role="list" aria-label="Primer estante">
-          <article class="rm-book rm-upright" role="listitem" style="--book-height:263px"><h3 lang="es">Los 7 hábitos de la gente altamente efectiva</h3><p>Stephen R. Covey</p></article>
-          <article class="rm-book rm-upright" role="listitem" style="--book-height:249px"><h3 lang="en">Getting Things Done</h3><p>David Allen</p></article>
-          <article class="rm-book rm-upright" role="listitem" style="--book-height:254px"><h3 lang="es">Hábitos atómicos</h3><p>James Clear</p></article>
+<div id="reed-spines-slim" class="bookshelf-study" aria-label="Lomos finos con la tipografía de Reedleaves" data-previous-label="Anterior" data-next-label="Siguiente">
+  <section class="sf-stage" data-variant="Vertical" aria-label="Lomos finos en estantería">
+    <div class="sf-phone">
+      <header class="sf-header"><h2>Estantería</h2><span class="sf-count">12 libros</span></header>
+      <div class="sf-shelves">
+        <div class="sf-shelf" role="list" aria-label="Primer estante">
+          <article class="sf-book sf-upright" role="listitem" aria-label="Los 7 hábitos de la gente altamente efectiva, Stephen R. Covey" style="--book-height:285px"><h3 lang="es">Los 7 hábitos de la gente altamente efectiva</h3></article>
+          <article class="sf-book sf-upright" role="listitem" aria-label="Getting Things Done, David Allen" style="--book-height:266px"><h3 lang="en">Getting Things Done</h3></article>
+          <article class="sf-book sf-upright" role="listitem" aria-label="Hábitos atómicos, James Clear" style="--book-height:276px"><h3 lang="es">Hábitos atómicos</h3></article>
+          <article class="sf-book sf-upright" role="listitem" aria-label="Tidy First?, Kent Beck" style="--book-height:252px"><h3 lang="en">Tidy First?</h3></article>
+          <article class="sf-book sf-upright" role="listitem" aria-label="Surrounded by Idiots, Thomas Erikson" style="--book-height:279px"><h3 lang="en">Surrounded by Idiots</h3></article>
+          <article class="sf-book sf-upright" role="listitem" aria-label="Un paseo aleatorio por Wall Street, Burton G. Malkiel" style="--book-height:289px"><h3 lang="es">Un paseo aleatorio por Wall Street</h3></article>
         </div>
-        <div class="rm-shelf" role="list" aria-label="Segundo estante">
-          <article class="rm-book rm-upright" role="listitem" style="--book-height:246px"><h3 lang="en">Tidy First?</h3><p>Kent Beck</p></article>
-          <article class="rm-book rm-upright" role="listitem" style="--book-height:256px"><h3 lang="en">Surrounded by Idiots</h3><p>Thomas Erikson</p></article>
-          <article class="rm-book rm-upright" role="listitem" style="--book-height:263px"><h3 lang="es">Un paseo aleatorio por Wall Street</h3><p>Burton G. Malkiel</p></article>
+        <div class="sf-shelf" role="list" aria-label="Segundo estante">
+          <article class="sf-book sf-upright" role="listitem" aria-label="Padre rico, padre pobre, Robert T. Kiyosaki" style="--book-height:273px"><h3 lang="es">Padre rico, padre pobre</h3></article>
+          <article class="sf-book sf-upright" role="listitem" aria-label="El hombre más rico de Babilonia, George S. Clason" style="--book-height:283px"><h3 lang="es">El hombre más rico de Babilonia</h3></article>
+          <article class="sf-book sf-upright" role="listitem" aria-label="Invierte en ti, Natalia de Santiago" style="--book-height:264px"><h3 lang="es">Invierte en ti</h3></article>
+          <article class="sf-book sf-upright" role="listitem" aria-label="Turn the Ship Around!, L. David Marquet" style="--book-height:278px"><h3 lang="en">Turn the Ship Around!</h3></article>
+          <article class="sf-book sf-upright" role="listitem" aria-label="El almanaque de Naval Ravikant, Eric Jorgenson" style="--book-height:286px"><h3 lang="es">El almanaque de Naval Ravikant</h3></article>
+          <article class="sf-book sf-upright" role="listitem" aria-label="Rompe la barrera del no, Chris Voss" style="--book-height:271px"><h3 lang="es">Rompe la barrera del no</h3></article>
         </div>
       </div>
     </div>
   </section>
-  <section class="rm-stage" data-variant="Horizontal" aria-label="Lomos horizontales con lectura directa del título" hidden>
-    <div class="rm-phone">
-      <header class="rm-header"><h2>Estantería</h2><span class="rm-count">6 libros</span></header>
-      <div class="rm-stack" role="list" aria-label="Libros apilados">
-        <article class="rm-book rm-horizontal" role="listitem"><h3 lang="es">Los 7 hábitos de la gente altamente efectiva</h3><p>Stephen R. Covey</p></article>
-        <article class="rm-book rm-horizontal" role="listitem"><h3 lang="en">Getting Things Done</h3><p>David Allen</p></article>
-        <article class="rm-book rm-horizontal" role="listitem"><h3 lang="es">Hábitos atómicos</h3><p>James Clear</p></article>
-        <article class="rm-book rm-horizontal" role="listitem"><h3 lang="en">Tidy First?</h3><p>Kent Beck</p></article>
-        <article class="rm-book rm-horizontal" role="listitem"><h3 lang="en">Surrounded by Idiots</h3><p>Thomas Erikson</p></article>
-        <article class="rm-book rm-horizontal" role="listitem"><h3 lang="es">Un paseo aleatorio por Wall Street</h3><p>Burton G. Malkiel</p></article>
+  <section class="sf-stage" data-variant="Horizontal" aria-label="Lomos finos en horizontal" hidden>
+    <div class="sf-phone">
+      <header class="sf-header"><h2>Estantería</h2><span class="sf-count">12 libros</span></header>
+      <div class="sf-stack" role="list" aria-label="Libros apilados">
+        <article class="sf-book sf-horizontal" role="listitem"><h3 lang="es">Los 7 hábitos de la gente altamente efectiva</h3><p>Stephen R. Covey</p></article>
+        <article class="sf-book sf-horizontal" role="listitem"><h3 lang="en">Getting Things Done</h3><p>David Allen</p></article>
+        <article class="sf-book sf-horizontal" role="listitem"><h3 lang="es">Hábitos atómicos</h3><p>James Clear</p></article>
+        <article class="sf-book sf-horizontal" role="listitem"><h3 lang="en">Tidy First?</h3><p>Kent Beck</p></article>
+        <article class="sf-book sf-horizontal" role="listitem"><h3 lang="en">Surrounded by Idiots</h3><p>Thomas Erikson</p></article>
+        <article class="sf-book sf-horizontal" role="listitem"><h3 lang="es">Un paseo aleatorio por Wall Street</h3><p>Burton G. Malkiel</p></article>
+        <article class="sf-book sf-horizontal" role="listitem"><h3 lang="es">Padre rico, padre pobre</h3><p>Robert T. Kiyosaki</p></article>
+        <article class="sf-book sf-horizontal" role="listitem"><h3 lang="es">El hombre más rico de Babilonia</h3><p>George S. Clason</p></article>
+        <article class="sf-book sf-horizontal" role="listitem"><h3 lang="es">Invierte en ti</h3><p>Natalia de Santiago</p></article>
+        <article class="sf-book sf-horizontal" role="listitem"><h3 lang="en">Turn the Ship Around!</h3><p>L. David Marquet</p></article>
+        <article class="sf-book sf-horizontal" role="listitem"><h3 lang="es">El almanaque de Naval Ravikant</h3><p>Eric Jorgenson</p></article>
+        <article class="sf-book sf-horizontal" role="listitem"><h3 lang="es">Rompe la barrera del no</h3><p>Chris Voss</p></article>
       </div>
     </div>
   </section>
