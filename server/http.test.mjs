@@ -238,6 +238,36 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   assert.equal((await post("/api/author/decks/language",{deckId,language:"es",previousLanguage:"en"},headers)).status,409);
 });
 
+test("Selected collective author routes enforce invitation, owner and CSRF rules",async t=>{
+  const {randomUUID}=await import("node:crypto");
+  const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);
+  const server=createCatalogServer(db);server.listen(0,"127.0.0.1");await once(server,"listening");
+  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const post=(path,input,headers={})=>fetch(base+path,{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify(input)});
+  async function register(username) {
+    const response=await post("/api/auth/register",{username,password:`${username} selected collective test phrase`});
+    const state=await response.json();
+    return {user:state.user,headers:{Cookie:response.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":state.csrfToken}};
+  }
+  const owner=await register("selected.owner"),member=await register("selected.member"),outsider=await register("selected.outsider");
+  const created=await post("/api/author/decks",{requestId:randomUUID(),bookId:"atomic-habits",title:"Invited draft",language:"en",kind:"collective",contributionPolicy:"selected",maxCardsPerContributor:1},owner.headers);
+  assert.equal(created.status,200);const {deckId}=await created.json();
+  const path="/api/author/decks/contributors",input={deckId,userIds:[member.user.id]};
+  assert.equal((await post(path,input)).status,401);
+  assert.equal((await post(path,input,{Cookie:owner.headers.Cookie})).status,403);
+  assert.equal((await post(path,input,outsider.headers)).status,404);
+  const invited=await post(path,input,owner.headers);assert.equal(invited.status,200);assert.deepEqual((await invited.json()).userIds,[member.user.id]);
+  const add=(headers,body)=>post("/api/author/cards",{requestId:randomUUID(),deckId,isQuote:false,parentId:null,title:"An idea",body},headers);
+  assert.equal((await add(member.headers,"A contribution from the invited member.")).status,200);
+  assert.equal((await add(member.headers,"The contributor limit applies here.").then(async response=>response.json())).error,"contributorCardLimitReached");
+  assert.equal((await add(outsider.headers,"An outsider cannot add this.")).status,404);
+  const removed=await post(path,{deckId,userIds:[]},owner.headers);assert.equal(removed.status,200);
+  assert.equal((await add(member.headers,"The removed contributor cannot add this.")).status,404);
+  assert.equal((await post("/api/author/decks/finish",{deckId},owner.headers)).status,200);
+  assert.equal((await post(path,input,owner.headers)).status,409);
+});
+
 test("Profiles require a session and view writes require origin, CSRF and a valid card",async t=>{
   const db=openDatabase(":memory:");initializeDatabase(db);await seedCatalog(db);
   const server=createCatalogServer(db);server.listen(0,"127.0.0.1");await once(server,"listening");
