@@ -58,6 +58,11 @@ test("Choosing Para leer saves a book and selects its chip in the catalog",async
   assert.match(libraryView({...s,openBookId:"atomic-habits"}),/data-status="to-read" aria-pressed="false"/);
   s.statuses={"atomic-habits":"unread"};s.shelfBookIds=["atomic-habits"];
   assert.deepEqual(ids(bookshelfBooks(s)),["atomic-habits"]);
+  assert.equal(bookshelfBooks(s)[0].group,"to-read");
+  assert.deepEqual(ids(bookshelfBooks({...s,bookshelfFilters:{reading:"to-read"}})),["atomic-habits"]);
+  assert.deepEqual(bookshelfBooks({...s,bookshelfFilters:{reading:"unread"}}),[]);
+  assert.match(bookshelfView(s),/bookshelf-group-to-read/);
+  assert.match(bookshelfView(s),/data-book-spines="stack"/);
   assert.match(libraryView({...s,openBookId:"atomic-habits"}),/data-status="to-read" aria-pressed="true"/);
   assert.doesNotMatch(libraryView({...s,openBookId:"atomic-habits"}),/add-book-to-shelf|collection-object-state/);
 });
@@ -87,7 +92,7 @@ test("Saved cards stay in the book header without taking a deck grid position",a
 test("Deck membership keeps a book on the shelf without card progress groups",async()=>{
   const s=await fixture();
   s.enrolledIds=["seven-habits-inside-out"];
-  const entries=bookshelfBooks(s);
+  const entries=bookshelfBooks({...s,shelfBookIds:["seven-habits"],toReadBookIds:[]});
   assert.equal(entries.length,1); assert.equal(entries[0].group,"unread");
   assert.equal((bookshelfView(s).match(/data-book="seven-habits"/g)||[]).length,1);
   s.enrolledIds=[];
