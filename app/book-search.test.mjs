@@ -101,7 +101,17 @@ test("Library filters intersect author, interest, deck language and title search
   assert.deepEqual(filterLibrary(catalog,"",{language:"ja"}),[]);
   const genre=catalog.books[0].genres[0];
   assert.ok(filterLibrary(catalog,"",{genre}).every(book=>book.genres.includes(genre)));
-  const html=libraryView(readerState(catalog,{language:"en",libraryFilters:{author:"Stephen R. Covey"}}));
+  const html=libraryView(readerState(catalog,{language:"en",libraryFiltersOpen:true,libraryFilters:{author:"Stephen R. Covey"}}));
   assert.match(html,/value="Stephen R. Covey" selected/);
   assert.equal((html.match(/data-action="open-book-details"/g)||[]).length,1);
+});
+
+test("Library keeps the layout and filter controls compact and opens plain labels in a modal",async()=>{
+  const catalog=prepareCatalog(await fixture()),state=readerState(catalog,{libraryFilters:{},libraryQuery:''});
+  const initial=libraryView(state);assert.match(initial,/data-action="open-library-filters"/);assert.doesNotMatch(initial,/<details[^>]*library-filters|id="library-genre"/);
+  const modal=libraryView({...state,libraryFiltersOpen:true,libraryFilterDraft:{author:'Stephen R. Covey',genre:'software',language:''}});
+  assert.match(modal,/<dialog class="bookshelf-filter-modal library-filter-modal"/);
+  assert.match(modal,/data-action="apply-library-filters"/);assert.match(modal,/data-action="close-library-filters"/);
+  const genreLabel=modal.match(/<label for="library-genre">([\s\S]*?)<\/label>/)?.[1];assert.ok(genreLabel);assert.doesNotMatch(genreLabel,/<svg|interest-icon/);
+  assert.match(libraryView({...state,libraryQuery:'no-matches-ever'}),/data-action="open-library-filters"/);
 });

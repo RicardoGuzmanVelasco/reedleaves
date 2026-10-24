@@ -162,7 +162,7 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 
 ## Intereses de libros
 
-- Cada interés muestra su nombre localizado junto a un icono decorativo en las fichas, la preview del libro y el editor. El selector de filtro conserva opciones de texto nativas y muestra el icono del interés elegido junto a su etiqueta.
+- Cada interés muestra su nombre localizado junto a un icono decorativo en las fichas, la preview del libro y el editor. El selector de filtro conserva opciones de texto nativas y una etiqueta sin icono.
 - Software usa un símbolo de código; Mindfulness, una flor de loto. Los intereses sin icono específico usan una etiqueta genérica. El icono no sustituye el nombre accesible.
 - Software y Mindfulness están disponibles en español e inglés. No asignar Mindfulness a libros de crecimiento personal por asociación general; clasificar según el contenido del libro.
 

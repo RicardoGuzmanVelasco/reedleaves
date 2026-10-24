@@ -8,14 +8,14 @@ import {prepareCatalog} from "./catalog.mjs";
 import {libraryView,authorFormView} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 
-test("Interests keep localized names beside decorative icons in details, filters and editing",async()=>{
+test("Interests keep localized names beside decorative icons in details and editing, with plain filter labels",async()=>{
   const db=openDatabase(":memory:");let catalog;
   try{initializeDatabase(db);await seedCatalog(db);catalog=prepareCatalog(await readCatalog(db));}finally{await db.close();}
   for(const language of ["es","en"]) {
     for(const id of ["software","mindfulness"]) {
       assert.ok(catalog.genres.find(genre=>genre.id===id).name[language]);
       const book={...catalog.booksById.get("seven-habits"),genres:[id]};
-      const state=readerState({...catalog,booksById:new Map(catalog.booksById).set(book.id,book)},{language,openBookId:book.id,libraryFilters:{genre:id}});
+      const state=readerState({...catalog,booksById:new Map(catalog.booksById).set(book.id,book)},{language,libraryFiltersOpen:true,openBookId:book.id,libraryFilters:{genre:id}});
       const html=libraryView(state);
       assert.match(html,new RegExp(`value="${id}" selected`));
       assert.ok(html.includes(interestIcon(id)));

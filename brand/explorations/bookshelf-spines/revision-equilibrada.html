@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nueva revisión de lomos · Reedleaves</title><style>html{color-scheme:light dark}body{margin:0;padding:20px 10px;background:light-dark(#fff9ed,#252c24);font-family:"Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif}.study-switch{display:flex;justify-content:center;gap:10px;margin:12px 0 0}.study-switch button{padding:10px 16px;border:1px solid #779a72;border-radius:12px;background:light-dark(#fff9ed,#252c24);color:light-dark(#173d2c,#eeefdf);font:650 14px "Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif;touch-action:manipulation}.study-switch button[aria-pressed="true"]{background:light-dark(#e4f0cc,#3c4b33)}</style></head><body><nav class="study-switch" aria-label="Orientación de los lomos"><button type="button" data-show="Estantería densa" aria-pressed="true">Estantería densa</button><button type="button" data-show="Pila sin autores" aria-pressed="false">Pila sin autores</button></nav><style>
+  #reed-spines-balanced .sf-stage{min-height:800px;padding:18px 8px 24px;box-sizing:border-box}
+  #reed-spines-balanced .sf-phone{--sf-paper:light-dark(#fff9ed,#252c24);--sf-ink:light-dark(#173d2c,#eeefdf);--sf-muted:light-dark(#51654c,#c5cdb9);--sf-cover:light-dark(#e4f0cc,#3c4b33);--sf-spine:light-dark(#9fca82,#5a6f47);--sf-edge:light-dark(#779a72,#839272);--sf-shadow:light-dark(#1e4c2e,#151f12);--sf-wood:light-dark(#e8d3a4,#756443);--sf-wood-edge:light-dark(#bca06d,#51472e);box-sizing:border-box;max-width:390px;min-height:744px;margin:auto;border:1px solid light-dark(#dadcc9,#515b46);border-radius:24px;background:var(--sf-paper);color:var(--sf-ink);box-shadow:0 8px 24px light-dark(#173d2c12,#00000032);font-family:"Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif;font-synthesis:none}
+  #reed-spines-balanced .sf-header{display:flex;justify-content:space-between;align-items:baseline;gap:15px;padding:25px 20px 20px}
+  #reed-spines-balanced .sf-header h2{margin:0;color:var(--sf-ink);font-family:inherit;font-size:28px;font-weight:800;line-height:1.15;letter-spacing:-.045em}
+  #reed-spines-balanced .sf-count{font-size:12px;color:var(--sf-muted);white-space:nowrap}
+  #reed-spines-balanced .sf-shelves{padding:8px 18px 24px}
+  #reed-spines-balanced .sf-shelf{position:relative;isolation:isolate;display:grid;grid-template-columns:repeat(var(--shelf-columns,8),minmax(0,1fr));align-items:end;gap:2px;height:198px;margin-bottom:14px;padding:0 2px 12px;box-sizing:border-box}
+  #reed-spines-balanced .sf-shelf:last-child{margin-bottom:0}
+  #reed-spines-balanced .sf-shelf:after,#reed-spines-balanced .sf-stack:after{content:"";position:absolute;left:-6px;right:-6px;bottom:0;z-index:-1;height:9px;border-radius:3px 3px 5px 5px;background:var(--sf-wood);border-top:1px solid light-dark(#f7e7c4,#a28c5d);box-shadow:0 3px 0 var(--sf-wood-edge),0 7px 10px light-dark(#173d2c12,#00000028)}
+  #reed-spines-balanced .sf-book{position:relative;box-sizing:border-box;min-width:0;margin:0;border:1px solid var(--sf-edge);background-color:var(--sf-cover);color:var(--sf-ink);box-shadow:1px 2px 0 var(--sf-shadow),2px 4px 6px light-dark(#173d2c10,#00000022)}
+  #reed-spines-balanced .sf-book h3{margin:0;color:var(--sf-ink);font-family:inherit;font-weight:800;letter-spacing:-.035em;overflow-wrap:normal}
+  #reed-spines-balanced .sf-book p{margin:0;color:var(--sf-ink);font-family:inherit;font-size:11px;font-weight:400;line-height:1.1}
+  #reed-spines-balanced .sf-upright{width:100%;height:var(--book-height,184px);padding:0;border-radius:5px 4px 4px 5px;background-image:linear-gradient(90deg,var(--sf-spine) 0 3px,transparent 3px calc(100% - 3px),var(--sf-spine) calc(100% - 3px))}
+  #reed-spines-balanced .sf-upright h3{position:absolute;left:50%;top:50%;width:calc(var(--book-height,184px) - 16px);height:1.15em;transform:translate(-50%,-50%) rotate(90deg);transform-origin:center;writing-mode:horizontal-tb;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:16px;line-height:1.15}
+  #reed-spines-balanced .sf-upright p{display:none}
+  #reed-spines-balanced .sf-stack{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:center;gap:4px;margin:8px 20px 26px;padding:3px 10px 14px}
+  #reed-spines-balanced .sf-horizontal{display:flex;flex-direction:column;justify-content:center;gap:0;width:100%;min-height:36px;padding:9px 11px 4px;border-radius:4px 6px 6px 4px;background-image:linear-gradient(180deg,var(--sf-spine) 0 3px,transparent 3px calc(100% - 3px),var(--sf-spine) calc(100% - 3px));transform:translateX(var(--offset,0px)) rotate(var(--tilt,0deg));transform-origin:center}
+  #reed-spines-balanced .sf-horizontal h3{width:100%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:16px;line-height:1.1}
+  @media(max-width:370px){#reed-spines-balanced .sf-stage{padding-left:0;padding-right:0}#reed-spines-balanced .sf-header{padding-left:16px;padding-right:16px}#reed-spines-balanced .sf-shelves{padding-left:13px;padding-right:13px}#reed-spines-balanced .sf-stack{margin-left:15px;margin-right:15px}}
+</style>
+<div id="reed-spines-balanced" class="bookshelf-study" aria-label="Estantería densa y nueva pila sin autores" data-previous-label="Anterior" data-next-label="Siguiente">
+  <section class="sf-stage" data-variant="Estantería densa" aria-label="Lomos finos en estantería">
+    <div class="sf-phone">
+      <header class="sf-header"><h2>Estantería</h2><span class="sf-count">24 libros</span></header>
+      <div class="sf-shelves">
+<div class="sf-shelf" role="list" aria-label="Estante 1"><article class="sf-book sf-upright" role="listitem" aria-label="Los 7 hábitos de la gente altamente efectiva, Stephen R. Covey" style="--book-height:184px"><h3 lang="es">Los 7 hábitos de la gente altamente efectiva</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Padre rico, padre pobre, Robert T. Kiyosaki" style="--book-height:184px"><h3 lang="es">Padre rico, padre pobre</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Getting Things Done, David Allen" style="--book-height:184px"><h3 lang="en">Getting Things Done</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Hábitos atómicos, James Clear" style="--book-height:184px"><h3 lang="es">Hábitos atómicos</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Lo que nunca cambia, Morgan Housel" style="--book-height:184px"><h3 lang="es">Lo que nunca cambia</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Rompe la barrera del no, Chris Voss" style="--book-height:184px"><h3 lang="es">Rompe la barrera del no</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="El cuadrante del flujo de dinero, Robert T. Kiyosaki" style="--book-height:184px"><h3 lang="es">El cuadrante del flujo de dinero</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="El hombre más rico de Babilonia, George Samuel Clason" style="--book-height:184px"><h3 lang="es">El hombre más rico de Babilonia</h3></article></div>
+<div class="sf-shelf" role="list" aria-label="Estante 2"><article class="sf-book sf-upright" role="listitem" aria-label="Los secretos de la mente millonaria, T. Harv Eker" style="--book-height:184px"><h3 lang="es">Los secretos de la mente millonaria</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="El mito del emprendedor, Michael E. Gerber" style="--book-height:184px"><h3 lang="es">El mito del emprendedor</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="El almanaque de Naval Ravikant, Eric Jorgenson" style="--book-height:184px"><h3 lang="es">El almanaque de Naval Ravikant</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Un paseo aleatorio por Wall Street, Burton G. Malkiel" style="--book-height:184px"><h3 lang="es">Un paseo aleatorio por Wall Street</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Como un hombre piensa, así es su vida, James Allen" style="--book-height:184px"><h3 lang="es">Como un hombre piensa, así es su vida</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Cómo ganar amigos e influir sobre las personas, Dale Carnegie" style="--book-height:184px"><h3 lang="es">Cómo ganar amigos e influir sobre las personas</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Mundofiltro, Kyle Chayka" style="--book-height:184px"><h3 lang="es">Mundofiltro</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Reality Transurfing Steps I-V, Vadim Zeland" style="--book-height:184px"><h3 lang="en">Reality Transurfing Steps I-V</h3></article></div>
+<div class="sf-shelf" role="list" aria-label="Estante 3"><article class="sf-book sf-upright" role="listitem" aria-label="Surrounded by Idiots, Thomas Erikson" style="--book-height:184px"><h3 lang="en">Surrounded by Idiots</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="El mapa cultural, Erin Meyer" style="--book-height:184px"><h3 lang="es">El mapa cultural</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Fearless Salary Negotiation, Josh Doody" style="--book-height:184px"><h3 lang="en">Fearless Salary Negotiation</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Tidy First?, Kent Beck" style="--book-height:184px"><h3 lang="en">Tidy First?</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Invierte en ti, Natalia de Santiago" style="--book-height:184px"><h3 lang="es">Invierte en ti</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Invierte con poco, Natalia de Santiago" style="--book-height:184px"><h3 lang="es">Invierte con poco</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Influencia, Robert B. Cialdini" style="--book-height:184px"><h3 lang="es">Influencia</h3></article>
+<article class="sf-book sf-upright" role="listitem" aria-label="Turn the Ship Around!, L. David Marquet" style="--book-height:184px"><h3 lang="en">Turn the Ship Around!</h3></article></div>
+      </div>
+    </div>
+  </section>
+  <section class="sf-stage" data-variant="Pila sin autores" aria-label="Lomos finos en horizontal" hidden>
+    <div class="sf-phone">
+      <header class="sf-header"><h2>Estantería</h2><span class="sf-count">12 libros</span></header>
+      <div class="sf-stack" role="list" aria-label="Libros apilados">
+        <article class="sf-book sf-horizontal" role="listitem" aria-label="Los 7 hábitos de la gente altamente efectiva, Stephen R. Covey"><h3 lang="es">Los 7 hábitos de la gente altamente efectiva</h3></article>
+        <article class="sf-book sf-horizontal" role="listitem" aria-label="Getting Things Done, David Allen"><h3 lang="en">Getting Things Done</h3></article>
+        <article class="sf-book sf-horizontal" role="listitem" aria-label="Hábitos atómicos, James Clear"><h3 lang="es">Hábitos atómicos</h3></article>
+        <article class="sf-book sf-horizontal" role="listitem" aria-label="Tidy First?, Kent Beck"><h3 lang="en">Tidy First?</h3></article>
+        <article class="sf-book sf-horizontal" role="listitem" aria-label="Surrounded by Idiots, Thomas Erikson"><h3 lang="en">Surrounded by Idiots</h3></article>
+        <article class="sf-book sf-horizontal" role="listitem" aria-label="Un paseo aleatorio por Wall Street, Burton G. Malkiel"><h3 lang="es">Un paseo aleatorio por Wall Street</h3></article>
+        <article class="sf-book sf-horizontal" role="listitem" aria-label="Padre rico, padre pobre, Robert T. Kiyosaki"><h3 lang="es">Padre rico, padre pobre</h3></article>
+        <article class="sf-book sf-horizontal" role="listitem" aria-label="El hombre más rico de Babilonia, George S. Clason"><h3 lang="es">El hombre más rico de Babilonia</h3></article>
+        <article class="sf-book sf-horizontal" role="listitem" aria-label="Invierte en ti, Natalia de Santiago"><h3 lang="es">Invierte en ti</h3></article>
+        <article class="sf-book sf-horizontal" role="listitem" aria-label="Turn the Ship Around!, L. David Marquet"><h3 lang="en">Turn the Ship Around!</h3></article>
+        <article class="sf-book sf-horizontal" role="listitem" aria-label="El almanaque de Naval Ravikant, Eric Jorgenson"><h3 lang="es">El almanaque de Naval Ravikant</h3></article>
+        <article class="sf-book sf-horizontal" role="listitem" aria-label="Rompe la barrera del no, Chris Voss"><h3 lang="es">Rompe la barrera del no</h3></article>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+(() => {
+  const root=document.getElementById('reed-spines-balanced');
+  const canvas=document.createElement('canvas');
+  const context=canvas.getContext('2d');
+  const widths=new WeakMap();
+  const denseBooks=[{"title":"Los 7 hábitos de la gente altamente efectiva","author":"Stephen R. Covey","language":"es"},{"title":"Padre rico, padre pobre","author":"Robert T. Kiyosaki","language":"es"},{"title":"Getting Things Done","author":"David Allen","language":"en"},{"title":"Hábitos atómicos","author":"James Clear","language":"es"},{"title":"Lo que nunca cambia","author":"Morgan Housel","language":"es"},{"title":"Rompe la barrera del no","author":"Chris Voss","language":"es"},{"title":"El cuadrante del flujo de dinero","author":"Robert T. Kiyosaki","language":"es"},{"title":"El hombre más rico de Babilonia","author":"George Samuel Clason","language":"es"},{"title":"Los secretos de la mente millonaria","author":"T. Harv Eker","language":"es"},{"title":"El mito del emprendedor","author":"Michael E. Gerber","language":"es"},{"title":"El almanaque de Naval Ravikant","author":"Eric Jorgenson","language":"es"},{"title":"Un paseo aleatorio por Wall Street","author":"Burton G. Malkiel","language":"es"},{"title":"Como un hombre piensa, así es su vida","author":"James Allen","language":"es"},{"title":"Cómo ganar amigos e influir sobre las personas","author":"Dale Carnegie","language":"es"},{"title":"Mundofiltro","author":"Kyle Chayka","language":"es"},{"title":"Reality Transurfing Steps I-V","author":"Vadim Zeland","language":"en"},{"title":"Surrounded by Idiots","author":"Thomas Erikson","language":"en"},{"title":"El mapa cultural","author":"Erin Meyer","language":"es"},{"title":"Fearless Salary Negotiation","author":"Josh Doody","language":"en"},{"title":"Tidy First?","author":"Kent Beck","language":"en"},{"title":"Invierte en ti","author":"Natalia de Santiago","language":"es"},{"title":"Invierte con poco","author":"Natalia de Santiago","language":"es"},{"title":"Influencia","author":"Robert B. Cialdini","language":"es"},{"title":"Turn the Ship Around!","author":"L. David Marquet","language":"en"}];
+  const shelfState=new WeakMap();
+  let frame=0;
+  function variation(text,salt){
+    let seed=2166136261;
+    for(const char of text+'|'+salt){seed^=char.charCodeAt(0);seed=Math.imul(seed,16777619);}
+    return (seed>>>0)/4294967295;
+  }
+  function textWidth(text,size,family){
+    if(!context)return text.length*size*.65;
+    context.font='800 '+size+'px '+family;
+    return Math.max(0,context.measureText(text).width-Math.max(0,Array.from(text).length-1)*size*.035);
+  }
+  function fittedFont(text,space,min,max,family){
+    if(textWidth(text,min,family)>space)return {size:min,fits:false};
+    if(textWidth(text,max,family)<=space)return {size:max,fits:true};
+    let low=min,high=max;
+    for(let pass=0;pass<9;pass++){
+      const middle=(low+high)/2;
+      if(textWidth(text,middle,family)<=space)low=middle;else high=middle;
+    }
+    return {size:Math.floor(low*4)/4,fits:true};
+  }
+  function fitBook(book,family,nominal,vertical){
+    const label=book.querySelector('h3');
+    const text=label.textContent.trim().replace(/\s+/g,' ');
+    const padding=vertical?16:24;
+    const minimumFont=vertical?15:14;
+    const chosen=fittedFont(text,nominal-padding-3,minimumFont,vertical?16:18,family);
+    let size=chosen.size;
+    label.style.fontSize=size+'px';
+    label.style.textAlign='left';
+    const applyLength=value=>{
+      if(vertical){book.style.setProperty('--book-height',value+'px');label.style.width=(value-padding)+'px';}
+      else book.style.width=value+'px';
+    };
+    applyLength(nominal);
+    // Confirm against actual browser layout before allowing any reduction.
+    while(label.scrollWidth>label.clientWidth&&size>minimumFont){
+      size=Math.max(minimumFont,size-.25);label.style.fontSize=size+'px';
+    }
+    let length=nominal;
+    const fullWidth=textWidth(text,size,family)+padding+4;
+    if(vertical){
+      // Vary every spine, including those already truncated at the minimum font.
+      // Keep a smaller inset so the ellipsis uses the available length.
+      const factor=.78+variation(text,'length')*.21;
+      length=nominal*factor;
+      if(label.scrollWidth<=label.clientWidth)length=Math.max(length,Math.min(fullWidth,nominal));
+    }else if(label.scrollWidth<=label.clientWidth){
+      const shortTitle=fullWidth<nominal*.7;
+      const factor=shortTitle ? .68+variation(text,'length')*.21 : .78+variation(text,'length')*.21;
+      length=Math.min(nominal,Math.max(fullWidth,nominal*factor));
+    }
+    applyLength(Math.ceil(length));
+    if(!vertical&&length<nominal&&label.scrollWidth>label.clientWidth){length=nominal;applyLength(nominal);}
+    const truncated=label.scrollWidth>label.clientWidth;
+    label.style.textAlign=vertical&&!truncated?'center':'left';
+    book.dataset.truncated=String(truncated);
+    book.dataset.shortened=String(length<nominal-1);
+    if(truncated)label.dataset.tooltip=text;else delete label.dataset.tooltip;
+    if(!vertical){
+      book.style.setProperty('--offset',((variation(text,'offset')-.5)*12).toFixed(2)+'px');
+      book.style.setProperty('--tilt',((variation(text,'tilt')-.5)*1.2).toFixed(2)+'deg');
+    }
+  }
+  function packShelf(phone){
+    const shelves=phone.querySelector('.sf-shelves');
+    if(!shelves)return;
+    const style=getComputedStyle(shelves);
+    const available=shelves.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)-4;
+    const columns=Math.max(1,Math.floor((available+2)/34));
+    let state=shelfState.get(phone);
+    if(!state){
+      const items=denseBooks.map(book=>{
+        const item=document.createElement('article');item.className='sf-book sf-upright';item.setAttribute('role','listitem');item.setAttribute('aria-label',book.title+', '+book.author);
+        const title=document.createElement('h3');title.lang=book.language;title.textContent=book.title;item.append(title);return item;
+      });
+      state={items,columns:0};shelfState.set(phone,state);
+    }
+    shelves.style.setProperty('--shelf-columns',columns);
+    if(state.columns===columns)return;
+    const fragment=document.createDocumentFragment();
+    for(let start=0;start<state.items.length;start+=columns){
+      const row=document.createElement('div');row.className='sf-shelf';row.setAttribute('role','list');row.setAttribute('aria-label','Estante '+(Math.floor(start/columns)+1));
+      state.items.slice(start,start+columns).forEach(item=>row.append(item));fragment.append(row);
+    }
+    shelves.replaceChildren(fragment);state.columns=columns;
+    phone.querySelector('.sf-count').textContent=denseBooks.length+' libros';
+  }
+  function refresh(){
+    root.querySelectorAll('.sf-phone').forEach(phone=>{
+      if(!phone.getClientRects().length)return;
+      const family=getComputedStyle(phone).fontFamily;
+      packShelf(phone);
+      phone.querySelectorAll('.sf-upright').forEach(book=>fitBook(book,family,184,true));
+      const stack=phone.querySelector('.sf-stack');
+      if(stack){
+        const style=getComputedStyle(stack);
+        const space=stack.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight);
+        if(space>0)stack.querySelectorAll('.sf-horizontal').forEach(book=>fitBook(book,family,space,false));
+      }
+    });
+  }
+  function schedule(){
+    if(!frame)frame=requestAnimationFrame(()=>{frame=0;refresh();});
+  }
+  refresh();
+  if(document.fonts)document.fonts.ready.then(schedule);
+  if(globalThis.ResizeObserver){
+    const observer=new ResizeObserver(entries=>{
+      for(const entry of entries){
+        const width=entry.contentRect.width;
+        if(width>0&&Math.abs((widths.get(entry.target)||0)-width)>.5){widths.set(entry.target,width);schedule();}
+      }
+    });
+    root.querySelectorAll('.sf-phone').forEach(phone=>observer.observe(phone));
+  }
+  new MutationObserver(schedule).observe(root,{subtree:true,attributes:true,attributeFilter:['hidden']});
+})();
+</script>
+<script>document.querySelectorAll("[data-show]").forEach(button=>button.addEventListener("click",()=>{document.querySelectorAll("[data-variant]").forEach(view=>view.hidden=view.dataset.variant!==button.dataset.show);document.querySelectorAll("[data-show]").forEach(item=>item.setAttribute("aria-pressed",String(item===button)));}));</script></body></html>
