@@ -87,7 +87,7 @@ export async function migrationData(db) {
   const columns={books:"id,author,position,editorial_status,original_title,original_language,updated_at",
     decks:"id,book_id,creator_user_id,language,is_recommended,created_at"};
   for (const table of tables) {
-    const additiveGenre=table === "genres" ? " WHERE id<>'society'" : table === "genre_translations" ? " WHERE genre_id<>'society'" : "";
+    const additiveGenre=table === "genres" ? " WHERE id NOT IN ('society','software','mindfulness')" : table === "genre_translations" ? " WHERE genre_id NOT IN ('society','software','mindfulness')" : "";
     result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${table}${additiveGenre} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();
     if (table === "book_translations") result[table]=result[table].map(({short_title,...translation})=>translation);
   }
