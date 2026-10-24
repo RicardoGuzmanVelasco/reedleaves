@@ -6,7 +6,7 @@ import {readCatalog} from "../server/catalog-repository.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {featuredDecks} from "./decks.mjs";
 import {bookshelfBooks} from "./bookshelf.mjs";
-import {bookshelfView,homeView,libraryView,deckView} from "./views.mjs";
+import {bookshelfView,homeView,libraryView,deckView,reviewView} from "./views.mjs";
 import {words} from "./i18n.mjs";
 
 async function fixture() {
@@ -126,7 +126,7 @@ test("Decks tab shows enrolled decks and automatically includes the reader's own
   assert.match(html,/href="#bookshelf\/decks" aria-current="page"/);
   assert.ok(html.includes(words.es.deckCollection));
   assert.match(html,/data-action="review-collection-deck" data-deck="seven-habits-editorial"/);
-  assert.match(html,/data-action="manage-collection-deck" data-deck="atomic-habits-editorial"/);
+  assert.match(html,/data-action="review-collection-deck" data-deck="atomic-habits-editorial"/);
   assert.doesNotMatch(html,/for="bookshelf-reading"/);
   const empty=await fixture();
   const emptyDecks=bookshelfView({...empty,bookshelfTab:"decks"});
@@ -136,12 +136,12 @@ test("Decks tab shows enrolled decks and automatically includes the reader's own
 
 test("Deck details distinguish adding to Decks from starting practice",async()=>{
   const s=await fixture(),deck=featuredDecks(s.catalog,"atomic-habits")[0];
-  const state={...s,bookId:"atomic-habits",deckChoices:[deck],openDeckId:deck.deck.id};
-  const notAdded=deckView(state);
+  const state={...s,bookId:"atomic-habits",deckChoices:[deck],deckId:deck.deck.id};
+  const notAdded=reviewView(state);
   assert.match(notAdded,/data-action="add-deck-to-collection"/);
   assert.match(notAdded,/Costs one leaf|Cuesta una hoja/);
   assert.doesNotMatch(notAdded,/data-action="select-deck"/);
-  const added=deckView({...state,enrolledIds:[deck.deck.id]});
+  const added=reviewView({...state,enrolledIds:[deck.deck.id]});
   assert.doesNotMatch(added,/data-action="add-deck-to-collection"/);
   assert.ok(added.includes(words.es.deckInCollection));
 });

@@ -1,3 +1,4 @@
+import {deckPageHash,deckReadingHash,deckShareUrl} from "./deck-navigation.mjs";
 import {mountBookLists,BOOK_VIEWS} from "./book-list.mjs";
 import {startBottomNavigationBehavior} from "./bottom-navigation-behavior.mjs";
 import {loadCatalog} from "./catalog.mjs";
@@ -116,7 +117,7 @@ export function startReader({createCardFeatures} = {}) {
     document.getElementById("nav-profile").href=signedIn?`#profile/${encodeURIComponent(snapshot.user.id)}`:"#profile";
     const activeNavigation=mode==="home"||["book","preview","review"].includes(mode)&&bookOrigin==="home"?"home":mode==="library"||["book","preview"].includes(mode)&&bookOrigin==="library"?"library":mode==="bookshelf"||["book","preview"].includes(mode)&&bookOrigin==="bookshelf"?"bookshelf":mode==="profile"||mode==="public-bookshelf"||mode==="account"?"profile":mode==="daily"||["review","preview"].includes(mode)&&bookOrigin==="daily"?"daily":null;
     navigation.querySelectorAll("[data-nav]").forEach(link=>{if(link.dataset.nav===activeNavigation)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current")});
-    document.title = pageTitle(["card","quote"].includes(authorForm?.kind) ? c.takeNote : mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.books : mode === "bookshelf" ? c.bookcase : mode === "public-bookshelf" ? c.shelf : mode === "profile" ? c.profile : mode === "daily" ? c.daily : mode === "practice" ? c.practice : mode === "saved" ? c.savedCards : mode === "book" ? c.chooseDeck : mode === "preview" ? c.deckPeekPage : mode === "mascots" ? c.mascots : mode === "author" ? c.manageDeck : c.review);
+    document.title = pageTitle(["card","quote"].includes(authorForm?.kind) ? c.takeNote : mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.books : mode === "bookshelf" ? c.bookcase : mode === "public-bookshelf" ? c.shelf : mode === "profile" ? c.profile : mode === "daily" ? c.daily : mode === "practice" ? c.practice : mode === "saved" ? c.savedCards : mode === "book" ? c.chooseDeck : mode === "preview" ? c.deckPeekPage : mode === "review" ? c.viewDeck : mode === "mascots" ? c.mascots : mode === "author" ? c.manageDeck : c.review);
     document.querySelector(".skip-link").textContent = c.skip;
     for (const [id,text] of [["settings-title",c.settings],["language-label",c.language]]) document.getElementById(id).textContent = text;
     document.getElementById("open-settings").setAttribute("aria-label",c.settings); document.getElementById("close-settings").setAttribute("aria-label",c.closeSettings);
@@ -733,8 +734,7 @@ export function startReader({createCardFeatures} = {}) {
   async function shareDeck() {
     const deck=catalog?.decksById.get(deckId);
     if (busy || mode !== "review" || !deck) return;
-    const url=new URL(location.href);
-    url.hash=`review/${encodeURIComponent(deck.id)}`;
+    const url=deckShareUrl(location.href,deck.id);
     const copyLanguage=store.read(keys.language) ? language : "en";
     const book=catalog.booksById.get(deck.bookId);
     const bookName=book ? (book.title?.[copyLanguage]?.trim() || book.popularTitle || bookTitle(book,copyLanguage).text) : "";
@@ -743,14 +743,14 @@ export function startReader({createCardFeatures} = {}) {
     try {
       if (typeof navigator.share === "function") {
         try {
-          await navigator.share({text:`${shareText} ${url.href}`});
+          await navigator.share({text:`${shareText} ${url}`});
           return;
         } catch(error) {
           if(error?.name === "AbortError") return;
         }
       }
       if (typeof navigator.clipboard?.writeText !== "function") throw new Error("Clipboard unavailable");
-      await navigator.clipboard.writeText(`${shareText}\n${url.href}`);
+      await navigator.clipboard.writeText(`${shareText}\n${url}`);
       live.textContent=words[language].deckLinkCopied;
     } catch {
       live.textContent=words[language].deckShareError;
@@ -918,8 +918,8 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function addDeckToCollection(id) {
     if (!catalog.decksById.has(id)) return;
-    if (!snapshot.user) { pendingDeck=id;pendingIntent="collect";accountLearningNotice=true;authMode="register";authReturn="#book/"+encodeURIComponent(catalog.decksById.get(id).bookId);navigate("#account");return; }
-    await mutation("/api/reader/collect",{deckId:id},()=>{ openDeckId=id;live.textContent=words[language].deckAddedToCollection; });
+    if (!snapshot.user) { pendingDeck=id;pendingIntent="collect";accountLearningNotice=true;authMode="register";authReturn=deckPageHash(id);navigate("#account");return; }
+    await mutation("/api/reader/collect",{deckId:id},()=>{ openDeckId=null;live.textContent=words[language].deckAddedToCollection; });
   }
   async function openCard(id,activeDeck = deckId) {
     const savedScrollY=albumPosition?.deckId===activeDeck&&albumPosition.mode==="review"?albumPosition.scrollY:window.scrollY;
@@ -1028,7 +1028,7 @@ export function startReader({createCardFeatures} = {}) {
       if (pendingDeck) {
         const deckId=pendingDeck,addToDecks=pendingIntent === "collect";
         applyState(await api.request(addToDecks ? "/api/reader/collect" : "/api/reader/select",{deckId}));
-        if(addToDecks)openDeckId=deckId;
+        if(addToDecks){openDeckId=null;authReturn=deckPageHash(deckId);}
         pendingDeck = null;pendingIntent=null;
       }
       let postAuthNotice="";
@@ -1168,9 +1168,9 @@ export function startReader({createCardFeatures} = {}) {
       case "choose-book": openBook(bookId); break;
       case "open-mascots": mascotReturnHash=location.hash;mascotReturnBookId=openBookId;navigate("#mascots/"+b.dataset.book); break;
       case "close-mascots": navigate(mascotReturnHash||"#home"); break;
-      case "open-deck": openDeckId = b.dataset.deck; render(); break;
-      case "preview-deck": openDeckId=b.dataset.deck;navigate("#preview/"+encodeURIComponent(b.dataset.deck));break;
-      case "back-from-deck-preview": navigate("#book/"+encodeURIComponent(bookId));break;
+      case "open-deck": openDeckId=null;navigate(deckPageHash(b.dataset.deck));break;
+      case "preview-deck": openDeckId=null;navigate(deckReadingHash(b.dataset.deck));break;
+      case "back-from-deck-preview": navigate(deckPageHash(deckId));break;
       case "close-deck": closeDeck(openDeckId); break;
       case "select-deck": enterDeck(b.dataset.deck); break;
       case "add-deck-to-collection": addDeckToCollection(b.dataset.deck); break;
