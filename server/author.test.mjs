@@ -6,7 +6,7 @@ import {openDatabase,initializeDatabase,PostgresDatabase,SQLITE_SCHEMA_VERSION} 
 import {PGlite} from "@electric-sql/pglite";
 import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
-import {createBook,createDeck,addCard,completeBook,ownedBookInformation,takeFirstNote,finishNoteDecks} from "./author-repository.mjs";
+import {createBook,createDeck,addCard,addDeckContributors,completeBook,ownedBookInformation,takeFirstNote,finishDeck,finishNoteDecks} from "./author-repository.mjs";
 import {readCatalog,checkCatalog} from "./catalog-repository.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {readReaderState as readReaderStateAtDate,selectDeck,openCard,dailyIdea,changeReading} from "./reader-repository.mjs";

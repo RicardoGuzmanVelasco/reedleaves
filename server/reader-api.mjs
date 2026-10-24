@@ -5,7 +5,7 @@ import {ApiError} from "./errors.mjs";
 import {readReaderState, selectDeck, addDeckToCollection, openCard, changeReading, changePreferences, dailyIdea, dailyIdeaStatus, savePracticeAnswer} from "./reader-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 
-import {createBook,createDeck,changeDeckLanguage,changeDeckTitle,addCard,takeFirstNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
+import {createBook,createDeck,addDeckContributors,changeDeckLanguage,changeDeckTitle,addCard,takeFirstNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
 import {createBookAutofill} from "./book-autofill.mjs";
 import {readCardVotes,setCardVote} from "./card-votes.mjs";
 import {readCardActions,readSavedCards,setCardSave} from "./card-saves.mjs";
@@ -44,6 +44,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
     routes.set("/api/reader/guides",["POST"]);
     routes.set("/api/feedback",["POST"]);
     routes.set("/api/author/decks/finish-notes",["POST"]);
+    routes.set("/api/author/decks/contributors",["POST"]);
     routes.set("/api/author/decks/language",["POST"]);
     routes.set("/api/author/decks/title",["POST"]);
     routes.set("/api/author/notes",["POST"]);
@@ -145,7 +146,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
           const result=await (path.endsWith("title") ? changeDeckTitle : changeDeckLanguage)(db,active,input);
           send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
         }
-        const result = path === "/api/author/notes" ? await takeFirstNote(db,active,input) : path === "/api/author/decks/finish-notes" ? await finishNoteDecks(db,active,input) : path === "/api/author/decks/finish" ? await finishDeck(db,active,input) : path.endsWith("complete") ? await completeBook(db,active,input) : path.endsWith("books") ? await createBook(db,active,input) : path.endsWith("decks") ? await createDeck(db,active,input) : await addCard(db,active,input);
+        const result = path === "/api/author/notes" ? await takeFirstNote(db,active,input) : path === "/api/author/decks/finish-notes" ? await finishNoteDecks(db,active,input) : path === "/api/author/decks/contributors" ? await addDeckContributors(db,active,input) : path === "/api/author/decks/finish" ? await finishDeck(db,active,input) : path.endsWith("complete") ? await completeBook(db,active,input) : path.endsWith("books") ? await createBook(db,active,input) : path.endsWith("decks") ? await createDeck(db,active,input) : await addCard(db,active,input);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
       const result = path === "/api/reader/collect" ? await addDeckToCollection(db,active,input.deckId,currentTime) :
