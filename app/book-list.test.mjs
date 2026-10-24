@@ -24,16 +24,41 @@ test('Spines retain safe destinations, titles, languages and authors in both ori
   assert.match(selector,/aria-label="Stacked books"[^>]*aria-pressed|aria-pressed="true" aria-label="Stacked books"/);
   assert.equal((selector.match(/aria-pressed="true"/g)||[]).length,1);
 });
-test('Library and grouped personal shelves share view choice and preserve book access',async()=>{
+test('Library choice remains independent of personal shelf groups',async()=>{
   const db=openDatabase(':memory:');
   try{
     await initializeDatabase(db);await seedCatalog(db);
     const catalog=prepareCatalog(await readCatalog(db));
     const state=readerState(catalog,{libraryQuery:'',libraryFilters:{},bookViews:{library:'stack',bookshelf:'shelf'},userId:'reader',statuses:Object.fromEntries(catalog.books.map(book=>[book.id,'reading']))});
     assert.match(libraryResultsMarkup(state),/data-book-spines="stack"/);
-    const shelf=bookshelfView(state);assert.match(shelf,/data-book-spines="shelf"/);
+    const shelf=bookshelfView(state);assert.doesNotMatch(shelf,/data-action="set-book-view"/);
+    assert.doesNotMatch(shelf,/data-book-spines=/);
     for(const book of catalog.books)assert.ok(shelf.includes(`data-book="${book.id}"`));
     assert.match(libraryResultsMarkup({...state,bookViews:{library:'covers'}}),/study-books book-grid/);
+  }finally{await db.close();}
+});
+
+test('Personal shelf fixes Reading and Other to covers; Read has its own selector and threshold',async()=>{
+  const db=openDatabase(':memory:');
+  try{
+    await initializeDatabase(db);await seedCatalog(db);
+    const source=prepareCatalog(await readCatalog(db));
+    const books=Array.from({length:13},(_,index)=>({...source.books[0],id:`group-book-${index}`}));
+    const catalog={...source,books,booksById:new Map(books.map(book=>[book.id,book]))};
+    const statuses=Object.fromEntries(books.map((book,index)=>[book.id,index===0?'reading':index===12?'unread':'read']));
+    const base=readerState(catalog,{userId:'reader',statuses,shelfBookIds:books.map(book=>book.id),bookViews:{bookshelf:'stack'}});
+    const group=(html,key)=>html.match(new RegExp(`<section class="bookshelf-group" aria-labelledby="bookshelf-group-${key}">([\\s\\S]*?)<\\/section>`))?.[1];
+    const html=bookshelfView(base);
+    assert.match(group(html,'reading'),/study-books book-grid/);
+    assert.doesNotMatch(group(html,'reading'),/data-action="set-book-view"/);
+    assert.match(group(html,'unread'),/study-books book-grid/);
+    assert.doesNotMatch(group(html,'unread'),/data-action="set-book-view"/);
+    assert.match(group(html,'read'),/data-scope="bookshelf-read"/);
+    assert.match(group(html,'read'),/data-book-spines="shelf"/);
+    assert.equal((html.match(/data-action="set-book-view"/g)||[]).length,3);
+    assert.match(group(bookshelfView({...base,bookViews:{'bookshelf-read':'stack'}}),'read'),/data-book-spines="stack"/);
+    const ten={...base,statuses:{...statuses,[books[11].id]:'unread'}};
+    assert.match(group(bookshelfView(ten),'read'),/study-books book-grid/);
   }finally{await db.close();}
 });
 

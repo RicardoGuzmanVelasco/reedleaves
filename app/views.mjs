@@ -111,8 +111,7 @@ function bookListFilterButton(s,scope) {
   return `<button id="open-${library?'library':'bookshelf'}-filters" class="bookshelf-filter-button" type="button" data-action="open-${library?'library':'bookshelf'}-filters" aria-label="${c.filterBooks}" aria-haspopup="dialog" aria-expanded="${!!(library?s.libraryFiltersOpen:s.bookshelfFiltersOpen)}" title="${c.filterBooks}">${filterIconMarkup}</button>`;
 }
 
-function bookListPresentation(s,books,scope,{selector=true,count=books.length,note=false}={}) {
-  const view=defaultBookView(count,s.bookViews?.[scope]);
+function bookListPresentation(s,books,scope,{selector=true,count=books.length,note=false,view=defaultBookView(count,s.bookViews?.[scope])}={}) {
   const entries=books.map(book=>{
     const title=bookCoverTitle(book,s.language);
     const accessory=note ? `<button class="book-note-add" type="button" data-action="take-note" data-book="${esc(book.id)}" aria-label="${esc(words[s.language].takeNote+': '+title.text)}" aria-haspopup="dialog">${takeNoteIconMarkup}</button>` : '';
@@ -230,9 +229,14 @@ export function bookshelfView(s) {
     <div class="screen-heading bookshelf-heading"><h1 tabindex="-1">${collectionIconMarkup(s.readOnly ? "shelf" : "bookcase",30)}${s.readOnly ? c.shelf : c.bookcase}</h1></div>
     ${s.readOnly ? "" : collectionTabs(s,activeTab)}
     ${activeTab === "decks" && !s.readOnly ? deckCollectionMarkup(s) : all.length ? `
-      ${bookViewSelector(defaultBookView(entries.length,s.bookViews?.[s.readOnly?"public-bookshelf":"bookshelf"]),s.readOnly?"public-bookshelf":"bookshelf",s.language,bookListFilterButton(s,"bookshelf"))}${entries.length ? groups.map(([key,title])=>{
+      ${s.readOnly ? bookViewSelector(defaultBookView(entries.length,s.bookViews?.['public-bookshelf']),'public-bookshelf',s.language,bookListFilterButton(s,'bookshelf')) : `<div class="book-list-tools book-list-tools--filter-only">${bookListFilterButton(s,'bookshelf')}</div>`}${entries.length ? groups.map(([key,title])=>{
         const items = entries.filter(item=>item.group === key);
-        return items.length ? `<section class="bookshelf-group" aria-labelledby="bookshelf-group-${key}"><h2 id="bookshelf-group-${key}">${title}</h2>${bookListPresentation(s,items.map(item=>item.book),s.readOnly?"public-bookshelf":"bookshelf",{selector:false,count:entries.length})}</section>` : "";
+        if(!items.length)return "";
+        const scope=s.readOnly?'public-bookshelf':'bookshelf-read';
+        const readView=defaultBookView(items.length>10?items.length:0,s.bookViews?.[scope]);
+        const view=s.readOnly?defaultBookView(entries.length,s.bookViews?.[scope]):key==='read'?readView:'covers';
+        const selector=!s.readOnly&&key==='read'?bookViewSelector(readView,scope,s.language):'';
+        return `<section class="bookshelf-group" aria-labelledby="bookshelf-group-${key}"><div class="bookshelf-group-heading"><h2 id="bookshelf-group-${key}">${title}</h2>${selector}</div>${bookListPresentation(s,items.map(item=>item.book),scope,{selector:false,view})}</section>`;
       }).join("") : `<div class="empty-state"><p>${c.noBookshelfMatches}</p><button class="text-button" type="button" data-action="reset-bookshelf-filters">${c.resetFilters}</button></div>`}
     ` : `<div class="empty-state"><p>${s.readOnly ? c.noUserBookshelf : c.emptyBookshelf}</p></div>`}
     ${selected && activeTab === "shelf" && (!s.readOnly || all.some(item=>item.book.id === selected.id)) ? bookDetailsMarkup(s,selected) : ""}${filterDialog}</section>`;
