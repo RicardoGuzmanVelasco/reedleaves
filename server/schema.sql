@@ -85,7 +85,12 @@ CREATE TABLE decks (
   status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived')),
   editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft','reviewed')),
   quote_source_url TEXT CHECK(quote_source_url IS NULL OR (quote_source_url LIKE 'https://%' AND length(trim(quote_source_url)) BETWEEN 9 AND 2048)),
+  kind TEXT NOT NULL DEFAULT 'standard' CHECK(kind IN ('standard','collective')),
+  contribution_policy TEXT NOT NULL DEFAULT 'owner' CHECK(contribution_policy IN ('owner','open','selected')),
+  max_cards_per_contributor INTEGER CHECK(max_cards_per_contributor IS NULL OR max_cards_per_contributor > 0),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CHECK((kind='standard' AND contribution_policy='owner' AND max_cards_per_contributor IS NULL) OR
+        (kind='collective' AND contribution_policy IN ('open','selected'))),
   UNIQUE(id,book_id)
 ) STRICT;
 CREATE INDEX decks_by_book ON decks(book_id);
@@ -124,6 +129,9 @@ CREATE TABLE cards (
   parent_id TEXT,
   position INTEGER NOT NULL CHECK(position > 0),
   is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),
+  is_reading_guide INTEGER NOT NULL DEFAULT 0 CHECK(is_reading_guide IN (0,1)),
+  creator_user_id TEXT REFERENCES users(id),
+  language TEXT NOT NULL DEFAULT 'en' CHECK(length(language) BETWEEN 2 AND 35),
   created_at TEXT,
   UNIQUE(id,deck_id),
   FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id),
@@ -134,6 +142,26 @@ CREATE UNIQUE INDEX root_order ON cards(deck_id,position) WHERE parent_id IS NUL
 CREATE UNIQUE INDEX sibling_order ON cards(deck_id,parent_id,position) WHERE parent_id IS NOT NULL;
 CREATE INDEX cards_by_deck ON cards(deck_id,parent_id,position);
 CREATE INDEX cards_by_note_date ON cards(deck_id,created_at DESC) WHERE created_at IS NOT NULL;
+CREATE INDEX cards_by_creator ON cards(creator_user_id,deck_id);
+CREATE UNIQUE INDEX one_reading_guide_per_contributor ON cards(deck_id,creator_user_id) WHERE is_reading_guide=1;
+
+CREATE TABLE deck_contributors (
+  deck_id TEXT NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  added_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(deck_id,user_id)
+) STRICT;
+CREATE INDEX deck_contributors_by_user ON deck_contributors(user_id,deck_id);
+
+CREATE TRIGGER freeze_collective_contributors_insert BEFORE INSERT ON deck_contributors
+WHEN (SELECT status FROM decks WHERE id=NEW.deck_id) <> 'draft'
+BEGIN SELECT RAISE(ABORT,'Published contributor list is immutable'); END;
+CREATE TRIGGER freeze_collective_contributors_update BEFORE UPDATE ON deck_contributors
+WHEN (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft'
+BEGIN SELECT RAISE(ABORT,'Published contributor list is immutable'); END;
+CREATE TRIGGER freeze_collective_contributors_delete BEFORE DELETE ON deck_contributors
+WHEN (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft'
+BEGIN SELECT RAISE(ABORT,'Published contributor list is immutable'); END;
 CREATE TABLE card_translations (
   card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
@@ -283,4 +311,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 39;
+PRAGMA user_version = 40;

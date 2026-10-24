@@ -7,6 +7,7 @@ export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
 export const TITLE_MAX_LENGTH = 72;
 export const CARD_BODY_MAX_LENGTH = 300;
+export const READING_GUIDE_MAX_LENGTH = 1200;
 export const DESCRIPTION_MAX_LENGTH = 240;
 export const EDITORIAL_NOTE_MAX_LENGTH = 240;
 export const EDITORIAL_NOTE_PREFERRED_LENGTH = 120;
@@ -102,6 +103,7 @@ export function validateCards(cards, bookId, {allowEmpty = false} = {}) {
   for (const card of cards) {
     if (!card || typeof card.id !== "string" || !card.id.trim() || byId.has(card.id)) throw new Error("Invalid or duplicate ID");
     if (card.isQuote !== undefined && typeof card.isQuote !== "boolean") throw new Error("Invalid quote tag");
+    if (card.isReadingGuide !== undefined && typeof card.isReadingGuide !== "boolean") throw new Error("Invalid reading guide tag");
     if (card.bookId !== bookId) throw new Error("Wrong book");
     if (card.parentId !== null && (typeof card.parentId !== "string" || !card.parentId)) throw new Error("Invalid parent");
     if (!Number.isInteger(card.order) || card.order < 1) throw new Error("Invalid order");

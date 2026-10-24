@@ -151,9 +151,9 @@ export async function seedCatalog(db, seed = readSeed()) {
       const temporaryBase=Math.max(1_000_000,...existing.map(row=>Number(row.position)+1));
       for (const [index,row] of existing.entries()) await db.prepare("UPDATE cards SET position=? WHERE id=?").run(temporaryBase+index,row.id);
       for (const [index,card] of deckCards.entries()) {
-        await db.prepare(`INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote) VALUES (?,?,?,?,?,?)
-          ON CONFLICT(id) DO UPDATE SET parent_id=excluded.parent_id,position=excluded.position,is_quote=excluded.is_quote`)
-          .run(card.id,deckId,card.book_id,card.parent_id || null,temporaryBase+existing.length+index,Number(card.is_quote || 0));
+        await db.prepare(`INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,creator_user_id,language) VALUES (?,?,?,?,?,?,?,?)
+          ON CONFLICT(id) DO UPDATE SET parent_id=excluded.parent_id,position=excluded.position,is_quote=excluded.is_quote,creator_user_id=excluded.creator_user_id,language=excluded.language`)
+          .run(card.id,deckId,card.book_id,card.parent_id || null,temporaryBase+existing.length+index,Number(card.is_quote || 0),d.creator_user_id,d.language);
         for (const [language,translation] of translations(card,["title","body"])) await db.prepare(`INSERT INTO card_translations VALUES (?, ?, ?, ?)
           ON CONFLICT(card_id, language) DO UPDATE SET title = excluded.title, body = excluded.body`).run(card.id, language, translation.title, translation.body);
       }

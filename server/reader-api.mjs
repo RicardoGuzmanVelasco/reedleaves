@@ -10,6 +10,7 @@ import {createBookAutofill} from "./book-autofill.mjs";
 import {readCardVotes,setCardVote} from "./card-votes.mjs";
 import {readCardActions,readSavedCards,setCardSave} from "./card-saves.mjs";
 import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH} from "../app/core.mjs";
+import {submitReadingGuide} from "./reading-guides.mjs";
 
 async function readBody(request,maxBytes = 8192) {
   if (request.headers["content-type"]?.split(";")[0].trim() !== "application/json") throw new ApiError(415,"invalidRequest");
@@ -40,6 +41,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
       ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/collect",["POST"]],
       ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
+    routes.set("/api/reader/guides",["POST"]);
     routes.set("/api/feedback",["POST"]);
     routes.set("/api/author/decks/finish-notes",["POST"]);
     routes.set("/api/author/decks/language",["POST"]);
@@ -114,6 +116,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         send(200,{saved:true,id}); return true;
       }
       if (path === "/api/reader/view") { send(200,await recordCardView(db,active,input,currentTime)); return true; }
+      if (path === "/api/reader/guides") { const result=await submitReadingGuide(db,active,input); send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true; }
       if (path === "/api/cards/vote") { send(200,await setCardVote(db,active,input)); return true; }
       if (path === "/api/cards/save") { send(200,await setCardSave(db,active,input,currentTime)); return true; }
       if (path === "/api/author/books/autofill") {

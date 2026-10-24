@@ -1,10 +1,10 @@
 import {bookListMarkup,bookViewSelector,defaultBookView,selectedBookView} from "./book-list.mjs";
-import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES, INVITE_CODE_MIN_LENGTH, LANGUAGES, USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, CARD_BODY_MAX_LENGTH, BOOK_AUTHOR_MAX_LENGTH, MAX_CARDS_PER_DECK} from "./core.mjs";
+import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES, INVITE_CODE_MIN_LENGTH, LANGUAGES, USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, CARD_BODY_MAX_LENGTH, READING_GUIDE_MAX_LENGTH, BOOK_AUTHOR_MAX_LENGTH, MAX_CARDS_PER_DECK} from "./core.mjs";
 import { availableDecks } from "./decks.mjs";
 import {homeBooks,editableNoteDecks,noteDecksWithSpace,recentNoteDecks} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=deck-detail-actions-1";
+import { words } from "./i18n.mjs?v=reading-guides-1";
 import { bookLinkUrl } from "./book-links.mjs";
 import { validQuoteSourceUrl } from "./quote-source.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
@@ -130,6 +130,7 @@ export function libraryResultsMarkup(s) {
 function bookDetailsMarkup(s,book) {
   const c = words[s.language];
   const choices = availableDecks(s.catalog,book.id);
+  const guideDeck=s.catalog.decks.find(deck=>deck.bookId===book.id&&(deck.kind||"standard")==="collective"&&deck.cardCount>0);
   const creatorProfileId=book.creatorProfileUserId || book.creatorUserId;
   const noteNudge=s.mode === "library" && s.noteNudgeBookId === book.id && ["reading","read"].includes(s.statuses[book.id] || "unread");
   const noteChoices=s.noteDestination?.source === "book-details" && s.noteDestination.bookId === book.id ? bookNoteDestinationMarkup(s,book) : "";
@@ -142,7 +143,7 @@ function bookDetailsMarkup(s,book) {
     ${book.creatorName ? `<p class="book-added-by"><span>${c.bookAddedBy}</span>${nameLink({icon:"user",name:book.creatorName,href:creatorProfileId ? `#profile/${encodeURIComponent(creatorProfileId)}` : null})}</p>` : ""}
     ${contentText(book.description,s.language,book.popularLanguage) ? `<p class="deck-description" id="book-dialog-description" lang="${esc(contentLocale(book.description,s.language,book.popularLanguage))}" dir="auto">${esc(contentText(book.description,s.language,book.popularLanguage))}</p>` : ""}
     ${bookLinksMarkup(s, book)}
-    <button class="primary" type="button" data-action="open-book" data-book="${esc(book.id)}" ${!choices.length && !s.userId ? "disabled" : ""}>${c.viewDecks} · ${choices.length}</button>
+    <button class="primary" type="button" data-action="open-book" data-book="${esc(book.id)}" ${!choices.length && !guideDeck && !s.userId ? "disabled" : ""}>${c.viewDecks} · ${choices.length+(guideDeck?1:0)}</button>
   </article></dialog>`;
 }
 
@@ -354,7 +355,7 @@ function nameLink({icon,name,language=null,href=null}) {
 
 function cardAttribution(s,card,book,{compact=false,linkBook=true,showDraftStatus=false}={}) {
   const deck=s.catalog.decksById?.get(card.deckId);
-  const creator=deck?.creator;
+  const creator=card.isReadingGuide&&card.creatorUserId ? {userId:card.creatorUserId,name:card.creatorName} : deck?.creator;
   const title=displayedBookTitle(s,book,true);
   const rows=[
     ["book",title.text,title.language,`#library/book/${encodeURIComponent(book.id)}`],
@@ -362,7 +363,8 @@ function cardAttribution(s,card,book,{compact=false,linkBook=true,showDraftStatu
     ["user",creator?.name,null,creator ? `#profile/${encodeURIComponent(creator.userId)}` : null]
   ];
   const draftStatus=showDraftStatus && deck?.status === "draft" ? `<span class="deck-writing-badge exclusive-card-draft-badge">${esc(words[s.language].deckInProgress)}</span>` : "";
-  return `<div class="card-source">${draftStatus}${(compact ? rows.slice(0,1) : rows).map(([icon,name,language,href])=>nameLink({icon,name,language,href:icon==="book"&&!linkBook?null:href})).join("")}</div>`;
+  const guideLanguage=card.isReadingGuide?(()=>{try{return new Intl.DisplayNames([s.language],{type:"language"}).of(card.language)||card.language;}catch{return card.language;}})():"";
+  return `<div class="card-source">${draftStatus}${(compact ? rows.slice(0,1) : rows).map(([icon,name,language,href])=>nameLink({icon,name,language,href:icon==="book"&&!linkBook?null:href})).join("")}${card.isReadingGuide?`<span class="reading-guide-language" lang="${esc(card.language)}">${esc(words[s.language].readingGuideLanguage)} · ${esc(guideLanguage)}</span>`:""}</div>`;
 }
 
 function cardActionsHost(card) {
@@ -379,7 +381,7 @@ function noteTypeIcon(kind) {
 }
 
 function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false, compact = false,linkBook=true,focusable=true,idPrefix="",decorative=false,layerClass=""} = {}) {
-  const book = s.catalog.booksById.get(card.bookId), deckLanguage = card.deckLanguage || s.language;
+  const book = s.catalog.booksById.get(card.bookId), deckLanguage = card.language || card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
   const type=cardTypeFor(card),bodyTag=type.bodyTag;
@@ -508,6 +510,8 @@ function deckWritingActions(s,deck,className="") {
 
 export function deckView(s) {
   const c = words[s.language], book = s.catalog.booksById.get(s.bookId), choices = s.deckChoices;
+  const guideDeck=s.catalog.decks.find(deck=>deck.bookId===s.bookId&&(deck.kind||"standard")==="collective"&&deck.cardCount>0);
+  const canContribute=s.userId&&((s.statuses?.[s.bookId])||"unread")==="read";
   const languageName = tag => { try { return new Intl.DisplayNames([s.language],{type:"language"}).of(tag) || tag; } catch { return tag; } };
   const deckDetails = (deck, dialog = false) => {
     const inCollection=!!s.userId && ((s.enrolledIds || []).includes(deck.id) || deck.creator?.userId === s.userId);
@@ -537,8 +541,20 @@ export function deckView(s) {
         <span class="deck-tile-copy"><strong lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</strong><span class="deck-creator deck-tile-creator">${deckCreator(deck)}</span>
         <span class="deck-tile-metadata"><span class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="${esc(c.noteCardsCount(deck.cardCount))}">${cardsIconMarkup}<span>${deck.cardCount}</span></span><span class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="${esc(c.quoteCount(quoteCount))}">${quoteMarkMarkup}<span>${quoteCount}</span></span><span class="deck-tile-count deck-tile-language" aria-hidden="true" title="${esc(language)}">${flag}</span>${deckStatusMarkup(s,deck,{compact:true})}</span></span></article>`;
     }).join("")}</div>` : `<div class="empty-state">${c.noDecks}</div>`}
+    ${guideDeck ? `<button class="reading-guides-entry" type="button" data-action="open-reading-guides" data-book="${esc(s.bookId)}"><span class="reading-guides-entry-icon" aria-hidden="true">↗</span><span><strong>${c.readingGuides}</strong><small>${c.noteCardsCount(guideDeck.cardCount)}</small></span><span aria-hidden="true">→</span></button>` : canContribute ? `<button class="reading-guides-entry reading-guides-entry--empty" type="button" data-action="open-reading-guides" data-book="${esc(s.bookId)}"><span class="reading-guides-entry-icon" aria-hidden="true">↗</span><span><strong>${c.readingGuideAdd}</strong><small>${c.readingGuideContribution}</small></span><span aria-hidden="true">→</span></button>` : ""}
     ${(() => { const selected = choices.find(item => item.deck.id === s.openDeckId); return selected ? `<dialog class="deck-modal deck-detail-modal" data-deck="${esc(selected.deck.id)}" aria-labelledby="deck-dialog-title" aria-describedby="deck-dialog-description"><button class="dialog-close deck-modal-close" type="button" data-action="close-deck" aria-label="${c.closeDeck}" autofocus>${closeIconMarkup}</button><article class="deck-card">${deckDetails(selected.deck,true)}</article></dialog>` : ""; })()}
   </section>`;
+}
+
+export function readingGuidesView(s) {
+  const c=words[s.language],book=s.catalog.booksById.get(s.bookId),deck=s.catalog.decks.find(item=>item.bookId===s.bookId&&(item.kind||"standard")==="collective");
+  const model=deck?s.catalog.deckModels.get(deck.id):null,cards=model?.cards||[],own=cards.find(card=>card.creatorUserId===s.userId),canContribute=!!s.userId&&((s.statuses?.[s.bookId])||"unread")==="read",canEdit=canContribute||!!own;
+  const languageName=tag=>{try{return new Intl.DisplayNames([s.language],{type:"language"}).of(tag)||tag;}catch{return tag;}};
+  const guides=cards.map(card=>`<li><button type="button" class="reading-guide-row" data-action="open-reading-guide-card" data-card="${esc(card.id)}" aria-label="${esc(c.readingGuideBody+": "+contentText(card.body,s.language,card.language))}"><span lang="${esc(card.language)}" dir="auto">${esc(contentText(card.body,s.language,card.language))}</span><small lang="${esc(card.language)}">${esc(languageName(card.language))}</small></button></li>`).join("");
+  const draft=s.readingGuideDraft?.bookId===s.bookId?s.readingGuideDraft:null,editor=canEdit?`<form id="reading-guide-form" class="reading-guide-editor"><h2>${own?c.readingGuideEdit:c.readingGuideAdd}</h2><p>${c.readingGuideText}</p><label for="reading-guide-body">${c.readingGuideBody}</label><textarea id="reading-guide-body" name="body" maxlength="${READING_GUIDE_MAX_LENGTH}" rows="5" required placeholder="${esc(c.readingGuidePlaceholder)}">${esc(draft?.body??(own?own.body[own.language]:""))}</textarea><label for="reading-guide-language">${c.readingGuideLanguage}</label>${own?`<input id="reading-guide-language" type="text" value="${esc(languageName(own.language))}" readonly><input type="hidden" name="language" value="${esc(own.language)}">`:`<select id="reading-guide-language" name="language"><option value="es" ${((draft?.language||s.language)==="es")?"selected":""}>${esc(languageName("es"))}</option><option value="en" ${((draft?.language||s.language)==="en")?"selected":""}>${esc(languageName("en"))}</option></select>`}${s.readingGuideError?`<p class="form-error" role="alert">${esc(c[s.readingGuideError]||c.readingGuideSaveError)}</p>`:""}<button class="primary" type="submit">${c.readingGuideSave}</button></form>`:"";
+  const notEligible=s.userId&&!canContribute&&!own?`<p class="reading-guide-eligibility">${c.readingGuideContribution}</p>`:"";
+  const selected=s.catalog.cardsById.get(s.requestedId),selectedInCollection=selected&&selected.deckId===deck?.id?selected:null;
+  return `<section class="reading-guides-screen"><button type="button" class="text-button collection-back" data-action="back-to-book-decks">${c.deckBack}</button><div class="screen-heading"><div><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.readingGuides}</h1></div></div>${editor}${notEligible}${cards.length?`<ol class="reading-guides-list">${guides}</ol>`:`<div class="empty-state">${c.noReadingGuides}</div>`}${selectedInCollection?exclusiveCardMarkup(s,selectedInCollection,c.position(cards.findIndex(card=>card.id===selectedInCollection.id)+1,cards.length)):""}</section>`;
 }
 
 function deckDisplaySelector(s) {
