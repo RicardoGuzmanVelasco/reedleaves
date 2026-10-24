@@ -368,12 +368,15 @@ export function startReader({createCardFeatures} = {}) {
     }
   }
   function recordDisplayedCard() {
-    const cardId=(main.querySelector(".exclusive-card-modal [data-reading-card]") || main.querySelector("[data-reading-card]"))?.dataset.readingCard;
+    if(mode === "daily" && !dailyExclusiveCardId) return;
+    const exclusiveCard=main.querySelector(".exclusive-card-modal [data-reading-card]");
+    const cardId=(exclusiveCard || (mode === "daily" ? null : main.querySelector("[data-reading-card]")))?.dataset.readingCard;
     if (!cardId || !snapshot.user || document.hidden || !["daily","review","author","saved"].includes(mode)) return;
-    const context=mode === "review" ? "practice" : mode,day=context === "daily" ? daily?.day : null,key=context === "daily" ? `${snapshot.user.id}:daily:${day}` : `${snapshot.user.id}:${cardId}`;
+    const context=mode === "review" ? "practice" : mode,day=context === "daily" ? daily?.day : null;
+    const key=context === "daily" ? `${snapshot.user.id}:daily:${selectedDailyDay || day}:${cardId}` : `${snapshot.user.id}:${cardId}`;
     if (recordedViews.has(key) || pendingViews.has(key)) return;
     pendingViews.add(key);
-    api.request("/api/reader/view",{cardId,context}).then(result=>{
+    api.request("/api/reader/view",{cardId,context,...(context === "daily" ? {day:selectedDailyDay || day} : {})}).then(result=>{
       recordedViews.add(key);
       if(context === "daily" && result.seenCurrentDay) {
         dailySeenDays.add(day);dailyHistory=dailyHistory.map(row=>row.day===day?{...row,seenInDay:true}:row);snapshot={...snapshot,dailyHistory};

@@ -11,8 +11,9 @@ export async function insertCardView(db,userId,cardId) {
 }
 
 // Views count distinct cards actually displayed, independent of paid sessions.
-export async function recordCardView(db,session,{cardId,context} = {},now=new Date()) {
+export async function recordCardView(db,session,{cardId,context,day:requestedDay} = {},now=new Date()) {
   if (typeof cardId !== "string" || !["daily","practice","author","saved"].includes(context)) throw new ApiError(400,"invalidRequest");
+  if (context === "daily" && requestedDay !== undefined && typeof requestedDay !== "string") throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     const card=await db.prepare(`SELECT c.id,c.deck_id,v.status,d.creator_user_id
       FROM cards c JOIN decks v ON v.id=c.deck_id JOIN decks d ON d.id=v.id
@@ -23,7 +24,9 @@ export async function recordCardView(db,session,{cardId,context} = {},now=new Da
     if (context === "practice") allowed=true;
     if (context === "saved") allowed=!!await db.prepare("SELECT 1 FROM card_saves WHERE user_id=? AND card_id=?").get(session.user_id,cardId);
     if (context === "daily") {
-      allowed=!!await db.prepare("SELECT 1 FROM daily_ideas WHERE card_id=?").get(cardId);
+      allowed=!!await (requestedDay === undefined
+        ? db.prepare("SELECT 1 FROM daily_ideas WHERE card_id=?").get(cardId)
+        : db.prepare("SELECT 1 FROM daily_ideas WHERE day=? AND card_id=?").get(requestedDay,cardId));
     }
     if (!allowed) throw new ApiError(403,"notAllowed");
     await insertCardView(db,session.user_id,cardId);
@@ -32,7 +35,7 @@ export async function recordCardView(db,session,{cardId,context} = {},now=new Da
       const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id);
       const day=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea);
       const current=await db.prepare("SELECT 1 FROM daily_ideas WHERE day=? AND card_id=?").get(day,cardId);
-      if(current) {
+      if(current && (requestedDay === undefined || requestedDay === day)) {
         await db.prepare("INSERT INTO daily_idea_views(user_id,day) VALUES (?,?) ON CONFLICT(user_id,day) DO NOTHING").run(session.user_id,day);
         seenCurrentDay=true;
       }

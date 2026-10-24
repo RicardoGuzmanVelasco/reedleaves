@@ -32,6 +32,10 @@ test("Deck grid opens a complete modal; every review card is visible and openabl
   const html = reviewView(base);
   assert.match(html,/data-action="previous-reading-card" aria-label="← Anterior"/);
   assert.match(html,/data-action="next-reading-card" aria-label="Siguiente →"/);
+  const controls=html.match(/<div class="exclusive-card-controls">([^]*?)<\/div>/)?.[1];
+  assert.ok(controls);
+  const previous=controls.indexOf('data-action="previous-reading-card"'),position=controls.indexOf("<span>2 de 7</span>"),next=controls.indexOf('data-action="next-reading-card"');
+  assert.ok(previous>=0 && position>previous && next>position);
   assert.match(html,/Equipo Reedleaves/); assert.match(html,/class="tree-map/);
   assert.doesNotMatch(html,/tree-node--seen|tree-node--unseen|Ya repasada|Sin repasar/);
   assert.match(html,/Make room for what matters/); assert.doesNotMatch(html,/leaf-token|Bloqueada|tree-node-hidden/);
@@ -41,7 +45,8 @@ test("Deck grid opens a complete modal; every review card is visible and openabl
   assert.match(grid,/class="deck-grid"/); assert.match(grid,/Ideas esenciales/); assert.match(grid,/From the inside out/);
   assert.doesNotMatch(grid,/<dialog/); assert.doesNotMatch(grid,/deck-carousel/);
   const modal = deckView({...base,deckChoices,openDeckId:deckId});
-  assert.match(modal,/<dialog class="deck-modal"/); assert.match(modal,/0 citas/);
+  assert.match(modal,/<dialog class="deck-modal deck-detail-modal"/); assert.match(modal,/0 citas/);
+  assert.match(modal,/<dialog class="deck-modal deck-detail-modal"[^>]*><button class="dialog-close deck-modal-close"[^>]*>[\s\S]*?<\/button><article class="deck-card">/);
   assert.match(modal,/href="#profile\//); assert.match(modal,/inglés/i); assert.match(modal,/Ver baraja/);
   assert.doesNotMatch(modal,/Más popular/);
 });
@@ -51,6 +56,8 @@ test("Reading navigation offers an alternative control at deck boundaries",async
   const first=reviewView({...base,requestedId:cards[0].id}),last=reviewView({...base,requestedId:cards.at(-1).id});
   assert.doesNotMatch(first,/data-action="previous-reading-card"/);assert.match(first,/data-action="next-reading-card"/);
   assert.match(last,/data-action="previous-reading-card"/);assert.doesNotMatch(last,/data-action="next-reading-card"/);
+  assert.match(first,/exclusive-card-step-placeholder" aria-hidden="true"><\/span><span>1 of 7<\/span>/);
+  assert.match(last,/<span>7 of 7<\/span><span class="exclusive-card-step-placeholder" aria-hidden="true"><\/span>/);
 });
 
 test("Deck tiles only label ongoing creation and retain the change warning in their details, in both languages",async()=>{

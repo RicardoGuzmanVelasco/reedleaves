@@ -99,7 +99,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal((await completeBook(db,session,request)).bookId,bookId);
     const saved=(await readCatalog(db,session.user_id)).books.find(book=>book.id===bookId);
     assert.equal(saved.author,"Autor ya escrito");assert.equal(saved.originalTitle,bookMetadata.originalTitle);assert.equal(saved.originalLanguage,"en");
-    for (const field of Object.keys(bookMetadata)) assert.deepEqual(saved[field],bookMetadata[field]);
+    for (const field of Object.keys(bookMetadata)) assert.deepEqual(saved[field],field === "title" ? {es:bookMetadata.title.es} : bookMetadata[field]);
     assert.equal((await db.prepare("SELECT count(*) AS n FROM books").get()).n,bookCount);
     assert.equal((await db.prepare("SELECT count(*) AS n FROM book_translations WHERE book_id=?").get(bookId)).n,2);
     assert.deepEqual(await readReaderState(db,session),beforeState);
@@ -132,7 +132,7 @@ for (const dialect of ["sqlite","postgres"]) {
     await completeBook(db,session,{bookId:japanese,metadata:bookMetadata});
     const result=(await readCatalog(db,session.user_id)).books.find(book=>book.id===japanese);
     assert.equal(result.originalTitle,"本の原題");assert.equal(result.originalLanguage,"ja");assert.equal(result.author,"著者");
-    assert.equal(result.title.ja,"本の原題");assert.equal(result.description.ja,undefined);assert.equal(result.description.fr,bookMetadata.description.fr);
+    assert.equal(result.title.ja,undefined);assert.equal(result.description.ja,undefined);assert.equal(result.description.fr,bookMetadata.description.fr);
   });
   test(`${dialect}: save the full AI preview atomically, repeat safely and share its metadata`,async t=>{
     const {db,session,other}=await fixture(t,dialect);
@@ -141,7 +141,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const {bookId}=await createBook(db,session,input);
     assert.equal((await createBook(db,session,input)).bookId,bookId);
     const saved=(await readCatalog(db,session.user_id)).books.find(book=>book.id===bookId);
-    for (const field of Object.keys(bookMetadata)) assert.deepEqual(saved[field],bookMetadata[field]);
+    for (const field of Object.keys(bookMetadata)) assert.deepEqual(saved[field],field === "title" ? {es:bookMetadata.title.es} : bookMetadata[field]);
     for (const userId of [undefined,other.user_id]) assert.deepEqual((await readCatalog(db,userId)).books.find(book=>book.id===bookId),saved);
     await assert.rejects(createBook(db,other,input),e=>e.status===409);
     const changed=structuredClone(input);changed.metadata.description.es="Otra descripción";
@@ -166,7 +166,7 @@ for (const dialect of ["sqlite","postgres"]) {
     let catalog=prepareCatalog(await readCatalog(db,session.user_id));
     const book=catalog.booksById.get(bookId);
     assert.equal(book.originalTitle,"L’Étranger"); assert.equal(book.author,"Albert Camus");
-    assert.deepEqual(book.title,{fr:"L’Étranger"}); assert.equal(Object.hasOwn(book,"sources"),false);
+    assert.deepEqual(book.title,{}); assert.equal(Object.hasOwn(book,"sources"),false);
     assert.deepEqual(book.description,{}); assert.deepEqual(book.links,{});
     assert.equal(book.creatorUserId,session.user_id);
     assert.equal(catalog.models.has(bookId),false);
@@ -272,7 +272,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.match(reviewView({...ui,mode:"review",requestedId:null}),/Citas sin clasificar/);
     // Existing saved titles must not reappear in quote views or navigation.
     model.byId.get(quote.cardId).title.fr = "Ancien titre";
-    for (const html of [authorView(ui),reviewView({...ui,mode:"review"}),dailyView({...ui,daily:{id:quote.cardId,day:"2026-10-06"}})]) {
+    for (const html of [authorView(ui),reviewView({...ui,mode:"review"}),dailyView({...ui,daily:{id:quote.cardId,day:"2026-10-06"},dailyExclusiveCardId:quote.cardId})]) {
       const quoteMarkup=html.match(/<article class="idea-card quote-card">[\s\S]*?<\/article>/)?.[0];
       assert.ok(quoteMarkup); assert.doesNotMatch(quoteMarkup,/<h[1-6]\b/);
       assert.doesNotMatch(html,/Ancien titre/);

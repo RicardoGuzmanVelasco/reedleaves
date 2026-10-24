@@ -30,7 +30,6 @@ export async function ownedBookInformation(db,session,bookId,{lock=false}={}) {
 
 export function mergeOwnedBookMetadata(existing,proposal) {
   const current=structuredClone(existing.metadata);
-  if (proposal?.title?.[existing.language]) current.title[existing.language] ||= existing.title;
   return mergeBookMetadata(current,proposal);
 }
 
@@ -56,6 +55,7 @@ export async function createBook(db,session,input) {
   const id=requestId(input.requestId),title=text(metadata.originalTitle || input.title,TITLE_MAX_LENGTH),author=text(input.author,BOOK_AUTHOR_MAX_LENGTH),language=metadata.originalLanguage || input.language;
   if (!isCanonicalLocale(language)) throw new ApiError(400,"invalidRequest");
   metadata.originalTitle=title; metadata.originalLanguage=language;
+  metadata=normalizeBookMetadata(metadata,{canonicalTitles:true});
   for (const genre of metadata.genres) if (!await db.prepare("SELECT 1 FROM genres WHERE id=?").get(genre)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     // Serializes catalog positions, including requests from different authors.
@@ -70,7 +70,7 @@ export async function createBook(db,session,input) {
         saved.title[row.language]=row.title;
         saved.description[row.language]=row.description; saved.editorialNote[row.language]=row.editorial_note;
       }
-      if (!isDeepStrictEqual(normalizeBookMetadata(saved),metadata)) throw new ApiError(409,"invalidRequest");
+      if (!isDeepStrictEqual(normalizeBookMetadata(saved,{canonicalTitles:true}),metadata)) throw new ApiError(409,"invalidRequest");
       return {bookId:id};
     }
     const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM books").get();

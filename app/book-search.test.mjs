@@ -4,6 +4,7 @@ import {filterBooks,filterLibrary} from "./book-search.mjs";
 import {libraryView, libraryResultsMarkup} from "./views.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {words} from "./i18n.mjs";
+import {bookTitle} from "./core.mjs";
 import {openDatabase, initializeDatabase} from "../server/database.mjs";
 import {readSeed, seedCatalog, validateSeed} from "../server/seed.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
@@ -29,7 +30,7 @@ test("One query searches all full titles regardless of interface language", asyn
   for (const language of ["es","en"]) {
     const html = libraryResultsMarkup(readerState(catalog,{language,libraryQuery:"Atomic Habits"}));
     assert.match(html,/data-book="atomic-habits"/);
-    assert.ok(html.includes(catalog.booksById.get("atomic-habits").title[language]));
+    assert.ok(html.includes(bookTitle(catalog.booksById.get("atomic-habits"),language).text));
     assert.equal((html.match(/data-action="open-book-details"/g)||[]).length,1);
   }
 });

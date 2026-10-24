@@ -24,6 +24,8 @@ test("Book titles use the full localized title and preserve the original title o
   assert.deepEqual(bookTitle(book,"es",{original:true}),{text:"原題",language:"ja"});
   assert.deepEqual(bookTitle(book,"es"),{text:"Traducción",language:"es"});
   assert.deepEqual(bookCoverTitle(book,"en"),{text:"A full title",language:"en"});
+  assert.deepEqual(bookTitle({...book,title:{"es-ES":"Título preferido"}},"es-MX"),{text:"Título preferido",language:"es-ES"});
+  assert.deepEqual(bookTitle({...book,title:{es:"Traducción"}},"en"),{text:"原題",language:"ja"});
 });
 
 test("Cover labels and book details retain the complete title for display and accessibility",async()=>{
@@ -42,13 +44,14 @@ test("The original-title preference applies across catalog and reading views wit
   const s=await state(),book=s.catalog.booksById.get(s.bookId);
   book.originalTitle="Le titre original"; book.originalLanguage="fr";
   for (const language of ["es","en"]) {
-    const localized={...s,language};
+    const localized={...s,language,dailyExclusiveCardId:"habit-1"};
     for (const html of [libraryView({...localized,openBookId:s.bookId}),libraryResultsMarkup({...localized,libraryQuery:"Le titre original"}),
       homeView(localized),deckView(localized),reviewView(localized),reviewView({...localized,requestedId:"habit-1"}),dailyView(localized)]) {
       assert.match(html,/lang="fr" dir="auto">Le titre original/);
     }
     assert.ok(dailyView(localized).includes(s.catalog.cardsById.get("habit-1").body.es));
-    assert.ok(libraryView({...localized,showOriginalTitles:false}).includes(book.title[language]));
+    const preferred=book.title[language]?.trim() ? book.title[language] : book.originalTitle;
+    assert.ok(libraryView({...localized,showOriginalTitles:false}).includes(preferred));
   }
   book.originalTitle='<img src=x onerror="bad">';
   const html=libraryView({...s,openBookId:s.bookId});

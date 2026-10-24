@@ -43,7 +43,7 @@ test("Foreign shelf shows target reading/review states without mutation controls
 test("All three card attributions are escaped links with three filled icons and diagonal arrows",async()=>{
   const catalog=await fixture(),card=catalog.allCards[0];
   const s={catalog,language:"es",daily:{id:card.id,day:"2026-10-06"},dailyToday:{day:"2026-10-06"},dailyHistory:[{id:card.id,day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",storageAvailable:true};
-  const html=dailyView(s),footer=html.slice(html.indexOf('<footer'),html.indexOf('</footer>'));
+  const html=dailyView({...s,dailyExclusiveCardId:card.id}),footer=html.slice(html.indexOf('<footer'),html.indexOf('</footer>'));
   assert.equal((footer.match(/class="card-attribution-row"/g)||[]).length,3);
   assert.equal((footer.match(/class="attribution-icon"/g)||[]).length,3);
   assert.equal((footer.match(/class="attribution-arrow"/g)||[]).length,3);
@@ -58,5 +58,6 @@ test("Selected daily calendar day exposes its selected state and green style",as
   assert.ok(selected,"the selected date remains a semantic pressed button");
   assert.match(selected,/is-selected/);
   const styles=readFileSync(new URL("./reader.css",import.meta.url),"utf8");
+  assert.match(styles,/\.daily-calendar-day\.has-idea:hover:not\(\.is-selected\)\{background:#fff\}/);
   assert.match(styles,/\.daily-calendar-day\.is-selected\{background:var\(--light\);color:var\(--ink\);/);
 });

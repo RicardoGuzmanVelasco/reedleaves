@@ -49,9 +49,10 @@ export function validateSeed(seed) {
     positions.add(Number(b.position));
     if (!b.genres?.split("|").every(id => genres.has(id))) throw new Error("Unknown book genre");
     if (!["draft", "reviewed"].includes(b.editorial_status)) throw new Error("Invalid editorial status");
-    for (const language of LANGUAGES) for (const field of ["title", "description", "editorial_note"]) {
+    for (const language of LANGUAGES) for (const field of ["description", "editorial_note"]) {
       if (!text(b[field + "_" + language])) throw new Error("Missing book text");
     }
+    for (const language of LANGUAGES) if (typeof b["title_"+language] !== "string") throw new Error("Invalid preferred book title");
   }
   if (!Array.isArray(seed.links)) throw new Error("Missing book links");
   const linkKeys = new Set();

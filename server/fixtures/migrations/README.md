@@ -21,6 +21,8 @@ cuentas ni copias de bases reales.
 | 3e482fd | 30 | 22 |
 | ff3c943 | 32 | 24 |
 | 4706949 | 35 | — |
+| feb47a1 | — | 27 |
+| 4496429 | 36 | 28 |
 
 Estas copias son inmutables. Al añadir una migración, guardar aquí el esquema
 anterior con otro nombre y añadir una prueba que migre desde él. No regenerar
