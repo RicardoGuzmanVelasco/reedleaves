@@ -31,8 +31,12 @@ Actualizado el 24 de octubre: los PR #71, #72, #73, #75, #78 y #80 están integr
 15. **Racha de idea del día** — integrado en `main` (#80): sustituye la preview bajo el calendario; cuenta al abrir la idea actual en exclusiva.
 16. **Racha en lugar de preview bajo el calendario** — cubierto por #80 junto al 15. Corrección de seguimiento: el comentario original no pedía una racha de repasos.
 17. **Coste en pétalos del repaso** — pendiente: fijo o aleatorio asignado a cada baraja.
-18. **Anclar ajustes a la derecha** — implementado en local, pendiente de publicación: el botón permanece a la derecha tanto con sesión como sin ella.
+18. **Anclar ajustes a la derecha** — publicado por separado en el PR #82, pendiente de integración/despliegue: el botón permanece a la derecha tanto con sesión como sin ella.
 19. **App móvil y widget flotante** — pendiente de valorar: tomar notas mientras se lee en ReadEra.
+
+## Revisión editorial asociada al punto 12
+
+Propuesta de los 24 libros en [SPANISH_TITLE_AUDIT_2026-10-24.md](SPANISH_TITLE_AUDIT_2026-10-24.md). Ningún título cambiado. Regla del usuario: vaciar el preferido castellano cuando se usa el inglés por fallback; conservar descripciones y notas. Pendientes los fallbacks de obras con original sueco/ruso.
 
 ## Verificación
 
@@ -44,4 +48,4 @@ Actualizado el 24 de octubre: los PR #71, #72, #73, #75, #78 y #80 están integr
 
 ## Entrega
 
-Los cinco bloques se integraron mediante el PR #80. Esta comprobación confirma la integración en `main`; no constituye una verificación del despliegue en Render. Los puntos 12 y 18 están implementados en local y pendientes de publicación. Quedan por implementar o decidir los puntos 3, 9, 14, 17 y 19.
+Los cinco bloques se integraron mediante el PR #80. Esta comprobación confirma la integración en `main`; no constituye una verificación del despliegue en Render. El punto 18 tiene el PR #82 abierto. El punto 12 sigue implementado en local y pendiente de publicación; la revisión editorial de títulos se documenta por separado antes de cambiar datos. Quedan por implementar o decidir los puntos 3, 9, 14, 17 y 19.

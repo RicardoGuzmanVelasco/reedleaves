@@ -165,3 +165,9 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 - Cada interés muestra su nombre localizado junto a un icono decorativo en las fichas, la preview del libro y el editor. El selector de filtro conserva opciones de texto nativas y muestra el icono del interés elegido junto a su etiqueta.
 - Software usa un símbolo de código; Mindfulness, una flor de loto. Los intereses sin icono específico usan una etiqueta genérica. El icono no sustituye el nombre accesible.
 - Software y Mindfulness están disponibles en español e inglés. No asignar Mindfulness a libros de crecimiento personal por asociación general; clasificar según el contenido del libro.
+
+## Títulos originales y preferidos
+
+- El título original corresponde al idioma original real del libro. El título preferido por idioma es opcional y no tiene por qué coincidir con el título de una edición traducida.
+- Si en la interfaz castellana se utiliza el nombre inglés mediante el fallback, dejar vacío el título preferido castellano; no duplicar el título inglés en ese campo. Vaciar el título conserva la descripción y la nota editorial de esa traducción.
+- Si el original real está en un tercer idioma, no sustituirlo por el inglés para forzar el fallback. Resolver ese caso por separado antes de aplicar cambios editoriales.
