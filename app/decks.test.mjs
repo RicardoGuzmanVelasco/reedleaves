@@ -4,7 +4,7 @@ import {openDatabase,initializeDatabase} from "../server/database.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {prepareCatalog} from "./catalog.mjs";
-import {featuredDecks,treeLinks} from "./decks.mjs";
+import {availableDecks,featuredDecks,treeLinks} from "./decks.mjs";
 import {deckView,deckPeekView,reviewView,homeView,practiceView,authorView,authorFormView,bookshelfView,escapeHtml} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
@@ -26,6 +26,22 @@ test("Deck recommendations and community likes stay separate", async () => {
   assert.equal(choices.some(c => c.tags.includes("popular")),false);
   for (const deck of catalog.decks) deck.metrics = {likes:0,dislikes:0};
   assert.equal(featuredDecks(catalog,"seven-habits").some(c => c.tags.includes("preferred")),false);
+});
+test("Collective decks remain ordinary book decks, while reading-guide cards stay in their dedicated view",async()=>{
+  const catalog=await fixture(),deck=catalog.decks.find(item=>item.bookId==="seven-habits"),card=catalog.deckModels.get(deck.id).cards[0];
+  deck.kind="collective";deck.contributionPolicy="selected";
+  assert.ok(availableDecks(catalog,deck.bookId).some(item=>item.deck.id===deck.id));
+  card.isReadingGuide=true;
+  assert.ok(!availableDecks(catalog,deck.bookId).some(item=>item.deck.id===deck.id));
+});
+
+test("Collective draft review UI lets invited contributors add cards without exposing deck management",async()=>{
+  const catalog=await fixture(),deck=catalog.decks.find(item=>item.bookId==="seven-habits"),userId="contributor";
+  deck.kind="collective";deck.contributionPolicy="selected";deck.status="draft";deck.canContribute=true;
+  const state=readerState(catalog,{userId,deckId:deck.id,bookId:deck.bookId,language:"en"});
+  const html=reviewView(state);
+  assert.match(html,/data-action="take-deck-note"/);
+  assert.doesNotMatch(html,/data-action="author-deck"|data-action="finish-deck"|data-contributor-form/);
 });
 test("Deck grid links to one page; every card is visible and openable", async () => {
   const catalog = await fixture(),base = {catalog,language:"es",deckId,bookId:"seven-habits",requestedId:"inside-out-2",storageAvailable:true,userId:"reader",enrolledIds:[deckId]};
