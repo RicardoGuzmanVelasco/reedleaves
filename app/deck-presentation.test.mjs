@@ -46,3 +46,17 @@ test('Presentation supports drag, keyboard navigation and Escape without accepti
   flight.emit('pointerdown',{clientX:200,clientY:100});flight.emit('pointermove',{clientX:60,clientY:102});flight.emit('pointerup',{clientX:60});await pause();
   assert.deepEqual(selected,[0,2]);dispose();
 });
+
+test('Repeated swipes use the current selection without remounting the carousel',async()=>{
+  const root=element(),screen=element({index:'1',count:'7'}),flight=element();
+  root.querySelector=()=>screen;screen.querySelector=selector=>selector==='[data-presentation-flight]'?flight:null;
+  const selected=[];
+  const dispose=mountDeckPresentation(root,{onSelect:index=>{selected.push(index);screen.dataset.index=String(index);dispose.refresh(index);}});
+  for(const dx of [-140,-140,140,-140]){
+    flight.emit('pointerdown',{clientX:200,clientY:100});
+    flight.emit('pointermove',{clientX:200+dx,clientY:102});
+    flight.emit('pointerup',{clientX:200+dx});await pause();
+    assert.equal(flight.style.transform,'');assert.equal(flight.style.opacity,'1');
+  }
+  assert.deepEqual(selected,[2,3,2,3]);dispose();
+});

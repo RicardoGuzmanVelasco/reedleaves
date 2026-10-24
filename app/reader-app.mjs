@@ -9,7 +9,7 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=practice-swipe-1";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,deckPeekView,reviewView,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup} from "./views.mjs?v=feedback-swipe-2026-10-22";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup} from "./views.mjs?v=feedback-swipe-2026-10-22";
 import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -40,7 +40,7 @@ export function startReader({createCardFeatures} = {}) {
   const recordedViews=new Set(),pendingViews=new Set();
   let albumPosition = null;
   let pendingSavedFocus = null;
-  let presentationLayout="list",presentationIndex=0,presentationDeckId=null,disposeDeckPresentation=()=>{};
+  let presentationState=null,presentationLayout="list",presentationIndex=0,presentationDeckId=null,disposeDeckPresentation=()=>{};
   let bookViews={},disposeBookLists=()=>{},libraryFilterDraft={...libraryDefaults};
   let bookshelfFilters = {...bookshelfDefaults},publicBookshelfFilters={...bookshelfDefaults},bookshelfTab="shelf";
   let bookshelfFiltersOpen=false,bookshelfFilterDraft={...bookshelfDefaults};
@@ -190,6 +190,7 @@ export function startReader({createCardFeatures} = {}) {
     const state = {presentationLayout,presentationIndex,bookViews,userId:snapshot.user?.id,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,budget,preferences,statuses,noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily:selectedDaily,dailyToday:daily,dailyHistory,dailyStatus,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountTopic:snapshot.practiceDiscountTopic,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,libraryQuery,libraryFilters,libraryFiltersOpen,libraryFilterDraft,bookshelfFilters:mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters,bookshelfFiltersOpen,bookshelfFilterDraft,bookshelfTab,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
       profileData,profileError,readOnly:mode === "public-bookshelf",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,accountLearningNotice};
+    presentationState=state;
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
       (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "bookshelf" ? bookshelfView(state) : mode === "public-bookshelf" ? profileData ? bookshelfView(state) : profilePendingView(state) : mode === "profile" ? profileView(state) : mode === "daily" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "");
     disposeBookLists=mountBookLists(main);
@@ -738,11 +739,18 @@ export function startReader({createCardFeatures} = {}) {
   function selectPresentationCard(index) {
     const count=catalog.deckModels.get(deckId)?.cards.length||0;
     if(!Number.isInteger(index)||index<0||index>=count)return;
-    const focused=document.activeElement?.dataset.action,focusedDirection=document.activeElement?.dataset.direction;
-    presentationIndex=index;render();
-    if(focused==='presentation-step'&&main.querySelector(`[data-action="presentation-step"][data-direction="${focusedDirection}"]:not(:disabled)`))main.querySelector(`[data-action="presentation-step"][data-direction="${focusedDirection}"]`)?.focus({preventScroll:true});
-    else if(focused==='presentation-card')main.querySelector('[data-action="presentation-card"][aria-pressed="true"]')?.focus({preventScroll:true});
-    else main.querySelector('[data-presentation-flight]')?.closest('[data-deck-presentation]')?.querySelector('h1')?.focus({preventScroll:true});
+    if(index===presentationIndex)return;
+    const screen=main.querySelector('[data-deck-presentation="carousel"]'),flight=screen?.querySelector('[data-presentation-flight]');
+    if(!flight)return;
+    const direction=index>presentationIndex?1:-1;
+    presentationIndex=index;screen.dataset.index=String(index);
+    flight.innerHTML=presentationCardMarkup({...presentationState,presentationIndex:index});
+    screen.querySelectorAll('[data-action="presentation-card"]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.index)===index)));
+    screen.querySelector('[data-direction="-1"]').disabled=index===0;
+    screen.querySelector('[data-direction="1"]').disabled=index===count-1;
+    screen.querySelector('.presentation-position').textContent=words[language].position(index+1,count);
+    disposeDeckPresentation.refresh?.(direction);
+
   }
   async function shareDeck() {
     const deck=catalog?.decksById.get(deckId);
