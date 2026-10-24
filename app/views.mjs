@@ -207,8 +207,7 @@ function deckCollectionMarkup(s) {
   return `<div class="collection-decks" role="list" aria-label="${esc(c.deckCollection)}">${entries.map(({deck,book})=>{
     const title=contentText(deck.title,s.language,deck.language),bookTitle=displayedBookTitle(s,book).text;
     const quoteCount=deckQuoteCount(s,deck),quoteClass=quoteDominant(s,deck,quoteCount) ? " collection-deck--quote-dominant" : "";
-    const ownDraft=deck.creator.userId === s.userId && deck.status === "draft";
-    return `<article class="collection-deck${quoteClass}" role="listitem"><div class="collection-deck-copy"><h2 lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(title)}</h2><p lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(bookTitle)}</p><small>${deckFactsMarkup(c,deck,quoteCount)}</small></div><button class="text-button" type="button" data-action="${ownDraft ? "manage-collection-deck" : "review-collection-deck"}" data-deck="${esc(deck.id)}">${ownDraft ? c.manageDeck : c.viewDeck} →</button></article>`;
+    return `<article class="collection-deck${quoteClass}" role="listitem"><div class="collection-deck-copy"><h2 lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(title)}</h2><p lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(bookTitle)}</p><small>${deckFactsMarkup(c,deck,quoteCount)}</small></div><button class="text-button" type="button" data-action="review-collection-deck" data-deck="${esc(deck.id)}">${c.viewDeck} →</button></article>`;
   }).join("")}</div>`;
 }
 
@@ -380,14 +379,14 @@ function noteTypeIcon(kind) {
   return `<svg class="note-type-icon" viewBox="${watermark.viewBox}" aria-hidden="true" focusable="false">${watermark.paths}</svg>`;
 }
 
-function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false, compact = false,linkBook=true,focusable=true,idPrefix="",decorative=false,layerClass=""} = {}) {
+function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false, actions = exclusive, compact = false,linkBook=true,focusable=true,idPrefix="",decorative=false,layerClass=""} = {}) {
   const book = s.catalog.booksById.get(card.bookId), deckLanguage = card.language || card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
   const type=cardTypeFor(card),bodyTag=type.bodyTag;
   const contentId=idPrefix ? `${idPrefix}-idea-content` : "idea-content",focusTarget=focusable || idPrefix ? ` id="${esc(contentId)}"${focusable ? ' tabindex="-1"' : ""}` : "";
   return `<div class="reading-stage reading-stage--${type.id}${layerClass ? ` ${layerClass}` : ""}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${decorative ? ' aria-hidden="true" inert' : ""}${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${type.className ? ' '+type.className : ''}"><span class="card-header-icon" aria-hidden="true">${type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto"${focusTarget}>${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : focusTarget}>${esc(body)}</${bodyTag}></div>
-    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book,{compact,linkBook,showDraftStatus:exclusive})}</div>${exclusive ? cardActionsHost(card) : ""}</footer></article></div>`;
+    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book,{compact,linkBook,showDraftStatus:exclusive})}</div>${actions ? cardActionsHost(card) : ""}</footer></article></div>`;
 }
 
 function exclusiveCardMarkup(s,card,position="",navigation=null) {
@@ -513,22 +512,6 @@ export function deckView(s) {
   const guideDeck=s.catalog.decks.find(deck=>deck.bookId===s.bookId&&(deck.kind||"standard")==="collective"&&deck.cardCount>0);
   const canContribute=s.userId&&((s.statuses?.[s.bookId])||"unread")==="read";
   const languageName = tag => { try { return new Intl.DisplayNames([s.language],{type:"language"}).of(tag) || tag; } catch { return tag; } };
-  const deckDetails = (deck, dialog = false) => {
-    const inCollection=!!s.userId && ((s.enrolledIds || []).includes(deck.id) || deck.creator?.userId === s.userId);
-    const quoteCount=deckQuoteCount(s,deck);
-    const metrics = [deck.metrics.likes ? c.likesCount(deck.metrics.likes) : ""].filter(Boolean);
-    return `<h2 ${dialog ? 'id="deck-dialog-title"' : ""} lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</h2>
-      <p class="deck-creator">${deckCreator(deck)}<span class="deck-language" lang="${esc(deck.language)}">${esc(languageName(deck.language))}</span></p>
-      <p class="deck-description" ${dialog ? 'id="deck-dialog-description"' : ""} lang="${esc(contentLocale(deck.description,s.language,deck.language))}" dir="auto">${esc(contentText(deck.description,s.language,deck.language))}</p>
-      ${quoteSourceLink(deck,c)}
-      ${deckStatusMarkup(s,deck,{canPractice:inCollection})}
-      ${deckFactsMarkup(c,deck,quoteCount)}
-      ${metrics.length ? `<p class="deck-metrics">${metrics.map(esc).join(" · ")}</p>` : ""}
-      ${deckWritingActions(s,deck)}
-      ${inCollection ? `<p class="collection-object-state"><img src="../brand/icons/collections/decks.svg" alt="" width="21" height="21">${c.deckInCollection}</p>` : ""}
-      <div class="deck-detail-actions"><button class="secondary secondary--subtle deck-peek-action" type="button" data-action="preview-deck" data-deck="${esc(deck.id)}">${c.peekDeck}</button>
-      ${inCollection ? `<button class="primary" type="button" data-action="select-deck" data-deck="${esc(deck.id)}" ${!s.storageAvailable ? "disabled" : ""}>${c.viewDeck}</button>` : `<button class="primary deck-collection-primary" type="button" data-action="add-deck-to-collection" data-deck="${esc(deck.id)}" ${!s.storageAvailable ? "disabled" : ""}><img src="../brand/icons/collections/decks-add.svg" alt="" width="24" height="24"><span>${c.addDeckToCollection}</span>${priceTag({amount:1,icon:"leaf",label:c.deckAddCost})}</button>`}</div>`;
-  };
   return `<section class="deck-screen">${["library","bookshelf","daily"].includes(s.bookOrigin) ? `<button type="button" class="text-button collection-back" data-action="${s.bookOrigin}">${s.bookOrigin === "library" ? collectionIconMarkup("library",18) : s.bookOrigin === "bookshelf" ? collectionIconMarkup("shelf",18) : ""}${s.bookOrigin === "library" ? c.booksBack : s.bookOrigin === "bookshelf" ? c.shelfBack : c.back}</button>` : ""}
     <div class="screen-heading deck-heading"><div class="deck-heading-book"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>${mascotEntry(s,s.bookId)}</div><div class="deck-heading-title"><h1 tabindex="-1">${c.chooseDeck}</h1>${s.userId ? `<div data-saved-cards-entry></div>` : ""}</div></div>
     ${s.userId ? `<div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
@@ -537,12 +520,11 @@ export function deckView(s) {
       const quoteCount=deckQuoteCount(s,deck),quoteClass=quoteDominant(s,deck,quoteCount) ? " deck-tile--quote-dominant" : "";
       const flag=["es","en"].includes(deck.language) ? `<img class="deck-language-flag" src="../brand/icons/languages/${deck.language}.svg" width="16" height="12" alt="">` : `<svg class="deck-language-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span>${esc(deck.language)}</span>`;
       const recommended=deck.isRecommended;
-      return `<article class="deck-tile${quoteClass}"><button class="deck-tile-open" type="button" data-action="open-deck" data-deck="${esc(deck.id)}" aria-haspopup="dialog" title="${esc(language)}${recommended ? ` · ${esc(c.recommended)}` : ""}" aria-label="${esc(contentText(deck.title,s.language,deck.language))}, ${esc(c.by)} ${esc(deck.creator.name)}, ${esc(c.noteCardsCount(deck.cardCount))}, ${esc(c.quoteCount(quoteCount))}, ${esc(language)}${deck.status === "draft" ? `, ${esc(c.deckInProgress)}` : ""}${recommended ? `, ${esc(c.teamRecommendationShort)}` : ""}">${recommended ? teamRecommendationMarkup(c) : ""}</button>
+      return `<article class="deck-tile${quoteClass}"><button class="deck-tile-open" type="button" data-action="open-deck" data-deck="${esc(deck.id)}" title="${esc(language)}${recommended ? ` · ${esc(c.recommended)}` : ""}" aria-label="${esc(contentText(deck.title,s.language,deck.language))}, ${esc(c.by)} ${esc(deck.creator.name)}, ${esc(c.noteCardsCount(deck.cardCount))}, ${esc(c.quoteCount(quoteCount))}, ${esc(language)}${deck.status === "draft" ? `, ${esc(c.deckInProgress)}` : ""}${recommended ? `, ${esc(c.teamRecommendationShort)}` : ""}">${recommended ? teamRecommendationMarkup(c) : ""}</button>
         <span class="deck-tile-copy"><strong lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</strong><span class="deck-creator deck-tile-creator">${deckCreator(deck)}</span>
         <span class="deck-tile-metadata"><span class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="${esc(c.noteCardsCount(deck.cardCount))}">${cardsIconMarkup}<span>${deck.cardCount}</span></span><span class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="${esc(c.quoteCount(quoteCount))}">${quoteMarkMarkup}<span>${quoteCount}</span></span><span class="deck-tile-count deck-tile-language" aria-hidden="true" title="${esc(language)}">${flag}</span>${deckStatusMarkup(s,deck,{compact:true})}</span></span></article>`;
     }).join("")}</div>` : `<div class="empty-state">${c.noDecks}</div>`}
     ${guideDeck ? `<button class="reading-guides-entry" type="button" data-action="open-reading-guides" data-book="${esc(s.bookId)}"><span class="reading-guides-entry-icon" aria-hidden="true">↗</span><span><strong>${c.readingGuides}</strong><small>${c.noteCardsCount(guideDeck.cardCount)}</small></span><span aria-hidden="true">→</span></button>` : canContribute ? `<button class="reading-guides-entry reading-guides-entry--empty" type="button" data-action="open-reading-guides" data-book="${esc(s.bookId)}"><span class="reading-guides-entry-icon" aria-hidden="true">↗</span><span><strong>${c.readingGuideAdd}</strong><small>${c.readingGuideContribution}</small></span><span aria-hidden="true">→</span></button>` : ""}
-    ${(() => { const selected = choices.find(item => item.deck.id === s.openDeckId); return selected ? `<dialog class="deck-modal deck-detail-modal" data-deck="${esc(selected.deck.id)}" aria-labelledby="deck-dialog-title" aria-describedby="deck-dialog-description"><button class="dialog-close deck-modal-close" type="button" data-action="close-deck" aria-label="${c.closeDeck}" autofocus>${closeIconMarkup}</button><article class="deck-card">${deckDetails(selected.deck,true)}</article></dialog>` : ""; })()}
   </section>`;
 }
 
@@ -634,16 +616,28 @@ export function reviewView(s) {
   const shareAction=`<button class="primary share-deck-button" type="button" data-action="share-deck">${shareIconMarkup}<span>${esc(c.shareDeck)}</span></button>`;
   return `<section class="review-screen album-screen"><div class="review-heading"><button class="text-button" type="button" data-action="choose-book">${c.deckBack}</button>${shareAction}</div>
     ${albumSummary(s,deck,model,review,reviewMascotCallout(s,deck.bookId))}
+    <details class="sources deck-information"><summary>${c.deckInformation}</summary><p class="deck-description" lang="${esc(contentLocale(deck.description,s.language,deck.language))}" dir="auto">${esc(contentText(deck.description,s.language,deck.language))}</p>${quoteSourceLink(deck,c)}${deckFactsMarkup(c,deck,deckQuoteCount(s,deck))}</details>
+    <div class="deck-page-actions">${s.userId && ((s.enrolledIds||[]).includes(deck.id)||deck.creator.userId===s.userId) ? `<p class="collection-object-state"><img src="../brand/icons/collections/decks.svg" alt="" width="21" height="21">${c.deckInCollection}</p>` : `<div class="deck-page-collection"><button class="primary deck-collection-primary" type="button" data-action="add-deck-to-collection" data-deck="${esc(deck.id)}" ${s.userId&&!s.storageAvailable?"disabled":""}><img src="../brand/icons/collections/decks-add.svg" alt="" width="24" height="24"><span>${c.addDeckToCollection}</span>${priceTag({amount:1,icon:"leaf",label:c.deckAddCost})}</button></div>`}${model.cards.length ? `<button class="secondary secondary--subtle deck-read-action" type="button" data-action="preview-deck" data-deck="${esc(deck.id)}"><span class="cards-read-icon" aria-hidden="true"></span><span>${c.readDeckCards}</span></button>` : ""}</div>
     <div class="content-tools deck-content-tools">${model.cards.length ? deckBrowsingControls(s) : ""}${deckWritingActions(s,deck,"deck-content-edit")}</div>
     ${model.cards.length ? deckContentMarkup(s,model,review,deck) : `<div class="empty-state">${c.emptyAuthor}</div>`}${card ? (()=>{const index=model.cards.findIndex(item=>item.id===card.id);return exclusiveCardMarkup(s,card,c.position(index+1,model.cards.length),{previous:model.cards[index-1]?.id,next:model.cards[index+1]?.id});})() : ""}
     ${s.quotesOnly && model.cards.length && !model.cards.some(card=>card.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}</section>`;
 }
 
+export function presentationCardMarkup(s) {
+  const card=s.catalog.deckModels.get(s.deckId)?.cards[s.presentationIndex||0];
+  return card?cardMarkup(s,card,'h2',{typewriter:false,focusable:false,linkBook:false,actions:true}):'';
+}
+
 export function deckPeekView(s) {
-  const c=words[s.language],deck=s.catalog.decksById.get(s.deckId),model=s.catalog.deckModels.get(s.deckId),book=s.catalog.booksById.get(deck.bookId);
-  return `<section class="deck-peek-screen"><button class="text-button collection-back" type="button" data-action="back-from-deck-preview">${c.deckBack}</button>
-    <header class="deck-peek-heading"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.deckPeekPage}</h1><p class="deck-peek-title" lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</p>${deckFactsMarkup(c,deck,deckQuoteCount(s,deck))}</header>
-    <ol class="deck-peek-cards">${model.cards.map(card=>`<li>${cardMarkup(s,card,"h2",{typewriter:false,focusable:false,compact:true,linkBook:false})}</li>`).join("")}</ol>
+  const c=words[s.language],deck=s.catalog.decksById.get(s.deckId),model=s.catalog.deckModels.get(s.deckId);
+  const carousel=s.presentationLayout==='carousel',index=Math.max(0,Math.min(model.cards.length-1,s.presentationIndex||0)),card=model.cards[index];
+  const listIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="8" rx="2"/><rect x="5" y="14" width="14" height="8" rx="2"/></svg>';
+  const carouselIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M3 6H1v12h2M21 6h2v12h-2"/></svg>';
+  const step=(direction,disabled)=>`<button class="exclusive-card-step" type="button" data-action="presentation-step" data-direction="${direction}" aria-label="${esc(direction<0?c.previous:c.next)}" ${disabled?'disabled':''}>${direction<0?'←':'→'}</button>`;
+  return `<section class="deck-presentation" data-deck-presentation="${carousel?'carousel':'list'}" data-index="${index}" data-count="${model.cards.length}">
+    <h1 class="sr-only" tabindex="-1">${esc(contentText(deck.title,s.language,deck.language))}</h1>
+    <header class="presentation-toolbar"><div class="segmented-selector presentation-layout-selector" role="group" aria-label="${c.presentationLayout}">${[['list',c.presentationList,listIcon],['carousel',c.presentationCarousel,carouselIcon]].map(([layout,label,icon])=>`<button type="button" data-action="presentation-layout" data-layout="${layout}" aria-label="${label}" title="${label}" aria-pressed="${layout===(carousel?'carousel':'list')}">${icon}</button>`).join('')}</div><button class="dialog-close presentation-close" type="button" data-action="back-from-deck-preview" aria-label="${c.closePresentation}" title="${c.viewDeck}">${closeIconMarkup}</button></header>
+    ${carousel&&card?`<div class="presentation-carousel"><div class="presentation-strip">${step(-1,index===0)}<div class="presentation-thumbnails" role="group" aria-label="${c.presentationCards}">${model.cards.map((item,i)=>{const title=item.isQuote?quoteExcerpt(contentText(item.body,s.language,deck.language)):contentText(item.title,s.language,deck.language);return `<button class="presentation-thumbnail${item.isQuote?' is-quote':''}" type="button" data-action="presentation-card" data-index="${i}" aria-label="${esc(c.position(i+1,model.cards.length)+': '+title)}" aria-pressed="${i===index}"><span class="presentation-thumb-title">${esc(title)}</span><span class="presentation-thumb-lines" aria-hidden="true"></span><span class="presentation-thumb-number" aria-hidden="true">${i+1}</span></button>`;}).join('')}</div>${step(1,index===model.cards.length-1)}</div><p class="presentation-position" role="status" aria-live="polite">${esc(c.position(index+1,model.cards.length))}</p><div class="presentation-card-viewport"><div class="presentation-flight" data-presentation-flight>${presentationCardMarkup({...s,presentationIndex:index})}</div></div></div>`:model.cards.length?`<ol class="deck-peek-cards">${model.cards.map(item=>`<li>${cardMarkup(s,item,'h2',{typewriter:false,focusable:false,linkBook:false,actions:true})}</li>`).join('')}</ol>`:`<p class="empty-state">${c.emptyAuthor}</p>`}
   </section>`;
 }
 
