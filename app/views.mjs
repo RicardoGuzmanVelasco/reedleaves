@@ -27,6 +27,7 @@ const practiceFrequencyLabel = (c, direction) => `<span class="practice-frequenc
 export const calendarIconMarkup = () => '<svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/></svg>';
 const closeIconMarkup = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg>';
 const shareIconMarkup = '<svg class="share-deck-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-3.4M8.7 13.3l6.6 3.4"/></svg>';
+const cardsIconMarkup = '<span class="cards-icon" aria-hidden="true"></span>';
 const quoteMarkMarkup = '<span class="quote-mark" aria-hidden="true">❝</span>';
 const takeNoteLabelMarkup = label => `<span class="take-note-content">${takeNoteIconMarkup}<span>${esc(label)}</span></span>`;
 const collectionIconMarkup = (name,size=22) => `<img src="../brand/icons/collections/${name}.svg" alt="" width="${size}" height="${size}">`;
@@ -36,6 +37,7 @@ const deckCreator = deck => nameLink({icon:"user",name:deck.creator?.name,href:d
 const deckQuoteCount = (s,deck) => s.catalog.deckModels.get(deck.id)?.cards.filter(card=>card.isQuote).length || 0;
 const quoteDominant = (s,deck,count=deckQuoteCount(s,deck)) => count > deck.cardCount - count;
 const quoteCountMarkup = (c,count) => `<span class="deck-quote-count">${quoteMarkMarkup}<span>${esc(c.quoteCount(count))}</span></span>`;
+const deckFactsMarkup = (c,deck,quoteCount) => `<span class="deck-facts"><span class="deck-card-count">${esc(c.noteCardsCount(deck.cardCount))}</span><span class="deck-facts-separator" aria-hidden="true">·</span>${quoteCountMarkup(c,quoteCount)}</span>`;
 const quoteSourceLink = (deck,c) => validQuoteSourceUrl(deck.quoteSourceUrl) ? `<a class="book-external-link deck-quote-source" href="${esc(deck.quoteSourceUrl)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(c.quoteSource+". "+c.newTab)}" title="${esc(c.newTab)}">
   <span class="deck-quote-source-icon" aria-hidden="true">❝</span>
   <span class="book-external-link-copy"><strong>${esc(c.quoteSource)}</strong></span>
@@ -183,7 +185,7 @@ function deckCollectionMarkup(s) {
     const title=contentText(deck.title,s.language,deck.language),bookTitle=displayedBookTitle(s,book).text;
     const quoteCount=deckQuoteCount(s,deck),quoteClass=quoteDominant(s,deck,quoteCount) ? " collection-deck--quote-dominant" : "";
     const ownDraft=deck.creator.userId === s.userId && deck.status === "draft";
-    return `<article class="collection-deck${quoteClass}" role="listitem"><div class="collection-deck-copy"><h2 lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(title)}</h2><p lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(bookTitle)}</p><small>${quoteCountMarkup(c,quoteCount)}</small></div><button class="text-button" type="button" data-action="${ownDraft ? "manage-collection-deck" : "review-collection-deck"}" data-deck="${esc(deck.id)}">${ownDraft ? c.manageDeck : c.viewDeck} →</button></article>`;
+    return `<article class="collection-deck${quoteClass}" role="listitem"><div class="collection-deck-copy"><h2 lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(title)}</h2><p lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(bookTitle)}</p><small>${deckFactsMarkup(c,deck,quoteCount)}</small></div><button class="text-button" type="button" data-action="${ownDraft ? "manage-collection-deck" : "review-collection-deck"}" data-deck="${esc(deck.id)}">${ownDraft ? c.manageDeck : c.viewDeck} →</button></article>`;
   }).join("")}</div>`;
 }
 
@@ -493,7 +495,7 @@ export function deckView(s) {
       <p class="deck-description" ${dialog ? 'id="deck-dialog-description"' : ""} lang="${esc(contentLocale(deck.description,s.language,deck.language))}" dir="auto">${esc(contentText(deck.description,s.language,deck.language))}</p>
       ${quoteSourceLink(deck,c)}
       ${deckStatusMarkup(s,deck,{canPractice:inCollection})}
-      ${quoteCountMarkup(c,quoteCount)}
+      ${deckFactsMarkup(c,deck,quoteCount)}
       ${metrics.length ? `<p class="deck-metrics">${metrics.map(esc).join(" · ")}</p>` : ""}
       ${deckWritingActions(s,deck)}
       ${inCollection ? `<p class="collection-object-state"><img src="../brand/icons/collections/decks.svg" alt="" width="21" height="21">${c.deckInCollection}</p>` : ""}
@@ -508,9 +510,9 @@ export function deckView(s) {
       const quoteCount=deckQuoteCount(s,deck),quoteClass=quoteDominant(s,deck,quoteCount) ? " deck-tile--quote-dominant" : "";
       const flag=["es","en"].includes(deck.language) ? `<img class="deck-language-flag" src="../brand/icons/languages/${deck.language}.svg" width="16" height="12" alt="">` : `<svg class="deck-language-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span>${esc(deck.language)}</span>`;
       const recommended=deck.isRecommended;
-      return `<article class="deck-tile${quoteClass}"><button class="deck-tile-open" type="button" data-action="open-deck" data-deck="${esc(deck.id)}" aria-haspopup="dialog" title="${esc(language)}${recommended ? ` · ${esc(c.recommended)}` : ""}" aria-label="${esc(contentText(deck.title,s.language,deck.language))}, ${esc(c.by)} ${esc(deck.creator.name)}, ${esc(c.quoteCount(quoteCount))}, ${esc(language)}${deck.status === "draft" ? `, ${esc(c.deckInProgress)}` : ""}${recommended ? `, ${esc(c.teamRecommendationShort)}` : ""}">${recommended ? teamRecommendationMarkup(c) : ""}</button>
+      return `<article class="deck-tile${quoteClass}"><button class="deck-tile-open" type="button" data-action="open-deck" data-deck="${esc(deck.id)}" aria-haspopup="dialog" title="${esc(language)}${recommended ? ` · ${esc(c.recommended)}` : ""}" aria-label="${esc(contentText(deck.title,s.language,deck.language))}, ${esc(c.by)} ${esc(deck.creator.name)}, ${esc(c.noteCardsCount(deck.cardCount))}, ${esc(c.quoteCount(quoteCount))}, ${esc(language)}${deck.status === "draft" ? `, ${esc(c.deckInProgress)}` : ""}${recommended ? `, ${esc(c.teamRecommendationShort)}` : ""}">${recommended ? teamRecommendationMarkup(c) : ""}</button>
         <span class="deck-tile-copy"><strong lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</strong><span class="deck-creator deck-tile-creator">${deckCreator(deck)}</span>
-        <span class="deck-tile-metadata"><span class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="${esc(c.quoteCount(quoteCount))}">${quoteMarkMarkup}<span>${quoteCount}</span></span><span class="deck-tile-count deck-tile-language" aria-hidden="true" title="${esc(language)}">${flag}</span>${deckStatusMarkup(s,deck,{compact:true})}</span></span></article>`;
+        <span class="deck-tile-metadata"><span class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="${esc(c.noteCardsCount(deck.cardCount))}">${cardsIconMarkup}<span>${deck.cardCount}</span></span><span class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="${esc(c.quoteCount(quoteCount))}">${quoteMarkMarkup}<span>${quoteCount}</span></span><span class="deck-tile-count deck-tile-language" aria-hidden="true" title="${esc(language)}">${flag}</span>${deckStatusMarkup(s,deck,{compact:true})}</span></span></article>`;
     }).join("")}</div>` : `<div class="empty-state">${c.noDecks}</div>`}
     ${(() => { const selected = choices.find(item => item.deck.id === s.openDeckId); return selected ? `<dialog class="deck-modal deck-detail-modal" data-deck="${esc(selected.deck.id)}" aria-labelledby="deck-dialog-title" aria-describedby="deck-dialog-description"><button class="dialog-close deck-modal-close" type="button" data-action="close-deck" aria-label="${c.closeDeck}" autofocus>${closeIconMarkup}</button><article class="deck-card">${deckDetails(selected.deck,true)}</article></dialog>` : ""; })()}
   </section>`;
@@ -601,7 +603,7 @@ export function reviewView(s) {
 export function deckPeekView(s) {
   const c=words[s.language],deck=s.catalog.decksById.get(s.deckId),model=s.catalog.deckModels.get(s.deckId),book=s.catalog.booksById.get(deck.bookId);
   return `<section class="deck-peek-screen"><button class="text-button collection-back" type="button" data-action="back-from-deck-preview">${c.deckBack}</button>
-    <header class="deck-peek-heading"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.deckPeekPage}</h1><p class="deck-peek-title" lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</p>${quoteCountMarkup(c,deckQuoteCount(s,deck))}</header>
+    <header class="deck-peek-heading"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p><h1 tabindex="-1">${c.deckPeekPage}</h1><p class="deck-peek-title" lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</p>${deckFactsMarkup(c,deck,deckQuoteCount(s,deck))}</header>
     <ol class="deck-peek-cards">${model.cards.map(card=>`<li>${cardMarkup(s,card,"h2",{typewriter:false,focusable:false,compact:true,linkBook:false})}</li>`).join("")}</ol>
   </section>`;
 }
