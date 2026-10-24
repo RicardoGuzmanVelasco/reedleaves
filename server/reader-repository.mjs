@@ -77,7 +77,11 @@ async function knownDeck(db,deckId,userId) {
   if(typeof deckId!=="string") throw new ApiError(400,"invalidRequest");
   const deck=await db.prepare("SELECT * FROM decks WHERE id = ?").get(deckId);
   const enrolled=await db.prepare("SELECT 1 FROM studies WHERE user_id = ? AND deck_id = ?").get(userId,deckId);
-  if(!deck||(deck.status==="archived"&&!enrolled)||(deck.kind||"standard")!=="standard") throw new ApiError(404,"deckUnavailable");
+  const readingGuide=deck&&!!await db.prepare("SELECT 1 FROM cards WHERE deck_id=? AND is_reading_guide=1").get(deckId);
+  const owner=deck?.creator_user_id===userId;
+  const invited=deck&&deck.contribution_policy==="selected"&&!!await db.prepare("SELECT 1 FROM deck_contributors WHERE deck_id=? AND user_id=?").get(deckId,userId);
+  if(!deck||(deck.status==="archived"&&!enrolled)||readingGuide||
+      deck.kind==="collective"&&deck.status==="draft"&&!owner&&deck.contribution_policy!=="open"&&!invited) throw new ApiError(404,"deckUnavailable");
   return deck;
 }
 async function enrol(db,userId,deck) {

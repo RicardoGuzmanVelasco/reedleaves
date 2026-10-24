@@ -7,7 +7,9 @@ export function editableNoteDecks(catalog,bookId,userId) {
 }
 
 export function noteDecksWithSpace(catalog,bookId,userId) {
-  return editableNoteDecks(catalog,bookId,userId).filter(deck=>deck.cardCount < MAX_CARDS_PER_DECK);
+  return editableNoteDecks(catalog,bookId,userId).filter(deck=>deck.kind==="collective"?
+    deck.maxCardsPerContributor===null||catalog.deckModels.get(deck.id).cards.filter(card=>card.creatorUserId===userId).length<deck.maxCardsPerContributor:
+    deck.cardCount < MAX_CARDS_PER_DECK);
 }
 
 // Home keeps active reading or writing, including an empty draft owned by this account.
