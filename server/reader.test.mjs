@@ -36,10 +36,13 @@ test("Adding a deck costs one leaf once; viewing it is free and users are isolat
 test("Adding an unread book persists explicit shelf membership without reading progress",async t=>{
   const {db,a}=await fixture(t);
   assert.deepEqual((await readReaderState(db,a,today)).shelfBookIds,[]);
-  const state=await changeReading(db,a,"atomic-habits","unread",today);
+  const state=await changeReading(db,a,"atomic-habits","to-read",today);
   assert.equal(state.statuses["atomic-habits"],"unread");
   assert.ok(state.shelfBookIds.includes("atomic-habits"));
   assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id='a' AND book_id='atomic-habits'").get().status,"unread");
+  const removed=await changeReading(db,a,"atomic-habits","unread",today);
+  assert.ok(!removed.shelfBookIds.includes("atomic-habits"));
+  assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id='a' AND book_id='atomic-habits'").get(),undefined);
 });
 test("Mascot growth counts distinct days with completed paid practices, not card views",async t=>{
   const {db,a,b}=await fixture(t);

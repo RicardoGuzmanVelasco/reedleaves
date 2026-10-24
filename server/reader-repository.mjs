@@ -134,9 +134,10 @@ export async function openCard(db,session,deckId,cardId,now=new Date(),{requireC
   });
 }
 export async function changeReading(db,session,bookId,status,now=new Date()) {
-  if(typeof bookId!=="string"||!["unread","reading","read"].includes(status)||!await db.prepare("SELECT 1 FROM books WHERE id = ?").get(bookId)) throw new ApiError(400,"invalidRequest");
+  if(typeof bookId!=="string"||!["unread","to-read","reading","read"].includes(status)||!await db.prepare("SELECT 1 FROM books WHERE id = ?").get(bookId)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
-    await db.prepare("INSERT INTO book_reading VALUES (?,?,?) ON CONFLICT(user_id,book_id) DO UPDATE SET status=excluded.status").run(session.user_id,bookId,status);
+    if(status === "unread") await db.prepare("DELETE FROM book_reading WHERE user_id=? AND book_id=?").run(session.user_id,bookId);
+    else await db.prepare("INSERT INTO book_reading VALUES (?,?,?) ON CONFLICT(user_id,book_id) DO UPDATE SET status=excluded.status").run(session.user_id,bookId,status === "to-read" ? "unread" : status);
     return stateInside(db,session,now);
   });
 }
