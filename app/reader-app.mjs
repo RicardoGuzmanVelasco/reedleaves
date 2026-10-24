@@ -183,7 +183,7 @@ export function startReader({createCardFeatures} = {}) {
     if (["review","author"].includes(mode) && previewDeckId !== deckId) { deckPreview=false;previewColumns=2;previewDeckId=deckId; }
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
     const selectedDaily=dailyHistory.find(item=>item.day===selectedDailyDay)||daily;
-    const state = {bookViews,userId:snapshot.user?.id,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily:selectedDaily,dailyToday:daily,dailyHistory,dailyStatus,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountTopic:snapshot.practiceDiscountTopic,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
+    const state = {bookViews,userId:snapshot.user?.id,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],toReadBookIds:Object.entries(snapshot.statuses||{}).filter(([,status])=>status==="unread").map(([id])=>id),noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily:selectedDaily,dailyToday:daily,dailyHistory,dailyStatus,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountTopic:snapshot.practiceDiscountTopic,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,libraryQuery,libraryFilters,libraryFiltersOpen,libraryFilterDraft,bookshelfFilters:mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters,bookshelfFiltersOpen,bookshelfFilterDraft,bookshelfTab,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
       profileData,profileError,readOnly:mode === "public-bookshelf",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,accountLearningNotice};
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
@@ -877,7 +877,7 @@ export function startReader({createCardFeatures} = {}) {
   function syncBookReadingDialog(id,status,errorCode=null) {
     const dialog=[...main.querySelectorAll(".book-modal")].find(item=>item.dataset.book === id);
     if (!dialog) return;
-    const selected=status === "unread" && snapshot.shelfBookIds?.includes(id) ? "to-read" : status;
+    const selected=status === "unread" && snapshot.statuses?.[id] === "unread" ? "to-read" : status;
     for (const button of dialog.querySelectorAll('[data-action="set-book-reading"]')) button.setAttribute("aria-pressed",String(button.dataset.status === selected));
     const controls=dialog.querySelector(".book-reading-controls");
     controls?.querySelectorAll(".account-error").forEach(node=>node.remove());
@@ -892,7 +892,7 @@ export function startReader({createCardFeatures} = {}) {
     nudge.append(prompt,action);controls.insertAdjacentElement("afterend",nudge);
   }
   async function setBookReading(id,status) {
-    if (!snapshot.user || mode === "public-bookshelf" || !catalog.booksById.has(id) || !["unread","to-read","reading","read"].includes(status) || (statuses[id] === status && status !== "unread" && status !== "to-read") || (status === "to-read" && statuses[id] === "unread" && snapshot.shelfBookIds?.includes(id)) || (status === "unread" && !snapshot.shelfBookIds?.includes(id))) return;
+    if (!snapshot.user || mode === "public-bookshelf" || !catalog.booksById.has(id) || !["unread","to-read","reading","read"].includes(status) || (statuses[id] === status && status !== "unread" && status !== "to-read") || (status === "to-read" && snapshot.statuses?.[id] === "unread") || (status === "unread" && !snapshot.statuses?.[id])) return;
     bookStatusError=null;const keepBookDialog=mode === "library" && openBookId === id;let preserveDialogDOM=keepBookDialog;
     const saved=await mutation("/api/reader/reading",{bookId:id,status},()=>{
       live.textContent=words[language][status === "to-read" ? "bookAddedToShelf" : status === "read" ? "bookMarkedRead" : status === "reading" ? "bookMarkedReading" : "bookMarkedUnread"];
@@ -1064,10 +1064,10 @@ export function startReader({createCardFeatures} = {}) {
     if (input.dataset.bookshelfFilter) {
       const axis = input.dataset.bookshelfFilter;
       if(input.closest(".bookshelf-filter-modal")){
-        if(axis === "reading"&&["all","unread","reading","read"].includes(input.value))bookshelfFilterDraft[axis]=input.value;
+        if(axis === "reading"&&["all","unread","to-read","reading","read"].includes(input.value))bookshelfFilterDraft[axis]=input.value;
         return;
       }
-      if (axis === "reading" && ["all","unread","reading","read"].includes(input.value)) (mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters)[axis] = input.value;
+      if (axis === "reading" && ["all","unread","to-read","reading","read"].includes(input.value)) (mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters)[axis] = input.value;
       delete listPositions.bookshelf; render(); document.getElementById(input.id)?.focus(); return;
     }
     return;

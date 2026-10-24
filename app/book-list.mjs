@@ -1,7 +1,9 @@
 // Presentation only: callers resolve language, permissions, destinations and data.
 const esc=value=>String(value ?? '').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 export const BOOK_VIEWS=['covers','shelf','stack'];
-export const defaultBookView=(count,preferred)=>BOOK_VIEWS.includes(preferred)?preferred:count>=10?'shelf':'covers';
+export const BOOK_SHELF_THRESHOLD=10;
+export const selectedBookView=(preferred,fallback)=>BOOK_VIEWS.includes(preferred)?preferred:fallback;
+export const defaultBookView=(count,preferred)=>selectedBookView(preferred,count>=BOOK_SHELF_THRESHOLD?'shelf':'covers');
 export const leaningBookIndex=(count,columns)=>count%columns>1?count-1:-1;
 const icons={covers:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',shelf:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/>',stack:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18"/>'};
 export function bookViewSelector(view,scope,language='es',trailing=''){
@@ -10,7 +12,8 @@ export function bookViewSelector(view,scope,language='es',trailing=''){
 }
 export function bookListMarkup({books,view='covers',label='',cover}){
   if(view==='covers')return `<div class="study-books book-grid" role="group" aria-label="${esc(label)}">${books.map(cover).join('')}</div>`;
-  return `<div class="book-spines book-spines--${view}" data-book-spines="${view}" role="list" aria-label="${esc(label)}">${books.map(book=>`<div class="book-spine-item" role="listitem"><a class="book-spine" href="${esc(book.href)}" ${book.action?`data-action="${esc(book.action)}" data-book="${esc(book.id)}" aria-haspopup="dialog"`:''} aria-label="${esc(book.title+', '+book.author)}"><span class="book-spine-title" lang="${esc(book.language)}" dir="auto">${esc(book.title)}</span></a>${book.accessory||''}</div>`).join('')}</div>`;
+  const ordered=view==='stack'?[...books].reverse():books;
+  return `<div class="book-spines book-spines--${view}" data-book-spines="${view}" role="list" aria-label="${esc(label)}">${ordered.map(book=>`<div class="book-spine-item" role="listitem"><a class="book-spine" href="${esc(book.href)}" ${book.action?`data-action="${esc(book.action)}" data-book="${esc(book.id)}" aria-haspopup="dialog"`:''} aria-label="${esc(book.title+', '+book.author)}"><span class="book-spine-title" lang="${esc(book.language)}" dir="auto">${esc(book.title)}</span></a>${book.accessory||''}</div>`).join('')}</div>`;
 }
 export function bookVariation(text,salt){let seed=2166136261;for(const char of text+'|'+salt){seed^=char.charCodeAt(0);seed=Math.imul(seed,16777619);}return (seed>>>0)/4294967295;}
 // Each mount owns observers; dispose before replacing its DOM.
@@ -43,7 +46,11 @@ export function mountBookLists(root){
         if(vertical&&index===leaningBookIndex(items.length,columns)){
           book.classList.add('is-leaning');
         }
-        if(!vertical){item.style.setProperty('--spine-offset',((bookVariation(text,'offset')-.5)*12).toFixed(2)+'px');item.style.setProperty('--spine-tilt',((bookVariation(text,'tilt')-.5)*1.2).toFixed(2)+'deg');}
+        if(!vertical){
+          const atBase=index===items.length-1;
+          item.style.setProperty('--spine-offset',atBase?'0px':((bookVariation(text,'offset')-.5)*12).toFixed(2)+'px');
+          item.style.setProperty('--spine-tilt',atBase?'0deg':((bookVariation(text,'tilt')-.5)*1.2).toFixed(2)+'deg');
+        }
         // Browser measurement wins over canvas estimates for fallback fonts.
         while(title.scrollWidth>title.clientWidth&&size>min){size=Math.max(min,size-.25);title.style.fontSize=size+'px';}
         title.style.textAlign=vertical&&title.scrollWidth<=title.clientWidth?'center':'left';
