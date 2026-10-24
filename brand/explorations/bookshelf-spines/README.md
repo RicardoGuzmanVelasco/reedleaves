@@ -40,3 +40,11 @@ Punto 14 del feedback. Se estudia el aspecto, sin decidir cuándo ni dónde se a
 ## Verificación
 
 Estructura HTML y sintaxis de scripts comprobadas. El contraste del texto sobre el verde claro es 10,13:1. Se comprueba que la referencia aprobada no cambie y que su exportación conserve estilos, contenido y comportamiento. `npm run lint` correcto y `npm test` completo con build: 318 pruebas, salida 0, Node 24.21.0.
+
+## Ajuste posterior: lectura homogénea
+
+`revision-equilibrada.html` conserva las pruebas anteriores y afina la última comparación:
+
+- Estantería con letra entre 15 y 16 px. Alturas estables entre el 78 % y el 99 % del máximo, también cuando el título se trunca. El espacio longitudinal interior baja de 28 a 16 px para acercar los puntos suspensivos al borde sin cambiar el centrado transversal. Los títulos completos conservan el espacio necesario para seguir cabiendo.
+- En la pila sin autores solo se acortan algo más los títulos que usan menos del 70 % del ancho disponible. Conserva grosor, posición del título, tipografía, desplazamiento y giro.
+- Las reglas de esta revisión sustituyen en esta prueba los límites y la prohibición de acortar títulos truncados descritos arriba; las referencias anteriores permanecen intactas.
