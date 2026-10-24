@@ -1,6 +1,6 @@
 export function createModalPageLock({document,window,getComputedStyle}) {
   let saved=null;
-  return locked=>{
+  const setLocked=locked=>{
     const {body,documentElement:root}=document;
     if(locked){
       if(saved)return;
@@ -21,4 +21,6 @@ export function createModalPageLock({document,window,getComputedStyle}) {
     window.scrollTo(0,scrollY);
     const [scrollBehavior,scrollBehaviorPriority]=savedRoot["scroll-behavior"];if(scrollBehavior)root.style.setProperty("scroll-behavior",scrollBehavior,scrollBehaviorPriority);else root.style.removeProperty("scroll-behavior");
   };
+  setLocked.scrollY=()=>saved?.scrollY ?? window.scrollY;
+  return setLocked;
 }

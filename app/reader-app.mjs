@@ -583,7 +583,7 @@ export function startReader({createCardFeatures} = {}) {
     if (busy || !snapshot.user || deck?.creator.userId !== snapshot.user.id || deck?.status !== "draft") return;
     const model=catalog.deckModels.get(targetDeckId);
     if (parentId && !model?.byId.has(parentId)) return;
-    const noteReturn={hash:location.hash,openDeckId,openBookId,notesCompletion,scrollY:exclusivePageLock?.scrollY ?? window.scrollY,dialogScrollTop:trigger.closest("dialog")?.scrollTop || 0,
+    const noteReturn={hash:location.hash,openDeckId,openBookId,notesCompletion,scrollY:setModalPageLock.scrollY(),dialogScrollTop:trigger.closest("dialog")?.scrollTop || 0,
       action:trigger.dataset.action,deckId:targetDeckId,...(parentId ? {cardId:parentId} : {})};
     notesCompletion=null;
     openAuthorForm("card",{noteBookId:deck.bookId,noteDeckId:targetDeckId,parentId,noteReturn,forceParentId:parentId !== null});

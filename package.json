@@ -7,6 +7,7 @@
   },
   "scripts": {
     "build:ui": "node scripts/build-ui.mjs",
+    "lint": "eslint .",
     "watch:ui": "node scripts/build-ui.mjs --watch",
     "prestart": "npm run build:ui",
     "pretest": "npm run build:ui",
@@ -27,6 +28,8 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
-    "esbuild": "0.28.2"
+    "esbuild": "0.28.2",
+    "eslint": "^9.39.2",
+    "globals": "^16.5.0"
   }
 }
