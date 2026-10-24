@@ -1,26 +1,26 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lomos verticales y horizontales · Reedleaves</title><style>html{color-scheme:light dark}body{margin:0;padding:20px 10px;background:light-dark(#fff9ed,#252c24);font-family:"Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif}.study-switch{display:flex;justify-content:center;gap:10px;margin:12px 0 0}.study-switch button{padding:10px 16px;border:1px solid #779a72;border-radius:12px;background:light-dark(#fff9ed,#252c24);color:light-dark(#173d2c,#eeefdf);font:650 14px "Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif;touch-action:manipulation}.study-switch button[aria-pressed="true"]{background:light-dark(#e4f0cc,#3c4b33)}</style></head><body><nav class="study-switch" aria-label="Orientación de los lomos"><button type="button" data-show="Vertical" aria-pressed="true">Vertical</button><button type="button" data-show="Horizontal" aria-pressed="false">Horizontal</button></nav><style>
-  #reed-spines-slim .sf-stage{min-height:800px;padding:18px 8px 24px;box-sizing:border-box}
-  #reed-spines-slim .sf-phone{--sf-paper:light-dark(#fff9ed,#252c24);--sf-ink:light-dark(#173d2c,#eeefdf);--sf-muted:light-dark(#51654c,#c5cdb9);--sf-cover:light-dark(#e4f0cc,#3c4b33);--sf-spine:light-dark(#9fca82,#5a6f47);--sf-edge:light-dark(#779a72,#839272);--sf-shadow:light-dark(#1e4c2e,#151f12);--sf-wood:light-dark(#e8d3a4,#756443);--sf-wood-edge:light-dark(#bca06d,#51472e);box-sizing:border-box;max-width:390px;min-height:744px;margin:auto;border:1px solid light-dark(#dadcc9,#515b46);border-radius:24px;background:var(--sf-paper);color:var(--sf-ink);box-shadow:0 8px 24px light-dark(#173d2c12,#00000032);font-family:"Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif;font-synthesis:none}
-  #reed-spines-slim .sf-header{display:flex;justify-content:space-between;align-items:baseline;gap:15px;padding:25px 20px 20px}
-  #reed-spines-slim .sf-header h2{margin:0;color:var(--sf-ink);font-family:inherit;font-size:28px;font-weight:800;line-height:1.15;letter-spacing:-.045em}
-  #reed-spines-slim .sf-count{font-size:12px;color:var(--sf-muted);white-space:nowrap}
-  #reed-spines-slim .sf-shelves{padding:8px 18px 24px}
-  #reed-spines-slim .sf-shelf{position:relative;isolation:isolate;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:end;gap:4px;height:303px;margin-bottom:21px;padding:0 2px 12px;box-sizing:border-box}
-  #reed-spines-slim .sf-shelf:last-child{margin-bottom:0}
-  #reed-spines-slim .sf-shelf:after,#reed-spines-slim .sf-stack:after{content:"";position:absolute;left:-6px;right:-6px;bottom:0;z-index:-1;height:9px;border-radius:3px 3px 5px 5px;background:var(--sf-wood);border-top:1px solid light-dark(#f7e7c4,#a28c5d);box-shadow:0 3px 0 var(--sf-wood-edge),0 7px 10px light-dark(#173d2c12,#00000028)}
-  #reed-spines-slim .sf-book{position:relative;box-sizing:border-box;min-width:0;margin:0;border:1px solid var(--sf-edge);background-color:var(--sf-spine);color:var(--sf-ink);box-shadow:1px 2px 0 var(--sf-shadow),2px 4px 6px light-dark(#173d2c10,#00000022)}
-  #reed-spines-slim .sf-book h3{margin:0;color:var(--sf-ink);font-family:inherit;font-weight:800;letter-spacing:-.035em;overflow-wrap:normal}
-  #reed-spines-slim .sf-book p{margin:0;color:var(--sf-ink);font-family:inherit;font-size:11px;font-weight:400;line-height:1.1}
-  #reed-spines-slim .sf-upright{height:var(--book-height);padding:13px 4px 13px;border-radius:5px 4px 4px 5px;background-image:linear-gradient(90deg,var(--sf-cover) 0 2px,transparent 2px calc(100% - 2px),var(--sf-cover) calc(100% - 2px))}
-  #reed-spines-slim .sf-upright h3{height:100%;width:100%;writing-mode:vertical-rl;text-orientation:mixed;font-size:15.5px;line-height:1.04}
-  #reed-spines-slim .sf-upright p{display:none}
-  #reed-spines-slim .sf-stack{position:relative;isolation:isolate;display:flex;flex-direction:column;gap:4px;margin:8px 20px 26px;padding-bottom:14px}
-  #reed-spines-slim .sf-horizontal{display:flex;flex-direction:column;justify-content:center;gap:3px;min-height:44px;padding:7px 11px 6px;border-radius:4px 6px 6px 4px;background-image:linear-gradient(180deg,var(--sf-cover) 0 2px,transparent 2px calc(100% - 2px),var(--sf-cover) calc(100% - 2px))}
-  #reed-spines-slim .sf-horizontal h3{font-size:16px;line-height:1.08}
-  @media(max-width:370px){#reed-spines-slim .sf-stage{padding-left:0;padding-right:0}#reed-spines-slim .sf-header{padding-left:16px;padding-right:16px}#reed-spines-slim .sf-shelves{padding-left:13px;padding-right:13px}#reed-spines-slim .sf-stack{margin-left:15px;margin-right:15px}#reed-spines-slim .sf-horizontal{padding-left:9px;padding-right:9px}}
+  #reed-spines-fit .sf-stage{min-height:800px;padding:18px 8px 24px;box-sizing:border-box}
+  #reed-spines-fit .sf-phone{--sf-paper:light-dark(#fff9ed,#252c24);--sf-ink:light-dark(#173d2c,#eeefdf);--sf-muted:light-dark(#51654c,#c5cdb9);--sf-cover:light-dark(#e4f0cc,#3c4b33);--sf-spine:light-dark(#9fca82,#5a6f47);--sf-edge:light-dark(#779a72,#839272);--sf-shadow:light-dark(#1e4c2e,#151f12);--sf-wood:light-dark(#e8d3a4,#756443);--sf-wood-edge:light-dark(#bca06d,#51472e);box-sizing:border-box;max-width:390px;min-height:744px;margin:auto;border:1px solid light-dark(#dadcc9,#515b46);border-radius:24px;background:var(--sf-paper);color:var(--sf-ink);box-shadow:0 8px 24px light-dark(#173d2c12,#00000032);font-family:"Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif;font-synthesis:none}
+  #reed-spines-fit .sf-header{display:flex;justify-content:space-between;align-items:baseline;gap:15px;padding:25px 20px 20px}
+  #reed-spines-fit .sf-header h2{margin:0;color:var(--sf-ink);font-family:inherit;font-size:28px;font-weight:800;line-height:1.15;letter-spacing:-.045em}
+  #reed-spines-fit .sf-count{font-size:12px;color:var(--sf-muted);white-space:nowrap}
+  #reed-spines-fit .sf-shelves{padding:8px 18px 24px}
+  #reed-spines-fit .sf-shelf{position:relative;isolation:isolate;display:flex;justify-content:center;align-items:flex-end;gap:5px;height:303px;margin-bottom:21px;padding:0 2px 12px;box-sizing:border-box}
+  #reed-spines-fit .sf-shelf:last-child{margin-bottom:0}
+  #reed-spines-fit .sf-shelf:after,#reed-spines-fit .sf-stack:after{content:"";position:absolute;left:-6px;right:-6px;bottom:0;z-index:-1;height:9px;border-radius:3px 3px 5px 5px;background:var(--sf-wood);border-top:1px solid light-dark(#f7e7c4,#a28c5d);box-shadow:0 3px 0 var(--sf-wood-edge),0 7px 10px light-dark(#173d2c12,#00000028)}
+  #reed-spines-fit .sf-book{position:relative;box-sizing:border-box;min-width:0;margin:0;border:1px solid var(--sf-edge);background-color:var(--sf-cover);color:var(--sf-ink);box-shadow:1px 2px 0 var(--sf-shadow),2px 4px 6px light-dark(#173d2c10,#00000022)}
+  #reed-spines-fit .sf-book h3{margin:0;color:var(--sf-ink);font-family:inherit;font-weight:800;letter-spacing:-.035em;overflow-wrap:normal}
+  #reed-spines-fit .sf-book p{margin:0;color:var(--sf-ink);font-family:inherit;font-size:11px;font-weight:400;line-height:1.1}
+  #reed-spines-fit .sf-upright{flex:0 0 34px;width:34px;height:var(--book-height,280px);padding:0;border-radius:5px 4px 4px 5px;background-image:linear-gradient(90deg,var(--sf-spine) 0 3px,transparent 3px calc(100% - 3px),var(--sf-spine) calc(100% - 3px))}
+  #reed-spines-fit .sf-upright h3{position:absolute;left:50%;top:50%;width:calc(var(--book-height,280px) - 28px);height:1.15em;transform:translate(-50%,-50%) rotate(90deg);transform-origin:center;writing-mode:horizontal-tb;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:16px;line-height:1.15}
+  #reed-spines-fit .sf-upright p{display:none}
+  #reed-spines-fit .sf-stack{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:center;gap:4px;margin:8px 20px 26px;padding:3px 10px 14px}
+  #reed-spines-fit .sf-horizontal{display:flex;flex-direction:column;justify-content:center;gap:2px;width:100%;min-height:44px;padding:6px 11px;border-radius:4px 6px 6px 4px;background-image:linear-gradient(180deg,var(--sf-spine) 0 3px,transparent 3px calc(100% - 3px),var(--sf-spine) calc(100% - 3px));transform:translateX(var(--offset,0px)) rotate(var(--tilt,0deg));transform-origin:center}
+  #reed-spines-fit .sf-horizontal h3{width:100%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:16px;line-height:1.1}
+  @media(max-width:370px){#reed-spines-fit .sf-stage{padding-left:0;padding-right:0}#reed-spines-fit .sf-header{padding-left:16px;padding-right:16px}#reed-spines-fit .sf-shelves{padding-left:13px;padding-right:13px}#reed-spines-fit .sf-stack{margin-left:15px;margin-right:15px}}
 </style>
-<div id="reed-spines-slim" class="bookshelf-study" aria-label="Lomos finos con la tipografía de Reedleaves" data-previous-label="Anterior" data-next-label="Siguiente">
+<div id="reed-spines-fit" class="bookshelf-study" aria-label="Lomos finos con la tipografía de Reedleaves" data-previous-label="Anterior" data-next-label="Siguiente">
   <section class="sf-stage" data-variant="Vertical" aria-label="Lomos finos en estantería">
     <div class="sf-phone">
       <header class="sf-header"><h2>Estantería</h2><span class="sf-count">12 libros</span></header>
@@ -64,4 +64,97 @@
     </div>
   </section>
 </div>
+<script>
+(() => {
+  const root=document.getElementById('reed-spines-fit');
+  const canvas=document.createElement('canvas');
+  const context=canvas.getContext('2d');
+  const widths=new WeakMap();
+  let frame=0;
+  function variation(text,salt){
+    let seed=2166136261;
+    for(const char of text+'|'+salt){seed^=char.charCodeAt(0);seed=Math.imul(seed,16777619);}
+    return (seed>>>0)/4294967295;
+  }
+  function textWidth(text,size,family){
+    if(!context)return text.length*size*.65;
+    context.font='800 '+size+'px '+family;
+    return Math.max(0,context.measureText(text).width-Math.max(0,Array.from(text).length-1)*size*.035);
+  }
+  function fittedFont(text,space,min,max,family){
+    if(textWidth(text,min,family)>space)return {size:min,fits:false};
+    if(textWidth(text,max,family)<=space)return {size:max,fits:true};
+    let low=min,high=max;
+    for(let pass=0;pass<9;pass++){
+      const middle=(low+high)/2;
+      if(textWidth(text,middle,family)<=space)low=middle;else high=middle;
+    }
+    return {size:Math.floor(low*4)/4,fits:true};
+  }
+  function fitBook(book,family,nominal,vertical){
+    const label=book.querySelector('h3');
+    const text=label.textContent.trim().replace(/\s+/g,' ');
+    const padding=vertical?28:24;
+    const minimumFont=vertical?13:14;
+    const chosen=fittedFont(text,nominal-padding-3,minimumFont,vertical?22:18,family);
+    let size=chosen.size;
+    label.style.fontSize=size+'px';
+    label.style.textAlign='left';
+    const applyLength=value=>{
+      if(vertical){book.style.setProperty('--book-height',value+'px');label.style.width=(value-padding)+'px';}
+      else book.style.width=value+'px';
+    };
+    applyLength(nominal);
+    // Confirm against actual browser layout before allowing any reduction.
+    while(label.scrollWidth>label.clientWidth&&size>minimumFont){
+      size=Math.max(minimumFont,size-.25);label.style.fontSize=size+'px';
+    }
+    let length=nominal;
+    if(label.scrollWidth<=label.clientWidth){
+      const minimum=textWidth(text,size,family)+padding+4;
+      const factor=(vertical ? .72 : .78)+variation(text,'length')*(vertical ? .24 : .21);
+      length=Math.min(nominal,Math.max(minimum,nominal*factor));
+    }
+    applyLength(Math.ceil(length));
+    if(length<nominal&&label.scrollWidth>label.clientWidth){length=nominal;applyLength(nominal);}
+    const truncated=label.scrollWidth>label.clientWidth;
+    label.style.textAlign=vertical&&!truncated?'center':'left';
+    book.dataset.truncated=String(truncated);
+    book.dataset.shortened=String(length<nominal-1);
+    if(truncated)label.dataset.tooltip=text;else delete label.dataset.tooltip;
+    if(!vertical){
+      book.style.setProperty('--offset',((variation(text,'offset')-.5)*12).toFixed(2)+'px');
+      book.style.setProperty('--tilt',((variation(text,'tilt')-.5)*1.2).toFixed(2)+'deg');
+    }
+  }
+  function refresh(){
+    root.querySelectorAll('.sf-phone').forEach(phone=>{
+      if(!phone.getClientRects().length)return;
+      const family=getComputedStyle(phone).fontFamily;
+      phone.querySelectorAll('.sf-upright').forEach(book=>fitBook(book,family,280,true));
+      const stack=phone.querySelector('.sf-stack');
+      if(stack){
+        const style=getComputedStyle(stack);
+        const space=stack.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight);
+        if(space>0)stack.querySelectorAll('.sf-horizontal').forEach(book=>fitBook(book,family,space,false));
+      }
+    });
+  }
+  function schedule(){
+    if(!frame)frame=requestAnimationFrame(()=>{frame=0;refresh();});
+  }
+  refresh();
+  if(document.fonts)document.fonts.ready.then(schedule);
+  if(globalThis.ResizeObserver){
+    const observer=new ResizeObserver(entries=>{
+      for(const entry of entries){
+        const width=entry.contentRect.width;
+        if(width>0&&Math.abs((widths.get(entry.target)||0)-width)>.5){widths.set(entry.target,width);schedule();}
+      }
+    });
+    root.querySelectorAll('.sf-phone').forEach(phone=>observer.observe(phone));
+  }
+  new MutationObserver(schedule).observe(root,{subtree:true,attributes:true,attributeFilter:['hidden']});
+})();
+</script>
 <script>document.querySelectorAll("[data-show]").forEach(button=>button.addEventListener("click",()=>{document.querySelectorAll("[data-variant]").forEach(view=>view.hidden=view.dataset.variant!==button.dataset.show);document.querySelectorAll("[data-show]").forEach(item=>item.setAttribute("aria-pressed",String(item===button)));}));</script></body></html>
