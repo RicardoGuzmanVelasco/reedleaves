@@ -29,5 +29,7 @@ export const POPULAR_TITLE_UPDATES=[
   {sql:"UPDATE books SET popular_language='en' WHERE popular_title=? AND lower(trim(author))=lower(?) AND popular_language='es'",
     values:["Influence","Robert B. Cialdini"]},
   {sql:"UPDATE books SET popular_language='en' WHERE popular_title=? AND lower(trim(author)) IN (lower(?),lower(?)) AND popular_language='es'",
-    values:["Reality Transurfing Steps I-V","Vadim Zeeland","Vadim Zeland"]}
+    values:["Reality Transurfing Steps I-V","Vadim Zeeland","Vadim Zeland"]},
+  {sql:"UPDATE books SET author=? WHERE popular_title=? AND lower(trim(author))=lower(?)",
+    values:["Vadim Zeland","Reality Transurfing Steps I-V","Vadim Zeeland"]}
 ];
