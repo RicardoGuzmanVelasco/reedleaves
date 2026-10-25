@@ -4,6 +4,7 @@ import {ApiError} from "./errors.mjs";
 import {serverDay} from "./auth.mjs";
 import {dailyCycleDay,DAILY_CYCLE_STARTS,previousCalendarDay} from "./daily-cycle.mjs";
 import {accrueLeafWallet} from "./leaf-wallet-repository.mjs";
+import {DECK_ADD_COST} from "../app/wallet.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
 import {LANGUAGES} from "../app/core.mjs";
@@ -116,7 +117,7 @@ export async function addDeckToCollection(db,session,deckId,now=new Date()) {
       return {state:await stateInside(db,session,now)};
     }
     await stateInside(db,session,now);
-    const spent=await db.prepare("UPDATE leaf_wallets SET balance=balance-1 WHERE user_id=? AND balance>=1").run(userId);
+    const spent=await db.prepare("UPDATE leaf_wallets SET balance=balance-? WHERE user_id=? AND balance>=?").run(DECK_ADD_COST,userId,DECK_ADD_COST);
     if(spent.changes!==1) throw new ApiError(409,"insufficientLeaves");
     await enrol(db,userId,deck);
     return {state:await stateInside(db,session,now)};

@@ -141,7 +141,7 @@ test("Deck details distinguish adding to Decks from starting practice",async()=>
   const state={...s,bookId:"atomic-habits",deckChoices:[deck],deckId:deck.deck.id};
   const notAdded=reviewView(state);
   assert.match(notAdded,/data-action="add-deck-to-collection"/);
-  assert.match(notAdded,/Costs one leaf|Cuesta una hoja/);
+  assert.match(notAdded,/Costs 2 leaves|Cuesta 2 hojas/);
   assert.doesNotMatch(notAdded,/data-action="select-deck"/);
   const added=reviewView({...state,enrolledIds:[deck.deck.id]});
   assert.doesNotMatch(added,/data-action="add-deck-to-collection"/);

@@ -49,7 +49,7 @@ test("Real registration, two sessions, spending, reconnecting and logout persist
   assert.equal((await call("/api/reader/state")).status,401);
   const {result,headers:a} = await register("reader.one");
   assert.match(result.headers.get("set-cookie"),/HttpOnly/); assert.match(result.headers.get("set-cookie"),/SameSite=Strict/);
-  assert.equal(result.body.wallet.balance,1); assert.equal(result.body.today,"2026-10-06");
+  assert.equal(result.body.wallet.balance,5); assert.equal(result.body.today,"2026-10-06");
   assert.equal(result.body.petals,10); assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(result.body.user.id).balance,10);
   const credentials = db.prepare("SELECT password_hash FROM accounts").get().password_hash;
   assert.match(credentials,/^scrypt\$131072\$8\$1\$/); assert.ok(!credentials.includes(password));
@@ -65,13 +65,13 @@ test("Real registration, two sessions, spending, reconnecting and logout persist
   assert.equal((await call("/api/reader/select",{deckId:v},a)).status,200);
   const both = await Promise.all([call("/api/reader/open",{deckId:v,cardId:"habit-1",userId:"reed-team",today:"2099-01-01",balance:3},a),call("/api/reader/open",{deckId:v,cardId:"habit-1"},b)]);
   assert.deepEqual(both.map(r=>r.status),[200,200]); assert.ok(both.every(r=>!Object.hasOwn(r.body,"spent")));
-  assert.equal((await call("/api/reader/state",undefined,b)).body.wallet.balance,0);
+  assert.equal((await call("/api/reader/state",undefined,b)).body.wallet.balance,3);
   assert.equal((await call("/api/reader/open",{deckId:v,cardId:"habit-2"},b)).status,200);
   assert.equal((await call("/api/reader/open",{deckId:v,cardId:"habit-7"},a)).status,200);
   setClock(new Date("2026-10-10T12:00:00Z"));
-  assert.equal((await call("/api/reader/state",undefined,b)).body.wallet.balance,3);
+  assert.equal((await call("/api/reader/state",undefined,b)).body.wallet.balance,10);
   const spending = await Promise.all([call("/api/reader/open",{deckId:v,cardId:"habit-2"},a),call("/api/reader/open",{deckId:v,cardId:"habit-3"},b)]);
-  assert.ok(spending.every(r=>r.status === 200)); assert.equal((await call("/api/reader/state",undefined,a)).body.wallet.balance,3);
+  assert.ok(spending.every(r=>r.status === 200)); assert.equal((await call("/api/reader/state",undefined,a)).body.wallet.balance,10);
   const daily = (await call("/api/reader/daily",{},a)).body.daily;
   assert.deepEqual((await call("/api/reader/daily",{},b)).body.daily,daily);
   assert.equal((await call("/api/auth/logout",{},a)).status,200);

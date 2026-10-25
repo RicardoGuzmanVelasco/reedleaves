@@ -41,11 +41,11 @@ test("PostgreSQL persists account, daily leaves and freely opened cards", async 
   await authenticate(db,"register",{username:"postgres.reader",password:"correct horse battery staple"});
   const id = (await db.prepare("SELECT user_id FROM accounts WHERE username = ?").get("postgres.reader")).user_id;
   const session = {user_id:id,csrf_token:"test"}, deckId = "seven-habits-editorial", day = "2026-10-08", now = new Date("2026-10-08T12:00:00Z");
-  assert.equal((await readLeafWallet(db,id,day)).balance,1);
+  assert.equal((await readLeafWallet(db,id,day)).balance,5);
   const first = await openCard(db,session,deckId,"habit-1",now);
-  assert.equal(first.state.wallet.balance,1);
+  assert.equal(first.state.wallet.balance,5);
   const repeated = await openCard(db,session,deckId,"habit-1",now);
-  assert.equal((await readLeafWallet(db,id,day)).balance,1);
+  assert.equal((await readLeafWallet(db,id,day)).balance,5);
   const state = await readReaderState(db,session,now);
   assert.equal("practices" in state,false);
 });

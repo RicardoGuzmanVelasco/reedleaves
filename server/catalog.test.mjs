@@ -155,10 +155,10 @@ test("SQL wallets are isolated per user and reject invalid balances and dates", 
   const db = await fixture(t);
   db.prepare("INSERT INTO users(id,display_name) VALUES ('a','A'),('b','B')").run();
   const first = await readLeafWallet(db,"a","2026-10-06");
-  assert.equal(first.balance,1);
+  assert.equal(first.balance,5);
   assert.deepEqual(await readLeafWallet(db,"a","2026-10-06"),first);
-  assert.equal((await readLeafWallet(db,"a","2026-10-09")).balance,3);
-  assert.equal((await readLeafWallet(db,"b","2026-10-09")).balance,1);
+  assert.equal((await readLeafWallet(db,"a","2026-10-09")).balance,10);
+  assert.equal((await readLeafWallet(db,"b","2026-10-09")).balance,5);
   assert.throws(() => db.prepare("UPDATE leaf_wallets SET balance = -1 WHERE user_id = 'a'").run(),/CHECK/);
   assert.throws(() => db.prepare("UPDATE leaf_wallets SET last_accrual_day = '2026-02-30' WHERE user_id = 'a'").run(),/CHECK/);
   await assert.rejects(readLeafWallet(db,"b","bad"),/Invalid wallet date/);

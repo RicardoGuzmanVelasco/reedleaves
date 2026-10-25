@@ -23,16 +23,17 @@ async function fixture(t,path = ":memory:") {
   }
   return {db,a:{user_id:"a",csrf_token:"a"},b:{user_id:"b",csrf_token:"b"}};
 }
-test("Adding a deck costs one leaf once; viewing it is free and users are isolated",async t=>{
+test("Adding a deck costs two leaves once; viewing it is free and users are isolated",async t=>{
   const {db,a,b} = await fixture(t), before = await readReaderState(db,a,today);
   const added = await addDeckToCollection(db,a,version,today), state = added.state;
   assert.deepEqual(state.enrolledIds,[version]); assert.equal(state.selections["seven-habits"],version);
-  assert.equal(state.wallet.balance,before.wallet.balance-1); assert.equal("practices" in state,false);
+  assert.equal(state.wallet.balance,before.wallet.balance-2); assert.equal("practices" in state,false);
   assert.deepEqual(state.growth["seven-habits"],{added:true,reviewDays:0});
   assert.equal((await selectDeck(db,a,version,today)).wallet.balance,state.wallet.balance);
   assert.equal((await addDeckToCollection(db,a,version,today)).state.wallet.balance,state.wallet.balance);
+  await db.prepare("UPDATE leaf_wallets SET balance=1 WHERE user_id=?").run(a.user_id);
   await assert.rejects(addDeckToCollection(db,a,other,today),{code:"insufficientLeaves"});
-  assert.equal((await readReaderState(db,a,today)).wallet.balance,state.wallet.balance);
+  assert.equal((await readReaderState(db,a,today)).wallet.balance,1);
   assert.deepEqual((await readReaderState(db,b,today)).enrolledIds,[]);
 });
 test("Removing a collected deck clears its selection and keeps catalog content",async t=>{
@@ -113,7 +114,7 @@ test("Any card opens freely and records a unique view without creating deck prog
   const {db,a} = await fixture(t);
   for(let i=0;i<4;i++) {
     const result=await openCard(db,a,version,"habit-1",today);
-    assert.equal(result.state.wallet.balance,1); assert.equal("practices" in result.state,false);
+    assert.equal(result.state.wallet.balance,5); assert.equal("practices" in result.state,false);
   }
   await openCard(db,a,other,"atomic-1",today);
   assert.equal(db.prepare("SELECT count(*) AS n FROM card_views WHERE user_id='a'").get().n,2);
@@ -140,11 +141,11 @@ test("Leaves accrue independently of card views",async t=>{
   const {db,a} = await fixture(t), v = "seven-habits-inside-out";
   const catalog=await readCatalog(db),modelCards=catalog.cards.filter(c=>c.deckId===v),root=modelCards.find(c=>c.parentId===null),child=modelCards.find(c=>c.parentId===root.id);
   await readReaderState(db,a,today);
-  const later = date("2026-10-12"); assert.equal((await readReaderState(db,a,later)).wallet.balance,3);
-  assert.equal((await openCard(db,a,v,child.id,later)).state.wallet.balance,3);
-  assert.equal((await openCard(db,a,v,root.id,later)).state.wallet.balance,3);
-  assert.equal((await openCard(db,a,other,"atomic-1",later)).state.wallet.balance,3);
-  assert.equal((await readReaderState(db,a,date("2026-10-13"))).wallet.balance,3);
+  const later = date("2026-10-12"); assert.equal((await readReaderState(db,a,later)).wallet.balance,10);
+  assert.equal((await openCard(db,a,v,child.id,later)).state.wallet.balance,10);
+  assert.equal((await openCard(db,a,v,root.id,later)).state.wallet.balance,10);
+  assert.equal((await openCard(db,a,other,"atomic-1",later)).state.wallet.balance,10);
+  assert.equal((await readReaderState(db,a,date("2026-10-13"))).wallet.balance,10);
 });
 test("Leaf and petal refills switch together at 11:11 local",async t=>{
   const {db,a}=await fixture(t);
@@ -153,7 +154,7 @@ test("Leaf and petal refills switch together at 11:11 local",async t=>{
   const before=await readReaderState(db,a,new Date("2026-10-19T09:10:00Z"));
   assert.equal(before.wallet.balance,1);assert.equal(before.petals,10);
   const after=await readReaderState(db,a,new Date("2026-10-19T09:11:00Z"));
-  assert.equal(after.wallet.balance,2);assert.equal(after.petals,15);
+  assert.equal(after.wallet.balance,6);assert.equal(after.petals,15);
 });
 test("Reading and language preferences remain separate from wallets and practices",async t=>{
   const {db,a} = await fixture(t), before = await readReaderState(db,a,today);
@@ -165,7 +166,7 @@ test("Reading and language preferences remain separate from wallets and practice
 });
 test("One daily idea is shared and daily assignment does not create a card view",async t=>{
   const {db,a,b} = await fixture(t), first = await dailyIdea(db,a,today);
-  assert.ok(first.daily.id); assert.equal(first.wallet.balance,1);
+  assert.ok(first.daily.id); assert.equal(first.wallet.balance,5);
   assert.deepEqual((await dailyIdea(db,a,today)).daily,first.daily);
   await changePreferences(db,a,{language:"en"},today);
   assert.deepEqual((await dailyIdea(db,a,today)).daily,first.daily);
@@ -215,7 +216,7 @@ test("Separate SQL connections share one wallet; repeated card views stay idempo
   const {db,a} = await fixture(t,path), second = openDatabase(path); t.after(()=>second.close());
   await openCard(db,a,version,"habit-1",today); await openCard(second,a,version,"habit-1",today);
   await openCard(second,a,other,"atomic-1",today);
-  assert.equal((await readReaderState(second,a,today)).wallet.balance,1);
+  assert.equal((await readReaderState(second,a,today)).wallet.balance,5);
   assert.equal(db.prepare("SELECT count(*) AS n FROM card_views WHERE user_id='a'").get().n,2);
 });
 test("SQLite v26 migration drops per-deck progress without touching paid practices",async t=>{

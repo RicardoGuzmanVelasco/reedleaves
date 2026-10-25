@@ -83,7 +83,7 @@ test("Deck grid links to one page; every card is visible and openable", async ()
   assert.match(html,/Equipo Reedleaves/); assert.match(html,/class="tree-map/);
   assert.doesNotMatch(html,/tree-node--seen|tree-node--unseen|Ya repasada|Sin repasar/);
   assert.match(html,/Make room for what matters/); assert.doesNotMatch(html,/leaf-token|Bloqueada|tree-node-hidden/);
-  assert.doesNotMatch(html,/leaf-balance|Mañana tendrás otra hoja/);
+  assert.doesNotMatch(html,/leaf-balance|Mañana (?:tendrás otra hoja|podrás recibir hasta 5 hojas)/);
   const deckChoices = featuredDecks(catalog,base.bookId);
   const grid = deckView({...base,deckChoices,openDeckId:null});
   assert.match(grid,/class="deck-grid"/); assert.match(grid,/Ideas esenciales/); assert.match(grid,/From the inside out/);
