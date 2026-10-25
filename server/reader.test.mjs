@@ -44,6 +44,26 @@ test("Adding an unread book persists explicit shelf membership without reading p
   assert.ok(!removed.shelfBookIds.includes("atomic-habits"));
   assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id='a' AND book_id='atomic-habits'").get(),undefined);
 });
+test("Deck connections become Por leer and preserve active reading states",async t=>{
+  const {db,a}=await fixture(t);
+  const added=await addDeckToCollection(db,a,version,today);
+  assert.equal(added.state.statuses["seven-habits"],"unread");
+  assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id='a' AND book_id='seven-habits'").get().status,"unread");
+  await changeReading(db,a,"seven-habits","reading",today);
+  assert.equal((await addDeckToCollection(db,a,version,today)).state.statuses["seven-habits"],"reading");
+  await changeReading(db,a,"seven-habits","read",today);
+  assert.equal((await selectDeck(db,a,version,today)).statuses["seven-habits"],"read");
+  await changeReading(db,a,"seven-habits","unread",today);
+  assert.equal((await readReaderState(db,a,today)).statuses["seven-habits"],"unread");
+});
+test("Existing deck connections appear as Por leer without changing stored reading progress",async t=>{
+  const {db,a}=await fixture(t);
+  db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(a.user_id,version);
+  const state=await readReaderState(db,a,today);
+  assert.equal(state.statuses["seven-habits"],"unread");
+  assert.ok(state.shelfBookIds.includes("seven-habits"));
+  assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id=? AND book_id=?").get(a.user_id,"seven-habits"),undefined);
+});
 test("Mascot growth counts distinct days with completed paid practices, not card views",async t=>{
   const {db,a,b}=await fixture(t);
   await readReaderState(db,a,date("2026-10-06"));

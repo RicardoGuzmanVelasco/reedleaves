@@ -5,6 +5,7 @@ import {normalizeBookMetadata,mergeBookMetadata} from "../app/book-metadata.mjs"
 import {defaultNoteDeckTitle} from "../app/note-defaults.mjs";
 import {normalizeQuoteSourceUrl} from "../app/quote-source.mjs";
 import {isDeepStrictEqual} from "node:util";
+import {ensureBookToRead} from "./book-reading.mjs";
 
 function text(value,max,required=true) {
   if (typeof value !== "string" || value.trim().length > max || required && !value.trim()) throw new ApiError(400,"invalidRequest");
@@ -105,6 +106,7 @@ async function writeDeck(db,session,input) {
   await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language,status,kind,contribution_policy,max_cards_per_contributor) VALUES (?,?,?,?,'draft',?,?,?)").run(id,input.bookId,session.user_id,language,kind,contributionPolicy,maxCardsPerContributor);
   await db.prepare("INSERT INTO deck_translations(deck_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,title,description || title,title);
   await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,id);
+  await ensureBookToRead(db,session.user_id,input.bookId);
   return {deckId:id};
 }
 export async function addDeckContributors(db,session,input) {

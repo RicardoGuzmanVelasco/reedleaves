@@ -57,5 +57,5 @@ for(const dialect of ["sqlite","postgres"]) test(`${dialect}: reading guides sta
   await assert.rejects(setCardVote(db,a,{cardId:first.cardId,value:1}),{code:"ownCardVote"});
   assert.equal((await setCardVote(db,a,{cardId:second.cardId,value:1})).vote,1);
   assert.equal((await setCardSave(db,a,{cardId:second.cardId,saved:true},now)).saved,true);
-  assert.equal(await db.prepare("SELECT status FROM book_reading WHERE user_id=? AND book_id=?").get(a.user_id,"atomic-habits"),undefined);
+  assert.equal((await db.prepare("SELECT status FROM book_reading WHERE user_id=? AND book_id=?").get(a.user_id,"atomic-habits")).status,"unread");
 });

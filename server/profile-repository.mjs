@@ -5,6 +5,7 @@ import {prepareCatalog} from "../app/catalog.mjs";
 import {currentMascotStage} from "../app/mascot-progress.mjs";
 import {bookshelfBooks} from "../app/bookshelf.mjs";
 import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
+import {distinguishedBookIds} from "./book-reading.mjs";
 
 export async function insertCardView(db,userId,cardId) {
   await db.prepare("INSERT INTO card_views(user_id,card_id) VALUES (?,?) ON CONFLICT(user_id,card_id) DO NOTHING").run(userId,cardId);
@@ -52,11 +53,11 @@ export async function readProfile(db,userId,viewerId) {
     // Library entries are computed only from content visible to this viewer.
     // Creation totals are independent of the reader's practice counts.
     const catalog=prepareCatalog(await readCatalog(db,viewerId));
-    const statuses=Object.fromEntries((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(r=>[r.book_id,r.status]));
+    const distinguished=await distinguishedBookIds(db,userId);
+    const statuses=Object.fromEntries([...distinguished.map(id=>[id,"unread"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(r=>[r.book_id,r.status])]);
     const enrolledIds=(await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(r=>r.deck_id+"-v1");
     const shelfBookIds=Object.keys(statuses);
-    const toReadBookIds=shelfBookIds.filter(bookId=>statuses[bookId]==="unread");
-    const entries=bookshelfBooks({catalog,statuses,shelfBookIds,toReadBookIds,enrolledIds,userId});
+    const entries=bookshelfBooks({catalog,statuses,shelfBookIds,enrolledIds,userId});
     const days=new Map((await db.prepare(`SELECT v.book_id,COUNT(DISTINCT ps.completed_local_day) AS n
       FROM practice_sessions ps JOIN practice_session_cards psc ON psc.session_id=ps.id
       JOIN cards c ON c.id=psc.card_id JOIN decks v ON v.id=c.deck_id
