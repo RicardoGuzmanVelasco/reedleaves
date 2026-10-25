@@ -213,7 +213,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal((await readCatalog(db,other.user_id)).cards.some(c=>c.id===cardId),true);
     await selectDeck(db,other,deckId,new Date("2026-10-10T12:00:00Z"));
     const firstOpen=await openCard(db,other,deckId,cardId,new Date("2026-10-10T12:00:00Z"));
-    assert.equal(firstOpen.state.wallet.balance,1);
+    assert.equal(firstOpen.state.wallet.balance,5);
     assert.equal("practices" in await readReaderState(db,session),false);
     await assert.rejects(recordCardView(db,other,{cardId,context:"author"}),e=>e.code==="notAllowed");
     await assert.rejects(addCard(db,other,{requestId:randomUUID(),deckId,isQuote:true,parentId:null,body:"Ajena"}),e=>e.status===404);

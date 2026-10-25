@@ -1,4 +1,7 @@
-export const MAX_DAILY_LEAVES = 3;
+export const MAX_LEAVES = 10;
+export const DAILY_LEAF_REFILL = 5;
+export const INITIAL_LEAVES = 5;
+export const DECK_ADD_COST = 2;
 
 function dayNumber(day) {
   if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
@@ -13,9 +16,9 @@ export function restoreWallet(saved, today) {
   let wallet;
   if (valid) wallet = {balance:saved.balance,lastAccrualDay:saved.lastAccrualDay};
   else {
-    wallet = {balance:currentDay === null ? 0 : 1,lastAccrualDay:currentDay === null ? null : today};
+    wallet = {balance:currentDay === null ? 0 : INITIAL_LEAVES,lastAccrualDay:currentDay === null ? null : today};
   }
   const creditedDay = dayNumber(wallet.lastAccrualDay);
   if (currentDay === null || creditedDay === null || currentDay <= creditedDay) return wallet;
-  return {balance:Math.max(wallet.balance,Math.min(MAX_DAILY_LEAVES,wallet.balance + currentDay - creditedDay)),lastAccrualDay:today};
+  return {balance:Math.max(wallet.balance,Math.min(MAX_LEAVES,wallet.balance + DAILY_LEAF_REFILL * (currentDay - creditedDay))),lastAccrualDay:today};
 }
