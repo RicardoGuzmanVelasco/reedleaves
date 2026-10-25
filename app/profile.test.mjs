@@ -21,6 +21,8 @@ test("Profiles show book, card-view and contribution counts without old per-card
     assert.equal((html.match(/<img class="mascot-icon"/g)||[]).length,7);
     assert.match(html,new RegExp(`<span>${language==="es"?"Germen":"Seedling"}</span><strong>0</strong>`));
     assert.match(html,new RegExp(`<span>${language==="es"?"Brote":"Sprout"}</span><strong>1</strong>`));
+    assert.match(html,/<header class="profile-heading"><div class="profile-avatar"/);
+    assert.doesNotMatch(html,/data-action="profile-back"|profile-topline/);
     for(const key of Object.keys(profileData.profile.counts)) assert.ok(html.includes(words[language][key]),key);
     assert.match(html,/href="#bookshelf\/test-user"/);assert.match(html,/datetime="2026-10-10"/);
     assert.doesNotMatch(profileView({language,profileData,userId:"test-user"}),/href="#bookshelf(?:\/|")/);
@@ -29,7 +31,7 @@ test("Profiles show book, card-view and contribution counts without old per-card
 });
 
 test("Foreign shelf shows target reading/review states without mutation controls or private metadata actions",async()=>{
-  const catalog=await fixture(),s={catalog,language:"es",readOnly:true,profileData,userId:"other",openBookId:"seven-habits",bookshelfFilters:{reading:"all"}};
+  const catalog=await fixture(),s={catalog,language:"es",readOnly:true,profileData,userId:"other",openBookId:"seven-habits"};
   const html=bookshelfView(s);
   assert.match(html,/Solo lectura/);assert.match(html,/data-status="read" aria-pressed="true" disabled/);
     assert.doesNotMatch(html,/Repasando|Tarjetas repasadas|Continuar repaso/);assert.match(html,/href="#profile\/test-user"/);
@@ -37,7 +39,7 @@ test("Foreign shelf shows target reading/review states without mutation controls
   const controls=[...html.matchAll(/<button[^>]*data-action="set-book-reading"[^>]*>/g)];
   assert.equal(controls.length,4); assert.ok(controls.every(([tag])=>tag.includes("disabled")));
   assert.doesNotMatch(html,/data-book-status|data-action="(?:library|complete-book|create-book)"/);
-  assert.match(bookshelfView({...s,openBookId:null,bookshelfFilters:{reading:"reading"}}),/No hay libros con estos filtros/);
+  assert.doesNotMatch(html,/open-bookshelf-filters|bookshelf-filter-reading/);
 });
 
 test("All three card attributions are escaped links with three filled icons and diagonal arrows",async()=>{

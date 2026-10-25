@@ -168,6 +168,14 @@ function Features({context,api,callbacks}){
 export function createCardFeaturesBridge({api,...callbacks}){
   const element=document.createElement('div');element.className='card-feature-root';document.body.append(element);const root=createRoot(element);
   let userId=null;const pending=new Map();
-  const handlers={...callbacks,onPending:(id,value)=>{if(value)pending.set(id,value);else pending.delete(id)}};
-  return {get pending(){return (pending.get(userId)||0)>0},update(context){userId=context.userId;root.render(context.catalog?(context.userId?<Features key={context.userId} context={context} api={api} callbacks={handlers}/>:<GuestFeatures key="guest" context={context} api={api} callbacks={handlers}/>):null)},dispose(){root.unmount();element.remove()}};
+  return {get pending(){return [...pending.values()].some(row=>row.userId===userId&&row.value>0)},update(context){
+    userId=context.userId;
+    const slots=context.actionSlots?.length?context.actionSlots:[context.actionSlot];
+    root.render(context.catalog?<>{slots.map((slot,index)=>{
+      const cardId=slot?.dataset.cardActions||context.cardId;
+      const local={...context,cardId,actionSlot:slot,entrySlot:index===0?context.entrySlot:null,listSlot:index===0?context.listSlot:null};
+      const handlers={...callbacks,onPending:(id,value)=>{const key=id+':'+(cardId||'collection');if(value)pending.set(key,{userId:id,value});else pending.delete(key)}};
+      return context.userId?<Features key={context.userId+':'+(cardId||'collection')} context={local} api={api} callbacks={handlers}/>:<GuestFeatures key={'guest:'+(cardId||'collection')} context={local} api={api} callbacks={handlers}/>;
+    })}</>:null);
+  },dispose(){root.unmount();element.remove()}};
 }

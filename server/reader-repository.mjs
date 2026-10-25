@@ -10,6 +10,7 @@ import {LANGUAGES} from "../app/core.mjs";
 
 import {insertCardView} from "./profile-repository.mjs";
 import {cardSavesInside} from "./card-saves.mjs";
+import {distinguishedBookIds,ensureBookToRead} from "./book-reading.mjs";
 import {accruePetalWallet,MAX_PETALS} from "./petal-wallet-repository.mjs";
 import {practiceDiscountTopic} from "./practice-economy.mjs";
 
@@ -32,7 +33,9 @@ async function stateInside(db,session,now) {
     index:Number(activePracticeRow.card_index),cost:Number(activePracticeRow.cost),startedAt:activePracticeRow.started_at instanceof Date?activePracticeRow.started_at.toISOString():activePracticeRow.started_at
   }:null;
   const display=await db.prepare("SELECT show_original_titles FROM reader_display_preferences WHERE user_id = ?").get(userId);
+  const distinguished=await distinguishedBookIds(db,userId);
   const addedBooks=new Set([
+    ...distinguished,
     ...(await db.prepare("SELECT book_id FROM book_reading WHERE user_id = ?").all(userId)).map(r=>r.book_id),
     ...(await db.prepare("SELECT d.book_id FROM studies s JOIN decks d ON d.id=s.deck_id WHERE s.user_id = ?").all(userId)).map(r=>r.book_id)
   ]);
@@ -59,7 +62,7 @@ async function stateInside(db,session,now) {
   }
   return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,showOriginalTitles:display?.show_original_titles === 1,today,wallet,petals:petalWallet.balance,petalMaximum:MAX_PETALS,practiceDiscountTopic:discountTopic,activePracticeSession,practiceAnswers,growth,cardSaves:await cardSavesInside(db,userId),
     noteActivity,noteDeckActivity,shelfBookIds:[...addedBooks],
-    statuses:Object.fromEntries((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])),
+    statuses:Object.fromEntries([...distinguished.map(id=>[id,"unread"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])]),
     enrolledIds:(await db.prepare("SELECT deck_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.deck_id),
     selections:Object.fromEntries((await db.prepare("SELECT book_id,deck_id FROM deck_selections WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.deck_id])),
     daily:idea,dailyHistory};
@@ -77,13 +80,18 @@ async function knownDeck(db,deckId,userId) {
   if(typeof deckId!=="string") throw new ApiError(400,"invalidRequest");
   const deck=await db.prepare("SELECT * FROM decks WHERE id = ?").get(deckId);
   const enrolled=await db.prepare("SELECT 1 FROM studies WHERE user_id = ? AND deck_id = ?").get(userId,deckId);
-  if(!deck||(deck.status==="archived"&&!enrolled)||(deck.kind||"standard")!=="standard") throw new ApiError(404,"deckUnavailable");
+  const readingGuide=deck&&!!await db.prepare("SELECT 1 FROM cards WHERE deck_id=? AND is_reading_guide=1").get(deckId);
+  const owner=deck?.creator_user_id===userId;
+  const invited=deck&&deck.contribution_policy==="selected"&&!!await db.prepare("SELECT 1 FROM deck_contributors WHERE deck_id=? AND user_id=?").get(deckId,userId);
+  if(!deck||(deck.status==="archived"&&!enrolled)||readingGuide||
+      deck.kind==="collective"&&deck.status==="draft"&&!owner&&deck.contribution_policy!=="open"&&!invited) throw new ApiError(404,"deckUnavailable");
   return deck;
 }
 async function enrol(db,userId,deck) {
   await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?) ON CONFLICT DO NOTHING").run(userId,deck.id);
   await db.prepare("INSERT INTO deck_selections VALUES (?,?,?) ON CONFLICT(user_id,book_id) DO UPDATE SET deck_id=excluded.deck_id")
     .run(userId,deck.book_id,deck.id);
+  await ensureBookToRead(db,userId,deck.book_id);
 }
 async function deckIsOwned(db,userId,deck) {
   return !!await db.prepare("SELECT 1 FROM decks WHERE id=? AND creator_user_id=?").get(deck.id,userId);

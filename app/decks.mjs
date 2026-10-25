@@ -1,5 +1,9 @@
+export function isReadingGuideDeck(catalog,deck) {
+  return !!deck && (catalog.deckModels.get(deck.id)?.cards.some(card=>card.isReadingGuide) || false);
+}
+
 export function availableDecks(catalog, bookId) {
-  return catalog.decks.filter(deck => deck.bookId === bookId && deck.status !== "archived" && (deck.kind || "standard") === "standard").map(deck => ({deck,tags:[]}));
+  return catalog.decks.filter(deck => deck.bookId === bookId && deck.status !== "archived" && !isReadingGuideDeck(catalog,deck)).map(deck => ({deck,tags:[]}));
 }
 
 export function featuredDecks(catalog, bookId) {

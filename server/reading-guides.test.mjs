@@ -51,11 +51,11 @@ for(const dialect of ["sqlite","postgres"]) test(`${dialect}: reading guides sta
   assert.equal(catalog.decks.find(deck=>deck.id===first.deckId).kind,"collective");
   const viewState=readerState(prepared,{userId:a.user_id,language:"es",bookId:"atomic-habits",requestedId:first.cardId,statuses:{"atomic-habits":"unread"},deckChoices:availableDecks(prepared,"atomic-habits")});
   const deckHtml=deckView(viewState),guideHtml=readingGuidesView(viewState);
-  assert.match(deckHtml,/data-action="open-reading-guides"/);assert.doesNotMatch(deckHtml,/data-action="preview-deck" data-deck="reading-guides:/);
+  assert.match(deckHtml,/class="deck-tile reading-guides-deck-tile"[^>]*data-action="open-reading-guide-preview"/);assert.doesNotMatch(deckHtml,/data-action="open-reading-guides"|data-action="preview-deck" data-deck="reading-guides:/);
   assert.match(guideHtml,/data-card-type="reading-guide"/);assert.match(guideHtml,/Guide language|Idioma de la guía/);assert.match(guideHtml,/data-card-actions=/);
   await assert.rejects(selectDeck(db,a,first.deckId,now),{code:"deckUnavailable"});
   await assert.rejects(setCardVote(db,a,{cardId:first.cardId,value:1}),{code:"ownCardVote"});
   assert.equal((await setCardVote(db,a,{cardId:second.cardId,value:1})).vote,1);
   assert.equal((await setCardSave(db,a,{cardId:second.cardId,saved:true},now)).saved,true);
-  assert.equal(await db.prepare("SELECT status FROM book_reading WHERE user_id=? AND book_id=?").get(a.user_id,"atomic-habits"),undefined);
+  assert.equal((await db.prepare("SELECT status FROM book_reading WHERE user_id=? AND book_id=?").get(a.user_id,"atomic-habits")).status,"unread");
 });

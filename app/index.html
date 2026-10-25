@@ -24,22 +24,24 @@
   <link rel="icon" type="image/svg+xml" sizes="any" href="../brand/reed/d-compacto.svg">
   <link rel="stylesheet" href="mascot-art.css?v=flower-15-days">
   <link rel="stylesheet" href="book-list.css">
-  <link rel="stylesheet" href="reader.css?v=reading-guides-1">
+  <link rel="stylesheet" href="reader.css?v=profile-currency-header-back-4">
 
-  <link rel="stylesheet" href="card-themes.css?v=reading-guides-1">
-  <link rel="stylesheet" href="card-actions.css?v=reading-guides-1">
-  <script type="module" src="reader.mjs?v=reading-guides-1"></script>
+  <link rel="stylesheet" href="card-themes.css?v=reading-guides-2">
+  <link rel="stylesheet" href="card-actions.css?v=reading-guides-2">
+  <script type="module" src="reader.mjs?v=profile-currency-header-back-4"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Ir al contenido</a>
   <header class="app-header">
     <div class="header-tools">
-      <button class="currency-wallets" id="currency-wallets" type="button" aria-expanded="false" aria-controls="currency-recovery" hidden>
-        <span class="wallet wallet-petals"><img src="../brand/reed/petal-token.svg" width="18" height="18" alt=""><span class="wallet-balance"><span id="petal-count" aria-hidden="true">—</span><span class="wallet-maximum" id="petal-maximum" aria-hidden="true">/15</span></span></span>
-        <span class="wallet"><img src="../brand/reed/leaf-token.svg" width="18" height="18" alt=""><span class="wallet-balance"><span id="leaf-count" aria-hidden="true">—</span><span class="wallet-maximum" id="leaf-maximum" aria-hidden="true">/3</span></span></span>
-        <svg class="currency-info-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>
-      </button>
-      <button class="icon-button" id="open-settings" type="button" aria-label="Ajustes" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 3-.7 2.4-2 .9-2.3-.6L2 10l1.7 1.8v2.3L2 16l2.5 4.3 2.3-.6 2 .9.7 2.4h5l.7-2.4 2-.9 2.3.6L22 16l-1.7-1.9v-2.3L22 10l-2.5-4.3-2.3.6-2-.9L14.5 3Z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+      <div class="header-leading" id="header-leading"></div>
+      <div class="header-actions">
+        <button class="currency-wallets" id="currency-wallets" type="button" aria-expanded="false" aria-controls="currency-recovery" hidden>
+          <span class="wallet wallet-petals"><img src="../brand/reed/petal-token.svg" width="18" height="18" alt=""><span class="wallet-balance"><span id="petal-count" aria-hidden="true">—</span><span class="wallet-maximum" id="petal-maximum" aria-hidden="true">/ 15</span></span></span>
+          <span class="wallet"><img src="../brand/reed/leaf-token.svg" width="18" height="18" alt=""><span class="wallet-balance"><span id="leaf-count" aria-hidden="true">—</span><span class="wallet-maximum" id="leaf-maximum" aria-hidden="true">/ 3</span></span></span>
+        </button>
+        <button class="icon-button" id="open-settings" type="button" aria-label="Ajustes" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 3-.7 2.4-2 .9-2.3-.6L2 10l1.7 1.8v2.3L2 16l2.5 4.3 2.3-.6 2 .9.7 2.4h5l.7-2.4 2-.9 2.3.6L22 16l-1.7-1.9v-2.3L22 10l-2.5-4.3-2.3.6-2-.9L14.5 3Z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+      </div>
     </div>
     <section class="currency-recovery" id="currency-recovery" aria-labelledby="currency-recovery-title" hidden>
       <div class="currency-recovery-heading"><h2 id="currency-recovery-title">Próxima recarga</h2><span class="currency-recovery-time"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg><time id="currency-recovery-countdown">—</time></span></div>

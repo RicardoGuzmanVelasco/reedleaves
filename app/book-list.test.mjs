@@ -41,7 +41,7 @@ test('Library choice remains independent of personal shelf groups',async()=>{
   }finally{await db.close();}
 });
 
-test('Personal shelf fixes Reading and Other to covers; Read has its own selector and threshold',async()=>{
+test('Personal shelf fixes Reading to covers; To read and Read have selectors',async()=>{
   const db=openDatabase(':memory:');
   try{
     await initializeDatabase(db);await seedCatalog(db);
@@ -54,8 +54,7 @@ test('Personal shelf fixes Reading and Other to covers; Read has its own selecto
     const html=bookshelfView(base);
     assert.match(group(html,'reading'),/study-books book-grid/);
     assert.doesNotMatch(group(html,'reading'),/data-action="set-book-view"/);
-    assert.match(group(html,'unread'),/study-books book-grid/);
-    assert.doesNotMatch(group(html,'unread'),/data-action="set-book-view"/);
+    assert.equal(group(html,'unread'),undefined);
     assert.match(group(html,'to-read'),/data-book-spines="stack"/);
     assert.match(group(html,'to-read'),/data-scope="bookshelf-to-read"/);
     assert.match(group(html,'read'),/data-scope="bookshelf-read"/);

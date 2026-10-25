@@ -77,7 +77,7 @@ test("Views expose every review card and preserve book attribution", async () =>
   const review=reviewView(state);
   assert.match(review,/Small changes count/);
   assert.match(review,/data-action="open-card"[^>]*data-card="atomic-8"/);
-  assert.doesNotMatch(review,/tree-node--locked|Bloqueada|leaf-token/);
+  assert.doesNotMatch(review,/tree-node--locked|Bloqueada/);
   assert.doesNotMatch(reviewView(state), /Vuelve tras un fallo/);
 });
 test("Book mascot collection shows earned art, ordered names and a shared unknown for future forms",async()=>{

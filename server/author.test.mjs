@@ -46,7 +46,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal(card.body.es,input.body);assert.equal(card.parentId,null);
     const after=await readReaderState(db,session);
     assert.deepEqual(after.wallet,before.wallet);
-    assert.deepEqual(after.statuses,before.statuses);assert.ok(after.noteActivity[input.bookId]);
+    assert.equal(after.statuses[input.bookId],"unread");assert.ok(after.noteActivity[input.bookId]);
     await assert.rejects(takeFirstNote(db,other,input),{code:"invalidRequest"});
     await assert.rejects(takeFirstNote(db,session,{...input,body:"Otro texto"}),{code:"invalidRequest"});
     // Fail the final write, after the deck and card have been inserted.

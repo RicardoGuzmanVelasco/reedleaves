@@ -46,6 +46,15 @@ export async function readCatalog(db, userId) {
         likes:await metric("SELECT count(*) AS n FROM deck_votes WHERE deck_id = ? AND value = 1",row.id),
         dislikes:await metric("SELECT count(*) AS n FROM deck_votes WHERE deck_id = ? AND value = -1",row.id)
       }});
+    if (userId === row.creator_user_id && row.status === "draft" && row.kind === "collective" && row.contribution_policy === "selected") {
+      decks.at(-1).contributors=await db.prepare(`SELECT c.user_id AS userId,a.username,u.display_name AS name FROM deck_contributors c
+        JOIN accounts a ON a.user_id=c.user_id JOIN users u ON u.id=c.user_id WHERE c.deck_id=? ORDER BY a.username`).all(row.id);
+    }
+    if (userId) {
+      const member=!!await db.prepare("SELECT 1 FROM deck_contributors WHERE deck_id=? AND user_id=?").get(row.id,userId);
+      decks.at(-1).canContribute=row.status==="draft"&&(row.creator_user_id===userId||row.kind==="collective"&&(row.contribution_policy==="open"||member));
+      decks.at(-1).myCardCount=await metric("SELECT count(*) AS n FROM cards WHERE deck_id=? AND creator_user_id=?",row.id,userId);
+    }
   }
   for (const row of await db.prepare("SELECT * FROM decks ORDER BY book_id,id").all()) {
     const model = validateCards(cards.filter(c=>c.deckId===row.id),row.book_id,{allowEmpty:["draft","archived"].includes(row.status)});

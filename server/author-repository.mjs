@@ -1,10 +1,11 @@
 import {transaction,isPostgres} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
-import {isCanonicalLocale,quoteExcerpt,LANGUAGES,validateCards,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH,BOOK_AUTHOR_MAX_LENGTH,MAX_CARDS_PER_DECK} from "../app/core.mjs";
+import {isCanonicalLocale,quoteExcerpt,LANGUAGES,validateCards,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH,BOOK_AUTHOR_MAX_LENGTH,MAX_CARDS_PER_DECK,USERNAME_MIN_LENGTH,USERNAME_MAX_LENGTH} from "../app/core.mjs";
 import {normalizeBookMetadata,mergeBookMetadata} from "../app/book-metadata.mjs";
 import {defaultNoteDeckTitle} from "../app/note-defaults.mjs";
 import {normalizeQuoteSourceUrl} from "../app/quote-source.mjs";
 import {isDeepStrictEqual} from "node:util";
+import {ensureBookToRead} from "./book-reading.mjs";
 
 function text(value,max,required=true) {
   if (typeof value !== "string" || value.trim().length > max || required && !value.trim()) throw new ApiError(400,"invalidRequest");
@@ -105,21 +106,38 @@ async function writeDeck(db,session,input) {
   await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language,status,kind,contribution_policy,max_cards_per_contributor) VALUES (?,?,?,?,'draft',?,?,?)").run(id,input.bookId,session.user_id,language,kind,contributionPolicy,maxCardsPerContributor);
   await db.prepare("INSERT INTO deck_translations(deck_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,title,description || title,title);
   await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,id);
+  await ensureBookToRead(db,session.user_id,input.bookId);
   return {deckId:id};
 }
 export async function addDeckContributors(db,session,input) {
-  if (typeof input.deckId !== "string" || !input.deckId || input.deckId.length > 256 || !Array.isArray(input.userIds) || input.userIds.length > 100 ||
-      input.userIds.some(id=>typeof id !== "string" || !id.trim() || id.length > 256) || new Set(input.userIds).size !== input.userIds.length) throw new ApiError(400,"invalidRequest");
+  const hasUserIds=Array.isArray(input.userIds),hasUsernames=Array.isArray(input.usernames);
+  if (typeof input.deckId !== "string" || !input.deckId || input.deckId.length > 256 || hasUserIds === hasUsernames) throw new ApiError(400,"invalidRequest");
+  let userIds=input.userIds;
+  if (hasUserIds && (userIds.length > 100 || userIds.some(id=>typeof id !== "string" || !id.trim() || id.length > 256) || new Set(userIds).size !== userIds.length)) throw new ApiError(400,"invalidRequest");
+  let usernames=[];
+  if (hasUsernames) {
+    usernames=input.usernames.map(value=>typeof value === "string" ? value.trim().replace(/^@/u,"").toLowerCase() : "");
+    const pattern=new RegExp(`^[a-z0-9][a-z0-9._-]{${USERNAME_MIN_LENGTH-1},${USERNAME_MAX_LENGTH-1}}$`);
+    if (usernames.length > 100 || usernames.some(name=>!pattern.test(name)) || new Set(usernames).size !== usernames.length) throw new ApiError(400,"invalidRequest");
+  }
   return transaction(db,async()=>{
     const deck=await db.prepare(`SELECT * FROM decks WHERE id=?${isPostgres(db) ? " FOR UPDATE" : ""}`).get(input.deckId);
     if (!deck || deck.creator_user_id !== session.user_id || deck.kind !== "collective" || deck.contribution_policy !== "selected") throw new ApiError(404,"deckUnavailable");
     if (deck.status !== "draft") throw new ApiError(409,"deckReadOnly");
-    for (const userId of input.userIds) if (!await db.prepare("SELECT 1 FROM accounts WHERE user_id=?").get(userId)) throw new ApiError(400,"invalidRequest");
+    if (hasUsernames) {
+      userIds=[];
+      for (const username of usernames) {
+        const account=await db.prepare("SELECT user_id FROM accounts WHERE username=?").get(username);
+        if (!account) throw new ApiError(400,"contributorUnavailable");
+        userIds.push(account.user_id);
+      }
+    }
+    for (const userId of userIds) if (!await db.prepare("SELECT 1 FROM accounts WHERE user_id=?").get(userId)) throw new ApiError(400,"invalidRequest");
     const existing=(await db.prepare("SELECT user_id FROM deck_contributors WHERE deck_id=?").all(deck.id)).map(row=>row.user_id);
-    const requested=new Set(input.userIds);
+    const requested=new Set(userIds);
     for (const userId of existing) if (!requested.has(userId)) await db.prepare("DELETE FROM deck_contributors WHERE deck_id=? AND user_id=?").run(deck.id,userId);
-    for (const userId of input.userIds) if (!existing.includes(userId)) await db.prepare("INSERT INTO deck_contributors(deck_id,user_id) VALUES (?,?)").run(deck.id,userId);
-    return {deckId:deck.id,userIds:[...input.userIds].sort()};
+    for (const userId of userIds) if (!existing.includes(userId)) await db.prepare("INSERT INTO deck_contributors(deck_id,user_id) VALUES (?,?)").run(deck.id,userId);
+    return {deckId:deck.id,userIds:[...userIds].sort()};
   });
 }
 export async function changeDeckTitle(db,session,input) {

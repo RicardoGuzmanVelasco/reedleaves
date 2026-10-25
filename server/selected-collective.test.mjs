@@ -6,6 +6,7 @@ import {openDatabase,PostgresDatabase,initializeDatabase} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
 import {createDeck,addCard,addDeckContributors,finishDeck} from "./author-repository.mjs";
+import {selectDeck} from "./reader-repository.mjs";
 
 async function fixture(t,dialect) {
   let db;
@@ -45,6 +46,7 @@ for(const dialect of ["sqlite","postgres"]) test(`${dialect}: selected contribut
   await assert.rejects(addDeckContributors(db,owner,{deckId:deck.deckId,userIds:[]}),{code:"deckReadOnly"});
   await assert.rejects(add(member,"Published decks cannot change."),{code:"deckReadOnly"});
   assert.deepEqual((await db.prepare("SELECT user_id FROM deck_contributors WHERE deck_id=? ORDER BY user_id").all(deck.deckId)).map(row=>row.user_id),[member.user_id]);
+  assert.equal((await selectDeck(db,outsider,deck.deckId)).user.id,outsider.user_id,"Published collective decks can be read by everyone");
 
   const unlimited=await createDeck(db,owner,{requestId:randomUUID(),bookId:"atomic-habits",title:"Long collective",language:"en",kind:"collective",contributionPolicy:"selected"});
   for(let index=0;index<26;index++) await addCard(db,owner,{requestId:randomUUID(),deckId:unlimited.deckId,title:`Idea ${index+1}`,body:"A collective deck has no standard-deck size cap.",parentId:null,isQuote:false});

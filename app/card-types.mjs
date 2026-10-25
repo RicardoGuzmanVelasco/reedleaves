@@ -11,7 +11,7 @@ export const cardTypes=Object.freeze({
     watermark:{viewBox:'-6 -6 207 156',paths:`<path d="${quotePath}"/><path d="${quotePath}" transform="translate(106)"/>`}
   },
   readingGuide:{
-    id:'reading-guide',className:'reading-guide-card',showTitle:false,bodyTag:'p',accessibleHeading:'readingGuideBody',headerIcon:'↗',
+    id:'reading-guide',className:'reading-guide-card',showTitle:false,bodyTag:'p',accessibleHeading:'readingGuideBody',headerIcon:'reading-guide',
     watermark:{viewBox:'0 0 160 160',paths:'<path d="M25 26c22-7 43-4 55 7v95c-12-11-33-14-55-7V26Z"/><path d="M135 26c-22-7-43-4-55 7v95c12-11 33-14 55-7V26Z"/><path d="M80 33v95"/>'}
   }
 });
