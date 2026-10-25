@@ -9,7 +9,7 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=profile-currency-header-back-4";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup} from "./views.mjs?v=profile-currency-header-back-4";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup} from "./views.mjs?v=daily-calendar-open-1";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
@@ -31,7 +31,7 @@ export function startReader({createCardFeatures} = {}) {
   const settings = document.getElementById("settings");
   const presentReading = createReadingPresentation();
   const practicePresentation = createPracticePresentation({presentReading});
-  let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, budget, preferences, statuses, daily, dailyHistory=[],dailyStatus=null,dailyStatusRequest=null,dailyStatusGeneration=0,animatedDailyDays=new Set(),dailySeenDays=new Set(), selectedDailyDay=null, dailyExclusiveCardId=null, calendarMonth=null, dailyFocusDay=null,calendarNavFocus=null,bookId, deckId, requestedId, selections, enrolledIds;
+  let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, budget, preferences, statuses, daily, dailyHistory=[],dailyStatus=null,dailyStatusRequest=null,dailyStatusGeneration=0,animatedDailyDays=new Set(),dailySeenDays=new Set(), selectedDailyDay=null, dailyExclusiveCardId=null, calendarMonth=null,calendarNavFocus=null,bookId, deckId, requestedId, selections, enrolledIds;
   let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, scrollToCard = false;
   let practiceStage="choose",practiceSession=null,practiceUnavailable=null;
   let pendingGrowthFeedback=[];
@@ -269,8 +269,8 @@ export function startReader({createCardFeatures} = {}) {
     lockControls();
     updateCardFeatures();
     if (focus) {
-      const dailyFocus=dailyFocusDay ? main.querySelector(`[data-action="daily-date"][data-day="${dailyFocusDay}"]`) : calendarNavFocus ? main.querySelector(`[data-action="daily-month"][data-direction="${calendarNavFocus}"]`) : null;
-      if(dailyFocus){dailyFocus.focus({preventScroll:true});dailyFocusDay=null;calendarNavFocus=null;}
+      const dailyFocus=calendarNavFocus ? main.querySelector(`[data-action="daily-month"][data-direction="${calendarNavFocus}"]`) : null;
+      if(dailyFocus){dailyFocus.focus({preventScroll:true});calendarNavFocus=null;}
       else main.querySelector(requestedId ? ".exclusive-card-modal #idea-content" : "h1")?.focus({preventScroll:true});
       if (mode === "review" && requestedId && scrollToCard) main.querySelector("#idea-content")?.scrollIntoView({block:"start"}); else if(!dailyFocus) window.scrollTo({top:0});
     }
@@ -522,7 +522,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   function closeExclusive() {
     if (mode === "daily" && dailyExclusiveCardId) {
-      dailyExclusiveCardId=null;render();main.querySelector('[data-action="open-daily-card"]')?.focus({preventScroll:true});return;
+      dailyExclusiveCardId=null;render();main.querySelector(`[data-action="daily-date"][data-day="${selectedDailyDay}"]`)?.focus({preventScroll:true});return;
     }
     if (mode === "saved" || mode === "guides" || ["review","author"].includes(mode) && deckId) { returnToAlbum(); return; }
   }
@@ -1234,14 +1234,14 @@ export function startReader({createCardFeatures} = {}) {
         navigate("#library"); break;
       case "bookshelf": navigate(b.dataset.tab === "decks" ? "#bookshelf/decks" : "#bookshelf"); break;
       case "daily": navigate("#daily"); break;
-      case "open-daily-card": {
-        const selected=dailyHistory.find(item=>item.day===selectedDailyDay)||daily;
-        if(mode==="daily"&&selected?.id&&catalog.cardsById.has(selected.id)) {dailyExclusiveCardId=selected.id;render();}
+      case "daily-date": {
+        const day=b.dataset.day,selected=dailyHistory.find(item=>item.day===day);
+        if(!selected?.id||!catalog.cardsById.has(selected.id))break;
+        navigate("#daily/"+day);
+        dailyExclusiveCardId=selected.id;render();
         break;
       }
-      case "daily-date": dailyFocusDay=b.dataset.day;navigate("#daily/"+b.dataset.day); break;
       case "daily-month": calendarNavFocus=b.dataset.direction;calendarMonth=b.dataset.month;render();break;
-      case "enter-review": { const selected=dailyHistory.find(item=>item.day===selectedDailyDay)||daily;if(selected)openBook(selected.bookId);break; }
       case "open-book": openBook(b.dataset.book); break;
       case "open-reading-guides": bookId=b.dataset.book;requestedId=null;navigate("#guides/"+encodeURIComponent(bookId));break;
       case "open-reading-guide-preview": bookId=b.dataset.book;requestedId=null;navigate("#guide-preview/"+encodeURIComponent(bookId));break;

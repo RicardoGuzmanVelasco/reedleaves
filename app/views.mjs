@@ -425,16 +425,15 @@ export function dailyView(s) {
     const label=new Intl.DateTimeFormat(locale,{dateStyle:"full",timeZone:"UTC"}).format(new Date(`${day}T12:00:00Z`));
     const seenLabel=saved.seenInDay?c.dailySeenInDay:today?c.dailyCurrent:c.dailyMissed;
     const seenIcon=saved.seenInDay?'<svg class="daily-calendar-seen" viewBox="0 0 12 12" aria-hidden="true"><path d="m2 6 2.4 2.4L10 3"/></svg>':"";
-    return `<button type="button" class="daily-calendar-day has-idea${saved.seenInDay?" was-seen-in-day":""}${day===s.selectedDailyDay?" is-selected":""}${today?" is-today":""}" data-action="daily-date" data-day="${day}" aria-label="${esc(label+", "+seenLabel)}" aria-pressed="${day===s.selectedDailyDay}"><span class="daily-calendar-number">${dayNumber}</span>${seenIcon}</button>`;
+    return `<button type="button" class="daily-calendar-day has-idea${saved.seenInDay?" was-seen-in-day":""}${day===s.selectedDailyDay?" is-selected":""}${today?" is-today":""}" data-action="daily-date" data-day="${day}" aria-label="${esc(label+", "+seenLabel)}" aria-haspopup="dialog" aria-pressed="${day===s.selectedDailyDay}"><span class="daily-calendar-number">${dayNumber}</span>${seenIcon}</button>`;
   }).join("");
   const calendar=`<section class="daily-calendar" aria-labelledby="daily-calendar-title"><div class="daily-calendar-heading"><button type="button" class="calendar-nav" data-action="daily-month" data-direction="previous" data-month="${monthShift(-1)}" aria-label="${esc(c.previousMonth)}" ${monthShift(-1)<earliestMonth?"disabled":""}>‹</button><h2 id="daily-calendar-title">${esc(monthLabel)}</h2><button type="button" class="calendar-nav" data-action="daily-month" data-direction="next" data-month="${monthShift(1)}" aria-label="${esc(c.nextMonth)}" ${monthShift(1)>(s.dailyToday?.day?.slice(0,7)||month)?"disabled":""}>›</button></div><div class="daily-calendar-grid" role="group" aria-label="${esc(monthLabel)}">${weekdayLabels.map(label=>`<span class="daily-calendar-weekday">${esc(label)}</span>`).join("")}${cells}</div></section>`;
   const exclusive=card&&s.dailyExclusiveCardId===card.id?exclusiveCardMarkup(s,card):"";
-  const previewTitle=card?(card.isQuote?quoteExcerpt(contentText(card.body,s.language,card.deckLanguage||s.language)):contentText(card.title,s.language,card.deckLanguage||s.language)):"";
   const streak=dailyIdeaStreak(s.dailyHistory,s.dailyToday?.day);
   const streakStatus=streak.seenToday?c.dailyStreakToday:streak.days?c.dailyStreakContinue:c.dailyStreakStart;
   const streakMarkup=`<div class="daily-streak" role="status"><img src="../brand/reed/leaf-token.svg" alt="" width="42" height="42"><div><strong>${esc(c.dailyStreakDays(streak.days))}</strong><span>${esc(streakStatus)}</span></div></div>`;
   return `<section class="daily-screen"><div class="screen-heading"><h1 tabindex="-1" class="daily-title">${calendarIconMarkup()}<span>${c.daily}</span></h1></div>
-    ${calendar}${card ? `${streakMarkup}<div class="daily-action"><button class="primary" type="button" data-action="open-daily-card" aria-haspopup="dialog" aria-label="${esc(c.openDailyCard+": "+previewTitle)}">${esc(c.openDailyCard)}</button><button class="text-button" type="button" data-action="enter-review" ${!s.storageAvailable ? "disabled" : ""}>${esc(c.reviewBook)}</button></div>${exclusive}` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p></div>`}
+    ${calendar}${card ? `${streakMarkup}${exclusive}` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p></div>`}
     </section>`;
 }
 

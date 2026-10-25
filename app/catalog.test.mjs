@@ -64,7 +64,8 @@ test("Views expose every review card and preserve book attribution", async () =>
   const state = { catalog, deckId, language: "es", bookId: "atomic-habits", requestedId: "atomic-8", daily: { id: "rich-dad-2", bookId: "rich-dad-poor-dad", day:"2026-10-06" },dailyToday:{day:"2026-10-06"},dailyHistory:[{id:"rich-dad-2",bookId:"rich-dad-poor-dad",day:"2026-10-06",seenInDay:true}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",
     statuses: {}, today: "2026-10-06", storageAvailable: true };
   const daily = dailyView(state);
-  assert.match(daily,/data-action="open-daily-card"/); assert.match(daily, /daily-calendar/);assert.match(daily,/data-day="2026-10-06"/);
+  assert.match(daily,/data-action="daily-date"/); assert.match(daily, /daily-calendar/);assert.match(daily,/data-day="2026-10-06"/);
+  assert.doesNotMatch(daily,/data-action="open-daily-card"|data-action="enter-review"/);
   assert.match(dailyView({...state,dailyExclusiveCardId:"rich-dad-2"}),/Robert T\. Kiyosaki/);
   assert.match(daily,/daily-calendar-seen/);assert.match(daily,/Vista durante su día/);
   const home=homeView({...state,dailyStatus:{day:"2026-10-06",unseen:true,animate:true}});
