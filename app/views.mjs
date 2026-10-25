@@ -380,7 +380,8 @@ function cardActionsHost(card) {
 }
 
 function cardWatermark(type) {
-  return `<span class="card-watermark" aria-hidden="true"><svg class="card-watermark-symbol" viewBox="${type.watermark.viewBox}" preserveAspectRatio="xMaxYMax meet" focusable="false">${type.watermark.paths}</svg></span>`;
+  const readingGuideClass=type.id === "reading-guide" ? " card-watermark-symbol--reading-guide" : "";
+  return `<span class="card-watermark" aria-hidden="true"><svg class="card-watermark-symbol${readingGuideClass}" viewBox="${type.watermark.viewBox}" preserveAspectRatio="xMaxYMax meet" focusable="false">${type.watermark.paths}</svg></span>`;
 }
 
 function noteTypeIcon(kind) {

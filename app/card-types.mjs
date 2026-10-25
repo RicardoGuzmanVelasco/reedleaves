@@ -12,7 +12,7 @@ export const cardTypes=Object.freeze({
   },
   readingGuide:{
     id:'reading-guide',className:'reading-guide-card',showTitle:false,bodyTag:'p',accessibleHeading:'readingGuideBody',headerIcon:'reading-guide',
-    watermark:{viewBox:'0 0 160 160',paths:'<path d="M25 26c22-7 43-4 55 7v95c-12-11-33-14-55-7V26Z"/><path d="M135 26c-22-7-43-4-55 7v95c12-11 33-14 55-7V26Z"/><path d="M80 33v95"/>'}
+    watermark:{viewBox:'0 0 24 24',paths:'<path d="M5.5 3.5h9.4a4.1 4.1 0 0 1 4.1 4.1V20H7.3a3 3 0 0 1-3-3V5.2a1.7 1.7 0 0 1 1.2-1.7Z"/><path d="M7.2 3.7v13.5A2.8 2.8 0 0 0 10 20"/><path d="M13.7 10.1v5.1"/><path d="M13.7 8.1h.01"/>'}
   }
 });
 
