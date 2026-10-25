@@ -1,11 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {growthChanges,growthFeedbackMarkup,playGrowthFeedback} from "./growth-feedback.mjs";
+import {growthChanges,growthFeedbackChanges,growthFeedbackMarkup,playGrowthFeedback} from "./growth-feedback.mjs";
 
 test("growth feedback reports only changed current stages across books",()=>{
-  const before={a:{added:true,reviewDays:1},b:{added:true,reviewDays:4},c:{added:true,reviewDays:5}};
-  const after={a:{added:true,reviewDays:2},b:{added:true,reviewDays:5},c:{added:true,reviewDays:5}};
-  assert.deepEqual(growthChanges(before,after),[{bookId:"a",previous:"seed",stage:"root"},{bookId:"b",previous:"seedling",stage:"sprout"}]);
+  const before={a:{added:true,reviewDays:1},b:{added:true,reviewDays:4},c:{added:true,reviewDays:5},d:{added:true,reviewDays:4}};
+  const after={a:{added:true,reviewDays:2},b:{added:true,reviewDays:5},c:{added:true,reviewDays:5},d:{added:true,reviewDays:5}};
+  assert.deepEqual(growthChanges(before,after),[{bookId:"a",previous:"seed",stage:"root"},{bookId:"b",previous:"seedling",stage:"sprout"},{bookId:"d",previous:"seedling",stage:"sprout"}]);
+  assert.deepEqual(growthFeedbackChanges(before,after),[
+    {bookId:"a",previous:"seed",stage:"root",previousCount:1,previousCountAfter:0,stageCount:0,stageCountAfter:1},
+    {bookId:"b",previous:"seedling",stage:"sprout",previousCount:2,previousCountAfter:1,stageCount:1,stageCountAfter:2},
+    {bookId:"d",previous:"seedling",stage:"sprout",previousCount:1,previousCountAfter:0,stageCount:2,stageCountAfter:3}
+  ]);
   assert.deepEqual(growthChanges(after,after),[]);
 });
 
@@ -28,7 +33,7 @@ test("growth animation changes the label only after the new art settles",()=>{
   const row={classList:{add:(...values)=>values.forEach(value=>classes.add(value)),remove:(...values)=>values.forEach(value=>classes.delete(value))},querySelector:selector=>({".growth-feedback-art-old":oldArt,".growth-feedback-art-new":newArt,".growth-feedback-stage-old":oldLabel,".growth-feedback-stage-new":newLabel})[selector]};
   const dialog={open:true,querySelectorAll:()=>[row]},scheduled=[];
   playGrowthFeedback(dialog,{schedule:(fn,ms)=>scheduled.push({fn,ms})});
-  assert.deepEqual(scheduled.map(item=>item.ms),[300,520,800,1150,1390]);
+  assert.deepEqual(scheduled.map(item=>item.ms),[300,520,800,1150,1430]);
   scheduled[0].fn();assert.equal(classes.has("is-pending"),false);assert.equal(newArt.hidden,true);
   scheduled[1].fn();assert.equal(classes.has("is-exiting"),true);assert.equal(oldArt.hidden,false);assert.equal(newArt.hidden,true);assert.equal(newLabel.hidden,true);
   scheduled[2].fn();assert.equal(oldArt.hidden,true);assert.equal(oldLabel.hidden,false);assert.equal(newArt.hidden,false);assert.equal(newLabel.hidden,true);assert.equal(classes.has("is-entering"),true);

@@ -22,7 +22,7 @@ import {nextDailyCycleBoundary} from "./daily-cycle.mjs";
 import {usefulProfileReturnHash,profileReturnTarget} from "./profile-navigation.mjs";
 import {createModalPageLock} from "./modal-page-lock.mjs";
 import {adjacentCard,swipeStep} from "./card-reading-navigation.mjs";
-import {growthChanges,growthFeedbackMarkup,playGrowthFeedback} from "./growth-feedback.mjs";
+import {growthFeedbackChanges,growthFeedbackMarkup,fitGrowthFeedbackTitle,playGrowthFeedback} from "./growth-feedback.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -70,7 +70,7 @@ export function startReader({createCardFeatures} = {}) {
       cardSaves:snapshot.cardSaves||[],revision:syncGeneration,actionSlots,actionSlot:main.querySelector("[data-card-actions]"),entrySlot:main.querySelector("[data-saved-cards-entry]"),listSlot:main.querySelector("[data-saved-cards-list]")});
   }
   function applyState(state,{captureGrowth=false}={}) {
-    if(captureGrowth && snapshot.user?.id && snapshot.user.id===state.user?.id) pendingGrowthFeedback.push(...growthChanges(snapshot.growth,state.growth));
+    if(captureGrowth && snapshot.user?.id && snapshot.user.id===state.user?.id) pendingGrowthFeedback.push(...growthFeedbackChanges(snapshot.growth,state.growth));
     if (snapshot.user?.id !== state.user?.id) { dailyStatus=null;dailyStatusGeneration++;dailyStatusRequest=null;animatedDailyDays.clear();dailySeenDays.clear(); }
     if (snapshot.user?.id !== state.user?.id) {
       deckLanguageError=null;deckTitleEdit=null;deckContributorError=null;deckContributorInput="";
@@ -279,6 +279,10 @@ export function startReader({createCardFeatures} = {}) {
       dialog.innerHTML=growthFeedbackMarkup(pendingGrowthFeedback,catalog,language);
       pendingGrowthFeedback=[];
       showAppModal(dialog);
+      growthTitleObserver.disconnect();
+      growthTitleObserver.observe(dialog.querySelector(".growth-feedback-inner"));
+      fitGrowthFeedbackTitle(dialog);
+      document.fonts.ready.then(()=>{if(dialog.open)fitGrowthFeedbackTitle(dialog)});
       playGrowthFeedback(dialog,{reducedMotion:matchMedia("(prefers-reduced-motion: reduce)").matches});
       dialog.querySelector("#growth-feedback-continue")?.focus({preventScroll:true});
     }
@@ -1028,8 +1032,14 @@ export function startReader({createCardFeatures} = {}) {
       catalog = await loadCatalog();
       const preview=new URLSearchParams(location.search).get("growthPreview");
       if(["localhost","127.0.0.1"].includes(location.hostname) && ["one","many"].includes(preview)) {
-        const examples=[{previous:"pot",stage:"seed"},{previous:"seedling",stage:"sprout"},{previous:"stem",stage:"flower"}];
-        pendingGrowthFeedback=catalog.books.slice(0,preview==="many"?3:1).map((book,index)=>({bookId:book.id,...examples[index]}));
+        const examples=[{previous:"pot",stage:"seed"},{previous:"seedling",stage:"sprout"},{previous:"stem",stage:"flower"}],days={pot:0,seed:1,root:2,seedling:3,sprout:5,stem:10,flower:15};
+        const books=catalog.books.slice(0,preview==="many"?3:1),before={...snapshot.growth},after={...snapshot.growth};
+        for(const [index,book] of books.entries()){
+          const {previous,stage}=examples[index];
+          before[book.id]={added:true,reviewDays:days[previous]};
+          after[book.id]={added:true,reviewDays:days[stage]};
+        }
+        pendingGrowthFeedback=growthFeedbackChanges(before,after);
       }
       ready = true; route(false);
     }
@@ -1060,6 +1070,7 @@ export function startReader({createCardFeatures} = {}) {
   document.getElementById("open-settings").addEventListener("click",()=>showAppModal(settings));
   document.getElementById("close-settings").addEventListener("click",()=>settings.close());
   const growthFeedbackDialog=document.getElementById("growth-feedback");
+  const growthTitleObserver=new ResizeObserver(()=>fitGrowthFeedbackTitle(growthFeedbackDialog));
   function closeGrowthFeedback(){
     if(!growthFeedbackDialog.open || growthFeedbackDialog.classList.contains("is-closing"))return;
     if(matchMedia("(prefers-reduced-motion: reduce)").matches){growthFeedbackDialog.close();return;}
