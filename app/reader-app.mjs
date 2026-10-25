@@ -986,7 +986,8 @@ export function startReader({createCardFeatures} = {}) {
       catalog = await loadCatalog();
       const preview=new URLSearchParams(location.search).get("growthPreview");
       if(["localhost","127.0.0.1"].includes(location.hostname) && ["one","many"].includes(preview)) {
-        pendingGrowthFeedback=catalog.books.slice(0,preview==="many"?3:1).map((book,index)=>({bookId:book.id,previous:["pot","seed","seedling"][index],stage:["seed","root","sprout"][index]}));
+        const examples=[{previous:"pot",stage:"seed"},{previous:"seedling",stage:"sprout"},{previous:"stem",stage:"flower"}];
+        pendingGrowthFeedback=catalog.books.slice(0,preview==="many"?3:1).map((book,index)=>({bookId:book.id,...examples[index]}));
       }
       ready = true; route(false);
     }
