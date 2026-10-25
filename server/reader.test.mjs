@@ -4,10 +4,12 @@ import assert from "node:assert/strict";
 import {mkdtempSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
+import {randomUUID} from "node:crypto";
 import {openDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
-import {readReaderState,selectDeck,addDeckToCollection,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus,savePracticeAnswer} from "./reader-repository.mjs";
+import {createDeck} from "./author-repository.mjs";
+import {readReaderState,selectDeck,addDeckToCollection,removeDeckFromCollection,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus,savePracticeAnswer} from "./reader-repository.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 import {serverDay} from "./auth.mjs";
@@ -32,6 +34,27 @@ test("Adding a deck costs one leaf once; viewing it is free and users are isolat
   await assert.rejects(addDeckToCollection(db,a,other,today),{code:"insufficientLeaves"});
   assert.equal((await readReaderState(db,a,today)).wallet.balance,state.wallet.balance);
   assert.deepEqual((await readReaderState(db,b,today)).enrolledIds,[]);
+});
+test("Removing a collected deck clears its selection and keeps catalog content",async t=>{
+  const {db,a,b}=await fixture(t);
+  const added=await addDeckToCollection(db,a,version,today);
+  const removed=await removeDeckFromCollection(db,a,version,today);
+  assert.deepEqual(removed.state.enrolledIds,[]);
+  assert.equal(removed.state.selections["seven-habits"],undefined);
+  assert.equal(removed.state.wallet.balance,added.state.wallet.balance);
+  assert.equal((await readCatalog(db,b.user_id)).decks.some(deck=>deck.id===version),true);
+  assert.deepEqual((await readReaderState(db,b,today)).enrolledIds,[]);
+});
+test("Owners can remove their own deck and add it again for free",async t=>{
+  const {db,a}=await fixture(t);
+  const own=(await createDeck(db,a,{requestId:randomUUID(),bookId:"seven-habits",title:"Mis notas",language:"es"})).deckId;
+  const added=await readReaderState(db,a,today);
+  const removed=await removeDeckFromCollection(db,a,own,today);
+  assert.deepEqual(removed.state.enrolledIds,[]);
+  assert.equal((await readCatalog(db,a.user_id)).decks.some(deck=>deck.id===own),true);
+  const restored=await addDeckToCollection(db,a,own,today);
+  assert.deepEqual(restored.state.enrolledIds,[own]);
+  assert.equal(restored.state.wallet.balance,added.wallet.balance);
 });
 test("Adding an unread book persists explicit shelf membership without reading progress",async t=>{
   const {db,a}=await fixture(t);
