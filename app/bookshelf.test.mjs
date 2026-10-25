@@ -114,9 +114,9 @@ test("Decks tab groups owned and enrolled decks by their book's reading status",
   ownDeck.creator.userId=s.userId;
   s.catalog.decksById.get("atomic-habits-editorial").status="draft";
   const enrolled="seven-habits-editorial";
-  const render=(statuses,toReadBookIds=[])=>bookshelfView({...s,bookshelfTab:"decks",enrolledIds:[enrolled],statuses,toReadBookIds});
+  const render=(statuses,toReadBookIds=[])=>bookshelfView({...s,bookshelfTab:"decks",enrolledIds:[enrolled,ownDeck.id],statuses,toReadBookIds});
   for (const language of ["es","en"]) {
-    const html=bookshelfView({...s,language,bookshelfTab:"decks",enrolledIds:[enrolled],statuses:{"atomic-habits":"reading","seven-habits":"read"}});
+    const html=bookshelfView({...s,language,bookshelfTab:"decks",enrolledIds:[enrolled,ownDeck.id],statuses:{"atomic-habits":"reading","seven-habits":"read"}});
     const c=words[language];
     assert.match(html,/href="#bookshelf\/decks" aria-current="page"/);
     assert.ok(html.indexOf('id="collection-decks-reading"')<html.indexOf('id="collection-decks-read"'));
@@ -124,6 +124,7 @@ test("Decks tab groups owned and enrolled decks by their book's reading status",
     assert.match(html,new RegExp(c.readStatus));
     assert.match(html,/data-action="review-collection-deck" data-deck="seven-habits-editorial"/);
     assert.match(html,/data-action="review-collection-deck" data-deck="atomic-habits-editorial"/);
+    assert.match(html,/data-action="remove-collection-deck" data-deck="atomic-habits-editorial"/);
     assert.match(html,/class="deck-grid collection-decks"/);
     assert.equal((html.match(/class="deck-tile(?:\s|")/g)||[]).length,2);
     assert.doesNotMatch(html,/open-bookshelf-filters/);

@@ -1000,6 +1000,10 @@ export function startReader({createCardFeatures} = {}) {
     if (!snapshot.user) { pendingDeck=id;pendingIntent="collect";accountLearningNotice=true;authMode="register";authReturn=deckPageHash(id);navigate("#account");return; }
     await mutation("/api/reader/collect",{deckId:id},()=>{ openDeckId=null;live.textContent=words[language].deckAddedToCollection; });
   }
+  async function removeDeckFromCollection(id) {
+    if (!catalog.decksById.has(id) || !window.confirm(words[language].confirmRemoveDeck)) return;
+    await mutation("/api/reader/remove",{deckId:id},()=>{ live.textContent=words[language].deckRemovedFromCollection; });
+  }
   async function openCard(id,activeDeck = deckId) {
     const savedScrollY=albumPosition?.deckId===activeDeck&&albumPosition.mode==="review"?albumPosition.scrollY:window.scrollY;
     albumPosition={deckId:activeDeck,mode:"review",scrollY:savedScrollY};
@@ -1274,6 +1278,7 @@ export function startReader({createCardFeatures} = {}) {
       case "close-deck": closeDeck(openDeckId); break;
       case "select-deck": enterDeck(b.dataset.deck); break;
       case "add-deck-to-collection": addDeckToCollection(b.dataset.deck); break;
+      case "remove-collection-deck": removeDeckFromCollection(b.dataset.deck); break;
       case "review-collection-deck": bookOrigin="bookshelf";enterDeck(b.dataset.deck);break;
       case "manage-collection-deck": bookOrigin="bookshelf";navigate("#author/"+encodeURIComponent(b.dataset.deck));break;
       case "open-card": openCard(b.dataset.card,b.dataset.deck); break;

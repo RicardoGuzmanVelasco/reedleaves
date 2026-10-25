@@ -2,7 +2,7 @@ import {randomUUID} from "node:crypto";
 import {authenticate, readSession, revokeSession, checkCsrf, sessionCookie} from "./auth.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {ApiError} from "./errors.mjs";
-import {readReaderState, selectDeck, addDeckToCollection, openCard, changeReading, changePreferences, dailyIdea, dailyIdeaStatus, savePracticeAnswer} from "./reader-repository.mjs";
+import {readReaderState, selectDeck, addDeckToCollection, removeDeckFromCollection, openCard, changeReading, changePreferences, dailyIdea, dailyIdeaStatus, savePracticeAnswer} from "./reader-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 
 import {createBook,createDeck,addDeckContributors,changeDeckLanguage,changeDeckTitle,addCard,takeFirstNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
@@ -39,7 +39,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
   }
   return async (request,response,path,send) => {
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
-      ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/collect",["POST"]],
+      ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/collect",["POST"]],["/api/reader/remove",["POST"]],
       ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
     routes.set("/api/reader/guides",["POST"]);
     routes.set("/api/feedback",["POST"]);
@@ -150,6 +150,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
       const result = path === "/api/reader/collect" ? await addDeckToCollection(db,active,input.deckId,currentTime) :
+        path === "/api/reader/remove" ? await removeDeckFromCollection(db,active,input.deckId,currentTime) :
         path === "/api/reader/select" ? await selectDeck(db,active,input.deckId,currentTime,{requireCollection:true}) :
         path === "/api/reader/open" ? await openCard(db,active,input.deckId,input.cardId,currentTime,{requireCollection:true}) :
         path === "/api/reader/reading" ? await changeReading(db,active,input.bookId,input.status,currentTime) :

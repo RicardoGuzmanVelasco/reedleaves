@@ -122,6 +122,14 @@ export async function addDeckToCollection(db,session,deckId,now=new Date()) {
     return {state:await stateInside(db,session,now)};
   });
 }
+export async function removeDeckFromCollection(db,session,deckId,now=new Date()) {
+  return transaction(db,async()=>{
+    const deck=await knownDeck(db,deckId,session.user_id);
+    await db.prepare("DELETE FROM deck_selections WHERE user_id=? AND deck_id=?").run(session.user_id,deckId);
+    await db.prepare("DELETE FROM studies WHERE user_id=? AND deck_id=?").run(session.user_id,deckId);
+    return {state:await stateInside(db,session,now)};
+  });
+}
 export async function selectDeck(db,session,deckId,now=new Date(),{requireCollection=false}={}) {
   return transaction(db,async()=>{
     const deck=await knownDeck(db,deckId,session.user_id);
