@@ -20,7 +20,7 @@ import {MAX_DAILY_LEAVES} from "./wallet.mjs";
 import {nextDailyCycleBoundary} from "./daily-cycle.mjs";
 import {createModalPageLock} from "./modal-page-lock.mjs";
 import {adjacentCard,swipeStep} from "./card-reading-navigation.mjs";
-import {growthChanges,growthFeedbackMarkup} from "./growth-feedback.mjs";
+import {growthChanges,growthFeedbackMarkup,playGrowthFeedback} from "./growth-feedback.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -278,6 +278,7 @@ export function startReader({createCardFeatures} = {}) {
       dialog.innerHTML=growthFeedbackMarkup(pendingGrowthFeedback,catalog,language);
       pendingGrowthFeedback=[];
       showAppModal(dialog);
+      playGrowthFeedback(dialog,{reducedMotion:matchMedia("(prefers-reduced-motion: reduce)").matches});
       dialog.querySelector("#growth-feedback-continue")?.focus({preventScroll:true});
     }
     scrollToCard = false;
