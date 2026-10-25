@@ -1205,6 +1205,19 @@ export function startReader({createCardFeatures} = {}) {
       case "remove-deck-contributor": removeDeckContributor(b.dataset.userId);break;
       case "practice": practiceSession=null;practiceStage="choose";practiceUnavailable=null;navigate("#practice"); break;
       case "practice-exit": practiceSession=null;practiceStage="choose";navigate("#home"); break;
+      case "open-practice-help": {
+        const dialog=main.querySelector(".practice-help-modal");
+        if(!dialog)break;
+        showAppModal(dialog);
+        dialog.addEventListener("close",()=>{if(b.isConnected)b.focus({preventScroll:true});},{once:true});
+        dialog.addEventListener("click",event=>{
+          if(event.target!==dialog)return;
+          const rect=dialog.getBoundingClientRect();
+          if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)dialog.close();
+        });
+        break;
+      }
+      case "close-practice-help": main.querySelector(".practice-help-modal")?.close(); break;
       case "practice-topic": startPractice(b.dataset.topic); break;
       case "practice-answer": answerPractice(b.dataset.answer); break;
       case "practice-resume": resumePractice(); break;

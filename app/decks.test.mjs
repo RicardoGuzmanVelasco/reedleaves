@@ -275,6 +275,15 @@ test("Practice exposes only the active card, enables writing and keeps the pile 
 test("Practice prices show one discounted topic, the wallet cap, and useful empty-session paths",async()=>{
   const catalog=await fixture(),state=readerState(catalog,{practiceStage:"choose",practiceDiscountTopic:"saved",petals:10,petalMaximum:15});
   const choice=practiceView(state,null);
+  assert.match(choice,/data-action="open-practice-help"[^>]*aria-haspopup="dialog"/);
+  assert.match(choice,/class="practice-help-modal" aria-labelledby="practice-help-title"/);
+  assert.match(choice,/Todas las tarjetas de tus barajas añadidas al tarjetero cuyos libros están en «Leyendo»\./);
+  assert.match(choice,/Todas las tarjetas de tus barajas añadidas al tarjetero cuyos libros están en «Leído»\./);
+  assert.match(choice,/aunque su baraja no esté en tu tarjetero/);
+  const englishChoice=practiceView({...state,language:"en"},null);
+  assert.match(englishChoice,/What each mode includes/);
+  assert.match(englishChoice,/All cards from decks in your Decks whose books are marked “Reading”\./);
+  assert.match(englishChoice,/data-action="close-practice-help" aria-label="Close help"/);
   assert.equal(state.petalMaximum,15);
   assert.equal((choice.match(/class="pricetag(?: pricetag--discounted)?"/g)||[]).length,4);
   assert.match(choice,/aria-label="2 pétalos"/);
