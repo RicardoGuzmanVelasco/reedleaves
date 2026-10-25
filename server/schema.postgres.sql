@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 32));
-INSERT INTO reed_schema VALUES (32);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 33));
+INSERT INTO reed_schema VALUES (33);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
 CREATE TABLE genre_translations(
@@ -37,6 +37,11 @@ CREATE TABLE users(
   can_create_decks SMALLINT NOT NULL DEFAULT 0 CHECK(can_create_decks IN (0,1)), created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);
+CREATE TABLE book_merge_operations(
+  source_book_id TEXT NOT NULL, target_book_id TEXT NOT NULL,
+  PRIMARY KEY(source_book_id,target_book_id), CHECK(source_book_id<>target_book_id)
+);
+ALTER TABLE book_merge_operations ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE accounts(
   user_id TEXT PRIMARY KEY REFERENCES users(id), username TEXT NOT NULL UNIQUE CHECK(length(username) BETWEEN __USERNAME_MIN_LENGTH__ AND __USERNAME_MAX_LENGTH__),
@@ -94,7 +99,7 @@ CREATE TABLE cards(
   is_reading_guide INTEGER NOT NULL DEFAULT 0 CHECK(is_reading_guide IN (0,1)),
   creator_user_id TEXT REFERENCES users(id), language TEXT NOT NULL DEFAULT 'en' CHECK(length(language) BETWEEN 2 AND 35),
   created_at TIMESTAMPTZ, UNIQUE(id,deck_id),
-  FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id),
+  FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id) ON UPDATE CASCADE,
   FOREIGN KEY(parent_id,deck_id) REFERENCES cards(id,deck_id) DEFERRABLE INITIALLY DEFERRED,
   CHECK(parent_id IS NULL OR parent_id <> id)
 );
@@ -222,7 +227,9 @@ BEGIN
   IF (NEW.creator_user_id IS DISTINCT FROM OLD.creator_user_id AND NOT (
     OLD.creator_user_id='reed-team' AND OLD.status='published' AND
     COALESCE((SELECT can_create_decks FROM users WHERE id=NEW.creator_user_id),0)=1
-  )) OR NEW.book_id IS DISTINCT FROM OLD.book_id OR (NEW.language IS DISTINCT FROM OLD.language AND OLD.status <> 'draft') THEN
+  )) OR (NEW.book_id IS DISTINCT FROM OLD.book_id AND NOT EXISTS (
+    SELECT 1 FROM book_merge_operations m WHERE m.source_book_id=OLD.book_id AND m.target_book_id=NEW.book_id
+  )) OR (NEW.language IS DISTINCT FROM OLD.language AND OLD.status <> 'draft') THEN
     RAISE EXCEPTION 'Deck ownership is immutable';
   END IF;
   RETURN NEW;
