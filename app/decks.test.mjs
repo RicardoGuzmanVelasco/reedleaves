@@ -5,7 +5,7 @@ import {readCatalog} from "../server/catalog-repository.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {availableDecks,featuredDecks,treeLinks} from "./decks.mjs";
-import {deckView,deckPeekView,reviewView,homeView,practiceView,authorView,authorFormView,bookshelfView,escapeHtml} from "./views.mjs";
+import {deckView,readingGuideDeckPreviewView,deckPeekView,reviewView,homeView,practiceView,authorView,authorFormView,bookshelfView,escapeHtml} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
 
@@ -33,6 +33,32 @@ test("Collective decks remain ordinary book decks, while reading-guide cards sta
   assert.ok(availableDecks(catalog,deck.bookId).some(item=>item.deck.id===deck.id));
   card.isReadingGuide=true;
   assert.ok(!availableDecks(catalog,deck.bookId).some(item=>item.deck.id===deck.id));
+});
+
+test("Reading guides have a dedicated book tile, add entry, and vertical reading preview",async()=>{
+  const catalog=await fixture(),deck=catalog.decks.find(item=>item.bookId==="seven-habits"),cards=catalog.deckModels.get(deck.id).cards;
+  cards.forEach(item=>{item.isReadingGuide=true;item.creatorUserId="guide-author";item.language="es";});
+  const choices=featuredDecks(catalog,deck.bookId);
+  assert.ok(!choices.some(choice=>choice.deck.id===deck.id));
+  for(const language of ["es","en"]){
+    const c=words[language],base=readerState(catalog,{language,bookId:deck.bookId,deckChoices:choices,statuses:{[deck.bookId]:"read"},userId:"reader"});
+    const before=deckView(base),tile=before.match(/<button class="deck-tile reading-guides-deck-tile"[^]*?<\/button>/)?.[0];
+    assert.ok(tile);assert.ok(tile.includes(c.readingGuides));assert.ok(tile.includes(c.noteCardsCount(cards.length)));
+    assert.match(tile,/reading-guide-icon/);assert.doesNotMatch(tile,/deck-creator|data-action="delete|delete-deck/);
+    assert.match(before,/class="reading-guides-entry reading-guides-entry--empty"[^>]*data-action="open-reading-guides"/);
+    assert.match(before,/reading-guide-icon/);
+    cards.forEach(item=>{item.creatorUserId="reader";});
+    const after=deckView(base);
+    assert.doesNotMatch(after,/data-action="open-reading-guides"/);
+    assert.match(after,/class="deck-tile reading-guides-deck-tile"/);
+    const preview=readingGuideDeckPreviewView(base);
+    assert.match(preview,/data-deck-presentation="list"/);assert.match(preview,/class="deck-peek-cards reading-guide-peek-cards"/);
+    assert.equal((preview.match(/data-reading-card=/g)||[]).length,cards.length);
+    assert.doesNotMatch(preview,/data-action="presentation-layout"|data-action="presentation-card"|class="deck-creator"/);
+    assert.match(preview,/data-action="edit-reading-guide"/);
+    assert.ok(preview.includes(c.readingGuides));
+    cards.forEach(item=>{item.creatorUserId="guide-author";});
+  }
 });
 
 test("Collective draft review UI lets invited contributors add cards without exposing deck management",async()=>{
