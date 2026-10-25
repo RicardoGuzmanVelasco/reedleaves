@@ -37,7 +37,7 @@ test("Bookshelf excludes untouched recommendations and includes reading, enrolme
 test("Saved-only books belong to the personal bookshelf without inventing reading progress",async()=>{
   const s=await fixture();s.cardSaves=[{cardId:"habit-1",bookId:"seven-habits",savedAt:"2026-10-13T12:00:00Z"}];
   const entries=bookshelfBooks(s);
-  assert.deepEqual(ids(entries),["seven-habits"]);assert.equal(entries[0].reading,"unread");assert.equal(entries[0].group,"unread");
+  assert.deepEqual(ids(entries),["seven-habits"]);assert.equal(entries[0].reading,"unread");assert.equal(entries[0].group,"to-read");
   assert.deepEqual(s.enrolledIds,[]);
   assert.deepEqual(bookshelfBooks({...s,cardSaves:[]}),[]);
 });
@@ -81,7 +81,7 @@ test("Deck membership keeps a book on the shelf without card progress groups",as
   const s=await fixture();
   s.enrolledIds=["seven-habits-inside-out"];
   const entries=bookshelfBooks({...s,shelfBookIds:["seven-habits"],toReadBookIds:[]});
-  assert.equal(entries.length,1); assert.equal(entries[0].group,"unread");
+  assert.equal(entries.length,1); assert.equal(entries[0].group,"to-read");
   assert.equal((bookshelfView(s).match(/data-book="seven-habits"/g)||[]).length,1);
   s.enrolledIds=[];
   assert.deepEqual(bookshelfBooks(s),[]);
@@ -129,7 +129,8 @@ test("Decks tab groups owned and enrolled decks by their book's reading status",
     assert.doesNotMatch(html,/open-bookshelf-filters/);
   }
   assert.match(render({},["seven-habits"]),/id="collection-decks-to-read"/);
-  assert.match(render({}),/id="collection-decks-unread"/);
+  assert.match(render({}),/id="collection-decks-to-read"/);
+  assert.doesNotMatch(render({}),/id="collection-decks-unread"/);
   const empty=await fixture();
   assert.match(bookshelfView({...empty,bookshelfTab:"decks"}),/Todavía no has añadido barajas a tu tarjetero/);
 });
@@ -150,7 +151,7 @@ test("Own empty drafts remain pending, while completed books stay out of simplif
   const s=await fixture();
   const version=s.catalog.decks.find(v=>v.bookId==="atomic-habits"); version.status="draft"; version.cardCount=0;
   s.enrolledIds=[version.id];
-  assert.equal(bookshelfBooks(s)[0].group,"unread");
+  assert.equal(bookshelfBooks(s)[0].group,"to-read");
   s.enrolledIds=[];
   assert.deepEqual(bookshelfBooks(s),[]);
   assert.doesNotMatch(homeView(s),/data-action="resume-book"/);

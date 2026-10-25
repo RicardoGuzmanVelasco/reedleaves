@@ -1,6 +1,7 @@
 import {transaction} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
 import {readCardVotes} from "./card-votes.mjs";
+import {ensureBookToRead} from "./book-reading.mjs";
 
 const validId=value=>typeof value==="string" && value.trim().length>0 && value.length<=240;
 const serialize=row=>({...row,savedAt:row.savedAt instanceof Date ? row.savedAt.toISOString() : row.savedAt});
@@ -33,6 +34,7 @@ export async function setCardSave(db,session,{cardId,saved}={},now=new Date()) {
     if (!card) throw new ApiError(404,"cardUnavailable");
     if (saved) {
       await db.prepare("INSERT INTO card_saves(user_id,card_id,saved_at) VALUES (?,?,?) ON CONFLICT(user_id,card_id) DO NOTHING").run(session.user_id,cardId,now.toISOString());
+      await ensureBookToRead(db,session.user_id,card.book_id);
     } else await db.prepare("DELETE FROM card_saves WHERE user_id=? AND card_id=?").run(session.user_id,cardId);
     const cards=await cardSavesInside(db,session.user_id,card.book_id),row=cards.find(card=>card.cardId===cardId);
     return {cardId,bookId:card.book_id,saved:!!row,savedAt:row?.savedAt||null,savedCount:cards.length};

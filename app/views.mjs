@@ -216,9 +216,8 @@ function deckCollectionMarkup(s) {
     .filter(item=>item.deck&&item.book)
     .sort((a,b)=>contentText(a.deck.title,s.language,a.deck.language).localeCompare(contentText(b.deck.title,s.language,b.deck.language),s.language));
   if (!entries.length) return `<div class="empty-state collection-empty"><p>${c.emptyDeckCollection}</p></div>`;
-  const groups=[["reading",c.readingStatus],["to-read",c.toRead],["read",c.readStatus],["unread",c.unread]];
-  const toRead=new Set(s.toReadBookIds ?? s.shelfBookIds ?? []);
-  const groupFor=bookId=>s.statuses?.[bookId] && s.statuses[bookId] !== "unread" ? s.statuses[bookId] : toRead.has(bookId) ? "to-read" : "unread";
+  const groups=[["reading",c.readingStatus],["to-read",c.toRead],["read",c.readStatus]];
+  const groupFor=bookId=>s.statuses?.[bookId] && s.statuses[bookId] !== "unread" ? s.statuses[bookId] : "to-read";
   return groups.map(([key,title])=>{
     const items=entries.filter(({book})=>groupFor(book.id)===key);
     if (!items.length) return "";
@@ -232,7 +231,7 @@ export function bookshelfView(s) {
   const entries=s.readOnly ? (s.profileData?.bookshelf || []).map(entry=>({...entry,group:entry.group||entry.reading,book:s.catalog.booksById.get(entry.bookId)})).filter(entry=>entry.book) : bookshelfBooks(s);
   if (s.readOnly) s={...s,statuses:Object.fromEntries(entries.map(entry=>[entry.book.id,entry.group]))};
   const selected = s.catalog.booksById.get(s.openBookId);
-  const groups = [["reading",c.readingStatus],["to-read",c.toRead],["read",c.readStatus],["unread",c.unread]];
+  const groups = [["reading",c.readingStatus],["to-read",c.toRead],["read",c.readStatus]];
   return `<section class="bookshelf-screen">
     ${s.readOnly ? `<a class="text-button" href="#profile/${encodeURIComponent(s.profileData.profile.id)}">${c.profileBack}</a><p class="bookshelf-owner"><bdi>${esc(s.profileData.profile.name)}</bdi> · ${c.readOnly}</p>` : ""}
     <div class="screen-heading bookshelf-heading"><h1 tabindex="-1">${collectionIconMarkup(s.readOnly ? "shelf" : "bookcase",30)}${s.readOnly ? c.shelf : c.bookcase}</h1></div>
