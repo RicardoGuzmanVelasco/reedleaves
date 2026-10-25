@@ -17,7 +17,7 @@
     "db:check": "node server/manage.mjs check",
     "db:leaves": "node server/manage.mjs leaves",
     "db:backup": "node server/manage.mjs backup",
-    "test": "node --import ./test-support/offline.mjs --test app/*.test.mjs server/*.test.mjs test-support/*.test.mjs"
+    "test": "node --import ./test-support/offline.mjs --test --test-concurrency=2 app/*.test.mjs server/*.test.mjs test-support/*.test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
