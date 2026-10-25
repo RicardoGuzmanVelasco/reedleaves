@@ -32,20 +32,29 @@ export function playGrowthFeedback(dialog,{reducedMotion=false,schedule=setTimeo
     const oldArt=row.querySelector(".growth-feedback-art-old"),newArt=row.querySelector(".growth-feedback-art-new");
     const oldLabel=row.querySelector(".growth-feedback-stage-old"),newLabel=row.querySelector(".growth-feedback-stage-new");
     const finish=()=>{
-      row.classList.remove("is-pending","is-appearing","is-transforming");
+      row.classList.remove("is-pending","is-appearing","is-exiting","is-entering");
       if(oldArt)oldArt.hidden=true;
       if(oldLabel)oldLabel.hidden=true;
       newArt.hidden=false;newLabel.hidden=false;
     };
     if(reducedMotion){finish();continue;}
-    const start=300+index*780;
+    const start=300+index*880;
     schedule(()=>{if(!dialog.open)return;row.classList.remove("is-pending");row.classList.add("is-appearing")},start);
     schedule(()=>{
       if(!dialog.open)return;
       row.classList.remove("is-appearing");
-      newArt.hidden=false;newLabel.hidden=false;
-      row.classList.add("is-transforming");
-    },start+240);
-    schedule(()=>{if(dialog.open)finish()},start+740);
+      newLabel.hidden=false;
+      if(oldArt)row.classList.add("is-exiting");
+      else {newArt.hidden=false;row.classList.add("is-entering")}
+    },start+220);
+    schedule(()=>{
+      if(!dialog.open||!oldArt)return;
+      oldArt.hidden=true;
+      if(oldLabel)oldLabel.hidden=true;
+      row.classList.remove("is-exiting");
+      newArt.hidden=false;
+      row.classList.add("is-entering");
+    },start+500);
+    schedule(()=>{if(dialog.open)finish()},start+850);
   }
 }
