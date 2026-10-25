@@ -10,17 +10,18 @@ export function growthChanges(before={},after={}) {
   return Object.entries(after).flatMap(([bookId,growth])=>{
     const previous=currentMascotStage(before[bookId]);
     const stage=currentMascotStage(growth);
-    return stage && stage!==previous ? [{bookId,stage}] : [];
+    return stage && stage!==previous ? [{bookId,previous,stage}] : [];
   });
 }
 
 export function growthFeedbackMarkup(changes,catalog,language) {
   const c=words[language];
-  const rows=changes.flatMap(({bookId,stage})=>{
+  const rows=changes.flatMap(({bookId,previous,stage})=>{
     const book=catalog.booksById.get(bookId);
     if(!book || !stageNames[stage])return [];
     const title=bookTitle(book,language);
-    return [`<li class="growth-feedback-row"><div class="growth-feedback-art">${mascotArt(stage,"",{idle:false})}</div><div class="growth-feedback-copy"><span class="growth-feedback-book" lang="${esc(title.language)}" dir="auto">${esc(title.text)}</span><strong>${esc(c[stageNames[stage]])}</strong></div><span class="growth-feedback-arrow" aria-hidden="true">↑</span></li>`];
+    const hasPrevious=!!stageNames[previous];
+    return [`<li class="growth-feedback-row${hasPrevious?" has-previous":""}" style="--growth-index:${changes.findIndex(change=>change.bookId===bookId)}"><div class="growth-feedback-art">${hasPrevious?`<span class="growth-feedback-art-old">${mascotArt(previous,"",{idle:false})}</span>`:""}<span class="growth-feedback-art-new">${mascotArt(stage)}</span></div><div class="growth-feedback-copy"><strong class="growth-feedback-book" lang="${esc(title.language)}" dir="auto">${esc(title.text)}</strong><span class="growth-feedback-stage">${hasPrevious?`<span class="growth-feedback-stage-old" aria-hidden="true">${esc(c[stageNames[previous]])}</span>`:""}<span class="growth-feedback-stage-new">${esc(c[stageNames[stage]])}</span></span></div></li>`];
   }).join("");
-  return `<div class="growth-feedback-halo" aria-hidden="true"></div><div class="growth-feedback-inner"><p class="growth-feedback-eyebrow">${esc(c.mascots)}</p><h2 id="growth-feedback-title">${esc(changes.length===1?c.growthFeedbackOne:c.growthFeedbackMany)}</h2><ul class="growth-feedback-list">${rows}</ul><div class="growth-feedback-foot"><button type="button" class="primary" id="growth-feedback-continue">${esc(c.growthFeedbackContinue)}</button></div></div>`;
+  return `<button type="button" class="dialog-close growth-feedback-close" id="growth-feedback-continue" aria-label="${esc(c.growthFeedbackContinue)}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button><div class="growth-feedback-inner"><h2 id="growth-feedback-title">${esc(changes.length===1?c.growthFeedbackOne:c.growthFeedbackMany)}</h2><ul class="growth-feedback-list">${rows}</ul></div>`;
 }

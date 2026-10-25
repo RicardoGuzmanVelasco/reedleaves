@@ -985,7 +985,7 @@ export function startReader({createCardFeatures} = {}) {
       catalog = await loadCatalog();
       const preview=new URLSearchParams(location.search).get("growthPreview");
       if(["localhost","127.0.0.1"].includes(location.hostname) && ["one","many"].includes(preview)) {
-        pendingGrowthFeedback=catalog.books.slice(0,preview==="many"?3:1).map((book,index)=>({bookId:book.id,stage:["seed","root","sprout"][index]}));
+        pendingGrowthFeedback=catalog.books.slice(0,preview==="many"?3:1).map((book,index)=>({bookId:book.id,previous:["pot","seed","seedling"][index],stage:["seed","root","sprout"][index]}));
       }
       ready = true; route(false);
     }
@@ -1014,7 +1014,14 @@ export function startReader({createCardFeatures} = {}) {
   document.getElementById("open-settings").addEventListener("click",()=>showAppModal(settings));
   document.getElementById("close-settings").addEventListener("click",()=>settings.close());
   const growthFeedbackDialog=document.getElementById("growth-feedback");
-  growthFeedbackDialog.addEventListener("click",event=>{if(event.target===growthFeedbackDialog || event.target.closest("#growth-feedback-continue"))growthFeedbackDialog.close()});
+  function closeGrowthFeedback(){
+    if(!growthFeedbackDialog.open || growthFeedbackDialog.classList.contains("is-closing"))return;
+    if(matchMedia("(prefers-reduced-motion: reduce)").matches){growthFeedbackDialog.close();return;}
+    growthFeedbackDialog.classList.add("is-closing");
+    setTimeout(()=>{if(growthFeedbackDialog.open)growthFeedbackDialog.close();growthFeedbackDialog.classList.remove("is-closing")},220);
+  }
+  growthFeedbackDialog.addEventListener("click",event=>{if(event.target===growthFeedbackDialog || event.target.closest("#growth-feedback-continue"))closeGrowthFeedback()});
+  growthFeedbackDialog.addEventListener("cancel",event=>{event.preventDefault();closeGrowthFeedback()});
   const feedback=document.getElementById("feedback"),feedbackForm=document.getElementById("feedback-form"),feedbackError=document.getElementById("feedback-error");
   feedbackForm.elements.message.maxLength=FEEDBACK_MESSAGE_MAX_LENGTH;
   document.getElementById("open-feedback").addEventListener("click",()=>showAppModal(feedback));
