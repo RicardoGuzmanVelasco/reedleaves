@@ -5,6 +5,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {createElement} from 'react';
 import {build} from 'esbuild';
 import {words} from './i18n.mjs';
+import {cardActionRecord} from './card-interactions.mjs';
 
 // Compile the source with the test renderer's React instance. The browser bundle
 // embeds its own React, so its hooks cannot run inside react-dom/server here.
@@ -81,4 +82,26 @@ test('Quote previews retain the grid typography at every column density',()=>{
   for(const [,selector,declarations] of quoteRules){
     assert.doesNotMatch(declarations,/font-size\s*:/,`Quote preview size must follow the card container: ${selector.trim()}`);
   }
+});
+
+test('Card authorship controls ratings for ideas, quotes and reading guides before and after loading',()=>{
+  for(const type of [{},{isQuote:true},{isReadingGuide:true}]){
+    for(const userId of ['author','other-reader']){
+      const card={id:'collective-card',deckId:'shared-deck',creatorUserId:'author',...type};
+      for(const loaded of [false,true]){
+        const serverRecord=loaded?{loaded:true,isOwn:userId==='author',likes:3,dislikes:1}:undefined;
+        const record=cardActionRecord(serverRecord,card,userId);
+        const html=renderToStaticMarkup(createElement(CardActions,{record,saved:false,c:words.es}));
+        const buttons=[...html.matchAll(/<button\b[^>]*>/g)].map(match=>match[0]);
+        assert.equal(record.isOwn,userId==='author');
+        assert.equal(buttons[0].includes('disabled'),!loaded||userId==='author');
+        assert.equal(buttons[1].includes('disabled'),!loaded||userId==='author');
+        assert.equal(buttons[2].includes('disabled'),false);
+        assert.equal(html.includes('is-own'),userId==='author');
+      }
+    }
+  }
+  assert.equal(cardActionRecord({isOwn:true},{creatorUserId:'stale-author'},'author').isOwn,true);
+  assert.equal(cardActionRecord({isOwn:false},{creatorUserId:'author'},'author').isOwn,false);
+  assert.equal(cardActionRecord(undefined,undefined,null).isOwn,false);
 });

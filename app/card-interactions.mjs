@@ -1,3 +1,7 @@
+export function cardActionRecord(record,card,userId) {
+  return {...record,isOwn:record?.isOwn ?? (!!userId && card?.creatorUserId===userId)};
+}
+
 export function savedReferences(rows=[]) {
   return Object.fromEntries(rows.map(row=>[row.cardId,{cardId:row.cardId,bookId:row.bookId,savedAt:row.savedAt}]));
 }
