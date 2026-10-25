@@ -309,6 +309,7 @@ body.is-reading{--page-background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,
 .reading-content>h1,.reading-content>h2,.reading-content>.idea-body{position:relative;z-index:1}
 .card-watermark{position:absolute;inset:0;overflow:hidden;display:flex;align-items:flex-end;justify-content:flex-end;color:var(--watermark-ink);opacity:var(--watermark-opacity);pointer-events:none;user-select:none;z-index:0}
 .card-watermark-symbol{width:min(var(--watermark-width),var(--watermark-max-width));height:var(--watermark-height);max-height:var(--watermark-max-height);fill:currentColor;flex:none}
+.card-watermark-symbol--reading-guide{fill:none;stroke:currentColor;stroke-width:1.05;stroke-linecap:round;stroke-linejoin:round}
 .reading-content+.reading-footer{margin-top:0}
 .exclusive-card-modal .reading-content{flex:1}
 .exclusive-card-modal .reading-content+.reading-footer{margin-top:0}
