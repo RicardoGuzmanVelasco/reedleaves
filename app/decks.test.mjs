@@ -44,7 +44,9 @@ test("Reading guides have a dedicated book tile, add entry, and vertical reading
     const c=words[language],base=readerState(catalog,{language,bookId:deck.bookId,deckChoices:choices,statuses:{[deck.bookId]:"read"},userId:"reader"});
     const before=deckView(base),tile=before.match(/<button class="deck-tile reading-guides-deck-tile"[^]*?<\/button>/)?.[0];
     assert.ok(tile);assert.ok(tile.includes(c.readingGuides));assert.ok(tile.includes(c.noteCardsCount(cards.length)));
-    assert.match(tile,/reading-guide-icon/);assert.doesNotMatch(tile,/deck-creator|data-action="delete|delete-deck/);
+    assert.ok(tile.includes(c.featuredDeck));assert.ok(tile.match(/aria-label="[^"]*"/)[0].includes(c.featuredDeck));
+    assert.doesNotMatch(tile,/deck-creator|data-action="delete|delete-deck/);
+    assert.ok(before.indexOf('data-action="open-reading-guide-preview"')<before.indexOf(`data-deck="${choices[0].deck.id}"`));
     assert.match(before,/class="reading-guides-entry reading-guides-entry--empty"[^>]*data-action="open-reading-guides"/);
     assert.match(before,/reading-guide-icon/);
     cards.forEach(item=>{item.creatorUserId="reader";});
@@ -335,6 +337,21 @@ test("Only the explicit team recommendation gets the translated visible and acce
         assert.equal(open.includes(c.recommended),recommended,"The tooltip identifies the recommendation as the team’s");
         for(const key of ["popular","preferred","otherDeck"])assert.ok(!html.includes(c[key]));
       }
+    }
+  }
+});
+
+test('Book and collection deck lists prioritize the current viewer’s contributions',async()=>{
+  const catalog=await fixture(),decks=catalog.decks.filter(deck=>deck.bookId==='seven-habits');
+  const [first,second]=decks;
+  for(const deck of decks){
+    deck.isRecommended=false;
+    for(const card of catalog.deckModels.get(deck.id).cards)card.creatorUserId=deck.id===first.id?'first-reader':'second-reader';
+  }
+  for(const [userId,preferred,other] of [['second-reader',second,first],['first-reader',first,second]]){
+    const state=readerState(catalog,{userId,bookId:'seven-habits',deckChoices:availableDecks(catalog,'seven-habits'),enrolledIds:decks.map(deck=>deck.id),bookshelfTab:'decks'});
+    for(const html of [deckView(state),bookshelfView(state)]){
+      assert.ok(html.indexOf(`data-deck="${preferred.id}"`)<html.indexOf(`data-deck="${other.id}"`));
     }
   }
 });

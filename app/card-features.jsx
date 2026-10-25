@@ -3,7 +3,7 @@ import {createRoot} from 'react-dom/client';
 import {createPortal} from 'react-dom';
 import {contentText,contentLocale,quoteExcerpt} from './core.mjs';
 import {words} from './i18n.mjs';
-import {savedReferences,optimisticCardAction,createCardActionTransport} from './card-interactions.mjs';
+import {cardActionRecord,savedReferences,optimisticCardAction,createCardActionTransport} from './card-interactions.mjs';
 
 function useRibbonPath(saved){
   const [extension,setExtension]=useState(saved?41:0),current=useRef(extension);
@@ -155,8 +155,8 @@ function Features({context,api,callbacks}){
   function save(){const cardId=context.cardId,key=cardId+':save',previous=intent.current[key]?.saved ?? !!optimisticRef.current.saves[cardId];mutate({kind:'save',cardId,bookId:context.bookId,saved:!previous,savedAt:new Date().toISOString()})}
   const c=words[context.language];
   const rows=Object.values(optimistic.saves).filter(row=>row.bookId===context.bookId && context.catalog.cardsById.has(row.cardId)).sort((a,b)=>b.savedAt.localeCompare(a.savedAt)||b.cardId.localeCompare(a.cardId));
-  const card=context.catalog.cardsById.get(context.cardId),deck=context.catalog.decksById.get(card?.deckId);
-  const record={...optimistic.records[context.cardId],isOwn:deck?.creator.userId===context.userId};
+  const card=context.catalog.cardsById.get(context.cardId);
+  const record=cardActionRecord(optimistic.records[context.cardId],card,context.userId);
   const error=errors[context.cardId+':save']||errors[context.cardId+':vote']||errors[context.cardId+':read'];
   return <>
     {context.actionSlot&&card&&createPortal(<CardActions record={record} saved={!!optimistic.saves[card.id]} c={c} onVote={vote} onSave={save} error={error} onRetry={()=>error?.action?mutate(error.action):load(context.cardId)}/>,context.actionSlot)}
