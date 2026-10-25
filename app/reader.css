@@ -348,7 +348,7 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 @keyframes daily-badge-arrive{0%{transform:scale(0) rotate(-90deg)}48%{transform:scale(1.55) rotate(14deg)}72%{transform:scale(.82) rotate(-7deg)}100%{transform:scale(1) rotate(0)}}
 @keyframes daily-badge-ring{0%{transform:scale(.3);opacity:.9}24%,100%{transform:scale(2.3);opacity:0}}
 .daily-streak{display:flex;align-items:center;justify-content:center;gap:16px;width:min(380px,100%);min-height:105px;margin:0 auto 17px;padding:17px 19px;border:1px solid var(--line);border-radius:22px;background:#fffdf6;text-align:left}
-.daily-streak img{flex:none;transform:rotate(-15deg)}
+.daily-streak img{flex:none}
 .daily-streak>div{display:flex;flex-direction:column;gap:3px;min-width:0}
 .daily-streak strong{font-size:22px;line-height:1.15;letter-spacing:-.03em}
 .daily-streak span{font-size:12px;line-height:1.4;color:var(--muted)}
