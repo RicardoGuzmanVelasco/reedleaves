@@ -16,6 +16,7 @@ test("growth feedback identifies each book and stage in both interface languages
   assert.match(es,/¡Tus mascotas han crecido!/);
   assert.match(es,/Libro A/);assert.match(es,/Raíz/);assert.match(es,/Book B/);assert.match(es,/Brote/);
   assert.match(es,/growth-feedback-art-old/);assert.match(es,/data-idle="none"/);assert.match(es,/data-idle="hop"/);
+  assert.match(es,/--growth-delay:0\.18s/);assert.match(es,/--growth-delay:0\.98s/);
   assert.doesNotMatch(es,/growth-feedback-eyebrow|growth-feedback-arrow|growth-feedback-halo/);
   assert.match(en,/Your mascots have grown/);assert.match(en,/Root/);assert.match(en,/Sprout/);
   assert.match(growthFeedbackMarkup(changes.slice(0,1),catalog,"es"),/¡Tu mascota ha crecido!/);
