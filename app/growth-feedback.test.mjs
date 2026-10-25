@@ -22,15 +22,16 @@ test("growth feedback identifies each book and stage in both interface languages
   assert.match(growthFeedbackMarkup(changes.slice(0,1),catalog,"es"),/¡Tu mascota ha crecido!/);
 });
 
-test("growth animation hides old art before showing the new art",()=>{
+test("growth animation changes the label only after the new art settles",()=>{
   const oldArt={hidden:false},newArt={hidden:true},oldLabel={hidden:false},newLabel={hidden:true};
   const classes=new Set(["is-pending"]);
   const row={classList:{add:(...values)=>values.forEach(value=>classes.add(value)),remove:(...values)=>values.forEach(value=>classes.delete(value))},querySelector:selector=>({".growth-feedback-art-old":oldArt,".growth-feedback-art-new":newArt,".growth-feedback-stage-old":oldLabel,".growth-feedback-stage-new":newLabel})[selector]};
   const dialog={open:true,querySelectorAll:()=>[row]},scheduled=[];
   playGrowthFeedback(dialog,{schedule:(fn,ms)=>scheduled.push({fn,ms})});
-  assert.deepEqual(scheduled.map(item=>item.ms),[300,520,800,1150]);
+  assert.deepEqual(scheduled.map(item=>item.ms),[300,520,800,1150,1390]);
   scheduled[0].fn();assert.equal(classes.has("is-pending"),false);assert.equal(newArt.hidden,true);
-  scheduled[1].fn();assert.equal(classes.has("is-exiting"),true);assert.equal(oldArt.hidden,false);assert.equal(newArt.hidden,true);assert.equal(newLabel.hidden,false);
-  scheduled[2].fn();assert.equal(oldArt.hidden,true);assert.equal(oldLabel.hidden,true);assert.equal(newArt.hidden,false);assert.equal(classes.has("is-entering"),true);
-  scheduled[3].fn();assert.equal(classes.has("is-entering"),false);
+  scheduled[1].fn();assert.equal(classes.has("is-exiting"),true);assert.equal(oldArt.hidden,false);assert.equal(newArt.hidden,true);assert.equal(newLabel.hidden,true);
+  scheduled[2].fn();assert.equal(oldArt.hidden,true);assert.equal(oldLabel.hidden,false);assert.equal(newArt.hidden,false);assert.equal(newLabel.hidden,true);assert.equal(classes.has("is-entering"),true);
+  scheduled[3].fn();assert.equal(classes.has("is-entering"),false);assert.equal(newLabel.hidden,false);assert.equal(classes.has("is-label-changing"),true);
+  scheduled[4].fn();assert.equal(oldLabel.hidden,true);assert.equal(classes.has("is-label-changing"),false);
 });

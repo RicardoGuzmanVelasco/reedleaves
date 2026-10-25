@@ -436,8 +436,8 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .growth-feedback-stage{position:relative;display:block;height:22px;margin-top:6px;overflow:hidden;color:var(--muted);font-size:13px;font-weight:700;line-height:22px}
 .growth-feedback-stage-old,.growth-feedback-stage-new{position:absolute;inset:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .growth-feedback-stage-old{color:#8a9585}
-.growth-feedback-row.is-exiting .growth-feedback-stage-old{animation:growth-label-old .28s ease-in both}
-.growth-feedback-row.is-exiting .growth-feedback-stage-new{animation:growth-label-new .28s cubic-bezier(.18,.9,.2,1) both}
+.growth-feedback-row.is-label-changing .growth-feedback-stage-old{animation:growth-label-old .23s ease-in both}
+.growth-feedback-row.is-label-changing .growth-feedback-stage-new{animation:growth-label-new .23s cubic-bezier(.18,.9,.2,1) both}
 @keyframes growth-sheet-in{from{transform:translateY(110dvh)}to{transform:translateY(0)}}
 @keyframes growth-sheet-out{from{transform:translateY(0)}to{transform:translateY(110dvh)}}
 @keyframes growth-row-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
