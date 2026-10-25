@@ -32,10 +32,12 @@ function sessionFromRow(row) {
 async function availableCards(db,userId,topic) {
   const catalog=prepareCatalog(await readCatalog(db,userId));
   const statuses=new Map((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(row=>[row.book_id,row.status]));
+  const enrolled=new Set((await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(row=>row.deck_id));
   const saved=new Set((await db.prepare("SELECT card_id FROM card_saves WHERE user_id=?").all(userId)).map(row=>row.card_id));
-  return catalog.cards.filter(card=>{
+  return catalog.allCards.filter(card=>{
     const status=statuses.get(card.bookId)||"unread",isSaved=saved.has(card.id);
-    return topic==="reading"?status==="reading":topic==="read"?status==="read":topic==="saved"?isSaved:status==="reading"||status==="read"||isSaved;
+    const inCollection=enrolled.has(card.deckId),isReadingBook=inCollection&&status==="reading",isReadBook=inCollection&&status==="read";
+    return topic==="reading"?isReadingBook:topic==="read"?isReadBook:topic==="saved"?isSaved:isReadingBook||isReadBook||isSaved;
   });
 }
 

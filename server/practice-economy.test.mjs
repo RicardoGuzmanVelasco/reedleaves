@@ -21,6 +21,7 @@ async function fixture(t,dialect="sqlite") {
   await db.prepare("INSERT INTO accounts(user_id,username,password_hash,time_zone,language) VALUES (?,?,?,?,?)").run("reader","reader","hash","Europe/Madrid","es");
   await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run("reader",10,"2026-10-06");
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,?)").run("reader","seven-habits","reading");
+  await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run("reader","seven-habits-editorial");
   return {db,session:{user_id:"reader",csrf_token:"csrf"}};
 }
 
@@ -55,6 +56,16 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal(Object.keys(after.practiceAnswers).length,PRACTICE_SESSION_SIZE);
     const next=await startPracticeSession(db,session,expected,new Date(now.getTime()+7000));
     assert.equal(next.session.cost,2);
+  });
+
+  test(`${dialect}: reading practice includes an enrolled non-recommended deck`,async t=>{
+    const {db,session}=await fixture(t,dialect),deckId="seven-habits-inside-out";
+    await db.prepare("DELETE FROM studies WHERE user_id=? AND deck_id=?").run(session.user_id,"seven-habits-editorial");
+    await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,deckId);
+    const deckCardIds=new Set((await db.prepare("SELECT id FROM cards WHERE deck_id=?").all(deckId)).map(row=>row.id));
+    const started=await startPracticeSession(db,session,"reading",new Date("2026-10-06T12:00:00.000Z"));
+    assert.ok(started.session);
+    assert.ok(started.session.cardIds.every(cardId=>deckCardIds.has(cardId)));
   });
 }
 
