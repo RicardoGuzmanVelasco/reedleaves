@@ -59,6 +59,13 @@ CREATE TABLE accounts (
   time_zone TEXT NOT NULL,
   language TEXT NOT NULL CHECK(language IN ('es','en','fr'))
 ) STRICT;
+
+CREATE TABLE book_merge_operations (
+  source_book_id TEXT NOT NULL,
+  target_book_id TEXT NOT NULL,
+  PRIMARY KEY(source_book_id,target_book_id),
+  CHECK(source_book_id <> target_book_id)
+) STRICT;
 CREATE TABLE reader_display_preferences (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
   show_original_titles INTEGER NOT NULL CHECK(show_original_titles IN (0,1))
@@ -108,7 +115,9 @@ CREATE TRIGGER keep_deck_owner BEFORE UPDATE OF creator_user_id,book_id,language
 WHEN (NEW.creator_user_id IS NOT OLD.creator_user_id AND NOT (
   OLD.creator_user_id='reed-team' AND OLD.status='published' AND
   COALESCE((SELECT can_create_decks FROM users WHERE id=NEW.creator_user_id),0)=1
-)) OR NEW.book_id <> OLD.book_id OR (NEW.language <> OLD.language AND OLD.status <> 'draft')
+)) OR (NEW.book_id <> OLD.book_id AND NOT EXISTS (
+  SELECT 1 FROM book_merge_operations m WHERE m.source_book_id=OLD.book_id AND m.target_book_id=NEW.book_id
+)) OR (NEW.language <> OLD.language AND OLD.status <> 'draft')
 BEGIN SELECT RAISE(ABORT,'Deck ownership is immutable'); END;
 CREATE TRIGGER keep_published_deck BEFORE DELETE ON decks WHEN OLD.status <> 'draft'
 BEGIN SELECT RAISE(ABORT,'Published deck cannot be deleted'); END;
@@ -134,7 +143,7 @@ CREATE TABLE cards (
   language TEXT NOT NULL DEFAULT 'en' CHECK(length(language) BETWEEN 2 AND 35),
   created_at TEXT,
   UNIQUE(id,deck_id),
-  FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id),
+  FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id) ON UPDATE CASCADE,
   FOREIGN KEY(parent_id,deck_id) REFERENCES cards(id,deck_id) DEFERRABLE INITIALLY DEFERRED,
   CHECK(parent_id IS NULL OR parent_id <> id)
 ) STRICT;
@@ -311,4 +320,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 40;
+PRAGMA user_version = 41;

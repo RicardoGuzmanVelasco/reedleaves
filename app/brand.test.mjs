@@ -24,7 +24,7 @@ test("Official name stays Reedleaves on every screen and in every interface lang
   const app = readFileSync(new URL("./reader-app.mjs",import.meta.url),"utf8");
   assert.match(app,/getElementById\("currency-wallets"\)/);
   assert.match(app,/function setHeaderLeading\(markup=""\)/);
-  assert.match(app,/i18n\.mjs\?v=profile-currency-header-back-4/);
+  assert.match(app,/i18n\.mjs\?v=[a-z0-9-]+/);
   assert.match(app,/views\.mjs\?v=[a-z0-9-]+/);
   assert.match(html,/reader\.css\?v=[a-z0-9-]+/);
   assert.match(html,/reader\.mjs\?v=[a-z0-9-]+/);

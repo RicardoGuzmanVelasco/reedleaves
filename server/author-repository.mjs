@@ -6,6 +6,7 @@ import {defaultNoteDeckTitle} from "../app/note-defaults.mjs";
 import {normalizeQuoteSourceUrl} from "../app/quote-source.mjs";
 import {isDeepStrictEqual} from "node:util";
 import {ensureBookToRead} from "./book-reading.mjs";
+import {findBookTitleMatches} from "../app/book-duplicates.mjs";
 
 function text(value,max,required=true) {
   if (typeof value !== "string" || value.trim().length > max || required && !value.trim()) throw new ApiError(400,"invalidRequest");
@@ -73,6 +74,17 @@ export async function createBook(db,session,input) {
       }
       if (!isDeepStrictEqual(normalizeBookMetadata(saved,{canonicalTitles:true}),metadata)) throw new ApiError(409,"invalidRequest");
       return {bookId:id};
+    }
+    const titleRows=await db.prepare(`SELECT b.id,b.author,b.popular_title,t.language,t.title
+      FROM books b LEFT JOIN book_translations t ON t.book_id=b.id ORDER BY b.position`).all();
+    const existingBooks=new Map();
+    for (const row of titleRows) {
+      let book=existingBooks.get(row.id);
+      if (!book) {book={id:row.id,author:row.author,popularTitle:row.popular_title,title:{}};existingBooks.set(row.id,book);}
+      if (row.language && row.title) book.title[row.language]=row.title;
+    }
+    if (findBookTitleMatches([title,...Object.values(metadata.title)],[...existingBooks.values()]).some(match=>match.blocked)) {
+      throw new ApiError(409,"bookAlreadyExists");
     }
     const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM books").get();
     await db.prepare("INSERT INTO books(id,author,popular_title,popular_language,position,creator_user_id) VALUES (?,?,?,?,?,?)").run(id,author,title,language,position,session.user_id);

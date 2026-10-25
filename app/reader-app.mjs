@@ -8,9 +8,10 @@ import {featuredDecks,isReadingGuideDeck} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=profile-currency-header-back-4";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup} from "./views.mjs?v=daily-streak-flame-2";
+import {words} from "./i18n.mjs?v=book-duplicates-1";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup} from "./views.mjs?v=daily-streak-flame-2";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
+import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
 import {createReadingPresentation} from "./reading-presentation.mjs?v=practice-shuffle-1";
@@ -902,6 +903,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   function changeAuthorField(input) {
     if (!authorForm || !input.name) return;
+    authorForm.error=null;
     if (input.name === "language" && input.type === "radio") {
       const picker=input.closest(".author-language-picker");
       picker.querySelector(".inferred-language")?.remove();
@@ -925,6 +927,14 @@ export function startReader({createCardFeatures} = {}) {
     }
     authorForm[input.name]=input.value;
     persistNoteDraft();
+  }
+  function refreshBookDuplicateHints() {
+    const form=authorForm,host=main.querySelector("[data-book-duplicate-hints]");
+    if (!form || form.kind!=="book" || form.bookId || !host) return;
+    const matches=findBookTitleMatches([form.title,...Object.values(form.metadata?.title||{})],catalog.books);
+    host.innerHTML=bookDuplicateSuggestionsMarkup({language,catalog},matches);
+    const submit=main.querySelector('[data-author-form] button[type="submit"]');
+    if (submit) submit.disabled=form.error==="bookAlreadyExists"||matches.some(match=>match.blocked);
   }
   function closeDeck(id) { openDeckId = null; render(); [...main.querySelectorAll('[data-action="open-deck"]')].find(b=>b.dataset.deck === id)?.focus({preventScroll:true}); }
   function closeBookDetails(id) {
@@ -1119,7 +1129,7 @@ export function startReader({createCardFeatures} = {}) {
       return;
     }
     if(e.target.id==="deck-contributor-username"){deckContributorInput=e.target.value;return;}
-    if (authorForm && e.target.closest("[data-author-form]")) changeAuthorField(e.target);
+    if (authorForm && e.target.closest("[data-author-form]")) {changeAuthorField(e.target);refreshBookDuplicateHints();}
     if (e.target.id === "book-search") { libraryQuery = e.target.value; updateBookSearch(); }
   });
   main.addEventListener("submit",async e=>{
@@ -1196,6 +1206,19 @@ export function startReader({createCardFeatures} = {}) {
       case "remove-deck-contributor": removeDeckContributor(b.dataset.userId);break;
       case "practice": practiceSession=null;practiceStage="choose";practiceUnavailable=null;navigate("#practice"); break;
       case "practice-exit": practiceSession=null;practiceStage="choose";navigate("#home"); break;
+      case "open-practice-help": {
+        const dialog=main.querySelector(".practice-help-modal");
+        if(!dialog)break;
+        showAppModal(dialog);
+        dialog.addEventListener("close",()=>{if(b.isConnected)b.focus({preventScroll:true});},{once:true});
+        dialog.addEventListener("click",event=>{
+          if(event.target!==dialog)return;
+          const rect=dialog.getBoundingClientRect();
+          if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)dialog.close();
+        });
+        break;
+      }
+      case "close-practice-help": main.querySelector(".practice-help-modal")?.close(); break;
       case "practice-topic": startPractice(b.dataset.topic); break;
       case "practice-answer": answerPractice(b.dataset.answer); break;
       case "practice-resume": resumePractice(); break;
@@ -1209,6 +1232,9 @@ export function startReader({createCardFeatures} = {}) {
       case "profile-back": navigate(profileReturnHash || "#home"); break;
       case "retry-profile": profileData=null; profileError=null; loadProfile(true); render(); break;
       case "create-book": openAuthorForm("book"); break;
+      case "open-duplicate-book":
+        if (catalog.booksById.has(b.dataset.book)) {authorForm=null;bookStatusError=null;noteNudgeBookId=null;openBookId=b.dataset.book;render();}
+        break;
       case "complete-book": openBookCompletion(b.dataset.book); break;
       case "create-deck": openAuthorForm("deck"); break;
       case "take-deck-note": openDeckNote(b.dataset.deck,b); break;

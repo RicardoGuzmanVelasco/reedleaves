@@ -7,6 +7,7 @@ import {appendTeamDeckCards,createTeamDeck,finishTeamDeck,reassignTeamDeckCreato
 import {TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH,MAX_CARDS_PER_DECK} from "../app/core.mjs";
 import {ApiError} from "./errors.mjs";
 import {normalizeQuoteSourceUrl} from "../app/quote-source.mjs";
+import {mergeBooks} from "./book-merge.mjs";
 
 function validBearer(request,token) {
   if (!token) return false;
@@ -97,6 +98,13 @@ function makeServer(db,publicBaseUrl) {
       username:z.string().trim().min(1).max(64).describe("Existing Reedleaves username to show as the deck creator.")},
     annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:false}
   },safeTool(async(input)=>toolText(await reassignTeamDeckCreator(db,input))));
+  server.registerTool("merge_books",{
+    title:"Fusionar libros duplicados",
+    description:"Move every deck and card reference from a duplicate book to the canonical target book, preserve IDs and reader data, merge metadata, then delete the duplicate. Call only when the user explicitly asks to merge these two books. sourceBookId is removed; targetBookId remains.",
+    inputSchema:{sourceBookId:z.string().trim().min(1).max(240).describe("Duplicate book ID to remove after moving its data."),
+      targetBookId:z.string().trim().min(1).max(240).describe("Canonical book ID that keeps its identity and receives the duplicate's data.")},
+    annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:false,openWorldHint:false}
+  },safeTool(async(input)=>toolText(await mergeBooks(db,input))));
   return server;
 }
 
