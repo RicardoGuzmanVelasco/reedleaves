@@ -8,8 +8,8 @@ import {featuredDecks,isReadingGuideDeck} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=practice-swipe-1";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup} from "./views.mjs?v=reading-guides-2";
+import {words} from "./i18n.mjs?v=profile-currency-header-back-4";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup} from "./views.mjs?v=profile-currency-header-back-4";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
@@ -19,6 +19,7 @@ import {updateSavedReferences} from "./card-interactions.mjs";
 import {editableNoteDecks,noteDecksWithSpace,isHomeBook} from "./notes.mjs";
 import {MAX_DAILY_LEAVES} from "./wallet.mjs";
 import {nextDailyCycleBoundary} from "./daily-cycle.mjs";
+import {usefulProfileReturnHash,profileReturnTarget} from "./profile-navigation.mjs";
 import {createModalPageLock} from "./modal-page-lock.mjs";
 import {adjacentCard,swipeStep} from "./card-reading-navigation.mjs";
 
@@ -101,6 +102,9 @@ export function startReader({createCardFeatures} = {}) {
     const hours=Math.floor(minutesLeft/60),minutes=minutesLeft%60;
     countdown.textContent=words[language].currencyCountdown(hours,minutes);
   }
+  function setHeaderLeading(markup="") {
+    document.getElementById("header-leading").innerHTML=markup;
+  }
   function header() {
     const c = words[language]; document.documentElement.lang = language;
     const navigation=document.getElementById("main-navigation"),signedIn=!!snapshot.user;
@@ -116,6 +120,9 @@ export function startReader({createCardFeatures} = {}) {
     document.getElementById("nav-daily-label").textContent=c.navDaily;
     navigation.querySelectorAll(".bottom-navigation-link").forEach(link=>{link.title=link.querySelector(".bottom-navigation-label").textContent;});
     document.getElementById("nav-profile").href=signedIn?`#profile/${encodeURIComponent(snapshot.user.id)}`:"#profile";
+    setHeaderLeading(mode==="profile"&&signedIn&&usefulProfileReturnHash(profileReturnHash)
+      ? `<button class="text-button profile-header-back" type="button" data-action="profile-back">${escapeHtml(c.backToPrevious)}</button>`
+      : "");
     const activeNavigation=mode==="home"||["book","guides","guide-preview","preview","review"].includes(mode)&&bookOrigin==="home"?"home":mode==="library"||["book","guides","guide-preview","preview"].includes(mode)&&bookOrigin==="library"?"library":mode==="bookshelf"||["book","guides","guide-preview","preview"].includes(mode)&&bookOrigin==="bookshelf"?"bookshelf":mode==="profile"||mode==="public-bookshelf"||mode==="account"?"profile":mode==="daily"||["review","preview"].includes(mode)&&bookOrigin==="daily"?"daily":null;
     navigation.querySelectorAll("[data-nav]").forEach(link=>{if(link.dataset.nav===activeNavigation)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current")});
     document.title = pageTitle(["card","quote"].includes(authorForm?.kind) ? c.takeNote : mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.books : mode === "bookshelf" ? c.bookcase : mode === "public-bookshelf" ? c.shelf : mode === "profile" ? c.profile : mode === "daily" ? c.daily : mode === "practice" ? c.practice : mode === "saved" ? c.savedCards : ["guides","guide-preview"].includes(mode) ? c.readingGuides : mode === "book" ? c.chooseDeck : mode === "preview" ? c.deckPeekPage : mode === "review" ? c.viewDeck : mode === "mascots" ? c.mascots : mode === "author" ? c.manageDeck : c.review);
@@ -139,8 +146,8 @@ export function startReader({createCardFeatures} = {}) {
     if(!signedIn)setCurrencyRecoveryOpen(false);
     const petals = Number.isSafeInteger(snapshot.petals) ? snapshot.petals : 0,petalMaximum=Number.isSafeInteger(snapshot.petalMaximum)?snapshot.petalMaximum:15;
     document.getElementById("petal-count").textContent = ready ? String(petals) : "—";
-    document.getElementById("petal-maximum").textContent=`/${petalMaximum}`;
-    document.getElementById("leaf-maximum").textContent=`/${MAX_DAILY_LEAVES}`;
+    document.getElementById("petal-maximum").textContent=`/ ${petalMaximum}`;
+    document.getElementById("leaf-maximum").textContent=`/ ${MAX_DAILY_LEAVES}`;
     const leaves=ready&&budget?budget.balance:0;
     document.getElementById("leaf-count").textContent=ready&&budget?String(leaves):"—";
     currencyWallets.setAttribute("aria-label",ready&&budget?c.currencyBalancesLabel(petals,petalMaximum,leaves,MAX_DAILY_LEAVES):c.loading);
@@ -353,7 +360,10 @@ export function startReader({createCardFeatures} = {}) {
   }
   function navigate(hash) {
     if (busy) { pendingNavigation = hash; return; }
-    if (location.hash !== hash) history.pushState({bookOrigin,libraryOrigin,profileReturnHash},"",hash);
+    if (location.hash !== hash) {
+      if(/^#profile(?:\/|$)/.test(hash))profileReturnHash=profileReturnTarget(location.hash||"#home");
+      history.pushState({bookOrigin,libraryOrigin,profileReturnHash},"",hash);
+    }
     route();
   }
   async function loadProfile(force=false) {
@@ -1021,11 +1031,13 @@ export function startReader({createCardFeatures} = {}) {
   currencyWallets.addEventListener("click",()=>setCurrencyRecoveryOpen(currencyWallets.getAttribute("aria-expanded")!=="true"));
   document.addEventListener("pointerdown",event=>{if(!currencyWallets.contains(event.target)&&!currencyRecovery.contains(event.target))setCurrencyRecoveryOpen(false)});
   document.addEventListener("keydown",event=>{if(event.key==="Escape"&&currencyWallets.getAttribute("aria-expanded")==="true")setCurrencyRecoveryOpen(false)});
+  document.getElementById("header-leading").addEventListener("click",event=>{
+    if(event.target.closest('[data-action="profile-back"]'))navigate(profileReturnTarget(profileReturnHash));
+  });
   function openOwnProfile() {
     if (!snapshot.user) return;
     profileData=null;
     const target="#profile/"+encodeURIComponent(snapshot.user.id);
-    if (location.hash !== target) profileReturnHash=location.hash || "#home";
     navigate(target);
   }
   document.getElementById("open-settings").addEventListener("click",()=>showAppModal(settings));

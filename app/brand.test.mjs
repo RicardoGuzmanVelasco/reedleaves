@@ -16,7 +16,18 @@ test("Official name stays Reedleaves on every screen and in every interface lang
   assert.match(html,/<meta name="application-name" content="Reedleaves">/);
   const header=html.match(/<header class="app-header">([\s\S]*?)<\/header>/)?.[1] || "";
   assert.doesNotMatch(header,/class="brand"|brand-name|d-compacto\.svg/);
+  const actions=header.match(/<div class="header-actions">([\s\S]*?)<\/div>/)?.[1] || "";
+  assert.match(actions,/<button class="currency-wallets" id="currency-wallets"[^>]*aria-controls="currency-recovery"/);
+  assert.match(actions,/<button class="icon-button" id="open-settings"/);
+  assert.doesNotMatch(actions,/currency-recovery-toggle|currency-info-icon/);
+  assert.match(header,/<div class="header-leading" id="header-leading"><\/div>/);
   const app = readFileSync(new URL("./reader-app.mjs",import.meta.url),"utf8");
+  assert.match(app,/getElementById\("currency-wallets"\)/);
+  assert.match(app,/function setHeaderLeading\(markup=""\)/);
+  assert.match(app,/i18n\.mjs\?v=profile-currency-header-back-4/);
+  assert.match(app,/views\.mjs\?v=profile-currency-header-back-4/);
+  assert.match(html,/reader\.css\?v=profile-currency-header-back-4/);
+  assert.match(html,/reader\.mjs\?v=profile-currency-header-back-4/);
   assert.match(app,/document\.title = pageTitle\(/);
   assert.doesNotMatch(app,/updateBrandNavigation|querySelector\("\.brand"\)|brand-name/);
 });

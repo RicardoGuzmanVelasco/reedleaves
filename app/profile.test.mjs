@@ -21,6 +21,8 @@ test("Profiles show book, card-view and contribution counts without old per-card
     assert.equal((html.match(/<img class="mascot-icon"/g)||[]).length,7);
     assert.match(html,new RegExp(`<span>${language==="es"?"Germen":"Seedling"}</span><strong>0</strong>`));
     assert.match(html,new RegExp(`<span>${language==="es"?"Brote":"Sprout"}</span><strong>1</strong>`));
+    assert.match(html,/<header class="profile-heading"><div class="profile-avatar"/);
+    assert.doesNotMatch(html,/data-action="profile-back"|profile-topline/);
     for(const key of Object.keys(profileData.profile.counts)) assert.ok(html.includes(words[language][key]),key);
     assert.match(html,/href="#bookshelf\/test-user"/);assert.match(html,/datetime="2026-10-10"/);
     assert.doesNotMatch(profileView({language,profileData,userId:"test-user"}),/href="#bookshelf(?:\/|")/);
