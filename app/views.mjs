@@ -431,7 +431,7 @@ export function dailyView(s) {
   const exclusive=card&&s.dailyExclusiveCardId===card.id?exclusiveCardMarkup(s,card):"";
   const streak=dailyIdeaStreak(s.dailyHistory,s.dailyToday?.day);
   const streakStatus=streak.seenToday?c.dailyStreakToday:streak.days?c.dailyStreakContinue:c.dailyStreakStart;
-  const streakMarkup=`<div class="daily-streak" role="status"><img src="../brand/reed/streak-flame.svg" alt="" width="42" height="42"><div><strong>${esc(c.dailyStreakDays(streak.days))}</strong><span>${esc(streakStatus)}</span></div></div>`;
+  const streakMarkup=`<div class="daily-streak" role="status"><img src="../brand/reed/streak-flame.svg?v=2" alt="" width="42" height="42"><div><strong>${esc(c.dailyStreakDays(streak.days))}</strong><span>${esc(streakStatus)}</span></div></div>`;
   return `<section class="daily-screen"><div class="screen-heading"><h1 tabindex="-1" class="daily-title">${calendarIconMarkup()}<span>${c.daily}</span></h1></div>
     ${calendar}${card ? `${streakMarkup}${exclusive}` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p></div>`}
     </section>`;
