@@ -819,3 +819,7 @@ textarea:focus-visible{outline:3px solid #8b541e;outline-offset:4px}
 .reading-guide-presentation-book{max-width:800px;margin:0 auto 8px}
 .reading-guide-peek-cards{display:grid;gap:24px}
 .reading-guide-peek-cards .reading-stage{margin-top:14px;margin-bottom:20px}
+:root[data-input-modality="pointer"] :focus-visible{outline:none!important}
+:root[data-input-modality="pointer"] .segmented-selector input:focus-visible+span{outline:none!important}
+:root[data-input-modality="pointer"] .book-search:focus-within{outline:none}
+:root[data-input-modality="pointer"] .preview-density-slider:focus-within{outline:none}
