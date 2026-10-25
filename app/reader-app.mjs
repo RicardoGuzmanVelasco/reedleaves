@@ -10,7 +10,6 @@ import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=practice-swipe-1";
 import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup} from "./views.mjs?v=reading-guides-1";
-import {bookshelfDefaults} from "./bookshelf.mjs";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
 import {pageTitle} from "./brand.mjs";
@@ -42,8 +41,7 @@ export function startReader({createCardFeatures} = {}) {
   let pendingSavedFocus = null;
   let presentationState=null,presentationLayout="list",presentationIndex=0,presentationDeckId=null,disposeDeckPresentation=()=>{};
   let bookViews={},disposeBookLists=()=>{},libraryFilterDraft={...libraryDefaults};
-  let bookshelfFilters = {...bookshelfDefaults},publicBookshelfFilters={...bookshelfDefaults},bookshelfTab="shelf";
-  let bookshelfFiltersOpen=false,bookshelfFilterDraft={...bookshelfDefaults};
+  let bookshelfTab="shelf";
   let libraryFilters = {...libraryDefaults},libraryFiltersOpen=false;
   let listPositions = {};
   let libraryOrigin = "home", appliedAuthorRoute = null;
@@ -75,7 +73,7 @@ export function startReader({createCardFeatures} = {}) {
       persistNoteDraft(); authorForm=null; noteDestination=null; deckCompletion=null; notesCompletion=null; bookStatusError=null;
     }
     if (snapshot.user?.id !== state.user?.id) { deckPreview=false;previewColumns=2;previewDeckId=null; }
-    if (snapshot.user?.id !== state.user?.id) { bookshelfFilters = {...bookshelfDefaults}; publicBookshelfFilters={...bookshelfDefaults}; bookshelfFiltersOpen=false; bookshelfFilterDraft={...bookshelfDefaults}; libraryFilters = {...libraryDefaults}; libraryQuery = ""; listPositions = {}; profileId=null; profileError=null; profileData=null; profileRequest=null; profileGeneration++; recordedViews.clear(); pendingViews.clear(); libraryOrigin = "home"; openBookId = null; }
+    if (snapshot.user?.id !== state.user?.id) { libraryFilters = {...libraryDefaults}; libraryQuery = ""; listPositions = {}; profileId=null; profileError=null; profileData=null; profileRequest=null; profileGeneration++; recordedViews.clear(); pendingViews.clear(); libraryOrigin = "home"; openBookId = null; }
     snapshot = state;
     if (state.inviteRequired !== undefined) inviteRequired = state.inviteRequired;
     if (state.user) { language = restoreLanguage(state.language); store.save(keys.language,language); }
@@ -189,7 +187,7 @@ export function startReader({createCardFeatures} = {}) {
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
     const selectedDaily=dailyHistory.find(item=>item.day===selectedDailyDay)||daily;
     const state = {presentationLayout,presentationIndex,bookViews,userId:snapshot.user?.id,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,deckContributorError,deckContributorInput,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],toReadBookIds:Object.entries(snapshot.statuses||{}).filter(([,status])=>status==="unread").map(([id])=>id),noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily:selectedDaily,dailyToday:daily,dailyHistory,dailyStatus,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountTopic:snapshot.practiceDiscountTopic,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
-      deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,readingGuideError,readingGuideDraft,libraryQuery,libraryFilters,libraryFiltersOpen,libraryFilterDraft,bookshelfFilters:mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters,bookshelfFiltersOpen,bookshelfFilterDraft,bookshelfTab,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
+      deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,readingGuideError,readingGuideDraft,libraryQuery,libraryFilters,libraryFiltersOpen,libraryFilterDraft,bookshelfTab,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
       profileData,profileError,readOnly:mode === "public-bookshelf",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,accountLearningNotice};
     presentationState=state;
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
@@ -230,17 +228,6 @@ export function startReader({createCardFeatures} = {}) {
       libraryFilterDialog.addEventListener("cancel",event=>{event.preventDefault();close();});
       libraryFilterDialog.addEventListener("click",event=>{if(event.target!==libraryFilterDialog)return;const r=libraryFilterDialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)close();});
     }
-    const bookshelfFilterDialog=main.querySelector(".bookshelf-filter-modal:not(.library-filter-modal)");
-    if(bookshelfFilterDialog){
-      showAppModal(bookshelfFilterDialog);
-      bookshelfFilterDialog.addEventListener("cancel",event=>{event.preventDefault();closeBookshelfFilters();});
-      bookshelfFilterDialog.addEventListener("click",event=>{
-        if(event.target!==bookshelfFilterDialog)return;
-        const rect=bookshelfFilterDialog.getBoundingClientRect();
-        if(event.clientX>=rect.left&&event.clientX<=rect.right&&event.clientY>=rect.top&&event.clientY<=rect.bottom)return;
-        closeBookshelfFilters();
-      });
-    }
     const exclusive=main.querySelector(".exclusive-card-modal");
     if (exclusive) {
       showAppModal(exclusive);
@@ -279,7 +266,6 @@ export function startReader({createCardFeatures} = {}) {
     scrollToCard = false;
   }
   function route(focus = true) {
-    if(!location.hash.startsWith("#bookshelf"))bookshelfFiltersOpen=false;
     if(!location.hash.startsWith("#library"))libraryFiltersOpen=false;
     if (!ready) return; noteDestination=null;deckCompletion=null;notesCompletion=null;refreshState();
     const [view,first,second] = location.hash.slice(1).split("/");
@@ -290,7 +276,6 @@ export function startReader({createCardFeatures} = {}) {
       accountLearningNotice=false;
     }
     bookshelfTab=view === "bookshelf" && first === "decks" ? "decks" : "shelf";
-    if(bookshelfTab !== "shelf")bookshelfFiltersOpen=false;
     dailyExclusiveCardId=null;
     if (view === "library" && first === "book") {
       try { const id=decodeURIComponent(second||""); openBookId=catalog.booksById.has(id)?id:null; } catch { openBookId=null; }
@@ -312,7 +297,7 @@ export function startReader({createCardFeatures} = {}) {
     if (["book","guides","preview","review","read","author"].includes(view) && ["home","library","bookshelf","daily"].includes(history.state?.bookOrigin)) bookOrigin = history.state.bookOrigin;
     if (view === "profile" || view === "bookshelf" && first && first !== "decks") {
       let id; try { id=decodeURIComponent(first || snapshot.user?.id || ""); } catch { id=""; }
-      if (profileId !== id) { profileId=id; profileData=null; profileError=id?null:"profileUnavailable"; profileGeneration++; profileRequest=null; publicBookshelfFilters={...bookshelfDefaults}; openBookId=null; }
+      if (profileId !== id) { profileId=id; profileData=null; profileError=id?null:"profileUnavailable"; profileGeneration++; profileRequest=null; openBookId=null; }
       mode=view === "profile" ? "profile" : id === snapshot.user?.id ? "bookshelf" : "public-bookshelf";
     }
     else if (view === "bookshelf" && first === "decks") mode="bookshelf";
@@ -920,10 +905,7 @@ export function startReader({createCardFeatures} = {}) {
     const cover=[...main.querySelectorAll('[data-action="open-book-details"]')].find(button=>button.dataset.book === id);
     (cover || main.querySelector("h1"))?.focus({preventScroll:true});
   }
-  function closeBookshelfFilters(apply=false) {
-    if(apply){const target=mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters;Object.assign(target,bookshelfFilterDraft);delete listPositions.bookshelf;}
-    bookshelfFiltersOpen=false;render();main.querySelector("#open-bookshelf-filters")?.focus({preventScroll:true});
-  }
+
   async function mutation(path,input,onSuccess,{preserveDOM=()=>false}={}) {
     if (busy) return false; busy = true; syncGeneration++; syncError = null; lockControls();
     try { const result = await api.request(path,input); applyState(result.state || result);
@@ -1006,7 +988,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function ensureDaily() { if (!busy) await mutation("/api/reader/daily",{}); }
   async function sync(force = false) {
-    if (!ready || busy || cardFeatures?.pending || !force && (main.querySelector("[data-account-form]") || document.activeElement?.id === "book-search" || document.activeElement?.matches("[data-bookshelf-filter],[data-library-filter]") || main.querySelector(".deck-modal") || mode === "author" || settings.open)) return;
+    if (!ready || busy || cardFeatures?.pending || !force && (main.querySelector("[data-account-form]") || document.activeElement?.id === "book-search" || document.activeElement?.matches("[data-library-filter]") || main.querySelector(".deck-modal") || mode === "author" || settings.open)) return;
     const generation = ++syncGeneration;
     try { const state = await api.request("/api/session"); const updatedCatalog = await loadCatalog(); if (generation !== syncGeneration || busy) return;
       const sameUser=snapshot.user?.id===state.user?.id;
@@ -1133,15 +1115,6 @@ export function startReader({createCardFeatures} = {}) {
       if (location.hash.startsWith("#library/author/")) history.replaceState({bookOrigin,libraryOrigin},"","#library");
       updateBookSearch(); return;
     }
-    if (input.dataset.bookshelfFilter) {
-      const axis = input.dataset.bookshelfFilter;
-      if(input.closest(".bookshelf-filter-modal")){
-        if(axis === "reading"&&["all","unread","to-read","reading","read"].includes(input.value))bookshelfFilterDraft[axis]=input.value;
-        return;
-      }
-      if (axis === "reading" && ["all","unread","to-read","reading","read"].includes(input.value)) (mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters)[axis] = input.value;
-      delete listPositions.bookshelf; render(); document.getElementById(input.id)?.focus(); return;
-    }
     return;
   });
   main.addEventListener("click",e=>{
@@ -1166,10 +1139,6 @@ export function startReader({createCardFeatures} = {}) {
       case "edit-deck-title": editDeckTitle();break;
       case "cancel-deck-title": cancelDeckTitle();break;
       case "remove-deck-contributor": removeDeckContributor(b.dataset.userId);break;
-      case "open-bookshelf-filters": bookshelfFilterDraft={...(mode === "public-bookshelf" ? publicBookshelfFilters : bookshelfFilters)};bookshelfFiltersOpen=true;render();main.querySelector("#bookshelf-filter-reading")?.focus({preventScroll:true});break;
-      case "close-bookshelf-filters": closeBookshelfFilters();break;
-      case "apply-bookshelf-filters": closeBookshelfFilters(true);break;
-      case "reset-bookshelf-filter-draft": bookshelfFilterDraft={...bookshelfDefaults};render();main.querySelector("#bookshelf-filter-reading")?.focus({preventScroll:true});break;
       case "practice": practiceSession=null;practiceStage="choose";practiceUnavailable=null;navigate("#practice"); break;
       case "practice-exit": practiceSession=null;practiceStage="choose";navigate("#home"); break;
       case "practice-topic": startPractice(b.dataset.topic); break;
@@ -1225,7 +1194,6 @@ export function startReader({createCardFeatures} = {}) {
         else if (!["book","review","author"].includes(mode)) libraryOrigin = "home";
         navigate("#library"); break;
       case "bookshelf": navigate(b.dataset.tab === "decks" ? "#bookshelf/decks" : "#bookshelf"); break;
-      case "reset-bookshelf-filters": if (mode === "public-bookshelf") publicBookshelfFilters={...bookshelfDefaults}; else bookshelfFilters = {...bookshelfDefaults}; bookshelfFilterDraft={...bookshelfDefaults};delete listPositions.bookshelf; render(); main.querySelector("#open-bookshelf-filters")?.focus(); break;
       case "daily": navigate("#daily"); break;
       case "open-daily-card": {
         const selected=dailyHistory.find(item=>item.day===selectedDailyDay)||daily;
