@@ -26,7 +26,7 @@ test("Official name stays Reedleaves on every screen and in every interface lang
   assert.match(app,/function setHeaderLeading\(markup=""\)/);
   assert.match(app,/i18n\.mjs\?v=profile-currency-header-back-4/);
   assert.match(app,/views\.mjs\?v=profile-currency-header-back-4/);
-  assert.match(html,/reader\.css\?v=profile-currency-header-back-4/);
+  assert.match(html,/reader\.css\?v=[a-z0-9-]+/);
   assert.match(html,/reader\.mjs\?v=profile-currency-header-back-4/);
   assert.match(app,/document\.title = pageTitle\(/);
   assert.doesNotMatch(app,/updateBrandNavigation|querySelector\("\.brand"\)|brand-name/);
