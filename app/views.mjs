@@ -4,7 +4,7 @@ import { availableDecks,isReadingGuideDeck,sortDecks } from "./decks.mjs";
 import {homeBooks,editableNoteDecks,noteDecksWithSpace,recentNoteDecks} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=reading-guides-1";
+import { words } from "./i18n.mjs?v=book-duplicates-1";
 import { bookLinkUrl } from "./book-links.mjs";
 import { validQuoteSourceUrl } from "./quote-source.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
@@ -15,9 +15,15 @@ import {missingBookInformation,TRANSLATION_FIELDS} from "./book-metadata.mjs";
 import {defaultNoteDeckTitle} from "./note-defaults.mjs";
 import {dailyIdeaStreak} from "./daily-streak.mjs";
 import {interestIcon} from "./interests.mjs";
+import {findBookTitleMatches} from "./book-duplicates.mjs";
 
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const esc = escapeHtml;
+export function bookDuplicateSuggestionsMarkup(s,matches) {
+  if (!matches.length) return "";
+  const blocked=matches.some(match=>match.blocked),c=words[s.language];
+  return `<section class="book-duplicate-suggestions" aria-label="${esc(c.bookDuplicateQuestion)}"><p ${blocked?'role="alert"':""}>${blocked?c.bookAlreadyExists:c.bookDuplicateNotice}</p><h3>${c.bookDuplicateQuestion}</h3><ul>${matches.map(({book})=>`<li><span lang="${esc(displayedBookTitle(s,book).language)}" dir="auto">${esc(displayedBookTitle(s,book).text)}</span><small>${esc(book.author)}</small><button class="text-button" type="button" data-action="open-duplicate-book" data-book="${esc(book.id)}">${c.bookDuplicateView}</button></li>`).join("")}</ul></section>`;
+}
 const practiceLaunchLabel = text => {
   const chars = typeof Intl.Segmenter === "function"
     ? [...new Intl.Segmenter(undefined,{granularity:"grapheme"}).segment(text)].map(item=>item.segment)
@@ -687,6 +693,8 @@ export function authorView(s) {
 
 export function authorFormView(s) {
   const f=s.authorForm,c=words[s.language],book=f.kind === "book",deck=f.kind === "deck",quote=f.kind === "quote",noteDeck=s.catalog.decksById.get(f.noteDeckId || s.deckId),model=s.catalog.deckModels.get(f.noteDeckId || s.deckId);
+  const initialDuplicateMatches=book&&!f.bookId&&!f.preview?findBookTitleMatches([f.title,...Object.values(f.metadata?.title||{})],s.catalog.books):[];
+  const initialDuplicateBlocked=initialDuplicateMatches.some(match=>match.blocked);
   const locked=name=>!!f.bookId && (!name.startsWith("metadata.") || (()=>{ const [,key,language]=name.split("."); return !!f.originalMetadata?.[key]?.[language]; })());
   const field=(name,label,value,max,required,area=false)=>`<label for="author-${name}">${label}</label>${area ? `<textarea id="author-${name}" name="${name}" rows="${name === "body" ? 6 : 3}" maxlength="${max}" ${required ? "required" : ""} ${locked(name) ? "readonly" : ""}>${esc(value || "")}</textarea>` : `<input id="author-${name}" name="${name}" value="${esc(value || "")}" maxlength="${max}" ${required ? "required" : ""} ${locked(name) ? "readonly" : ""}>`}`;
   const languagePicker=()=>{
@@ -705,14 +713,17 @@ export function authorFormView(s) {
   if (book && f.preview && f.metadata) {
     const preview={...f.metadata,id:f.requestId,author:f.author,creatorUserId:s.userId,popularTitle:f.metadata.popularTitle || f.title,popularLanguage:f.metadata.popularLanguage || f.language};
     const translated=displayedBookTitle(s,preview),description=contentText(preview.description,s.language,preview.popularLanguage);
+    const duplicateMatches=f.bookId ? [] : findBookTitleMatches([preview.popularTitle,...Object.values(preview.title||{})],s.catalog.books);
+    const duplicateBlocked=f.error === "bookAlreadyExists" || duplicateMatches.some(match=>match.blocked);
+    const duplicateNotice=bookDuplicateSuggestionsMarkup(s,duplicateMatches);
     return `<dialog class="deck-modal author-modal book-preview-modal" aria-labelledby="author-dialog-title"><article class="deck-card book-detail">
       <p class="preview-label">${c.bookPreview}</p><h2 id="author-dialog-title" tabindex="-1" lang="${esc(translated.language)}" dir="auto">${esc(translated.text)}</h2>${popularBookTitleMarkup(s,preview)}<p class="book-detail-author">${esc(preview.author)}</p>
       <div class="deck-tags">${bookGenresMarkup(s,preview)}</div>
       ${description ? `<p class="deck-description" lang="${esc(contentLocale(preview.description,s.language,preview.popularLanguage))}" dir="auto">${esc(description)}</p>` : ""}
       ${bookLinksMarkup(s,preview)}
       ${LANGUAGES.some(language=>preview.title[language]) ? `<details class="book-translations"><summary>${c.bookTranslations}</summary>${LANGUAGES.filter(language=>preview.description[language] || preview.editorialNote[language]).map(language=>`<section lang="${esc(language)}" dir="auto"><h3>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(language))}</h3><p><strong>${esc(bookTitle(preview,language).text)}</strong></p><p>${esc(preview.description[language])}</p><small>${esc(preview.editorialNote[language])}</small></section>`).join("")}</details>` : ""}
-      <form class="author-form" data-author-form><p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}${f.error && f.errorReference ? `<small class="error-reference">${c.errorReference}: ${esc(f.errorReference)}</small>` : ""}</p>
-        <div class="form-actions"><button class="text-button" type="button" data-action="edit-book-preview">${c.editBook}</button><button class="primary" type="submit">${f.bookId ? c.save : c.createBook}</button></div>
+      ${duplicateNotice}<form class="author-form" data-author-form><p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}${f.error && f.errorReference ? `<small class="error-reference">${c.errorReference}: ${esc(f.errorReference)}</small>` : ""}</p>
+        <div class="form-actions"><button class="text-button" type="button" data-action="edit-book-preview">${c.editBook}</button><button class="primary" type="submit"${duplicateBlocked?" disabled":""}>${f.bookId ? c.save : c.createBook}</button></div>
         <button class="text-button preview-cancel" type="button" data-action="cancel-author">${c.cancel}</button>
       </form></article></dialog>`;
   }
@@ -721,7 +732,7 @@ export function authorFormView(s) {
   return `<dialog class="deck-modal author-modal" aria-labelledby="author-dialog-title" ${noteBook ? 'aria-describedby="note-book-context"' : ""}><article class="deck-card"><h2 id="author-dialog-title"${!f.bookId && !book && !deck ? ' class="take-note-heading"' : ""}>${f.bookId ? c.completeBook : book ? c.createBook : deck ? c.createDeck : `${takeNoteIconMarkup}<span>${c.takeNote}</span>`}</h2>${noteBook ? `<p class="note-book-context" id="note-book-context" lang="${esc(displayedBookTitle(s,noteBook).language)}" dir="auto">${esc(displayedBookTitle(s,noteBook).text)}${showNoteDeck ? `<span class="note-deck-context" lang="${esc(contentLocale(noteDeck.title,s.language,noteDeck.language))}" dir="auto">${esc(contentText(noteDeck.title,s.language,noteDeck.language))}</span>` : ""}</p>` : ""}${f.bookId ? `<p class="book-completion-note">${c.completeBookNote}</p>` : ""}<form class="author-form" data-author-form>
     ${!book && !deck ? `${f.createNoteDeck ? `<p class="note-default-deck-notice">${esc(c.defaultNoteDeckNotice(defaultNoteDeckTitle(f.noteLanguage)))}</p>` : ""}${f.draftRecovered ? `<p class="note-draft-status" role="status">${c.noteDraftRecovered}</p>` : ""}<p class="account-error" role="alert" data-note-draft-storage-error ${f.draftStorageUnavailable ? "" : "hidden"}>${c.noteDraftStorageUnavailable}</p>${f.draftDestinationUnavailable ? `<p class="account-error" role="alert">${c.noteDraftDestinationUnavailable}</p>` : ""}` : ""}
     ${!book && !deck ? `<div class="segmented-selector note-type-selector" role="group" aria-label="${esc(c.noteType)}">${[["card",c.noteIdea],["quote",c.noteQuote]].map(([kind,label])=>`<button type="button" data-action="note-kind" data-kind="${kind}" aria-pressed="${f.kind === kind}">${noteTypeIcon(kind)}<span>${esc(label)}</span></button>`).join("")}</div>` : ""}
-    ${quote ? "" : field("title",book ? c.bookTitle : deck ? c.deckTitle : c.cardTitle,f.title,TITLE_MAX_LENGTH,true)}
+    ${quote ? "" : field("title",book ? c.bookTitle : deck ? c.deckTitle : c.cardTitle,f.title,TITLE_MAX_LENGTH,true)}${book&&!f.bookId?`<div data-book-duplicate-hints>${bookDuplicateSuggestionsMarkup(s,initialDuplicateMatches)}</div>`:""}
     ${deck || book ? `${book ? field("author",c.bookAuthor,f.author,BOOK_AUTHOR_MAX_LENGTH,true) : `${field("description",c.deckDescription,f.description,DESCRIPTION_MAX_LENGTH,false,true)}<label for="author-contribution-mode">${c.contributionMode}</label><select id="author-contribution-mode" name="contributionMode"><option value="owner" ${!f.contributionMode||f.contributionMode==="owner"?"selected":""}>${c.ownerOnly}</option><option value="open" ${f.contributionMode==="open"?"selected":""}>${c.anyoneCanContribute}</option><option value="selected" ${f.contributionMode==="selected"?"selected":""}>${c.selectedContributors}</option></select>`}${languagePicker()}` : `${field("body",quote ? c.quoteBody : c.cardBody,f.body,CARD_BODY_MAX_LENGTH,true,true)}${f.createNoteDeck ? "" : `<label for="author-parentId">${c.parentCard}</label><select id="author-parentId" name="parentId" ${f.draftDestinationUnavailable ? "disabled" : ""}><option value="" ${!f.parentId ? "selected" : ""}>${quote ? c.unclassifiedQuotes : c.rootCard}</option>${options.join("")}</select>`}`}
     ${book ? `<button class="secondary book-autofill" type="button" data-action="autofill-book" ${f.autofilling ? 'disabled aria-busy="true"' : ""}>${f.autofilling ? `<span class="ai-spinner" aria-hidden="true"></span><span role="status">${c.aiLoading}</span>` : c.autofillBook}</button>` : ""}
     ${book && f.metadata && (!f.bookId || f.hasProposal) ? `<details class="book-metadata-editor"><summary>${c.bookDetails}</summary>
@@ -729,7 +740,7 @@ export function authorFormView(s) {
       ${LANGUAGES.filter(language=>f.metadata.description[language] || f.metadata.editorialNote[language] || f.metadata.title[language]).map(language=>`<details class="book-translation-editor"><summary>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(language))}</summary>${field(`metadata.title.${language}`,c.bookTitle,f.metadata.title[language] || "",TRANSLATION_FIELDS.title,false)}${field(`metadata.description.${language}`,c.bookDescription,f.metadata.description[language],TRANSLATION_FIELDS.description,true,true)}${field(`metadata.editorialNote.${language}`,c.bookEditorialNote,f.metadata.editorialNote[language],TRANSLATION_FIELDS.editorialNote,true,true)}</details>`).join("")}
       ${["amazon","goodreads"].map(platform=>field(`metadata.links.${platform}`,platform === "amazon" ? "Amazon" : "Goodreads",f.metadata.links[platform],2048,false)).join("")}
     </details>` : ""}
-    <p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}${f.error && f.errorReference ? `<small class="error-reference">${c.errorReference}: ${esc(f.errorReference)}</small>` : ""}</p><div class="form-actions"><button class="text-button" type="button" data-action="cancel-author">${c.cancel}</button>${!f.bookId || f.hasProposal ? `<button class="primary" type="submit" ${f.draftDestinationUnavailable ? "disabled" : ""}>${book && !f.bookId ? c.createBook : deck ? c.createDeck : c.save}</button>` : ""}</div>
+    <p class="account-error" role="alert" ${f.error ? "" : "hidden"}>${esc(c[f.error] || c.connectionError)}${f.error && f.errorReference ? `<small class="error-reference">${c.errorReference}: ${esc(f.errorReference)}</small>` : ""}</p><div class="form-actions"><button class="text-button" type="button" data-action="cancel-author">${c.cancel}</button>${!f.bookId || f.hasProposal ? `<button class="primary" type="submit"${f.draftDestinationUnavailable||initialDuplicateBlocked?" disabled":""}>${book && !f.bookId ? c.createBook : deck ? c.createDeck : c.save}</button>` : ""}</div>
   </form></article></dialog>`;
 }
 

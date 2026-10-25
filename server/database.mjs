@@ -11,8 +11,8 @@ import {POPULAR_TITLE_RENAME_SQL,POPULAR_TITLE_UPDATES} from "./popular-title-mi
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 40;
-export const POSTGRES_SCHEMA_VERSION = 32;
+export const SQLITE_SCHEMA_VERSION = 41;
+export const POSTGRES_SCHEMA_VERSION = 33;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -99,6 +99,49 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 40) {
+    const cardTable=db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='cards'").get()?.sql;
+    if (!cardTable) throw new Error("Cannot migrate book merge: cards table is missing");
+    const rebuilt=cardTable.replace(/^CREATE TABLE\s+(?:"cards"|`cards`|\[cards\]|cards)(?=\s|\()/iu,"CREATE TABLE cards_new")
+      .replace(/FOREIGN KEY\s*\(\s*(?:"deck_id"|`deck_id`|\[deck_id\]|deck_id)\s*,\s*(?:"book_id"|`book_id`|\[book_id\]|book_id)\s*\)\s*REFERENCES\s+(?:"decks"|`decks`|\[decks\]|decks)\s*\(\s*(?:"id"|`id`|\[id\]|id)\s*,\s*(?:"book_id"|`book_id`|\[book_id\]|book_id)\s*\)/iu,
+        "FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id) ON UPDATE CASCADE")
+      .replace(/REFERENCES\s+(?:"cards"|`cards`|\[cards\]|cards)\s*\(\s*(?:"id"|`id`|\[id\]|id)\s*,\s*(?:"deck_id"|`deck_id`|\[deck_id\]|deck_id)\s*\)/iu,
+        "REFERENCES cards_new(id,deck_id)");
+    if (!/^CREATE TABLE cards_new(?:\s|\()/iu.test(rebuilt) ||
+        !/FOREIGN KEY\s*\(deck_id,book_id\)\s*REFERENCES\s+decks\(id,book_id\)\s+ON UPDATE CASCADE/iu.test(rebuilt) ||
+        !/REFERENCES\s+cards_new\(id,deck_id\)/iu.test(rebuilt)) {
+      throw new Error("Cannot migrate book merge: cards foreign key shape is unknown");
+    }
+    const indexes=db.prepare("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='cards' AND sql IS NOT NULL").all();
+    const triggers=db.prepare("SELECT name,sql FROM sqlite_master WHERE type='trigger'").all();
+    db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
+    try {
+      for (const trigger of triggers) db.exec(`DROP TRIGGER "${trigger.name.replaceAll('"','""')}";`);
+      db.exec(`CREATE TABLE book_merge_operations (
+          source_book_id TEXT NOT NULL, target_book_id TEXT NOT NULL,
+          PRIMARY KEY(source_book_id,target_book_id), CHECK(source_book_id <> target_book_id)
+        ) STRICT;
+        ${rebuilt};
+        INSERT INTO cards_new SELECT * FROM cards;
+        DROP TABLE cards;
+        ALTER TABLE cards_new RENAME TO cards;`);
+      for (const index of indexes) db.exec(index.sql);
+      for (const trigger of triggers) if(trigger.name!=="keep_deck_owner") db.exec(trigger.sql);
+      db.exec(`CREATE TRIGGER keep_deck_owner BEFORE UPDATE OF creator_user_id,book_id,language ON decks
+        WHEN (NEW.creator_user_id IS NOT OLD.creator_user_id AND NOT (
+          OLD.creator_user_id='reed-team' AND OLD.status='published' AND
+          COALESCE((SELECT can_create_decks FROM users WHERE id=NEW.creator_user_id),0)=1
+        )) OR (NEW.book_id <> OLD.book_id AND NOT EXISTS (
+          SELECT 1 FROM book_merge_operations m WHERE m.source_book_id=OLD.book_id AND m.target_book_id=NEW.book_id
+        )) OR (NEW.language <> OLD.language AND OLD.status <> 'draft')
+        BEGIN SELECT RAISE(ABORT,'Deck ownership is immutable'); END;
+        PRAGMA user_version=41;`);
+      if (db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("Book merge migration broke database references");
+      db.exec("COMMIT;");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    finally { db.exec("PRAGMA foreign_keys=ON;"); }
+    return initializeDatabase(db);
+  }
   if (version === 39) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -673,6 +716,36 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 32) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,books,decks,cards IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 33) return;
+          await db.exec(`CREATE TABLE book_merge_operations(
+              source_book_id TEXT NOT NULL, target_book_id TEXT NOT NULL,
+              PRIMARY KEY(source_book_id,target_book_id), CHECK(source_book_id<>target_book_id)
+            );
+            ALTER TABLE book_merge_operations ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE cards DROP CONSTRAINT cards_deck_id_book_id_fkey;
+            ALTER TABLE cards ADD CONSTRAINT cards_deck_id_book_id_fkey
+              FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id) ON UPDATE CASCADE;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=33;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=33);`);
+          await db.exec(`CREATE OR REPLACE FUNCTION reed_keep_deck_owner() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              IF (NEW.creator_user_id IS DISTINCT FROM OLD.creator_user_id AND NOT (
+                OLD.creator_user_id='reed-team' AND OLD.status='published' AND
+                COALESCE((SELECT can_create_decks FROM users WHERE id=NEW.creator_user_id),0)=1
+              )) OR (NEW.book_id IS DISTINCT FROM OLD.book_id AND NOT EXISTS (
+                SELECT 1 FROM book_merge_operations m WHERE m.source_book_id=OLD.book_id AND m.target_book_id=NEW.book_id
+              )) OR (NEW.language IS DISTINCT FROM OLD.language AND OLD.status <> 'draft') THEN
+                RAISE EXCEPTION 'Deck ownership is immutable';
+              END IF;
+              RETURN NEW;
+            END $$;`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 31) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,decks,cards IN ACCESS EXCLUSIVE MODE;");

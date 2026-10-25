@@ -59,7 +59,9 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal((await db.prepare("SELECT body FROM card_translations WHERE card_id=? AND language=?").get(card.cardId,"es")).body,"Corrección directa");
     await assert.rejects(async()=>db.prepare("DELETE FROM cards WHERE id=?").run(card.cardId),/immutable/);
     await completeBook(db,session,{bookId:book.bookId,metadata:bookMetadata});
-    const added=await createBook(db,session,{requestId:randomUUID(),author:"Daniel Kahneman",metadata:bookMetadata});
+    const distinctMetadata={...bookMetadata,popularTitle:"Notes on Thinking, Fast and Slow",
+      title:{...bookMetadata.title,es:"Notas sobre Pensar rápido, pensar despacio",en:"Notes on Thinking, Fast and Slow"}};
+    const added=await createBook(db,session,{requestId:randomUUID(),author:"Daniel Kahneman",metadata:distinctMetadata});
     assert.ok(added.bookId);
     const seed=readSeed();seed.decks.find(value=>value.id === "seven-habits-editorial").status="published";
     await seedCatalog(db,seed);await seedCatalog(db,seed);
