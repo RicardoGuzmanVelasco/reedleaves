@@ -27,6 +27,8 @@ import {growthFeedbackChanges,growthFeedbackMarkup,fitGrowthFeedbackTitle,playGr
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
+  document.addEventListener("pointerdown",()=>document.documentElement.dataset.inputModality="pointer",true);
+  document.addEventListener("keydown",()=>document.documentElement.dataset.inputModality="keyboard",true);
   startBottomNavigationBehavior();
   const noteDrafts = createNoteDrafts(store);
   const settings = document.getElementById("settings");
