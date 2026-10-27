@@ -9,6 +9,7 @@ Guardar, en orden, los intereses que le interesan a cada usuario y los intereses
 - Implementación y revisión de cada incremento: **Luna, razonamiento Alto**. **Astra** revisa previamente el plan. Se permiten agentes **Sol** para diseño/UI/UX cuando haga falta. El coordinador conserva contexto y asigna tareas acotadas; no sustituye las revisiones independientes.
 - La calidad visual debe resultar muy efectista, al nivel de la pantalla de Repasar, respetando las guidelines. Para cada superficie nueva, comparar capturas móvil/escritorio con Repasar y comprobar animación, tacto, jerarquía, foco y movimiento reducido antes de publicarla. Un build correcto no sustituye esta revisión visual.
 - Seguir `AGENTS.md`, `docs/frontend/DESIGN.md` y las skills aplicables. Mantener simplicidad funcional, pomposidad estética y pocos casos de uso.
+- Briefs operativos complementarios: [interfaz](../frontend/INTERESTS_UI.md) y [recuperación de sesiones](PRACTICE_RECOVERY_IMPLEMENTATION.md). Concretan componentes/contratos sin sustituir este plan ni acreditar QA aún no realizada.
 - El objeto de dominio se llama **interés**. No introducir otros nombres de producto. En las pantallas de selección se usa el verbo: «Marca cuáles te interesan especialmente» y «Marca cuáles no te interesan en absoluto». Excepciones aprobadas: sección pública «Intereses», avisos «¡Nuevo interés!» / «¡Nuevos intereses!» y orden «Mis intereses».
 - ES/EN en toda la interfaz. Idioma del título del libro, idioma de sus tarjetas e idioma de interfaz son datos independientes.
 - No probar con OpenAI real. Los proveedores de IA se simulan.
@@ -194,7 +195,7 @@ Frecuencia de tarjetas:
 - Modal «¡Nuevo interés!» o «¡Nuevos intereses!», sin cierre ni Escape que lo descarte.
 - UX decidida por delegación del usuario: dos pasos de selección ordenada, como el flujo inicial, con todos los intereses nuevos juntos. Primero los que le interesan; después los que no le interesan. Lo no marcado se guarda neutral al finalizar, sin exigir respuestas fila por fila.
 - Mostrar el orden existente y añadir cada elección al final. Si una lista ya tiene cinco, pedir elegir cuál sustituir. Cancelar la sustitución conserva el borrador y permite dejar ese interés neutral.
-- Mantener la intención de las tres respuestas aprobadas: «¡Me interesa!» con tick verde, «Me da igual», «¡No la quiero ni ver!» con aspas rojas. Si se presenta un solo interés, pueden usarse directamente de derecha a izquierda en ese orden; si hay varios, los dos pasos conservan su semántica sin imponer orden por filas.
+- Mantener la intención de las tres respuestas aprobadas: «¡Me interesa!» con tick verde, «Me da igual», «¡No la quiero ni ver!» con aspas rojas. Usar los dos pasos también cuando hay un único interés nuevo: no añadir una variante especial de tres botones. Lo no marcado queda neutral al confirmar, sin imponer orden por filas.
 - No hay premios. Guardar preferencias y conocimiento de los nuevos IDs atómicamente. Solo reconocer los mostrados: una incorporación concurrente queda pendiente para la próxima entrada.
 - Error de red: conservar selección y permitir reintentar; no encerrar al usuario en un modal vacío, sin catálogo o con un error irrecuperable. Ante catálogo no disponible mostrar recuperación; no registrar respuestas ficticias.
 
@@ -326,3 +327,8 @@ No hacen falta tres implementaciones ni tres agentes editando el mismo archivo. 
 3. Astra confirma que el incremento 04 no tiene bloqueo y puede empezar mientras se cierran sus observaciones técnicas sobre los siguientes incrementos.
 4. Revisión Astra cerrada: incorporados recuperación por todas las rutas y reconciliación cliente, locks por cuenta, rollout compatible de cancelación, snapshot mínimo de idiomas, disponibilidad de Descubrir en servidor, cierre previo del premio, RLS y puerta visual comparada con Repasar. No ha requerido nuevas decisiones de producto.
 5. Astra ha vuelto a leer la versión corregida y confirma que no quedan bloqueos del plan. Se inicia la secuencia operativa por 04.
+
+| Incremento | Estado de entrega | Evidencia |
+| --- | --- | --- |
+| 04 | Producción verificada | PR #113, main `1a4e548`, Render `dep-dbgj40oae00c73bmshog` live; 375 pruebas locales/CI, HTTP 200 y catálogo válido tras deploy. |
+| 03 | Verificado localmente; publicación pendiente | Dos agentes Luna/Alto; pesos individuales 2/1/0,5, contrato de botones ES/EN y 378 pruebas completas con build, salida 0. Se adelanta por independencia respecto a 01a. |
