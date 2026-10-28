@@ -10,6 +10,7 @@ import {createDeck,addCard,finishNoteDecks,createTeamDeck} from "./author-reposi
 import {seedCatalog} from "./seed.mjs";
 import {createCatalogServer} from "./http.mjs";
 import {readProfile} from "./profile-repository.mjs";
+import {catalogBookIncorporationTimestamp} from "../app/catalog-incorporation.mjs";
 
 async function fixture(t,dialect) {
   let db;
@@ -177,9 +178,11 @@ test(`${dialect}: MCP merges duplicate books without losing deck, card, profile 
   await db.prepare("INSERT INTO users(id,display_name) VALUES ('merge-reader','Merge reader'),('merge-reader-two','Second merge reader')").run();
   const targetBookId=`merge-target-${randomUUID()}`,sourceBookId=`merge-source-${randomUUID()}`;
   let position=Number((await db.prepare("SELECT COALESCE(MAX(position),0) AS position FROM books").get()).position);
+  let incorporationOrder=Number((await db.prepare("SELECT COALESCE(MAX(incorporation_order),0) AS max_order FROM books").get()).max_order);
+  const incorporatedAt=catalogBookIncorporationTimestamp();
   for(const [id,title,language,author,creatorId] of [[targetBookId,"Canonical book","en","Canonical Author","reed-team"],[sourceBookId,"Libro duplicado","es","Duplicate Author","merge-reader-two"]]){
-    await db.prepare("INSERT INTO books(id,author,popular_title,popular_language,position,creator_user_id) VALUES (?,?,?,?,?,?)")
-      .run(id,author,title,language,++position,creatorId);
+    await db.prepare("INSERT INTO books(id,author,popular_title,popular_language,position,creator_user_id,incorporated_at,incorporation_order) VALUES (?,?,?,?,?,?,?,?)")
+      .run(id,author,title,language,++position,creatorId,incorporatedAt,++incorporationOrder);
   }
   await db.prepare("INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)")
     .run(targetBookId,"es","","Descripción canónica.","Nota editorial canónica.");

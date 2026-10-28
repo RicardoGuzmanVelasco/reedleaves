@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 37));
-INSERT INTO reed_schema VALUES (37);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 38));
+INSERT INTO reed_schema VALUES (38);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '');
@@ -14,7 +14,9 @@ CREATE TABLE books(
   popular_language TEXT NOT NULL CHECK(length(popular_language) BETWEEN 2 AND 35),
   position INTEGER NOT NULL UNIQUE CHECK(position > 0),
   editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft','reviewed')),
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  incorporated_at TIMESTAMPTZ,
+  incorporation_order INTEGER
 );
 CREATE TABLE book_links(
   book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,

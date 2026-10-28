@@ -26,6 +26,8 @@ test("Real SQLite schema: five books, six authored decks and 42 single-language 
   assert.deepEqual(catalog.books.find(b => b.id === "rich-dad-poor-dad").genres, ["finance"]);
   assert.deepEqual(catalog.books.find(b => b.id === "getting-things-done").genres, ["productivity"]);
   assert.equal(catalog.books.every(b => b.editorialStatus === "draft"), true);
+  assert.equal(catalog.schemaVersion,7);
+  assert.equal(catalog.books.every(book=>book.incorporatedAt&&Number.isSafeInteger(book.incorporationOrder)),true);
   const columns = db.prepare("SELECT type FROM pragma_table_info('cards')").all();
   assert.equal(columns.some(c => c.type === "JSON"), false);
 });
@@ -34,6 +36,11 @@ test("Schema initialization and seed are repeatable without duplicating data", a
   initializeDatabase(db); await seedCatalog(db); await seedCatalog(db);
   assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
   assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, cards: 42, genres: 7 });
+  await db.prepare("UPDATE books SET incorporated_at=? WHERE id=?").run("2026-10-20T09:00:00.000Z","seven-habits");
+  const fallback=await db.prepare("SELECT id,incorporation_order FROM books ORDER BY id").all();
+  await seedCatalog(db);
+  assert.deepEqual(await db.prepare("SELECT id,incorporation_order FROM books ORDER BY id").all(),fallback);
+  assert.equal((await db.prepare("SELECT incorporated_at FROM books WHERE id=?").get("seven-habits")).incorporated_at,"2026-10-20T09:00:00.000Z");
 });
 test("Foreign keys, order and translations are constrained", async t => {
   const db = await fixture(t);

@@ -13,7 +13,9 @@ async function retainedRows(db,dialect) {
   const result={};
   for(const {name} of tables) if(name!=="reed_schema") {
     const columns=name === "genres" ? "id" : name === "book_genres" ? "book_id,genre_id" : "*";
-    result[name]=(await db.prepare(`SELECT ${columns} FROM "${name}"`).all()).map(row=>({...row})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
+    result[name]=(await db.prepare(`SELECT ${columns} FROM "${name}"`).all()).map(row=>{
+      const value={...row};if(name==="books"){delete value.incorporated_at;delete value.incorporation_order;}return value;
+    }).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
   }
   return result;
 }

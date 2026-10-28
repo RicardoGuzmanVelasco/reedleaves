@@ -18,7 +18,9 @@ CREATE TABLE books (
   popular_language TEXT NOT NULL CHECK(length(popular_language) BETWEEN 2 AND 35),
   position INTEGER NOT NULL UNIQUE CHECK(position > 0),
   editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft', 'reviewed')),
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  incorporated_at TEXT,
+  incorporation_order INTEGER
 ) STRICT;
 
 CREATE TABLE book_links (
@@ -325,4 +327,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 45;
+PRAGMA user_version = 46;

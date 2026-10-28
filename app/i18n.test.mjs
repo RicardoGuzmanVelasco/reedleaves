@@ -118,7 +118,7 @@ test("Missing required descriptions or genre metadata rejects the seed, API payl
     const seed = readSeed(); mutate(seed); assert.throws(() => validateSeed(seed));
   }
   const c = await catalog(), payload = {
-    schemaVersion:6, books:c.books, cards:c.allCards, genres:c.genres, decks:c.decks
+    schemaVersion:7, books:c.books, cards:c.allCards, genres:c.genres, decks:c.decks
   };
   delete payload.books[0].description.en;
   assert.throws(() => prepareCatalog(payload), /translation/);
