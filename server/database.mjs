@@ -11,8 +11,8 @@ import {POPULAR_TITLE_RENAME_SQL,POPULAR_TITLE_UPDATES} from "./popular-title-mi
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 41;
-export const POSTGRES_SCHEMA_VERSION = 33;
+export const SQLITE_SCHEMA_VERSION = 42;
+export const POSTGRES_SCHEMA_VERSION = 34;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -99,6 +99,17 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 41) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE practice_sessions ADD COLUMN cancelled_at TEXT;
+        DROP INDEX one_active_practice_session;
+        CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id)
+          WHERE completed_at IS NULL AND cancelled_at IS NULL;
+        PRAGMA user_version=42; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 40) {
     const cardTable=db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='cards'").get()?.sql;
     if (!cardTable) throw new Error("Cannot migrate book merge: cards table is missing");
@@ -716,6 +727,20 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 33) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,practice_sessions IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 34) return;
+          await db.exec(`ALTER TABLE practice_sessions ADD COLUMN cancelled_at TIMESTAMPTZ;
+            DROP INDEX one_active_practice_session;
+            CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id)
+              WHERE completed_at IS NULL AND cancelled_at IS NULL;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=34;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=34);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 32) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,books,decks,cards IN ACCESS EXCLUSIVE MODE;");

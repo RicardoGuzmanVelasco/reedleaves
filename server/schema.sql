@@ -267,9 +267,10 @@ CREATE TABLE practice_sessions (
   cost INTEGER NOT NULL CHECK(cost IN (2,3)),
   started_at TEXT NOT NULL,
   completed_at TEXT,
-  completed_local_day TEXT CHECK(completed_local_day IS NULL OR (completed_local_day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(completed_local_day,'+0 days') IS completed_local_day))
+  completed_local_day TEXT CHECK(completed_local_day IS NULL OR (completed_local_day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(completed_local_day,'+0 days') IS completed_local_day)),
+  cancelled_at TEXT
 ) STRICT;
-CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL;
+CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL AND cancelled_at IS NULL;
 CREATE TABLE practice_session_cards (
   session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
   card_id TEXT NOT NULL REFERENCES cards(id),
@@ -320,4 +321,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 41;
+PRAGMA user_version = 42;

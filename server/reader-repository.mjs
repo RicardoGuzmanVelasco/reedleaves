@@ -14,18 +14,24 @@ import {cardSavesInside} from "./card-saves.mjs";
 import {distinguishedBookIds,ensureBookToRead} from "./book-reading.mjs";
 import {accruePetalWallet,MAX_PETALS} from "./petal-wallet-repository.mjs";
 import {practiceDiscountTopic} from "./practice-economy.mjs";
+import {lockReaderAccount} from "./reader-account-lock.mjs";
 
 export async function readReaderState(db,session,now=new Date()) {
-  return transaction(db,()=>stateInside(db,session,now));
+  return transaction(db,async()=>{
+    await lockReaderAccount(db,session.user_id);
+    return stateInside(db,session,now);
+  });
 }
 async function stateInside(db,session,now) {
   const account=await db.prepare("SELECT * FROM accounts WHERE user_id = ?").get(session.user_id);
   if(!account) throw new ApiError(401,"signInRequired");
-  const userId=account.user_id,today=serverDay(account.time_zone,now),cycleDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.currencyRefill),ideaDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea),wallet=await accrueLeafWallet(db,userId,cycleDay);
+  const userId=account.user_id,today=serverDay(account.time_zone,now),cycleDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.currencyRefill),ideaDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea);
+  const activePracticeRow=await db.prepare(`SELECT id,topic,card_ids,card_index,cost,started_at FROM practice_sessions
+    WHERE user_id=? AND completed_at IS NULL AND cancelled_at IS NULL${isPostgres(db)?" FOR UPDATE":""}`).get(userId);
+  const wallet=await accrueLeafWallet(db,userId,cycleDay);
   const petalWallet=await accruePetalWallet(db,userId,cycleDay);
   const practiceAnswers=Object.fromEntries((await db.prepare("SELECT card_id,answer FROM practice_answers WHERE user_id=?").all(userId))
     .map(row=>[row.card_id,row.answer]));
-  const activePracticeRow=await db.prepare("SELECT id,topic,card_ids,card_index,cost,started_at FROM practice_sessions WHERE user_id=? AND completed_at IS NULL").get(userId);
   const lastPractice=await db.prepare(`SELECT COALESCE((SELECT MAX(completed_at) FROM practice_sessions WHERE user_id=?),u.created_at) AS seed
     FROM users u WHERE u.id=?`).get(userId,userId);
   const discountTopic=practiceDiscountTopic(userId,lastPractice?.seed);
@@ -105,8 +111,9 @@ async function requireDeckInCollection(db,userId,deck) {
 }
 export async function addDeckToCollection(db,session,deckId,now=new Date()) {
   return transaction(db,async()=>{
-    const userId=session.user_id,deck=await knownDeck(db,deckId,userId);
-    if(isPostgres(db)) await db.prepare("SELECT user_id FROM accounts WHERE user_id=? FOR UPDATE").get(userId);
+    const userId=session.user_id;
+    await lockReaderAccount(db,userId);
+    const deck=await knownDeck(db,deckId,userId);
     const existing=await db.prepare("SELECT 1 FROM studies WHERE user_id=? AND deck_id=?").get(userId,deck.id);
     if(existing) {
       await enrol(db,userId,deck);
@@ -125,6 +132,7 @@ export async function addDeckToCollection(db,session,deckId,now=new Date()) {
 }
 export async function removeDeckFromCollection(db,session,deckId,now=new Date()) {
   return transaction(db,async()=>{
+    await lockReaderAccount(db,session.user_id);
     const deck=await knownDeck(db,deckId,session.user_id);
     await db.prepare("DELETE FROM deck_selections WHERE user_id=? AND deck_id=?").run(session.user_id,deckId);
     await db.prepare("DELETE FROM studies WHERE user_id=? AND deck_id=?").run(session.user_id,deckId);
@@ -133,6 +141,7 @@ export async function removeDeckFromCollection(db,session,deckId,now=new Date())
 }
 export async function selectDeck(db,session,deckId,now=new Date(),{requireCollection=false}={}) {
   return transaction(db,async()=>{
+    await lockReaderAccount(db,session.user_id);
     const deck=await knownDeck(db,deckId,session.user_id);
     if(requireCollection) await requireDeckInCollection(db,session.user_id,deck);
     await enrol(db,session.user_id,deck);
@@ -141,7 +150,9 @@ export async function selectDeck(db,session,deckId,now=new Date(),{requireCollec
 }
 export async function openCard(db,session,deckId,cardId,now=new Date(),{requireCollection=false}={}) {
   return transaction(db,async()=>{
-    const userId=session.user_id,deck=await knownDeck(db,deckId,userId),catalog=prepareCatalog(await readCatalog(db,session.user_id)),model=catalog.deckModels.get(deck.id);
+    const userId=session.user_id;
+    await lockReaderAccount(db,userId);
+    const deck=await knownDeck(db,deckId,userId),catalog=prepareCatalog(await readCatalog(db,session.user_id)),model=catalog.deckModels.get(deck.id);
     if(typeof cardId!=="string"||!model.byId.has(cardId)) throw new ApiError(404,"cardUnavailable");
     if(requireCollection) await requireDeckInCollection(db,userId,deck);
     const state=await stateInside(db,session,now);
@@ -153,6 +164,7 @@ export async function openCard(db,session,deckId,cardId,now=new Date(),{requireC
 export async function changeReading(db,session,bookId,status,now=new Date()) {
   if(typeof bookId!=="string"||!["unread","to-read","reading","read"].includes(status)||!await db.prepare("SELECT 1 FROM books WHERE id = ?").get(bookId)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
+    await lockReaderAccount(db,session.user_id);
     if(status === "unread") await db.prepare("DELETE FROM book_reading WHERE user_id=? AND book_id=?").run(session.user_id,bookId);
     else await db.prepare("INSERT INTO book_reading VALUES (?,?,?) ON CONFLICT(user_id,book_id) DO UPDATE SET status=excluded.status").run(session.user_id,bookId,status === "to-read" ? "unread" : status);
     return stateInside(db,session,now);
@@ -160,6 +172,7 @@ export async function changeReading(db,session,bookId,status,now=new Date()) {
 }
 export async function changePreferences(db,session,input,now=new Date()) {
   return transaction(db,async()=>{
+    await lockReaderAccount(db,session.user_id);
     if(input.language!==undefined){
       if(!LANGUAGES.includes(input.language)) throw new ApiError(400,"invalidRequest");
       await db.prepare("UPDATE accounts SET language = ? WHERE user_id = ?").run(input.language,session.user_id);
@@ -174,6 +187,7 @@ export async function changePreferences(db,session,input,now=new Date()) {
 }
 export async function dailyIdea(db,session,now=new Date()) {
   return transaction(db,async()=>{
+    await lockReaderAccount(db,session.user_id);
     const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id);
     if(!account) throw new ApiError(401,"signInRequired");
     const day=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea);

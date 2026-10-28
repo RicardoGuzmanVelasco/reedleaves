@@ -3,7 +3,7 @@ import {readFileSync} from "node:fs";
 import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase} from "../server/database.mjs";
 import {seedCatalog} from "./historical-seed.mjs";
-import {readSeed as readCurrentSeed} from "../server/seed.mjs";
+import {readSeed as readCurrentSeed,seedCatalog as seedCurrentCatalog} from "../server/seed.mjs";
 import {seedCatalog as seedPrePopularCatalog} from "./pre-popular-title-seed.mjs";
 
 // Load a real released schema, never a current schema with its version lowered.
@@ -26,15 +26,18 @@ export async function historicalDatabase(t,dialect,version) {
   const beforePersonalBooks=version < (dialect === "postgres" ? 3 : 11);
   if (beforePersonalBooks) await db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
   if (version >= (dialect === "postgres" ? 21 : 29)) {
-    const seed=readCurrentSeed();
-    for (const book of seed.books) { book.original_title=book.popular_title; book.original_language=book.popular_language; }
-    // Released schemas required a nonempty translated title, even when it was
-    // only a duplicate of the original title.
-    if (version < (dialect === "postgres" ? 29 : 37)) for (const book of seed.books) for (const language of ["es","en"]) book[`title_${language}`] ||= book.original_title;
-    // Historical schemas still require this retired field until the migration runs.
-    for (const book of seed.books) for (const language of ["es","en"]) book[`short_title_${language}`]=book[`title_${language}`];
-    if (version < (dialect === "postgres" ? 25 : 33)) seed.genres=seed.genres.filter(genre=>genre.id!=="society");
-    await seedPrePopularCatalog(db,seed);
+    const seed=readCurrentSeed(),hasPopularTitle=version >= (dialect === "postgres" ? 33 : 41);
+    if (hasPopularTitle) await seedCurrentCatalog(db,seed);
+    else {
+      for (const book of seed.books) { book.original_title=book.popular_title; book.original_language=book.popular_language; }
+      // Released schemas required a nonempty translated title, even when it was
+      // only a duplicate of the original title.
+      if (version < (dialect === "postgres" ? 29 : 37)) for (const book of seed.books) for (const language of ["es","en"]) book[`title_${language}`] ||= book.original_title;
+      // Historical schemas still require this retired field until the migration runs.
+      for (const book of seed.books) for (const language of ["es","en"]) book[`short_title_${language}`]=book[`title_${language}`];
+      if (version < (dialect === "postgres" ? 25 : 33)) seed.genres=seed.genres.filter(genre=>genre.id!=="society");
+      await seedPrePopularCatalog(db,seed);
+    }
   }
   else await seedCatalog(db);
   if (beforePersonalBooks) await db.exec("ALTER TABLE books DROP COLUMN creator_user_id;");
