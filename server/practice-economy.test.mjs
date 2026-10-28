@@ -4,10 +4,11 @@ import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase,initializeDatabase} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {startPracticeSession,answerPracticeSession,practiceDiscountTopic,PRACTICE_SESSION_SIZE} from "./practice-economy.mjs";
-import {readReaderState} from "./reader-repository.mjs";
+import {readReaderState,dailyIdea} from "./reader-repository.mjs";
 import {accruePetalWallet} from "./petal-wallet-repository.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
 import {setCardSave} from "./card-saves.mjs";
+import {readReaderLanguagePreferences,saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
 
 async function fixture(t,dialect="sqlite") {
   let db;
@@ -68,6 +69,77 @@ for(const dialect of ["sqlite","postgres"]) {
     const started=await startPracticeSession(db,session,"reading",new Date("2026-10-06T12:00:00.000Z"));
     assert.ok(started.session);
     assert.ok(started.session.cardIds.every(cardId=>deckCardIds.has(cardId)));
+  });
+
+  test(`${dialect}: every practice mode filters by the saved card language and an active session keeps its cards`,async t=>{
+    const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
+    const before=await readReaderLanguagePreferences(db,session);
+    assert.deepEqual(before.languages,["en","es"]);
+    const started=await startPracticeSession(db,session,"reading",now),frozen=[...started.session.cardIds];
+    await saveReaderLanguagePreferences(db,session,{languages:["es"],revision:before.revision});
+    const resumed=await startPracticeSession(db,session,"mixed",now);
+    assert.equal(resumed.resumed,true);assert.deepEqual(resumed.session.cardIds,frozen,"preference edits do not alter a paid session");
+    await db.prepare("UPDATE practice_sessions SET card_index=5,completed_at=?,completed_local_day='2026-10-06' WHERE id=?").run(now.toISOString(),started.session.id);
+    const spanish=(await db.prepare("SELECT id FROM cards WHERE language='es' AND is_reading_guide=0").all()).map(row=>row.id);
+    for(const cardId of spanish.slice(0,8)) await setCardSave(db,session,{cardId,saved:true},now);
+    for(const topic of ["reading","read","saved","mixed"]) {
+      if(topic==="read") await db.prepare("UPDATE book_reading SET status='read' WHERE user_id=? AND book_id=?").run(session.user_id,"seven-habits");
+      await db.prepare("UPDATE petal_wallets SET balance=15 WHERE user_id=?").run(session.user_id);
+      const result=await startPracticeSession(db,session,topic,now);
+      assert.ok(result.session,`${topic} has enough Spanish cards`);
+      assert.deepEqual(result.session.languageSnapshot,["es"]);
+      const picked=await db.prepare(`SELECT DISTINCT language FROM cards WHERE id IN (${result.session.cardIds.map(()=>"?").join(",")})`).all(...result.session.cardIds);
+      assert.deepEqual(picked.map(row=>row.language),["es"],`${topic} contains only Spanish cards`);
+      await db.prepare("UPDATE practice_sessions SET card_index=5,completed_at=?,completed_local_day='2026-10-06' WHERE id=?").run(now.toISOString(),result.session.id);
+    }
+  });
+
+  test(`${dialect}: session recovery respects its language snapshot after preferences change`,async t=>{
+    const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
+    const preferences=await readReaderLanguagePreferences(db,session);
+    await saveReaderLanguagePreferences(db,session,{languages:["en"],revision:preferences.revision});
+    const english=(await db.prepare("SELECT id FROM cards WHERE language='en' AND is_reading_guide=0 ORDER BY id LIMIT 10").all()).map(row=>row.id);
+    for(const cardId of english) await setCardSave(db,session,{cardId,saved:true},now);
+    await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read') ON CONFLICT(user_id,book_id) DO UPDATE SET status='read'").run(session.user_id,"atomic-habits");
+    const started=await startPracticeSession(db,session,"saved",now),ids=[...started.session.cardIds];
+    assert.deepEqual(started.session.languageSnapshot,["en"]);
+    const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",body:"A recovery guide.",language:"en"});
+    ids[2]=guide.cardId;
+    await db.prepare("DELETE FROM practice_session_cards WHERE session_id=? AND position=2").run(started.session.id);
+    await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,2)").run(started.session.id,guide.cardId);
+    await db.prepare("UPDATE practice_sessions SET card_ids=? WHERE id=?").run(JSON.stringify(ids),started.session.id);
+    const current=await readReaderLanguagePreferences(db,session);
+    await saveReaderLanguagePreferences(db,session,{languages:["es"],revision:current.revision});
+    const repaired=await answerPracticeSession(db,session,{sessionId:started.session.id,index:2,cardId:guide.cardId,answer:"remembered"},now);
+    assert.equal(repaired.practiceRecovery.status,"repaired");
+    const replacement=await db.prepare("SELECT language,is_reading_guide FROM cards WHERE id=?").get(repaired.session.cardIds[2]);
+    assert.equal(replacement.language,"en");assert.equal(replacement.is_reading_guide,0);
+  });
+
+  test(`${dialect}: a legacy session gets one snapshot from its existing card IDs`,async t=>{
+    const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
+    const started=await startPracticeSession(db,session,"reading",now);
+    const expectedRows=await db.prepare(`SELECT c.id,COALESCE(NULLIF(c.language,''),d.language) AS language FROM cards c JOIN decks d ON d.id=c.deck_id
+      WHERE c.id IN (${started.session.cardIds.map(()=>"?").join(",")})`).all(...started.session.cardIds);
+    const byId=new Map(expectedRows.map(row=>[row.id,row.language])),expected=[...new Set(started.session.cardIds.map(id=>byId.get(id)).filter(Boolean))];
+    await db.prepare("UPDATE practice_sessions SET language_snapshot=NULL WHERE id=?").run(started.session.id);
+    await readReaderState(db,session,now);
+    const snapshot=JSON.parse((await db.prepare("SELECT language_snapshot FROM practice_sessions WHERE id=?").get(started.session.id)).language_snapshot);
+    assert.deepEqual(snapshot,expected);
+    await saveReaderLanguagePreferences(db,session,{languages:["en"],revision:(await readReaderLanguagePreferences(db,session)).revision});
+    await readReaderState(db,session,now);
+    assert.deepEqual(JSON.parse((await db.prepare("SELECT language_snapshot FROM practice_sessions WHERE id=?").get(started.session.id)).language_snapshot),expected,
+      "later preference changes do not rewrite a legacy snapshot");
+  });
+
+  test(`${dialect}: a legacy session without recoverable card languages cancels and refunds once`,async t=>{
+    const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
+    const before=(await readReaderState(db,session,now)).petals,started=await startPracticeSession(db,session,"reading",now);
+    await db.prepare("UPDATE practice_sessions SET language_snapshot=NULL,card_ids=? WHERE id=?").run(JSON.stringify(["missing-card"]),started.session.id);
+    const first=await readReaderState(db,session,now);
+    assert.equal(first.practiceRecovery.status,"cancelled");assert.equal(first.activePracticeSession,null);assert.equal(first.petals,before);
+    const second=await readReaderState(db,session,now);
+    assert.equal(second.petals,before,"the compatibility refund is one-time");
   });
 
   test(`${dialect}: practice excludes guides in all modes and repairs a guide before answering`,async t=>{
@@ -234,6 +306,16 @@ test("a session costs three petals when its topic is not discounted",async t=>{
   const {db,session}=await fixture(t),now=new Date("2026-10-06T12:00:00.000Z"),discount=(await readReaderState(db,session,now)).practiceDiscountTopic;
   const topic=discount==="reading"?"mixed":"reading",started=await startPracticeSession(db,session,topic,now);
   assert.equal(started.session.cost,3);assert.equal((await readReaderState(db,session,now)).petals,7);
+});
+
+test("daily idea stays global when card language preferences exclude its language",async t=>{
+  const {db,session}=await fixture(t),now=new Date("2026-10-06T12:00:00.000Z");
+  const preferences=await readReaderLanguagePreferences(db,session);
+  await saveReaderLanguagePreferences(db,session,{languages:["fr-CA"],revision:preferences.revision});
+  const state=await dailyIdea(db,session,now);
+  assert.ok(state.daily?.id,"the daily idea still comes from the global catalog");
+  const selected=await db.prepare("SELECT language FROM cards WHERE id=?").get(state.daily.id);
+  assert.ok(["en","es"].includes(selected.language));
 });
 
 test("mascot growth starts a new local day at midnight",async t=>{

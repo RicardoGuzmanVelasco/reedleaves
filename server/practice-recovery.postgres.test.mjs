@@ -7,6 +7,7 @@ import {startPracticeSession,answerPracticeSession,PRACTICE_SESSION_SIZE} from "
 import {readReaderState,addDeckToCollection,selectDeck,changePreferences} from "./reader-repository.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
 import {setCardSave} from "./card-saves.mjs";
+import {saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
 import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
 
 const connectionString=process.env.REED_TEST_POSTGRES_URL;
@@ -33,7 +34,11 @@ async function createReader(db,label) {
   await db.prepare("INSERT INTO leaf_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run(id,5,refillDay);
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'reading')").run(id,"seven-habits");
   await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(id,"seven-habits-editorial");
-  return {id,session:sessionFor(id)};
+  const session=sessionFor(id);
+  // These readers explicitly opt into both languages, as the fixtures span
+  // English and Spanish card decks while their UI language starts as English.
+  await saveReaderLanguagePreferences(db,session,{languages:["en","es"],revision:0});
+  return {id,session};
 }
 
 async function addGuide(db,reader) {
@@ -71,6 +76,7 @@ postgresTest("real PostgreSQL serializes recovery, refunds once, and preserves r
   const reader=await createReader(db,"recover");
   const guide=await addGuide(db,reader);
   const started=await startPracticeSession(db,reader.session,"reading",now);
+  assert.ok(started.session,`expected at least ${PRACTICE_SESSION_SIZE} matching reading cards; got ${started.available ?? 0} (${started.reason ?? "no session"})`);
   await swapSessionCard(db,started,0,guide.cardId);
   const originalBalance=Number((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(reader.id)).balance);
   await db.exec(`CREATE FUNCTION reed_test_fail_session_insert() RETURNS trigger LANGUAGE plpgsql AS $$

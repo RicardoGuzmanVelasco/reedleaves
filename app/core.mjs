@@ -25,6 +25,27 @@ export function isCanonicalLocale(language) {
   catch { return false; }
 }
 
+export function normalizeLanguageList(values, fallback = []) {
+  if (!Array.isArray(values)) return [...new Set(fallback.filter(isCanonicalLocale))];
+  const languages=[...new Set(values.filter(isCanonicalLocale))];
+  return languages.length ? languages : [...new Set(fallback.filter(isCanonicalLocale))];
+}
+
+export function defaultCardLanguages(interfaceLanguage) {
+  return normalizeLanguageList(["en",interfaceLanguage], ["en"]);
+}
+
+export function effectiveCardLanguage(card) {
+  return isCanonicalLocale(card?.language) ? card.language :
+    isCanonicalLocale(card?.deckLanguage) ? card.deckLanguage : "en";
+}
+
+export function languageDisplayName(language, interfaceLanguage) {
+  if (!isCanonicalLocale(language)) return String(language || "");
+  try { return new Intl.DisplayNames([interfaceLanguage],{type:"language"}).of(language) || language; }
+  catch { return language; }
+}
+
 export function contentText(translations, interfaceLanguage, deckLanguage = interfaceLanguage) {
   const entries = Object.entries(translations || {}).filter(([,text]) => typeof text === "string" && text.trim());
   return translations?.[interfaceLanguage] ||

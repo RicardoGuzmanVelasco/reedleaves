@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 40));
-INSERT INTO reed_schema VALUES (40);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 42));
+INSERT INTO reed_schema VALUES (42);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '');
@@ -85,6 +85,15 @@ ALTER TABLE reader_interest_settings ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_settings FROM anon; END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_settings FROM authenticated; END IF;
+END $$;
+CREATE TABLE reader_language_preferences (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  languages TEXT NOT NULL, configured BOOLEAN NOT NULL CHECK(configured IN (FALSE,TRUE)), revision INTEGER NOT NULL CHECK(revision>=0)
+);
+ALTER TABLE reader_language_preferences ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_language_preferences FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_language_preferences FROM authenticated; END IF;
 END $$;
 CREATE TABLE sessions(
   token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
@@ -211,7 +220,7 @@ CREATE TABLE practice_sessions(
   card_ids TEXT NOT NULL, card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
   cost INTEGER NOT NULL CHECK(cost IN (2,3)), started_at TIMESTAMPTZ NOT NULL, completed_at TIMESTAMPTZ,
   completed_local_day TEXT CHECK(completed_local_day IS NULL OR (completed_local_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(completed_local_day,'YYYY-MM-DD'),'YYYY-MM-DD') = completed_local_day)),
-  cancelled_at TIMESTAMPTZ
+  cancelled_at TIMESTAMPTZ, language_snapshot TEXT
 );
 CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL AND cancelled_at IS NULL;
 ALTER TABLE practice_sessions ENABLE ROW LEVEL SECURITY;
