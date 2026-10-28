@@ -93,6 +93,13 @@ El plan vigente es la fuente de alcance y producto; este brief concreta contrato
   colección o preferencias de idioma/afinidad. Las fuentes actuales del modo sirven
   para seleccionar reemplazos, no para reinterpretar la compra ya válida.
   El prefijo respondido se conserva; reparar solo `position >= card_index`.
+- Los IDs ya comprados conservan acceso si se retira la baraja de la colección o se
+  archiva después. La inscripción actual no se usa para invalidar esa compra. Una
+  colectiva en borrador con contribución restringida sí exige que el usuario siga
+  siendo propietario o invitado: revocar la invitación es revocar un permiso real.
+  Los reemplazos cumplen las fuentes del modo y los permisos actuales de `knownDeck`,
+  incluido el requisito de inscripción para archivadas. `readCatalog` devuelve también
+  contenido restringido y no constituye por sí solo una comprobación de acceso.
 - Retener IDs pendientes válidos bajo ese contrato. Sustituir las guías pendientes por
   IDs elegibles no duplicados; actualizar `card_ids` y filas de sesión en una transacción.
 - No borrar ni reescribir respuestas históricas. Una guía contestada antes del rollout

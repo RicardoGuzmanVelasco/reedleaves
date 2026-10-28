@@ -6,6 +6,9 @@ import {seedCatalog} from "./seed.mjs";
 import {createCatalogServer} from "./http.mjs";
 import {readSession,sessionCookie,SESSION_SECONDS,requireProductionInviteCode} from "./auth.mjs";
 import {INVITE_CODE_MIN_LENGTH} from "../app/core.mjs";
+import {submitReadingGuide} from "./reading-guides.mjs";
+import {setCardSave} from "./card-saves.mjs";
+import {startPracticeSession} from "./practice-economy.mjs";
 test("Production invitation configuration accepts the minimum length and rejects missing or shorter codes",()=>{
   for (const code of ["a".repeat(INVITE_CODE_MIN_LENGTH),"b".repeat(24),"c".repeat(32)]) assert.equal(requireProductionInviteCode(code),code);
   for (const code of [undefined,null,"","a".repeat(INVITE_CODE_MIN_LENGTH-1)]) assert.throws(()=>requireProductionInviteCode(code),new RegExp(`at least ${INVITE_CODE_MIN_LENGTH} characters`));
@@ -78,6 +81,39 @@ test("Real registration, two sessions, spending, reconnecting and logout persist
   assert.equal((await call("/api/reader/state",undefined,a)).status,401);
   assert.equal((await call("/api/reader/state",undefined,b)).status,200);
   setClock(new Date("2026-10-20T12:00:00Z")); assert.equal((await call("/api/reader/state",undefined,b)).status,401);
+});
+
+test("Practice start distinguishes legacy retry, canceled identity, and an explicit new session",async t=>{
+  const {db,call,register}=await fixture(t),{result,headers}=await register("practice.recovery");
+  const userId=result.body.user.id,session={user_id:userId,csrf_token:result.body.csrfToken},now=new Date("2026-10-06T12:00:00Z");
+  await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'reading')").run(userId,"seven-habits");
+  await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(userId,"seven-habits-editorial");
+  await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read')").run(userId,"atomic-habits");
+  const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",language:"en",body:"A saved practice guide."});
+  const normal=(await db.prepare("SELECT id FROM cards WHERE deck_id=? AND is_reading_guide=0 ORDER BY position LIMIT 5").all("seven-habits-editorial")).map(row=>row.id);
+  for(const id of normal) await setCardSave(db,session,{cardId:id,saved:true},now);
+  const started=await startPracticeSession(db,session,"saved",now,null),cardIds=[...started.session.cardIds];
+  cardIds[2]=guide.cardId;
+  await db.prepare("DELETE FROM practice_session_cards WHERE session_id=? AND position=2").run(started.session.id);
+  await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)").run(started.session.id,guide.cardId,2);
+  await db.prepare("UPDATE practice_sessions SET card_ids=? WHERE id=?").run(JSON.stringify(cardIds),started.session.id);
+  for(const id of normal) await setCardSave(db,session,{cardId:id,saved:false},now);
+  const start=(input)=>call("/api/reader/practice/start",input,headers);
+
+  const legacy=await start({topic:"reading"});
+  assert.equal(legacy.status,200);assert.equal(legacy.body.practiceRecovery.status,"cancelled");
+  assert.equal(legacy.body.state.activePracticeSession,null);
+  assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,10);
+  const legacyRetry=await start({topic:"reading"});
+  assert.equal(legacyRetry.body.practiceRecovery.status,"cancelled");
+  const canceledIdentity=await start({topic:"reading",sessionId:started.session.id});
+  assert.equal(canceledIdentity.body.practiceRecovery.status,"cancelled");
+  assert.equal(db.prepare("SELECT count(*) AS n FROM practice_sessions WHERE user_id=?").get(userId).n,1);
+
+  const explicit=await start({topic:"reading",sessionId:null});
+  assert.equal(explicit.status,200);assert.ok(explicit.body.session);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM practice_sessions WHERE user_id=?").get(userId).n,2);
+  assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,10-explicit.body.session.cost);
 });
 test("Daily idea status is private and never assigns the day's card",async t=>{
   const {call,register,db}=await fixture(t);
