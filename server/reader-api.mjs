@@ -12,6 +12,7 @@ import {readCardVotes,setCardVote} from "./card-votes.mjs";
 import {readCardActions,readSavedCards,setCardSave} from "./card-saves.mjs";
 import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH} from "../app/core.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
+import {readReaderInterestPreferences,saveReaderInterestPreferences} from "./reader-interest-preferences.mjs";
 
 async function readBody(request,maxBytes = 8192) {
   if (request.headers["content-type"]?.split(";")[0].trim() !== "application/json") throw new ApiError(415,"invalidRequest");
@@ -41,7 +42,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
   return async (request,response,path,send) => {
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
       ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/collect",["POST"]],["/api/reader/remove",["POST"]],
-      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
+      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
     routes.set("/api/reader/guides",["POST"]);
     routes.set("/api/feedback",["POST"]);
     routes.set("/api/author/decks/finish-notes",["POST"]);
@@ -82,6 +83,9 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       }
       if (!session) throw new ApiError(401,"signInRequired");
       if (profileMatch) { send(200,await readProfile(db,profileMatch[1],session.user_id)); return true; }
+      if (path === "/api/reader/interests/preferences" && ["GET","HEAD"].includes(request.method)) {
+        send(200,await readReaderInterestPreferences(db,session)); return true;
+      }
       if (path === "/api/reader/daily-status") { send(200,await dailyIdeaStatus(db,session,time)); return true; }
       if (cardVotesMatch) { send(200,await readCardVotes(db,session,decodeURIComponent(cardVotesMatch[1]))); return true; }
       if (cardActionsMatch) { send(200,await readCardActions(db,session,decodeURIComponent(cardActionsMatch[1]))); return true; }
@@ -106,6 +110,12 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       if (path === "/api/reader/practice/answer") {
         const result=await answerPracticeSession(db,active,input,currentTime);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
+      }
+      if (path === "/api/reader/interests/preferences") {
+        const result=await saveReaderInterestPreferences(db,active,input,currentTime);
+        if (result.conflict) send(409,{error:"preferencesConflict",current:result.current});
+        else send(200,result);
+        return true;
       }
       if (path === "/api/feedback") {
         const message=typeof input.message === "string" ? input.message.trim() : "",page=input.page;
