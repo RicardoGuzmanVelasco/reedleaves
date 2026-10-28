@@ -56,7 +56,7 @@ CREATE TABLE reader_display_preferences (
 );
 CREATE TABLE reader_book_sort_preferences (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
-  sort_order TEXT NOT NULL CHECK(sort_order IN ('recent','alphabetical'))
+  sort_order TEXT NOT NULL CHECK(sort_order IN ('recent','alphabetical','interests'))
 );
 ALTER TABLE reader_book_sort_preferences ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN

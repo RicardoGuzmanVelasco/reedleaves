@@ -4,7 +4,7 @@ import { availableDecks,isReadingGuideDeck,sortDecks } from "./decks.mjs";
 import {homeBooks,editableNoteDecks,noteDecksWithSpace,recentNoteDecks} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=book-duplicates-1";
+import { words } from "./i18n.mjs?v=library-interest-sort-login-15";
 import { bookLinkUrl } from "./book-links.mjs";
 import { validQuoteSourceUrl } from "./quote-source.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
@@ -18,7 +18,7 @@ import {DECK_ADD_COST} from "./wallet.mjs";
 import {interestIcon,interestColor} from "./interests.mjs";
 import {MAX_BOOK_INTERESTS} from "./book-interests.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
-import {BOOK_SORT_ORDERS} from "./book-sort.mjs";
+import {LIBRARY_SORT_ORDERS} from "./book-sort.mjs";
 
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const esc = escapeHtml;
@@ -122,8 +122,9 @@ function bookListFilterButton(s) {
 }
 
 function bookListControls(s) {
-  const c=words[s.language],order=BOOK_SORT_ORDERS.includes(s.bookSortOrder)?s.bookSortOrder:"recent";
-  return `<label class="book-sort-selector"><span>${esc(c.sortBooksBy)}</span><select data-book-sort aria-label="${esc(c.sortBooksBy)}"><option value="recent" ${order==="recent"?"selected":""}>${esc(c.mostRecent)}</option><option value="alphabetical" ${order==="alphabetical"?"selected":""}>${esc(c.alphabetical)}</option></select></label>${bookListFilterButton(s)}`;
+  const c=words[s.language],selected=s.librarySortOrder||s.bookSortOrder,order=LIBRARY_SORT_ORDERS.includes(selected)?selected:"recent";
+  const interestStatus=s.libraryInterestSortPending?`<span class="library-interest-sort-status" role="status">${esc(c.interestSortLoading)}</span>`:s.libraryInterestSortError?`<span class="library-interest-sort-status library-interest-sort-status--error" role="alert"><span>${esc(c.interestSortUnavailable)}</span><button class="text-button" type="button" data-action="retry-library-interest-sort">${esc(c.retry)}</button></span>`:"";
+  return `<label class="book-sort-selector"><span>${esc(c.sortBooksBy)}</span><select data-book-sort aria-label="${esc(c.sortBooksBy)}"><option value="recent" ${order==="recent"?"selected":""}>${esc(c.mostRecent)}</option><option value="alphabetical" ${order==="alphabetical"?"selected":""}>${esc(c.alphabetical)}</option><option value="interests" ${order==="interests"?"selected":""}>${esc(c.interests)}</option></select></label>${interestStatus}${bookListFilterButton(s)}`;
 }
 
 function bookListPresentation(s,books,scope,{selector=true,count=books.length,note=false,view=defaultBookView(count,s.bookViews?.[scope]),caption}={}) {
@@ -136,7 +137,7 @@ function bookListPresentation(s,books,scope,{selector=true,count=books.length,no
 }
 
 export function libraryResultsMarkup(s) {
-  const c = words[s.language], books = filterLibrary(s.catalog, s.libraryQuery, s.libraryFilters,s.bookSortOrder,s.language);
+  const c = words[s.language], books = filterLibrary(s.catalog, s.libraryQuery, s.libraryFilters,s.librarySortOrder||s.bookSortOrder,s.language,s.interestPreferences);
   if (!s.catalog.books.length) return bookViewSelector(defaultBookView(0,s.bookViews?.library),"library",s.language,bookListControls(s))+`<div class="empty-state">${c.noBooks}</div>`;
   if (!books.length) return bookViewSelector(defaultBookView(0,s.bookViews?.library),"library",s.language,bookListControls(s))+`<div class="empty-state book-search-empty"><p>${Object.values(s.libraryFilters || {}).some(Boolean) ? c.noBookshelfMatches : c.noBookMatches}</p><button class="text-button" type="button" data-action="${Object.values(s.libraryFilters || {}).some(Boolean) ? "reset-library-filters" : "clear-book-search"}">${Object.values(s.libraryFilters || {}).some(Boolean) ? c.resetLibraryFilters : c.clearSearch}</button></div>`;
   return bookListPresentation(s,books,"library");
@@ -468,6 +469,7 @@ export function accountView(s) {
   return `<section class="account-screen">
     <div class="account-welcome">${mascotArt("sprout")}<h1 tabindex="-1">${signup ? c.signUp : c.signIn}</h1></div>
     ${s.accountLearningNotice ? `<p class="account-learning-notice" role="status">${esc(c.accountLearningNotice)}</p>` : ""}
+    ${s.accountInterestSortNotice ? `<p class="account-learning-notice" role="status">${esc(c.interestSortSignInNotice)}</p>` : ""}
     <form class="account-form" data-account-form>
       <label for="account-username">${c.username}</label><input id="account-username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required minlength="${USERNAME_MIN_LENGTH}" maxlength="${USERNAME_MAX_LENGTH}" pattern="[a-zA-Z0-9][a-zA-Z0-9._\\-]{${USERNAME_MIN_LENGTH - 1},${USERNAME_MAX_LENGTH - 1}}" aria-describedby="username-hint"><small id="username-hint">${signup ? c.usernameRegistrationHint : c.usernameHint}</small>
       ${signup && s.inviteRequired ? `<label for="account-invite">${c.inviteCode}</label><input id="account-invite" name="inviteCode" type="password" autocomplete="off" required minlength="${INVITE_CODE_MIN_LENGTH}" maxlength="256">` : ""}
