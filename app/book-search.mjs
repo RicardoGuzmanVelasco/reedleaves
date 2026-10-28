@@ -11,9 +11,9 @@ export function filterBooks(books, query = "") {
 }
 
 export const libraryDefaults = {author:"",genre:"",language:""};
-export function filterLibrary(catalog,query = "",filters = libraryDefaults,order="recent",language="es") {
+export function filterLibrary(catalog,query = "",filters = libraryDefaults,order="recent",language="es",interestPreferences) {
   return sortBooks(filterBooks(catalog.books,query).filter(book =>
     (!filters.author || book.author === filters.author) &&
     (!filters.genre || book.genres.includes(filters.genre)) &&
-    (!filters.language || catalog.decks.some(deck=>deck.bookId === book.id && deck.language === filters.language))),order,language);
+    (!filters.language || catalog.decks.some(deck=>deck.bookId === book.id && deck.language === filters.language))),order,language,interestPreferences);
 }

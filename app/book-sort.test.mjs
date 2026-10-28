@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {sortBooks,validBookSortOrder} from "./book-sort.mjs";
+import {sortBooks,validBookSortOrder,validLibrarySortOrder,validVisitorBookSortOrder,shouldLoadInterestPreferences} from "./book-sort.mjs";
 import {filterLibrary} from "./book-search.mjs";
 
 const books=[
@@ -10,10 +10,35 @@ const books=[
   {id:"tie",popularTitle:"Eclair",popularLanguage:"fr",title:{es:"Eclair",en:"Eclair"}}
 ];
 
-test("book sort accepts only recent and alphabetical",()=>{
+test("book sort accepts recent, alphabetical and interests while rejecting unknown values",()=>{
   assert.equal(validBookSortOrder("recent"),true);
   assert.equal(validBookSortOrder("alphabetical"),true);
-  assert.equal(validBookSortOrder("interests"),false);
+  assert.equal(validBookSortOrder("interests"),true);
+  assert.equal(validLibrarySortOrder("interests"),true);
+  assert.equal(validLibrarySortOrder("alphabetical"),true);
+  assert.equal(validLibrarySortOrder("unknown"),false);
+  assert.equal(validVisitorBookSortOrder("alphabetical"),true);
+  assert.equal(validVisitorBookSortOrder("interests"),false);
+});
+
+test("interest ordering uses saved preference positions and keeps neutral ties stable",()=>{
+  const entries=[
+    {id:"neutral",genres:["unknown"]},
+    {id:"neutral-tie",genres:["other"]},
+    {id:"secondary",genres:["unknown","books"]},
+    {id:"primary",genres:["books"]},
+    {id:"rejected",genres:["society"]}
+  ];
+  const preferences={interested:["books"],notInterested:["society"]};
+  assert.deepEqual(sortBooks(entries,"interests","es",preferences).map(book=>book.id),["primary","secondary","neutral","neutral-tie","rejected"]);
+  assert.deepEqual(entries.map(book=>book.id),["neutral","neutral-tie","secondary","primary","rejected"]);
+});
+
+test("restored account interest sort reloads preferences only when Librería needs them",()=>{
+  assert.equal(shouldLoadInterestPreferences({mode:"library",order:"interests",userId:"reader",preferences:null}),true);
+  assert.equal(shouldLoadInterestPreferences({mode:"library",order:"interests",userId:"reader",preferences:{userId:"reader"}}),false);
+  assert.equal(shouldLoadInterestPreferences({mode:"bookshelf",order:"interests",userId:"reader",preferences:null}),false);
+  assert.equal(shouldLoadInterestPreferences({mode:"library",order:"interests",userId:null,preferences:null}),false);
 });
 
 test("A–Z uses localized visible titles, title fallback, accent normalization and stable ties",()=>{

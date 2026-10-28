@@ -15,8 +15,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 48;
-export const POSTGRES_SCHEMA_VERSION = 40;
+export const SQLITE_SCHEMA_VERSION = 49;
+export const POSTGRES_SCHEMA_VERSION = 41;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -103,6 +103,17 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 48) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE reader_book_sort_preferences RENAME TO reader_book_sort_preferences_old;
+        CREATE TABLE reader_book_sort_preferences (user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE, sort_order TEXT NOT NULL CHECK(sort_order IN ('recent','alphabetical','interests'))) STRICT;
+        INSERT INTO reader_book_sort_preferences(user_id,sort_order) SELECT user_id,sort_order FROM reader_book_sort_preferences_old;
+        DROP TABLE reader_book_sort_preferences_old;
+        PRAGMA user_version=49; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 47) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -785,6 +796,18 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 40) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,reader_book_sort_preferences IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 41) return;
+          await db.exec(`ALTER TABLE reader_book_sort_preferences DROP CONSTRAINT reader_book_sort_preferences_sort_order_check;
+            ALTER TABLE reader_book_sort_preferences ADD CONSTRAINT reader_book_sort_preferences_sort_order_check CHECK(sort_order IN ('recent','alphabetical','interests'));
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=41;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=41);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 39) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,accounts IN ACCESS EXCLUSIVE MODE;");

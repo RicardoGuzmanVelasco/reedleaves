@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {BOOK_SHELF_THRESHOLD,defaultBookView,bookListMarkup,bookViewSelector,leaningBookIndex} from './book-list.mjs';
-import {libraryResultsMarkup,bookshelfView} from './views.mjs';
+import {libraryResultsMarkup,bookshelfView,accountView} from './views.mjs';
 import {readerState} from '../test-support/reader-state.mjs';
 import {openDatabase,initializeDatabase} from '../server/database.mjs';
 import {seedCatalog} from '../server/seed.mjs';
@@ -44,7 +44,60 @@ test('Library choice remains independent of personal shelf groups',async()=>{
     assert.match(libraryResultsMarkup({...state,bookViews:{library:'covers'}}),/study-books book-grid/);
     const az=libraryResultsMarkup({...state,bookSortOrder:'alphabetical',language:'en'});
     assert.match(az,/aria-label="Sort by"/);assert.match(az,/Most recent/);assert.match(az,/A–Z/);
-    assert.doesNotMatch(az,/My interests|Mis intereses/);
+    assert.match(az,/<option value="alphabetical" selected>A–Z<\/option>/);
+    assert.match(az,/<option value="interests" >My interests<\/option>/);
+  }finally{await db.close();}
+});
+
+test('Library interest sort follows reader preferences across all three presentations and never reaches Bookcase',async()=>{
+  const db=openDatabase(':memory:');
+  try{
+    await initializeDatabase(db);await seedCatalog(db);
+    const source=prepareCatalog(await readCatalog(db));
+    const books=[
+      {...source.books[0],id:'neutral-book',genres:['unlisted']},
+      {...source.books[1],id:'secondary-book',genres:['unlisted','books']},
+      {...source.books[2],id:'primary-book',genres:['books']},
+      {...source.books[3],id:'rejected-book',genres:['society']}
+    ];
+    const catalog={...source,books,booksById:new Map(books.map(book=>[book.id,book]))};
+    const state=readerState(catalog,{libraryQuery:'',libraryFilters:{},bookSortOrder:'interests',interestPreferences:{interested:['books'],notInterested:['society']},userId:'reader'});
+    for(const view of ['covers','shelf','stack']){
+      const html=libraryResultsMarkup({...state,bookViews:{library:view}});
+      assert.match(html,/<option value="interests" selected>Mis intereses<\/option>/);
+      assert.match(html,new RegExp(`data-view="${view}"[^>]*aria-pressed="true"`));
+      const ids=view==='covers'?['primary-book','secondary-book','neutral-book','rejected-book']:['primary-book','secondary-book','neutral-book','rejected-book'];
+      const positions=ids.map(id=>html.indexOf(view==='covers'?`data-book="${id}"`:`href="#book/${id}"`));
+      assert.ok(positions.every(position=>position>=0));
+      assert.deepEqual(positions,[...positions].sort((a,b)=>a-b),`${view} follows the selected interest order`);
+    }
+    const bookcase=bookshelfView(state);
+    assert.doesNotMatch(bookcase,/data-book-sort|value="interests"|Mis intereses/);
+  }finally{await db.close();}
+});
+
+test('visitor interest sort recovery opens the localized sign-in form with a functional return path',()=>{
+  for(const [language,label] of [['es','Inicia sesión para ordenar por tus intereses.'],['en','Sign in to sort by your interests.']]){
+    const html=accountView({language,authMode:'login',accountInterestSortNotice:true});
+    assert.ok(html.includes(label));
+    assert.match(html,/data-account-form/);
+    assert.match(html,/data-action="toggle-auth"/);
+  }
+});
+
+test('interest sort loading/failure never marks the order active and exposes a retry',async()=>{
+  const db=openDatabase(':memory:');
+  try{
+    await initializeDatabase(db);await seedCatalog(db);
+    const catalog=prepareCatalog(await readCatalog(db)),base=readerState(catalog,{libraryQuery:'',libraryFilters:{},userId:'reader'});
+    const pending=libraryResultsMarkup({...base,bookSortOrder:'interests',librarySortOrder:'recent',libraryInterestSortPending:true});
+    assert.match(pending,/<option value="recent" selected>Más recientes<\/option>/);
+    assert.match(pending,/role="status">Cargando tus intereses…<\/span>/);
+    assert.doesNotMatch(pending,/<option value="interests" selected>/);
+    const failed=libraryResultsMarkup({...base,bookSortOrder:'interests',librarySortOrder:'recent',libraryInterestSortError:true});
+    assert.match(failed,/<option value="recent" selected>Más recientes<\/option>/);
+    assert.match(failed,/role="alert"><span>No se pudieron cargar tus intereses\.<\/span><button[^>]*data-action="retry-library-interest-sort">Reintentar<\/button>/);
+    assert.doesNotMatch(failed,/<option value="interests" selected>/);
   }finally{await db.close();}
 });
 
