@@ -179,7 +179,7 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   const post=(path,input,headers={})=>fetch(base+path,{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify(input)});
   const response=await post("/api/auth/register",{username:"author.http",password:"a local author test phrase"});
   const state=await response.json(),headers={Cookie:response.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":state.csrfToken};
-  const bookInput={requestId:randomUUID(),title:"Mon livre",author:"Auteur",language:"fr"};
+  const bookInput={requestId:randomUUID(),title:"Mon livre",author:"Auteur",language:"fr",metadata:{genres:["society"]}};
   assert.equal((await post("/api/author/books",bookInput)).status,401);
   assert.equal((await post("/api/author/books",bookInput,{Cookie:headers.Cookie})).status,403);
   const bookResponse=await post("/api/author/books",bookInput,headers);assert.equal(bookResponse.status,200);

@@ -45,6 +45,46 @@ test("AI can create a preview without provider citations or a stored bibliograph
   assert.equal(Object.hasOwn(JSON.parse(fake.calls[1].body.input),"sources"),false);
 });
 
+test("AI proposes one to three ordered interests, preserves manual order and rejects invalid lists without truncation",async()=>{
+  const known=["personal-growth","society","finance","software"].map(id=>({id,name:id}));
+  const selected=["software","society","finance"];
+  const fake=fakeProvider([researchResponse(),extractionResponse({genres:selected})]);
+  const result=await createBookAutofill({apiKey:"key",...fake})("r",input,known);
+  assert.deepEqual(result.metadata.genres,selected);
+  const schema=fake.calls[1].body.text.format.schema.properties.genres;
+  assert.equal(schema.minItems,1);assert.equal(schema.maxItems,3);
+  const manual=["finance","software"];
+  const edited=await createBookAutofill({apiKey:"key",...fakeProvider()})("r",{...input,metadata:{genres:manual}},known);
+  assert.deepEqual(edited.metadata.genres,manual);
+  for (const genres of [[],["software","software"],["missing"],known.map(genre=>genre.id)]) {
+    await assert.rejects(createBookAutofill({apiKey:"key",logger:()=>{},...fakeProvider([researchResponse(),extractionResponse({genres})])})("r",input,known),{code:"aiError"});
+  }
+  const unused=fakeProvider();
+  await assert.rejects(createBookAutofill({apiKey:"key",...unused})("r",{...input,metadata:{genres:known.map(genre=>genre.id)}},known),{code:"bookGenreLimit"});
+  assert.equal(unused.calls.length,0);
+});
+
+test("HTTP autofill and completion retain an immutable historical list above three without admitting new overflow",async t=>{
+  const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);
+  const fake=fakeProvider(),server=createCatalogServer(db,undefined,{bookAutofill:createBookAutofill({apiKey:"key",...fake})});
+  server.listen(0,"127.0.0.1");await once(server,"listening");
+  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const post=(path,data,headers={})=>fetch(base+path,{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify(data)});
+  const signed=await post("/api/auth/register",{username:"legacy.reader",password:"a local test password"}),state=await signed.json();
+  const headers={Cookie:signed.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":state.csrfToken},bookId=randomUUID();
+  assert.equal((await post("/api/author/books",{requestId:bookId,title:bookMetadata.popularTitle,author:"Author",language:"en",metadata:{genres:["software"]}},headers)).status,200);
+  for (const [index,id] of ["finance","society","productivity"].entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(bookId,id,index+2);
+  const rows=await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId),genres=rows.map(row=>row.genre_id);
+  const rejected=await post("/api/author/books/autofill",{bookId,metadata:{genres:[...genres].reverse()}},headers);
+  assert.equal(rejected.status,400);assert.equal(fake.calls.length,0);
+  const preview=await post("/api/author/books/autofill",{bookId,metadata:{genres}},headers);
+  assert.equal(preview.status,200);
+  const result=await preview.json();assert.deepEqual(result.metadata.genres,genres);assert.equal(fake.calls.length,2);
+  assert.equal((await post("/api/author/books/complete",{bookId,metadata:result.metadata},headers)).status,200);
+  assert.deepEqual(await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId),rows);
+});
+
 test("AI separates mixed headings and subtitles, preserves personal edits and omits retired short-title metadata",async()=>{
   const translations=JSON.parse(extractionResponse().output[0].content[0].text).translations;
   Object.assign(translations.es,{title:"Rompe la barrera del no / Never Split de Difference",alternateTitle:"Never Split de Difference"});
@@ -216,7 +256,7 @@ test("Existing-book HTTP autofill uses stored identity, enforces ownership and p
   };
   const owner=await login("fill.owner"),other=await login("fill.other");
   const bookId=randomUUID();
-  assert.equal((await post("/api/author/books",{requestId:bookId,title:bookMetadata.popularTitle,author:"Autor guardado",language:"en"},owner)).status,200);
+  assert.equal((await post("/api/author/books",{requestId:bookId,title:bookMetadata.popularTitle,author:"Autor guardado",language:"en",metadata:{genres:bookMetadata.genres}},owner)).status,200);
   const fill={bookId,title:"Identidad manipulada",author:"Otro autor",language:"fr"};
   const complete={bookId,metadata:bookMetadata};
   for (const path of ["/api/author/books/autofill","/api/author/books/complete"]) {

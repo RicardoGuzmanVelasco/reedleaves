@@ -22,7 +22,7 @@ async function fixture(t,dialect) {
 for (const dialect of ["sqlite","postgres"]) {
   test(`${dialect}: server blocks near-identical titles regardless of author and permits subtitle candidates`,async t=>{
     const {db,session}=await fixture(t,dialect);
-    const base={requestId:randomUUID(),title:"The Quiet Forest",author:"Author A",language:"en"};
+    const base={requestId:randomUUID(),title:"The Quiet Forest",author:"Author A",language:"en",metadata:{genres:["society"]}};
     const created=await createBook(db,session,base);
     assert.deepEqual(await createBook(db,session,base),created);
     await assert.rejects(createBook(db,session,{...base,requestId:randomUUID(),title:"The Quiet Forezt",author:"A completely different author"}),e=>e.status===409&&e.code==="bookAlreadyExists");
@@ -33,8 +33,8 @@ for (const dialect of ["sqlite","postgres"]) {
 
   test(`${dialect}: server checks every proposed translated title against the catalog`,async t=>{
     const {db,session}=await fixture(t,dialect);
-    await createBook(db,session,{requestId:randomUUID(),title:"The Quiet Forest",author:"Author A",language:"en"});
-    const metadata={popularTitle:"Bosque sereno",popularLanguage:"es",title:{en:"The Quiet Forest"},description:{en:"A description"},editorialNote:{en:"An edition note"},genres:[],links:{}};
+    await createBook(db,session,{requestId:randomUUID(),title:"The Quiet Forest",author:"Author A",language:"en",metadata:{genres:["society"]}});
+    const metadata={popularTitle:"Bosque sereno",popularLanguage:"es",title:{en:"The Quiet Forest"},description:{en:"A description"},editorialNote:{en:"An edition note"},genres:["society"],links:{}};
     await assert.rejects(createBook(db,session,{requestId:randomUUID(),author:"Author B",metadata}),e=>e.status===409&&e.code==="bookAlreadyExists");
     assert.equal((await db.prepare("SELECT count(*) AS count FROM books WHERE popular_title='Bosque sereno'").get()).count,0);
   });

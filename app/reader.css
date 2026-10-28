@@ -99,17 +99,25 @@
 .interest-emoji{display:inline-grid;place-items:center;flex:none;width:1.35em;height:1.35em;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;font-size:20px;font-weight:400;line-height:1;vertical-align:middle}
 .deck-tags>.interest-chip{gap:7px;padding:7px 11px;border-radius:12px;color:var(--ink);background:radial-gradient(ellipse at 25% 10%,#fff 0%,var(--interest-color,var(--paper)) 100%);font-size:12px;white-space:normal}
 .deck-tags>.interest-chip .interest-emoji{font-size:22px}
-.book-genre-fields{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.book-genre-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:11px;padding:16px 12px 18px;border:1px solid #c6d2b8;border-radius:20px;background:radial-gradient(ellipse at 100% 100%,#d8efb3,transparent 65%),linear-gradient(25deg,#edf3d9,#fffdf6 80%)}
+.book-genre-fields legend{padding:0 6px;font-weight:800;font-size:15px}
+.book-interest-instructions{grid-column:1/-1;display:flex;align-items:flex-start;gap:12px;margin-bottom:2px}
+.book-interest-instructions p{flex:1;min-width:0;font-size:12px;line-height:1.5;color:var(--muted)}
+.book-interest-count{flex:none;padding:5px 8px;border-radius:9px;background:#e4f0cc;font-size:12px;font-weight:850;font-variant-numeric:tabular-nums;white-space:nowrap}
+.book-interest-limit{grid-column:1/-1;font-size:12px;line-height:1.5;color:var(--ink)}
+.book-interest-limit[hidden]{display:block;visibility:hidden}
 .book-genre-fields .interest-option{--interest-edge:var(--line);align-items:center;min-height:58px;margin:0;padding:9px 11px;border:1px solid var(--interest-edge);border-radius:15px;background:radial-gradient(ellipse at 15% 0%,#fff 0%,var(--interest-color,var(--paper)) 150%);box-shadow:0 3px 0 var(--interest-edge);transition:transform .12s,box-shadow .12s}
 .book-genre-fields .interest-option:has(input:checked){--interest-edge:var(--sage)}
 .book-genre-fields:not(:disabled) .interest-option:is(:active,.is-pressed){transform:translateY(2px);box-shadow:0 1px 0 var(--interest-edge)}
 .book-genre-fields .interest-option:has(input:focus-visible){outline:3px solid var(--ink);outline-offset:3px}
 .book-genre-fields .interest-option input:focus-visible{outline:none}
-.book-genre-fields .interest-option-content{min-width:0;line-height:1.3}
+.book-genre-fields .interest-option-content{flex:1;min-width:0;line-height:1.3}
+.book-genre-fields .interest-order{display:grid;place-items:center;justify-content:center;flex:none;width:25px;height:25px;margin-left:auto;padding:0;border-radius:50%;font-size:14px;font-weight:850;font-variant-numeric:tabular-nums}
+.book-genre-fields .interest-option:has(input:checked) .interest-order{background:var(--ink);color:var(--paper)}
 .interest-option .interest-emoji{font-size:27px;transition:transform .16s cubic-bezier(.2,.8,.3,1)}
 .interest-option:has(input:checked) .interest-emoji{transform:rotate(-7deg) scale(1.08)}
 @media(max-width:520px){.deck-tags>.interest-chip{font-size:12px}.book-genre-fields{grid-template-columns:1fr}.book-genre-fields .interest-option{min-height:56px}.interest-option .interest-emoji{font-size:28px}}
-@media(prefers-reduced-motion:reduce){.interest-option:has(input:checked) .interest-emoji{transform:none}.book-genre-fields:not(:disabled) .interest-option:is(:active,.is-pressed){transform:none}}
+@media(prefers-reduced-motion:reduce){.book-genre-fields .interest-option,.interest-option .interest-emoji{transition:none}.interest-option:has(input:checked) .interest-emoji{transform:none}.book-genre-fields:not(:disabled) .interest-option:is(:active,.is-pressed){transform:none}}
 .deck-tags>span{display:inline-flex;align-items:center;gap:5px}
 .book-genre-fields .check-row>span,.library-filter-options label>span{display:flex;align-items:center;gap:7px}
 .wallet{display:flex;align-items:center;gap:3px;font-size:12px;font-weight:850;font-variant-numeric:tabular-nums}.wallet img{width:18px;height:18px}

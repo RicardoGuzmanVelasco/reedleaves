@@ -4,6 +4,7 @@ import {readFileSync} from "node:fs";
 import {runInNewContext} from "node:vm";
 import {normalizeBookMetadata} from "./book-metadata.mjs";
 import {LANGUAGES} from "./core.mjs";
+import {bookInterestError,selectBookInterest} from "./book-interests.mjs";
 import {words} from "./i18n.mjs";
 
 const source=readFileSync(new URL("./reader-app.mjs",import.meta.url),"utf8");
@@ -22,7 +23,8 @@ test("Manual book fields initialize, validate and submit without any autofill re
   const requests=[],navigations=[];
   const context={
     snapshot:{user:{id:"reader"}},language:"es",libraryQuery:"",authorForm:null,
-    crypto:{randomUUID:()=>"manual-book"},normalizeBookMetadata,LANGUAGES,words,
+    crypto:{randomUUID:()=>"manual-book"},normalizeBookMetadata,LANGUAGES,words,bookInterestError,selectBookInterest,
+    syncBookInterestSelector:()=>{},catalog:{genres:[{id:"personal-growth",name:{es:"Crecimiento personal"}}]},
     openDeckId:null,openBookId:null,requestedId:null,render:()=>{},persistNoteDraft:()=>{},
     busy:false,syncGeneration:0,mode:"library",lockControls:()=>{},
     api:{request:async(path,input)=>{requests.push({path,input});return {bookId:input.requestId,state:{}};}},
@@ -59,4 +61,36 @@ test("Manual book fields initialize, validate and submit without any autofill re
   assert.equal(requests[0].input.author,"Autora manual");
   assert.deepEqual(normalizeBookMetadata(requests[0].input.metadata),expected);
   assert.deepEqual(navigations,["#book/manual-book"]);
+});
+
+test("Book interest input and change events preserve click order, reject a fourth, renumber and append on reselect in both languages",()=>{
+  for (const language of ["es","en"]) {
+    const firstInterest={setCustomValidity(message){this.validationMessage=message;}};
+    const form={elements:{namedItem:()=>null},querySelector:()=>firstInterest};
+    const renders=[],updates=[],ids=["finance","software","society","productivity"];
+    const context={language,LANGUAGES,words,bookInterestError,selectBookInterest,live:{},
+      authorForm:{kind:"book",metadata:normalizeBookMetadata()},
+      catalog:{genres:ids.map(id=>({id,name:{es:id,en:id}}))},
+      syncBookInterestSelector:(_form,selected)=>updates.push([...selected]),render:()=>renders.push(true)};
+    context.syncBookFormValidity=handler("syncBookFormValidity",context);
+    const change=handler("changeAuthorField",context);
+    const toggle=(value,checked)=>{
+      const input={name:"metadata.genres",value,checked,closest:()=>form};
+      change(input);change(input); // Native checkboxes fire both input and change.
+      return input;
+    };
+    toggle("software",true);toggle("finance",true);toggle("society",true);
+    assert.deepEqual([...context.authorForm.metadata.genres],["software","finance","society"]);
+    const fourth=toggle("productivity",true);
+    assert.equal(fourth.checked,false);assert.equal(context.live.textContent,words[language].bookGenreLimit);
+    assert.deepEqual([...context.authorForm.metadata.genres],["software","finance","society"]);
+    toggle("finance",false);
+    assert.deepEqual([...context.authorForm.metadata.genres],["software","society"]);
+    toggle("finance",true);
+    assert.deepEqual([...context.authorForm.metadata.genres],["software","society","finance"]);
+    assert.ok(context.live.textContent.includes("3. finance"));
+    for (const id of [...context.authorForm.metadata.genres]) toggle(id,false);
+    assert.equal(firstInterest.validationMessage,words[language].bookGenreRequired);
+    assert.deepEqual(renders,[]);assert.ok(updates.length);
+  }
 });

@@ -4,6 +4,7 @@ import { transaction,isPostgres } from "./database.mjs";
 import { checkCatalog } from "./catalog-repository.mjs";
 import { validateCards, LANGUAGES } from "../app/core.mjs";
 import {validInterestAppearance} from "../app/interests.mjs";
+import {bookInterestError} from "../app/book-interests.mjs";
 import { bookLinkUrl, BOOK_LINK_PLATFORMS } from "../app/book-links.mjs";
 
 const text = value => typeof value === "string" && value.trim().length > 0;
@@ -52,7 +53,7 @@ export function validateSeed(seed) {
     if (!text(b.author) || !/^\d+$/.test(b.position) || Number(b.position) < 1 || positions.has(Number(b.position))) throw new Error("Invalid book position or author");
     positions.add(Number(b.position));
     const bookGenres=b.genres?.split("|");
-    if (!bookGenres?.length || bookGenres.some(id => !genres.has(id)) || new Set(bookGenres).size!==bookGenres.length) throw new Error("Unknown or duplicate book genre");
+    if (bookInterestError(bookGenres,genres)) throw new Error("Invalid book interests: choose one to three distinct known interests");
     if (!["draft", "reviewed"].includes(b.editorial_status)) throw new Error("Invalid editorial status");
     for (const language of LANGUAGES) for (const field of ["description", "editorial_note"]) {
       if (!text(b[field + "_" + language])) throw new Error("Missing book text");

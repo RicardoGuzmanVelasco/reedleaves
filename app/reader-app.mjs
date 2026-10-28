@@ -1,6 +1,7 @@
 import {mountDeckPresentation} from "./deck-presentation.mjs";
 import {deckPageHash,deckReadingHash,deckShareUrl} from "./deck-navigation.mjs";
-import {mountInterests} from "./interests.mjs";
+import {mountInterests,syncBookInterestSelector} from "./interests.mjs";
+import {bookInterestError,selectBookInterest} from "./book-interests.mjs";
 import {mountBookLists,BOOK_VIEWS} from "./book-list.mjs";
 import {startBottomNavigationBehavior} from "./bottom-navigation-behavior.mjs";
 import {loadCatalog} from "./catalog.mjs";
@@ -1046,7 +1047,8 @@ export function startReader({createCardFeatures} = {}) {
         if (input) input.required=started;
       }
     }
-    form.querySelector('[name="metadata.genres"]')?.setCustomValidity(metadata.genres.length ? "" : words[language].bookGenreRequired);
+    const interestError=bookInterestError(metadata.genres);
+    form.querySelector('[name="metadata.genres"]')?.setCustomValidity(interestError ? words[language][interestError] : "");
   }
   function changeAuthorField(input) {
     if (!authorForm || !input.name) return;
@@ -1060,8 +1062,16 @@ export function startReader({createCardFeatures} = {}) {
     if (authorForm.metadata) {
       const metadata=authorForm.metadata;
       if (input.name === "metadata.genres") {
-        metadata.genres=input.checked ? [...new Set([...metadata.genres,input.value])] : metadata.genres.filter(id=>id!==input.value);
-        syncBookFormValidity(input.closest("form")); return;
+        const previous=metadata.genres,selected=selectBookInterest(previous,input.value,input.checked);
+        const blocked=input.checked && !selected.includes(input.value);
+        input.checked=selected.includes(input.value);
+        metadata.genres=selected;
+        const form=input.closest("form"),c=words[language];
+        syncBookInterestSelector(form,selected,c);
+        syncBookFormValidity(form);
+        if (blocked) live.textContent=c.bookGenreLimit;
+        else if (selected.length!==previous.length) live.textContent=selected.length ? c.bookInterestOrder(selected.map((id,index)=>`${index+1}. ${catalog.genres.find(genre=>genre.id===id)?.name[language] || id}`).join("; ")) : c.bookGenreRequired;
+        return;
       }
       if (input.name.startsWith("metadata.")) {
         const [,field,key]=input.name.split(".");
