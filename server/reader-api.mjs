@@ -13,6 +13,7 @@ import {readCardActions,readSavedCards,setCardSave} from "./card-saves.mjs";
 import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH} from "../app/core.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
 import {readReaderInterestPreferences,readPublicReaderInterestPreferences,saveReaderInterestPreferences} from "./reader-interest-preferences.mjs";
+import {BOOK_INTEREST_CONFIRMATION_ENABLED} from "./book-interest-confirmation.mjs";
 
 async function readBody(request,maxBytes = 8192) {
   if (request.headers["content-type"]?.split(";")[0].trim() !== "application/json") throw new ApiError(415,"invalidRequest");
@@ -34,7 +35,7 @@ function sameOrigin(request,origin) {
   const allowed = origin ? [origin] : [`http://127.0.0.1:${localPort}`,`http://localhost:${localPort}`];
   if (!allowed.includes(originHeader) || request.headers["sec-fetch-site"] && request.headers["sec-fetch-site"] !== "same-origin") throw new ApiError(403,"invalidRequest");
 }
-export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = false,inviteCode,bookAutofill=createBookAutofill()} = {}) {
+export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = false,inviteCode,bookAutofill=createBookAutofill(),bookInterestConfirmationEnabled=BOOK_INTEREST_CONFIRMATION_ENABLED} = {}) {
   if (origin) {
     const url = new URL(origin);
     if (url.origin !== origin || !["https:","http:"].includes(url.protocol) || url.protocol === "https:" && !secureCookies) throw new Error("Invalid API origin/cookie configuration");
@@ -133,7 +134,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       if (path === "/api/reader/view") { send(200,await recordCardView(db,active,input,currentTime)); return true; }
       if (path === "/api/reader/guides") { const result=await submitReadingGuide(db,active,input); send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true; }
       if (path === "/api/cards/vote") { send(200,await setCardVote(db,active,input)); return true; }
-      if (path === "/api/cards/save") { send(200,await setCardSave(db,active,input,currentTime)); return true; }
+      if (path === "/api/cards/save") { send(200,await setCardSave(db,active,input,currentTime,{confirmationEnabled:bookInterestConfirmationEnabled})); return true; }
       if (path === "/api/author/books/autofill") {
         let search=input;
         if (input.bookId !== undefined) {
@@ -166,11 +167,11 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         const result = path === "/api/author/notes" ? await takeFirstNote(db,active,input) : path === "/api/author/decks/finish-notes" ? await finishNoteDecks(db,active,input) : path === "/api/author/decks/contributors" ? await addDeckContributors(db,active,input) : path === "/api/author/decks/finish" ? await finishDeck(db,active,input) : path.endsWith("complete") ? await completeBook(db,active,input) : path.endsWith("books") ? await createBook(db,active,input) : path.endsWith("decks") ? await createDeck(db,active,input) : await addCard(db,active,input);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
-      const result = path === "/api/reader/collect" ? await addDeckToCollection(db,active,input.deckId,currentTime) :
+      const result = path === "/api/reader/collect" ? await addDeckToCollection(db,active,input.deckId,currentTime,{confirmation:input.confirmation,confirmationEnabled:bookInterestConfirmationEnabled}) :
         path === "/api/reader/remove" ? await removeDeckFromCollection(db,active,input.deckId,currentTime) :
         path === "/api/reader/select" ? await selectDeck(db,active,input.deckId,currentTime,{requireCollection:true}) :
         path === "/api/reader/open" ? await openCard(db,active,input.deckId,input.cardId,currentTime,{requireCollection:true}) :
-        path === "/api/reader/reading" ? await changeReading(db,active,input.bookId,input.status,currentTime) :
+        path === "/api/reader/reading" ? await changeReading(db,active,input.bookId,input.status,currentTime,{confirmation:input.confirmation,confirmationEnabled:bookInterestConfirmationEnabled}) :
         path === "/api/reader/preferences" ? await changePreferences(db,active,input,currentTime) : await dailyIdea(db,active,currentTime);
       send(200,result);
     } catch(error) {

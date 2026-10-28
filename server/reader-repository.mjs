@@ -16,6 +16,7 @@ import {accruePetalWallet,MAX_PETALS} from "./petal-wallet-repository.mjs";
 import {practiceDiscountTopic,reconcilePracticeSessionInside} from "./practice-economy.mjs";
 import {lockReaderAccount} from "./reader-account-lock.mjs";
 import {validBookSortOrder} from "../app/book-sort.mjs";
+import {requireBookInterestConfirmation,BOOK_INTEREST_CONFIRMATION_ENABLED} from "./book-interest-confirmation.mjs";
 
 export async function readReaderState(db,session,now=new Date()) {
   return transaction(db,async()=>{
@@ -120,11 +121,14 @@ async function requireDeckInCollection(db,userId,deck) {
   if(!added&&!owned) throw new ApiError(409,"deckNotInCollection");
   if(!added) await enrol(db,userId,deck);
 }
-export async function addDeckToCollection(db,session,deckId,now=new Date()) {
+export async function addDeckToCollection(db,session,deckId,now=new Date(),{confirmation,confirmationEnabled=BOOK_INTEREST_CONFIRMATION_ENABLED}={}) {
   return transaction(db,async()=>{
     const userId=session.user_id;
     await lockReaderAccount(db,userId);
     const deck=await knownDeck(db,deckId,userId);
+    const required=await requireBookInterestConfirmation(db,userId,{enabled:confirmationEnabled,bookId:deck.book_id,
+      operation:"collectDeck",resourceId:deck.id,parameters:{},price:DECK_ADD_COST,confirmation});
+    if(required) return required;
     const existing=await db.prepare("SELECT 1 FROM studies WHERE user_id=? AND deck_id=?").get(userId,deck.id);
     if(existing) {
       await enrol(db,userId,deck);
@@ -172,10 +176,15 @@ export async function openCard(db,session,deckId,cardId,now=new Date(),{requireC
     return {state:await stateInside(db,session,now)};
   });
 }
-export async function changeReading(db,session,bookId,status,now=new Date()) {
+export async function changeReading(db,session,bookId,status,now=new Date(),{confirmation,confirmationEnabled=BOOK_INTEREST_CONFIRMATION_ENABLED}={}) {
   if(typeof bookId!=="string"||!["unread","to-read","reading","read"].includes(status)||!await db.prepare("SELECT 1 FROM books WHERE id = ?").get(bookId)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
+    if(status!=="unread") {
+      const required=await requireBookInterestConfirmation(db,session.user_id,{enabled:confirmationEnabled,bookId,
+        operation:"changeReading",resourceId:bookId,parameters:{status},confirmation});
+      if(required) return required;
+    }
     if(status === "unread") await db.prepare("DELETE FROM book_reading WHERE user_id=? AND book_id=?").run(session.user_id,bookId);
     else await db.prepare("INSERT INTO book_reading VALUES (?,?,?) ON CONFLICT(user_id,book_id) DO UPDATE SET status=excluded.status").run(session.user_id,bookId,status === "to-read" ? "unread" : status);
     return stateInside(db,session,now);
