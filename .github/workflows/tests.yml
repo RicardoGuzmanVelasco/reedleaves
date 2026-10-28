@@ -49,9 +49,14 @@ jobs:
           REED_TEST_POSTGRES_REQUIRED: "1"
           PG_POOL_SIZE: "8"
         run: node --import ./test-support/offline.mjs --test server/practice-recovery.postgres.test.mjs
-      # npm test builds the React bundle in pretest; local tests use SQLite/PGlite.
-      # The separate required loopback PostgreSQL test above is never silently skipped.
-      - run: npm test
+      # npm test builds the React bundle in pretest and reuses this required PostgreSQL service.
+      # Local runs without this URL create their own disposable loopback container.
+      - name: Run the full suite with the PostgreSQL service
+        env:
+          REED_TEST_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/reedleaves_test
+          REED_TEST_POSTGRES_REQUIRED: "1"
+          PG_POOL_SIZE: "8"
+        run: npm test
 
   publish_status:
     name: Publish passing test status

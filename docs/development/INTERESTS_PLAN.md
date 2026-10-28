@@ -244,6 +244,7 @@ Cada fila es una entrega. Puede contener varios commits locales si hace falta; s
 | 09 | Selector numerado y límite de uno a tres al crear | 05,06,07 | Orden por clic visible sin mover casillas; manual e IA cumplen mismo contrato. |
 | 10 | Fecha de incorporación y orden Más recientes | — | Nuevos con fecha real, anteriores con fallback aprobado; no fabricar fechas. |
 | 11 | Selector A–Z y persistencia del orden elegido | 10 | Títulos localizados, filtros combinados y orden consistente en portadas/estantes/apilados. |
+| 11a | Runner local de PostgreSQL desechable | 01b | `npm test` exige la prueba de recuperación con PostgreSQL: reutiliza la URL loopback de CI o prepara Docker/Colima y un contenedor `postgres:16` efímero, publicado solo en loopback, sin volumen y retirado al terminar. No cambia el contexto Docker global ni sustituye el servicio PostgreSQL de CI. |
 | 12 | Persistencia y API privada de preferencias ordenadas | 05 | Uno a cinco / cero a cinco, disyunción, orden y conflictos protegidos; estado configurado/cierre de oportunidad sin premio ya persistidos; sin UI obligatoria todavía. |
 | 13 | Sección pública y editor de Intereses en perfil | 12 | Listas públicas ordenadas, solo propietario edita, tres recomendado, nunca premios. |
 | 14 | Comparador y detector centrales | 08,09,12 | Contratos puros, orden estable, razón estructurada; sin reglas repetidas en vistas. |
@@ -270,7 +271,7 @@ Cada fila es una entrega. Puede contener varios commits locales si hace falta; s
 
 Las activaciones son pequeñas capacidades internas compartidas entre servidor y cliente; no requieren una plataforma de feature flags ni un nuevo panel. Mientras una capacidad esté incompleta permanece apagada y no cambia cobros, respuestas de API de producción ni navegación visible. Retirar sus ramas temporales al activarla y verificarla. Los incrementos 21–22c se preparan consecutivamente: no anunciar concesiones sin el flujo completo. Los pasos 17a–19 activan las tres entradas de aviso juntas. Los pasos 24b–24c no amplían el descuento hasta que existe la UI completa. Los pasos 25–27 no muestran badge ni novedad parcial.
 
-Orden operativo inicial recomendado: 04 → 01a → 01b → 02 → 03 → 05 → 06 → 07 → 08 → 09 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17a → 17b → 18 → 19 → 20 → 21 → 22a → 22b → 22c → 23a → 23b → 24a → 24b → 24c → 25 → 26 → 27 → 28. Solo adelantar tareas independientes si no aumenta el tamaño de la entrega ni oculta dependencias.
+Orden operativo inicial recomendado: 04 → 01a → 01b → 02 → 03 → 05 → 06 → 07 → 08 → 09 → 10 → 11 → 11a → 12 → 13 → 14 → 15 → 16 → 17a → 17b → 18 → 19 → 20 → 21 → 22a → 22b → 22c → 23a → 23b → 24a → 24b → 24c → 25 → 26 → 27 → 28. Solo adelantar tareas independientes si no aumenta el tamaño de la entrega ni oculta dependencias.
 
 ## Equipo y doble verificación por incremento
 
@@ -341,4 +342,5 @@ No hacen falta tres implementaciones ni tres agentes editando el mismo archivo. 
 | 09 | Producción verificada | PR #122, main `20aa6d5`, Render `dep-dbh3eep42hec73f1kssg` live. Suite completa: 431 pasan, 0 fallos y 1 omitida; revisión independiente Luna y QA ES/EN, teclado, móvil y comparación con Repasar. Selector mantiene el orden de clic y el catálogo cumple el límite de uno a tres. |
 | 10 | Producción verificada | PR #123, main `9d68168`, Render `dep-dbh3r6p7lnhs738iuc6g` live. Suite completa: 436 pasan, 0 fallos y 1 omitida; revisión independiente Luna. Migración aditiva, orden reciente estable y fallback histórico sin fechas inventadas; catálogo HTTP 200 válido. |
 | 11 | Producción verificada | PR #124, main `4d88ae8`, Render `dep-dbh47pq9bbkc73b3dohg` live antes del incremento 02. Suite completa: 444 pasan, 0 fallos y 1 omitida; orden A–Z localizado y preferencia persistida para cuentas y visitantes. |
+| 11a | Implementado localmente | Runner efímero integrado con `npm test`; seis pruebas de contrato, lint y diff-check pasan. Suite completa con Docker/Colima real pasó antes del ajuste de manejo de señales y limpieza; pendiente repetir tras esta corrección. |
 | 02 | Producción verificada | PR #125, main `1688597`, Render `dep-dbh5g8j39bnc73aa3360` live. Suite completa: 450 pasan, 0 fallos y 1 omitida; revisión independiente Luna/Alto. `/api/health` y `/api/catalog` HTTP 200, catálogo válido (schemaVersion 7, 26 libros, 7 intereses, 47 barajas, 202 tarjetas) y módulo servido idéntico al commit. |
