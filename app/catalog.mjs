@@ -2,15 +2,17 @@ import {validInterestAppearance} from "./interests.mjs";
 import { validateBook, validateCards, isCanonicalLocale, LANGUAGES } from "./core.mjs";
 import { validateBookLinks } from "./book-links.mjs";
 import { validQuoteSourceUrl } from "./quote-source.mjs";
+import {validCatalogIncorporation} from "./catalog-incorporation.mjs";
 
 export function prepareCatalog(payload) {
-  if (payload?.schemaVersion !== 6 || !Array.isArray(payload.books) || !payload.books.length ||
+  if (payload?.schemaVersion !== 7 || !Array.isArray(payload.books) || !payload.books.length ||
       !Array.isArray(payload.cards) || !Array.isArray(payload.genres) ||
       !Array.isArray(payload.decks)) throw new Error("Invalid catalog");
   const genres = payload.genres;
   if (new Set(genres.map(g => g.id)).size !== genres.length || genres.some(g => !g.id || !validInterestAppearance(g) || LANGUAGES.some(language => !g.name?.[language]?.trim()))) throw new Error("Invalid genres");
   const genreIds = new Set(genres.map(g => g.id));
   const books = payload.books.map(book => {
+    if (!validCatalogIncorporation(book)) throw new Error("Invalid book incorporation data");
     validateBookLinks(book.links, {required:!book.creatorUserId});
     return validateBook(book, LANGUAGES, {requirePopular:true});
   }), booksById = new Map(books.map(b => [b.id,b]));

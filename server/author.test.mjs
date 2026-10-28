@@ -185,7 +185,12 @@ for (const dialect of ["sqlite","postgres"]) {
     const input={requestId:randomUUID(),title:"Pensar rápido, pensar despacio",author:"Daniel Kahneman",language:"en",metadata};
     const {bookId}=await createBook(db,session,input);
     assert.equal((await createBook(db,session,input)).bookId,bookId);
+    const incorporatedAt=(await db.prepare("SELECT incorporated_at FROM books WHERE id=?").get(bookId)).incorporated_at;
+    assert.ok(incorporatedAt);
     const saved=(await readCatalog(db,session.user_id)).books.find(book=>book.id===bookId);
+    assert.equal(saved.incorporatedAt instanceof Date?saved.incorporatedAt.toISOString():saved.incorporatedAt,
+      incorporatedAt instanceof Date?incorporatedAt.toISOString():incorporatedAt);
+    assert.ok(Number.isSafeInteger(saved.incorporationOrder));
     for (const field of Object.keys(bookMetadata)) assert.deepEqual(saved[field],field === "title" ? {es:bookMetadata.title.es} : bookMetadata[field]);
     for (const userId of [undefined,other.user_id]) assert.deepEqual((await readCatalog(db,userId)).books.find(book=>book.id===bookId),saved);
     await assert.rejects(createBook(db,other,input),e=>e.status===409);

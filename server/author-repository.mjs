@@ -7,6 +7,7 @@ import {normalizeQuoteSourceUrl} from "../app/quote-source.mjs";
 import {isDeepStrictEqual} from "node:util";
 import {ensureBookToRead} from "./book-reading.mjs";
 import {findBookTitleMatches} from "../app/book-duplicates.mjs";
+import {catalogBookIncorporationTimestamp} from "../app/catalog-incorporation.mjs";
 import {bookInterestError} from "../app/book-interests.mjs";
 
 async function validateBookInterests(db,ids,options={}) {
@@ -97,7 +98,9 @@ export async function createBook(db,session,input) {
       throw new ApiError(409,"bookAlreadyExists");
     }
     const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM books").get();
-    await db.prepare("INSERT INTO books(id,author,popular_title,popular_language,position,creator_user_id) VALUES (?,?,?,?,?,?)").run(id,author,title,language,position,session.user_id);
+    const {incorporation_order:incorporationOrder}=await db.prepare("SELECT COALESCE(MAX(incorporation_order),0)+1 AS incorporation_order FROM books").get();
+    await db.prepare("INSERT INTO books(id,author,popular_title,popular_language,position,creator_user_id,incorporated_at,incorporation_order) VALUES (?,?,?,?,?,?,?,?)")
+      .run(id,author,title,language,position,session.user_id,catalogBookIncorporationTimestamp(),incorporationOrder);
     for (const language of Object.keys(metadata.title)) await db.prepare("INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,metadata.title[language],metadata.description[language],metadata.editorialNote[language]);
     for (const [index,genre] of metadata.genres.entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(id,genre,index+1);
     for (const [platform,url] of Object.entries(metadata.links)) await db.prepare("INSERT INTO book_links(book_id,platform,url) VALUES (?,?,?)").run(id,platform,url);

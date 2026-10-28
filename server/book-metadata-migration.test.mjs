@@ -19,6 +19,7 @@ async function retainedData(db,dialect) {
     result[name]=(await db.prepare(`SELECT * FROM "${name}"${additiveGenre}`).all()).map(row=>{
       const value={...row};if (name === "cards") delete value.source_id;
       if (name === "genres") { delete value.emoji; delete value.color; }
+      if (name === "books") { delete value.incorporated_at; delete value.incorporation_order; }
       return value;
     }).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
   }

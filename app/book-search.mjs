@@ -1,4 +1,5 @@
 // Search every title, independent of the interface language. Never changes books.
+import {sortBooksByRecent} from "./catalog-incorporation.mjs";
 const normalize = value => String(value ?? "").normalize("NFKD").replace(/\p{M}/gu, "")
   .toLowerCase().replace(/œ/g, "oe").replace(/æ/g, "ae").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
@@ -11,8 +12,8 @@ export function filterBooks(books, query = "") {
 
 export const libraryDefaults = {author:"",genre:"",language:""};
 export function filterLibrary(catalog,query = "",filters = libraryDefaults) {
-  return filterBooks(catalog.books,query).filter(book =>
+  return sortBooksByRecent(filterBooks(catalog.books,query).filter(book =>
     (!filters.author || book.author === filters.author) &&
     (!filters.genre || book.genres.includes(filters.genre)) &&
-    (!filters.language || catalog.decks.some(deck=>deck.bookId === book.id && deck.language === filters.language)));
+    (!filters.language || catalog.decks.some(deck=>deck.bookId === book.id && deck.language === filters.language))));
 }

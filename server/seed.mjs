@@ -6,6 +6,7 @@ import { validateCards, LANGUAGES } from "../app/core.mjs";
 import {validInterestAppearance} from "../app/interests.mjs";
 import {bookInterestError} from "../app/book-interests.mjs";
 import { bookLinkUrl, BOOK_LINK_PLATFORMS } from "../app/book-links.mjs";
+import {catalogBookIncorporationTimestamp} from "../app/catalog-incorporation.mjs";
 
 const text = value => typeof value === "string" && value.trim().length > 0;
 const slug = value => text(value) && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
@@ -109,7 +110,12 @@ export async function seedCatalog(db, seed = readSeed()) {
     const translationColumns=isPostgres(db)
       ? await db.prepare("SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='book_translations'").all()
       : db.prepare("PRAGMA table_info(book_translations)").all();
+    const bookColumns=isPostgres(db)
+      ? await db.prepare("SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='books'").all()
+      : db.prepare("PRAGMA table_info(books)").all();
+    const hasCatalogIncorporation=bookColumns.some(column=>(column.column_name || column.name)==="incorporation_order");
     const hasLegacyShortTitle=translationColumns.some(column=>(column.column_name || column.name)==="short_title");
+    const seedIncorporatedAt=hasCatalogIncorporation?catalogBookIncorporationTimestamp():null;
     for (const u of seed.users) await db.prepare(`INSERT INTO users(id,display_name,can_create_decks) VALUES (?,?,?)
       ON CONFLICT(id) DO UPDATE SET display_name = excluded.display_name, can_create_decks = excluded.can_create_decks`).run(u.id,u.display_name,Number(u.can_create_decks));
     for (const g of seed.genres) {
@@ -119,10 +125,11 @@ export async function seedCatalog(db, seed = readSeed()) {
         ON CONFLICT(genre_id, language) DO UPDATE SET name = excluded.name`).run(g.id, language, g["name_" + language]);
     }
     for (const b of seed.books) {
-      await db.prepare(`INSERT INTO books(id, author, position, editorial_status, popular_title, popular_language) VALUES (?, ?, ?, ?, ?, ?)
+      const incorporationOrder=hasCatalogIncorporation?(await db.prepare("SELECT COALESCE(MAX(incorporation_order),0)+1 AS n FROM books").get()).n:null;
+      await db.prepare(`INSERT INTO books(id, author, position, editorial_status, popular_title, popular_language${hasCatalogIncorporation?",incorporated_at,incorporation_order":""}) VALUES (?, ?, ?, ?, ?, ?${hasCatalogIncorporation?",?,?":""})
         ON CONFLICT(id) DO UPDATE SET author = excluded.author, position = excluded.position,
         popular_title = excluded.popular_title, popular_language = excluded.popular_language,
-        editorial_status = excluded.editorial_status, updated_at = CURRENT_TIMESTAMP`).run(b.id, b.author, Number(b.position), b.editorial_status, b.popular_title, b.popular_language);
+        editorial_status = excluded.editorial_status, updated_at = CURRENT_TIMESTAMP`).run(...[b.id,b.author,Number(b.position),b.editorial_status,b.popular_title,b.popular_language,...(hasCatalogIncorporation?[seedIncorporatedAt,incorporationOrder]:[])]);
       for (const language of LANGUAGES) await db.prepare(hasLegacyShortTitle ? `INSERT INTO book_translations(book_id,language,title,short_title,description,editorial_note) VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(book_id, language) DO UPDATE SET title = excluded.title, short_title = excluded.short_title,
         description = excluded.description, editorial_note = excluded.editorial_note` : `INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?, ?, ?, ?, ?)

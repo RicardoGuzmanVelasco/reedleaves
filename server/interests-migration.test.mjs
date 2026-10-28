@@ -16,13 +16,15 @@ for(const [dialect,version] of [["sqlite",37],["postgres",29]]) {
     }
     await db.prepare("INSERT INTO book_genres VALUES ('tidy-interest-test','productivity')").run();
     const before=await db.prepare("SELECT book_id,genre_id FROM book_genres WHERE book_id<>'tidy-interest-test' ORDER BY book_id,genre_id").all();
-    const books=(await db.prepare("SELECT * FROM books ORDER BY id").all()).map(({original_title,original_language,...book})=>({...book,popular_title:original_title,popular_language:original_language}));
+    const books=await db.prepare(`SELECT id,author,position,editorial_status,updated_at,creator_user_id,
+      original_title AS popular_title,original_language AS popular_language FROM books ORDER BY id`).all();
     const cards=await db.prepare("SELECT id,deck_id,book_id,parent_id,position,is_quote,created_at FROM cards ORDER BY id").all();
     const labels=await db.prepare("SELECT * FROM genre_translations ORDER BY genre_id,language").all();
     await initializeDatabase(db);await initializeDatabase(db);
     assert.deepEqual(await db.prepare("SELECT book_id,genre_id FROM book_genres WHERE book_id<>'tidy-interest-test' ORDER BY book_id,genre_id").all(),before);
     assert.deepEqual((await db.prepare("SELECT genre_id FROM book_genres WHERE book_id='tidy-interest-test'").all()).map(row=>row.genre_id),["software"]);
-    assert.deepEqual((await db.prepare("SELECT * FROM books ORDER BY id").all()).map(book=>({...book})),books);
+    assert.deepEqual(await db.prepare(`SELECT id,author,position,editorial_status,updated_at,creator_user_id,
+      popular_title,popular_language FROM books ORDER BY id`).all(),books);
     assert.deepEqual(await db.prepare("SELECT id,deck_id,book_id,parent_id,position,is_quote,created_at FROM cards ORDER BY id").all(),cards);
     assert.deepEqual(await db.prepare("SELECT * FROM genre_translations WHERE genre_id NOT IN ('software','mindfulness') ORDER BY genre_id,language").all(),labels);
     for(const id of ["software","mindfulness"]) {

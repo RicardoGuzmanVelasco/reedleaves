@@ -4,6 +4,10 @@ import {validInterestAppearance} from "../app/interests.mjs";
 import { isPostgres } from "./database.mjs";
 
 export async function readCatalog(db, userId) {
+  const bookColumns=isPostgres(db)
+    ? await db.prepare("SELECT column_name AS name FROM information_schema.columns WHERE table_schema='public' AND table_name='books'").all()
+    : await db.prepare("PRAGMA table_info(books)").all();
+  const supportsIncorporation=bookColumns.some(column=>column.name==="incorporated_at");
   const genres = [];
   for (const {id,emoji,color} of await db.prepare("SELECT id,emoji,color FROM genres ORDER BY id").all()) {
     const translations = await db.prepare("SELECT language,name FROM genre_translations WHERE genre_id = ?").all(id);
@@ -11,12 +15,15 @@ export async function readCatalog(db, userId) {
   }
   const books = [];
   for (const row of await db.prepare(`SELECT b.id,b.author,b.popular_title,b.popular_language,b.editorial_status,b.creator_user_id,
+    ${supportsIncorporation?"b.incorporated_at,b.incorporation_order":"NULL AS incorporated_at,NULL AS incorporation_order"},
     COALESCE(u.display_name,(SELECT display_name FROM users WHERE id='reed-team'),'Equipo Reedleaves') AS creator_name,
     COALESCE(u.id,(SELECT id FROM users WHERE id='reed-team')) AS creator_profile_user_id
     FROM books b LEFT JOIN users u ON u.id=b.creator_user_id ORDER BY b.position`).all()) {
     const book = {schemaVersion:1,id:row.id,author:row.author,editorialStatus:row.editorial_status,
       creatorUserId:row.creator_user_id,creatorName:row.creator_name || null,creatorProfileUserId:row.creator_profile_user_id || null,
-      popularTitle:row.popular_title,popularLanguage:row.popular_language,title:{},description:{},editorialNote:{},
+      popularTitle:row.popular_title,popularLanguage:row.popular_language,
+      incorporatedAt:row.incorporated_at instanceof Date?row.incorporated_at.toISOString():row.incorporated_at,
+      incorporationOrder:row.incorporation_order==null?null:Number(row.incorporation_order),title:{},description:{},editorialNote:{},
       links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id = ? ORDER BY platform").all(row.id)).map(link=>[link.platform,link.url])),
       genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id = ? ORDER BY position").all(row.id)).map(t=>t.genre_id)};
     for (const t of await db.prepare("SELECT * FROM book_translations WHERE book_id = ?").all(row.id)) {
@@ -73,7 +80,7 @@ export async function readCatalog(db, userId) {
     if(model.cards.some(card=>!card.title[card.language]||!card.body[card.language])) throw new Error("Card is missing text in its language");
   }
   // Account-created decks and their cards join the shared catalog as they are saved.
-  return {schemaVersion:6,genres,books,decks,cards};
+  return {schemaVersion:7,genres,books,decks,cards};
 }
 
 export async function checkCatalog(db) {
