@@ -367,9 +367,14 @@ export function startReader({createCardFeatures} = {}) {
     else if (view === "practice") {
       if(first === "session") {
         practiceSession=restorePracticeSession(snapshot.activePracticeSession);
-        practiceStage=practiceSession?"session":"choose";
-        practiceUnavailable=null;
-        if(!practiceSession&&snapshot.activePracticeSession)void recoverPracticeSession();
+        if(practiceSession) { practiceStage="session";practiceUnavailable=null; }
+        else if(snapshot.practiceRecovery?.status==="cancelled") {
+          practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",topic:snapshot.practiceRecovery.topic};
+          history.replaceState(history.state,"","#practice");
+        } else {
+          practiceStage="choose";practiceUnavailable=null;
+          if(snapshot.activePracticeSession)void recoverPracticeSession();
+        }
       }
       else if(first === "empty") { practiceStage="empty";practiceSession=null; }
       else { practiceStage="choose";practiceSession=null;practiceUnavailable=null; }
@@ -478,18 +483,23 @@ export function startReader({createCardFeatures} = {}) {
     const request=Promise.all([loadCatalog(),api.request("/api/session")]).then(([updatedCatalog,state])=>{
       if(!canApplyPracticeRecovery({userId,generation,stateRevision},{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration}))return null;
       syncGeneration++;
+      const previousPracticeTopic=snapshot.activePracticeSession?.topic;
       catalog=updatedCatalog;
       applyState(state);
       const restored=restorePracticeSession(state.activePracticeSession);
       if(restored) {
         practiceSession=restored;practiceStage="session";practiceUnavailable=null;
       } else if(!state.activePracticeSession) {
-        practiceSession=null;practiceStage="choose";practiceUnavailable=null;
+        practiceSession=null;
+        if(state.practiceRecovery?.status==="cancelled") {
+          practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",topic:state.practiceRecovery.topic||previousPracticeTopic};
+          if(hash==="#practice/session")history.replaceState(history.state,"","#practice");
+        } else { practiceStage="choose";practiceUnavailable=null; }
       } else {
         practiceSession=null;practiceStage="empty";
         practiceUnavailable={reason:"connectionError",topic:state.activePracticeSession.topic};
       }
-      if(mode==="practice"&&location.hash===hash) {
+      if(mode==="practice"&&(location.hash===hash||state.practiceRecovery?.status==="cancelled"&&location.hash==="#practice")) {
         if(restored&&hash!=="#practice/session")history.replaceState(history.state,"","#practice/session");
         else if(!restored&&!state.activePracticeSession&&hash==="#practice/session")history.replaceState(history.state,"","#practice");
         render({focus:true});
@@ -514,7 +524,7 @@ export function startReader({createCardFeatures} = {}) {
     const requestTicket={userId,generation,stateRevision};
     practiceStartRequest=requestTicket;
     try {
-      const result=await api.request("/api/reader/practice/start",{topic});
+      const result=await api.request("/api/reader/practice/start",{topic,sessionId:snapshot.activePracticeSession?.id||null});
       if(!canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration})) {
         if(snapshot.user?.id===userId)void recoverPracticeSession();
         return;
@@ -522,6 +532,14 @@ export function startReader({createCardFeatures} = {}) {
       syncGeneration++;
       applyState(result.state);
       const active=result.state.activePracticeSession;
+      if(result.practiceRecovery?.status==="cancelled") {
+        practiceSession=null;practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",topic};
+        history.replaceState(history.state,"","#practice");render({focus:true});return;
+      }
+      if(result.practiceRecovery?.status==="stale") {
+        practiceSession=null;practiceStage="choose";practiceUnavailable={reason:"practiceSessionUnavailable",topic};
+        history.replaceState(history.state,"","#practice");render({focus:true});return;
+      }
       practiceIntroSession=active?{id:active.id,cardIds:[...active.cardIds],index:active.index}:null;
       practiceSession=restorePracticeSession(result.state.activePracticeSession);
       if(!practiceSession&&result.state.activePracticeSession) {
@@ -561,6 +579,7 @@ export function startReader({createCardFeatures} = {}) {
       }
       syncGeneration++;
       applyState(result.state,{captureGrowth:true});
+      if(result.practiceRecovery) practicePresentation.dispose();
     } catch(error) {
       if(!canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration})) {
         if(snapshot.user?.id===userId&&practiceSession===session&&mode==="practice") {
@@ -587,6 +606,9 @@ export function startReader({createCardFeatures} = {}) {
       practiceSession=null;practiceStage="done";practiceUnavailable=null;
     } else if(activePracticeSession) {
       practiceSession=null;practiceStage="choose";practiceUnavailable=null;history.replaceState(history.state,"","#practice");render({focus:true});void recoverPracticeSession();return;
+    } else if(result.practiceRecovery?.status==="cancelled") {
+      practiceSession=null;practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",topic:session.topic};
+      history.replaceState(history.state,"","#practice");render({focus:true});return;
     } else {
       practiceSession=null;practiceStage="choose";practiceUnavailable=null;
     }

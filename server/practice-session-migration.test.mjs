@@ -4,6 +4,7 @@ import {historicalDatabase,historicalReader,migrationNow} from "../test-support/
 import {initializeDatabase} from "./database.mjs";
 import {readReaderState} from "./reader-repository.mjs";
 import {answerPracticeSession} from "./practice-economy.mjs";
+import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
 
 for (const [dialect,version] of [["sqlite",25],["postgres",17]]) {
   test(`${dialect} v${version} migration normalizes session cards and snapshots local completion day`,async t=>{
@@ -60,6 +61,13 @@ for (const [dialect,version] of [["sqlite",41],["postgres",33]]) {
     await db.prepare("UPDATE practice_sessions SET cancelled_at=? WHERE id='active-before'").run("2026-10-07T10:01:00.000Z");
     await db.prepare(`INSERT INTO practice_sessions(id,user_id,topic,card_ids,card_index,cost,started_at)
       VALUES ('replacement-active',?,'reading',?,0,2,?)`).run(session.user_id,JSON.stringify(cardIds),startedAt);
-    assert.equal((await readReaderState(db,session,migrationNow)).activePracticeSession.id,"replacement-active");
+    for(const [position,cardId] of cardIds.entries()) {
+      await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES ('replacement-active',?,?)").run(cardId,position);
+    }
+    const cycleDay=dailyCycleDay("Europe/Madrid",migrationNow,DAILY_CYCLE_STARTS.currencyRefill);
+    await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run(session.user_id,4,cycleDay);
+    const state=await readReaderState(db,session,migrationNow);
+    assert.equal(state.activePracticeSession.id,"replacement-active");
+    assert.equal(state.petals,4,"a valid migrated session is not refunded");
   });
 }

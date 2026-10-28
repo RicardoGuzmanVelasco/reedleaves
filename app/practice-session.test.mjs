@@ -33,6 +33,17 @@ test("rejects duplicate IDs, malformed cursors and completed session snapshots",
   assert.equal(restorePracticeSession({...session,index:1.5},cardsById),null);
 });
 
+test("never hydrates pending guides, but keeps a guide in the answered historical prefix",()=>{
+  const guideCards=new Map(cardsById);
+  guideCards.set("a",{id:"a",isReadingGuide:true});
+  guideCards.set("c",{id:"c",isReadingGuide:true});
+  assert.equal(restorePracticeSession(session,guideCards),null);
+  guideCards.set("c",{id:"c"});
+  assert.equal(restorePracticeSession({...session,index:1},guideCards).cards[0].isReadingGuide,true);
+  guideCards.set("b",{id:"b",isReadingGuide:true});
+  assert.equal(restorePracticeSession({...session,index:1},guideCards),null);
+});
+
 test("a recovery ticket cannot apply after a newer answer or a later login to the same account",()=>{
   const request={userId:"reader",generation:4,stateRevision:8};
   assert.equal(canApplyPracticeRecovery(request,{userId:"reader",generation:4,stateRevision:8}),true);

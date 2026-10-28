@@ -632,6 +632,7 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .practice-choose h1{max-width:100%;margin-bottom:22px;font-size:clamp(23px,7.7vw,36px);line-height:1.1;font-weight:900;letter-spacing:-.045em;text-wrap:balance}
 .practice-question-row{position:relative;max-width:390px;margin:0 auto 22px;padding:35px 0 0}
 .practice-question-row h1{max-width:none;margin:0;font-size:clamp(20px,7vw,32px);white-space:nowrap}
+.practice-recovery-message{max-width:390px;margin:-8px auto 14px;color:#51654c;font-size:14px;font-weight:750;line-height:1.4;text-align:center}
 .practice-help-trigger{position:absolute;top:-7px;left:50%;display:grid;width:44px;height:44px;place-items:center;padding:0;border:0;border-radius:50%;background:transparent;color:#173d2c;font-size:17px;font-weight:850;line-height:1;transform:translateX(-50%)}
 .practice-help-trigger::before{position:absolute;width:28px;height:28px;border:1px solid #87947e;border-radius:50%;background:#f0f5df;box-shadow:0 2px 0 #c3d2a9;content:""}
 .practice-help-trigger span{position:relative}

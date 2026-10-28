@@ -13,13 +13,22 @@ import {insertCardView} from "./profile-repository.mjs";
 import {cardSavesInside} from "./card-saves.mjs";
 import {distinguishedBookIds,ensureBookToRead} from "./book-reading.mjs";
 import {accruePetalWallet,MAX_PETALS} from "./petal-wallet-repository.mjs";
-import {practiceDiscountTopic} from "./practice-economy.mjs";
+import {practiceDiscountTopic,reconcilePracticeSessionInside} from "./practice-economy.mjs";
 import {lockReaderAccount} from "./reader-account-lock.mjs";
 
 export async function readReaderState(db,session,now=new Date()) {
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
-    return stateInside(db,session,now);
+    const recovery=await reconcilePracticeSessionInside(db,session.user_id,now),state=await stateInside(db,session,now);
+    if(recovery.recovery) state.practiceRecovery={status:recovery.recovery,topic:recovery.topic||recovery.session?.topic||null};
+    else if(!state.activePracticeSession) {
+      const latest=await db.prepare(`SELECT topic,cancelled_at,completed_at FROM practice_sessions WHERE user_id=?
+        ORDER BY CASE WHEN cancelled_at IS NOT NULL THEN cancelled_at WHEN completed_at IS NOT NULL THEN completed_at ELSE started_at END DESC,
+        CASE WHEN completed_at IS NOT NULL THEN 1 WHEN cancelled_at IS NOT NULL THEN 0 ELSE -1 END DESC,
+        started_at DESC,id DESC LIMIT 1`).get(session.user_id);
+      if(latest?.cancelled_at&&!latest.completed_at) state.practiceRecovery={status:"cancelled",topic:latest.topic};
+    }
+    return state;
   });
 }
 async function stateInside(db,session,now) {

@@ -26,8 +26,23 @@ async function currentDiscount(db,userId) {
 }
 
 function sessionFromRow(row) {
-  return {id:row.id,topic:row.topic,cardIds:JSON.parse(row.card_ids),index:Number(row.card_index),cost:Number(row.cost),
+  let cardIds=null;
+  try { const parsed=JSON.parse(row.card_ids);if(Array.isArray(parsed))cardIds=parsed; } catch {}
+  return {id:row.id,topic:row.topic,cardIds,index:Number(row.card_index),cost:Number(row.cost),
     startedAt:timestampText(row.started_at),completedAt:row.completed_at?timestampText(row.completed_at):null};
+}
+
+async function deckAccess(db,userId) {
+  const rows=await db.prepare(`SELECT d.id,d.status,d.kind,d.contribution_policy,d.creator_user_id,
+      EXISTS(SELECT 1 FROM studies s WHERE s.user_id=? AND s.deck_id=d.id) AS enrolled,
+      EXISTS(SELECT 1 FROM deck_contributors dc WHERE dc.user_id=? AND dc.deck_id=d.id) AS invited,
+      EXISTS(SELECT 1 FROM cards c WHERE c.deck_id=d.id AND c.is_reading_guide=1) AS has_reading_guide
+    FROM decks d`).all(userId,userId);
+  return new Map(rows.map(row=>{
+    const owner=row.creator_user_id===userId,invited=!!row.invited,hasReadingGuide=!!row.has_reading_guide;
+    const closedDraft=row.kind==="collective"&&row.status==="draft"&&!owner&&row.contribution_policy!=="open"&&!invited;
+    return [row.id,{currentlyAccessible:(row.status!=="archived"||!!row.enrolled)&&!hasReadingGuide&&!closedDraft}];
+  }));
 }
 
 async function availableCards(db,userId,topic) {
@@ -35,23 +50,104 @@ async function availableCards(db,userId,topic) {
   const statuses=new Map((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(row=>[row.book_id,row.status]));
   const enrolled=new Set((await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(row=>row.deck_id));
   const saved=new Set((await db.prepare("SELECT card_id FROM card_saves WHERE user_id=?").all(userId)).map(row=>row.card_id));
+  const access=await deckAccess(db,userId);
   return catalog.allCards.filter(card=>{
+    if(card.isReadingGuide||!access.get(card.deckId)?.currentlyAccessible) return false;
     const status=statuses.get(card.bookId)||"unread",isSaved=saved.has(card.id);
     const inCollection=enrolled.has(card.deckId),isReadingBook=inCollection&&status==="reading",isReadBook=inCollection&&status==="read";
     return topic==="reading"?isReadingBook:topic==="read"?isReadBook:topic==="saved"?isSaved:isReadingBook||isReadBook||isSaved;
   });
 }
 
-export async function startPracticeSession(db,session,topic,now=new Date()) {
-  if(!PRACTICE_TOPICS.includes(topic)) throw new ApiError(400,"invalidRequest");
+async function refundCancelledSession(db,userId,cost,now) {
+  const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(userId);
+  if(!account) throw new ApiError(401,"signInRequired");
+  const cycleDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.currencyRefill);
+  await accruePetalWallet(db,userId,cycleDay);
+  const refunded=await db.prepare("UPDATE petal_wallets SET balance=balance+? WHERE user_id=?").run(cost,userId);
+  if(refunded.changes!==1) throw new Error("Practice refund wallet is missing");
+}
+
+// The caller owns the account lock and transaction. Keep this order everywhere:
+// account → active session → wallet.
+export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
+  const active=await db.prepare(`SELECT * FROM practice_sessions WHERE user_id=? AND completed_at IS NULL AND cancelled_at IS NULL${isPostgres(db)?" FOR UPDATE":""}`).get(userId);
+  if(!active) return {session:null,recovery:null};
+
+  const session=sessionFromRow(active),rows=await db.prepare(`SELECT psc.card_id,psc.position,c.id AS existing_card_id,c.is_reading_guide,
+      d.id AS existing_deck_id,d.status AS deck_status,d.kind AS deck_kind,d.contribution_policy,d.creator_user_id,
+      dc.user_id AS invited_user_id
+    FROM practice_session_cards psc LEFT JOIN cards c ON c.id=psc.card_id
+    LEFT JOIN decks d ON d.id=c.deck_id LEFT JOIN deck_contributors dc ON dc.deck_id=d.id AND dc.user_id=?
+    WHERE psc.session_id=? ORDER BY psc.position`).all(userId,active.id);
+  const cardIds=session.cardIds;
+  const cardByPosition=new Map(rows.map(row=>[Number(row.position),row]));
+  const prefix=Array.isArray(cardIds)?cardIds.slice(0,session.index):[];
+  // Never rewrite the answered prefix. A malformed prefix cannot safely be repaired.
+  if(!Array.isArray(cardIds)||cardIds.length!==PRACTICE_SESSION_SIZE||session.index<0||session.index>=PRACTICE_SESSION_SIZE||
+    prefix.length!==session.index||prefix.some((id,index)=>typeof id!=="string"||cardByPosition.get(index)?.card_id!==id)) {
+    const cancelled=await db.prepare("UPDATE practice_sessions SET cancelled_at=? WHERE id=? AND cancelled_at IS NULL").run(now.toISOString(),active.id);
+    if(cancelled.changes!==1) throw new Error("Practice session cancellation lost its lock");
+    await refundCancelledSession(db,userId,Number(active.cost),now);
+    return {session:null,recovery:"cancelled",sessionId:active.id,topic:active.topic};
+  }
+
+  const seen=new Set(prefix),pending=new Array(PRACTICE_SESSION_SIZE-session.index).fill(null);
+  let changed=rows.some(row=>Number(row.position)>=PRACTICE_SESSION_SIZE);
+  for(let position=session.index;position<PRACTICE_SESSION_SIZE;position++) {
+    const id=cardIds[position],row=cardByPosition.get(position);
+    const closedDraft=row?.deck_kind==="collective"&&row.deck_status==="draft"&&row.creator_user_id!==userId&&row.contribution_policy!=="open"&&row.invited_user_id!==userId;
+    // A purchased card remains usable after reading/collection/archive changes; a revoked selected-draft invite is a real access loss.
+    const valid=row?.card_id===id&&row.existing_card_id===id&&row.existing_deck_id&&!row.is_reading_guide&&!closedDraft&&!seen.has(id);
+    if(valid) { pending[position-session.index]=id;seen.add(id); }
+    else changed=true;
+  }
+  if(!changed) return {session,recovery:null};
+
+  const candidates=await availableCards(db,userId,session.topic),replacementIds=candidates.map(card=>card.id).filter(id=>!seen.has(id));
+  let replacementIndex=0;
+  for(let pendingPosition=0;pendingPosition<pending.length;pendingPosition++) {
+    if(pending[pendingPosition]!==null) continue;
+    if(replacementIndex>=replacementIds.length) break;
+    const id=replacementIds[replacementIndex++];
+    pending[pendingPosition]=id;seen.add(id);
+  }
+  if(pending.some(id=>id===null)) {
+    const cancelled=await db.prepare("UPDATE practice_sessions SET cancelled_at=? WHERE id=? AND cancelled_at IS NULL").run(now.toISOString(),active.id);
+    if(cancelled.changes!==1) throw new Error("Practice session cancellation lost its lock");
+    await refundCancelledSession(db,userId,Number(active.cost),now);
+    return {session:null,recovery:"cancelled",sessionId:active.id,topic:active.topic};
+  }
+
+  const repairedIds=[...prefix,...pending];
+  await db.prepare("DELETE FROM practice_session_cards WHERE session_id=? AND position>=?").run(active.id,session.index);
+  for(let position=session.index;position<PRACTICE_SESSION_SIZE;position++) {
+    await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)").run(active.id,repairedIds[position],position);
+  }
+  await db.prepare("UPDATE practice_sessions SET card_ids=? WHERE id=?").run(JSON.stringify(repairedIds),active.id);
+  return {session:{...session,cardIds:repairedIds},recovery:"repaired",sessionId:active.id};
+}
+
+export async function startPracticeSession(db,session,topic,now=new Date(),expectedSessionId) {
+  if(!PRACTICE_TOPICS.includes(topic)||(expectedSessionId!==undefined&&expectedSessionId!==null&&(typeof expectedSessionId!=="string"||!expectedSessionId))) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     const userId=session.user_id;
     await lockReaderAccount(db,userId);
+    const recovery=await reconcilePracticeSessionInside(db,userId,now);
+    if(recovery.recovery==="cancelled") return {reason:"practiceSessionCancelled",practiceRecovery:{status:"cancelled",topic:recovery.topic}};
+    if(!recovery.session&&expectedSessionId) {
+      const expected=await db.prepare("SELECT topic,cancelled_at FROM practice_sessions WHERE id=? AND user_id=?").get(expectedSessionId,userId);
+      if(expected?.cancelled_at) return {reason:"practiceSessionCancelled",practiceRecovery:{status:"cancelled",topic:expected.topic}};
+      return {reason:"practiceSessionUnavailable",practiceRecovery:{status:"stale",topic:expected?.topic||topic}};
+    }
+    if(!recovery.session&&expectedSessionId===undefined) {
+      const latest=await db.prepare("SELECT topic,cancelled_at FROM practice_sessions WHERE user_id=? ORDER BY started_at DESC,id DESC LIMIT 1").get(userId);
+      if(latest?.cancelled_at) return {reason:"practiceSessionCancelled",practiceRecovery:{status:"cancelled",topic:latest.topic}};
+    }
     const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(userId);
     if(!account) throw new ApiError(401,"signInRequired");
-    const active=await db.prepare(`SELECT * FROM practice_sessions WHERE user_id=? AND completed_at IS NULL AND cancelled_at IS NULL${isPostgres(db)?" FOR UPDATE":""}`).get(userId);
     const cycleDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.currencyRefill),wallet=await accruePetalWallet(db,userId,cycleDay);
-    if(active) return {session:sessionFromRow(active),resumed:true,discountTopic:await currentDiscount(db,userId),balance:wallet.balance};
+    if(recovery.session) return {session:recovery.session,resumed:true,...(recovery.recovery?{practiceRecovery:{status:recovery.recovery,topic:recovery.session.topic}}:{}),discountTopic:await currentDiscount(db,userId),balance:wallet.balance};
 
     const cards=await availableCards(db,userId,topic),available=cards.length;
     if(available<PRACTICE_SESSION_SIZE) return {reason:"notEnoughCards",topic,available,required:PRACTICE_SESSION_SIZE,balance:wallet.balance};
@@ -73,17 +169,24 @@ export async function startPracticeSession(db,session,topic,now=new Date()) {
 }
 
 export async function answerPracticeSession(db,session,input,now=new Date()) {
-  if(typeof input.sessionId!=="string"||!input.sessionId||typeof input.cardId!=="string"||!input.cardId||
-    !Number.isSafeInteger(input.index)||input.index<0||!['soon','remembered'].includes(input.answer)) throw new ApiError(400,"invalidRequest");
+  if(typeof input.sessionId!=="string"||!input.sessionId) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
+    const recovery=await reconcilePracticeSessionInside(db,session.user_id,now);
+    if(recovery.recovery==="cancelled") return {session:null,practiceRecovery:{status:"cancelled",topic:recovery.topic},sessionId:recovery.sessionId};
+    if(recovery.session&&recovery.session.id!==input.sessionId) throw new ApiError(409,"practiceSessionUnavailable");
+    if(recovery.recovery==="repaired") return {session:recovery.session,practiceRecovery:{status:"repaired",topic:recovery.session.topic},sessionId:recovery.sessionId};
     const query=`SELECT * FROM practice_sessions WHERE id=? AND user_id=?${isPostgres(db)?" FOR UPDATE":""}`;
     const row=await db.prepare(query).get(input.sessionId,session.user_id);
     if(!row) throw new ApiError(404,"practiceSessionUnavailable");
     const current=sessionFromRow(row);
-    if(row.cancelled_at) throw new ApiError(409,"practiceSessionUnavailable");
+    if(row.cancelled_at) return {session:null,practiceRecovery:{status:"cancelled",topic:row.topic},sessionId:row.id};
+    if(typeof input.cardId!=="string"||!input.cardId||!Number.isSafeInteger(input.index)||input.index<0||!['soon','remembered'].includes(input.answer)) throw new ApiError(400,"invalidRequest");
     if(input.index<current.index) return {session:current,idempotent:true};
-    if(row.completed_at||input.index!==current.index||current.cardIds[current.index]!==input.cardId) throw new ApiError(409,"invalidRequest");
+    if(row.completed_at) throw new ApiError(409,"invalidRequest");
+    if(input.index!==current.index||current.cardIds[current.index]!==input.cardId) return {
+      session:current,practiceRecovery:{status:"repaired",topic:current.topic},sessionId:current.id
+    };
     const answeredAt=now.toISOString(),nextIndex=current.index+1,completedAt=nextIndex===PRACTICE_SESSION_SIZE?answeredAt:null;
     const account=completedAt ? await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id) : null;
     const completedLocalDay=account ? dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.mascotGrowth) : null;
