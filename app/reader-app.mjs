@@ -29,6 +29,7 @@ import {createModalPageLock} from "./modal-page-lock.mjs";
 import {adjacentCard,swipeStep} from "./card-reading-navigation.mjs";
 import {growthFeedbackChanges,growthFeedbackMarkup,fitGrowthFeedbackTitle,playGrowthFeedback} from "./growth-feedback.mjs";
 import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,practiceSessionAfterAnimation,restorePracticeSession as restorePracticeSessionFromState,samePracticeRecoveryTicket} from "./practice-session.mjs";
+import {hasAccessibleReadingGuide,shouldShowReadingGuidePrompt} from "./reading-guide-prompt.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -51,7 +52,7 @@ export function startReader({createCardFeatures} = {}) {
   let practiceStage="choose",practiceSession=null,practiceUnavailable=null,practiceRecoveryRequest=null,practiceRecoveryGeneration=0,authoritativeStateGeneration=0,practiceIntroSession=null,practiceStartRequest=null,practiceAnswerRequest=null;
   let pendingGrowthFeedback=[];
   let authorForm = null, quotesOnly = false, deckPreview = false, previewColumns = 2, previewDeckId = null;
-  let noteDestination=null,deckCompletion=null,notesCompletion=null,bookStatusError=null,noteNudgeBookId=null,readingGuideError=null,readingGuideDraft=null;
+  let noteDestination=null,deckCompletion=null,notesCompletion=null,bookStatusError=null,noteNudgeBookId=null,readingGuidePromptBookId=null,guidePreviewReturn=null,readingGuideError=null,readingGuideDraft=null;
   let deckLanguageError=null,deckTitleEdit=null,deckContributorError=null,deckContributorInput="";
   let profileId=null,profileData=null,profileError=null,profileReturnHash="#home",profileRequest=null,profileGeneration=0;
   const recordedViews=new Set(),pendingViews=new Set();
@@ -226,7 +227,7 @@ export function startReader({createCardFeatures} = {}) {
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
     const selectedDaily=dailyHistory.find(item=>item.day===selectedDailyDay)||daily;
     const state = {presentationLayout,presentationIndex,bookViews,userId:snapshot.user?.id,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,deckContributorError,deckContributorInput,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily:selectedDaily,dailyToday:daily,dailyHistory,dailyStatus,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountTopic:snapshot.practiceDiscountTopic,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
-      deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,readingGuideError,readingGuideDraft,libraryQuery,libraryFilters,libraryFiltersOpen,libraryFilterDraft,bookSortOrder,bookshelfTab,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
+      deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,readingGuidePromptBookId,readingGuideError,readingGuideDraft,libraryQuery,libraryFilters,libraryFiltersOpen,libraryFilterDraft,bookSortOrder,bookshelfTab,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
       profileData,profileError,readOnly:mode === "public-bookshelf",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,accountLearningNotice};
     presentationState=state;
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
@@ -324,6 +325,8 @@ export function startReader({createCardFeatures} = {}) {
     if(!location.hash.startsWith("#library"))libraryFiltersOpen=false;
     if (!ready) return; noteDestination=null;deckCompletion=null;notesCompletion=null;refreshState();
     const [view,first,second] = location.hash.slice(1).split("/");
+    const returningFromGuidePreview=guidePreviewReturn?.hash===location.hash?guidePreviewReturn:null;
+    if(returningFromGuidePreview)openBookId=returningFromGuidePreview.openBookId;
     const publicReadRoute=["library","book","guides","guide-preview","preview","review","read"].includes(view);
     if (inviteRequired && !snapshot.user && view !== "account" && !publicReadRoute) { if (location.hash && location.hash !== "#account") authReturn = location.hash; mode = "account"; render({focus}); return; }
     if(view !== "account") {
@@ -408,6 +411,7 @@ export function startReader({createCardFeatures} = {}) {
       if (mode === "home" && !snapshot.user) { pendingDeck = null; authReturn = "#home"; }
     }
     render({focus});
+    if(returningFromGuidePreview)finishGuidePreviewReturn(returningFromGuidePreview);
     if (mode === "home" && snapshot.user) void refreshDailyStatus();
     if (focus && ["library","bookshelf"].includes(mode) && listPositions[mode] && !openBookId && !authorForm) {
       window.scrollTo({top:listPositions[mode].scrollY});
@@ -1110,7 +1114,7 @@ export function startReader({createCardFeatures} = {}) {
   function closeDeck(id) { openDeckId = null; render(); [...main.querySelectorAll('[data-action="open-deck"]')].find(b=>b.dataset.deck === id)?.focus({preventScroll:true}); }
   function closeBookDetails(id) {
     if (location.hash.startsWith("#library/book/")) history.replaceState({bookOrigin,libraryOrigin},"","#library");
-    openBookId=null;bookStatusError=null;noteNudgeBookId=null;noteDestination=null;render();
+    openBookId=null;bookStatusError=null;noteNudgeBookId=null;readingGuidePromptBookId=null;noteDestination=null;render();
     const cover=[...main.querySelectorAll('[data-action="open-book-details"]')].find(button=>button.dataset.book === id);
     (cover || main.querySelector("h1"))?.focus({preventScroll:true});
   }
@@ -1153,20 +1157,42 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function setBookReading(id,status) {
     if (!snapshot.user || mode === "public-bookshelf" || !catalog.booksById.has(id) || !["unread","to-read","reading","read"].includes(status) || (statuses[id] === status && status !== "unread" && status !== "to-read") || (status === "to-read" && snapshot.statuses?.[id] === "unread") || (status === "unread" && !snapshot.statuses?.[id])) return;
-    bookStatusError=null;const keepBookDialog=mode === "library" && openBookId === id;let preserveDialogDOM=keepBookDialog;
+    bookStatusError=null;const previousStatus=statuses[id]||"unread",keepBookDialog=mode === "library" && openBookId === id;let preserveDialogDOM=keepBookDialog;
     const saved=await mutation("/api/reader/reading",{bookId:id,status},()=>{
       live.textContent=words[language][status === "to-read" ? "bookAddedToShelf" : status === "read" ? "bookMarkedRead" : status === "reading" ? "bookMarkedReading" : "bookMarkedUnread"];
-      noteNudgeBookId=mode === "library" && status !== "unread" ? id : null;
+      const showGuidePrompt=["home","library","bookshelf"].includes(mode)&&shouldShowReadingGuidePrompt({previousStatus,nextStatus:status,saveSucceeded:true,hasGuideCards:hasAccessibleReadingGuide(catalog,id)});
+      readingGuidePromptBookId=showGuidePrompt?id:null;
+      noteNudgeBookId=mode === "library" && status !== "unread" && !showGuidePrompt ? id : null;
       if (status === "read") notesCompletion=createNotesCompletion(id);
       preserveDialogDOM=keepBookDialog && !notesCompletion;
       if (preserveDialogDOM) syncBookReadingDialog(id,status);
-    },{preserveDOM:()=>preserveDialogDOM && snapshot.user && mode === "library" && openBookId === id});
+    },{preserveDOM:()=>preserveDialogDOM && !readingGuidePromptBookId && snapshot.user && mode === "library" && openBookId === id});
     if (!saved && snapshot.user) {
       bookStatusError={bookId:id,code:syncError};
       if (keepBookDialog && mode === "library" && openBookId === id) syncBookReadingDialog(id,statuses[id],syncError);
       else render();
     }
     if (!notesCompletion) [...main.querySelectorAll('[data-action="set-book-reading"]')].find(button=>button.dataset.book === id && button.dataset.status === status)?.focus({preventScroll:true});
+  }
+  function dismissReadingGuidePrompt(id) {
+    if(readingGuidePromptBookId!==id||statuses[id]!=="reading")return;
+    readingGuidePromptBookId=null;noteNudgeBookId=null;render();
+    [...main.querySelectorAll('[data-action="set-book-reading"]')].find(button=>button.dataset.book===id&&button.dataset.status==="reading")?.focus({preventScroll:true});
+  }
+  function openReadingGuidePrompt(id) {
+    if(readingGuidePromptBookId!==id||statuses[id]!=="reading"||!hasAccessibleReadingGuide(catalog,id))return;
+    guidePreviewReturn={hash:location.hash,bookId:id,openBookId,origin:mode,scrollY:window.scrollY,dialogScrollTop:main.querySelector(".book-modal")?.scrollTop||0};
+    readingGuidePromptBookId=null;noteNudgeBookId=null;navigate("#guide-preview/"+encodeURIComponent(id));
+  }
+  function backFromReadingGuidePreview() {
+    if(guidePreviewReturn){navigate(guidePreviewReturn.hash);return;}
+    navigate("#book/"+encodeURIComponent(bookId));
+  }
+  function finishGuidePreviewReturn(context) {
+    guidePreviewReturn=null;bookOrigin=context.origin;openBookId=context.openBookId;
+    window.scrollTo({top:context.scrollY});
+    const dialog=main.querySelector(".book-modal");if(dialog)dialog.scrollTop=context.dialogScrollTop;
+    [...main.querySelectorAll('[data-action="set-book-reading"]')].find(button=>button.dataset.book===context.bookId&&button.dataset.status==="reading")?.focus({preventScroll:true});
   }
   async function enterDeck(id) {
     if (!snapshot.user) { openDeckId = null; navigate("#review/"+id); return; }
@@ -1410,6 +1436,8 @@ export function startReader({createCardFeatures} = {}) {
       case "practice-again": practiceSession=null;practiceStage="choose";navigate("#practice"); break;
       case "profile": openOwnProfile(); break;
       case "set-book-reading": setBookReading(b.dataset.book,b.dataset.status); break;
+      case "dismiss-reading-guide-reading-prompt": dismissReadingGuidePrompt(b.dataset.book); break;
+      case "view-reading-guides-after-reading": openReadingGuidePrompt(b.dataset.book); break;
       case "finish-book-notes": openNotesCompletion(b.dataset.book); break;
       case "keep-note-decks": closeNotesCompletion(); break;
       case "confirm-note-decks": confirmNotesCompletion(); break;
@@ -1472,7 +1500,7 @@ export function startReader({createCardFeatures} = {}) {
       case "open-reading-guides": bookId=b.dataset.book;requestedId=null;navigate("#guides/"+encodeURIComponent(bookId));break;
       case "open-reading-guide-preview": bookId=b.dataset.book;requestedId=null;navigate("#guide-preview/"+encodeURIComponent(bookId));break;
       case "edit-reading-guide": navigate("#guides/"+encodeURIComponent(bookId));break;
-      case "back-from-reading-guide-preview": navigate("#book/"+encodeURIComponent(bookId));break;
+      case "back-from-reading-guide-preview": backFromReadingGuidePreview();break;
       case "open-reading-guide-card": requestedId=b.dataset.card;navigate("#guides/"+encodeURIComponent(bookId)+"/"+encodeURIComponent(requestedId));break;
       case "back-to-book-decks": requestedId=null;navigate("#book/"+encodeURIComponent(bookId));break;
       case "open-book-details": if (b.tagName === "A") { if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return; e.preventDefault(); } if (catalog.booksById.has(b.dataset.book)) { bookStatusError=null;noteNudgeBookId=null;openBookId=b.dataset.book;render(); } break;
