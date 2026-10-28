@@ -4,7 +4,7 @@ import {mountInterests} from "./interests.mjs";
 import {mountBookLists,BOOK_VIEWS} from "./book-list.mjs";
 import {startBottomNavigationBehavior} from "./bottom-navigation-behavior.mjs";
 import {loadCatalog} from "./catalog.mjs";
-import {localDay, restoreLanguage, bookTitle, FEEDBACK_MESSAGE_MAX_LENGTH} from "./core.mjs";
+import {localDay, restoreLanguage, bookTitle, FEEDBACK_MESSAGE_MAX_LENGTH, LANGUAGES} from "./core.mjs";
 import {featuredDecks,isReadingGuideDeck} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
@@ -240,7 +240,10 @@ export function startReader({createCardFeatures} = {}) {
       showAppModal(dialog); const isNoteDestination=dialog.classList.contains("note-destination-dialog");
       const close = ()=>dialog.classList.contains("notes-completion-modal") ? closeNotesCompletion() : dialog.classList.contains("deck-completion-modal") ? closeDeckCompletion() : isNoteDestination ? closeNoteDestination() : dialog.classList.contains("author-modal") ? closeAuthorForm() : dialog.dataset.book ? closeBookDetails(dialog.dataset.book) : closeDeck(dialog.dataset.deck);
       if (isNoteDestination) { positionNoteDestination();dialog.querySelector("button")?.focus({preventScroll:true}); }
-      if (authorForm) dialog.querySelector(authorForm.preview ? "#author-dialog-title" : authorForm.bookId ? '[data-action="autofill-book"]' : "input,textarea")?.focus();
+      if (authorForm) {
+        syncBookFormValidity(dialog.querySelector("[data-author-form]"));
+        dialog.querySelector(authorForm.preview ? "#author-dialog-title" : authorForm.bookId ? '[data-action="autofill-book"]' : "input,textarea")?.focus();
+      }
       dialog.addEventListener("cancel",event=>{ event.preventDefault(); close(); });
       dialog.addEventListener("click",event=>{
         if (event.target !== dialog) return;
@@ -828,6 +831,7 @@ export function startReader({createCardFeatures} = {}) {
     if (!snapshot.user) return;
     const {forceParentId=false,...formOptions}=options;
     authorForm = {kind,requestId:crypto.randomUUID(),title:kind === "book" ? libraryQuery : "",author:"",body:"",description:"",language:kind === "book" ? "" : language,parentId:kind === "quote" ? null : requestedId || null,...(kind === "deck"?{contributionMode:"owner"}:{}),...formOptions};
+    if (kind === "book") authorForm.metadata=normalizeBookMetadata();
     if (["card","quote"].includes(kind)) {
       if (authorForm.createNoteDeck) authorForm.noteDeckId=authorForm.requestId;
       authorForm.noteUserId=snapshot.user.id;authorForm.noteBookId ??= bookId;authorForm.noteDeckId ??= deckId;
@@ -1032,6 +1036,18 @@ export function startReader({createCardFeatures} = {}) {
       }
     }
   }
+  function syncBookFormValidity(form) {
+    if (!form || authorForm?.kind !== "book" || authorForm.bookId || authorForm.preview) return;
+    const metadata=authorForm.metadata;
+    for (const tag of LANGUAGES) {
+      const started=["title","description","editorialNote"].some(field=>metadata[field][tag]?.trim());
+      for (const field of ["description","editorialNote"]) {
+        const input=form.elements.namedItem(`metadata.${field}.${tag}`);
+        if (input) input.required=started;
+      }
+    }
+    form.querySelector('[name="metadata.genres"]')?.setCustomValidity(metadata.genres.length ? "" : words[language].bookGenreRequired);
+  }
   function changeAuthorField(input) {
     if (!authorForm || !input.name) return;
     authorForm.error=null;
@@ -1044,11 +1060,13 @@ export function startReader({createCardFeatures} = {}) {
     if (authorForm.metadata) {
       const metadata=authorForm.metadata;
       if (input.name === "metadata.genres") {
-        metadata.genres=input.checked ? [...new Set([...metadata.genres,input.value])] : metadata.genres.filter(id=>id!==input.value); return;
+        metadata.genres=input.checked ? [...new Set([...metadata.genres,input.value])] : metadata.genres.filter(id=>id!==input.value);
+        syncBookFormValidity(input.closest("form")); return;
       }
       if (input.name.startsWith("metadata.")) {
         const [,field,key]=input.name.split(".");
-        if (field === "links" && !input.value.trim()) delete metadata.links[key]; else metadata[field][key]=input.value;
+        if (!input.value.trim() && (field === "links" || !authorForm.bookId)) delete metadata[field][key]; else metadata[field][key]=input.value;
+        syncBookFormValidity(input.closest("form"));
         return;
       }
       if (input.name === "title") {
