@@ -51,7 +51,8 @@ export function validateSeed(seed) {
     if (!text(b.popular_title) || !locale(b.popular_language)) throw new Error("Invalid popular book title or language");
     if (!text(b.author) || !/^\d+$/.test(b.position) || Number(b.position) < 1 || positions.has(Number(b.position))) throw new Error("Invalid book position or author");
     positions.add(Number(b.position));
-    if (!b.genres?.split("|").every(id => genres.has(id))) throw new Error("Unknown book genre");
+    const bookGenres=b.genres?.split("|");
+    if (!bookGenres?.length || bookGenres.some(id => !genres.has(id)) || new Set(bookGenres).size!==bookGenres.length) throw new Error("Unknown or duplicate book genre");
     if (!["draft", "reviewed"].includes(b.editorial_status)) throw new Error("Invalid editorial status");
     for (const language of LANGUAGES) for (const field of ["description", "editorial_note"]) {
       if (!text(b[field + "_" + language])) throw new Error("Missing book text");
@@ -129,7 +130,7 @@ export async function seedCatalog(db, seed = readSeed()) {
           ? [b.id,language,b[`title_${language}`],b[`short_title_${language}`] || b[`title_${language}`],b[`description_${language}`],b[`editorial_note_${language}`]]
           : [b.id, language, ...["title", "description", "editorial_note"].map(field => b[field + "_" + language])]));
       await db.prepare("DELETE FROM book_genres WHERE book_id = ?").run(b.id);
-      for (const id of new Set(b.genres.split("|"))) await db.prepare("INSERT INTO book_genres VALUES (?, ?)").run(b.id, id);
+      for (const [index,id] of b.genres.split("|").entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(b.id,id,index+1);
     }
     for (const link of seed.links) await db.prepare(`INSERT INTO book_links(book_id,platform,url) VALUES (?,?,?)
       ON CONFLICT(book_id,platform) DO UPDATE SET url = excluded.url`).run(link.book_id, link.platform, bookLinkUrl(link.platform, link.url));

@@ -45,8 +45,12 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
     await db.prepare(`INSERT INTO book_links(book_id,platform,url)
       SELECT ?,platform,url FROM book_links WHERE book_id=? ON CONFLICT(book_id,platform) DO UPDATE SET
         url=CASE WHEN length(trim(book_links.url))=0 THEN excluded.url ELSE book_links.url END`).run(targetId,sourceId);
-    await db.prepare(`INSERT INTO book_genres(book_id,genre_id)
-      SELECT ?,genre_id FROM book_genres WHERE book_id=? ON CONFLICT(book_id,genre_id) DO NOTHING`).run(targetId,sourceId);
+    let targetInterestPosition=(await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM book_genres WHERE book_id=?").get(targetId)).position;
+    const sourceInterests=await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY position").all(sourceId);
+    for(const {genre_id} of sourceInterests) {
+      if(await db.prepare("SELECT 1 FROM book_genres WHERE book_id=? AND genre_id=?").get(targetId,genre_id)) continue;
+      await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(targetId,genre_id,targetInterestPosition++);
+    }
 
     const sourceReading=await db.prepare("SELECT user_id,status FROM book_reading WHERE book_id=?").all(sourceId);
     // Account-created books appear on their creator's profile even if their explicit

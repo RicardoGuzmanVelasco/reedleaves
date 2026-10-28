@@ -109,6 +109,15 @@ for (const dialect of ["sqlite","postgres"]) {
     await assert.rejects(ownedBookInformation(db,other,bookId),e=>e.status===404);
     await assert.rejects(completeBook(db,session,{...request,bookId:"atomic-habits"}),e=>e.status===404);
   });
+  test(`${dialect}: preserve editorial interest order through book writes and catalog reads`,async t=>{
+    const {db,session}=await fixture(t,dialect),metadata=structuredClone(bookMetadata);
+    metadata.genres=["finance","personal-growth","productivity"];
+    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:metadata.popularTitle,author:"Daniel Kahneman",language:"en",metadata});
+    const saved=(await readCatalog(db)).books.find(book=>book.id===bookId);
+    assert.deepEqual(saved.genres,metadata.genres);
+    assert.deepEqual((await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId)).map(row=>[row.genre_id,row.position]),[["finance",1],["personal-growth",2],["productivity",3]]);
+    await assert.rejects(createBook(db,session,{requestId:randomUUID(),title:"Repeated",author:"Author",language:"en",metadata:{...metadata,genres:["finance","finance"]}}),e=>e.status===400);
+  });
   test(`${dialect}: preserve existing metadata and later additions, reject invalid completion atomically, support other original languages`,async t=>{
     const {db,session}=await fixture(t,dialect);
     const original=structuredClone(bookMetadata);

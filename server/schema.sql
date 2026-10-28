@@ -40,7 +40,9 @@ CREATE TABLE book_translations (
 CREATE TABLE book_genres (
   book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
   genre_id TEXT NOT NULL REFERENCES genres(id),
-  PRIMARY KEY(book_id, genre_id)
+  position INTEGER NOT NULL CHECK(position > 0),
+  PRIMARY KEY(book_id, genre_id),
+  UNIQUE(book_id, position)
 ) STRICT;
 
 CREATE INDEX book_genres_by_genre ON book_genres(genre_id, book_id);
@@ -323,4 +325,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 43;
+PRAGMA user_version = 44;

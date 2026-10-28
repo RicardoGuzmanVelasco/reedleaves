@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 35));
-INSERT INTO reed_schema VALUES (35);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 36));
+INSERT INTO reed_schema VALUES (36);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '');
@@ -30,7 +30,7 @@ CREATE TABLE book_translations(
 );
 CREATE TABLE book_genres(
   book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE, genre_id TEXT NOT NULL REFERENCES genres(id),
-  PRIMARY KEY(book_id,genre_id)
+  position INTEGER NOT NULL CHECK(position > 0), PRIMARY KEY(book_id,genre_id), UNIQUE(book_id,position)
 );
 CREATE INDEX book_genres_by_genre ON book_genres(genre_id,book_id);
 CREATE TABLE users(

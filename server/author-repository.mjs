@@ -21,7 +21,7 @@ export async function ownedBookInformation(db,session,bookId,{lock=false}={}) {
   const book=await db.prepare(`SELECT * FROM books WHERE id=? AND creator_user_id=?${lock && isPostgres(db) ? " FOR UPDATE" : ""}`).get(bookId,session.user_id);
   if (!book) throw new ApiError(404,"bookUnavailable");
   const metadata={popularTitle:book.popular_title,popularLanguage:book.popular_language,title:{},description:{},editorialNote:{},
-    genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY genre_id").all(bookId)).map(row=>row.genre_id),
+    genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY position").all(bookId)).map(row=>row.genre_id),
     links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id=?").all(bookId)).map(row=>[row.platform,row.url]))};
   for (const row of await db.prepare("SELECT * FROM book_translations WHERE book_id=?").all(bookId)) {
     metadata.title[row.language]=row.title;
@@ -46,7 +46,8 @@ export async function completeBook(db,session,input) {
     for (const genre of metadata.genres) if (!await db.prepare("SELECT 1 FROM genres WHERE id=?").get(genre)) throw new ApiError(400,"invalidRequest");
     for (const language of Object.keys(metadata.title)) await db.prepare(`INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)
       ON CONFLICT(book_id,language) DO NOTHING`).run(input.bookId,language,metadata.title[language],metadata.description[language],metadata.editorialNote[language]);
-    for (const genre of metadata.genres) await db.prepare("INSERT INTO book_genres(book_id,genre_id) VALUES (?,?) ON CONFLICT(book_id,genre_id) DO NOTHING").run(input.bookId,genre);
+    let nextInterestPosition=(await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM book_genres WHERE book_id=?").get(input.bookId)).position;
+    for (const genre of metadata.genres) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?) ON CONFLICT(book_id,genre_id) DO NOTHING").run(input.bookId,genre,nextInterestPosition++);
     for (const [platform,url] of Object.entries(metadata.links)) await db.prepare("INSERT INTO book_links(book_id,platform,url) VALUES (?,?,?) ON CONFLICT(book_id,platform) DO NOTHING").run(input.bookId,platform,url);
     return {bookId:input.bookId};
   });
@@ -66,7 +67,7 @@ export async function createBook(db,session,input) {
     if (previous) {
       if (previous.creator_user_id !== session.user_id || previous.popular_title !== title || previous.author !== author || previous.popular_language !== language) throw new ApiError(409,"invalidRequest");
       const saved={popularTitle:title,popularLanguage:language,title:{},description:{},editorialNote:{},
-        genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY genre_id").all(id)).map(row=>row.genre_id),
+        genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY position").all(id)).map(row=>row.genre_id),
         links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id=?").all(id)).map(row=>[row.platform,row.url]))};
       for (const row of await db.prepare("SELECT * FROM book_translations WHERE book_id=?").all(id)) {
         saved.title[row.language]=row.title;
@@ -89,7 +90,7 @@ export async function createBook(db,session,input) {
     const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM books").get();
     await db.prepare("INSERT INTO books(id,author,popular_title,popular_language,position,creator_user_id) VALUES (?,?,?,?,?,?)").run(id,author,title,language,position,session.user_id);
     for (const language of Object.keys(metadata.title)) await db.prepare("INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,metadata.title[language],metadata.description[language],metadata.editorialNote[language]);
-    for (const genre of metadata.genres) await db.prepare("INSERT INTO book_genres(book_id,genre_id) VALUES (?,?)").run(id,genre);
+    for (const [index,genre] of metadata.genres.entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(id,genre,index+1);
     for (const [platform,url] of Object.entries(metadata.links)) await db.prepare("INSERT INTO book_links(book_id,platform,url) VALUES (?,?,?)").run(id,platform,url);
     await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'reading')").run(session.user_id,id);
     return {bookId:id};

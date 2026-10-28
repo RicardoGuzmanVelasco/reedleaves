@@ -18,7 +18,7 @@ export async function readCatalog(db, userId) {
       creatorUserId:row.creator_user_id,creatorName:row.creator_name || null,creatorProfileUserId:row.creator_profile_user_id || null,
       popularTitle:row.popular_title,popularLanguage:row.popular_language,title:{},description:{},editorialNote:{},
       links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id = ? ORDER BY platform").all(row.id)).map(link=>[link.platform,link.url])),
-      genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id = ? ORDER BY genre_id").all(row.id)).map(t=>t.genre_id)};
+      genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id = ? ORDER BY position").all(row.id)).map(t=>t.genre_id)};
     for (const t of await db.prepare("SELECT * FROM book_translations WHERE book_id = ?").all(row.id)) {
       if(t.title.trim() && t.title.trim()!==book.popularTitle.trim()) book.title[t.language]=t.title;
       book.description[t.language]=t.description; book.editorialNote[t.language]=t.editorial_note;
@@ -73,7 +73,7 @@ export async function readCatalog(db, userId) {
     if(model.cards.some(card=>!card.title[card.language]||!card.body[card.language])) throw new Error("Card is missing text in its language");
   }
   // Account-created decks and their cards join the shared catalog as they are saved.
-  return {schemaVersion:5,genres,books,decks,cards};
+  return {schemaVersion:6,genres,books,decks,cards};
 }
 
 export async function checkCatalog(db) {
@@ -85,5 +85,9 @@ export async function checkCatalog(db) {
   if(catalog.genres.some(g=>LANGUAGES.some(language=>!g.name[language]?.trim()))) throw new Error("Missing genre translation");
   if(catalog.genres.some(g=>!validInterestAppearance(g))) throw new Error("Missing or invalid interest appearance");
   for(const book of catalog.books) if(!book.creatorUserId && !book.genres.length||book.genres.some(id=>!ids.has(id))) throw new Error("Missing book genre");
+  for(const book of catalog.books) {
+    const positions=await db.prepare("SELECT position FROM book_genres WHERE book_id=? ORDER BY position").all(book.id);
+    if(positions.some((row,index)=>row.position!==index+1)) throw new Error("Invalid book interest order");
+  }
   return {books:catalog.books.length,decks:catalog.decks.length,cards:catalog.cards.length,genres:catalog.genres.length};
 }
