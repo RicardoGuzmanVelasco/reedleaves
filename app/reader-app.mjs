@@ -24,7 +24,7 @@ import {usefulProfileReturnHash,profileReturnTarget} from "./profile-navigation.
 import {createModalPageLock} from "./modal-page-lock.mjs";
 import {adjacentCard,swipeStep} from "./card-reading-navigation.mjs";
 import {growthFeedbackChanges,growthFeedbackMarkup,fitGrowthFeedbackTitle,playGrowthFeedback} from "./growth-feedback.mjs";
-import {canApplyPracticeRecovery,practiceSessionAfterAnimation,restorePracticeSession as restorePracticeSessionFromState,samePracticeRecoveryTicket} from "./practice-session.mjs";
+import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,practiceSessionAfterAnimation,restorePracticeSession as restorePracticeSessionFromState,samePracticeRecoveryTicket} from "./practice-session.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -37,7 +37,7 @@ export function startReader({createCardFeatures} = {}) {
   const practicePresentation = createPracticePresentation({presentReading});
   let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, budget, preferences, statuses, daily, dailyHistory=[],dailyStatus=null,dailyStatusRequest=null,dailyStatusGeneration=0,animatedDailyDays=new Set(),dailySeenDays=new Set(), selectedDailyDay=null, dailyExclusiveCardId=null, calendarMonth=null,calendarNavFocus=null,bookId, deckId, requestedId, selections, enrolledIds;
   let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, scrollToCard = false;
-  let practiceStage="choose",practiceSession=null,practiceUnavailable=null,practiceRecoveryRequest=null,practiceRecoveryGeneration=0,authoritativeStateGeneration=0,practiceIntroSession=null,practiceStartRequest=null;
+  let practiceStage="choose",practiceSession=null,practiceUnavailable=null,practiceRecoveryRequest=null,practiceRecoveryGeneration=0,authoritativeStateGeneration=0,practiceIntroSession=null,practiceStartRequest=null,practiceAnswerRequest=null;
   let pendingGrowthFeedback=[];
   let authorForm = null, quotesOnly = false, deckPreview = false, previewColumns = 2, previewDeckId = null;
   let noteDestination=null,deckCompletion=null,notesCompletion=null,bookStatusError=null,noteNudgeBookId=null,readingGuideError=null,readingGuideDraft=null;
@@ -74,7 +74,14 @@ export function startReader({createCardFeatures} = {}) {
       cardSaves:snapshot.cardSaves||[],revision:syncGeneration,actionSlots,actionSlot:main.querySelector("[data-card-actions]"),entrySlot:main.querySelector("[data-saved-cards-entry]"),listSlot:main.querySelector("[data-saved-cards-list]")});
   }
   function applyState(state,{captureGrowth=false}={}) {
-    if(snapshot.user?.id!==state.user?.id){practiceIntroSession=null;practiceStartRequest=null;}
+    if(snapshot.user?.id!==state.user?.id) {
+      syncGeneration++;
+      practiceIntroSession=null;
+      practiceRecoveryGeneration++;
+      practiceRecoveryRequest=null;
+      practiceStartRequest=null;
+      practiceAnswerRequest=null;
+    }
     authoritativeStateGeneration++;
     if(captureGrowth && snapshot.user?.id && snapshot.user.id===state.user?.id) pendingGrowthFeedback.push(...growthFeedbackChanges(snapshot.growth,state.growth));
     if (snapshot.user?.id !== state.user?.id) { dailyStatus=null;dailyStatusGeneration++;dailyStatusRequest=null;animatedDailyDays.clear();dailySeenDays.clear(); }
@@ -467,8 +474,10 @@ export function startReader({createCardFeatures} = {}) {
     const stateRevision=authoritativeStateGeneration;
     if(samePracticeRecoveryTicket(practiceRecoveryRequest,{userId,generation:practiceRecoveryGeneration,stateRevision}))return practiceRecoveryRequest.promise;
     const hash=location.hash,generation=++practiceRecoveryGeneration;
+    syncGeneration++;
     const request=Promise.all([loadCatalog(),api.request("/api/session")]).then(([updatedCatalog,state])=>{
       if(!canApplyPracticeRecovery({userId,generation,stateRevision},{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration}))return null;
+      syncGeneration++;
       catalog=updatedCatalog;
       applyState(state);
       const restored=restorePracticeSession(state.activePracticeSession);
@@ -499,6 +508,7 @@ export function startReader({createCardFeatures} = {}) {
   async function startPractice(topic) {
     if(!snapshot.user || practiceStartRequest || !["reading","read","saved","mixed"].includes(topic))return;
     invalidatePracticeRecovery();
+    syncGeneration++;
     practiceIntroSession=null;
     const userId=snapshot.user.id,generation=practiceRecoveryGeneration,stateRevision=authoritativeStateGeneration;
     const requestTicket={userId,generation,stateRevision};
@@ -509,6 +519,7 @@ export function startReader({createCardFeatures} = {}) {
         if(snapshot.user?.id===userId)void recoverPracticeSession();
         return;
       }
+      syncGeneration++;
       applyState(result.state);
       const active=result.state.activePracticeSession;
       practiceIntroSession=active?{id:active.id,cardIds:[...active.cardIds],index:active.index}:null;
@@ -531,10 +542,13 @@ export function startReader({createCardFeatures} = {}) {
     if(!cardId||!userId)return;
     invalidatePracticeRecovery();
     const requestTicket={userId,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration};
+    practiceAnswerRequest=requestTicket;
+    syncGeneration++;
     session.advancing=true;session.answer=answer;
     const departure=practicePresentation.leave(answer === "soon" ? "left" : "right",{
       fromXPercent:swipeX/cardWidth*100,fromRotation:rotation
     });
+    try {
     let result;
     try {
       result=await api.request("/api/reader/practice/answer",{sessionId:session.id,cardId,index:session.index,answer});
@@ -545,6 +559,7 @@ export function startReader({createCardFeatures} = {}) {
         }
         return;
       }
+      syncGeneration++;
       applyState(result.state,{captureGrowth:true});
     } catch(error) {
       if(!canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration})) {
@@ -576,6 +591,7 @@ export function startReader({createCardFeatures} = {}) {
       practiceSession=null;practiceStage="choose";practiceUnavailable=null;
     }
     render({focus:true});
+    } finally {if(practiceAnswerRequest===requestTicket)practiceAnswerRequest=null;}
   }
   function resumePractice() {
     practiceSession=restorePracticeSession();
@@ -1121,9 +1137,9 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function ensureDaily() { if (!busy) await mutation("/api/reader/daily",{}); }
   async function sync(force = false) {
-    if (!ready || busy || cardFeatures?.pending || !force && (main.querySelector("[data-account-form]") || document.activeElement?.id === "book-search" || document.activeElement?.matches("[data-library-filter]") || main.querySelector(".deck-modal") || mode === "author" || settings.open)) return;
+    if (!ready || busy || hasPendingPracticeOperation({startRequest:practiceStartRequest,answerRequest:practiceAnswerRequest,recoveryRequest:practiceRecoveryRequest}) || cardFeatures?.pending || !force && (main.querySelector("[data-account-form]") || document.activeElement?.id === "book-search" || document.activeElement?.matches("[data-library-filter]") || main.querySelector(".deck-modal") || mode === "author" || settings.open)) return;
     const generation = ++syncGeneration;
-    try { const state = await api.request("/api/session"); const updatedCatalog = await loadCatalog(); if (generation !== syncGeneration || busy) return;
+    try { const state = await api.request("/api/session"); const updatedCatalog = await loadCatalog(); if (!canApplyReaderSync(generation,syncGeneration,{busy,practicePending:hasPendingPracticeOperation({startRequest:practiceStartRequest,answerRequest:practiceAnswerRequest,recoveryRequest:practiceRecoveryRequest})})) return;
       const sameUser=snapshot.user?.id===state.user?.id;
       const changed = JSON.stringify(state) !== JSON.stringify(snapshot) || ["books","decks","cards"].some(key=>JSON.stringify(updatedCatalog?.[key]) !== JSON.stringify(catalog?.[key])); catalog = updatedCatalog; applyState(state); syncError = null;
       if (mode === "home" && snapshot.user) void refreshDailyStatus();
