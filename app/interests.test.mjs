@@ -25,7 +25,7 @@ test("All approved interests use catalog emojis and localized names in details, 
     assert.match(interestIcon(interest),/aria-hidden="true"/);
     const formState={...state,userId:"reader",authorForm:{kind:"book",requestId:"book-test",title:"Book",author:"Author",language:"en",metadata:{popularTitle:"Book",popularLanguage:"en",title:{es:"Libro",en:"Book"},description:{es:"Texto",en:"Text"},editorialNote:{es:"Nota",en:"Note"},genres:[id],links:{}}}};
     const form=authorFormView(formState);
-    assert.match(form,new RegExp(`<input type="checkbox" name="metadata.genres" value="${id}" checked>`));
+    assert.match(form,new RegExp(`<input type="checkbox" name="metadata.genres" value="${id}"[^>]*checked>`));
     assert.ok(form.includes(interestIcon(interest)));assert.ok(form.includes(name));
     const preview=authorFormView({...formState,authorForm:{...formState.authorForm,preview:true}});
     assert.ok(preview.includes(`${interestIcon(interest)}${name}`));

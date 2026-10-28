@@ -155,6 +155,27 @@ test("Autofill HTTP returns only a safe error and reference; private provider di
   assert.equal((await db.prepare("SELECT count(*) AS n FROM books").get()).n,5);
 });
 
+test("Manual creation persists all book fields without invoking the unavailable AI provider",async t=>{
+  const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);
+  let calls=0;
+  const server=createCatalogServer(db,undefined,{bookAutofill:async()=>{calls++;throw new Error("AI is unavailable");}});
+  server.listen(0,"127.0.0.1");await once(server,"listening");
+  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const post=(path,data,headers={})=>fetch(base+path,{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify(data)});
+  const signed=await post("/api/auth/register",{username:"manual.reader",password:"a local test password"}),state=await signed.json();
+  const headers={Cookie:signed.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":state.csrfToken};
+  const bookId=randomUUID(),metadata=structuredClone(bookMetadata);
+  const response=await post("/api/author/books",{requestId:bookId,title:metadata.popularTitle,author:"Autor manual",language:metadata.popularLanguage,metadata},headers);
+  assert.equal(response.status,200);assert.equal((await response.json()).bookId,bookId);assert.equal(calls,0);
+  const catalog=await fetch(base+"/api/catalog");assert.equal(catalog.status,200);
+  const book=(await catalog.json()).books.find(book=>book.id===bookId);
+  assert.equal(book.author,"Autor manual");
+  const expectedTitle=Object.fromEntries(Object.entries(metadata.title).filter(([,value])=>value && value!==metadata.popularTitle));
+  assert.deepEqual(book.title,expectedTitle);
+  for (const field of ["popularTitle","popularLanguage","description","editorialNote","genres","links"]) assert.deepEqual(book[field],metadata[field]);
+});
+
 test("Autofill HTTP requires session, origin and CSRF; preview never creates a book; logout during search revokes result",async t=>{
   const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);
   let calls=0,release;

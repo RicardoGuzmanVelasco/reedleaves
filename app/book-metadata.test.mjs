@@ -7,6 +7,32 @@ import {words} from "./i18n.mjs";
 import {readerState,emptyCatalog} from "../test-support/reader-state.mjs";
 
 const state=readerState({...emptyCatalog(),genres:[{id:"personal-growth",name:{es:"Crecimiento personal"}}]});
+test("New books expose interests, both translations and links before AI, including after an unavailable provider",()=>{
+  for (const language of ["es","en"]) for (const error of [undefined,"aiUnavailable"]) {
+    const html=authorFormView({...state,language,authorForm:{kind:"book",title:"Mi libro",author:"Mi autor",language:"es",error}});
+    assert.match(html,/<details class="book-metadata-editor" open>/);
+    assert.match(html,/name="metadata.genres"/);
+    assert.ok(html.includes(words[language].bookGenreRequired));
+    for (const tag of ["es","en"]) for (const field of ["title","description","editorialNote"]) {
+      assert.ok(html.includes(`name="metadata.${field}.${tag}"`));
+      assert.ok(html.includes(`for="author-metadata.${field}.${tag}"`));
+    }
+    for (const platform of ["amazon","goodreads"]) assert.ok(html.includes(`name="metadata.links.${platform}"`));
+    assert.match(html,/data-action="autofill-book"/);
+    assert.match(html,/type="submit"/);
+    assert.doesNotMatch(html,/name="metadata\.(?:description|editorialNote)\.[^"]+"[^>]*required/);
+  }
+});
+
+test("A started manual translation keeps the server's complete-translation contract without requiring the untouched language",()=>{
+  const metadata=normalizeBookMetadata({description:{es:"Descripción manual"}},{completeTranslations:false});
+  const html=authorFormView({...state,authorForm:{kind:"book",metadata}});
+  for (const field of ["description","editorialNote"]) {
+    assert.match(html,new RegExp(`name="metadata\\.${field}\\.es"[^>]*required`));
+    assert.doesNotMatch(html,new RegExp(`name="metadata\\.${field}\\.en"[^>]*required`));
+  }
+});
+
 test("Preferred titles are optional and an empty preference preserves the popular title",()=>{
   const value={...structuredClone(bookMetadata),title:{es:"",en:""}};
   assert.deepEqual(normalizeBookMetadata(value).title,{es:"",en:""});
