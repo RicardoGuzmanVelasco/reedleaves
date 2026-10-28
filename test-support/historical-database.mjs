@@ -3,7 +3,7 @@ import {readFileSync} from "node:fs";
 import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase} from "../server/database.mjs";
 import {seedCatalog} from "./historical-seed.mjs";
-import {readSeed as readCurrentSeed,seedCatalog as seedCurrentCatalog} from "../server/seed.mjs";
+import {readSeed as readCurrentSeed,seedCatalog as seedPreAppearanceCatalog} from "./pre-interest-appearance-seed.mjs";
 import {seedCatalog as seedPrePopularCatalog} from "./pre-popular-title-seed.mjs";
 
 // Load a real released schema, never a current schema with its version lowered.
@@ -27,7 +27,7 @@ export async function historicalDatabase(t,dialect,version) {
   if (beforePersonalBooks) await db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
   if (version >= (dialect === "postgres" ? 21 : 29)) {
     const seed=readCurrentSeed(),hasPopularTitle=version >= (dialect === "postgres" ? 33 : 41);
-    if (hasPopularTitle) await seedCurrentCatalog(db,seed);
+    if (hasPopularTitle) await seedPreAppearanceCatalog(db,seed);
     else {
       for (const book of seed.books) { book.original_title=book.popular_title; book.original_language=book.popular_language; }
       // Released schemas required a nonempty translated title, even when it was
@@ -93,7 +93,7 @@ export async function migrationData(db) {
     ? await db.prepare("SELECT column_name AS name FROM information_schema.columns WHERE table_schema='public' AND table_name='books'").all()
     : db.prepare("PRAGMA table_info(books)").all();
   const popular=bookColumns.some(column=>column.name === "popular_title");
-  const columns={books:popular ? "id,author,position,editorial_status,popular_title AS original_title,popular_language AS original_language,updated_at" : "id,author,position,editorial_status,original_title,original_language,updated_at",
+  const columns={genres:"id",books:popular ? "id,author,position,editorial_status,popular_title AS original_title,popular_language AS original_language,updated_at" : "id,author,position,editorial_status,original_title,original_language,updated_at",
     decks:"id,book_id,creator_user_id,language,is_recommended,created_at"};
   for (const table of tables) {
     const additiveGenre=table === "genres" ? " WHERE id NOT IN ('society','software','mindfulness')" : table === "genre_translations" ? " WHERE genre_id NOT IN ('society','software','mindfulness')" : "";

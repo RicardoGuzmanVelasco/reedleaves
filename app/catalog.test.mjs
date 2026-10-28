@@ -46,7 +46,7 @@ test("Frontend consumes the database API without a hard-coded book or card count
   await assert.rejects(loadCatalog(async () => ({ ok: false })));
 });
 test("Catalog validation rejects orphan cards, duplicate IDs and missing genre translations", async () => {
-  for (const mutate of [p => p.cards[0].bookId = "unknown", p => p.cards.push(p.cards[0]), p => delete p.genres[0].name.en, p => p.books[0].genres.push("unknown")]) {
+  for (const mutate of [p => p.cards[0].bookId = "unknown", p => p.cards.push(p.cards[0]), p => delete p.genres[0].name.en, p => delete p.genres[0].emoji, p => p.genres[0].color="url(https://example.com)", p => p.books[0].genres.push("unknown")]) {
     const data = await payload(); mutate(data); assert.throws(() => prepareCatalog(data));
   }
 });

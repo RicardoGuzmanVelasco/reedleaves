@@ -5,13 +5,15 @@ La app consulta SQLite, no estos archivos. Los CSV son el formato plano de autor
 | Archivo | Una fila representa |
 | --- | --- |
 | `users.csv` | Usuario creador; actualmente el equipo editorial real, sin sesiones ni lectores inventados |
-| `genres.csv` | Un interés con nombre ES/EN |
+| `genres.csv` | Un interés con nombre ES/EN, emoji y color tenue `#RRGGBB` |
 | `books.csv` | Un libro con metadatos ES/EN y géneros separados por `|` |
 | `links.csv` | Enlace externo de un libro: plataforma (`amazon` o `goodreads`) y URL HTTPS de su ficha |
 | `decks.csv` | Baraja, creador, libro, idioma principal y estado; enfoque y nota editorial |
 | `cards.csv` | Tarjeta con baraja, padre opcional, orden entre hermanas y texto |
 
 `decks.csv` declara una etiqueta de idioma BCP 47 en `language`, por ejemplo `fr`, `pt-BR` o `zh-Hant`. Esa columna fija el idioma original de la baraja. Las columnas traducidas usan sufijos de idioma, por ejemplo `title_fr` y `body_fr`. Añade una columna y rellénala solo si quieres ofrecer esa traducción; cada tarjeta siempre debe tener título y texto en el idioma principal.
+
+Todo interés nuevo exige nombre en ambos idiomas, un único emoji y color de las familias existentes antes de importar/publicar. Emoji y color viajan en `genres[]` del catálogo como campos aditivos; no cambian las asociaciones ni su orden. Los valores de apariencia se definen aquí, no en el cliente.
 
 El catálogo de intereses incluye Sociedad (`society`) en español e inglés. Está disponible para futuras asignaciones; ningún libro actual tiene ese interés.
 

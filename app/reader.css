@@ -9,7 +9,7 @@
 /* Deck selection and daily leaves reuse the approved book/paper palette. */
 .deck-screen{padding:18px 0 34px}.deck-heading{display:block;margin:14px 0 22px}.deck-heading-book,.deck-heading-title{display:flex;align-items:center;justify-content:space-between;gap:12px}.deck-heading-book{margin-bottom:8px}.deck-heading-book .small-book,.deck-heading-title h1{min-width:0;overflow-wrap:anywhere}.deck-heading-title [data-saved-cards-entry]{flex:none}.small-book{font-size:12px;color:var(--muted);margin-bottom:7px;line-height:1.5}
 .deck-card{border:2px solid var(--sage);border-radius:28px;background:#fffdf6;box-shadow:0 6px 0 #ccd8b9;padding:28px}
-.deck-tags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px}.deck-tags span{background:#e4f0cc;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:750;line-height:1.4}
+.deck-tags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px}.deck-tags>span{background:#e4f0cc;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:750;line-height:1.4}
 .deck-card h2{font-size:30px;line-height:1.18;overflow-wrap:anywhere}.deck-creator{display:flex;align-items:center;flex-wrap:wrap;gap:5px;font-size:12px;font-weight:500;color:var(--muted);line-height:1.5;margin-top:10px;overflow-wrap:anywhere}
 .deck-description{font-size:17px;line-height:1.7;margin-top:24px}
 .deck-metrics{font-size:12px;color:var(--muted);line-height:1.6;margin-top:12px}.deck-card .primary{width:100%;margin-top:26px}
@@ -33,7 +33,7 @@
 .tree-node-row{display:flex;align-items:stretch;gap:6px;width:100%}.tree-node-row .tree-node{flex:1;min-width:0}.tree-node-note,.preview-card-note{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:8px;border:1.5px solid #71896b;border-radius:13px;background:var(--control-surface,#f0f3e5);color:#71896b;box-shadow:0 3px 0 #b7c8a8;transition:transform .12s,box-shadow .12s}.tree-node-note:hover,.preview-card-note:hover{transform:translateY(-2px);box-shadow:0 5px 0 #b7c8a8}.tree-node-note .take-note-icon,.preview-card-note .take-note-icon{width:24px;height:24px;transform:translate(-.5px,-.5px)}
 .deck-creator .deck-language{display:inline-flex;margin-left:8px;padding:2px 8px;border:0;border-radius:9px;background:#eef3df;color:var(--ink);font-size:10px;font-weight:750;line-height:1.6}
 .deck-card .deck-collection-primary{gap:9px;text-align:left}.deck-collection-primary>img{flex:none}.deck-collection-primary>span:first-of-type{flex:1;min-width:0}.pricetag{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:3px;flex:none;min-width:44px;min-height:32px;padding:5px 8px;border-radius:10px;color:var(--ink);font-size:13px;font-weight:850;line-height:1;white-space:nowrap;transform:rotate(-1deg)}.pricetag-paper{position:absolute;z-index:-1;inset:0;width:100%;height:100%;color:#f3d8b2}.pricetag img{width:19px;height:19px}.pricetag--discounted{gap:2px;min-width:79px;padding-right:7px;padding-left:7px;overflow:visible}.pricetag--discounted .pricetag-paper{color:#f6b27d}.pricetag--discounted>img,.pricetag-discount-numbers,.pricetag-offer-icon{position:relative;z-index:1}.pricetag-discount-numbers{position:relative;display:inline-flex;align-items:center;gap:3px;min-width:0;height:19px;flex:none}.pricetag-previous{position:relative;display:inline-grid;place-items:center;min-width:10px;color:var(--ink);font-size:14px;font-weight:850;line-height:18px;font-variant-numeric:tabular-nums;opacity:1}.pricetag-cross{position:absolute;inset:-1px -3px;width:16px;height:20px;color:#a84938;opacity:.57;overflow:visible;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;fill:none}.pricetag-discount-numbers strong{position:relative;color:var(--ink);font-size:14px;font-weight:850;line-height:18px;font-variant-numeric:tabular-nums}.pricetag-offer-icon{position:absolute;left:43px;top:25px;z-index:2;width:26px;height:26px;overflow:visible;fill:currentColor;fill-rule:evenodd;transform:rotate(13deg);pointer-events:none}.practice-topic .pricetag{margin-top:7px}
-@media(max-width:520px){.deck-card{padding:23px 21px;border-radius:25px}.deck-card h2{font-size:28px}.deck-description{font-size:16px;margin-top:20px}.deck-tags{margin-bottom:17px}.deck-tags span{font-size:10px}.deck-creator{font-size:13px}.deck-heading .screen-heading h1{font-size:26px}.leaf-balance{font-size:10px!important}.leaf-balance img{width:18px;height:18px}.review-heading{flex-wrap:wrap}.tree-map{margin:14px 0 19px;padding:11px 10px 7px}.tree-map-heading{gap:7px}.tree-map-legend{gap:5px 9px;font-size:8px}.tree-node{min-height:45px;padding:7px 32px 7px 11px;font-size:10px}.review-start h1{font-size:24px}}
+@media(max-width:520px){.deck-card{padding:23px 21px;border-radius:25px}.deck-card h2{font-size:28px}.deck-description{font-size:16px;margin-top:20px}.deck-tags{margin-bottom:17px}.deck-tags>span{font-size:10px}.deck-creator{font-size:13px}.deck-heading .screen-heading h1{font-size:26px}.leaf-balance{font-size:10px!important}.leaf-balance img{width:18px;height:18px}.review-heading{flex-wrap:wrap}.tree-map{margin:14px 0 19px;padding:11px 10px 7px}.tree-map-heading{gap:7px}.tree-map-legend{gap:5px 9px;font-size:8px}.tree-node{min-height:45px;padding:7px 32px 7px 11px;font-size:10px}.review-start h1{font-size:24px}}
 
 /* Deck grid: choose at a glance, then read full details in a native modal. */
 .deck-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
@@ -96,7 +96,20 @@
 
 .header-tools{display:flex;align-items:center;gap:12px;width:100%}.header-leading{display:flex;align-items:center;min-width:0}.header-leading:empty{display:none}
 #open-settings{margin-left:0}.profile-header-back{min-height:44px;padding-inline:0;font-size:13px;white-space:nowrap}
-.interest-icon{display:inline-block;width:18px;height:18px;flex:none;vertical-align:middle}
+.interest-emoji{display:inline-grid;place-items:center;flex:none;width:1.35em;height:1.35em;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;font-size:20px;font-weight:400;line-height:1;vertical-align:middle}
+.deck-tags>.interest-chip{gap:7px;padding:7px 11px;border-radius:12px;color:var(--ink);background:radial-gradient(ellipse at 25% 10%,#fff 0%,var(--interest-color,var(--paper)) 100%);font-size:12px;white-space:normal}
+.deck-tags>.interest-chip .interest-emoji{font-size:22px}
+.book-genre-fields{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.book-genre-fields .interest-option{--interest-edge:var(--line);align-items:center;min-height:58px;margin:0;padding:9px 11px;border:1px solid var(--interest-edge);border-radius:15px;background:radial-gradient(ellipse at 15% 0%,#fff 0%,var(--interest-color,var(--paper)) 150%);box-shadow:0 3px 0 var(--interest-edge);transition:transform .12s,box-shadow .12s}
+.book-genre-fields .interest-option:has(input:checked){--interest-edge:var(--sage)}
+.book-genre-fields:not(:disabled) .interest-option:is(:active,.is-pressed){transform:translateY(2px);box-shadow:0 1px 0 var(--interest-edge)}
+.book-genre-fields .interest-option:has(input:focus-visible){outline:3px solid var(--ink);outline-offset:3px}
+.book-genre-fields .interest-option input:focus-visible{outline:none}
+.book-genre-fields .interest-option-content{min-width:0;line-height:1.3}
+.interest-option .interest-emoji{font-size:27px;transition:transform .16s cubic-bezier(.2,.8,.3,1)}
+.interest-option:has(input:checked) .interest-emoji{transform:rotate(-7deg) scale(1.08)}
+@media(max-width:520px){.deck-tags>.interest-chip{font-size:12px}.book-genre-fields{grid-template-columns:1fr}.book-genre-fields .interest-option{min-height:56px}.interest-option .interest-emoji{font-size:28px}}
+@media(prefers-reduced-motion:reduce){.interest-option:has(input:checked) .interest-emoji{transform:none}.book-genre-fields:not(:disabled) .interest-option:is(:active,.is-pressed){transform:none}}
 .deck-tags>span{display:inline-flex;align-items:center;gap:5px}
 .book-genre-fields .check-row>span,.library-filter-options label>span{display:flex;align-items:center;gap:7px}
 .wallet{display:flex;align-items:center;gap:3px;font-size:12px;font-weight:850;font-variant-numeric:tabular-nums}.wallet img{width:18px;height:18px}
@@ -219,7 +232,7 @@
 .book-translations summary{cursor:pointer;font-weight:750;padding:8px 0;min-height:44px}
 .book-metadata-editor{margin-top:12px;font-size:13px}.book-metadata-editor summary{cursor:pointer;font-weight:750;min-height:44px;padding:10px 0}
 .book-translation-editor{border-top:1px solid var(--line);margin-top:12px;padding-bottom:10px}
-.book-translation-editor label{display:block;margin:10px 0 9px}.book-genre-fields{display:block;margin-top:15px}.book-genre-fields .check-row input{min-height:20px;width:20px;padding:0}
+.book-translation-editor label{display:block;margin:10px 0 9px}.book-genre-fields{margin-top:15px}.book-genre-fields .check-row input{min-height:20px;width:20px;padding:0}
 .book-translations section{border-top:1px solid var(--sage);padding:14px 0}.book-translations h3{font-size:14px;margin:0 0 8px}
 .book-translations p{margin:8px 0;white-space:pre-line}.book-translations small{color:var(--muted)}
 .preview-cancel{align-self:center;min-height:44px}.book-preview-modal .form-actions{margin-top:0}
