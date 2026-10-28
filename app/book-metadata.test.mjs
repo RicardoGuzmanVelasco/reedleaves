@@ -12,7 +12,7 @@ test("New books expose interests, both translations and links before AI, includi
     const html=authorFormView({...state,language,authorForm:{kind:"book",title:"Mi libro",author:"Mi autor",language:"es",error}});
     assert.match(html,/<details class="book-metadata-editor" open>/);
     assert.match(html,/name="metadata.genres"/);
-    assert.ok(html.includes(words[language].bookGenreRequired));
+    assert.ok(html.includes(words[language].bookInterestHelp));
     for (const tag of ["es","en"]) for (const field of ["title","description","editorialNote"]) {
       assert.ok(html.includes(`name="metadata.${field}.${tag}"`));
       assert.ok(html.includes(`for="author-metadata.${field}.${tag}"`));

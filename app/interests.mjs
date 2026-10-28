@@ -1,3 +1,4 @@
+import {MAX_BOOK_INTERESTS} from "./book-interests.mjs";
 // Appearance belongs to the catalog. No interest-ID map lives in the client.
 const esc=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const graphemes=new Intl.Segmenter(undefined,{granularity:"grapheme"});
@@ -11,6 +12,24 @@ export function interestIcon(interest) {
 }
 export function interestColor(interest) {
   return validInterestColor(interest?.color) ? ` data-interest-color="${interest.color}"` : "";
+}
+
+// Update only state and descriptions: checkbox nodes, focus and option order stay put.
+export function syncBookInterestSelector(root,selected,c) {
+  const selector=root?.querySelector("[data-book-interest-selector]");
+  if (!selector) return;
+  for (const input of selector.querySelectorAll('[name="metadata.genres"]')) {
+    const position=selected.indexOf(input.value)+1;
+    input.checked=position>0;
+    input.setAttribute("aria-disabled",String(!position && selected.length>=MAX_BOOK_INTERESTS));
+    const option=input.closest(".interest-option");
+    const description=option.querySelector(".interest-order-description");
+    input.setAttribute("aria-describedby",`book-genre-help ${selected.length>=MAX_BOOK_INTERESTS ? "book-interest-limit " : ""}${description.id}`);
+    option.querySelector(".interest-order").textContent=position || "";
+    description.textContent=position ? c.bookInterestPosition(position) : "";
+  }
+  selector.querySelector("[data-interest-count]").textContent=`${selected.length} / ${MAX_BOOK_INTERESTS}`;
+  selector.querySelector("[data-interest-limit]").hidden=selected.length<MAX_BOOK_INTERESTS;
 }
 
 // CSSOM preserves the app's style-src 'self' policy; inline style attributes are blocked.

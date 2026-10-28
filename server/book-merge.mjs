@@ -1,6 +1,7 @@
 import {isPostgres,transaction} from "./database.mjs";
 import {checkCatalog} from "./catalog-repository.mjs";
 import {ApiError} from "./errors.mjs";
+import {bookInterestError} from "../app/book-interests.mjs";
 
 const readingRank={unread:0,reading:1,read:2};
 
@@ -14,9 +15,15 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
   if(sourceId===targetId) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     if(isPostgres(db)) await db.exec("LOCK TABLE books,decks,cards,book_reading,deck_selections IN SHARE ROW EXCLUSIVE MODE;");
-    const source=await db.prepare("SELECT id,creator_user_id,author,popular_title,popular_language FROM books WHERE id=?").get(sourceId);
-    const target=await db.prepare("SELECT id,author,popular_title,popular_language FROM books WHERE id=?").get(targetId);
+    // Completion locks these same rows before changing associations.
+    const rowLock=isPostgres(db)?" FOR UPDATE":"";
+    const source=await db.prepare(`SELECT id,creator_user_id,author,popular_title,popular_language FROM books WHERE id=?${rowLock}`).get(sourceId);
+    const target=await db.prepare(`SELECT id,author,popular_title,popular_language FROM books WHERE id=?${rowLock}`).get(targetId);
     if(!source||!target) throw new ApiError(404,"bookUnavailable");
+    const interestRows=await db.prepare("SELECT book_id,genre_id FROM book_genres WHERE book_id IN (?,?) ORDER BY book_id,position").all(targetId,sourceId);
+    const mergedInterests=[...new Set(interestRows.map(row=>row.genre_id))];
+    const interestError=bookInterestError(mergedInterests);
+    if(interestError) throw new ApiError(400,interestError);
 
     // Keep target values where present and fill only its missing core metadata.
     await db.prepare(`UPDATE books SET

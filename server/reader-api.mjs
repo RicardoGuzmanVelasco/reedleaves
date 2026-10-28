@@ -7,6 +7,7 @@ import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs
 
 import {createBook,createDeck,addDeckContributors,changeDeckLanguage,changeDeckTitle,addCard,takeFirstNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
 import {createBookAutofill} from "./book-autofill.mjs";
+import {MAX_BOOK_INTERESTS} from "../app/book-interests.mjs";
 import {readCardVotes,setCardVote} from "./card-votes.mjs";
 import {readCardActions,readSavedCards,setCardSave} from "./card-saves.mjs";
 import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH} from "../app/core.mjs";
@@ -126,6 +127,9 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
           const existing=await ownedBookInformation(db,active,input.bookId);
           try { search={...existing,metadata:input.metadata ? mergeOwnedBookMetadata(existing,input.metadata) : existing.metadata}; }
           catch { throw new ApiError(400,"invalidRequest"); }
+          // A historical list is immutable here. Generate missing text under the
+          // current proposal contract, then restore the stored associations below.
+          if (search.metadata.genres.length>MAX_BOOK_INTERESTS) search.metadata={...search.metadata,genres:[]};
         }
         const genres=await db.prepare("SELECT g.id,t.name FROM genres g JOIN genre_translations t ON t.genre_id=g.id WHERE t.language='en' ORDER BY g.id").all();
         const preview=await bookAutofill(active.user_id,search,genres);

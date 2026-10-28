@@ -7,6 +7,13 @@ import {normalizeQuoteSourceUrl} from "../app/quote-source.mjs";
 import {isDeepStrictEqual} from "node:util";
 import {ensureBookToRead} from "./book-reading.mjs";
 import {findBookTitleMatches} from "../app/book-duplicates.mjs";
+import {bookInterestError} from "../app/book-interests.mjs";
+
+async function validateBookInterests(db,ids,options={}) {
+  const knownIds=new Set((await db.prepare("SELECT id FROM genres").all()).map(row=>row.id));
+  const error=bookInterestError(ids,knownIds,options);
+  if (error) throw new ApiError(400,error);
+}
 
 function text(value,max,required=true) {
   if (typeof value !== "string" || value.trim().length > max || required && !value.trim()) throw new ApiError(400,"invalidRequest");
@@ -32,6 +39,7 @@ export async function ownedBookInformation(db,session,bookId,{lock=false}={}) {
 
 export function mergeOwnedBookMetadata(existing,proposal) {
   const current=structuredClone(existing.metadata);
+  if (bookInterestError(proposal?.genres ?? [],undefined,{required:false,existingIds:current.genres})) throw new Error("Invalid book interests");
   return mergeBookMetadata(current,proposal);
 }
 
@@ -41,9 +49,10 @@ export async function completeBook(db,session,input) {
   return transaction(db,async()=>{
     // Merge against current data under a lock, including additions from another session.
     const existing=await ownedBookInformation(db,session,input.bookId,{lock:true});
+    await validateBookInterests(db,proposal.genres,{required:false,existingIds:existing.metadata.genres});
     let metadata;
     try { metadata=mergeOwnedBookMetadata(existing,proposal); } catch { throw new ApiError(400,"invalidRequest"); }
-    for (const genre of metadata.genres) if (!await db.prepare("SELECT 1 FROM genres WHERE id=?").get(genre)) throw new ApiError(400,"invalidRequest");
+    await validateBookInterests(db,metadata.genres,{existingIds:existing.metadata.genres});
     for (const language of Object.keys(metadata.title)) await db.prepare(`INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)
       ON CONFLICT(book_id,language) DO NOTHING`).run(input.bookId,language,metadata.title[language],metadata.description[language],metadata.editorialNote[language]);
     let nextInterestPosition=(await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM book_genres WHERE book_id=?").get(input.bookId)).position;
@@ -53,13 +62,13 @@ export async function completeBook(db,session,input) {
   });
 }
 export async function createBook(db,session,input) {
+  await validateBookInterests(db,input.metadata?.genres ?? []);
   let metadata;
   try { metadata=normalizeBookMetadata(input.metadata); } catch { throw new ApiError(400,"invalidRequest"); }
   const id=requestId(input.requestId),title=text(metadata.popularTitle || input.title,TITLE_MAX_LENGTH),author=text(input.author,BOOK_AUTHOR_MAX_LENGTH),language=metadata.popularLanguage || input.language;
   if (!isCanonicalLocale(language)) throw new ApiError(400,"invalidRequest");
   metadata.popularTitle=title; metadata.popularLanguage=language;
   metadata=normalizeBookMetadata(metadata,{canonicalTitles:true});
-  for (const genre of metadata.genres) if (!await db.prepare("SELECT 1 FROM genres WHERE id=?").get(genre)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     // Serializes catalog positions, including requests from different authors.
     if (isPostgres(db)) await db.exec("LOCK TABLE books IN SHARE ROW EXCLUSIVE MODE;");
