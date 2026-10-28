@@ -58,4 +58,8 @@ test("private ordered-interest API requires an account and CSRF, validates edits
   const profile=await call(`/api/profiles/${encodeURIComponent(firstAccount.result.body.user.id)}`,undefined,firstAccount.headers);
   assert.equal(profile.status,200);
   assert.equal("interests" in profile.body,false,"private preferences remain separate from the public profile payload");
+  const publicInterests=await call(`/api/profiles/${encodeURIComponent(firstAccount.result.body.user.id)}/interests`,undefined,secondAccount.headers);
+  assert.equal(publicInterests.status,200);
+  assert.deepEqual(publicInterests.body,{interested:["software","finance"],notInterested:["society"]});
+  assert.deepEqual(Object.keys(publicInterests.body),["interested","notInterested"],"public reads omit revision and private setup state");
 });
