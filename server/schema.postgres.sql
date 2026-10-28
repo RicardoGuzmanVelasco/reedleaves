@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 39));
-INSERT INTO reed_schema VALUES (39);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 40));
+INSERT INTO reed_schema VALUES (40);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '');
@@ -62,6 +62,29 @@ ALTER TABLE reader_book_sort_preferences ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_book_sort_preferences FROM anon; END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_book_sort_preferences FROM authenticated; END IF;
+END $$;
+CREATE TABLE reader_interest_preferences (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  interest_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+  preference TEXT NOT NULL CHECK(preference IN ('interested','not_interested')),
+  position INTEGER NOT NULL CHECK(position BETWEEN 1 AND 5),
+  PRIMARY KEY(user_id,interest_id), UNIQUE(user_id,preference,position)
+);
+ALTER TABLE reader_interest_preferences ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_preferences FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_preferences FROM authenticated; END IF;
+END $$;
+CREATE TABLE reader_interest_settings (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  revision INTEGER NOT NULL CHECK(revision > 0),
+  configured_at TIMESTAMPTZ NOT NULL,
+  initial_opportunity_closed_at TIMESTAMPTZ NOT NULL
+);
+ALTER TABLE reader_interest_settings ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_settings FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_settings FROM authenticated; END IF;
 END $$;
 CREATE TABLE sessions(
   token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,

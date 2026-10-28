@@ -80,6 +80,19 @@ CREATE TABLE reader_book_sort_preferences (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
   sort_order TEXT NOT NULL CHECK(sort_order IN ('recent','alphabetical'))
 ) STRICT;
+CREATE TABLE reader_interest_preferences (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  interest_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+  preference TEXT NOT NULL CHECK(preference IN ('interested','not_interested')),
+  position INTEGER NOT NULL CHECK(position BETWEEN 1 AND 5),
+  PRIMARY KEY(user_id,interest_id), UNIQUE(user_id,preference,position)
+) STRICT;
+CREATE TABLE reader_interest_settings (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  revision INTEGER NOT NULL CHECK(revision > 0),
+  configured_at TEXT NOT NULL,
+  initial_opportunity_closed_at TEXT NOT NULL
+) STRICT;
 CREATE TABLE sessions (
   token_hash TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -331,4 +344,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 47;
+PRAGMA user_version = 48;
