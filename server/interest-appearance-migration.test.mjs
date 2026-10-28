@@ -12,7 +12,7 @@ async function retainedRows(db,dialect) {
     : "SELECT table_name AS name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name").all();
   const result={};
   for(const {name} of tables) if(name!=="reed_schema") {
-    const columns=name === "genres" ? "id" : "*";
+    const columns=name === "genres" ? "id" : name === "book_genres" ? "book_id,genre_id" : "*";
     result[name]=(await db.prepare(`SELECT ${columns} FROM "${name}"`).all()).map(row=>({...row})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
   }
   return result;

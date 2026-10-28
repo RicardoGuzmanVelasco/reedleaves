@@ -93,7 +93,7 @@ export async function migrationData(db) {
     ? await db.prepare("SELECT column_name AS name FROM information_schema.columns WHERE table_schema='public' AND table_name='books'").all()
     : db.prepare("PRAGMA table_info(books)").all();
   const popular=bookColumns.some(column=>column.name === "popular_title");
-  const columns={genres:"id",books:popular ? "id,author,position,editorial_status,popular_title AS original_title,popular_language AS original_language,updated_at" : "id,author,position,editorial_status,original_title,original_language,updated_at",
+  const columns={genres:"id",book_genres:"book_id,genre_id",books:popular ? "id,author,position,editorial_status,popular_title AS original_title,popular_language AS original_language,updated_at" : "id,author,position,editorial_status,original_title,original_language,updated_at",
     decks:"id,book_id,creator_user_id,language,is_recommended,created_at"};
   for (const table of tables) {
     const additiveGenre=table === "genres" ? " WHERE id NOT IN ('society','software','mindfulness')" : table === "genre_translations" ? " WHERE genre_id NOT IN ('society','software','mindfulness')" : "";

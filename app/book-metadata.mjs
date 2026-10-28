@@ -42,7 +42,8 @@ export function normalizeBookMetadata(value={}, {completeTranslations=true,canon
   if(canonicalTitles) for (const language of Object.keys(result.title)) if (result.title[language] === result.popularTitle) result.title[language]="";
   if (value.genres !== undefined) {
     if (!Array.isArray(value.genres) || value.genres.length > 20) throw new Error("Invalid book metadata");
-    result.genres=[...new Set(value.genres.map(id=>text(id,80)))].sort();
+    result.genres=value.genres.map(id=>text(id,80));
+    if(new Set(result.genres).size!==result.genres.length) throw new Error("Invalid book metadata");
   }
   if (value.links !== undefined) {
     if (!object(value.links) || Object.keys(value.links).some(key=>!BOOK_LINK_PLATFORMS.includes(key))) throw new Error("Invalid book metadata");

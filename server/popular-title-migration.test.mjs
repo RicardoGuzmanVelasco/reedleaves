@@ -41,7 +41,7 @@ for(const [dialect,version] of [["sqlite",37],["postgres",29]]) {
     await initializeDatabase(db);await initializeDatabase(db);
     assert.deepEqual(await snapshot(),before);
     const catalog=await readCatalog(db);
-    assert.equal(catalog.schemaVersion,5);
+    assert.equal(catalog.schemaVersion,6);
     for(const [id,,,,,popularTitle,popularLanguage,preferred] of cases) {
       const book=catalog.books.find(book=>book.id === id);
       assert.equal(book.popularTitle,popularTitle);assert.equal(book.popularLanguage,popularLanguage);

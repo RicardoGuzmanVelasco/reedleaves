@@ -38,6 +38,7 @@ La API devuelve me gusta y no me gusta por baraja. Sin actividad, todo vale cero
 - `server/schema.sql` y `server/schema.postgres.sql`: esquemas actuales para SQLite y PostgreSQL; migraciones de versiones anteriores en `server/database.mjs`.
 - `var/catalog.sqlite`: datos activos, privados y fuera del repositorio.
 - `content/catalog/users.csv`, `books.csv`, `genres.csv`, `decks.csv`, `cards.csv`, `links.csv`: carga inicial en texto.
+- En `books.csv`, `genres` es una lista separada por `|`; su secuencia es el orden editorial y se importa sin ordenar ni deduplicar. La API devuelve esa misma secuencia en `book.genres`.
 - `server/seed.mjs`: importación transaccional; reiniciar no sobrescribe datos.
 - `server/catalog-repository.mjs`: consulta relacional y métricas.
 - `server/leaf-wallet-repository.mjs`: abono fechado y persistente por usuario; comparte las reglas con `app/wallet.mjs`.

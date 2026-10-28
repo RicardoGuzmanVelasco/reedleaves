@@ -4,7 +4,7 @@ import { validateBookLinks } from "./book-links.mjs";
 import { validQuoteSourceUrl } from "./quote-source.mjs";
 
 export function prepareCatalog(payload) {
-  if (payload?.schemaVersion !== 5 || !Array.isArray(payload.books) || !payload.books.length ||
+  if (payload?.schemaVersion !== 6 || !Array.isArray(payload.books) || !payload.books.length ||
       !Array.isArray(payload.cards) || !Array.isArray(payload.genres) ||
       !Array.isArray(payload.decks)) throw new Error("Invalid catalog");
   const genres = payload.genres;
