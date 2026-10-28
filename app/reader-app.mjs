@@ -12,7 +12,7 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=library-interest-sort-login-15";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup} from "./views.mjs?v=library-interest-order-15";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=library-interest-order-15";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -33,6 +33,7 @@ import {growthFeedbackChanges,growthFeedbackMarkup,fitGrowthFeedbackTitle,playGr
 import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,practiceSessionAfterAnimation,restorePracticeSession as restorePracticeSessionFromState,samePracticeRecoveryTicket} from "./practice-session.mjs";
 import {hasAccessibleReadingGuide,shouldShowReadingGuidePrompt} from "./reading-guide-prompt.mjs";
 import {requestConfirmedMutation,requestPendingDeckIntent} from "./confirmed-mutation.mjs";
+import {createReadingInterestWarningFlow} from "./reading-interest-warning.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -57,7 +58,7 @@ export function startReader({createCardFeatures} = {}) {
   let practiceStage="choose",practiceSession=null,practiceUnavailable=null,practiceRecoveryRequest=null,practiceRecoveryGeneration=0,authoritativeStateGeneration=0,practiceIntroSession=null,practiceStartRequest=null,practiceAnswerRequest=null;
   let pendingGrowthFeedback=[];
   let authorForm = null, quotesOnly = false, deckPreview = false, previewColumns = 2, previewDeckId = null;
-  let noteDestination=null,deckCompletion=null,notesCompletion=null,bookStatusError=null,noteNudgeBookId=null,readingGuidePromptBookId=null,guidePreviewReturn=null,readingGuideError=null,readingGuideDraft=null;
+  let noteDestination=null,deckCompletion=null,notesCompletion=null,bookStatusError=null,bookInterestPrompt=null,bookInterestFlow=null,noteNudgeBookId=null,readingGuidePromptBookId=null,guidePreviewReturn=null,readingGuideError=null,readingGuideDraft=null;
   let deckLanguageError=null,deckTitleEdit=null,deckContributorError=null,deckContributorInput="";
   let profileId=null,profileData=null,profileError=null,profileReturnHash="#home",profileRequest=null,profileGeneration=0,profileInterests=null;
   const recordedViews=new Set(),pendingViews=new Set();
@@ -243,10 +244,10 @@ export function startReader({createCardFeatures} = {}) {
     const selectedDaily=dailyHistory.find(item=>item.day===selectedDailyDay)||daily;
     const state = {presentationLayout,presentationIndex,bookViews,userId:snapshot.user?.id,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,deckContributorError,deckContributorInput,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily:selectedDaily,dailyToday:daily,dailyHistory,dailyStatus,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountTopic:snapshot.practiceDiscountTopic,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
       deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,readingGuidePromptBookId,readingGuideError,readingGuideDraft,libraryQuery,libraryFilters,libraryFiltersOpen,libraryFilterDraft,bookSortOrder,librarySortOrder,interestPreferences,libraryInterestSortPending,libraryInterestSortError,bookshelfTab,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
-      profileData,profileError,profileInterests,readOnly:mode === "public-bookshelf",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,accountLearningNotice,accountInterestSortNotice};
+      profileData,profileError,profileInterests,bookInterestPrompt,readOnly:mode === "public-bookshelf",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,accountLearningNotice,accountInterestSortNotice};
     presentationState=state;
     main.innerHTML = (syncError ? `<div class="sync-note" role="alert"><p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p><button class="text-button" type="button" data-action="sync">${words[language].refresh}</button></div>` : "") +
-      (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "bookshelf" ? bookshelfView(state) : mode === "public-bookshelf" ? profileData ? bookshelfView(state) : profilePendingView(state) : mode === "profile" ? profileView(state) : mode === "daily" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "guides" ? readingGuidesView(state) : mode === "guide-preview" ? readingGuideDeckPreviewView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "");
+      (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "bookshelf" ? bookshelfView(state) : mode === "public-bookshelf" ? profileData ? bookshelfView(state) : profilePendingView(state) : mode === "profile" ? profileView(state) : mode === "daily" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "guides" ? readingGuidesView(state) : mode === "guide-preview" ? readingGuideDeckPreviewView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "") + bookInterestWarningView(state);
     mountInterests(main);
     disposeBookLists=mountBookLists(main);
     disposeDeckPresentation=mountDeckPresentation(main,{onSelect:index=>selectPresentationCard(index),onClose:()=>navigate(mode==="guide-preview"?"#book/"+encodeURIComponent(bookId):deckPageHash(deckId))});
@@ -286,6 +287,12 @@ export function startReader({createCardFeatures} = {}) {
       const close=()=>{libraryFiltersOpen=false;render();main.querySelector('[data-action="open-library-filters"]')?.focus({preventScroll:true});};
       libraryFilterDialog.addEventListener("cancel",event=>{event.preventDefault();close();});
       libraryFilterDialog.addEventListener("click",event=>{if(event.target!==libraryFilterDialog)return;const r=libraryFilterDialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)close();});
+    }
+    const interestWarning=main.querySelector(".book-interest-warning-modal");
+    if(interestWarning){
+      showAppModal(interestWarning);
+      interestWarning.addEventListener("cancel",event=>{event.preventDefault();cancelBookInterestWarning();});
+      interestWarning.addEventListener("click",event=>{if(event.target!==interestWarning)return;const r=interestWarning.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)cancelBookInterestWarning();});
     }
     const exclusive=main.querySelector(".exclusive-card-modal");
     if (exclusive) {
@@ -1201,24 +1208,50 @@ export function startReader({createCardFeatures} = {}) {
     const action=document.createElement("button");action.type="button";action.className="primary book-note-nudge-action note-icon-only";action.dataset.action="take-note-from-book";action.dataset.book=id;action.setAttribute("aria-label",words[language].takeNote);action.title=words[language].takeNote;action.innerHTML=takeNoteIconMarkup;
     nudge.append(prompt,action);controls.insertAdjacentElement("afterend",nudge);
   }
+  async function runBookInterestAction(action,id,status) {
+    if(busy)return;
+    busy=true;syncGeneration++;syncError=null;lockControls();
+    try { await action(); }
+    finally {
+      busy=false;lockControls();render();
+      if(bookInterestPrompt)main.querySelector('[data-action="cancel-book-interest-warning"]')?.focus({preventScroll:true});
+      else if(!notesCompletion)[...main.querySelectorAll('[data-action="set-book-reading"]')].find(button=>button.dataset.book===id&&button.dataset.status===status)?.focus({preventScroll:true});
+    }
+  }
   async function setBookReading(id,status) {
     if (!snapshot.user || mode === "public-bookshelf" || !catalog.booksById.has(id) || !["unread","to-read","reading","read"].includes(status) || (statuses[id] === status && status !== "unread" && status !== "to-read") || (status === "to-read" && snapshot.statuses?.[id] === "unread") || (status === "unread" && !snapshot.statuses?.[id])) return;
-    bookStatusError=null;const previousStatus=statuses[id]||"unread",keepBookDialog=mode === "library" && openBookId === id;let preserveDialogDOM=keepBookDialog;
-    const saved=await mutation("/api/reader/reading",{bookId:id,status},()=>{
-      live.textContent=words[language][status === "to-read" ? "bookAddedToShelf" : status === "read" ? "bookMarkedRead" : status === "reading" ? "bookMarkedReading" : "bookMarkedUnread"];
-      const showGuidePrompt=["home","library","bookshelf"].includes(mode)&&shouldShowReadingGuidePrompt({previousStatus,nextStatus:status,saveSucceeded:true,hasGuideCards:hasAccessibleReadingGuide(catalog,id)});
-      readingGuidePromptBookId=showGuidePrompt?id:null;
-      noteNudgeBookId=mode === "library" && status !== "unread" && !showGuidePrompt ? id : null;
-      if (status === "read") notesCompletion=createNotesCompletion(id);
-      preserveDialogDOM=keepBookDialog && !notesCompletion;
-      if (preserveDialogDOM) syncBookReadingDialog(id,status);
-    },{preserveDOM:()=>preserveDialogDOM && !readingGuidePromptBookId && snapshot.user && mode === "library" && openBookId === id});
-    if (!saved && snapshot.user) {
-      bookStatusError={bookId:id,code:syncError};
-      if (keepBookDialog && mode === "library" && openBookId === id) syncBookReadingDialog(id,statuses[id],syncError);
-      else render();
-    }
-    if (!notesCompletion) [...main.querySelectorAll('[data-action="set-book-reading"]')].find(button=>button.dataset.book === id && button.dataset.status === status)?.focus({preventScroll:true});
+    bookStatusError=null;const previousStatus=statuses[id]||"unread";
+    bookInterestFlow=createReadingInterestWarningFlow({
+      request:input=>api.request("/api/reader/reading",input),
+      onWarning:pending=>{bookInterestPrompt={...pending,error:null};},
+      onCommit:result=>{
+        bookInterestPrompt=null;applyState(result.state||result,{captureGrowth:true});refreshState();
+        live.textContent=words[language][status === "to-read" ? "bookAddedToShelf" : status === "read" ? "bookMarkedRead" : status === "reading" ? "bookMarkedReading" : "bookMarkedUnread"];
+        const showGuidePrompt=["home","library","bookshelf"].includes(mode)&&shouldShowReadingGuidePrompt({previousStatus,nextStatus:status,saveSucceeded:true,hasGuideCards:hasAccessibleReadingGuide(catalog,id)});
+        readingGuidePromptBookId=showGuidePrompt?id:null;
+        noteNudgeBookId=mode === "library" && status !== "unread" && !showGuidePrompt ? id : null;
+        if (status === "read") notesCompletion=createNotesCompletion(id);
+      },
+      onFailure:async(error,pending)=>{
+        const code=error.status===401?"sessionExpired":error.code||"connectionError";
+        if(error.status===409){try{applyState(await api.request("/api/session"));}catch{/* Keep known state and permit a retry. */}}
+        if(error.status===401){bookInterestPrompt=null;applyState({user:null});authReturn=location.hash;mode="account";}
+        else if(pending)bookInterestPrompt={...pending,error:code};
+        else bookStatusError={bookId:id,code};
+      }
+    });
+    await runBookInterestAction(()=>bookInterestFlow.start(id,status),id,status);
+  }
+  function cancelBookInterestWarning() {
+    const cancelled=bookInterestFlow?.cancel();
+    if(!cancelled)return;
+    bookInterestPrompt=null;render();
+    [...main.querySelectorAll('[data-action="set-book-reading"]')].find(button=>button.dataset.book===cancelled.bookId&&button.dataset.status===cancelled.status)?.focus({preventScroll:true});
+  }
+  async function confirmBookInterestWarning() {
+    if(!bookInterestPrompt||!bookInterestFlow)return;
+    const {bookId: id,status}=bookInterestPrompt;
+    await runBookInterestAction(()=>bookInterestFlow.confirm(),id,status);
   }
   function dismissReadingGuidePrompt(id) {
     if(readingGuidePromptBookId!==id||statuses[id]!=="reading")return;
@@ -1560,6 +1593,8 @@ export function startReader({createCardFeatures} = {}) {
       case "practice-again": practiceSession=null;practiceStage="choose";navigate("#practice"); break;
       case "profile": openOwnProfile(); break;
       case "set-book-reading": setBookReading(b.dataset.book,b.dataset.status); break;
+      case "cancel-book-interest-warning": cancelBookInterestWarning(); break;
+      case "confirm-book-interest-warning": confirmBookInterestWarning(); break;
       case "dismiss-reading-guide-reading-prompt": dismissReadingGuidePrompt(b.dataset.book); break;
       case "view-reading-guides-after-reading": openReadingGuidePrompt(b.dataset.book); break;
       case "finish-book-notes": openNotesCompletion(b.dataset.book); break;
