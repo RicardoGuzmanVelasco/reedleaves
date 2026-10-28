@@ -18,6 +18,7 @@ async function retainedData(db,dialect) {
     const additiveGenre=name === "genres" ? " WHERE id NOT IN ('society','software','mindfulness')" : name === "genre_translations" ? " WHERE genre_id NOT IN ('society','software','mindfulness')" : "";
     result[name]=(await db.prepare(`SELECT * FROM "${name}"${additiveGenre}`).all()).map(row=>{
       const value={...row};if (name === "cards") delete value.source_id;
+      if (name === "genres") { delete value.emoji; delete value.color; }
       return value;
     }).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
   }

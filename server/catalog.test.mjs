@@ -17,8 +17,8 @@ async function fixture(t) {
 }
 test("Real SQLite schema: five books, six authored decks and 42 single-language sample cards", async t => {
   const db = await fixture(t), catalog = await readCatalog(db);
-  assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, cards: 42, genres: 6 });
-  assert.deepEqual(catalog.genres.find(genre=>genre.id === "society"),{id:"society",name:{es:"Sociedad",en:"Society"}});
+  assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, cards: 42, genres: 7 });
+  assert.deepEqual(catalog.genres.find(genre=>genre.id === "society"),{id:"society",emoji:"🌍",color:"#E4EFFB",name:{es:"Sociedad",en:"Society"}});
   assert.equal(catalog.books.every(book=>!book.genres.includes("society")),true);
   assert.equal(catalog.cards.every(c => c.title[c.deckLanguage] && c.body[c.deckLanguage] && Object.keys(c.title).length === 1 && Object.keys(c.body).length === 1), true);
   assert.deepEqual(catalog.books.map(b => catalog.cards.filter(c => c.bookId === b.id).length), [14, 6, 7, 8, 7]);
@@ -33,7 +33,7 @@ test("Schema initialization and seed are repeatable without duplicating data", a
   const db = await fixture(t);
   initializeDatabase(db); await seedCatalog(db); await seedCatalog(db);
   assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
-  assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, cards: 42, genres: 6 });
+  assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, cards: 42, genres: 7 });
 });
 test("Foreign keys, order and translations are constrained", async t => {
   const db = await fixture(t);
@@ -53,14 +53,14 @@ test("Invalid seed rolls back every change and does not move established card ID
   [moved.cards[0].position, moved.cards[1].position] = [moved.cards[1].position, moved.cards[0].position];
   await seedCatalog(db, moved);
   assert.equal((await readCatalog(db)).cards.find(card=>card.id===moved.cards[0].id).order,2);
-  assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, cards: 42, genres: 6 });
+  assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, cards: 42, genres: 7 });
 });
 test("Missing translations, references, duplicate IDs and order gaps reject the import", async t => {
   const db = await fixture(t);
-  for (const mutate of [s => s.cards[0].body_es = "", s => s.books[0].genres = "invented", s => s.cards.push(s.cards[0]), s => s.cards[0].position = "9"]) {
+  for (const mutate of [s => s.cards[0].body_es = "", s => s.genres[0].emoji = "", s => s.genres[0].color = "red;display:none", s => s.books[0].genres = "invented", s => s.cards.push(s.cards[0]), s => s.cards[0].position = "9"]) {
     const seed = readSeed(); mutate(seed); await assert.rejects(seedCatalog(db, seed));
   }
-  assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, cards: 42, genres: 6 });
+  assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, cards: 42, genres: 7 });
 });
 test("Rows persist after closing and reopening a real database file; backup is usable", async t => {
   const directory = mkdtempSync(join(tmpdir(), "reed-catalog-test-"));
@@ -75,7 +75,7 @@ test("Rows persist after closing and reopening a real database file; backup is u
     await backupDatabase(db, snapshot);
   } finally { db.close(); }
   const restored = openDatabase(snapshot);
-  try { assert.deepEqual(await checkCatalog(restored), { books: 5, decks: 6, cards: 42, genres: 6 }); } finally { restored.close(); }
+  try { assert.deepEqual(await checkCatalog(restored), { books: 5, decks: 6, cards: 42, genres: 7 }); } finally { restored.close(); }
 });
 test("CSV handles quotes, commas, accented text and multiline cells; malformed input fails", () => {
   assert.deepEqual(parseCsv('\uFEFFid,text\r\na,"línea 1, con coma\n""línea 2"""\r\n'), [{ id: "a", text: 'línea 1, con coma\n"línea 2"' }]);

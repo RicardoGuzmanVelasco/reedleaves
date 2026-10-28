@@ -166,8 +166,9 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 
 ## Intereses de libros
 
-- Cada interés muestra su nombre localizado junto a un icono decorativo en las fichas, la preview del libro y el editor. El selector de filtro conserva opciones de texto nativas y una etiqueta sin icono.
-- Software usa un símbolo de código; Mindfulness, una flor de loto. Los intereses sin icono específico usan una etiqueta genérica. El icono no sustituye el nombre accesible.
+- Cada interés muestra el emoji aprobado y su nombre localizado en las fichas, la preview del libro y el editor. El catálogo conserva emoji y color; la interfaz no mantiene otra lista por ID. El emoji es decorativo y no sustituye el nombre accesible.
+- Los chips usan un degradado radial tenue de blanco al color del interés, tinta del proyecto y una composición común. Sin borde ni sombra propia. Los chips completos envuelven al faltar ancho.
+- Las casillas reales se presentan en superficies luminosas con profundidad y pulsación táctil; mantienen nombre completo, foco visible y posición estable. Movimiento reducido elimina desplazamientos. El selector de filtro conserva opciones nativas de texto y una etiqueta sin emoji.
 - Software y Mindfulness están disponibles en español e inglés. No asignar Mindfulness a libros de crecimiento personal por asociación general; clasificar según el contenido del libro.
 
 ## Título popular y títulos preferidos

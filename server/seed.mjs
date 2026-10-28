@@ -3,6 +3,7 @@ import { parseCsv } from "./csv.mjs";
 import { transaction,isPostgres } from "./database.mjs";
 import { checkCatalog } from "./catalog-repository.mjs";
 import { validateCards, LANGUAGES } from "../app/core.mjs";
+import {validInterestAppearance} from "../app/interests.mjs";
 import { bookLinkUrl, BOOK_LINK_PLATFORMS } from "../app/book-links.mjs";
 
 const text = value => typeof value === "string" && value.trim().length > 0;
@@ -41,7 +42,10 @@ export function validateSeed(seed) {
   const users = new Set(seed.users.map(u => u.id));
   for (const u of seed.users) if (!text(u.display_name) || !["0","1"].includes(u.can_create_decks)) throw new Error("Invalid author");
   const genres = new Set(seed.genres.map(g => g.id)), books = new Set(seed.books.map(b => b.id));
-  for (const g of seed.genres) if (LANGUAGES.some(language => !text(g["name_" + language]))) throw new Error("Missing genre text");
+  for (const g of seed.genres) {
+    if (LANGUAGES.some(language => !text(g["name_" + language]))) throw new Error("Missing genre text");
+    if (!validInterestAppearance(g)) throw new Error("Missing or invalid interest appearance");
+  }
   const positions = new Set();
   for (const b of seed.books) {
     if (!text(b.popular_title) || !locale(b.popular_language)) throw new Error("Invalid popular book title or language");
@@ -107,7 +111,8 @@ export async function seedCatalog(db, seed = readSeed()) {
     for (const u of seed.users) await db.prepare(`INSERT INTO users(id,display_name,can_create_decks) VALUES (?,?,?)
       ON CONFLICT(id) DO UPDATE SET display_name = excluded.display_name, can_create_decks = excluded.can_create_decks`).run(u.id,u.display_name,Number(u.can_create_decks));
     for (const g of seed.genres) {
-      await db.prepare("INSERT INTO genres(id) VALUES (?) ON CONFLICT(id) DO NOTHING").run(g.id);
+      await db.prepare(`INSERT INTO genres(id,emoji,color) VALUES (?,?,?)
+        ON CONFLICT(id) DO UPDATE SET emoji=excluded.emoji,color=excluded.color`).run(g.id,g.emoji,g.color);
       for (const language of LANGUAGES) await db.prepare(`INSERT INTO genre_translations VALUES (?, ?, ?)
         ON CONFLICT(genre_id, language) DO UPDATE SET name = excluded.name`).run(g.id, language, g["name_" + language]);
     }

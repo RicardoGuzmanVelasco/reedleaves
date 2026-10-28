@@ -1,12 +1,13 @@
 import { validateBook, validateCards, LANGUAGES } from "../app/core.mjs";
 import { validateBookLinks } from "../app/book-links.mjs";
+import {validInterestAppearance} from "../app/interests.mjs";
 import { isPostgres } from "./database.mjs";
 
 export async function readCatalog(db, userId) {
   const genres = [];
-  for (const {id} of await db.prepare("SELECT id FROM genres ORDER BY id").all()) {
+  for (const {id,emoji,color} of await db.prepare("SELECT id,emoji,color FROM genres ORDER BY id").all()) {
     const translations = await db.prepare("SELECT language,name FROM genre_translations WHERE genre_id = ?").all(id);
-    genres.push({id,name:Object.fromEntries(translations.map(t=>[t.language,t.name]))});
+    genres.push({id,emoji,color,name:Object.fromEntries(translations.map(t=>[t.language,t.name]))});
   }
   const books = [];
   for (const row of await db.prepare(`SELECT b.id,b.author,b.popular_title,b.popular_language,b.editorial_status,b.creator_user_id,
@@ -82,6 +83,7 @@ export async function checkCatalog(db) {
   } else await db.prepare("SELECT 1").get();
   const catalog = await readCatalog(db), ids = new Set(catalog.genres.map(g=>g.id));
   if(catalog.genres.some(g=>LANGUAGES.some(language=>!g.name[language]?.trim()))) throw new Error("Missing genre translation");
+  if(catalog.genres.some(g=>!validInterestAppearance(g))) throw new Error("Missing or invalid interest appearance");
   for(const book of catalog.books) if(!book.creatorUserId && !book.genres.length||book.genres.some(id=>!ids.has(id))) throw new Error("Missing book genre");
   return {books:catalog.books.length,decks:catalog.decks.length,cards:catalog.cards.length,genres:catalog.genres.length};
 }
