@@ -332,4 +332,4 @@ No hacen falta tres implementaciones ni tres agentes editando el mismo archivo. 
 | --- | --- | --- |
 | 04 | Producción verificada | PR #113, main `1a4e548`, Render `dep-dbgj40oae00c73bmshog` live; 375 pruebas locales/CI, HTTP 200 y catálogo válido tras deploy. |
 | 03 | Producción verificada | PR #114, main `9c6ba47`, Render `dep-dbgj8e29lscs73bd24r0` live; 378 pruebas completas. Catálogo HTTP 200 válido y módulo servido idéntico con comprobación determinista correcta. |
-| 01a | Verificado localmente; publicación pendiente | Implementación y revisión independiente Luna/Alto; 388 pruebas completas con build, lint y diff-check correctos. Smoke local real de inicio, respuesta, restauración, dos pestañas y cierre; recuperación automática aún apagada. |
+| 01a | PR #115 integrado; corrección de sincronización verificada localmente | Base main `b7e909a`; corrección adicional revisada por Luna/Alto y 389 pruebas completas con build, lint y diff-check correctos. Smoke local real de inicio, respuesta, restauración, dos pestañas y cierre. Cierre pendiente de entregar/verificar la corrección; recuperación automática aún apagada. |

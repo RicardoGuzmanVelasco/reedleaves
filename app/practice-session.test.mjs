@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {canApplyPracticeRecovery,practiceSessionAfterAnimation,restorePracticeSession,samePracticeRecoveryTicket} from "./practice-session.mjs";
+import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,practiceSessionAfterAnimation,restorePracticeSession,samePracticeRecoveryTicket} from "./practice-session.mjs";
 
 const session={id:"session",topic:"reading",cardIds:["a","b","c","d","e"],index:2,cost:2,startedAt:"2026-10-06T10:00:00Z"};
 const cardsById=new Map(session.cardIds.map(id=>[id,{id}]));
@@ -67,4 +67,15 @@ test("answer animation keeps the response snapshot unless a newer state arrived"
   const response={...session,index:3},latest={...session,index:4};
   assert.equal(practiceSessionAfterAnimation(12,12,response,latest),response);
   assert.equal(practiceSessionAfterAnimation(12,13,response,latest),latest);
+});
+
+test("reader sync waits while any practice request can still change its snapshot",()=>{
+  assert.equal(hasPendingPracticeOperation({}),false);
+  for(const key of ["startRequest","answerRequest","recoveryRequest"]) {
+    assert.equal(hasPendingPracticeOperation({[key]:{}}),true);
+  }
+  assert.equal(canApplyReaderSync(6,6),true);
+  assert.equal(canApplyReaderSync(6,7),false,"a practice mutation invalidates syncs started earlier");
+  assert.equal(canApplyReaderSync(6,6,{practicePending:true}),false);
+  assert.equal(canApplyReaderSync(6,6,{busy:true}),false);
 });

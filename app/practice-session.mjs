@@ -20,3 +20,11 @@ export const canApplyPracticeRecovery=samePracticeRecoveryTicket;
 export function practiceSessionAfterAnimation(appliedRevision,currentRevision,responseSession,currentSession) {
   return appliedRevision===currentRevision?responseSession:currentSession;
 }
+
+export function hasPendingPracticeOperation({startRequest,answerRequest,recoveryRequest}={}) {
+  return !!(startRequest||answerRequest||recoveryRequest);
+}
+
+export function canApplyReaderSync(requestGeneration,currentGeneration,{busy=false,practicePending=false}={}) {
+  return requestGeneration===currentGeneration&&!busy&&!practicePending;
+}
