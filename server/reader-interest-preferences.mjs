@@ -31,6 +31,15 @@ export async function readReaderInterestPreferences(db,session) {
   });
 }
 
+export async function readPublicReaderInterestPreferences(db,userId) {
+  if(typeof userId!=="string"||!userId.trim()||userId.length>240||!await db.prepare("SELECT 1 FROM users WHERE id=?").get(userId))throw new ApiError(404,"profileUnavailable");
+  const rows=await db.prepare(`SELECT interest_id,preference,position FROM reader_interest_preferences
+    WHERE user_id=? ORDER BY preference,position`).all(userId);
+  const interested=[],notInterested=[];
+  for(const row of rows)(row.preference==="interested"?interested:notInterested)[Number(row.position)-1]=row.interest_id;
+  return {interested,notInterested};
+}
+
 function validateInput(input) {
   if (!input || typeof input!=="object" || !Array.isArray(input.interested) || !Array.isArray(input.notInterested) ||
       !Number.isSafeInteger(input.revision) || input.revision<0 || input.interested.length<1 || input.interested.length>5 || input.notInterested.length>5) {
