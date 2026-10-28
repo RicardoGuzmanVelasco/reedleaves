@@ -130,7 +130,9 @@ postgresTest("real PostgreSQL serializes recovery, refunds once, and preserves r
   assert.equal(afterCancel.practiceDiscountTopic,(await readReaderState(db,cancelReader.session,now)).practiceDiscountTopic);
 
   const lockReader=await createReader(db,"lock-order");
-  const targetDeck="seven-habits-inside-out";
+  // This deck remains available throughout the test; the saved/refund scenario
+  // above archives seven-habits-inside-out globally.
+  const targetDeck="atomic-habits-editorial";
   await Promise.all([
     selectDeck(db,lockReader.session,targetDeck,now),
     addDeckToCollection(db,lockReader.session,targetDeck,now),
