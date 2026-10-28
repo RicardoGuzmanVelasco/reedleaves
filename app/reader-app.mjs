@@ -32,6 +32,7 @@ import {adjacentCard,swipeStep} from "./card-reading-navigation.mjs";
 import {growthFeedbackChanges,growthFeedbackMarkup,fitGrowthFeedbackTitle,playGrowthFeedback} from "./growth-feedback.mjs";
 import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,practiceSessionAfterAnimation,restorePracticeSession as restorePracticeSessionFromState,samePracticeRecoveryTicket} from "./practice-session.mjs";
 import {hasAccessibleReadingGuide,shouldShowReadingGuidePrompt} from "./reading-guide-prompt.mjs";
+import {requestConfirmedMutation,requestPendingDeckIntent} from "./confirmed-mutation.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -1157,9 +1158,16 @@ export function startReader({createCardFeatures} = {}) {
     (cover || main.querySelector("h1"))?.focus({preventScroll:true});
   }
 
+  function confirmBookInterest(confirmation) {
+    const book=catalog?.booksById?.get(confirmation.bookId);
+    const title=book ? bookTitle(book,language).text : confirmation.bookId;
+    return window.confirm(words[language].confirmBookInterest(title,confirmation.interest?.emoji||"",confirmation.interest?.name||confirmation.interest?.id||"",confirmation.price||0));
+  }
   async function mutation(path,input,onSuccess,{preserveDOM=()=>false}={}) {
     if (busy) return false; busy = true; syncGeneration++; syncError = null; lockControls();
-    try { const result = await api.request(path,input); applyState(result.state || result,{captureGrowth:true});
+    try { const result = await requestConfirmedMutation(api.request,path,input,confirmBookInterest);
+      if (result === null) return false;
+      applyState(result.state || result,{captureGrowth:true});
       if (path === "/api/auth/logout") {
         catalog = null;
         try { catalog = await loadCatalog(); } catch { ready = false; failed = true; }
@@ -1463,7 +1471,8 @@ export function startReader({createCardFeatures} = {}) {
       }
       if (pendingDeck) {
         const deckId=pendingDeck,addToDecks=pendingIntent === "collect";
-        applyState(await api.request(addToDecks ? "/api/reader/collect" : "/api/reader/select",{deckId}),{captureGrowth:true});
+        const result=await requestPendingDeckIntent(api.request,deckId,pendingIntent,confirmBookInterest);
+        if(result)applyState(result.state || result,{captureGrowth:true});
         if(addToDecks){openDeckId=null;authReturn=deckPageHash(deckId);}
         pendingDeck = null;pendingIntent=null;
       }
