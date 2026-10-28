@@ -171,6 +171,13 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 - Las casillas reales se presentan en superficies luminosas con profundidad y pulsación táctil; mantienen nombre completo, foco visible y posición estable. Movimiento reducido elimina desplazamientos. El selector de filtro conserva opciones nativas de texto y una etiqueta sin emoji.
 - Software y Mindfulness están disponibles en español e inglés. No asignar Mindfulness a libros de crecimiento personal por asociación general; clasificar según el contenido del libro.
 
+## Orden de libros
+
+- En la Librería, el selector nativo «Ordenar / Sort by» acompaña a la vista y los filtros. Ofrece «Más recientes / Most recent» y «A–Z»; «Más recientes» es la opción inicial. «Mis intereses» se añadirá en el incremento 15.
+- A–Z compara el título que realmente se muestra en el idioma de interfaz, con el fallback habitual al título popular. Normaliza acentos y conserva el orden previo cuando los títulos empatan.
+- Cambiar el orden no altera la búsqueda, los filtros, la vista ni la posición de lectura. Portadas, Estantería y Apilados conservan la misma secuencia semántica.
+- La elección se guarda por cuenta en el servidor. Para visitantes se guarda en el navegador; al cambiar de cuenta se aplica la elección de la cuenta activa.
+
 ## Título popular y títulos preferidos
 
 - El título popular es el nombre base por el que se conoce el libro. Puede estar en inglés aunque la obra se haya escrito en otro idioma. No se conserva un título original histórico como dato distinto. Su idioma describe el texto del título popular, no el idioma de escritura de la obra.

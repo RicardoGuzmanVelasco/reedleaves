@@ -25,7 +25,11 @@ test('Spines retain safe destinations, titles, languages and authors in both ori
   assert.match(selector,/aria-label="Stacked books"[^>]*aria-pressed|aria-pressed="true" aria-label="Stacked books"/);
   assert.equal((selector.match(/aria-pressed="true"/g)||[]).length,1);
   const stack=bookListMarkup({books:[books[0],{...books[0],id:'two',href:'#book/two',title:'Second'}],view:'stack',label:'Books'});
-  assert.ok(stack.indexOf('href="#book/two"')<stack.indexOf('href="#book/one"'));
+  assert.ok(stack.indexOf('href="#book/one"')<stack.indexOf('href="#book/two"'));
+  for(const view of ['covers','shelf','stack']){
+    const html=bookListMarkup({books:[books[0],{...books[0],id:'two',href:'#book/two',title:'Second'}],view,label:'Books',cover:entry=>`<a href="${entry.href}">${entry.title}</a>`});
+    assert.ok(html.indexOf('href="#book/one"')<html.indexOf('href="#book/two"'),`${view} preserves the chosen order`);
+  }
 });
 test('Library choice remains independent of personal shelf groups',async()=>{
   const db=openDatabase(':memory:');
@@ -38,6 +42,9 @@ test('Library choice remains independent of personal shelf groups',async()=>{
     assert.doesNotMatch(shelf,/data-book-spines=/);
     for(const book of catalog.books)assert.ok(shelf.includes(`data-book="${book.id}"`));
     assert.match(libraryResultsMarkup({...state,bookViews:{library:'covers'}}),/study-books book-grid/);
+    const az=libraryResultsMarkup({...state,bookSortOrder:'alphabetical',language:'en'});
+    assert.match(az,/aria-label="Sort by"/);assert.match(az,/Most recent/);assert.match(az,/A–Z/);
+    assert.doesNotMatch(az,/My interests|Mis intereses/);
   }finally{await db.close();}
 });
 
