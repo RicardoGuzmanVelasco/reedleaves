@@ -24,6 +24,7 @@ import {usefulProfileReturnHash,profileReturnTarget} from "./profile-navigation.
 import {createModalPageLock} from "./modal-page-lock.mjs";
 import {adjacentCard,swipeStep} from "./card-reading-navigation.mjs";
 import {growthFeedbackChanges,growthFeedbackMarkup,fitGrowthFeedbackTitle,playGrowthFeedback} from "./growth-feedback.mjs";
+import {canApplyPracticeRecovery,practiceSessionAfterAnimation,restorePracticeSession as restorePracticeSessionFromState,samePracticeRecoveryTicket} from "./practice-session.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -36,7 +37,7 @@ export function startReader({createCardFeatures} = {}) {
   const practicePresentation = createPracticePresentation({presentReading});
   let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, budget, preferences, statuses, daily, dailyHistory=[],dailyStatus=null,dailyStatusRequest=null,dailyStatusGeneration=0,animatedDailyDays=new Set(),dailySeenDays=new Set(), selectedDailyDay=null, dailyExclusiveCardId=null, calendarMonth=null,calendarNavFocus=null,bookId, deckId, requestedId, selections, enrolledIds;
   let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, scrollToCard = false;
-  let practiceStage="choose",practiceSession=null,practiceUnavailable=null;
+  let practiceStage="choose",practiceSession=null,practiceUnavailable=null,practiceRecoveryRequest=null,practiceRecoveryGeneration=0,authoritativeStateGeneration=0,practiceIntroSession=null,practiceStartRequest=null;
   let pendingGrowthFeedback=[];
   let authorForm = null, quotesOnly = false, deckPreview = false, previewColumns = 2, previewDeckId = null;
   let noteDestination=null,deckCompletion=null,notesCompletion=null,bookStatusError=null,noteNudgeBookId=null,readingGuideError=null,readingGuideDraft=null;
@@ -73,6 +74,8 @@ export function startReader({createCardFeatures} = {}) {
       cardSaves:snapshot.cardSaves||[],revision:syncGeneration,actionSlots,actionSlot:main.querySelector("[data-card-actions]"),entrySlot:main.querySelector("[data-saved-cards-entry]"),listSlot:main.querySelector("[data-saved-cards-list]")});
   }
   function applyState(state,{captureGrowth=false}={}) {
+    if(snapshot.user?.id!==state.user?.id){practiceIntroSession=null;practiceStartRequest=null;}
+    authoritativeStateGeneration++;
     if(captureGrowth && snapshot.user?.id && snapshot.user.id===state.user?.id) pendingGrowthFeedback.push(...growthFeedbackChanges(snapshot.growth,state.growth));
     if (snapshot.user?.id !== state.user?.id) { dailyStatus=null;dailyStatusGeneration++;dailyStatusRequest=null;animatedDailyDays.clear();dailySeenDays.clear(); }
     if (snapshot.user?.id !== state.user?.id) {
@@ -213,7 +216,7 @@ export function startReader({createCardFeatures} = {}) {
     if (!busy) {
       const session=practiceSession,index=session?.index;
       const intro=!!session?.shuffle;
-      if(session)session.shuffle=false;
+      if(session){session.shuffle=false;if(intro&&practiceIntroSession?.id===session.id)practiceIntroSession=null;}
       practicePresentation.present(main,{
         intro,ready:session?.presentedIndex===index,
         onReady:()=>{if(practiceSession===session&&session)session.presentedIndex=index;},
@@ -355,7 +358,12 @@ export function startReader({createCardFeatures} = {}) {
         const canonical = "#review/"+deckId+(requestedId ? "/"+requestedId : ""); if (location.hash !== canonical) history.replaceState(null,"",canonical); }
     }
     else if (view === "practice") {
-      if(first === "session") { practiceSession=practiceSession?.cards.length?practiceSession:restorePracticeSession();practiceStage=practiceSession?"session":"choose"; }
+      if(first === "session") {
+        practiceSession=restorePracticeSession(snapshot.activePracticeSession);
+        practiceStage=practiceSession?"session":"choose";
+        practiceUnavailable=null;
+        if(!practiceSession&&snapshot.activePracticeSession)void recoverPracticeSession();
+      }
       else if(first === "empty") { practiceStage="empty";practiceSession=null; }
       else { practiceStage="choose";practiceSession=null;practiceUnavailable=null; }
       mode="practice";requestedId=null;openDeckId=null;
@@ -447,50 +455,131 @@ export function startReader({createCardFeatures} = {}) {
     dailyStatusRequest=request;return request;
   }
   function restorePracticeSession(session=snapshot.activePracticeSession) {
-    if(!session)return null;
-    const cards=session.cardIds.map(id=>catalog.cardsById.get(id)).filter(Boolean);
-    return cards.length===5?{...session,cards,index:session.index||0,advancing:false,leaving:null,answer:null}:null;
+    return restorePracticeSessionFromState(session,catalog?.cardsById,{introSession:practiceIntroSession});
+  }
+  function invalidatePracticeRecovery() {
+    practiceRecoveryGeneration++;
+    practiceRecoveryRequest=null;
+  }
+  async function recoverPracticeSession() {
+    const userId=snapshot.user?.id;
+    if(!userId)return null;
+    const stateRevision=authoritativeStateGeneration;
+    if(samePracticeRecoveryTicket(practiceRecoveryRequest,{userId,generation:practiceRecoveryGeneration,stateRevision}))return practiceRecoveryRequest.promise;
+    const hash=location.hash,generation=++practiceRecoveryGeneration;
+    const request=Promise.all([loadCatalog(),api.request("/api/session")]).then(([updatedCatalog,state])=>{
+      if(!canApplyPracticeRecovery({userId,generation,stateRevision},{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration}))return null;
+      catalog=updatedCatalog;
+      applyState(state);
+      const restored=restorePracticeSession(state.activePracticeSession);
+      if(restored) {
+        practiceSession=restored;practiceStage="session";practiceUnavailable=null;
+      } else if(!state.activePracticeSession) {
+        practiceSession=null;practiceStage="choose";practiceUnavailable=null;
+      } else {
+        practiceSession=null;practiceStage="empty";
+        practiceUnavailable={reason:"connectionError",topic:state.activePracticeSession.topic};
+      }
+      if(mode==="practice"&&location.hash===hash) {
+        if(restored&&hash!=="#practice/session")history.replaceState(history.state,"","#practice/session");
+        else if(!restored&&!state.activePracticeSession&&hash==="#practice/session")history.replaceState(history.state,"","#practice");
+        render({focus:true});
+      }
+      return restored;
+    }).catch(()=>{
+      if(canApplyPracticeRecovery({userId,generation,stateRevision},{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration})&&mode==="practice"&&location.hash===hash) {
+        practiceSession=null;practiceStage="empty";
+        practiceUnavailable={reason:"connectionError",topic:snapshot.activePracticeSession?.topic};render({focus:true});
+      }
+      return null;
+    }).finally(()=>{if(practiceRecoveryRequest?.promise===request)practiceRecoveryRequest=null;});
+    practiceRecoveryRequest={generation,userId,stateRevision,promise:request};
+    return request;
   }
   async function startPractice(topic) {
-    if(!snapshot.user || !["reading","read","saved","mixed"].includes(topic))return;
+    if(!snapshot.user || practiceStartRequest || !["reading","read","saved","mixed"].includes(topic))return;
+    invalidatePracticeRecovery();
+    practiceIntroSession=null;
+    const userId=snapshot.user.id,generation=practiceRecoveryGeneration,stateRevision=authoritativeStateGeneration;
+    const requestTicket={userId,generation,stateRevision};
+    practiceStartRequest=requestTicket;
     try {
       const result=await api.request("/api/reader/practice/start",{topic});
+      if(!canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration})) {
+        if(snapshot.user?.id===userId)void recoverPracticeSession();
+        return;
+      }
       applyState(result.state);
-      practiceSession=restorePracticeSession(result.session);
-      if(practiceSession)practiceSession.shuffle=true;
+      const active=result.state.activePracticeSession;
+      practiceIntroSession=active?{id:active.id,cardIds:[...active.cardIds],index:active.index}:null;
+      practiceSession=restorePracticeSession(result.state.activePracticeSession);
+      if(!practiceSession&&result.state.activePracticeSession) {
+        practiceStage="choose";practiceUnavailable=null;navigate("#practice");void recoverPracticeSession();return;
+      }
       practiceUnavailable=result.reason?result:null;
       practiceStage=practiceSession?"session":"empty";
       navigate(practiceSession?"#practice/session":"#practice/empty");
     } catch(error) {
+      if(!canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration}))return;
       syncError=error.code||"connectionError";
       practiceUnavailable={reason:error.code||"connectionError",topic,cost:topic===snapshot.practiceDiscountTopic?2:3,balance:snapshot.petals||0};practiceStage="empty";navigate("#practice/empty");
-    }
+    } finally {if(practiceStartRequest===requestTicket)practiceStartRequest=null;}
   }
   async function answerPractice(answer,{swipeX=0,cardWidth=1,rotation=0}={}) {
     if(mode!=="practice" || practiceStage!=="session" || !practiceSession || practiceSession.advancing || practiceSession.presentedIndex!==practiceSession.index)return;
     const session=practiceSession,cardId=session.cards[session.index]?.id,userId=snapshot.user?.id;
     if(!cardId||!userId)return;
+    invalidatePracticeRecovery();
+    const requestTicket={userId,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration};
     session.advancing=true;session.answer=answer;
     const departure=practicePresentation.leave(answer === "soon" ? "left" : "right",{
       fromXPercent:swipeX/cardWidth*100,fromRotation:rotation
     });
+    let result;
     try {
-      const result=await api.request("/api/reader/practice/answer",{sessionId:session.id,cardId,index:session.index,answer});
-      if(snapshot.user?.id!==userId||practiceSession!==session)return;
+      result=await api.request("/api/reader/practice/answer",{sessionId:session.id,cardId,index:session.index,answer});
+      if(!canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration})||practiceSession!==session) {
+        if(snapshot.user?.id===userId&&practiceSession===session&&mode==="practice") {
+          await departure;
+          if(snapshot.user?.id===userId&&practiceSession===session&&mode==="practice")await recoverPracticeSession();
+        }
+        return;
+      }
       applyState(result.state,{captureGrowth:true});
     } catch(error) {
-      if(snapshot.user?.id===userId&&practiceSession===session){syncError=error.code||"connectionError";session.advancing=false;session.answer=null;if(mode==="practice")render();}
+      if(!canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration})) {
+        if(snapshot.user?.id===userId&&practiceSession===session&&mode==="practice") {
+          await departure;
+          if(snapshot.user?.id===userId&&practiceSession===session&&mode==="practice")await recoverPracticeSession();
+        }
+        return;
+      }
+      if(error.status===409&&canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration})&&practiceSession===session) {
+        await recoverPracticeSession();
+        return;
+      }
+      if(canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration})&&practiceSession===session){syncError=error.code||"connectionError";session.advancing=false;session.answer=null;if(mode==="practice")render();}
       return;
     }
+    const appliedRevision=authoritativeStateGeneration;
     await departure;
     if(mode!=="practice" || practiceSession!==session)return;
-    session.index++;session.advancing=false;session.answer=null;
-    if(session.index>=session.cards.length)practiceStage="done";
+    const activePracticeSession=practiceSessionAfterAnimation(appliedRevision,authoritativeStateGeneration,result.state.activePracticeSession,snapshot.activePracticeSession);
+    const restored=restorePracticeSession(activePracticeSession);
+    if(restored) {
+      practiceSession=restored;practiceStage="session";practiceUnavailable=null;
+    } else if(!activePracticeSession&&result.session?.id===session.id&&result.session.completedAt&&result.session.index===session.cards.length) {
+      practiceSession=null;practiceStage="done";practiceUnavailable=null;
+    } else if(activePracticeSession) {
+      practiceSession=null;practiceStage="choose";practiceUnavailable=null;history.replaceState(history.state,"","#practice");render({focus:true});void recoverPracticeSession();return;
+    } else {
+      practiceSession=null;practiceStage="choose";practiceUnavailable=null;
+    }
     render({focus:true});
   }
   function resumePractice() {
     practiceSession=restorePracticeSession();
-    if(!practiceSession){practiceStage="choose";navigate("#practice");return;}
+    if(!practiceSession){void recoverPracticeSession();return;}
     practiceUnavailable=null;practiceStage="session";navigate("#practice/session");
   }
   function openBook(id) {

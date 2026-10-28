@@ -43,16 +43,24 @@ El plan vigente es la fuente de alcance y producto; este brief concreta contrato
 - Crear una función interna compartida en `server/practice-economy.mjs`, por ejemplo
   `reconcilePracticeSessionInside(db, userId, now)`, que recibe una transacción activa.
 - No abrir otra transacción dentro de esa función. Reutilizar el wrapper de cada ruta.
-- Orden PostgreSQL: bloquear fila de `accounts` primero, fila de sesión después y,
-  por último, monederos. Las rutas que solo lean estado también bloquean cuenta antes
-  de devengar saldo o reconciliar. No adquirir primero un monedero y luego la sesión.
+- Helper pequeño: `SELECT ... FROM accounts WHERE user_id=? FOR NO KEY UPDATE`.
+  Serializa por cuenta sin bloquear los `KEY SHARE` de comprobación de FK. Estas rutas
+  no cambian claves de cuenta. Orden: cuenta → sesión → monederos, con orden fijo entre
+  monederos. Adquirir cuenta antes de cualquier otra escritura de la transacción.
 - `startPracticeSession`: actualmente devenga pétalos y luego consulta sesión activa;
   ordenar el acceso por cuenta antes de ambos. Reanudar la activa existente.
 - `answerPracticeSession`: bloquear cuenta antes de la fila de sesión; hoy solo bloquea
   la sesión. Mantener el mismo orden incluso para respuestas intermedias.
-- `readReaderState`/`stateInside`: bloquear cuenta al inicio de la transacción antes de
-  leer/reconciliar la sesión y solo después devengar hoja/pétalo. Mantener el orden
-  estricto cuenta → sesión → monederos, no solo cuenta antes de las otras dos filas.
+- Invocar helper al inicio de `readReaderState`, `addDeckToCollection`,
+  `removeDeckFromCollection`, `selectDeck`, `openCard`, `changeReading`,
+  `changePreferences`, `dailyIdea`, `startPracticeSession` y `answerPracticeSession`.
+  `stateInside` supone la cuenta ya bloqueada. Hacerlo solo allí sería tarde: select
+  puede tener `deck_selections` y esperar a collect, que ya bloqueó cuenta, o una
+  escritura de preferencias puede invertir el mismo orden.
+- `readReaderState` bloquea cuenta al inicio, lee/reconcilia sesión y después devenga
+  hoja/pétalo. `dailyIdea` adquiere cuenta antes de su advisory lock global.
+- No extender este cambio a autoría ni guardadas: sus APIs leen estado tras terminar
+  la transacción, o no lo leen. No introducir transacciones anidadas.
 - SQLite conserva su transacción `BEGIN IMMEDIATE` y serialización actual.
 - No endurecer `AsyncLocalStorage` en este incremento. `PostgresDatabase` guarda un
   cliente transaccional en un ALS global: cada transacción concurrente de una misma
@@ -124,6 +132,8 @@ El plan vigente es la fuente de alcance y producto; este brief concreta contrato
   reproducibles que ejerciten lectura, start y answer. Comprobar resultado, saldo,
   sesión única, y que no haya deadlock. Consultar `pg_backend_pid()` en transacciones
   concurrentes para confirmar que se usaron conexiones distintas.
+- Añadir cruces de `selectDeck`/collect y de preferencias concurrentes: son rutas reales
+  con escrituras previas a `stateInside` que deben quedar serializadas desde el inicio.
 - Mantener PGlite para SQL rápido; no presentarlo como prueba de ausencia de deadlocks.
 - 01b no se activa hasta que CI real pase y 01a se haya verificado. No probar contra
   producción como parte de la suite.

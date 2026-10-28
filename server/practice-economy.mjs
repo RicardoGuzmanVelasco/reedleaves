@@ -6,6 +6,7 @@ import {prepareCatalog} from "../app/catalog.mjs";
 import {selectPracticeCards} from "../app/practice-progress.mjs";
 import {accruePetalWallet} from "./petal-wallet-repository.mjs";
 import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
+import {lockReaderAccount} from "./reader-account-lock.mjs";
 
 export const PRACTICE_TOPICS=["reading","read","saved","mixed"];
 export const PRACTICE_BASE_COST=3;
@@ -45,11 +46,11 @@ export async function startPracticeSession(db,session,topic,now=new Date()) {
   if(!PRACTICE_TOPICS.includes(topic)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     const userId=session.user_id;
-    if(isPostgres(db)) await db.prepare("SELECT user_id FROM accounts WHERE user_id=? FOR UPDATE").get(userId);
+    await lockReaderAccount(db,userId);
     const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(userId);
     if(!account) throw new ApiError(401,"signInRequired");
+    const active=await db.prepare(`SELECT * FROM practice_sessions WHERE user_id=? AND completed_at IS NULL AND cancelled_at IS NULL${isPostgres(db)?" FOR UPDATE":""}`).get(userId);
     const cycleDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.currencyRefill),wallet=await accruePetalWallet(db,userId,cycleDay);
-    const active=await db.prepare("SELECT * FROM practice_sessions WHERE user_id=? AND completed_at IS NULL").get(userId);
     if(active) return {session:sessionFromRow(active),resumed:true,discountTopic:await currentDiscount(db,userId),balance:wallet.balance};
 
     const cards=await availableCards(db,userId,topic),available=cards.length;
@@ -75,10 +76,12 @@ export async function answerPracticeSession(db,session,input,now=new Date()) {
   if(typeof input.sessionId!=="string"||!input.sessionId||typeof input.cardId!=="string"||!input.cardId||
     !Number.isSafeInteger(input.index)||input.index<0||!['soon','remembered'].includes(input.answer)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
+    await lockReaderAccount(db,session.user_id);
     const query=`SELECT * FROM practice_sessions WHERE id=? AND user_id=?${isPostgres(db)?" FOR UPDATE":""}`;
     const row=await db.prepare(query).get(input.sessionId,session.user_id);
     if(!row) throw new ApiError(404,"practiceSessionUnavailable");
     const current=sessionFromRow(row);
+    if(row.cancelled_at) throw new ApiError(409,"practiceSessionUnavailable");
     if(input.index<current.index) return {session:current,idempotent:true};
     if(row.completed_at||input.index!==current.index||current.cardIds[current.index]!==input.cardId) throw new ApiError(409,"invalidRequest");
     const answeredAt=now.toISOString(),nextIndex=current.index+1,completedAt=nextIndex===PRACTICE_SESSION_SIZE?answeredAt:null;
