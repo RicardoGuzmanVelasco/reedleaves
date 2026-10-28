@@ -294,6 +294,11 @@ test("Practice prices show one discounted topic, the wallet cap, and useful empt
   assert.match(choice,/<strong>2<\/strong>/);
   assert.match(choice,/class="pricetag-offer-icon"/);
   assert.doesNotMatch(choice,/practice-topic-cost/);
+  const recovered=practiceView({...state,practiceUnavailable:{reason:"practiceSessionCancelled",topic:"reading"}},null);
+  assert.match(recovered,/role="status">El repaso se canceló y se devolvió su coste\.<\/p>/);
+  assert.equal((recovered.match(/data-action="practice-topic"/g)||[]).length,4);
+  const recoveredEnglish=practiceView({...state,language:"en",practiceUnavailable:{reason:"practiceSessionCancelled",topic:"saved"}},null);
+  assert.match(recoveredEnglish,/The session was cancelled and its cost was refunded\./);
   const insufficient=practiceView({...state,practiceStage:"empty",practiceUnavailable:{reason:"notEnoughCards",topic:"mixed",available:4,required:5}},null);
   assert.match(insufficient,/Necesitas 5 para empezar/);
   assert.match(insufficient,/#bookshelf\/decks/);assert.match(insufficient,/#library/);

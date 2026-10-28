@@ -99,7 +99,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       const currentTime = now();
       if (path === "/api/reader/practice-answer") { send(200,await savePracticeAnswer(db,active,input,currentTime)); return true; }
       if (path === "/api/reader/practice/start") {
-        const result=await startPracticeSession(db,active,input.topic,currentTime);
+        const result=await startPracticeSession(db,active,input.topic,currentTime,Object.hasOwn(input,"sessionId")?input.sessionId:undefined);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
       if (path === "/api/reader/practice/answer") {
