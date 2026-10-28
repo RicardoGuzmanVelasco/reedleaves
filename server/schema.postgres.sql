@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 38));
-INSERT INTO reed_schema VALUES (38);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 39));
+INSERT INTO reed_schema VALUES (39);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '');
@@ -54,6 +54,15 @@ CREATE TABLE reader_display_preferences (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
   show_original_titles INTEGER NOT NULL CHECK(show_original_titles IN (0,1))
 );
+CREATE TABLE reader_book_sort_preferences (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  sort_order TEXT NOT NULL CHECK(sort_order IN ('recent','alphabetical'))
+);
+ALTER TABLE reader_book_sort_preferences ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_book_sort_preferences FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_book_sort_preferences FROM authenticated; END IF;
+END $$;
 CREATE TABLE sessions(
   token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
   csrf_token TEXT NOT NULL, expires_at BIGINT NOT NULL

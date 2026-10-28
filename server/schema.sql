@@ -76,6 +76,10 @@ CREATE TABLE reader_display_preferences (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
   show_original_titles INTEGER NOT NULL CHECK(show_original_titles IN (0,1))
 ) STRICT;
+CREATE TABLE reader_book_sort_preferences (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  sort_order TEXT NOT NULL CHECK(sort_order IN ('recent','alphabetical'))
+) STRICT;
 CREATE TABLE sessions (
   token_hash TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -327,4 +331,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 46;
+PRAGMA user_version = 47;

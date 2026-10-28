@@ -11,7 +11,9 @@ async function retainedRows(db,dialect) {
     ? "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
     : "SELECT table_name AS name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name").all();
   const result={};
-  for(const {name} of tables) if(name!=="reed_schema") {
+  // These tables are introduced by later additive migrations and are outside
+  // the data-preservation contract of the interest-appearance migration.
+  for(const {name} of tables) if(name!=="reed_schema"&&name!=="reader_book_sort_preferences") {
     const columns=name === "genres" ? "id" : name === "book_genres" ? "book_id,genre_id" : "*";
     result[name]=(await db.prepare(`SELECT ${columns} FROM "${name}"`).all()).map(row=>{
       const value={...row};if(name==="books"){delete value.incorporated_at;delete value.incorporation_order;}return value;

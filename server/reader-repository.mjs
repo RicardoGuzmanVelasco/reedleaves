@@ -15,6 +15,7 @@ import {distinguishedBookIds,ensureBookToRead} from "./book-reading.mjs";
 import {accruePetalWallet,MAX_PETALS} from "./petal-wallet-repository.mjs";
 import {practiceDiscountTopic,reconcilePracticeSessionInside} from "./practice-economy.mjs";
 import {lockReaderAccount} from "./reader-account-lock.mjs";
+import {validBookSortOrder} from "../app/book-sort.mjs";
 
 export async function readReaderState(db,session,now=new Date()) {
   return transaction(db,async()=>{
@@ -49,6 +50,7 @@ async function stateInside(db,session,now) {
     index:Number(activePracticeRow.card_index),cost:Number(activePracticeRow.cost),startedAt:activePracticeRow.started_at instanceof Date?activePracticeRow.started_at.toISOString():activePracticeRow.started_at
   }:null;
   const display=await db.prepare("SELECT show_original_titles FROM reader_display_preferences WHERE user_id = ?").get(userId);
+  const bookSort=await db.prepare("SELECT sort_order FROM reader_book_sort_preferences WHERE user_id = ?").get(userId);
   const distinguished=await distinguishedBookIds(db,userId);
   const addedBooks=new Set([
     ...distinguished,
@@ -76,7 +78,7 @@ async function stateInside(db,session,now) {
     noteDeckActivity[row.deck_id]=date;
     if (!noteActivity[row.book_id] || date > noteActivity[row.book_id]) noteActivity[row.book_id]=date;
   }
-  return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,showOriginalTitles:display?.show_original_titles === 1,today,wallet,petals:petalWallet.balance,petalMaximum:MAX_PETALS,practiceDiscountTopic:discountTopic,activePracticeSession,practiceAnswers,growth,cardSaves:await cardSavesInside(db,userId),
+  return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,showOriginalTitles:display?.show_original_titles === 1,bookSortOrder:validBookSortOrder(bookSort?.sort_order)?bookSort.sort_order:"recent",today,wallet,petals:petalWallet.balance,petalMaximum:MAX_PETALS,practiceDiscountTopic:discountTopic,activePracticeSession,practiceAnswers,growth,cardSaves:await cardSavesInside(db,userId),
     noteActivity,noteDeckActivity,shelfBookIds:[...addedBooks],
     statuses:Object.fromEntries([...distinguished.map(id=>[id,"unread"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])]),
     enrolledIds:(await db.prepare("SELECT deck_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.deck_id),
@@ -190,6 +192,11 @@ export async function changePreferences(db,session,input,now=new Date()) {
       if(typeof input.showOriginalTitles!=="boolean") throw new ApiError(400,"invalidRequest");
       await db.prepare("INSERT INTO reader_display_preferences VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET show_original_titles=excluded.show_original_titles")
         .run(session.user_id,input.showOriginalTitles ? 1 : 0);
+    }
+    if(input.bookSortOrder!==undefined){
+      if(!validBookSortOrder(input.bookSortOrder))throw new ApiError(400,"invalidRequest");
+      await db.prepare("INSERT INTO reader_book_sort_preferences(user_id,sort_order) VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET sort_order=excluded.sort_order")
+        .run(session.user_id,input.bookSortOrder);
     }
     return stateInside(db,session,now);
   });

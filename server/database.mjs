@@ -15,8 +15,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 46;
-export const POSTGRES_SCHEMA_VERSION = 38;
+export const SQLITE_SCHEMA_VERSION = 47;
+export const POSTGRES_SCHEMA_VERSION = 39;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -103,6 +103,12 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 46) {
+    db.exec("BEGIN IMMEDIATE");
+    try { db.exec(`CREATE TABLE reader_book_sort_preferences (user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE, sort_order TEXT NOT NULL CHECK(sort_order IN ('recent','alphabetical'))) STRICT; PRAGMA user_version=47; COMMIT;`); }
+    catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 45) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -759,6 +765,22 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 38) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,accounts IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 39) return;
+          await db.exec(`CREATE TABLE reader_book_sort_preferences (user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE, sort_order TEXT NOT NULL CHECK(sort_order IN ('recent','alphabetical')));
+            ALTER TABLE reader_book_sort_preferences ENABLE ROW LEVEL SECURITY;
+            DO $$ BEGIN
+              IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_book_sort_preferences FROM anon; END IF;
+              IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_book_sort_preferences FROM authenticated; END IF;
+            END $$;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=39;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=39);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 37) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,books IN ACCESS EXCLUSIVE MODE;");
