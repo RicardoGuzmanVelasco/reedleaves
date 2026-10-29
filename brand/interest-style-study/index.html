@@ -14,14 +14,18 @@
     <form id="study-controls">
       <label><span data-copy="language">Idioma</span><select name="language"><option value="es">Español</option><option value="en">English</option></select></label>
       <label><span data-copy="width">Ancho</span><select name="width"><option value="390">390 px</option><option value="320">320 px</option><option value="660">660 px</option></select></label>
-      <label><span data-copy="state">Estado</span><select name="state"><option value="mixed" data-copy="mixed">Tres seleccionados</option><option value="empty" data-copy="empty">Sin seleccionar</option><option value="second" data-copy="second">Segundo paso</option></select></label>
+      <label><span data-copy="height">Alto</span><select name="height"><option value="640">640 px</option><option value="740">740 px</option><option value="568">568 px</option></select></label>
+      <label><span data-copy="state">Estado</span><select name="state"><option value="mixed" data-copy="mixed">Tres seleccionados</option><option value="empty" data-copy="empty">Sin seleccionar</option><option value="one" data-copy="one">Uno seleccionado</option><option value="two" data-copy="two">Dos seleccionados</option><option value="four" data-copy="four">Cuatro seleccionados</option><option value="five" data-copy="five">Cinco seleccionados</option><option value="second" data-copy="second">Segundo paso</option></select></label>
+      <label><span data-copy="format">Formato</span><select name="format"><option value="chips" data-copy="chips">Chips con relieve</option><option value="flat" data-copy="flat">Chips planos</option><option value="cards" data-copy="cards">Tarjetas</option></select></label>
+      <label><span data-copy="counter">Número</span><select name="counter"><option value="solid" data-copy="solid">Color oscurecido</option><option value="translucent" data-copy="translucent">Semitransparente</option></select></label>
+      <label><span data-copy="growth">Crecimiento personal</span><select name="growth"><option value="last" data-copy="last">Al final</option><option value="first" data-copy="first">Al principio</option></select></label>
       <label><span data-copy="view">Vista</span><select name="view"><option value="compare" data-copy="compare">Comparar</option><option value="proposal" data-copy="proposal">Propuesta</option></select></label>
       <button type="button" class="study-reset" data-copy="reset" id="study-reset">Reiniciar</button>
     </form>
   </header>
   <div class="study-canvases">
     <section class="study-canvas study-baseline" aria-labelledby="baseline-title">
-      <h2 id="baseline-title" data-copy="baseline">Actual</h2>
+      <h2 id="baseline-title" data-copy="baseline">Propuesta anterior</h2>
       <iframe id="baseline" title="Selector actual"></iframe>
     </section>
     <section class="study-canvas" aria-labelledby="proposal-title">
