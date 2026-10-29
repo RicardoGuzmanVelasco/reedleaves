@@ -23,6 +23,10 @@ async function readState(db,userId) {
   return normalizedState(settings,preferences);
 }
 
+export async function readerInterestPreferencesInside(db,userId) {
+  return readState(db,userId);
+}
+
 export async function readReaderInterestPreferences(db,session) {
   if (!session?.user_id) throw new ApiError(401,"signInRequired");
   return transaction(db,async()=>{

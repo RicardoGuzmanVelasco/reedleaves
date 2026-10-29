@@ -5,6 +5,7 @@ import {openDatabase,PostgresDatabase} from "../server/database.mjs";
 import {seedCatalog} from "./historical-seed.mjs";
 import {readSeed as readCurrentSeed,seedCatalog as seedPreAppearanceCatalog} from "./pre-interest-appearance-seed.mjs";
 import {seedCatalog as seedPrePopularCatalog} from "./pre-popular-title-seed.mjs";
+import {seedCatalog as seedLatestCatalog} from "../server/seed.mjs";
 
 // Load a real released schema, never a current schema with its version lowered.
 export async function historicalDatabase(t,dialect,version) {
@@ -25,7 +26,8 @@ export async function historicalDatabase(t,dialect,version) {
   // seeding editorial books (all NULL), then restore the exact old table shape.
   const beforePersonalBooks=version < (dialect === "postgres" ? 3 : 11);
   if (beforePersonalBooks) await db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
-  if (version >= (dialect === "postgres" ? 21 : 29)) {
+  if(version >= (dialect==="postgres"?43:51)) await seedLatestCatalog(db);
+  else if (version >= (dialect === "postgres" ? 21 : 29)) {
     const seed=readCurrentSeed(),hasPopularTitle=version >= (dialect === "postgres" ? 33 : 41);
     if (hasPopularTitle) await seedPreAppearanceCatalog(db,seed);
     else {
