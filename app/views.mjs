@@ -18,7 +18,8 @@ import {DECK_ADD_COST} from "./wallet.mjs";
 import {interestIcon,interestColor} from "./interests.mjs";
 import {MAX_BOOK_INTERESTS} from "./book-interests.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
-import {LIBRARY_SORT_ORDERS} from "./book-sort.mjs";
+import {LIBRARY_SORT_ORDERS,BOOK_SORT_ORDERS} from "./book-sort.mjs";
+import {homeInterestRecommendations} from "./home-interest-recommendations.mjs";
 
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const esc = escapeHtml;
@@ -102,14 +103,15 @@ function bookReadingIcon(status) {
   return path ? `<svg class="reading-status-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>` : "";
 }
 
-function closedBookMarkup(s,book,{caption=words[s.language].review,catalog=false,note=false}={}) {
+function closedBookMarkup(s,book,{caption=words[s.language].review,catalog=false,catalogNeutral=false,note=false}={}) {
   const c = words[s.language];
   const title=bookCoverTitle(book,s.language);
   const noteDecks=note ? editableNoteDecks(s.catalog,book.id,s.userId) : [];
   const status=s.statuses[book.id] || "unread",statusLines=note ? [{label:status === "reading" ? c.readingStatus : status === "read" ? c.readStatus : c.unread,icon:bookReadingIcon(status)},{label:noteDecks.length ? c.notesInProgress : ""}].filter(row=>row.label) : [];
-  const cover=`<button class="study-book${catalog ? " catalog-book" : ""}" type="button" data-action="open-book-details" data-book="${esc(book.id)}" aria-haspopup="dialog" ${note ? `aria-describedby="home-book-state-${esc(book.id)}"` : ""} aria-label="${esc(catalog ? displayedBookTitle(s,book).text + ", " + book.author + ", " + caption : c.bookInfo + ": " + displayedBookTitle(s,book).text)}">
-    <span class="study-book-cover"><strong lang="${esc(title.language)}" dir="auto">${esc(title.text)}</strong><span class="study-book-author">${esc(book.author)}</span>
-    ${catalog ? `<span class="study-book-footer">${esc(caption)}</span>` : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}${note ? `<span class="home-book-state" id="home-book-state-${esc(book.id)}">${statusLines.map(row=>`<span>${row.icon || ""}${esc(row.label)}</span>`).join("")}</span>` : ""}</span></button>`;
+  const accessibleBookLabel=catalog ? `${displayedBookTitle(s,book).text}, ${book.author}${catalogNeutral?"":`, ${caption}`}` : `${c.bookInfo}: ${displayedBookTitle(s,book).text}, ${book.author}`;
+  const cover=`<button class="study-book${catalog ? " catalog-book" : ""}${catalogNeutral?" catalog-book--neutral":""}" type="button" data-action="open-book-details" data-book="${esc(book.id)}" aria-haspopup="dialog" title="${esc(`${title.text}, ${book.author}`)}" ${note ? `aria-describedby="home-book-state-${esc(book.id)}"` : ""} aria-label="${esc(accessibleBookLabel)}">
+    <span class="study-book-cover"><strong class="study-book-cover-title" lang="${esc(title.language)}" dir="auto" title="${esc(title.text)}">${esc(title.text)}</strong><span class="study-book-author" title="${esc(book.author)}">${esc(book.author)}</span>
+    ${catalog ? catalogNeutral ? "" : `<span class="study-book-footer">${esc(caption)}</span>` : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}${note ? `<span class="home-book-state" id="home-book-state-${esc(book.id)}">${statusLines.map(row=>`<span>${row.icon || ""}${esc(row.label)}</span>`).join("")}</span>` : ""}</span></button>`;
   const complete=completeBookButton(s,book);
   const noteLabel=`${c.takeNote}: ${displayedBookTitle(s,book).text}`;
   const addNote=note ? `<button class="book-note-add" type="button" data-action="take-note" data-book="${esc(book.id)}" aria-haspopup="dialog" ${noteDecks.length > 1 ? `aria-expanded="${s.noteDestination?.bookId === book.id}" aria-controls="note-destination-dialog"` : ""} aria-label="${esc(noteLabel)}" title="${esc(noteLabel)}">${takeNoteIconMarkup}</button>` : "";
@@ -127,13 +129,13 @@ function bookListControls(s) {
   return `<label class="book-sort-selector"><span>${esc(c.sortBooksBy)}</span><select data-book-sort aria-label="${esc(c.sortBooksBy)}"><option value="recent" ${order==="recent"?"selected":""}>${esc(c.mostRecent)}</option><option value="alphabetical" ${order==="alphabetical"?"selected":""}>${esc(c.alphabetical)}</option><option value="interests" ${order==="interests"?"selected":""}>${esc(c.interests)}</option></select></label>${interestStatus}${bookListFilterButton(s)}`;
 }
 
-function bookListPresentation(s,books,scope,{selector=true,count=books.length,note=false,view=defaultBookView(count,s.bookViews?.[scope]),caption}={}) {
+function bookListPresentation(s,books,scope,{selector=true,count=books.length,note=false,catalog=!note,catalogNeutral=false,view=defaultBookView(count,s.bookViews?.[scope]),caption,label=words[s.language].books}={}) {
   const entries=books.map(book=>{
     const title=bookCoverTitle(book,s.language);
     const accessory=note ? `<button class="book-note-add" type="button" data-action="take-note" data-book="${esc(book.id)}" aria-label="${esc(words[s.language].takeNote+': '+title.text)}" aria-haspopup="dialog">${takeNoteIconMarkup}</button>` : '';
     return {id:book.id,title:title.text,language:title.language,author:book.author,href:'#book/'+encodeURIComponent(book.id),action:'open-book-details',accessory,book};
   });
-  return (selector?bookViewSelector(view,scope,s.language,scope==="library"?bookListControls(s):""):'')+bookListMarkup({books:entries,view,label:words[s.language].books,cover:entry=>closedBookMarkup(s,entry.book,{caption:scope==="library"?words[s.language].deckCount(availableDecks(s.catalog,entry.id).length):caption??(s.statuses?.[entry.id]&&s.statuses[entry.id]!=="unread"?words[s.language][s.statuses[entry.id]==="read"?"readStatus":"readingStatus"]:""),catalog:!note,note})});
+  return (selector?bookViewSelector(view,scope,s.language,scope==="library"?bookListControls(s):""):'')+bookListMarkup({books:entries,view,label,cover:entry=>closedBookMarkup(s,entry.book,{caption:scope==="library"?words[s.language].deckCount(availableDecks(s.catalog,entry.id).length):caption??(s.statuses?.[entry.id]&&s.statuses[entry.id]!=="unread"?words[s.language][s.statuses[entry.id]==="read"?"readStatus":"readingStatus"]:""),catalog,catalogNeutral,note})});
 }
 
 export function libraryResultsMarkup(s) {
@@ -271,9 +273,12 @@ export function bookshelfView(s) {
 
 export function homeView(s) {
   const c = words[s.language], books = homeBooks(s.catalog,s.statuses,s.noteActivity,s.userId);
+  const recommendations=s.userId&&Array.isArray(s.homeInterestPreferences?.interested)&&Array.isArray(s.homeInterestPreferences?.notInterested)&&!books.some(book=>s.statuses[book.id]==="reading")
+    ? homeInterestRecommendations(s.catalog,s.statuses,s.homeInterestPreferences,books.map(book=>book.id)) : [];
   return `<section class="home-screen"><h1 class="sr-only" tabindex="-1">${c.home}</h1>
     <button class="practice-launch" type="button" data-action="practice" aria-label="${esc(c.practiceLaunch)}"><span class="practice-launch-mascot">${mascotArt("sprout","practice-launch-art")}</span><span class="practice-launch-label" aria-hidden="true">${practiceLaunchLabel(c.practiceLaunch)}</span></button>
-    ${books.length ? `${bookListPresentation(s,books,"home",{note:true})}` : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
+    ${books.length ? `${bookListPresentation(s,books,"home",{note:true})}` : `<div class="home-empty${recommendations.length?" home-empty--with-recommendations":""}">${recommendations.length?"":mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
+    ${recommendations.length ? `<section class="home-book-recommendations" aria-labelledby="home-book-recommendations-title"><h2 id="home-book-recommendations-title">${esc(c.homeBookRecommendations)}</h2>${bookListPresentation(s,recommendations,"home-recommendations",{selector:false,catalog:true,catalogNeutral:true,view:"covers",label:c.homeBookRecommendations})}</section>` : ""}
     ${s.noteDestination ? noteDestinationMarkup(s) : ""}
     ${s.catalog.booksById.has(s.openBookId) ? bookDetailsMarkup(s,s.catalog.booksById.get(s.openBookId)) : ""}
   </section>`;

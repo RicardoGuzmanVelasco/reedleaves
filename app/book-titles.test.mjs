@@ -32,7 +32,7 @@ test("Cover labels and book details retain the complete title for display and ac
   for (const language of ["es","en"]) {
     book.title[language]="Nombre completo del libro";
     for (const html of [libraryView({...localized,language,openBookId:s.bookId}),homeView({...localized,language})]) {
-      assert.ok(html.includes(`<strong lang="${language}" dir="auto">Nombre completo del libro</strong>`));
+      assert.match(html,new RegExp(`<strong\\b[^>]*lang="${language}"[^>]*>Nombre completo del libro<\\/strong>`));
       assert.match(html,/aria-label="[^"]*Nombre completo del libro/);
     }
     assert.match(libraryView({...localized,language,openBookId:s.bookId}),/id="book-dialog-title"[^>]*>Nombre completo del libro<\/h2>/);
@@ -47,7 +47,7 @@ test("Preferred titles apply across reading views while the popular title stays 
     const localized={...s,language,showOriginalTitles:true,dailyExclusiveCardId:"habit-1"};
     for (const html of [libraryView({...localized,openBookId:s.bookId}),libraryResultsMarkup({...localized,libraryQuery:"Titre populaire"}),
       homeView(localized),deckView(localized),reviewView(localized),reviewView({...localized,requestedId:"habit-1"}),dailyView(localized)]) {
-      assert.match(html,new RegExp(`lang="${language}" dir="auto">Preferred book title`));
+      assert.match(html,new RegExp(`lang="${language}" dir="auto"[^>]*>Preferred book title`));
     }
     const details=libraryView({...localized,openBookId:s.bookId});
     assert.match(details,/<h2 id="book-dialog-title"[^>]*>Preferred book title<\/h2><p class="book-popular-title" lang="fr" dir="auto">Titre populaire<\/p>/);

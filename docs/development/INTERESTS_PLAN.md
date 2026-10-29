@@ -249,7 +249,7 @@ Cada fila es una entrega. Puede contener varios commits locales si hace falta; s
 | 13 | Sección pública y editor de Intereses en perfil | 12 | Listas públicas ordenadas, solo propietario edita, tres recomendado, nunca premios. |
 | 14 | Comparador y detector centrales | 08,09,12 | Contratos puros, orden estable, razón estructurada; sin reglas repetidas en vistas. |
 | 15 | Orden opcional Mis intereses en Librería | 11,13,14 | Preferencia por cuenta, visitante inicia sesión para usar Mis intereses; Biblioteca conserva su organización. |
-| 16 | Recomendaciones de Inicio | 14 | Hasta tres distintas, fallback aprobado, mantiene notas; desaparece al tener Leyendo. |
+| 16 | Recomendaciones de Inicio | 14 | Build, pruebas focalizadas, lint y diff-check correctos. QA Safari responsive a 351, 390, 520 y 1439 px CSS: ratio 11:15, autor mínimo 10 px y títulos/autores máximos dentro de cuatro/tres líneas con elipsis; texto íntegro accesible. Dos columnas en móvil y tres en escritorio. Suite completa pendiente. |
 | 17a | Contrato común de confirmación previa a incorporación | 14 | Tres mutaciones preparadas con confirmación y revalidación sin efectos previos; activación todavía deshabilitada. |
 | 17b | Aviso en el flujo de estado de lectura | 17a | Emoji+nombre, confirmar/cancelar antes de mutación; integrado pero sin activar la política global. |
 | 18 | Aviso al incorporar implícitamente con una baraja | 17a | Mismo detector/confirmación; cancelar no cobra hojas ni añade nada; activación aún deshabilitada. |
