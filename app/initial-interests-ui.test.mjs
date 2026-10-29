@@ -10,12 +10,19 @@ class InterestHost extends EventTarget {
   ownerDocument={activeElement:null};
   firstElementChild=null;
   controls=new Map();
+  inputs=[];
   set innerHTML(value) {
     this.markup=value;
+    this.inputs=[...value.matchAll(/<input\b[^>]*data-initial-interest="([^"]+)"[^>]*value="([^"]+)"[^>]*>/g)].map(([markup,kind,id])=>{
+      const spans=new Map([".interest-order",".interest-order-description",".profile-interest-mark"].map(selector=>[selector,{textContent:""}]));
+      const option={querySelector:selector=>spans.get(selector)};
+      const input={value:id,dataset:{initialInterest:kind},checked:/\schecked(?:\s|>)/.test(markup),setAttribute(){},closest:selector=>selector===".interest-option"?option:input};
+      return input;
+    });
     const content={scrollTop:0};
     this.controls=new Map([
       [".initial-interest-content",content],
-      ["fieldset",{querySelectorAll:()=>[]}],
+      ["fieldset",{querySelectorAll:()=>this.inputs}],
       ["h1",{focus(){}}],
       ...["[data-initial-incentive]","[data-initial-recommendation]","[data-initial-feedback]",'[type="submit"]'].map(key=>[key,{}])
     ]);
@@ -28,12 +35,16 @@ class InterestHost extends EventTarget {
     const event=new Event(type,{cancelable:true});
     Object.defineProperty(event,"target",{value:target});
     this.dispatchEvent(event);
+    return event.defaultPrevented;
   }
   choose(id,kind="interested") {
-    const input={value:id,dataset:{initialInterest:kind}};
-    this.dispatch("change",{closest:()=>input});
+    const input=this.inputs.find(input=>input.value===id&&input.dataset.initialInterest===kind);
+    // A browser toggles the native control before firing change, even when
+    // the app has lost its handlers: the exact misleading state of the bug.
+    input.checked=!input.checked;
+    this.dispatch("change",input);
   }
-  submit(){this.dispatch("submit",{matches:selector=>selector==="[data-initial-interest-form]"});}
+  submit(){return this.dispatch("submit",{matches:selector=>selector==="[data-initial-interest-form]"});}
   back(){this.dispatch("click",{closest:()=>({dataset:{initialAction:"back"}})});}
 }
 
@@ -46,8 +57,14 @@ test("Initial interest controls survive session initialization, account changes 
   // Authenticated startup calls dispose before the first open.
   flow.dispose();open("reader");host.choose("software");
   assert.deepEqual(flow.state.draft.interested,["software"]);
+  assert.equal(host.inputs[0].checked,true);
+  assert.equal(host.inputs[0].closest(".interest-option").querySelector(".interest-order").textContent,1);
   assert.equal(host.querySelector('[type="submit"]').disabled,false);
-  host.submit();assert.equal(flow.state.draft.step,2);
+  host.choose("software");assert.deepEqual(flow.state.draft.interested,[]);
+  assert.equal(host.inputs[0].checked,false);
+  assert.equal(host.querySelector('[type="submit"]').disabled,true);
+  host.choose("software");
+  assert.equal(host.submit(),true,"Submitting advances the flow without navigating the page");assert.equal(flow.state.draft.step,2);
   host.back();assert.equal(flow.state.draft.step,1);
   flow.dispose();open("other");assert.deepEqual(flow.state.draft.interested,[]);
   host.choose("software");assert.deepEqual(flow.state.draft.interested,["software"]);
