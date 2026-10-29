@@ -1,0 +1,20 @@
+/* Exploration only. These rules are never loaded by the product. */
+[data-interest-study="proposal"] .initial-interest-selector .interest-option,
+[data-interest-study="proposal"] .initial-interest-selector .interest-option:has(input:checked){background:radial-gradient(ellipse at 50% 50%,var(--interest-color) 0%,color-mix(in srgb,var(--interest-color) 46%,#fffdf6) 44%,#fffdf6 100%)}
+[data-interest-study="proposal"] .initial-interest-selector .interest-option-content{gap:12px}
+[data-interest-study="proposal"] .initial-interest-selector .interest-emoji{width:1em;height:1em;font-size:24px;transform:none;transform-origin:50% 50%;transition:transform .24s cubic-bezier(.2,.8,.3,1)}
+[data-interest-study="proposal"] .initial-interest-selector .interest-option:has(input:checked) .interest-emoji{transform:rotate(-12deg) scale(1.35)}
+@container(max-width:440px){
+  [data-interest-study="proposal"] .initial-interest-selector .interest-option{padding-inline:9px}
+  [data-interest-study="proposal"] .initial-interest-selector .interest-option-content{gap:10px}
+  [data-interest-study="proposal"] .initial-interest-selector .interest-emoji{font-size:20px}
+}
+@media(prefers-reduced-motion:no-preference){
+  [data-interest-study="proposal"] .initial-interest-selector .interest-option:has(input:checked) .interest-emoji{animation:study-interest-picked .34s cubic-bezier(.2,.8,.3,1)}
+  @keyframes study-interest-picked{0%{transform:rotate(0) scale(1)}58%{transform:rotate(-18deg) scale(1.55)}100%{transform:rotate(-12deg) scale(1.35)}}
+}
+@media(prefers-reduced-motion:reduce){
+  [data-interest-study="proposal"] .initial-interest-selector .interest-emoji{animation:none!important;transition:none!important;transform:none!important}
+}
+.study-result{min-height:100dvh;padding:24px;align-content:center;text-align:center;background:var(--paper)}
+.study-result:not([hidden]){display:grid;gap:24px;justify-items:center}
