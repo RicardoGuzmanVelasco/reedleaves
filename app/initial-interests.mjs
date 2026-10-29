@@ -15,8 +15,7 @@ export function normalizeInitialInterestDraft(saved,catalog) {
   return {interested,notInterested,step:saved?.step===2&&interested.length?2:1};
 }
 
-// No route or gate opens this controller yet. Increment 22c owns activation,
-// applying the fresh reader state and presenting newlyGranted on Home.
+// Authenticated Home opens this controller only while preferences are unset.
 export function createInitialInterestFlow({store,request,onChange=()=>{},onComplete=()=>{},onSessionExpired=()=>{}}) {
   let state=null,generation=0,pending=null;
   const notify=()=>onChange(state);

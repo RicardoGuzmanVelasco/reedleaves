@@ -46,6 +46,25 @@ test("A late initial save cannot clear or complete another account's draft",asyn
 test("Conflict keeps draft, then accepts the account's already configured preferences without rewards",async()=>{
   const {flow,completed}=setup(async path=>{if(path.endsWith("/initial"))throw Object.assign(new Error("conflict"),{status:409});return {configured:true,interested:["interest-2"],notInterested:[],revision:1}});flow.toggle("interest-0","interested");flow.next();await flow.save();assert.equal(flow.state.conflict,true);assert.deepEqual(flow.state.draft.interested,["interest-0"]);await flow.recover();assert.equal(flow.state,null);assert.deepEqual(completed[0][0].newlyGranted,[]);
 });
+test("Initial authentication expiry returns control to sign-in without losing this account's draft",async()=>{
+  let expired;const {flow,store}=setup(async()=>{throw Object.assign(new Error("expired"),{status:401})});
+  flow.toggle("interest-0","interested");flow.next();flow.toggle("interest-1","notInterested");
+  // Save is available on step two; one interested selection is sufficient.
+  await flow.save();
+  assert.equal(flow.state.error,"profileInterestSaveError");
+  assert.ok(store.read(storageKeys.initialInterests("reader")));
+  const expiredFlow=createInitialInterestFlow({store,request:async()=>{throw Object.assign(new Error("expired"),{status:401})},onSessionExpired:userId=>expired=userId});
+  expiredFlow.open({userId:"reader",catalog,preferences});await expiredFlow.recover();assert.equal(expired,"reader");
+  assert.deepEqual(expiredFlow.state.draft,{interested:["interest-0"],notInterested:["interest-1"],step:2});
+});
+test("Configured preferences never open onboarding and a successful initial receipt is passed through unchanged",async()=>{
+  const values=new Map(),store=createBrowserStore(()=>({getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)})),completed=[];
+  const flow=createInitialInterestFlow({store,request:async(path)=>({state:{configured:true},newlyGranted:[{rewardType:"interested_three",currency:"leaves",amount:3,balanceAfter:103}]}),onComplete:(...args)=>completed.push(args)});
+  assert.equal(flow.open({userId:"reader",catalog,preferences:{...preferences,configured:true}}),false);
+  assert.equal(flow.state,null);
+  flow.open({userId:"reader",catalog,preferences});for(let i=0;i<3;i++)flow.toggle(`interest-${i}`,"interested");flow.next();const result=await flow.save();
+  assert.equal(result.result.newlyGranted[0].balanceAfter,103);assert.equal(completed[0][0].newlyGranted[0].amount,3);
+});
 test("Initial ES/EN screens have real ordered controls, conditional prize tags, back and no close or skip",()=>{
   const {flow}=setup();
   for(const language of ["es","en"]) {
