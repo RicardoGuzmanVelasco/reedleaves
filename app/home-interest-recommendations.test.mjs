@@ -62,6 +62,13 @@ test("Inicio shows up to three personal suggestions only without Leyendo and kee
   assert.doesNotMatch(html,/class="home-empty"/);
 });
 
+test("Inicio always shows reading books as covers without a view selector",async()=>{
+  const catalog=await fixture(),book=catalog.books[0];
+  const html=homeView(readerState(catalog,{statuses:{[book.id]:"reading"},bookViews:{home:"shelf"}}));
+  assert.match(html,/class="study-books book-grid"/);
+  assert.doesNotMatch(html,/data-action="set-book-view"/);
+});
+
 test("maximum localized title and author remain accessible inside fixed-ratio recommendation covers",async()=>{
   const catalog=await fixture(),book=catalog.books[0];
   const titleEs="E".repeat(TITLE_MAX_LENGTH),titleEn="W".repeat(TITLE_MAX_LENGTH),author="A".repeat(BOOK_AUTHOR_MAX_LENGTH);

@@ -283,7 +283,7 @@ export function homeView(s) {
     ? homeInterestRecommendations(s.catalog,s.statuses,s.homeInterestPreferences,books.map(book=>book.id)) : [];
   return `<section class="home-screen"><h1 class="sr-only" tabindex="-1">${c.home}</h1>
     <button class="practice-launch" type="button" data-action="practice" aria-label="${esc(c.practiceLaunch)}"><span class="practice-launch-mascot">${mascotArt("sprout","practice-launch-art")}</span><span class="practice-launch-label" aria-hidden="true">${practiceLaunchLabel(c.practiceLaunch)}</span></button>
-    ${books.length ? `${bookListPresentation(s,books,"home",{note:true})}` : `<div class="home-empty${recommendations.length?" home-empty--with-recommendations":""}">${recommendations.length?"":mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
+    ${books.length ? `${bookListPresentation(s,books,"home",{note:true,selector:false,view:"covers"})}` : `<div class="home-empty${recommendations.length?" home-empty--with-recommendations":""}">${recommendations.length?"":mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
     ${recommendations.length ? `<section class="home-book-recommendations" aria-labelledby="home-book-recommendations-title"><h2 id="home-book-recommendations-title">${esc(c.homeBookRecommendations)}</h2>${bookListPresentation(s,recommendations,"home-recommendations",{selector:false,catalog:true,catalogNeutral:true,view:"covers",label:c.homeBookRecommendations})}</section>` : ""}
     ${s.noteDestination ? noteDestinationMarkup(s) : ""}
     ${s.catalog.booksById.has(s.openBookId) ? bookDetailsMarkup(s,s.catalog.booksById.get(s.openBookId)) : ""}
