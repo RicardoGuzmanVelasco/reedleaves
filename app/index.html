@@ -24,10 +24,10 @@
   <link rel="icon" type="image/svg+xml" sizes="any" href="../brand/reed/d-compacto.svg">
   <link rel="stylesheet" href="mascot-art.css?v=flower-15-days">
   <link rel="stylesheet" href="book-list.css">
-  <link rel="stylesheet" href="reader.css?v=daily-streak-flame-1">
+  <link rel="stylesheet" href="reader.css?v=small-feedback-ui-1">
 
   <link rel="stylesheet" href="card-themes.css?v=reading-guides-2">
-  <link rel="stylesheet" href="card-actions.css?v=reading-guides-2">
+  <link rel="stylesheet" href="card-actions.css?v=small-feedback-ui-1">
   <script type="module" src="reader.mjs?v=initial-interest-gate-22c-1"></script>
 </head>
 <body>
@@ -65,10 +65,10 @@
   <dialog class="settings-modal" id="settings" aria-labelledby="settings-title">
     <div class="settings-heading"><h2 id="settings-title">Ajustes</h2><button class="dialog-close" id="close-settings" type="button" aria-label="Cerrar ajustes" autofocus><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
     <p id="language-label">Idioma</p>
-    <div class="segmented-selector" role="group" aria-labelledby="language-label"><button type="button" data-language="es" aria-pressed="true" lang="es">Español</button><button type="button" data-language="en" aria-pressed="false" lang="en">English</button></div>
+    <div class="segmented-selector" role="group" aria-labelledby="language-label"><button type="button" data-language="es" aria-pressed="true" lang="es"><span class="language-flag" aria-hidden="true">🇪🇸</span>Español</button><button type="button" data-language="en" aria-pressed="false" lang="en"><span class="language-flag" aria-hidden="true">🇬🇧</span>English</button></div>
     <p id="settings-error" class="settings-error" role="alert" hidden></p>
-    <div id="account-controls" class="settings-account"></div>
     <button type="button" class="text-button" id="open-feedback" aria-haspopup="dialog">Enviar comentarios</button>
+    <div id="account-controls" class="settings-account"></div>
   </dialog>
   <dialog class="settings-modal feedback-modal" id="feedback" aria-labelledby="feedback-title">
     <form id="feedback-form">

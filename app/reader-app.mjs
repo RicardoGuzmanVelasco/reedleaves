@@ -16,7 +16,7 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=library-interest-sort-login-15";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=practice-actions-quote-chip-1";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=small-feedback-ui-1";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -24,7 +24,7 @@ import {validBookSortOrder,validLibrarySortOrder,validVisitorBookSortOrder,requi
 import {createBookSortPreferenceWriter} from "./book-sort-preference-writer.mjs";
 import {completeInterestSortLogin,createInterestSortLoginIntent} from "./library-interest-sort.mjs";
 import {pageTitle} from "./brand.mjs";
-import {createReadingPresentation} from "./reading-presentation.mjs?v=practice-shuffle-1";
+import {createReadingArrival} from "./reading-arrival.mjs?v=typing-removed-1";
 import {createPracticePresentation} from "./practice-presentation.mjs";
 import {updateSavedReferences,createCardSaveConfirmationFlow} from "./card-interactions.mjs";
 import {editableNoteDecks,noteDecksWithSpace,isHomeBook} from "./notes.mjs";
@@ -52,7 +52,7 @@ export function startReader({createCardFeatures} = {}) {
   startBottomNavigationBehavior();
   const noteDrafts = createNoteDrafts(store);
   const settings = document.getElementById("settings");
-  const presentReading = createReadingPresentation();
+  const presentReading = createReadingArrival();
   const practicePresentation = createPracticePresentation({presentReading});
   let language = restoreLanguage(store.read(keys.language)), catalog, snapshot = {user:null}, budget, preferences, statuses, daily, dailyHistory=[],dailyStatus=null,dailyStatusRequest=null,dailyStatusGeneration=0,dailySeenDays=new Set(), selectedDailyDay=null, dailyExclusiveCardId=null, calendarMonth=null,calendarNavFocus=null,bookId, deckId, requestedId, selections, enrolledIds;
   let bookSortOrder=validVisitorBookSortOrder(store.read(keys.visitorBookSort))?store.read(keys.visitorBookSort):"recent";
@@ -294,7 +294,7 @@ export function startReader({createCardFeatures} = {}) {
     refillWarning.hidden=!(wastedLeaves||wastedPetals);
     updateCurrencyCountdown();
     document.querySelectorAll("[data-language]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.language === language)));
-    document.getElementById("account-controls").innerHTML = snapshot.user ? `<button type="button" class="text-button" data-account-action="profile">${escapeHtml(snapshot.user.username)} ↗</button><button type="button" class="text-button" data-account-action="logout">${c.signOut}</button>` : `<button type="button" class="text-button" data-account-action="login">${c.signIn}</button>`;
+    document.getElementById("account-controls").innerHTML = snapshot.user ? `<button type="button" class="text-button settings-sign-out" data-account-action="logout">${c.signOut}</button>` : `<button type="button" class="text-button" data-account-action="login">${c.signIn}</button>`;
   }
   function lockControls() {
     main.setAttribute("aria-busy",String(busy));

@@ -263,7 +263,7 @@ test("Practice exposes only the active card, enables writing and keeps the pile 
   const catalog=await fixture(),cards=catalog.cards.slice(0,3),state=readerState(catalog,{practiceStage:"session"});
   const html=practiceView(state,{cards,index:0,advancing:false,leaving:null});
   assert.deepEqual([...html.matchAll(/data-reading-card="([^"]+)"/g)].map(match=>match[1]),[cards[0].id]);
-  assert.doesNotMatch(html,/data-reading-mode="complete"/);
+  assert.doesNotMatch(html,/data-reading-mode/);
   assert.match(html,/class="practice-pile" aria-hidden="true" inert/);
   const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]);
   assert.equal(ids.length,new Set(ids).size);
