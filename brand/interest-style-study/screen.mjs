@@ -1,6 +1,6 @@
 import {mountInitialInterests} from "/app/initial-interests-ui.mjs";
 import {createBrowserStore} from "/app/storage.mjs";
-import {applyProposalUI} from "./proposal-ui.mjs";
+import {applyProposalUI,mountProposalSelectionGuard} from "./proposal-ui.mjs";
 
 const params=new URLSearchParams(location.search),language=params.get("language")==="en"?"en":"es",variant=["baseline","reference"].includes(params.get("variant"))?params.get("variant"):"proposal";
 document.documentElement.lang=language;
@@ -26,6 +26,7 @@ const flow=mountInitialInterests({host,language,store,
   request:async()=>({state:{configured:true},newlyGranted:[],rewards:[]}),
   onComplete:()=>{result.hidden=false;result.querySelector("p").textContent=language==="es"?"Selección guardada en esta muestra":"Selection saved in this preview";result.querySelector("button").textContent=language==="es"?"Volver a probar":"Try again";}
 });
+if(variant==="proposal")mountProposalSelectionGuard(host,()=>flow.state);
 result.querySelector("button").addEventListener("click",()=>location.reload());
 // Match authenticated startup, including the reset that exposed the real bug.
 flow.dispose();flow.open({userId:"local-style-study",catalog,preferences:{configured:false,revision:0}});

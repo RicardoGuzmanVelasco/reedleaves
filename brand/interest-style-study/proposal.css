@@ -105,3 +105,13 @@
 @media(max-width:440px){
   [data-study-refresh] .initial-interests-modal{padding-inline:13px}
 }
+
+/* Opposite-step choices remain readable, with their own muted confirmation. */
+[data-study-refresh] .initial-interest-selector .interest-option[data-study-locked]{border-color:#bcc3b8;background:radial-gradient(ellipse at 50% 50%,#e8ebe4,#f6f7f0);box-shadow:0 2px 0 #c5ccbe;cursor:default}
+[data-study-refresh] .initial-interest-selector .interest-option[data-study-locked] .interest-option-content{opacity:.58;filter:grayscale(1)}
+[data-study-refresh] .initial-interest-selector .interest-option[data-study-locked] .interest-order{display:none}
+[data-study-refresh] .initial-interest-selector .interest-option[data-study-locked] .profile-interest-mark{display:grid;visibility:visible;position:static;flex:none;width:20px;height:20px;margin:0;border-radius:50%;background:#dce5d8;color:#608566;font-size:16px;opacity:.65}
+[data-study-refresh] .initial-interest-selector .interest-option[data-study-locked="notInterested"] .profile-interest-mark{background:#e8dedd;color:#986f69}
+[data-study-refresh] .initial-interest-selector .interest-option[data-study-locked]:is(:active,.is-pressed){transform:none;box-shadow:0 2px 0 #c5ccbe}
+[data-study-refresh][data-study-format="flat"] .initial-interest-selector .interest-option[data-study-locked]{box-shadow:none}
+[data-study-refresh] .initial-interest-selector .interest-option[data-study-locked] .interest-emoji{transform:none!important;animation:none!important;transition:none!important}

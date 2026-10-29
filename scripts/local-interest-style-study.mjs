@@ -17,8 +17,8 @@ const server=createServer(async(request,response)=>{
     if(url.pathname==="/"){response.writeHead(302,{Location:"/brand/interest-style-study/index.html"}).end();return;}
     if(url.pathname==="/studio/catalog"){
       const rows=parseCsv(await readFile(resolve(root,"content/catalog/genres.csv"),"utf8"));
-      const palette=new Map(parseCsv(await readFile(resolve(root,"brand/interest-style-study/palette.csv"),"utf8")).map(row=>[row.id,row.color]));
-      const genres=rows.map(row=>({id:row.id,name:{es:row.name_es,en:row.name_en},emoji:row.emoji,color:url.searchParams.get("variant")==="proposal"?palette.get(row.id)||row.color:row.color})).sort((a,b)=>a.id.localeCompare(b.id));
+      const palette=new Map(parseCsv(await readFile(resolve(root,"brand/interest-style-study/palette.csv"),"utf8")).map(row=>[row.id,row]));
+      const genres=rows.map(row=>{const appearance=url.searchParams.get("variant")==="proposal"?palette.get(row.id):null;return {id:row.id,name:{es:row.name_es,en:row.name_en},emoji:appearance?.emoji||row.emoji,color:appearance?.color||row.color};}).sort((a,b)=>a.id.localeCompare(b.id));
       response.setHeader("Content-Type","application/json; charset=utf-8");response.end(JSON.stringify({genres}));return;
     }
     const pathname=decodeURIComponent(url.pathname);
