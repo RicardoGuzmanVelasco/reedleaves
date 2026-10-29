@@ -9,6 +9,7 @@ import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
 import {lockReaderAccount} from "./reader-account-lock.mjs";
 import {effectiveCardLanguage,normalizeLanguageList} from "../app/core.mjs";
 import {readerLanguagePreferencesInside} from "./reader-language-preferences.mjs";
+import {canReviewDeck,reviewableDeckIds} from "./review-card-access.mjs";
 
 export const PRACTICE_TOPICS=["reading","read","saved","mixed"];
 export const PRACTICE_BASE_COST=3;
@@ -36,27 +37,14 @@ function sessionFromRow(row) {
     languageSnapshot,startedAt:timestampText(row.started_at),completedAt:row.completed_at?timestampText(row.completed_at):null};
 }
 
-async function deckAccess(db,userId) {
-  const rows=await db.prepare(`SELECT d.id,d.status,d.kind,d.contribution_policy,d.creator_user_id,
-      EXISTS(SELECT 1 FROM studies s WHERE s.user_id=? AND s.deck_id=d.id) AS enrolled,
-      EXISTS(SELECT 1 FROM deck_contributors dc WHERE dc.user_id=? AND dc.deck_id=d.id) AS invited,
-      EXISTS(SELECT 1 FROM cards c WHERE c.deck_id=d.id AND c.is_reading_guide=1) AS has_reading_guide
-    FROM decks d`).all(userId,userId);
-  return new Map(rows.map(row=>{
-    const owner=row.creator_user_id===userId,invited=!!row.invited,hasReadingGuide=!!row.has_reading_guide;
-    const closedDraft=row.kind==="collective"&&row.status==="draft"&&!owner&&row.contribution_policy!=="open"&&!invited;
-    return [row.id,{currentlyAccessible:(row.status!=="archived"||!!row.enrolled)&&!hasReadingGuide&&!closedDraft}];
-  }));
-}
-
 async function availableCards(db,userId,topic,languages=null) {
   const catalog=prepareCatalog(await readCatalog(db,userId));
   const statuses=new Map((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(row=>[row.book_id,row.status]));
   const enrolled=new Set((await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(row=>row.deck_id));
   const saved=new Set((await db.prepare("SELECT card_id FROM card_saves WHERE user_id=?").all(userId)).map(row=>row.card_id));
-  const access=await deckAccess(db,userId);
+  const access=await reviewableDeckIds(db,userId);
   return catalog.allCards.filter(card=>{
-    if(card.isReadingGuide||!access.get(card.deckId)?.currentlyAccessible||languages&&!languages.includes(effectiveCardLanguage(card))) return false;
+    if(card.isReadingGuide||!access.has(card.deckId)||languages&&!languages.includes(effectiveCardLanguage(card))) return false;
     const status=statuses.get(card.bookId)||"unread",isSaved=saved.has(card.id);
     const inCollection=enrolled.has(card.deckId),isReadingBook=inCollection&&status==="reading",isReadBook=inCollection&&status==="read";
     return topic==="reading"?isReadingBook:topic==="read"?isReadBook:topic==="saved"?isSaved:isReadingBook||isReadBook||isSaved;
@@ -114,9 +102,12 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   let changed=rows.some(row=>Number(row.position)>=PRACTICE_SESSION_SIZE);
   for(let position=session.index;position<PRACTICE_SESSION_SIZE;position++) {
     const id=cardIds[position],row=cardByPosition.get(position);
-    const closedDraft=row?.deck_kind==="collective"&&row.deck_status==="draft"&&row.creator_user_id!==userId&&row.contribution_policy!=="open"&&row.invited_user_id!==userId;
-    // A purchased card remains usable after reading/collection/archive changes; a revoked selected-draft invite is a real access loss.
-    const valid=row?.card_id===id&&row.existing_card_id===id&&row.existing_deck_id&&!row.is_reading_guide&&!closedDraft&&!seen.has(id);
+    // Purchased cards survive collection and archive changes. A revoked
+    // selected-draft invitation still removes access to the pending card.
+    const hasAccess=canReviewDeck({status:row?.deck_status,kind:row?.deck_kind,
+      contributionPolicy:row?.contribution_policy,creatorUserId:row?.creator_user_id,
+      invited:row?.invited_user_id===userId,hasReadingGuide:false},userId,{preserveArchivedSession:true});
+    const valid=row?.card_id===id&&row.existing_card_id===id&&row.existing_deck_id&&!row.is_reading_guide&&hasAccess&&!seen.has(id);
     if(valid) { pending[position-session.index]=id;seen.add(id); }
     else changed=true;
   }

@@ -2,6 +2,7 @@ import {transaction,isPostgres} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
 import {defaultCardLanguages,normalizeLanguageList} from "../app/core.mjs";
 import {lockReaderAccount} from "./reader-account-lock.mjs";
+import {reviewableDeckIds} from "./review-card-access.mjs";
 
 function decode(row,accountLanguage) {
   let languages;
@@ -27,12 +28,11 @@ export async function readerLanguagePreferencesInside(db,userId) {
 }
 
 async function availableLanguages(db,userId) {
+  const deckIds=[...await reviewableDeckIds(db,userId)];
+  if(!deckIds.length) return [];
   const rows=await db.prepare(`SELECT DISTINCT COALESCE(NULLIF(c.language,''),d.language) AS language
     FROM cards c JOIN decks d ON d.id=c.deck_id
-    WHERE c.is_reading_guide=0 AND NOT EXISTS(SELECT 1 FROM cards guide WHERE guide.deck_id=d.id AND guide.is_reading_guide=1)
-      AND (d.status<>'archived' OR EXISTS(SELECT 1 FROM studies s WHERE s.user_id=? AND s.deck_id=d.id))
-      AND NOT (d.kind='collective' AND d.status='draft' AND d.creator_user_id<>? AND d.contribution_policy<>'open'
-        AND NOT EXISTS(SELECT 1 FROM deck_contributors dc WHERE dc.user_id=? AND dc.deck_id=d.id))`).all(userId,userId,userId);
+    WHERE c.is_reading_guide=0 AND c.deck_id IN (${deckIds.map(()=>"?").join(",")})`).all(...deckIds);
   return normalizeLanguageList(rows.map(row=>row.language),[]);
 }
 

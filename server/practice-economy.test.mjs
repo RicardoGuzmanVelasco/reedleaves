@@ -9,6 +9,7 @@ import {accruePetalWallet} from "./petal-wallet-repository.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
 import {setCardSave} from "./card-saves.mjs";
 import {readReaderLanguagePreferences,saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
+import {reviewableDeckIds} from "./review-card-access.mjs";
 
 async function fixture(t,dialect="sqlite") {
   let db;
@@ -29,6 +30,32 @@ async function fixture(t,dialect="sqlite") {
 }
 
 for(const dialect of ["sqlite","postgres"]) {
+  test(`${dialect}: reviewable decks preserve owner, invitation, open collective, and archive access rules`,async t=>{
+    const {db,session}=await fixture(t,dialect);
+    const cases=[
+      ["seven-habits-editorial","selected","draft"],
+      ["seven-habits-inside-out","selected","draft"],
+      ["atomic-habits-editorial","open","draft"],
+      ["rich-dad-poor-dad-editorial","selected","draft"],
+      ["getting-things-done-editorial","selected","archived"],
+      ["same-as-ever-editorial","selected","archived"]
+    ];
+    for(const [deckId,policy,status] of cases) {
+      await db.prepare(`UPDATE decks SET kind='collective',contribution_policy=?,
+        max_cards_per_contributor=1,status=? WHERE id=?`).run(policy,status,deckId);
+    }
+    await db.prepare("INSERT INTO deck_contributors(deck_id,user_id) VALUES (?,?)").run("seven-habits-inside-out",session.user_id);
+    await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,"getting-things-done-editorial");
+    const ownerIds=await reviewableDeckIds(db,"reed-team"),memberIds=await reviewableDeckIds(db,session.user_id);
+    assert.equal(ownerIds.has("seven-habits-editorial"),true,"an owner retains access to their draft");
+    assert.equal(memberIds.has("seven-habits-inside-out"),true,"an invited reader can access a selected draft");
+    assert.equal(memberIds.has("atomic-habits-editorial"),true,"an open collective draft is available to readers");
+    assert.equal(memberIds.has("rich-dad-poor-dad-editorial"),false,"a selected draft stays private without an invitation");
+    assert.equal(memberIds.has("getting-things-done-editorial"),true,"an enrolled reader retains access to an archived deck");
+    assert.equal(memberIds.has("same-as-ever-editorial"),false,"an archived deck is unavailable without enrollment");
+    assert.equal(ownerIds.has("same-as-ever-editorial"),false,"ownership does not bypass archive enrollment requirements");
+  });
+
   test(`${dialect}: petals refill by nine daily up to fifteen`,async t=>{
     const {db}=await fixture(t,dialect);
     assert.equal((await accruePetalWallet(db,"reader","2026-10-07")).balance,15);
