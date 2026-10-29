@@ -91,7 +91,8 @@ CREATE TABLE reader_interest_settings (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
   revision INTEGER NOT NULL CHECK(revision > 0),
   configured_at TEXT NOT NULL,
-  initial_opportunity_closed_at TEXT NOT NULL
+  initial_opportunity_closed_at TEXT NOT NULL,
+  initial_submission_at TEXT
 ) STRICT;
 CREATE TABLE reader_interest_reward_claims (
   user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,

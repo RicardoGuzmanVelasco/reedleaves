@@ -79,7 +79,8 @@ CREATE TABLE reader_interest_settings (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
   revision INTEGER NOT NULL CHECK(revision > 0),
   configured_at TIMESTAMPTZ NOT NULL,
-  initial_opportunity_closed_at TIMESTAMPTZ NOT NULL
+  initial_opportunity_closed_at TIMESTAMPTZ NOT NULL,
+  initial_submission_at TIMESTAMPTZ
 );
 ALTER TABLE reader_interest_settings ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN

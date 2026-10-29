@@ -93,5 +93,36 @@ for (const [dialect,version] of [["sqlite",42],["postgres",34]]) {
     await assert.rejects(saveInitialReaderInterestPreferences(db,failedReader,{interested:["finance","software","society"],notInterested:[],revision:0}));
     assert.deepEqual(await readReaderInterestPreferences(db,failedReader),initial,"a failed credit rolls back the saved preferences too");
     assert.equal(Number((await db.prepare("SELECT count(*) AS n FROM reader_interest_reward_claims WHERE user_id=?").get(failedReader.user_id)).n),0);
+
+    const zeroReader={user_id:`iz-${suffix.slice(0,20)}`,csrf_token:"test"};
+    await historicalReader(db,zeroReader.user_id);
+    await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,0,'2026-10-28') ON CONFLICT(user_id) DO NOTHING").run(zeroReader.user_id);
+    const zeroInput={interested:["finance","software"],notInterested:["society","productivity"],revision:0};
+    const zeroFirst=await saveInitialReaderInterestPreferences(db,zeroReader,zeroInput);
+    assert.deepEqual(zeroFirst.rewards,[]);
+    assert.deepEqual(zeroFirst.newlyGranted,[]);
+    assert.equal(zeroFirst.replayed,false);
+    const zeroRetry=await saveInitialReaderInterestPreferences(db,zeroReader,zeroInput);
+    assert.equal(zeroRetry.replayed,true,"an exact retry replays the empty receipt");
+    assert.deepEqual(zeroRetry.rewards,[]);
+    assert.deepEqual(zeroRetry.newlyGranted,[]);
+    assert.deepEqual(zeroRetry.state,zeroFirst.state,"retry does not alter preferences or reopen setup");
+    assert.equal((await db.prepare("SELECT initial_submission_at FROM reader_interest_settings WHERE user_id=?").get(zeroReader.user_id)).initial_submission_at !== null,true);
+    assert.equal(Number((await db.prepare("SELECT count(*) AS n FROM reader_interest_reward_claims WHERE user_id=?").get(zeroReader.user_id)).n),0);
+
+    const allInterests=["finance","software","society","productivity","metaphysics","mindfulness","personal-growth"];
+    for(const count of [1,2,3,4,5]) {
+      const positiveReader={user_id:`ip${count}-${suffix.slice(0,18)}`,csrf_token:"test"};
+      await historicalReader(db,positiveReader.user_id);
+      const positive=await saveInitialReaderInterestPreferences(db,positiveReader,{interested:allInterests.slice(0,count),notInterested:[],revision:0});
+      assert.equal(positive.rewards.filter(reward=>reward.currency==="leaves").length,count>=3?1:0,`interested list length ${count}`);
+
+      const excluded=allInterests.filter(id=>id!=="software");
+      const negativeReader={user_id:`in${count}-${suffix.slice(0,18)}`,csrf_token:"test"};
+      await historicalReader(db,negativeReader.user_id);
+      await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,0,'2026-10-28') ON CONFLICT(user_id) DO NOTHING").run(negativeReader.user_id);
+      const negative=await saveInitialReaderInterestPreferences(db,negativeReader,{interested:["software"],notInterested:excluded.slice(0,count),revision:0});
+      assert.equal(negative.rewards.filter(reward=>reward.currency==="petals").length,count>=3?1:0,`not-interested list length ${count}`);
+    }
   });
 }

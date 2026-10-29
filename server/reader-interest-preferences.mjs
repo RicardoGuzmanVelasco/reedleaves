@@ -94,10 +94,11 @@ export async function saveInitialReaderInterestPreferences(db,session,input,now=
     await lockReaderAccount(db,userId);
     if (!await db.prepare("SELECT user_id FROM accounts WHERE user_id=?").get(userId)) throw new ApiError(401,"signInRequired");
     const current=await readState(db,userId);
+    const initialSubmission=await db.prepare("SELECT initial_submission_at FROM reader_interest_settings WHERE user_id=?").get(userId);
     const priorClaims=await db.prepare(`SELECT reward_type AS "rewardType",currency,amount,balance_after AS "balanceAfter"
       FROM reader_interest_reward_claims WHERE user_id=? ORDER BY reward_type`).all(userId);
     if (current.configured) {
-      if (priorClaims.length) return {state:current,rewards:priorClaims.map(row=>({...row,amount:Number(row.amount),balanceAfter:Number(row.balanceAfter)})),newlyGranted:[],replayed:true};
+      if (initialSubmission?.initial_submission_at) return {state:current,rewards:priorClaims.map(row=>({...row,amount:Number(row.amount),balanceAfter:Number(row.balanceAfter)})),newlyGranted:[],replayed:true};
       return {conflict:true,current};
     }
     if (input.revision!==current.revision) return {conflict:true,current};
@@ -109,8 +110,8 @@ export async function saveInitialReaderInterestPreferences(db,session,input,now=
       for (let index=0;index<ids.length;index++) await db.prepare(`INSERT INTO reader_interest_preferences(user_id,interest_id,preference,position) VALUES (?,?,?,?)`)
         .run(userId,ids[index],preference,index+1);
     }
-    await db.prepare(`INSERT INTO reader_interest_settings(user_id,revision,configured_at,initial_opportunity_closed_at) VALUES (?,?,?,?)`)
-      .run(userId,1,timestamp,timestamp);
+    await db.prepare(`INSERT INTO reader_interest_settings(user_id,revision,configured_at,initial_opportunity_closed_at,initial_submission_at) VALUES (?,?,?,?,?)`)
+      .run(userId,1,timestamp,timestamp,timestamp);
 
     const newlyGranted=[];
     const rewards=[];

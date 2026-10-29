@@ -1,5 +1,7 @@
 BEGIN;
 
+ALTER TABLE reader_interest_settings ADD COLUMN initial_submission_at TIMESTAMPTZ;
+
 CREATE TABLE reader_interest_reward_claims (
   user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
   reward_type TEXT NOT NULL CHECK(reward_type IN ('interested_three','not_interested_three')),

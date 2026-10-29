@@ -115,6 +115,7 @@ export function initializeDatabase(db) {
         granted_at TEXT NOT NULL,
         PRIMARY KEY(user_id,reward_type)
       ) STRICT;
+      ALTER TABLE reader_interest_settings ADD COLUMN initial_submission_at TEXT;
       PRAGMA user_version=51; COMMIT;`);
     } catch(error) { db.exec("ROLLBACK"); throw error; }
     return initializeDatabase(db);
@@ -841,6 +842,7 @@ async function initializePostgresDatabase(db) {
             granted_at TIMESTAMPTZ NOT NULL,
             PRIMARY KEY(user_id,reward_type)
           );
+          ALTER TABLE reader_interest_settings ADD COLUMN initial_submission_at TIMESTAMPTZ;
           ALTER TABLE reader_interest_reward_claims ENABLE ROW LEVEL SECURITY;
           DO $$ BEGIN
             IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_reward_claims FROM anon; END IF;
