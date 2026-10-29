@@ -37,6 +37,7 @@ test("Practice response values still match the visible less and more labels",()=
     en:{soon:"See less often",remembered:"See more often"}
   })) {
     const html=practiceView(readerState(catalog,{language,practiceStage:"session"}),{cards:[card],index:0,advancing:false});
+    assert.match(html,/class="card-actions-host" data-card-actions="card"/);
     assert.equal(buttonText(html,"soon"),labels.soon);
     assert.equal(buttonText(html,"remembered"),labels.remembered);
   }
