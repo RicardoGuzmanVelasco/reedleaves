@@ -187,3 +187,9 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 - La ficha y la vista previa muestran el título preferido del idioma de interfaz en grande. Justo debajo aparece el popular en cursiva gris y a menor tamaño, solo cuando es distinto. Sin etiquetas «Título original», «Título popular» ni «Título preferido» junto a los nombres.
 - Se retira de Ajustes la opción de forzar títulos originales: la presentación usa siempre el preferido del idioma de interfaz, con fallback al popular.
 - Surrounded by Idiots es un título popular inglés válido; su preferido castellano queda vacío. No hace falta guardar Omgiven av idioter para mostrar el libro.
+
+## Novedades de Librería
+
+- Portadas, Estantería densa y Libros apilados separan primero el grupo «Nuevo / New» cuando la visita contiene novedades. La etiqueta reutiliza el sello naranja de las portadas, con fondo opaco y profundidad corta, sin animación adicional. Su nombre accesible es «Novedades / New books».
+- Cada libro aparece en un único grupo. Ambos mantienen el orden y los filtros elegidos. Los grupos vacíos se ocultan; al retirar el filtro, las novedades de esa visita reaparecen. El selector de presentación es único y se calcula antes de separar los grupos.
+- Las portadas conservan 11:15 y los sellos individuales dentro de su banda inferior. Las repisas conservan las medidas de los lomos; su sello identifica el grupo sin cubrir títulos.

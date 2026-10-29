@@ -2,8 +2,6 @@
 const esc=value=>String(value ?? '').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 export const BOOK_VIEWS=['covers','shelf','stack'];
 export const BOOK_SHELF_THRESHOLD=10;
-// Keep novelty presentation disabled until every library view is ready.
-export const LIBRARY_BOOK_NOVELTY_ENABLED=false;
 export const selectedBookView=(preferred,fallback)=>BOOK_VIEWS.includes(preferred)?preferred:fallback;
 export const defaultBookView=(count,preferred)=>selectedBookView(preferred,count>=BOOK_SHELF_THRESHOLD?'shelf':'covers');
 export function partitionLibraryBooks(books,newBookIds=[]){
