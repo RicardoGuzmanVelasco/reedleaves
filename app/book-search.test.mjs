@@ -62,6 +62,18 @@ test("Simple search is labelled, escaped, clearable and recovers from no results
   assert.doesNotMatch(html,/data-action="open-book-details"/);
 });
 
+test("Signed-in readers can create a book from an unfiltered empty search",async()=>{
+  const catalog=prepareCatalog(await fixture()),base={catalog,language:"en",statuses:{},userId:"reader"};
+  const empty=libraryView({...base,libraryQuery:"A book not in the catalog"});
+  assert.match(empty,/class="book-create-from-search" type="button" data-action="create-book" data-focus-book-title-end="true"/);
+  assert.match(empty,/No books match your search/);
+  assert.doesNotMatch(empty,/library-author-action/);
+  const filtered=libraryView({...base,libraryQuery:"A book not in the catalog",libraryFilters:{author:"Unknown author"}});
+  assert.doesNotMatch(filtered,/book-create-from-search/);
+  const visitor=libraryView({catalog,language:"en",statuses:{},libraryQuery:"A book not in the catalog"});
+  assert.doesNotMatch(visitor,/book-create-from-search/);
+});
+
 test("Book details show the preferred title and only add a different popular title, without labels", async () => {
   const catalog = prepareCatalog(await fixture());
   for (const language of ["es","en"]) for (const book of catalog.books) {

@@ -142,8 +142,10 @@ function bookListPresentation(s,books,scope,{selector=true,count=books.length,no
 
 export function libraryResultsMarkup(s) {
   const c = words[s.language], books = filterLibrary(s.catalog, s.libraryQuery, s.libraryFilters,s.librarySortOrder||s.bookSortOrder,s.language,s.interestPreferences);
-  if (!s.catalog.books.length) return bookViewSelector(defaultBookView(0,s.bookViews?.library),"library",s.language,bookListControls(s))+`<div class="empty-state">${c.noBooks}</div>`;
-  if (!books.length) return bookViewSelector(defaultBookView(0,s.bookViews?.library),"library",s.language,bookListControls(s))+`<div class="empty-state book-search-empty"><p>${Object.values(s.libraryFilters || {}).some(Boolean) ? c.noBookshelfMatches : c.noBookMatches}</p><button class="text-button" type="button" data-action="${Object.values(s.libraryFilters || {}).some(Boolean) ? "reset-library-filters" : "clear-book-search"}">${Object.values(s.libraryFilters || {}).some(Boolean) ? c.resetLibraryFilters : c.clearSearch}</button></div>`;
+  const hasFilters=Object.values(s.libraryFilters || {}).some(Boolean),canCreateFromSearch=!!s.userId&&!hasFilters&&!!s.libraryQuery?.trim();
+  const createBookAction=canCreateFromSearch?`<button class="book-create-from-search" type="button" data-action="create-book" data-focus-book-title-end="true"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5h7.5c1.8 0 2.5 1 2.5 2.2v15c0-1.2-1-2.2-2.5-2.2H4zM24 6.5h-7.5C14.7 6.5 14 7.5 14 8.7v15c0-1.2 1-2.2 2.5-2.2H24z"/><path d="M21 13v6m-3-3h6"/></svg><span>${esc(c.createBook)}</span></button>`:"";
+  if (!s.catalog.books.length) return bookViewSelector(defaultBookView(0,s.bookViews?.library),"library",s.language,bookListControls(s))+`<div class="empty-state"><p>${c.noBooks}</p>${createBookAction}</div>`;
+  if (!books.length) return bookViewSelector(defaultBookView(0,s.bookViews?.library),"library",s.language,bookListControls(s))+`<div class="empty-state book-search-empty"><p>${hasFilters ? c.noBookshelfMatches : c.noBookMatches}</p>${createBookAction}<button class="text-button" type="button" data-action="${hasFilters ? "reset-library-filters" : "clear-book-search"}">${hasFilters ? c.resetLibraryFilters : c.clearSearch}</button></div>`;
   const view=defaultBookView(books.length,s.bookViews?.library);
   const {newBooks,otherBooks}=partitionLibraryBooks(books,s.libraryNewBookIds);
   if(!s.libraryNewBookIds?.some(id=>s.catalog.booksById.has(id)))return bookListPresentation(s,otherBooks,"library",{view});
@@ -202,7 +204,6 @@ export function libraryView(s) {
   return `<section class="library-screen">
     ${["bookshelf","decks"].includes(s.libraryOrigin) ? `<button class="text-button collection-back" type="button" data-action="bookshelf" ${s.libraryOrigin === "decks" ? 'data-tab="decks"' : ""}>${s.libraryOrigin === "decks" ? collectionIconMarkup("decks",18) : collectionIconMarkup("shelf",18)}${s.libraryOrigin === "decks" ? c.deckCollectionBack : c.shelfBack}</button>` : ""}
     <div class="screen-heading library-heading"><h1 tabindex="-1">${collectionIconMarkup("library",30)}${c.books}</h1></div>
-    ${s.userId ? `<div class="library-author-action">${button(c.createBook,"create-book")}</div>` : ""}
     <form class="book-search" role="search" data-book-search><label class="sr-only" for="book-search">${c.searchBooks}</label>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
       <input type="search" id="book-search" placeholder="${c.searchBooks}" value="${esc(s.libraryQuery || "")}" maxlength="200" autocomplete="off" enterkeyhint="search" aria-controls="book-search-results">
