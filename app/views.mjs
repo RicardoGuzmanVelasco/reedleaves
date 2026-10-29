@@ -15,7 +15,7 @@ import {missingBookInformation,TRANSLATION_FIELDS} from "./book-metadata.mjs";
 import {defaultNoteDeckTitle} from "./note-defaults.mjs";
 import {dailyIdeaStreak} from "./daily-streak.mjs";
 import {DECK_ADD_COST} from "./wallet.mjs";
-import {interestIcon,interestColor} from "./interests.mjs";
+import {interestIcon,interestColor,readerInterestSelector} from "./interests.mjs";
 import {MAX_BOOK_INTERESTS} from "./book-interests.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {LIBRARY_SORT_ORDERS,BOOK_SORT_ORDERS} from "./book-sort.mjs";
@@ -795,7 +795,7 @@ export function profileView(s) {
     if(preferences.error&&!preferences.editing)return `<div class="profile-interest-error" role="alert"><p>${esc(c[preferences.error]||c.connectionError)}</p><button type="button" class="text-button" data-action="retry-profile-interests">${c.retry}</button></div>`;
     const draft=preferences.editing?preferences.draft:preferences;
     if(!preferences.editing)return `<div class="profile-interests">${interestList("interested",preferences.interested,false)}${interestList("notInterested",preferences.notInterested,false)}</div>`;
-    const selector=(kind,ids)=>`<fieldset class="profile-interest-selector" ${preferences.saving?"disabled":""}><legend>${c[kind === "interested" ? "profileSelectInterested" : "profileSelectNotInterested"]}</legend><p id="profile-interest-help-${kind}">${c[kind === "interested" ? "profileInterestedHelp" : "profileNotInterestedHelp"]}</p>${s.catalog.genres.map((interest,index)=>{const selected=ids.includes(interest.id),position=ids.indexOf(interest.id)+1;return `<label class="interest-option profile-interest-option"${interestColor(interest)}><input type="checkbox" data-profile-interest="${kind}" value="${esc(interest.id)}" aria-labelledby="profile-interest-name-${kind}-${index}" aria-describedby="profile-interest-help-${kind} profile-interest-position-${kind}-${index}" ${selected?"checked":""}><span class="interest-option-content">${interestIcon(interest)}<span class="interest-name" id="profile-interest-name-${kind}-${index}">${esc(interest.name[s.language])}</span></span><span class="interest-order" aria-hidden="true">${position||""}</span><span class="sr-only" id="profile-interest-position-${kind}-${index}">${position?c.profileInterestPosition(position):""}</span></label>`;}).join("")}</fieldset>`;
+    const selector=(kind,selected)=>readerInterestSelector({catalog:s.catalog,language:s.language,c,kind,selected,disabled:preferences.saving});
     return `<form class="profile-interest-editor" data-profile-interest-editor aria-busy="${!!preferences.saving}"><p class="profile-interest-instructions">${c.profileInterestOrderHelp}</p><div class="profile-interest-groups">${selector("interested",draft.interested)}${selector("notInterested",draft.notInterested)}${!draft.interested.length?`<p class="profile-interest-required" role="alert">${c.profileInterestRequired}</p>`:""}</div>${draft.interested.length>3?`<p class="profile-interest-recommendation">${c.profileInterestRecommended}</p>`:""}<p class="profile-interest-feedback" role="status" aria-live="polite">${preferences.feedback?esc(c[preferences.feedback]||""):""}</p>${preferences.error?`<p class="account-error" role="alert">${esc(c[preferences.error]||c.connectionError)}</p>`:""}${preferences.conflict?`<div class="profile-interest-conflict" role="alert"><p>${c.profileInterestConflict}</p><button type="button" class="secondary" data-action="recover-profile-interests">${c.profileInterestRecover}</button></div>`:""}<div class="form-actions"><button class="text-button" type="button" data-action="cancel-profile-interests" ${preferences.saving?"disabled":""}>${c.cancel}</button><button class="primary" type="button" data-action="save-profile-interests" aria-disabled="${!!preferences.saving}" ${!draft.interested.length?"disabled":""}>${preferences.saving?c.working:c.save}</button></div></form>`;
   };
   const languageEditor=()=>{
@@ -821,4 +821,23 @@ export function profileView(s) {
 export function profilePendingView(s) {
   const c=words[s.language];
   return `<section class="profile-screen"><h1 tabindex="-1" class="profile-pending-title">${c.profile}</h1><div class="empty-state" ${s.profileError ? 'role="alert"' : 'role="status"'}><p>${s.profileError ? esc(c[s.profileError] || c.connectionError) : c.loading}</p>${s.profileError ? `<button class="text-button" type="button" data-action="retry-profile">${c.retry}</button>` : ""}</div></section>`;
+}
+
+export function initialInterestsView(s) {
+  const c=words[s.language],flow=s.initialInterests,draft=flow.draft,second=draft.step===2,kind=second?"notInterested":"interested",selected=draft[kind];
+  const incentive=second||draft.interested.length>0;
+  return `<dialog class="initial-interests-modal" closedby="none" aria-labelledby="initial-interests-title" aria-describedby="initial-interest-order"><form data-initial-interest-form aria-busy="${!!flow.saving}">
+    <div class="initial-interest-progress" aria-label="${esc(c.initialInterestStep(draft.step))}"><span class="${second?"is-complete":"is-current"}" aria-hidden="true">1</span><span class="initial-interest-progress-line" aria-hidden="true"></span><span class="${second?"is-current":""}" aria-hidden="true">2</span></div>
+    <h1 id="initial-interests-title" tabindex="-1">${c[second?"profileSelectNotInterested":"profileSelectInterested"]}</h1>
+    ${second?`<p class="initial-interest-purpose">${c.initialInterestPurpose}</p>`:""}
+    <p class="initial-interest-order" id="initial-interest-order">${c.profileInterestOrderHelp}</p>
+    ${readerInterestSelector({catalog:s.catalog,language:s.language,c,kind,selected,prefix:"initial",expressive:true,disabled:flow.saving})}
+    <p class="initial-interest-recommendation" data-initial-recommendation ${selected.length>3?"":"hidden"}>${c.profileInterestRecommended}</p>
+    <div class="initial-interest-incentive" data-initial-incentive ${incentive?"":"hidden"}><p><span>${c.initialInterestRewardCondition}</span>${priceTag({amount:second?2:3,icon:second?"petal":"leaf",label:c[second?"initialInterestPetalReward":"initialInterestLeafReward"]})}</p><p>${c[second?"initialInterestPetalOpportunity":"initialInterestLeafOpportunity"]}</p></div>
+    <p class="initial-interest-feedback" role="status" aria-live="polite" data-initial-feedback>${flow.feedback?esc(c[flow.feedback]):""}</p>
+    ${flow.storageAvailable===false?`<p class="account-error" role="status">${c.initialInterestStorageUnavailable}</p>`:""}
+    ${flow.error?`<p class="account-error" role="alert">${esc(c[flow.error]||c.connectionError)}</p>`:""}
+    ${flow.conflict?`<div class="profile-interest-conflict" role="alert"><p>${c.profileInterestConflict}</p><button class="secondary" type="button" data-initial-action="recover" ${flow.saving?"disabled":""}>${c.profileInterestRecover}</button></div>`:""}
+    <div class="initial-interest-actions">${second?`<button class="text-button" type="button" data-initial-action="back" ${flow.saving?"disabled":""}>${c.backToPrevious}</button>`:""}<button class="primary" type="submit" data-initial-action="${second?"save":"next"}" aria-disabled="${!!flow.saving}" ${!draft.interested.length||flow.conflict?"disabled":""}>${flow.saving?c.working:second?c.save:c.next}</button></div>
+  </form></dialog>`;
 }

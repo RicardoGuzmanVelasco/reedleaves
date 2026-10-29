@@ -1,6 +1,7 @@
 export const storageKeys = {
   language: "leaf-reader:language:v1",
   visitorBookSort: "leaf-reader:book-sort:visitor:v1",
+  initialInterests: userId => `leaf-reader:initial-interests:v1:${encodeURIComponent(userId)}`,
   noteDrafts: (userId,bookId) => `leaf-reader:note-drafts:v1:${encodeURIComponent(userId)}:${encodeURIComponent(bookId)}`,
   knownBooks: "leaf-reader:known-books:v1"
 };
