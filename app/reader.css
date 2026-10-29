@@ -95,7 +95,7 @@
 .app-header{position:sticky;top:0;z-index:5;background:var(--paper);min-height:76px}
 
 .header-tools{display:flex;align-items:center;gap:12px;width:100%}.header-leading{display:flex;align-items:center;min-width:0}.header-leading:empty{display:none}
-#open-settings{margin-left:0}.profile-header-back{min-height:44px;padding-inline:0;font-size:13px;white-space:nowrap}
+#open-settings{margin-left:0}
 .interest-emoji{display:inline-grid;place-items:center;flex:none;width:1.35em;height:1.35em;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;font-size:20px;font-weight:400;line-height:1;vertical-align:middle}
 .deck-tags>.interest-chip{gap:7px;padding:7px 11px;border-radius:12px;color:var(--ink);background:radial-gradient(ellipse at 25% 10%,#fff 0%,var(--interest-color,var(--paper)) 100%);font-size:12px;white-space:normal}
 .deck-tags>.interest-chip .interest-emoji{font-size:22px}
@@ -947,3 +947,6 @@ textarea:focus-visible{outline:3px solid #8b541e;outline-offset:4px}
 .new-interest-replacement>.secondary{margin-top:16px;min-height:44px}
 @media(max-width:440px){.new-interest-mascot{margin-top:14px}.new-interest-instruction{font-size:21px}.new-interest-context,.new-interest-replacement{padding:12px}}
 @media(max-width:340px){.new-interests-modal .profile-interest-mark{display:grid;bottom:8px;right:13px}.new-interests-modal .initial-interest-selector .interest-option-content{padding-right:28px}}
+
+.profile-heading-identity{display:flex;align-items:center;gap:22px;min-width:0}.profile-heading-copy{min-width:0}.profile-heading--with-back{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:14px;align-items:center}.profile-heading-back{min-height:44px;padding-inline:0;font-size:13px;white-space:nowrap}
+@media(max-width:520px){.profile-heading-identity{gap:12px}.profile-heading--with-back{gap:10px}.profile-heading--with-back .profile-heading-identity{gap:10px}.profile-heading--with-back .profile-avatar{width:56px;height:56px}.profile-heading--with-back h1{font-size:clamp(19px,6vw,23px)}.profile-heading-back{font-size:12px}}

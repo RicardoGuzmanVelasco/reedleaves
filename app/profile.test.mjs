@@ -22,13 +22,19 @@ test("Profiles show book, card-view and contribution counts without old per-card
     assert.equal((html.match(/<img class="mascot-icon"/g)||[]).length,7);
     assert.match(html,new RegExp(`<span>${language==="es"?"Germen":"Seedling"}</span><strong>0</strong>`));
     assert.match(html,new RegExp(`<span>${language==="es"?"Brote":"Sprout"}</span><strong>1</strong>`));
-    assert.match(html,/<header class="profile-heading"><div class="profile-avatar"/);
+    assert.match(html,/<header class="profile-heading"><div class="profile-heading-identity"><div class="profile-avatar"/);
     assert.doesNotMatch(html,/data-action="profile-back"|profile-topline/);
     for(const key of Object.keys(profileData.profile.counts)) assert.ok(html.includes(words[language][key]),key);
     assert.match(html,/href="#bookshelf\/test-user"/);assert.match(html,/datetime="2026-10-10"/);
     assert.doesNotMatch(profileView({language,profileData,userId:"test-user"}),/href="#bookshelf(?:\/|")/);
     assert.match(profileView({language,profileError:"profileUnavailable"}),new RegExp(words[language].profileUnavailable.replace('.','\\.')));
   }
+});
+
+test("Own profile aligns the back control with its avatar and identity",async()=>{
+  const html=profileView({language:"es",profileData,userId:"test-user",profileReturnAvailable:true});
+  assert.match(html,/<header class="profile-heading profile-heading--with-back"><button class="text-button profile-heading-back" type="button" data-action="profile-back">← Volver<\/button><div class="profile-heading-identity">/);
+  assert.match(html,/profile-heading-identity"><div class="profile-avatar"[\s\S]*?<h1 tabindex="-1">/);
 });
 
 test("Profile interests show ordered public lists and expose editing only to the owner",async()=>{
