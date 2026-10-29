@@ -132,7 +132,6 @@
 .study-book::after{content:"";position:absolute;top:0;bottom:0;left:0;width:min(14px,7.95cqi);border-right:1.5px solid #779a72;border-radius:min(13px,7.4cqi) 0 0 min(13px,7.4cqi);background:#9fca82;box-shadow:inset min(4px,2.3cqi) 0 0 rgb(255 255 255 / 22%);pointer-events:none}
 .study-book-cover{display:flex;flex-direction:column;align-items:flex-start;flex:1;min-width:0;min-height:0;overflow:hidden;padding:min(18px,10.23cqi) min(18px,10.23cqi) 0 min(28px,15.9cqi);border-radius:min(15px,8.5cqi) min(11px,6.25cqi) min(11px,6.25cqi) min(15px,8.5cqi);background:#e4f0cc}
 .study-book-cover-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden;font-size:min(23px,11.6cqi);font-weight:800;line-height:1.07;letter-spacing:-.04em;overflow-wrap:anywhere}.study-book-author{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden;font-size:max(10px,min(12px,6.35cqi));line-height:1.4;margin:min(9px,5.1cqi) 0 min(20px,10cqi);overflow-wrap:anywhere}
-.study-book-footer.study-book-footer--new{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;padding:0 0 min(3px,1.7cqi);text-align:center}
 .study-book-new-badge{position:relative;left:calc((min(18px,10.23cqi) - min(28px,15.9cqi))/2);display:block;max-width:100%;padding:3px 8px;border-radius:999px;background:#f2a83b;color:#173d2c;font-size:max(9px,min(10px,5.6cqi));font-weight:900;line-height:1.15;letter-spacing:.045em;text-align:center;text-transform:uppercase;white-space:nowrap;box-shadow:0 2px 0 #c88828}
 /* The icon belongs to the bottom band, independently of title/author wrapping. */
 .study-book-mark{width:min(100%,50px,28.4cqi);height:auto;aspect-ratio:1;align-self:center;margin:auto 0 0;opacity:.48}
@@ -149,7 +148,7 @@
 .home-action:not(.primary){border:2px solid var(--sage);background:#eef3df;box-shadow:0 5px 0 #c3d2a9}
 .home-action:not(.primary):hover:not(:disabled){background:#e4f0cc;transform:translateY(-2px);box-shadow:0 7px 0 #c3d2a9}
 .home-action:not(.primary):active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 #c3d2a9}
-.home-action--icon{position:relative;color:var(--ink)}.home-action--icon .calendar-icon{width:25px;height:25px;flex:none}.home-action>img{width:20px;height:20px;flex:none}.daily-new-badge{position:absolute;top:-6px;right:-6px;z-index:3;width:13px;height:13px;border:2px solid var(--paper);border-radius:50%;background:#f2a83b;box-shadow:0 1px 4px #173d2c66}.daily-badge-entering .daily-new-badge{animation:daily-badge-arrive .85s cubic-bezier(.2,.85,.25,1.2) both}.daily-new-badge::before,.daily-new-badge::after{content:"";position:absolute;inset:-5px;border:1.5px solid #f2a83b;border-radius:50%;opacity:0;pointer-events:none;animation:daily-badge-ring 4s ease-out infinite}.daily-new-badge::after{animation-delay:1s}
+.home-action--icon{position:relative;color:var(--ink)}.home-action--icon .calendar-icon{width:25px;height:25px;flex:none}.home-action>img{width:20px;height:20px;flex:none}
 .home-add{display:flex;align-items:center;gap:8px;min-height:48px;padding:8px 15px;border:1.5px dashed var(--sage);border-radius:16px;background:#eef3df;font-size:12px;font-weight:800}.home-add>span{font-size:22px;line-height:1}
 .home-add:hover{background:#e4f0cc}
 .home-empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:55px 15px 30px;gap:22px}.home-empty h2{font-size:27px}
@@ -380,8 +379,6 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .daily-calendar-day.is-selected{background:var(--light);color:var(--ink);box-shadow:0 3px 0 var(--shadow)}
 .daily-calendar-day.is-today:not(.is-selected){outline:1px solid var(--green);outline-offset:-2px}
 .daily-calendar-seen{position:absolute;top:3px;right:3px;width:10px;height:10px;overflow:visible;fill:none;stroke:#31834a;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-@keyframes daily-badge-arrive{0%{transform:scale(0) rotate(-90deg)}48%{transform:scale(1.55) rotate(14deg)}72%{transform:scale(.82) rotate(-7deg)}100%{transform:scale(1) rotate(0)}}
-@keyframes daily-badge-ring{0%{transform:scale(.3);opacity:.9}24%,100%{transform:scale(2.3);opacity:0}}
 .daily-streak{display:flex;align-items:center;justify-content:center;gap:16px;width:min(380px,100%);min-height:105px;margin:0 auto 17px;padding:17px 19px;border:1px solid var(--line);border-radius:22px;background:#fffdf6;text-align:left}
 .daily-streak img{flex:none}
 .daily-streak>div{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -916,3 +913,20 @@ textarea:focus-visible{outline:3px solid #8b541e;outline-offset:4px}
 @media(prefers-reduced-motion:no-preference){.initial-interest-selector .interest-option:has(input:checked) .interest-emoji{animation:initial-interest-picked .25s ease-out}@keyframes initial-interest-picked{50%{transform:rotate(-7deg) scale(1.12)}}}
 @media(prefers-reduced-motion:reduce){.initial-interest-selector .interest-option,.initial-interest-selector .interest-emoji{animation:none!important;transition:none!important}.initial-interest-selector .interest-option:active,.initial-interest-selector .interest-option.is-pressed{transform:none!important}}
 .initial-interest-actions button[aria-disabled="true"]{opacity:.65;cursor:wait}
+
+/* Compact waves stay within their anchor and travel with each wooden piece. */
+.navigation-new-badge{position:absolute;top:-24px;right:2px;z-index:3;width:26px;height:26px;pointer-events:none;transition:top .28s ease}
+.navigation-new-badge:before{content:"";position:absolute;inset:7px;border:1.5px solid var(--paper);border-radius:50%;background:#f2a83b;box-shadow:0 1px 2px #173d2c40;animation:navigation-badge-arrive .5s ease-out both}
+.navigation-new-badge:after{content:"";position:absolute;inset:0;border:2px solid #c88828;border-radius:50%;opacity:0;animation:navigation-badge-wave 3s ease-out infinite}
+.bottom-navigation-link[aria-current=page] .navigation-new-badge{top:-40px}
+@keyframes navigation-badge-arrive{from{transform:scale(.3)}70%{transform:scale(1.2)}to{transform:scale(1)}}
+@keyframes navigation-badge-wave{0%{transform:scale(.35);opacity:1}40%{transform:scale(1);opacity:.9}65%,100%{transform:scale(1);opacity:0}}
+@media(prefers-reduced-motion:reduce){.navigation-new-badge{transition:none}.navigation-new-badge:before,.navigation-new-badge:after{animation:none}.navigation-new-badge:after{display:none}}
+
+/* Novelty gets its own centre band, independent from title and author length. */
+.catalog-book--new .study-book-cover{display:grid;grid-template-rows:minmax(0,1fr) 30px minmax(0,1fr);padding-bottom:min(12px,6.82cqi)}
+.catalog-book--new .study-book-cover-title{grid-row:1;align-self:start;max-height:100%}
+.catalog-book--new .study-book-author{grid-row:3;align-self:start;margin:8px 0 20px}
+.catalog-book--new .study-book-new-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:fit-content;max-width:calc(100% - 32px)}
+.catalog-book--new .study-book-footer{position:absolute;left:min(28px,15.9cqi);bottom:0;width:calc(100% - min(46px,26.13cqi));padding-top:0}
+@container(max-width:145px){.catalog-book--new .study-book-author{-webkit-line-clamp:2;line-clamp:2}}

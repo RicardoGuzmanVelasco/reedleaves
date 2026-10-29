@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createBrowserStore} from "./storage.mjs";
-import {createBookKnowledgeVisitId,visitVisitorBooks} from "./book-knowledge.mjs";
+import {createBookKnowledgeVisitId,visitVisitorBooks,pendingVisitorBookCount,inLibraryVisit} from "./book-knowledge.mjs";
 
 function storeFixture() {
   const values=new Map();
@@ -41,4 +41,25 @@ test("visitor baseline and snapshot mutation serialize across overlapping visits
 test("book visit IDs are generated once per visit and reject malformed tokens",()=>{
   assert.equal(createBookKnowledgeVisitId(()=>"123e4567-e89b-12d3-a456-426614174000"),"123e4567-e89b-12d3-a456-426614174000");
   assert.throws(()=>createBookKnowledgeVisitId(()=>"not-a-uuid"),/Invalid book knowledge visit ID/);
+});
+
+test("visitor pending count never acknowledges or changes its baseline",async()=>{
+  const {store,values}=storeFixture();
+  assert.equal(pendingVisitorBookCount(store,["old"]),0);
+  assert.equal(values.size,0);
+  await visitVisitorBooks(store,["old"]);
+  assert.equal(pendingVisitorBookCount(store,["old","new"]),1);
+  assert.equal(pendingVisitorBookCount(store,["old","new"]),1);
+  await visitVisitorBooks(store,["old","new"]);
+  assert.equal(pendingVisitorBookCount(store,["old","new"]),0);
+  assert.equal(pendingVisitorBookCount(store,["old","new","later"]),1);
+});
+test("library visit spans its book details and ends at another main section",()=>{
+  assert.equal(inLibraryVisit("library","home"),true);
+  for(const mode of ["book","guides","guide-preview","preview","review","read","saved","mascots","author"]){
+    assert.equal(inLibraryVisit(mode,"library"),true);
+    assert.equal(inLibraryVisit(mode,"home"),false);
+  }
+  for(const mode of ["home","bookshelf","daily","profile","account","practice"])
+    assert.equal(inLibraryVisit(mode,"library"),false);
 });
