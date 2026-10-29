@@ -283,7 +283,7 @@ export function practiceView(s,session) {
   if(s.practiceStage === "session" && session?.cards.length) {
     const card=session.cards[session.index],remaining=session.cards.length-session.index;
     const soonSelected=session.answer==="soon"?" is-selected":"",rememberedSelected=session.answer==="remembered"?" is-selected":"";
-    const front=cardMarkup(s,card,"h2",{layerClass:"practice-card--front"});
+    const front=cardMarkup(s,card,"h2",{layerClass:"practice-card--front",actions:true});
     const pile=Array.from({length:9},(_,index)=>`<div class="practice-card-back"${index>=remaining-1?" hidden":""}></div>`).join("");
     return `<section class="practice-screen practice-session" data-practice-remaining="${remaining}" aria-label="${esc(c.practice)}">${back}<h1 class="sr-only" tabindex="-1">${esc(c.practice)}</h1><div class="practice-scene"><div class="practice-pile" aria-hidden="true" inert>${pile}</div><div class="practice-card-flight">${front}<div class="practice-card-back practice-turn-back" aria-hidden="true"></div></div></div><div class="practice-responses" role="group" aria-label="${esc(c.practiceResponse)}"><button class="practice-response practice-response--soon${soonSelected}" type="button" data-action="practice-answer" data-answer="soon" ${session.advancing?"disabled":""}>${practiceFrequencyLabel(c,"practiceLess")}</button><button class="practice-response practice-response--remembered${rememberedSelected}" type="button" data-action="practice-answer" data-answer="remembered" ${session.advancing?"disabled":""}>${practiceFrequencyLabel(c,"practiceMore")}</button></div></section>`;
   }
