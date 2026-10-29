@@ -64,3 +64,16 @@ test("the warning names the interest and requested status with semantic actions 
     }
   }
 });
+
+test("the shared accessible warning names a card-save interest and Bookcase effect in ES and EN",()=>{
+  for(const [language,interest,copy,continueLabel,cancelLabel] of [
+    ["es","Crecimiento personal","Guardar esta tarjeta también añadirá el libro a tu Biblioteca.","Continuar","Cancelar"],
+    ["en","Personal growth","Saving this card will also add the book to your Bookcase.","Continue","Cancel"]
+  ]) {
+    const html=bookInterestWarningView({language,bookInterestPrompt:{kind:"save-card",warning:{interest:{id:"growth",emoji:"🌱",name:interest}}}});
+    assert.match(html,/aria-labelledby="book-interest-warning-title"/);assert.match(html,/aria-describedby="book-interest-warning-copy"/);
+    assert.ok(html.includes(`<span aria-hidden="true">🌱</span> ${interest}`));assert.ok(html.includes(copy));
+    assert.ok(html.includes(`>${continueLabel}</button>`));assert.ok(html.includes(`>${cancelLabel}</button>`));
+    assert.match(html,/data-action="confirm-book-interest-warning"/);assert.match(html,/data-action="cancel-book-interest-warning"/);
+  }
+});

@@ -27,11 +27,67 @@ export function createCardActionTransport(api,onPending=()=>{}) {
   let active=0;
   return {
     get pending(){return active>0},
-    async write(userId,action){
+    async write(userId,action,confirmation){
       active++;onPending(active);
-      try{return await api.request(action.kind==='vote'?'/api/cards/vote':'/api/cards/save',action.kind==='vote'?{cardId:action.cardId,value:action.value}:{cardId:action.cardId,saved:action.saved},{queueKey:`cards:${userId}:${action.cardId}:${action.kind}`})}
+      try{return await api.request(action.kind==='vote'?'/api/cards/vote':'/api/cards/save',action.kind==='vote'?{cardId:action.cardId,value:action.value}:{cardId:action.cardId,saved:action.saved,...(confirmation?{confirmation}:{})},{queueKey:`cards:${userId}:${action.cardId}:${action.kind}`})}
       finally{active--;onPending(active)}
     },
     read(userId,cardId){return api.request(`/api/cards/${encodeURIComponent(cardId)}/actions`,undefined,{queueKey:`card-read:${userId}:${cardId}`})}
+  };
+}
+
+/** Suppress only the read that follows an already-loaded record's commit callback. */
+export function createCardSaveNotificationGate() {
+  const suppressed=new Set();
+  return {
+    afterCommit(cardId,recordLoaded) {
+      if(recordLoaded)suppressed.add(cardId);
+      return {loadRecordWithoutNotification:!recordLoaded};
+    },
+    shouldNotify(cardId) { return !suppressed.delete(cardId); }
+  };
+}
+
+/** Keep a save action pending until its operation-scoped server confirmation is accepted. */
+export function createCardSaveConfirmationFlow({request,recover,onWarning=()=>{},onCommit=()=>{},onFailure=()=>{}}={}) {
+  let pending=null,busy=false;
+
+  async function submit(action,confirmation) {
+    if(busy)return {saved:false,busy:true};
+    busy=true;
+    try {
+      let result=await request(action,confirmation);
+      if(result?.confirmationRequired) {
+        pending={action,warning:result};
+        onWarning(pending);
+        return {confirmationRequired:true,pending};
+      }
+      pending=null;
+      onWarning(null);
+      onCommit(result,action);
+      return {saved:true,result};
+    } catch(error) {
+      // A request may commit on the server even when its response is lost.
+      let recovered=null;
+      try { recovered=await recover?.(action); } catch { /* Preserve the retry path below. */ }
+      if(recovered?.saved===action.saved) {
+        pending=null;onWarning(null);onCommit(recovered,action);
+        return {saved:true,result:recovered,recovered:true};
+      }
+      if(pending&&confirmation)pending={...pending,outcomeUnknown:true};
+      await onFailure(error,pending,action);
+      return {saved:false,error,pending};
+    } finally { busy=false; }
+  }
+
+  return {
+    start(action) { return submit(action); },
+    confirm() { return pending ? submit(pending.action,pending.warning.confirmation) : Promise.resolve({saved:false}); },
+    cancel() {
+      if(busy||!pending||pending.outcomeUnknown)return null;
+      const cancelled=pending;pending=null;onWarning(null);return cancelled;
+    },
+    get pending() { return pending; },
+    get busy() { return busy; }
   };
 }
