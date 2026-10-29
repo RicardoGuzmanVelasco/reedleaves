@@ -164,7 +164,6 @@
 @media(min-width:600px){.study-books{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:520px){.home-screen{padding:23px 4px 28px}.study-books{gap:24px}.header-tools{gap:9px}.home-actions{gap:8px;margin-bottom:28px}.home-action{min-height:58px;padding:10px 7px;font-size:11px}.home-add{font-size:11px;padding:7px 12px}}
 @media(max-width:600px){.study-books{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:350px){.study-books{grid-template-columns:minmax(0,190px)}}
 
 /* Book discovery mirrors deck discovery: compact objects, details on demand. */
 .library-heading{margin:14px 0 24px}.library-heading h1{display:flex;align-items:center;gap:10px;margin:0;font-size:30px}.library-heading h1 img{flex:none}
@@ -601,6 +600,7 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .home-book-state{position:absolute;bottom:min(12px,6.82cqi);left:min(28px,15.9cqi);right:min(52px,29.55cqi);display:flex;flex-direction:column;align-items:flex-start;gap:min(2px,1.14cqi);color:var(--muted);font-size:min(9px,5.1cqi);font-weight:650;line-height:1.3;text-align:left;pointer-events:none}
 .home-book-state>span{display:flex;align-items:center;gap:min(3px,1.7cqi);white-space:nowrap}
 .reading-status-icon{display:block;flex:none;width:min(11px,6.25cqi);height:min(11px,6.25cqi)}
+@media(max-width:350px){.home-book-state{right:52px;font-size:8px}.home-book-state>span{max-width:100%;white-space:normal}.home-book-state>span:nth-child(n+2){position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}}
 
 
 /* Closing notes after finishing a book. */
