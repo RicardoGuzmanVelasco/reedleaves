@@ -532,6 +532,20 @@ function bookReadingControls(s,book) {
   </div>`;
 }
 
+export function bookInterestWarningView(s) {
+  const pending=s.bookInterestPrompt,c=words[s.language];
+  if(!pending)return "";
+  const interest=pending.warning?.interest||{},emoji=interest.emoji||"",name=interest.name||interest.id||"";
+  const status=pending.warning?.operation?.parameters?.status;
+  const statusLabel=c[status==="to-read"?"toRead":status==="read"?"readStatus":"readingStatus"];
+  return `<dialog class="book-interest-warning-modal" aria-labelledby="book-interest-warning-title" aria-describedby="book-interest-warning-copy"><article class="book-interest-warning-card">
+    <h2 id="book-interest-warning-title"><span aria-hidden="true">${esc(emoji)}</span> ${esc(name)}</h2>
+    <p id="book-interest-warning-copy">${esc(c.bookInterestWarning(name,statusLabel))}</p>
+    ${pending.error ? `<p class="account-error" role="alert">${esc(c[pending.error]||c.bookInterestConfirmError)}</p>` : ""}
+    <div class="book-interest-warning-actions"><button class="text-button" type="button" data-action="cancel-book-interest-warning" autofocus>${esc(c.bookInterestCancel)}</button><button class="primary" type="button" data-action="confirm-book-interest-warning">${esc(c.bookInterestContinue)}</button></div>
+  </article></dialog>`;
+}
+
 function deckWritingActions(s,deck,className="") {
   if (!(deck.canContribute ?? s.userId === deck.creator.userId) || deck.status !== "draft") return "";
   const c=words[s.language];

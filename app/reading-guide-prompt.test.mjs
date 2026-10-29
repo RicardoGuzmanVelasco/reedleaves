@@ -39,21 +39,21 @@ test("Only a saved transition into reading with accessible guide cards qualifies
 
 test("Successful state mutation offers the guide; a failed mutation does not",async()=>{
   for(const succeeds of [true,false]) {
-    let callback,shown=null,focused=null;
+    let shown=null,focused=null;
     const bookId="seven-habits";
     const context={
       snapshot:{user:{id:"reader"},statuses:{[bookId]:"to-read"}},statuses:{[bookId]:"to-read"},mode:"library",openBookId:bookId,
       catalog:{booksById:new Map([[bookId,{}]])},busy:false,bookStatusError:null,noteNudgeBookId:null,readingGuidePromptBookId:null,
       words,language:"es",live:{textContent:""},notesCompletion:null,createNotesCompletion:()=>null,
-      hasAccessibleReadingGuide:()=>true,shouldShowReadingGuidePrompt,
-      mutation:async(_path,_input,onSuccess,options)=>{callback=onSuccess;if(succeeds){onSuccess();return true;}options.preserveDOM=()=>false;return false;},
-      syncBookReadingDialog:()=>{},syncError:"connectionError",main:{querySelectorAll:()=>[]},render:()=>{},
+      hasAccessibleReadingGuide:()=>true,shouldShowReadingGuidePrompt,bookInterestPrompt:null,bookInterestFlow:null,
+      createReadingInterestWarningFlow:({onCommit,onFailure})=>({start:async()=>{if(succeeds)onCommit({});else onFailure({code:"connectionError"},null);}}),
+      runBookInterestAction:async action=>action(),applyState:()=>{},refreshState:()=>{},lockControls:()=>{},syncGeneration:0,
+      main:{querySelectorAll:()=>[]},render:()=>{},
       shouldFocus:null
     };
-    // Run the success callback only for a completed save, matching mutation's contract.
-    context.mutation=async(_path,_input,onSuccess)=>{if(succeeds){onSuccess();shown=context.readingGuidePromptBookId;}return succeeds;};
     const run=handlerWith("setBookReading","dismissReadingGuidePrompt",context);
     await run(bookId,"reading");
+    shown=context.readingGuidePromptBookId;
     assert.equal(shown,succeeds?bookId:null);
   }
 });

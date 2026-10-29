@@ -209,6 +209,7 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   const guest=await fetch(base+"/api/catalog").then(r=>r.json());assert.equal(guest.decks.some(v=>v.id===deckId),true);
   assert.equal(guest.cards.some(card=>card.id===cardId),true);
   assert.equal(guest.books.some(b=>b.id===bookId),true);
+  assert.equal((await post("/api/reader/reading",{bookId,status:"reading"})).status,401);
   const other=await post("/api/auth/register",{username:"other.http",password:"another local test phrase"});
   const otherCookie=other.headers.get("set-cookie").split(";")[0];
   const shared=await fetch(base+"/api/catalog",{headers:{Cookie:otherCookie}}).then(r=>r.json());
