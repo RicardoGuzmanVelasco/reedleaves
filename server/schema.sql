@@ -93,6 +93,12 @@ CREATE TABLE reader_interest_settings (
   configured_at TEXT NOT NULL,
   initial_opportunity_closed_at TEXT NOT NULL
 ) STRICT;
+CREATE TABLE reader_language_preferences (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  languages TEXT NOT NULL,
+  configured INTEGER NOT NULL CHECK(configured IN (0,1)),
+  revision INTEGER NOT NULL CHECK(revision >= 0)
+) STRICT;
 CREATE TABLE sessions (
   token_hash TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -291,7 +297,8 @@ CREATE TABLE practice_sessions (
   started_at TEXT NOT NULL,
   completed_at TEXT,
   completed_local_day TEXT CHECK(completed_local_day IS NULL OR (completed_local_day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(completed_local_day,'+0 days') IS completed_local_day)),
-  cancelled_at TEXT
+  cancelled_at TEXT,
+  language_snapshot TEXT
 ) STRICT;
 CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL AND cancelled_at IS NULL;
 CREATE TABLE practice_session_cards (
@@ -344,4 +351,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 48;
+PRAGMA user_version = 50;

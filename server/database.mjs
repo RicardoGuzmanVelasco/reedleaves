@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, chmodSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Pool, types } from "pg";
-import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH,USERNAME_MIN_LENGTH,USERNAME_MAX_LENGTH} from "../app/core.mjs";
+import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH,USERNAME_MIN_LENGTH,USERNAME_MAX_LENGTH,defaultCardLanguages} from "../app/core.mjs";
 import {INTEREST_MIGRATION_SQL,SOFTWARE_BOOK_IDENTITY,SOFTWARE_RECLASSIFICATION_QUERIES} from "./interest-migration.mjs";
 
 import {INTEREST_APPEARANCE_SQL} from "./interest-appearance-migration.mjs";
@@ -15,8 +15,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 49;
-export const POSTGRES_SCHEMA_VERSION = 41;
+export const SQLITE_SCHEMA_VERSION = 50;
+export const POSTGRES_SCHEMA_VERSION = 42;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -111,6 +111,22 @@ export function initializeDatabase(db) {
         INSERT INTO reader_book_sort_preferences(user_id,sort_order) SELECT user_id,sort_order FROM reader_book_sort_preferences_old;
         DROP TABLE reader_book_sort_preferences_old;
         PRAGMA user_version=49; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 49) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE reader_language_preferences (
+        user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+        languages TEXT NOT NULL,
+        configured INTEGER NOT NULL CHECK(configured IN (0,1)),
+        revision INTEGER NOT NULL CHECK(revision >= 0)
+      ) STRICT;
+      ALTER TABLE practice_sessions ADD COLUMN language_snapshot TEXT;`);
+      const insert=db.prepare("INSERT INTO reader_language_preferences(user_id,languages,configured,revision) VALUES (?,?,0,0)");
+      for(const account of db.prepare("SELECT user_id,language FROM accounts").all()) insert.run(account.user_id,JSON.stringify(defaultCardLanguages(account.language)));
+      db.exec("PRAGMA user_version=50; COMMIT;");
     } catch(error) { db.exec("ROLLBACK"); throw error; }
     return initializeDatabase(db);
   }
@@ -805,6 +821,28 @@ async function initializePostgresDatabase(db) {
             ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
             UPDATE reed_schema SET version=41;
             ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=41);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 41) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,accounts,practice_sessions IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 42) return;
+          await db.exec(`CREATE TABLE reader_language_preferences (
+              user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+              languages TEXT NOT NULL, configured BOOLEAN NOT NULL DEFAULT FALSE, revision INTEGER NOT NULL DEFAULT 0 CHECK(revision>=0)
+            );
+            ALTER TABLE reader_language_preferences ENABLE ROW LEVEL SECURITY;
+            DO $$ BEGIN
+              IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_language_preferences FROM anon; END IF;
+              IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_language_preferences FROM authenticated; END IF;
+            END $$;
+            INSERT INTO reader_language_preferences(user_id,languages,configured,revision)
+              SELECT user_id,CASE WHEN language='en' THEN '["en"]' ELSE json_build_array('en',language)::text END,FALSE,0 FROM accounts;
+            ALTER TABLE practice_sessions ADD COLUMN language_snapshot TEXT;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=42;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=42);`);
         });
         return initializePostgresDatabase(db);
       }

@@ -64,6 +64,22 @@ test("Another reader's profile renders the public interest payload instead of a 
   assert.match(html,/profile-interest-mark--notInterested/);
 });
 
+test("Card language preferences are private to the owner and enforce one selected language in the editor",async()=>{
+  const catalog=await fixture(),preferences={languages:["en","es"],options:["en","es","fr-CA"],configured:false,revision:0};
+  for(const language of ["es","en"]) {
+    const html=profileView({language,profileData,userId:"test-user",catalog,profileLanguages:preferences});
+    assert.match(html,new RegExp(words[language].profileLanguages));
+    assert.match(html,/english, spanish|inglés, español/i);
+    const editor=profileView({language,profileData,userId:"test-user",catalog,profileLanguages:{...preferences,editing:true,draft:["en"]}});
+    assert.match(editor,/data-profile-language value="fr-CA"/);
+    assert.match(editor,/data-action="save-profile-languages"/);
+    assert.match(editor,new RegExp(words[language].profileLanguageChoose));
+    assert.match(editor,new RegExp(words[language].profileLanguageRequired));
+    const visitor=profileView({language,profileData,userId:"visitor",catalog,profileLanguages:null});
+    assert.doesNotMatch(visitor,/data-action="edit-profile-languages"|Card languages|Idiomas de las tarjetas/);
+  }
+});
+
 test("Profile interest selection appends in click order, moves between lists, and enforces five",()=>{
   let state={interested:["a","b","c"],notInterested:["d"]};
   let change=toggleProfileInterest(state,"b","interested");

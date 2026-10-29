@@ -11,6 +11,7 @@ const migration = (await readFile(new URL("../supabase/migrations/20261018021559
   .replaceAll("public.reviews","public.practices");
 const bookSortMigration=await readFile(new URL("../supabase/migrations/20261028000000_secure_reader_book_sort_preferences.sql",import.meta.url),"utf8");
 const readerInterestMigration=await readFile(new URL("../supabase/migrations/20261028204846_reader_interest_preferences.sql",import.meta.url),"utf8");
+const readerLanguageMigration=await readFile(new URL("../supabase/migrations/20261029000000_secure_reader_language_preferences.sql",import.meta.url),"utf8");
 const cleanPostgresSchema=(await readFile(new URL("./schema.postgres.sql",import.meta.url),"utf8"))
   .replaceAll("__USERNAME_MIN_LENGTH__",String(USERNAME_MIN_LENGTH))
   .replaceAll("__USERNAME_MAX_LENGTH__",String(USERNAME_MAX_LENGTH))
@@ -26,12 +27,13 @@ test("Fresh PostgreSQL schema revokes default Data API grants for private reader
       has_table_privilege('anon',c.oid,'SELECT') AS anon_select,
       has_table_privilege('authenticated',c.oid,'UPDATE') AS authenticated_update
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-    WHERE n.nspname='public' AND c.relname IN ('reader_book_sort_preferences','reader_interest_preferences','reader_interest_settings')
+    WHERE n.nspname='public' AND c.relname IN ('reader_book_sort_preferences','reader_interest_preferences','reader_interest_settings','reader_language_preferences')
     ORDER BY c.relname`);
   assert.deepEqual(state.rows,[
     {relname:"reader_book_sort_preferences",rls:true,anon_select:false,authenticated_update:false},
     {relname:"reader_interest_preferences",rls:true,anon_select:false,authenticated_update:false},
-    {relname:"reader_interest_settings",rls:true,anon_select:false,authenticated_update:false}
+    {relname:"reader_interest_settings",rls:true,anon_select:false,authenticated_update:false},
+    {relname:"reader_language_preferences",rls:true,anon_select:false,authenticated_update:false}
   ]);
 });
 
@@ -63,15 +65,19 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
       revision INTEGER NOT NULL CHECK(revision > 0),
       configured_at TIMESTAMPTZ NOT NULL,
       initial_opportunity_closed_at TIMESTAMPTZ NOT NULL);
+    CREATE TABLE public.reader_language_preferences (
+      user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+      languages TEXT NOT NULL, configured BOOLEAN NOT NULL, revision INTEGER NOT NULL CHECK(revision>=0));
     ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL PRIVILEGES ON TABLES FROM anon,authenticated;`);
   await db.exec(bookSortMigration);
   await db.exec(readerInterestMigration);
+  await db.exec(readerLanguageMigration);
 
   const tableState = await db.query(`SELECT count(*)::int AS total,
       count(*) FILTER (WHERE NOT c.relrowsecurity)::int AS without_rls
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
     WHERE n.nspname='public' AND c.relkind IN ('r','p')`);
-  assert.deepEqual(tableState.rows,[{total:37,without_rls:0}]);
+  assert.deepEqual(tableState.rows,[{total:38,without_rls:0}]);
 
   const directAccess = await db.query(`SELECT
       has_table_privilege('anon','public.accounts','SELECT') AS anon_select,
@@ -81,8 +87,10 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
       has_table_privilege('anon','public.reader_book_sort_preferences','SELECT') AS anon_sort_select,
       has_table_privilege('authenticated','public.reader_book_sort_preferences','UPDATE') AS authenticated_sort_update,
       has_table_privilege('anon','public.reader_interest_preferences','SELECT') AS anon_interest_select,
-      has_table_privilege('authenticated','public.reader_interest_settings','UPDATE') AS authenticated_interest_update`);
-  assert.deepEqual(directAccess.rows,[{anon_select:false,authenticated_update:false,anon_delete:false,anon_practice_select:false,anon_sort_select:false,authenticated_sort_update:false,anon_interest_select:false,authenticated_interest_update:false}]);
+      has_table_privilege('authenticated','public.reader_interest_settings','UPDATE') AS authenticated_interest_update,
+      has_table_privilege('anon','public.reader_language_preferences','SELECT') AS anon_language_select,
+      has_table_privilege('authenticated','public.reader_language_preferences','UPDATE') AS authenticated_language_update`);
+  assert.deepEqual(directAccess.rows,[{anon_select:false,authenticated_update:false,anon_delete:false,anon_practice_select:false,anon_sort_select:false,authenticated_sort_update:false,anon_interest_select:false,authenticated_interest_update:false,anon_language_select:false,authenticated_language_update:false}]);
 
   const functionAccess = await db.query(`SELECT count(*)::int AS functions,
       count(*) FILTER (WHERE p.prorettype='trigger'::regtype AND EXISTS (
@@ -104,7 +112,8 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
     INSERT INTO public.reader_interest_preferences(user_id,interest_id,preference,position) VALUES ('reader-1','society','interested',1);
     INSERT INTO public.reader_interest_settings(user_id,revision,configured_at,initial_opportunity_closed_at)
       VALUES ('reader-1',1,'2026-10-28T12:00:00Z','2026-10-28T12:00:00Z');
-    GRANT SELECT,INSERT,UPDATE,DELETE ON public.accounts,public.reader_book_sort_preferences,public.reader_interest_preferences,public.reader_interest_settings TO anon,authenticated;`);
+    INSERT INTO public.reader_language_preferences(user_id,languages,configured,revision) VALUES ('reader-1','["en","es"]',false,0);
+    GRANT SELECT,INSERT,UPDATE,DELETE ON public.accounts,public.reader_book_sort_preferences,public.reader_interest_preferences,public.reader_interest_settings,public.reader_language_preferences TO anon,authenticated;`);
 
   for (const role of ["anon","authenticated"]) {
     await db.exec(`SET ROLE ${role}`);
@@ -112,7 +121,7 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
     assert.equal(visible.rows[0].count,0,`${role} must not read accounts even if a grant is reintroduced`);
     const sortVisible=await db.query("SELECT count(*)::int AS count FROM public.reader_book_sort_preferences");
     assert.equal(sortVisible.rows[0].count,0,`${role} must not read private sort preferences even if a grant is reintroduced`);
-    for (const table of ["reader_interest_preferences","reader_interest_settings"]) {
+    for (const table of ["reader_interest_preferences","reader_interest_settings","reader_language_preferences"]) {
       const visible=await db.query(`SELECT count(*)::int AS count FROM public.${table}`);
       assert.equal(visible.rows[0].count,0,`${role} must not read ${table} even if a grant is reintroduced`);
     }

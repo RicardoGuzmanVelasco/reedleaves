@@ -7,6 +7,8 @@ import {selectPracticeCards} from "../app/practice-progress.mjs";
 import {accruePetalWallet} from "./petal-wallet-repository.mjs";
 import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
 import {lockReaderAccount} from "./reader-account-lock.mjs";
+import {effectiveCardLanguage,normalizeLanguageList} from "../app/core.mjs";
+import {readerLanguagePreferencesInside} from "./reader-language-preferences.mjs";
 
 export const PRACTICE_TOPICS=["reading","read","saved","mixed"];
 export const PRACTICE_BASE_COST=3;
@@ -28,8 +30,10 @@ async function currentDiscount(db,userId) {
 function sessionFromRow(row) {
   let cardIds=null;
   try { const parsed=JSON.parse(row.card_ids);if(Array.isArray(parsed))cardIds=parsed; } catch {}
+  let languageSnapshot=null;
+  try { const parsed=JSON.parse(row.language_snapshot);if(Array.isArray(parsed)){const normalized=normalizeLanguageList(parsed,[]);if(normalized.length)languageSnapshot=normalized;} } catch {}
   return {id:row.id,topic:row.topic,cardIds,index:Number(row.card_index),cost:Number(row.cost),
-    startedAt:timestampText(row.started_at),completedAt:row.completed_at?timestampText(row.completed_at):null};
+    languageSnapshot,startedAt:timestampText(row.started_at),completedAt:row.completed_at?timestampText(row.completed_at):null};
 }
 
 async function deckAccess(db,userId) {
@@ -45,14 +49,14 @@ async function deckAccess(db,userId) {
   }));
 }
 
-async function availableCards(db,userId,topic) {
+async function availableCards(db,userId,topic,languages=null) {
   const catalog=prepareCatalog(await readCatalog(db,userId));
   const statuses=new Map((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(row=>[row.book_id,row.status]));
   const enrolled=new Set((await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(row=>row.deck_id));
   const saved=new Set((await db.prepare("SELECT card_id FROM card_saves WHERE user_id=?").all(userId)).map(row=>row.card_id));
   const access=await deckAccess(db,userId);
   return catalog.allCards.filter(card=>{
-    if(card.isReadingGuide||!access.get(card.deckId)?.currentlyAccessible) return false;
+    if(card.isReadingGuide||!access.get(card.deckId)?.currentlyAccessible||languages&&!languages.includes(effectiveCardLanguage(card))) return false;
     const status=statuses.get(card.bookId)||"unread",isSaved=saved.has(card.id);
     const inCollection=enrolled.has(card.deckId),isReadingBook=inCollection&&status==="reading",isReadBook=inCollection&&status==="read";
     return topic==="reading"?isReadingBook:topic==="read"?isReadBook:topic==="saved"?isSaved:isReadingBook||isReadBook||isSaved;
@@ -74,7 +78,7 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   const active=await db.prepare(`SELECT * FROM practice_sessions WHERE user_id=? AND completed_at IS NULL AND cancelled_at IS NULL${isPostgres(db)?" FOR UPDATE":""}`).get(userId);
   if(!active) return {session:null,recovery:null};
 
-  const session=sessionFromRow(active),rows=await db.prepare(`SELECT psc.card_id,psc.position,c.id AS existing_card_id,c.is_reading_guide,
+  const session=sessionFromRow(active),rows=await db.prepare(`SELECT psc.card_id,psc.position,c.id AS existing_card_id,c.is_reading_guide,c.language AS card_language,d.language AS deck_language,
       d.id AS existing_deck_id,d.status AS deck_status,d.kind AS deck_kind,d.contribution_policy,d.creator_user_id,
       dc.user_id AS invited_user_id
     FROM practice_session_cards psc LEFT JOIN cards c ON c.id=psc.card_id
@@ -82,6 +86,20 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
     WHERE psc.session_id=? ORDER BY psc.position`).all(userId,active.id);
   const cardIds=session.cardIds;
   const cardByPosition=new Map(rows.map(row=>[Number(row.position),row]));
+  if(!session.languageSnapshot) {
+    const legacyIds=Array.isArray(cardIds)?[...new Set(cardIds.filter(id=>typeof id==="string"))].slice(0,PRACTICE_SESSION_SIZE):[];
+    const legacyCards=legacyIds.length?await db.prepare(`SELECT c.language,d.language AS deck_language FROM cards c JOIN decks d ON d.id=c.deck_id
+      WHERE c.id IN (${legacyIds.map(()=>"?").join(",")})`).all(...legacyIds):[];
+    const snapshot=normalizeLanguageList(legacyCards.map(card=>effectiveCardLanguage({language:card.language,deckLanguage:card.deck_language})),[]);
+    if(!snapshot.length) {
+      const cancelled=await db.prepare("UPDATE practice_sessions SET cancelled_at=? WHERE id=? AND cancelled_at IS NULL").run(now.toISOString(),active.id);
+      if(cancelled.changes!==1) throw new Error("Practice session cancellation lost its lock");
+      await refundCancelledSession(db,userId,Number(active.cost),now);
+      return {session:null,recovery:"cancelled",sessionId:active.id,topic:active.topic};
+    }
+    session.languageSnapshot=snapshot;
+    await db.prepare("UPDATE practice_sessions SET language_snapshot=? WHERE id=? AND language_snapshot IS NULL").run(JSON.stringify(snapshot),active.id);
+  }
   const prefix=Array.isArray(cardIds)?cardIds.slice(0,session.index):[];
   // Never rewrite the answered prefix. A malformed prefix cannot safely be repaired.
   if(!Array.isArray(cardIds)||cardIds.length!==PRACTICE_SESSION_SIZE||session.index<0||session.index>=PRACTICE_SESSION_SIZE||
@@ -104,7 +122,7 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   }
   if(!changed) return {session,recovery:null};
 
-  const candidates=await availableCards(db,userId,session.topic),replacementIds=candidates.map(card=>card.id).filter(id=>!seen.has(id));
+  const candidates=await availableCards(db,userId,session.topic,session.languageSnapshot),replacementIds=candidates.map(card=>card.id).filter(id=>!seen.has(id));
   let replacementIndex=0;
   for(let pendingPosition=0;pendingPosition<pending.length;pendingPosition++) {
     if(pending[pendingPosition]!==null) continue;
@@ -149,7 +167,8 @@ export async function startPracticeSession(db,session,topic,now=new Date(),expec
     const cycleDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.currencyRefill),wallet=await accruePetalWallet(db,userId,cycleDay);
     if(recovery.session) return {session:recovery.session,resumed:true,...(recovery.recovery?{practiceRecovery:{status:recovery.recovery,topic:recovery.session.topic}}:{}),discountTopic:await currentDiscount(db,userId),balance:wallet.balance};
 
-    const cards=await availableCards(db,userId,topic),available=cards.length;
+    const preferences=await readerLanguagePreferencesInside(db,userId),languages=preferences.languages;
+    const cards=await availableCards(db,userId,topic,languages),available=cards.length;
     if(available<PRACTICE_SESSION_SIZE) return {reason:"notEnoughCards",topic,available,required:PRACTICE_SESSION_SIZE,balance:wallet.balance};
     const discountTopic=await currentDiscount(db,userId),cost=topic===discountTopic?PRACTICE_DISCOUNT_COST:PRACTICE_BASE_COST;
     if(wallet.balance<cost) return {reason:"insufficientPetals",topic,cost,balance:wallet.balance};
@@ -158,13 +177,13 @@ export async function startPracticeSession(db,session,topic,now=new Date(),expec
     const spent=await db.prepare("UPDATE petal_wallets SET balance=balance-? WHERE user_id=? AND balance>=?").run(cost,userId,cost);
     if(spent.changes!==1) throw new ApiError(409,"insufficientPetals");
     const id=randomUUID(),startedAt=now.toISOString(),cardIds=selected.map(card=>card.id);
-    await db.prepare("INSERT INTO practice_sessions(id,user_id,topic,card_ids,card_index,cost,started_at) VALUES (?,?,?,?,0,?,?)")
-      .run(id,userId,topic,JSON.stringify(cardIds),cost,startedAt);
+    await db.prepare("INSERT INTO practice_sessions(id,user_id,topic,card_ids,card_index,cost,started_at,language_snapshot) VALUES (?,?,?,?,0,?,?,?)")
+      .run(id,userId,topic,JSON.stringify(cardIds),cost,startedAt,JSON.stringify(languages));
     for (const [position,cardId] of cardIds.entries()) {
       await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)")
         .run(id,cardId,position);
     }
-    return {session:{id,topic,cardIds,index:0,cost,startedAt,completedAt:null},discountTopic,balance:wallet.balance-cost};
+    return {session:{id,topic,cardIds,index:0,cost,startedAt,completedAt:null,languageSnapshot:languages},discountTopic,balance:wallet.balance-cost};
   });
 }
 
