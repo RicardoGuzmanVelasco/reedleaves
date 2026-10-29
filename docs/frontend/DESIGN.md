@@ -173,6 +173,10 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 - Las casillas reales se presentan en superficies luminosas con profundidad y pulsación táctil; mantienen nombre completo, foco visible y posición estable. Movimiento reducido elimina desplazamientos. El selector de filtro conserva opciones nativas de texto y una etiqueta sin emoji.
 - Software y Mindfulness están disponibles en español e inglés. No asignar Mindfulness a libros de crecimiento personal por asociación general; clasificar según el contenido del libro.
 
+## Selección inicial de intereses
+
+- Al abrir cada paso, enfocar su título y mostrar el contenido desde arriba. Las opciones, instrucciones y estados se desplazan dentro del panel; «Siguiente», «Volver» y «Guardar» quedan fuera de esa zona y siempre visibles, también en móvil estrecho. Mantener las casillas nativas y la prioridad según el orden de selección.
+
 ## Orden de libros
 
 - En la Librería, el selector nativo «Ordenar / Sort by» acompaña a la vista y los filtros. Ofrece «Más recientes / Most recent» y «A–Z»; «Más recientes» es la opción inicial. «Mis intereses» se añadirá en el incremento 15.

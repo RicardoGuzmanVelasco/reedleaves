@@ -841,8 +841,8 @@ export function initialInterestsView(s) {
   const c=words[s.language],flow=s.initialInterests,draft=flow.draft,second=draft.step===2,kind=second?"notInterested":"interested",selected=draft[kind];
   const incentive=second||draft.interested.length>0;
   return `<dialog class="initial-interests-modal" closedby="none" aria-labelledby="initial-interests-title" aria-describedby="initial-interest-order"><form data-initial-interest-form aria-busy="${!!flow.saving}">
-    <div class="initial-interest-progress" aria-label="${esc(c.initialInterestStep(draft.step))}"><span class="${second?"is-complete":"is-current"}" aria-hidden="true">1</span><span class="initial-interest-progress-line" aria-hidden="true"></span><span class="${second?"is-current":""}" aria-hidden="true">2</span></div>
-    <h1 id="initial-interests-title" tabindex="-1">${c[second?"profileSelectNotInterested":"profileSelectInterested"]}</h1>
+    <div class="initial-interest-content"><div class="initial-interest-progress" aria-label="${esc(c.initialInterestStep(draft.step))}"><span class="${second?"is-complete":"is-current"}" aria-hidden="true">1</span><span class="initial-interest-progress-line" aria-hidden="true"></span><span class="${second?"is-current":""}" aria-hidden="true">2</span></div>
+    <h1 id="initial-interests-title" tabindex="-1" autofocus>${c[second?"profileSelectNotInterested":"profileSelectInterested"]}</h1>
     ${second?`<p class="initial-interest-purpose">${c.initialInterestPurpose}</p>`:""}
     <p class="initial-interest-order" id="initial-interest-order">${c.profileInterestOrderHelp}</p>
     ${readerInterestSelector({catalog:s.catalog,language:s.language,c,kind,selected,prefix:"initial",expressive:true,disabled:flow.saving})}
@@ -852,6 +852,6 @@ export function initialInterestsView(s) {
     ${flow.storageAvailable===false?`<p class="account-error" role="status">${c.initialInterestStorageUnavailable}</p>`:""}
     ${flow.error?`<p class="account-error" role="alert">${esc(c[flow.error]||c.connectionError)}</p>`:""}
     ${flow.conflict?`<div class="profile-interest-conflict" role="alert"><p>${c.profileInterestConflict}</p><button class="secondary" type="button" data-initial-action="recover" ${flow.saving?"disabled":""}>${c.profileInterestRecover}</button></div>`:""}
-    <div class="initial-interest-actions">${second?`<button class="text-button" type="button" data-initial-action="back" ${flow.saving?"disabled":""}>${c.backToPrevious}</button>`:""}<button class="primary" type="submit" data-initial-action="${second?"save":"next"}" aria-disabled="${!!flow.saving}" ${!draft.interested.length||flow.conflict?"disabled":""}>${flow.saving?c.working:second?c.save:c.next}</button></div>
+    </div><div class="initial-interest-actions">${second?`<button class="text-button" type="button" data-initial-action="back" ${flow.saving?"disabled":""}>${c.backToPrevious}</button>`:""}<button class="primary" type="submit" data-initial-action="${second?"save":"next"}" aria-disabled="${!!flow.saving}" ${!draft.interested.length||flow.conflict?"disabled":""}>${flow.saving?c.working:second?c.save:c.next}</button></div>
   </form></dialog>`;
 }
