@@ -39,7 +39,7 @@ import {requestConfirmedMutation,requestPendingDeckIntent} from "./confirmed-mut
 import {createReadingInterestWarningFlow} from "./reading-interest-warning.mjs";
 import {mountInitialInterests} from "./initial-interests-ui.mjs";
 import {createCurrencyReceiptPresentation,pulseCurrencyWallet} from "./currency-receipt.mjs";
-import {completeInitialInterestSave} from "./initial-interest-completion.mjs";
+import {createInitialInterestCompletion} from "./initial-interest-completion.mjs";
 import {initialInterestRouteRedirect} from "./initial-interest-routing.mjs";
 
 export function startReader({createCardFeatures} = {}) {
@@ -92,6 +92,7 @@ export function startReader({createCardFeatures} = {}) {
     onPulse:currency=>pulseCurrencyWallet(document,currency,{reducedMotion:matchMedia("(prefers-reduced-motion: reduce)").matches}),
     reducedMotion:()=>matchMedia("(prefers-reduced-motion: reduce)").matches
   });
+  const completeInitialInterestSave=createInitialInterestCompletion({readSession:()=>api.request("/api/session"),isCurrent:userId=>snapshot.user?.id===userId,applySession:applyState,presentReceipt:receipt=>currencyReceipt.present(receipt),applyReceiptBalances:applyInitialReceiptBalances});
   const initialInterests=mountInitialInterests({host:initialInterestHost,language,showModal:dialog=>showAppModal(dialog),onUnmount:syncModalPageLock,store,request:(path,body)=>api.request(path,body),onComplete:(result,userId)=>{void finishInitialInterests(result,userId);},onSessionExpired:userId=>{
     if(snapshot.user?.id!==userId)return;
     applyState({user:null});initialInterestStatus=null;authReturn="#home";mode="account";navigate("#account");
@@ -100,7 +101,7 @@ export function startReader({createCardFeatures} = {}) {
     if(snapshot.user?.id!==userId)return;
     initialInterestStatus=null;
     if(result?.state?.configured){homeInterestPreferences=result.state;homeInterestPreferencesUserId=userId;}
-    const completion=await completeInitialInterestSave({result,userId,readSession:()=>api.request("/api/session"),isCurrent:id=>snapshot.user?.id===id,applySession:applyState,applyReceiptBalances:applyInitialReceiptBalances,presentReceipt:receipt=>currencyReceipt.present(receipt)});
+    const completion=await completeInitialInterestSave({result,userId});
     if(!completion.completed)return;
     if(mode==="home")render();
     const destination=pendingInitialInterestReturn;pendingInitialInterestReturn=null;
