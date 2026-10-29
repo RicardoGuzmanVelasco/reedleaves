@@ -92,6 +92,7 @@ export async function authenticate(db,kind,input,{now = new Date(),ip = "unknown
       const userId = randomUUID();
       await db.prepare("INSERT INTO users(id,display_name) VALUES (?,?)").run(userId,username);
       await db.prepare("INSERT INTO accounts VALUES (?,?,?,?,?)").run(userId,username,`scrypt$131072$8$1$${salt}$${result.toString("hex")}`,timeZone,language);
+      await db.prepare("INSERT INTO reader_known_books(user_id,book_id) SELECT ?,id FROM books").run(userId);
       await db.prepare("INSERT INTO reader_language_preferences(user_id,languages,configured,revision) VALUES (?,?,?,0)")
         .run(userId,JSON.stringify(defaultCardLanguages(language)),isPostgres(db)?false:0);
       await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run(userId,10,dailyCycleDay(timeZone,now,DAILY_CYCLE_STARTS.currencyRefill));

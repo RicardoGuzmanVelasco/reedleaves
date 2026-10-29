@@ -15,8 +15,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 51;
-export const POSTGRES_SCHEMA_VERSION = 43;
+export const SQLITE_SCHEMA_VERSION = 52;
+export const POSTGRES_SCHEMA_VERSION = 44;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -103,6 +103,25 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 51) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE reader_known_books (
+        user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+        book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+        PRIMARY KEY(user_id,book_id)
+      ) STRICT;
+      CREATE TABLE reader_book_knowledge_visits (
+        user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+        visit_id TEXT NOT NULL CHECK(length(visit_id)=36),
+        book_ids TEXT NOT NULL CHECK(json_valid(book_ids)),
+        PRIMARY KEY(user_id,visit_id)
+      ) STRICT;
+      INSERT INTO reader_known_books(user_id,book_id) SELECT a.user_id,b.id FROM accounts a CROSS JOIN books b;
+      PRAGMA user_version=52; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 50) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -829,6 +848,38 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 43) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,accounts,books IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 44) return;
+          await db.exec(`CREATE TABLE reader_known_books (
+              user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+              book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+              PRIMARY KEY(user_id,book_id)
+            );
+            ALTER TABLE reader_known_books ENABLE ROW LEVEL SECURITY;
+            CREATE TABLE reader_book_knowledge_visits (
+              user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+              visit_id TEXT NOT NULL CHECK(length(visit_id)=36),
+              book_ids TEXT NOT NULL,
+              PRIMARY KEY(user_id,visit_id)
+            );
+            ALTER TABLE reader_book_knowledge_visits ENABLE ROW LEVEL SECURITY;
+            DO $$BEGIN
+              IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN
+                EXECUTE 'REVOKE ALL ON reader_known_books,reader_book_knowledge_visits FROM anon';
+              END IF;
+              IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN
+                EXECUTE 'REVOKE ALL ON reader_known_books,reader_book_knowledge_visits FROM authenticated';
+              END IF;
+            END $$;
+            INSERT INTO reader_known_books(user_id,book_id) SELECT a.user_id,b.id FROM accounts a CROSS JOIN books b;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=44;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=44);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 42) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,accounts IN ACCESS EXCLUSIVE MODE;");
