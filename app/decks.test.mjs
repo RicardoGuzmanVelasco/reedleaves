@@ -119,10 +119,10 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
       const label=openButton.match(/aria-label="([^"]*)"/)[1];
       const quoteCount=catalog.deckModels.get(deck.id).cards.filter(card=>card.isQuote).length;
       assert.ok(label.includes(c.noteCardsCount(deck.cardCount)),"The tile describes its card count accessibly");
-      assert.ok(label.includes(c.quoteCount(quoteCount)),"The tile describes its quote count accessibly");
+      assert.equal(label.includes(c.quoteCount(quoteCount)),quoteCount>0,"The tile describes a quote count only when quotes exist");
       const languageName=new Intl.DisplayNames([language],{type:"language"}).of(choice.deck.language);
       assert.ok(label.includes(languageName),"The flag retains an accessible language description");
-      assert.ok(html.includes(c.quoteCount(quoteCount)),"Every tile shows its quote count, including zero");
+      assert.equal(html.includes(c.quoteCount(quoteCount)),quoteCount>0,"Tiles show a quote count only when quotes exist");
       assert.ok(html.includes(c.noteCardsCount(deck.cardCount)),"Every tile shows its card count");
       assert.ok(html.includes(`title="${c.noteCardsCount(deck.cardCount)}"`),"The card count chip has a localized title");
       assert.equal(html.includes('class="deck-tile deck-tile--quote-dominant"'),quoteCount>deck.cardCount-quoteCount,"Quote dominant decks use blue tones");
@@ -152,7 +152,8 @@ test("Quote counts use the existing quote mark and quote dominant deck previews 
   assert.match(selector,/class="deck-tile deck-tile--quote-dominant"/);
   assert.match(selector,/class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="\d+ tarjetas"><span class="cards-icon" aria-hidden="true"><\/span><span>\d+<\/span><\/span>/);
   assert.match(selector,/class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="4 citas"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4<\/span><\/span>/);
-  assert.match(selector,/title="0 citas"/);
+  assert.equal((selector.match(/class="deck-tile-count deck-tile-quote-count"/g)||[]).length,1);
+  assert.doesNotMatch(selector,/title="0 citas"/);
   assert.match(reviewView(state),/class="deck-facts"><span class="deck-card-count">\d+ tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span><\/span>/);
   assert.doesNotMatch(deckPeekView(state),/class="deck-facts"/);
   const collection=bookshelfView({...state,bookshelfTab:"decks"});
@@ -160,7 +161,8 @@ test("Quote counts use the existing quote mark and quote dominant deck previews 
   assert.match(collection,/class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="\d+ tarjetas"/);
   assert.match(collection,/class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="4 citas"/);
   assert.match(collection,/4 citas/);
-  assert.match(collection,/0 citas/);
+  assert.equal((collection.match(/class="deck-tile-count deck-tile-quote-count"/g)||[]).length,1);
+  assert.doesNotMatch(collection,/title="0 citas"/);
 });
 
 test("Deck authors link to their profiles independently of deck opening, including safe fallbacks",async()=>{
