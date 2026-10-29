@@ -13,6 +13,7 @@ import {readCardActions,readSavedCards,setCardSave} from "./card-saves.mjs";
 import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH} from "../app/core.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
 import {readReaderInterestPreferences,readPublicReaderInterestPreferences,saveReaderInterestPreferences,saveInitialReaderInterestPreferences} from "./reader-interest-preferences.mjs";
+import {captureReaderInterestSnapshot,recognizeReaderInterestSnapshot} from "./reader-interest-knowledge.mjs";
 import {BOOK_INTEREST_CONFIRMATION_ENABLED} from "./book-interest-confirmation.mjs";
 import {readReaderLanguagePreferences,saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
 import {MAX_BOOK_KNOWLEDGE_REQUEST_BYTES,recognizeLibraryBookSnapshot} from "./book-knowledge-repository.mjs";
@@ -47,6 +48,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
       ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/practice/discover-availability",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/collect",["POST"]],["/api/reader/remove",["POST"]],
       ["/api/reader/book-knowledge/visit",["POST"]],
+      ["/api/reader/interests/knowledge/snapshot",["POST"]],["/api/reader/interests/knowledge/recognize",["POST"]],
       ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
     routes.set("/api/reader/guides",["POST"]);
     routes.set("/api/feedback",["POST"]);
@@ -117,6 +119,8 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       checkCsrf(active,request.headers["x-csrf-token"]);
       const currentTime = now();
       if(path === "/api/reader/book-knowledge/visit") { send(200,await recognizeLibraryBookSnapshot(db,active,input)); return true; }
+      if(path === "/api/reader/interests/knowledge/snapshot") { send(200,await captureReaderInterestSnapshot(db,active,input)); return true; }
+      if(path === "/api/reader/interests/knowledge/recognize") { send(200,await recognizeReaderInterestSnapshot(db,active,input)); return true; }
       if (path === "/api/reader/practice-answer") { send(200,await savePracticeAnswer(db,active,input,currentTime)); return true; }
       if (path === "/api/reader/practice/start") {
         const result=await startPracticeSession(db,active,input.topic,currentTime,Object.hasOwn(input,"sessionId")?input.sessionId:undefined,input.expectedCost);

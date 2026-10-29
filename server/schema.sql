@@ -94,6 +94,17 @@ CREATE TABLE reader_interest_settings (
   initial_opportunity_closed_at TEXT NOT NULL,
   initial_submission_at TEXT
 ) STRICT;
+CREATE TABLE reader_known_interests (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  interest_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+  PRIMARY KEY(user_id,interest_id)
+) STRICT;
+CREATE TABLE reader_interest_knowledge_visits (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  visit_id TEXT NOT NULL CHECK(length(visit_id)=36),
+  interest_ids TEXT NOT NULL CHECK(json_valid(interest_ids)),
+  PRIMARY KEY(user_id,visit_id)
+) STRICT;
 CREATE TABLE reader_interest_reward_claims (
   user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
   reward_type TEXT NOT NULL CHECK(reward_type IN ('interested_three','not_interested_three')),
@@ -372,4 +383,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 53;
+PRAGMA user_version = 54;

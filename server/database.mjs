@@ -15,8 +15,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 53;
-export const POSTGRES_SCHEMA_VERSION = 45;
+export const SQLITE_SCHEMA_VERSION = 54;
+export const POSTGRES_SCHEMA_VERSION = 46;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -103,6 +103,25 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 53) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE reader_known_interests (
+        user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+        interest_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+        PRIMARY KEY(user_id,interest_id)
+      ) STRICT;
+      CREATE TABLE reader_interest_knowledge_visits (
+        user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+        visit_id TEXT NOT NULL CHECK(length(visit_id)=36),
+        interest_ids TEXT NOT NULL CHECK(json_valid(interest_ids)),
+        PRIMARY KEY(user_id,visit_id)
+      ) STRICT;
+      INSERT INTO reader_known_interests(user_id,interest_id) SELECT a.user_id,g.id FROM accounts a CROSS JOIN genres g;
+      PRAGMA user_version=54; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 52) {
     db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
     try {
@@ -875,6 +894,34 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 45) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,accounts,genres IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 46) return;
+          await db.exec(`CREATE TABLE reader_known_interests (
+              user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+              interest_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+              PRIMARY KEY(user_id,interest_id)
+            );
+            ALTER TABLE reader_known_interests ENABLE ROW LEVEL SECURITY;
+            CREATE TABLE reader_interest_knowledge_visits (
+              user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+              visit_id TEXT NOT NULL CHECK(length(visit_id)=36),
+              interest_ids TEXT NOT NULL,
+              PRIMARY KEY(user_id,visit_id)
+            );
+            ALTER TABLE reader_interest_knowledge_visits ENABLE ROW LEVEL SECURITY;
+            DO $$ BEGIN
+              IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_known_interests,reader_interest_knowledge_visits FROM anon; END IF;
+              IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_known_interests,reader_interest_knowledge_visits FROM authenticated; END IF;
+            END $$;
+            INSERT INTO reader_known_interests(user_id,interest_id) SELECT a.user_id,g.id FROM accounts a CROSS JOIN genres g;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=46;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=46);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 44) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,practice_sessions IN ACCESS EXCLUSIVE MODE;");
