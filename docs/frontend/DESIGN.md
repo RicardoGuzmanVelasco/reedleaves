@@ -176,6 +176,7 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 ## Selección inicial de intereses
 
 - Al abrir cada paso, enfocar su título y mostrar el contenido desde arriba. Las opciones, instrucciones y estados se desplazan dentro del panel; «Siguiente», «Volver» y «Guardar» quedan fuera de esa zona y siempre visibles, también en móvil estrecho. Mantener las casillas nativas y la prioridad según el orden de selección.
+- Las opciones de selección inicial y de nuevos intereses son rectangulares y compactas: icono a la izquierda y nombre a su lado, con el bloque de texto centrado verticalmente respecto al icono cuando ocupa dos líneas. El número de prioridad queda a la derecha; no duplicarlo con otra marca. En móvil estrecho usar una columna para mantener la legibilidad.
 
 ## Orden de libros
 
