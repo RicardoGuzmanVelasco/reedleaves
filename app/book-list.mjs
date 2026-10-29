@@ -2,8 +2,14 @@
 const esc=value=>String(value ?? '').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 export const BOOK_VIEWS=['covers','shelf','stack'];
 export const BOOK_SHELF_THRESHOLD=10;
+// Keep novelty presentation disabled until every library view is ready.
+export const LIBRARY_BOOK_NOVELTY_ENABLED=false;
 export const selectedBookView=(preferred,fallback)=>BOOK_VIEWS.includes(preferred)?preferred:fallback;
 export const defaultBookView=(count,preferred)=>selectedBookView(preferred,count>=BOOK_SHELF_THRESHOLD?'shelf':'covers');
+export function partitionLibraryBooks(books,newBookIds=[]){
+  const newIds=new Set(Array.isArray(newBookIds)?newBookIds:[]);
+  return {newBooks:books.filter(book=>newIds.has(book.id)),otherBooks:books.filter(book=>!newIds.has(book.id))};
+}
 export const leaningBookIndex=(count,columns)=>count%columns>1?count-1:-1;
 const icons={covers:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',shelf:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/>',stack:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18"/>'};
 export function bookViewSelector(view,scope,language='es',trailing=''){

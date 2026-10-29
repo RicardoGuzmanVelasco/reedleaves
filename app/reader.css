@@ -132,6 +132,8 @@
 .study-book::after{content:"";position:absolute;top:0;bottom:0;left:0;width:min(14px,7.95cqi);border-right:1.5px solid #779a72;border-radius:min(13px,7.4cqi) 0 0 min(13px,7.4cqi);background:#9fca82;box-shadow:inset min(4px,2.3cqi) 0 0 rgb(255 255 255 / 22%);pointer-events:none}
 .study-book-cover{display:flex;flex-direction:column;align-items:flex-start;flex:1;min-width:0;min-height:0;overflow:hidden;padding:min(18px,10.23cqi) min(18px,10.23cqi) 0 min(28px,15.9cqi);border-radius:min(15px,8.5cqi) min(11px,6.25cqi) min(11px,6.25cqi) min(15px,8.5cqi);background:#e4f0cc}
 .study-book-cover-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden;font-size:min(23px,11.6cqi);font-weight:800;line-height:1.07;letter-spacing:-.04em;overflow-wrap:anywhere}.study-book-author{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden;font-size:max(10px,min(12px,6.35cqi));line-height:1.4;margin:min(9px,5.1cqi) 0 min(20px,10cqi);overflow-wrap:anywhere}
+.study-book-footer.study-book-footer--new{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;padding:0 0 min(3px,1.7cqi);text-align:center}
+.study-book-new-badge{position:relative;left:calc((min(18px,10.23cqi) - min(28px,15.9cqi))/2);display:block;max-width:100%;padding:3px 8px;border-radius:999px;background:#f2a83b;color:#173d2c;font-size:max(9px,min(10px,5.6cqi));font-weight:900;line-height:1.15;letter-spacing:.045em;text-align:center;text-transform:uppercase;white-space:nowrap;box-shadow:0 2px 0 #c88828}
 /* The icon belongs to the bottom band, independently of title/author wrapping. */
 .study-book-mark{width:min(100%,50px,28.4cqi);height:auto;aspect-ratio:1;align-self:center;margin:auto 0 0;opacity:.48}
 @container (max-width:145px){.study-book-cover>strong{font-size:10cqi}.study-book-author{font-size:max(10px,5.6cqi)}}
@@ -175,6 +177,7 @@
 .book-search button{display:grid;place-items:center;flex-shrink:0;width:44px;height:44px;border:0;border-radius:12px;background:transparent;font-size:25px}.book-search button:hover{background:#eef3df}.book-search button[hidden]{display:none}
 .book-search-empty .text-button{margin-top:12px;color:var(--ink)}
 .book-grid{gap:24px;padding:0 9px 9px 2px}
+.library-book-group{margin-top:22px}.library-book-group>h2{margin:0 0 14px;font-size:18px;font-weight:850;color:var(--ink)}.library-book-group+.library-book-group{margin-top:30px}
 .book-detail-author{font-size:14px;color:var(--muted);margin-top:11px;line-height:1.5}
 .study-book-entry{position:relative;display:flex;min-width:0}.study-book-entry>.study-book{width:100%;margin-inline:auto}.study-book-entry .study-book-cover>strong{padding-right:min(10px,5.68cqi)}
 .book-note-add{position:absolute;right:9px;bottom:9px;display:grid;place-items:center;width:36px;height:36px;padding:7px;border:1.5px solid #71896b;border-radius:12px;background:var(--control-surface,#f0f3e5);color:#71896b;box-shadow:0 3px 0 #b7c8a8;transition:transform .14s,box-shadow .14s}

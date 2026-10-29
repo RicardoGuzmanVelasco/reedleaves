@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BOOK_SHELF_THRESHOLD,defaultBookView,bookListMarkup,bookViewSelector,leaningBookIndex} from './book-list.mjs';
+import {BOOK_SHELF_THRESHOLD,LIBRARY_BOOK_NOVELTY_ENABLED,defaultBookView,bookListMarkup,bookViewSelector,leaningBookIndex,partitionLibraryBooks} from './book-list.mjs';
 import {libraryResultsMarkup,bookshelfView,accountView} from './views.mjs';
 import {readerState} from '../test-support/reader-state.mjs';
 import {openDatabase,initializeDatabase} from '../server/database.mjs';
@@ -13,6 +13,22 @@ test('Book lists default at ten and respect explicit choices across count change
   assert.equal(defaultBookView(BOOK_SHELF_THRESHOLD-1),'covers');assert.equal(defaultBookView(BOOK_SHELF_THRESHOLD),'shelf');
   for(const view of ['covers','shelf','stack'])assert.equal(defaultBookView(25,view),view);
   assert.equal(defaultBookView(2,'stack'),'stack');assert.equal(defaultBookView(15,'unknown'),'shelf');
+});
+test('new book groups preserve the filtered order and novelty remains hidden until all views are ready',async()=>{
+  const ordered=[{id:'new-b'},{id:'old-a'},{id:'new-a'},{id:'old-b'}];
+  const groups=partitionLibraryBooks(ordered,['new-a','new-b','unknown']);
+  assert.deepEqual(groups.newBooks.map(book=>book.id),['new-b','new-a']);
+  assert.deepEqual(groups.otherBooks.map(book=>book.id),['old-a','old-b']);
+  assert.equal(LIBRARY_BOOK_NOVELTY_ENABLED,false);
+
+  const db=openDatabase(':memory:');
+  try{
+    await initializeDatabase(db);await seedCatalog(db);
+    const catalog=prepareCatalog(await readCatalog(db));
+    const state=readerState(catalog,{libraryQuery:'',libraryFilters:{},libraryNewBookIds:[catalog.books[0].id]});
+    const html=libraryResultsMarkup(state);
+    assert.doesNotMatch(html,/study-book-new-badge|library-book-group|Novedades|New books/);
+  }finally{await db.close();}
 });
 test('Spines retain safe destinations, titles, languages and authors in both orientations',()=>{
   const books=[{id:'one',href:'#book/one',title:'A <long> title',author:'An & author',language:'en'}];
