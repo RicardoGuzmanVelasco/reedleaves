@@ -22,7 +22,7 @@ import {completeInterestSortLogin,createInterestSortLoginIntent} from "./library
 import {pageTitle} from "./brand.mjs";
 import {createReadingPresentation} from "./reading-presentation.mjs?v=practice-shuffle-1";
 import {createPracticePresentation} from "./practice-presentation.mjs";
-import {updateSavedReferences} from "./card-interactions.mjs";
+import {updateSavedReferences,createCardSaveConfirmationFlow} from "./card-interactions.mjs";
 import {editableNoteDecks,noteDecksWithSpace,isHomeBook} from "./notes.mjs";
 import {MAX_LEAVES,DAILY_LEAF_REFILL} from "./wallet.mjs";
 import {nextDailyCycleBoundary} from "./daily-cycle.mjs";
@@ -58,7 +58,7 @@ export function startReader({createCardFeatures} = {}) {
   let practiceStage="choose",practiceSession=null,practiceUnavailable=null,practiceRecoveryRequest=null,practiceRecoveryGeneration=0,authoritativeStateGeneration=0,practiceIntroSession=null,practiceStartRequest=null,practiceAnswerRequest=null;
   let pendingGrowthFeedback=[];
   let authorForm = null, quotesOnly = false, deckPreview = false, previewColumns = 2, previewDeckId = null;
-  let noteDestination=null,deckCompletion=null,notesCompletion=null,bookStatusError=null,bookInterestPrompt=null,bookInterestFlow=null,noteNudgeBookId=null,readingGuidePromptBookId=null,guidePreviewReturn=null,readingGuideError=null,readingGuideDraft=null;
+  let noteDestination=null,deckCompletion=null,notesCompletion=null,bookStatusError=null,bookInterestPrompt=null,bookInterestFlow=null,bookInterestCardControls=null,noteNudgeBookId=null,readingGuidePromptBookId=null,guidePreviewReturn=null,readingGuideError=null,readingGuideDraft=null;
   let deckLanguageError=null,deckTitleEdit=null,deckContributorError=null,deckContributorInput="";
   let profileId=null,profileData=null,profileError=null,profileReturnHash="#home",profileRequest=null,profileGeneration=0,profileInterests=null,profileLanguages=null;
   let homeInterestPreferences=null,homeInterestPreferencesUserId=null,homeInterestPreferencesRequest=null,homeInterestPreferencesGeneration=0;
@@ -75,12 +75,22 @@ export function startReader({createCardFeatures} = {}) {
   const setModalPageLock=createModalPageLock({document,window,getComputedStyle});
   function syncModalPageLock(){setModalPageLock(!!document.querySelector("dialog[open]"));}
   function showAppModal(dialog){if(!dialog.open)dialog.showModal();setModalPageLock(true);dialog.addEventListener("close",syncModalPageLock,{once:true});}
+  function confirmSavedCard(result,userId){
+    if(snapshot.user?.id!==userId)return;
+    snapshot={...snapshot,cardSaves:updateSavedReferences(snapshot.cardSaves||[],result),...(result.saved?{statuses:{...snapshot.statuses,[result.bookId]:snapshot.statuses?.[result.bookId]||"unread"},shelfBookIds:[...new Set([...(snapshot.shelfBookIds||[]),result.bookId])]}:{})};refreshState();
+  }
+  function showCardSaveWarning(pending,controls){
+    if(pending){bookInterestPrompt={kind:"save-card",cardId:pending.action.cardId,warning:pending.warning,error:pending.error||null};bookInterestCardControls=controls;}
+    else if(bookInterestPrompt?.kind==="save-card"){bookInterestPrompt=null;bookInterestCardControls=null;}
+    render();
+  }
   const cardFeatures = createCardFeatures?.({api,
     onActionStart:()=>{syncGeneration++},
     onAuthRequired:action=>requestAccountForCardAction(action),
-    onSavedConfirm:(result,userId)=>{if(snapshot.user?.id!==userId)return;snapshot={...snapshot,cardSaves:updateSavedReferences(snapshot.cardSaves||[],result),...(result.saved?{statuses:{...snapshot.statuses,[result.bookId]:snapshot.statuses?.[result.bookId]||"unread"},shelfBookIds:[...new Set([...(snapshot.shelfBookIds||[]),result.bookId])]}:{})};refreshState()},
+    onCardSaveWarning:showCardSaveWarning,
+    onSavedConfirm:confirmSavedCard,
     onCollectionConfirm:(result,userId)=>{if(snapshot.user?.id!==userId)return;snapshot={...snapshot,cardSaves:[...(snapshot.cardSaves||[]).filter(row=>row.bookId!==result.bookId),...result.cards]};refreshState()},
-    onSessionExpired:()=>{applyState({user:null});authReturn=location.hash;mode="account";render()},
+    onSessionExpired:()=>{bookInterestPrompt=null;bookInterestCardControls=null;applyState({user:null});authReturn=location.hash;mode="account";render()},
     onGoToSavedBook:id=>{quotesOnly=false;navigate("#saved/"+encodeURIComponent(id))},
     onOpenSavedCard:id=>{albumPosition={bookId,mode:"saved",scrollY:window.scrollY};navigate("#saved/"+encodeURIComponent(bookId)+"/"+encodeURIComponent(id))},
     onSavedListReady:()=>{if(mode!=="saved"||pendingSavedFocus===null)return;const id=pendingSavedFocus;pendingSavedFocus=null;const target=[...main.querySelectorAll(".saved-card-row")].find(button=>button.dataset.card===id)||main.querySelector(".saved-card-row")||main.querySelector("h1");target?.focus({preventScroll:true})}
@@ -1284,12 +1294,31 @@ export function startReader({createCardFeatures} = {}) {
     await runBookInterestAction(()=>bookInterestFlow.start(id,status),id,status);
   }
   function cancelBookInterestWarning() {
+    if(bookInterestPrompt?.kind==="save-card"){
+      const cardId=bookInterestPrompt.cardId,cancelled=bookInterestCardControls?.cancel();
+      if(!cancelled)return;
+      bookInterestPrompt=null;bookInterestCardControls=null;render();
+      main.querySelector(`[data-card-actions="${CSS.escape(cardId)}"] [data-card-action="save"]`)?.focus({preventScroll:true});
+      return;
+    }
     const cancelled=bookInterestFlow?.cancel();
     if(!cancelled)return;
     bookInterestPrompt=null;render();
     [...main.querySelectorAll('[data-action="set-book-reading"]')].find(button=>button.dataset.book===cancelled.bookId&&button.dataset.status===cancelled.status)?.focus({preventScroll:true});
   }
   async function confirmBookInterestWarning() {
+    if(bookInterestPrompt?.kind==="save-card"){
+      if(busy||!bookInterestCardControls)return;
+      const cardId=bookInterestPrompt.cardId;
+      busy=true;syncGeneration++;lockControls();
+      try{await bookInterestCardControls.confirm();}
+      finally{
+        busy=false;lockControls();render();
+        if(bookInterestPrompt)main.querySelector('[data-action="confirm-book-interest-warning"]')?.focus({preventScroll:true});
+        else main.querySelector(`[data-card-actions="${CSS.escape(cardId)}"] [data-card-action="save"]`)?.focus({preventScroll:true});
+      }
+      return;
+    }
     if(!bookInterestPrompt||!bookInterestFlow)return;
     const {bookId: id,status}=bookInterestPrompt;
     await runBookInterestAction(()=>bookInterestFlow.confirm(),id,status);
@@ -1557,7 +1586,20 @@ export function startReader({createCardFeatures} = {}) {
             const current=await api.request(`/api/cards/${encodeURIComponent(action.cardId)}/votes`);
             if(current.isOwn) postAuthNotice=words[language].ownCardVotes;
             else await api.request("/api/cards/vote",{cardId:action.cardId,value:action.value});
-          } else await api.request("/api/cards/save",{cardId:action.cardId,saved:true});
+          } else {
+            const userId=state.user.id;let flow;
+            flow=createCardSaveConfirmationFlow({
+              request:(pendingAction,confirmation)=>api.request("/api/cards/save",{cardId:pendingAction.cardId,saved:pendingAction.saved,...(confirmation?{confirmation}:{})}),
+              recover:async pendingAction=>({...await api.request(`/api/cards/${encodeURIComponent(pendingAction.cardId)}/actions`),bookId:catalog.cardsById.get(pendingAction.cardId)?.bookId}),
+              onWarning:pending=>showCardSaveWarning(pending,pending?{confirm:()=>flow.confirm(),cancel:()=>flow.cancel()}:null),
+              onCommit:result=>confirmSavedCard(result,userId),
+              onFailure:(error,pending)=>{
+                if(pending)showCardSaveWarning({...pending,error:error.code||"connectionError"},{confirm:()=>flow.confirm(),cancel:()=>flow.cancel()});
+                else postAuthNotice=words[language][error.code]||words[language].connectionError;
+              }
+            });
+            await flow.start({kind:"save",cardId:action.cardId,bookId:catalog.cardsById.get(action.cardId)?.bookId,saved:true});
+          }
         } catch(error) { postAuthNotice=words[language][error.code] || words[language].connectionError; }
       }
       accountLearningNotice=false;accountInterestSortNotice=false;

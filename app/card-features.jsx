@@ -3,7 +3,7 @@ import {createRoot} from 'react-dom/client';
 import {createPortal} from 'react-dom';
 import {contentText,contentLocale,quoteExcerpt} from './core.mjs';
 import {words} from './i18n.mjs';
-import {cardActionRecord,savedReferences,optimisticCardAction,createCardActionTransport} from './card-interactions.mjs';
+import {cardActionRecord,savedReferences,optimisticCardAction,createCardActionTransport,createCardSaveConfirmationFlow,createCardSaveNotificationGate} from './card-interactions.mjs';
 
 function useRibbonPath(saved){
   const [extension,setExtension]=useState(saved?41:0),current=useRef(extension);
@@ -88,20 +88,21 @@ function Features({context,api,callbacks}){
   const [optimistic,dispatch]=useOptimistic(confirmed,optimisticCardAction);
   const optimisticRef=useRef(optimistic);optimisticRef.current=optimistic;
   const [errors,setErrors]=useState({}),[collectionError,setCollectionError]=useState(null);
-  const generations=useRef({}),latest=useRef({}),intent=useRef({});
+  const generations=useRef({}),latest=useRef({}),intent=useRef({}),saveFlow=useRef(null),savedNotifyGate=useRef(null);
+  savedNotifyGate.current ||= createCardSaveNotificationGate();
   const transport=useRef(null);transport.current ||= createCardActionTransport(api,value=>callbacks.onPending(context.userId,value));
   const current=userId=>alive.current && latestContext.current.userId===userId;
 
   useEffect(()=>{setConfirmed(state=>({...state,saves:savedReferences(context.cardSaves)}))},[context.cardSaves]);
   function putRecord(cardId,row){startTransition(()=>setConfirmed(state=>({...state,records:{...state.records,[cardId]:{...state.records[cardId],...row,loaded:true}}})))}
-  async function load(cardId){
+  async function load(cardId,{notify=true}={}){
     if(!cardId)return;const userId=context.userId,deck=(generations.current[cardId]||0)+1;generations.current[cardId]=deck;
     try{
       const row=await transport.current.read(userId,cardId);if(!current(userId)||generations.current[cardId]!==deck)return;
       putRecord(cardId,row);
       const bookId=context.catalog.cardsById.get(cardId)?.bookId;
       startTransition(()=>setConfirmed(state=>optimisticCardAction(state,{kind:'save',cardId,bookId,saved:row.saved,savedAt:row.savedAt})));
-      callbacks.onSavedConfirm({...row,bookId},userId);setErrors(e=>({...e,[cardId+':read']:null}));
+      if(notify&&savedNotifyGate.current.shouldNotify(cardId))callbacks.onSavedConfirm({...row,bookId},userId);setErrors(e=>({...e,[cardId+':read']:null}));
     }
     catch(error){if(current(userId)&&generations.current[cardId]===deck)setErrors(e=>({...e,[cardId+':read']:{code:error.code||'connectionError'}}))}
   }
@@ -152,14 +153,52 @@ function Features({context,api,callbacks}){
     });
   }
   function vote(value){const cardId=context.cardId,key=cardId+':vote',previous=intent.current[key]?.value ?? optimisticRef.current.records[cardId]?.vote;mutate({kind:'vote',cardId,bookId:context.bookId,value:previous===value?0:value})}
-  function save(){const cardId=context.cardId,key=cardId+':save',previous=intent.current[key]?.saved ?? !!optimisticRef.current.saves[cardId];mutate({kind:'save',cardId,bookId:context.bookId,saved:!previous,savedAt:new Date().toISOString()})}
+  function save(retryAction){
+    const cardId=context.cardId,key=cardId+':save',previous=intent.current[key]?.saved ?? !!optimisticRef.current.saves[cardId];
+    const action=retryAction||{kind:'save',cardId,bookId:context.bookId,saved:!previous,savedAt:new Date().toISOString()},userId=context.userId;
+    if(!action.saved){mutate(action);return}
+    if(saveFlow.current?.pending||saveFlow.current?.busy)return;
+    const id=(latest.current[key]||0)+1;latest.current[key]=id;intent.current[key]=action;
+    generations.current[cardId]=(generations.current[cardId]||0)+1;generations.current.collection=(generations.current.collection||0)+1;
+    callbacks.onActionStart();setErrors(e=>({...e,[key]:null}));
+    let flow;
+    flow=createCardSaveConfirmationFlow({
+      request:(pendingAction,confirmation)=>transport.current.write(userId,pendingAction,confirmation),
+      recover:async pendingAction=>({...await transport.current.read(userId,cardId),bookId:pendingAction.bookId}),
+      onWarning:pending=>callbacks.onCardSaveWarning(pending,pending?{
+        confirm:()=>flow.confirm(),cancel:()=>{const cancelled=flow.cancel();if(cancelled&&latest.current[key]===id)delete intent.current[key];return cancelled;}
+      }:null),
+      onCommit:(row,committedAction)=>{
+        if(!current(userId)||latest.current[key]!==id)return;
+        delete intent.current[key];
+        startTransition(()=>{
+          dispatch(committedAction);
+          setConfirmed(state=>optimisticCardAction(state,{kind:'save',cardId:row.cardId,bookId:row.bookId,saved:row.saved,savedAt:row.savedAt}));
+        });
+        const notificationPlan=savedNotifyGate.current.afterCommit(cardId,!!confirmed.records[cardId]?.loaded);
+        callbacks.onSavedConfirm(row,userId);
+        if(notificationPlan.loadRecordWithoutNotification)load(cardId,{notify:false});
+      },
+      onFailure:async(error,pending)=>{
+        if(!current(userId))return;
+        if(error.status===401){callbacks.onSessionExpired();return}
+        if(pending)callbacks.onCardSaveWarning({...pending,error:error.code||'connectionError'},{confirm:()=>flow.confirm(),cancel:()=>{const cancelled=flow.cancel();if(cancelled&&latest.current[key]===id)delete intent.current[key];return cancelled;}});
+        else if(latest.current[key]===id){delete intent.current[key];setErrors(e=>({...e,[key]:{code:error.code||'connectionError',action}}));}
+      }
+    });
+    saveFlow.current=flow;
+    startTransition(async()=>{
+      await flow.start(action);
+      if(latest.current[key]===id&&!flow.pending)delete intent.current[key];
+    });
+  }
   const c=words[context.language];
   const rows=Object.values(optimistic.saves).filter(row=>row.bookId===context.bookId && context.catalog.cardsById.has(row.cardId)).sort((a,b)=>b.savedAt.localeCompare(a.savedAt)||b.cardId.localeCompare(a.cardId));
   const card=context.catalog.cardsById.get(context.cardId);
   const record=cardActionRecord(optimistic.records[context.cardId],card,context.userId);
   const error=errors[context.cardId+':save']||errors[context.cardId+':vote']||errors[context.cardId+':read'];
   return <>
-    {context.actionSlot&&card&&createPortal(<CardActions record={record} saved={!!optimistic.saves[card.id]} c={c} onVote={vote} onSave={save} error={error} onRetry={()=>error?.action?mutate(error.action):load(context.cardId)}/>,context.actionSlot)}
+    {context.actionSlot&&card&&createPortal(<CardActions record={record} saved={!!optimistic.saves[card.id]} c={c} onVote={vote} onSave={save} error={error} onRetry={()=>error?.action?.kind==='save'?save(error.action):error?.action?mutate(error.action):load(context.cardId)}/>,context.actionSlot)}
     {context.entrySlot&&createPortal(<SavedCardsEntry count={rows.length} c={c} onClick={()=>callbacks.onGoToSavedBook(context.bookId)}/>,context.entrySlot)}
     {context.listSlot&&createPortal(<SavedCards rows={context.quotesOnly?rows.filter(row=>context.catalog.cardsById.get(row.cardId).isQuote):rows} catalog={context.catalog} c={c} language={context.language} onOpen={callbacks.onOpenSavedCard} error={collectionError} onRetry={loadCollection} onReady={callbacks.onSavedListReady}/>,context.listSlot)}
   </>;

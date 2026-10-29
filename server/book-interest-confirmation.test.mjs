@@ -85,11 +85,17 @@ test("confirmed collection and save retries do not repeat charges or saved recor
   assert.equal((await db.prepare("SELECT count(*) AS count FROM card_saves WHERE user_id=? AND card_id=?").get(session.user_id,"habit-1")).count,1);
 });
 
-test("policy stays disabled by default",async t=>{
+test("the combined policy is enabled after all three confirmation entry points are ready",async t=>{
   const {db,session}=await fixture(t);
-  const result=await changeReading(db,session,"seven-habits","reading",now);
-  assert.equal(result.confirmationRequired,undefined);
-  assert.equal(result.statuses["seven-habits"],"reading");
+  const results=[
+    await changeReading(db,session,"seven-habits","reading",now),
+    await addDeckToCollection(db,session,"seven-habits-editorial",now),
+    await setCardSave(db,session,{cardId:"habit-1",saved:true},now)
+  ];
+  assert.ok(results.every(result=>result.confirmationRequired));
+  assert.equal(await db.prepare("SELECT 1 FROM book_reading WHERE user_id=? AND book_id=?").get(session.user_id,"seven-habits"),undefined);
+  assert.equal(await db.prepare("SELECT 1 FROM studies WHERE user_id=? AND deck_id=?").get(session.user_id,"seven-habits-editorial"),undefined);
+  assert.equal(await db.prepare("SELECT 1 FROM card_saves WHERE user_id=? AND card_id=?").get(session.user_id,"habit-1"),undefined);
 });
 
 test("existing library membership bypasses confirmation even when policy is enabled",async t=>{
