@@ -22,6 +22,8 @@ test('One deck page handles discovery, collection and ownership while clean read
   const deck=catalog.decks[0],model=catalog.deckModels.get(deck.id);
   for(const language of ['es','en']){
     const c=words[language],base=readerState(catalog,{language,deckId:deck.id,bookId:deck.bookId,deckChoices:[{deck,tags:[]}]});
+    assert.equal(c.addDeckToCollection,language==='es'?'Añadir al tarjetero':'Add to Decks');
+    assert.equal(c.removeDeckFromCollection,language==='es'?'Quitar del tarjetero':'Remove from Decks');
     assert.doesNotMatch(deckView({...base,openDeckId:deck.id}),/<dialog/);
     for(const userId of [undefined,'visitor',deck.creator.userId]){
       const state={...base,userId},page=reviewView(state);
@@ -31,7 +33,7 @@ test('One deck page handles discovery, collection and ownership while clean read
       assert.equal(page.includes('data-action="take-deck-note"'),userId===deck.creator.userId&&deck.status==='draft');
     }
     const collected=reviewView({...base,userId:'visitor',enrolledIds:[deck.id]});
-    assert.doesNotMatch(collected,/data-action="add-deck-to-collection"/);assert.ok(collected.includes(c.deckInCollection));
+    assert.doesNotMatch(collected,/data-action="add-deck-to-collection"/);assert.match(collected,/data-action="remove-collection-deck"/);assert.ok(collected.includes(c.removeDeckFromCollection));
     const reading=deckPeekView(base);
     assert.ok(reading.includes(c.viewDeck));assert.match(reading,/data-action="back-from-deck-preview"/);
     assert.equal((reading.match(/<li>/g)||[]).length,model.cards.length);

@@ -124,7 +124,7 @@ test("Decks tab groups owned and enrolled decks by their book's reading status",
     assert.match(html,new RegExp(c.readStatus));
     assert.match(html,/data-action="review-collection-deck" data-deck="seven-habits-editorial"/);
     assert.match(html,/data-action="review-collection-deck" data-deck="atomic-habits-editorial"/);
-    assert.match(html,/data-action="remove-collection-deck" data-deck="atomic-habits-editorial"/);
+    assert.doesNotMatch(html,/data-action="remove-collection-deck"/);
     assert.match(html,/class="deck-grid collection-decks"/);
     assert.equal((html.match(/class="deck-tile(?:\s|")/g)||[]).length,2);
     assert.doesNotMatch(html,/open-bookshelf-filters/);
@@ -145,7 +145,8 @@ test("Deck details distinguish adding to Decks from starting practice",async()=>
   assert.doesNotMatch(notAdded,/data-action="select-deck"/);
   const added=reviewView({...state,enrolledIds:[deck.deck.id]});
   assert.doesNotMatch(added,/data-action="add-deck-to-collection"/);
-  assert.ok(added.includes(words.es.deckInCollection));
+  assert.match(added,/data-action="remove-collection-deck"/);
+  assert.ok(added.includes(words.es.removeDeckFromCollection));
 });
 
 test("Own empty drafts remain pending, while completed books stay out of simplified Home",async()=>{
