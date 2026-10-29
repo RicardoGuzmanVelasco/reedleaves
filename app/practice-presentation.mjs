@@ -219,7 +219,7 @@ export function createPracticePresentation({window: win = window, document: doc 
       ], {duration:390,easing:"cubic-bezier(.45,0,.65,.6)"});
       if (!alive()) return;
       setReadable(true);
-      presentReading(main, {arrival:false,delay:160});
+      presentReading(main, {arrival:false});
       await animate(scene, scene.flight, [
         {transform:"translateY(-42px) rotateY(90deg) scale(.92)"},
         {transform:"translateY(-6px) rotateY(-3deg) scale(1.055)",offset:.61},

@@ -62,6 +62,18 @@ test("Simple search is labelled, escaped, clearable and recovers from no results
   assert.doesNotMatch(html,/data-action="open-book-details"/);
 });
 
+test("Signed-in readers can create a book from an unfiltered empty search",async()=>{
+  const catalog=prepareCatalog(await fixture()),base={catalog,language:"en",statuses:{},userId:"reader"};
+  const empty=libraryView({...base,libraryQuery:"A book not in the catalog"});
+  assert.match(empty,/class="book-create-from-search" type="button" data-action="create-book" data-focus-book-title-end="true"/);
+  assert.match(empty,/No books match your search/);
+  assert.doesNotMatch(empty,/library-author-action/);
+  const filtered=libraryView({...base,libraryQuery:"A book not in the catalog",libraryFilters:{author:"Unknown author"}});
+  assert.doesNotMatch(filtered,/book-create-from-search/);
+  const visitor=libraryView({catalog,language:"en",statuses:{},libraryQuery:"A book not in the catalog"});
+  assert.doesNotMatch(visitor,/book-create-from-search/);
+});
+
 test("Book details show the preferred title and only add a different popular title, without labels", async () => {
   const catalog = prepareCatalog(await fixture());
   for (const language of ["es","en"]) for (const book of catalog.books) {
@@ -108,10 +120,12 @@ test("Library filters intersect author, interest, deck language and title search
 
 test("Library keeps the layout and filter controls compact and opens plain labels in a modal",async()=>{
   const catalog=prepareCatalog(await fixture()),state=readerState(catalog,{libraryFilters:{},libraryQuery:''});
-  const initial=libraryView(state);assert.match(initial,/data-action="open-library-filters"/);assert.doesNotMatch(initial,/<details[^>]*library-filters|id="library-genre"/);
-  const modal=libraryView({...state,libraryFiltersOpen:true,libraryFilterDraft:{author:'Stephen R. Covey',genre:'software',language:''}});
+  const initial=libraryView(state);assert.match(initial,/data-action="open-library-filters"/);assert.doesNotMatch(initial,/<details[^>]*library-filters|id="library-genre"|data-book-sort|book-sort-selector/);
+  const modal=libraryView({...state,libraryFiltersOpen:true,libraryFilterDraft:{author:'Stephen R. Covey',genre:'software',language:''},librarySortDraft:'interests'});
   assert.match(modal,/<dialog class="bookshelf-filter-modal library-filter-modal"/);
   assert.match(modal,/data-action="apply-library-filters"/);assert.match(modal,/data-action="close-library-filters"/);
+  assert.match(modal,/<h3 id="library-sort-title">Ordenar libros<\/h3>/);assert.equal((modal.match(/data-action="select-library-sort"/g)||[]).length,3);assert.match(modal,/data-sort="interests" aria-pressed="true">Mis intereses<\/button>/);
+  const english=libraryView({...state,language:'en',libraryFiltersOpen:true,librarySortDraft:'alphabetical'});assert.match(english,/<h3 id="library-sort-title">Sort books<\/h3>/);assert.match(english,/data-sort="alphabetical" aria-pressed="true">A–Z<\/button>/);
   const genreLabel=modal.match(/<label for="library-genre">([\s\S]*?)<\/label>/)?.[1];assert.ok(genreLabel);assert.doesNotMatch(genreLabel,/<svg|interest-icon/);
   assert.match(libraryView({...state,libraryQuery:'no-matches-ever'}),/data-action="open-library-filters"/);
 });

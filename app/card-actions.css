@@ -5,7 +5,7 @@
 .card-actions .action-plate-body{fill:var(--actions-surface);stroke:var(--actions-edge);stroke-width:2}
 .card-actions .action-divider{fill:none;stroke:var(--actions-edge);stroke-width:1.5;opacity:.55}
 .card-actions [data-thumb]{stroke:var(--actions-ink);fill:none;stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round}
-.card-actions[data-vote="-1"] [data-thumb="-1"],.card-actions[data-vote="1"] [data-thumb="1"]{fill:var(--actions-accent)}
+.card-actions[data-vote="-1"] [data-thumb="-1"],.card-actions[data-vote="1"] [data-thumb="1"]{fill:var(--actions-ink)}
 .card-actions .is-own .action-plate-body{fill-opacity:.45;stroke-opacity:.55;stroke-dasharray:5 3}
 .card-actions .is-own .action-plate-shadow{opacity:.18}
 .card-actions .is-own .action-divider{opacity:.25;stroke-dasharray:3 3}

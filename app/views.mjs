@@ -125,9 +125,9 @@ function bookListFilterButton(s) {
 }
 
 function bookListControls(s) {
-  const c=words[s.language],selected=s.librarySortOrder||s.bookSortOrder,order=LIBRARY_SORT_ORDERS.includes(selected)?selected:"recent";
+  const c=words[s.language];
   const interestStatus=s.libraryInterestSortPending?`<span class="library-interest-sort-status" role="status">${esc(c.interestSortLoading)}</span>`:s.libraryInterestSortError?`<span class="library-interest-sort-status library-interest-sort-status--error" role="alert"><span>${esc(c.interestSortUnavailable)}</span><button class="text-button" type="button" data-action="retry-library-interest-sort">${esc(c.retry)}</button></span>`:"";
-  return `<label class="book-sort-selector"><span>${esc(c.sortBooksBy)}</span><select data-book-sort aria-label="${esc(c.sortBooksBy)}"><option value="recent" ${order==="recent"?"selected":""}>${esc(c.mostRecent)}</option><option value="alphabetical" ${order==="alphabetical"?"selected":""}>${esc(c.alphabetical)}</option><option value="interests" ${order==="interests"?"selected":""}>${esc(c.interests)}</option></select></label>${interestStatus}${bookListFilterButton(s)}`;
+  return `${interestStatus}${bookListFilterButton(s)}`;
 }
 
 function bookListPresentation(s,books,scope,{selector=true,count=books.length,note=false,catalog=!note,catalogNeutral=false,view=defaultBookView(count,s.bookViews?.[scope]),caption,label=words[s.language].books,newBookIds=[]}={}) {
@@ -142,8 +142,10 @@ function bookListPresentation(s,books,scope,{selector=true,count=books.length,no
 
 export function libraryResultsMarkup(s) {
   const c = words[s.language], books = filterLibrary(s.catalog, s.libraryQuery, s.libraryFilters,s.librarySortOrder||s.bookSortOrder,s.language,s.interestPreferences);
-  if (!s.catalog.books.length) return bookViewSelector(defaultBookView(0,s.bookViews?.library),"library",s.language,bookListControls(s))+`<div class="empty-state">${c.noBooks}</div>`;
-  if (!books.length) return bookViewSelector(defaultBookView(0,s.bookViews?.library),"library",s.language,bookListControls(s))+`<div class="empty-state book-search-empty"><p>${Object.values(s.libraryFilters || {}).some(Boolean) ? c.noBookshelfMatches : c.noBookMatches}</p><button class="text-button" type="button" data-action="${Object.values(s.libraryFilters || {}).some(Boolean) ? "reset-library-filters" : "clear-book-search"}">${Object.values(s.libraryFilters || {}).some(Boolean) ? c.resetLibraryFilters : c.clearSearch}</button></div>`;
+  const hasFilters=Object.values(s.libraryFilters || {}).some(Boolean),canCreateFromSearch=!!s.userId&&!hasFilters&&!!s.libraryQuery?.trim();
+  const createBookAction=canCreateFromSearch?`<button class="book-create-from-search" type="button" data-action="create-book" data-focus-book-title-end="true"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5h7.5c1.8 0 2.5 1 2.5 2.2v15c0-1.2-1-2.2-2.5-2.2H4zM24 6.5h-7.5C14.7 6.5 14 7.5 14 8.7v15c0-1.2 1-2.2 2.5-2.2H24z"/><path d="M21 13v6m-3-3h6"/></svg><span>${esc(c.createBook)}</span></button>`:"";
+  if (!s.catalog.books.length) return bookViewSelector(defaultBookView(0,s.bookViews?.library),"library",s.language,bookListControls(s))+`<div class="empty-state"><p>${c.noBooks}</p>${createBookAction}</div>`;
+  if (!books.length) return bookViewSelector(defaultBookView(0,s.bookViews?.library),"library",s.language,bookListControls(s))+`<div class="empty-state book-search-empty"><p>${hasFilters ? c.noBookshelfMatches : c.noBookMatches}</p>${createBookAction}<button class="text-button" type="button" data-action="${hasFilters ? "reset-library-filters" : "clear-book-search"}">${hasFilters ? c.resetLibraryFilters : c.clearSearch}</button></div>`;
   const view=defaultBookView(books.length,s.bookViews?.library);
   const {newBooks,otherBooks}=partitionLibraryBooks(books,s.libraryNewBookIds);
   if(!s.libraryNewBookIds?.some(id=>s.catalog.booksById.has(id)))return bookListPresentation(s,otherBooks,"library",{view});
@@ -184,6 +186,7 @@ function bookNoteDestinationMarkup(s,book) {
 
 function libraryFiltersMarkup(s) {
   const c=words[s.language], filters=s.libraryFilterDraft || s.libraryFilters || libraryDefaults;
+  const selectedSort=s.librarySortDraft||s.librarySortOrder||s.bookSortOrder||"recent";
   if(!s.libraryFiltersOpen)return "";
   const select=(key,label,options,icon="")=>`<label for="library-${key}"><span>${icon}${label}</span><select id="library-${key}" data-library-filter="${key}" aria-controls="book-search-results"><option value="">${c.allBooks}</option>${options.map(([value,text])=>`<option value="${esc(value)}" ${filters[key] === value ? "selected" : ""}>${esc(text)}</option>`).join("")}</select></label>`;
   const authors=[...new Set(s.catalog.books.map(book=>book.author))].sort((a,b)=>a.localeCompare(b,s.language));
@@ -193,7 +196,7 @@ function libraryFiltersMarkup(s) {
     ${select("author",c.bookAuthor,authors.map(author=>[author,author]))}
     ${select("genre",c.genre,s.catalog.genres.map(g=>[g.id,g.name[s.language]]))}
     ${select("language",c.deckLanguage,languages.map(tag=>[tag,languageName(tag)]))}
-    </div><footer class="bookshelf-filter-actions"><button class="text-button" type="button" data-action="reset-library-filter-draft">${c.resetFilters}</button><span><button class="text-button" type="button" data-action="close-library-filters">${c.cancel}</button><button class="primary" type="button" data-action="apply-library-filters">${c.applyFilters}</button></span></footer></dialog>`;
+    </div><section class="library-sort-section" aria-labelledby="library-sort-title"><h3 id="library-sort-title">${c.sortBooksSection}</h3><div class="segmented-selector library-sort-options" role="group" aria-labelledby="library-sort-title">${[["recent",c.mostRecent],["alphabetical",c.alphabetical],["interests",c.interests]].map(([value,label])=>`<button type="button" data-action="select-library-sort" data-sort="${value}" aria-pressed="${selectedSort===value}">${esc(label)}</button>`).join("")}</div></section><footer class="bookshelf-filter-actions"><button class="text-button" type="button" data-action="reset-library-filter-draft">${c.resetFilters}</button><span><button class="text-button" type="button" data-action="close-library-filters">${c.cancel}</button><button class="primary" type="button" data-action="apply-library-filters">${c.applyFilters}</button></span></footer></dialog>`;
 }
 
 export function libraryView(s) {
@@ -202,7 +205,6 @@ export function libraryView(s) {
   return `<section class="library-screen">
     ${["bookshelf","decks"].includes(s.libraryOrigin) ? `<button class="text-button collection-back" type="button" data-action="bookshelf" ${s.libraryOrigin === "decks" ? 'data-tab="decks"' : ""}>${s.libraryOrigin === "decks" ? collectionIconMarkup("decks",18) : collectionIconMarkup("shelf",18)}${s.libraryOrigin === "decks" ? c.deckCollectionBack : c.shelfBack}</button>` : ""}
     <div class="screen-heading library-heading"><h1 tabindex="-1">${collectionIconMarkup("library",30)}${c.books}</h1></div>
-    ${s.userId ? `<div class="library-author-action">${button(c.createBook,"create-book")}</div>` : ""}
     <form class="book-search" role="search" data-book-search><label class="sr-only" for="book-search">${c.searchBooks}</label>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
       <input type="search" id="book-search" placeholder="${c.searchBooks}" value="${esc(s.libraryQuery || "")}" maxlength="200" autocomplete="off" enterkeyhint="search" aria-controls="book-search-results">
@@ -430,13 +432,13 @@ function noteTypeIcon(kind) {
   return `<svg class="note-type-icon" viewBox="${watermark.viewBox}" aria-hidden="true" focusable="false">${watermark.paths}</svg>`;
 }
 
-function cardMarkup(s, card, heading = "h2", {typewriter = true, exclusive = false, actions = exclusive, compact = false,linkBook=true,focusable=true,idPrefix="",decorative=false,layerClass=""} = {}) {
+function cardMarkup(s, card, heading = "h2", {exclusive = false, actions = exclusive, compact = false,linkBook=true,focusable=true,idPrefix="",decorative=false,layerClass=""} = {}) {
   const book = s.catalog.booksById.get(card.bookId), deckLanguage = card.language || card.deckLanguage || s.language;
   const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
   const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
   const type=cardTypeFor(card),bodyTag=type.bodyTag;
   const contentId=idPrefix ? `${idPrefix}-idea-content` : "idea-content",focusTarget=focusable || idPrefix ? ` id="${esc(contentId)}"${focusable ? ' tabindex="-1"' : ""}` : "";
-  return `<div class="reading-stage reading-stage--${type.id}${layerClass ? ` ${layerClass}` : ""}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${decorative ? ' aria-hidden="true" inert' : ""}${typewriter ? "" : ' data-reading-mode="complete"'}><article class="idea-card${type.className ? ' '+type.className : ''}"><span class="card-header-icon" aria-hidden="true">${type.headerIcon === "reading-guide" ? readingGuideIconMarkup(26) : type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto"${focusTarget}>${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : focusTarget}>${esc(body)}</${bodyTag}></div>
+  return `<div class="reading-stage reading-stage--${type.id}${layerClass ? ` ${layerClass}` : ""}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${decorative ? ' aria-hidden="true" inert' : ""}><article class="idea-card${type.className ? ' '+type.className : ''}"><span class="card-header-icon" aria-hidden="true">${type.headerIcon === "reading-guide" ? readingGuideIconMarkup(26) : type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto"${focusTarget}>${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : focusTarget}>${esc(body)}</${bodyTag}></div>
     <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book,{compact,linkBook,showDraftStatus:exclusive})}</div>${actions ? cardActionsHost(card) : ""}</footer></article></div>`;
 }
 
@@ -609,7 +611,7 @@ export function readingGuidesView(s) {
 export function readingGuideDeckPreviewView(s) {
   const c=words[s.language],book=s.catalog.booksById.get(s.bookId),deck=s.catalog.decks.find(item=>item.bookId===s.bookId&&isReadingGuideDeck(s.catalog,item));
   const cards=deck?s.catalog.deckModels.get(deck.id).cards:[],own=cards.some(card=>card.creatorUserId===s.userId);
-  return `<section class="deck-presentation reading-guide-presentation" data-deck-presentation="list" data-index="0" data-count="${cards.length}"><h1 class="sr-only" tabindex="-1">${c.readingGuides}</h1><header class="presentation-toolbar"><span class="reading-guide-presentation-title">${readingGuideIconMarkup(25)}<span>${c.readingGuides}</span></span><div class="reading-guide-presentation-actions">${own?`<button class="text-button" type="button" data-action="edit-reading-guide">${c.readingGuideEdit}</button>`:""}<button class="dialog-close presentation-close" type="button" data-action="back-from-reading-guide-preview" aria-label="${esc(c.deckBack)}" title="${esc(c.deckBack)}">${closeIconMarkup}</button></div></header><p class="small-book reading-guide-presentation-book" lang="${esc(displayedBookTitle(s,book,true).language)}">${esc(displayedBookTitle(s,book,true).text)}</p>${cards.length?`<ol class="deck-peek-cards reading-guide-peek-cards">${cards.map(card=>`<li>${cardMarkup(s,card,"h2",{typewriter:false,focusable:false,linkBook:false,actions:true})}</li>`).join("")}</ol>`:`<p class="empty-state">${c.noReadingGuides}</p>`}</section>`;
+  return `<section class="deck-presentation reading-guide-presentation" data-deck-presentation="list" data-index="0" data-count="${cards.length}"><h1 class="sr-only" tabindex="-1">${c.readingGuides}</h1><header class="presentation-toolbar"><span class="reading-guide-presentation-title">${readingGuideIconMarkup(25)}<span>${c.readingGuides}</span></span><div class="reading-guide-presentation-actions">${own?`<button class="text-button" type="button" data-action="edit-reading-guide">${c.readingGuideEdit}</button>`:""}<button class="dialog-close presentation-close" type="button" data-action="back-from-reading-guide-preview" aria-label="${esc(c.deckBack)}" title="${esc(c.deckBack)}">${closeIconMarkup}</button></div></header><p class="small-book reading-guide-presentation-book" lang="${esc(displayedBookTitle(s,book,true).language)}">${esc(displayedBookTitle(s,book,true).text)}</p>${cards.length?`<ol class="deck-peek-cards reading-guide-peek-cards">${cards.map(card=>`<li>${cardMarkup(s,card,"h2",{focusable:false,linkBook:false,actions:true})}</li>`).join("")}</ol>`:`<p class="empty-state">${c.noReadingGuides}</p>`}</section>`;
 }
 
 function deckDisplaySelector(s) {
@@ -698,7 +700,7 @@ export function reviewView(s) {
 
 export function presentationCardMarkup(s) {
   const card=s.catalog.deckModels.get(s.deckId)?.cards[s.presentationIndex||0];
-  return card?cardMarkup(s,card,'h2',{typewriter:false,focusable:false,linkBook:false,actions:true}):'';
+  return card?cardMarkup(s,card,'h2',{focusable:false,linkBook:false,actions:true}):'';
 }
 
 export function deckPeekView(s) {
@@ -710,7 +712,7 @@ export function deckPeekView(s) {
   return `<section class="deck-presentation" data-deck-presentation="${carousel?'carousel':'list'}" data-index="${index}" data-count="${model.cards.length}">
     <h1 class="sr-only" tabindex="-1">${esc(contentText(deck.title,s.language,deck.language))}</h1>
     <header class="presentation-toolbar"><div class="segmented-selector presentation-layout-selector" role="group" aria-label="${c.presentationLayout}">${[['list',c.presentationList,listIcon],['carousel',c.presentationCarousel,carouselIcon]].map(([layout,label,icon])=>`<button type="button" data-action="presentation-layout" data-layout="${layout}" aria-label="${label}" title="${label}" aria-pressed="${layout===(carousel?'carousel':'list')}">${icon}</button>`).join('')}</div><button class="dialog-close presentation-close" type="button" data-action="back-from-deck-preview" aria-label="${c.closePresentation}" title="${c.viewDeck}">${closeIconMarkup}</button></header>
-    ${carousel&&card?`<div class="presentation-carousel"><div class="presentation-strip">${step(-1,index===0)}<div class="presentation-thumbnails" role="group" aria-label="${c.presentationCards}">${model.cards.map((item,i)=>{const title=item.isQuote?quoteExcerpt(contentText(item.body,s.language,deck.language)):contentText(item.title,s.language,deck.language);return `<button class="presentation-thumbnail${item.isQuote?' is-quote':''}" type="button" data-action="presentation-card" data-index="${i}" aria-label="${esc(c.position(i+1,model.cards.length)+': '+title)}" aria-pressed="${i===index}"><span class="presentation-thumb-title">${esc(title)}</span><span class="presentation-thumb-lines" aria-hidden="true"></span><span class="presentation-thumb-number" aria-hidden="true">${i+1}</span></button>`;}).join('')}</div>${step(1,index===model.cards.length-1)}</div><p class="presentation-position" role="status" aria-live="polite">${esc(c.position(index+1,model.cards.length))}</p><div class="presentation-card-viewport"><div class="presentation-flight" data-presentation-flight>${presentationCardMarkup({...s,presentationIndex:index})}</div></div></div>`:model.cards.length?`<ol class="deck-peek-cards">${model.cards.map(item=>`<li>${cardMarkup(s,item,'h2',{typewriter:false,focusable:false,linkBook:false,actions:true})}</li>`).join('')}</ol>`:`<p class="empty-state">${c.emptyAuthor}</p>`}
+    ${carousel&&card?`<div class="presentation-carousel"><div class="presentation-strip">${step(-1,index===0)}<div class="presentation-thumbnails" role="group" aria-label="${c.presentationCards}">${model.cards.map((item,i)=>{const title=item.isQuote?quoteExcerpt(contentText(item.body,s.language,deck.language)):contentText(item.title,s.language,deck.language);return `<button class="presentation-thumbnail${item.isQuote?' is-quote':''}" type="button" data-action="presentation-card" data-index="${i}" aria-label="${esc(c.position(i+1,model.cards.length)+': '+title)}" aria-pressed="${i===index}"><span class="presentation-thumb-title">${esc(title)}</span><span class="presentation-thumb-lines" aria-hidden="true"></span><span class="presentation-thumb-number" aria-hidden="true">${i+1}</span></button>`;}).join('')}</div>${step(1,index===model.cards.length-1)}</div><p class="presentation-position" role="status" aria-live="polite">${esc(c.position(index+1,model.cards.length))}</p><div class="presentation-card-viewport"><div class="presentation-flight" data-presentation-flight>${presentationCardMarkup({...s,presentationIndex:index})}</div></div></div>`:model.cards.length?`<ol class="deck-peek-cards">${model.cards.map(item=>`<li>${cardMarkup(s,item,'h2',{focusable:false,linkBook:false,actions:true})}</li>`).join('')}</ol>`:`<p class="empty-state">${c.emptyAuthor}</p>`}
   </section>`;
 }
 
