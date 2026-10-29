@@ -114,3 +114,14 @@ test("ES/EN editing uses the shared chooser, semantic opposite-list locks and no
     flow.next();html=initialInterestsView(readerState(catalog,{language,initialInterests:flow.state}));assert.match(html,/data-interest-locked="interested"[^>]*>[\s\S]*?value="interest-0"[^>]*disabled/);assert.doesNotMatch(html,/pricetag|data-initial-incentive/);flow.back();
   }
 });
+
+
+test("Initial second step advertises two petals with no exclusions and confirms the reward after the first; edits never advertise it",()=>{
+  const {flow}=setup();flow.toggle("interest-0","interested");flow.next();
+  for(const language of ["es","en"]){
+    let html=initialInterestsView(readerState(catalog,{language,initialInterests:flow.state}));
+    assert.match(html,/data-initial-incentive >/);assert.ok(html.includes(words[language].initialInterestPetalCondition));assert.ok(html.includes(words[language].initialInterestPetalReward));assert.match(html,/>\+2<\/span>/);
+    flow.toggle("interest-1","notInterested");html=initialInterestsView(readerState(catalog,{language,initialInterests:flow.state}));assert.ok(html.includes(words[language].interestChoiceSaveReward));flow.toggle("interest-1","notInterested");
+    html=initialInterestsView(readerState(catalog,{language,initialInterests:{...flow.state,mode:"edit"}}));assert.doesNotMatch(html,/data-initial-incentive|pricetag/);
+  }
+});

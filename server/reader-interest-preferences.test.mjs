@@ -97,7 +97,7 @@ for (const [dialect,version] of [["sqlite",42],["postgres",34]]) {
     const zeroReader={user_id:`iz-${suffix.slice(0,20)}`,csrf_token:"test"};
     await historicalReader(db,zeroReader.user_id);
     await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,0,'2026-10-28') ON CONFLICT(user_id) DO NOTHING").run(zeroReader.user_id);
-    const zeroInput={interested:["finance","software"],notInterested:["society","productivity"],revision:0};
+    const zeroInput={interested:["finance","software"],notInterested:[],revision:0};
     const zeroFirst=await saveInitialReaderInterestPreferences(db,zeroReader,zeroInput);
     assert.deepEqual(zeroFirst.rewards,[]);
     assert.deepEqual(zeroFirst.newlyGranted,[]);
@@ -122,7 +122,15 @@ for (const [dialect,version] of [["sqlite",42],["postgres",34]]) {
       await historicalReader(db,negativeReader.user_id);
       await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,0,'2026-10-28') ON CONFLICT(user_id) DO NOTHING").run(negativeReader.user_id);
       const negative=await saveInitialReaderInterestPreferences(db,negativeReader,{interested:["software"],notInterested:excluded.slice(0,count),revision:0});
-      assert.equal(negative.rewards.filter(reward=>reward.currency==="petals").length,count>=3?1:0,`not-interested list length ${count}`);
+      assert.equal(negative.rewards.filter(reward=>reward.currency==="petals").length,count>=1?1:0,`not-interested list length ${count}`);
+      assert.equal(negative.newlyGranted[0].amount,2);
+      assert.equal(Number((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(negativeReader.user_id)).balance),2);
+      if(count===1){
+        const retry=await saveInitialReaderInterestPreferences(db,negativeReader,{interested:["software"],notInterested:excluded.slice(0,count),revision:0});
+        assert.deepEqual(retry.newlyGranted,[]);assert.deepEqual(retry.rewards,negative.rewards);
+        await saveReaderInterestPreferences(db,negativeReader,{interested:["software"],notInterested:excluded.slice(0,2),revision:1});
+        assert.equal(Number((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(negativeReader.user_id)).balance),2,"retries and later profile edits cannot award twice");
+      }
     }
   });
 }

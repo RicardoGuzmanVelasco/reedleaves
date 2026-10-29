@@ -129,7 +129,8 @@ export async function saveInitialReaderInterestPreferences(db,session,input,now=
     const rewards=[];
     const awards=[];
     if (input.interested.length>=3) awards.push({rewardType:"interested_three",currency:"leaves",amount:3,wallet:"leaf_wallets"});
-    if (input.notInterested.length>=3) awards.push({rewardType:"not_interested_three",currency:"petals",amount:2,wallet:"petal_wallets"});
+    // Keep the persisted claim ID so retries and existing receipts remain compatible.
+    if (input.notInterested.length>=1) awards.push({rewardType:"not_interested_three",currency:"petals",amount:2,wallet:"petal_wallets"});
     for (const reward of awards) {
       const wallet=await db.prepare(`UPDATE ${reward.wallet} SET balance=balance+? WHERE user_id=? RETURNING balance`).get(reward.amount,userId);
       if (!wallet) throw new Error("Missing reader reward wallet");

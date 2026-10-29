@@ -5,8 +5,8 @@ export function interestChoicePresentation(state,c) {
   return {
     second,count,title:c[second?"interestChoiceNegative":"interestChoiceQuestion"],
     advice:count>3?c.interestChoiceMany:!second&&count===1?c.interestChoiceOne:!second&&count===2?c.interestChoiceTwo:"",
-    reward:count===3?c[second?"interestChoiceSaveReward":"interestChoiceContinueReward"]:c.initialInterestRewardCondition,
-    showReward:state.mode!=="edit"&&count>0,
+    reward:second?(count>=1?c.interestChoiceSaveReward:c.initialInterestPetalCondition):count===3?c.interestChoiceContinueReward:c.initialInterestRewardCondition,
+    showReward:state.mode!=="edit"&&(second||count>0),
     celebrate:!second&&count===3&&!state.saving&&!state.conflict
   };
 }

@@ -1,8 +1,8 @@
 import {words} from "/app/i18n.mjs";
 
 const copy={
-  es:{question:"¿Qué te interesa especialmente?",negativeQuestion:"¿Qué no te interesa en absoluto?",one:"Aunque un interés es suficiente, te recomendamos que elijas 3",two:"Te recomendamos que elijas 3",many:"Aunque puedes elegir hasta 5, te recomendamos que elijas 3",reward:"Al guardar 3 o más",rewardContinue:"Continúa y guarda para recibir",rewardSave:"Guarda ahora para recibir",opportunity:"¡Solo si lo configuras ahora!",leaves:"Premio de +3 hojas al guardar 3 o más intereses",petals:"Premio de +2 pétalos al guardar 3 o más intereses",lockedInterested:"Elegido en el primer paso.",lockedNotInterested:"Marcado como que no te interesa en el segundo paso."},
-  en:{question:"What are you especially interested in?",negativeQuestion:"What are you not interested in at all?",one:"One interest is enough, but we recommend choosing 3",two:"We recommend choosing 3",many:"You can choose up to 5, but we recommend choosing 3",reward:"When you save 3 or more",rewardContinue:"Continue and save to receive",rewardSave:"Save now to receive",opportunity:"Only if you set it up now!",leaves:"Reward of +3 leaves for saving 3 or more interests",petals:"Reward of +2 petals for saving 3 or more interests",lockedInterested:"Selected in the first step.",lockedNotInterested:"Marked as not interested in the second step."}
+  es:{question:"¿Qué te interesa especialmente?",negativeQuestion:"¿Qué no te interesa en absoluto?",one:"Aunque un interés es suficiente, te recomendamos que elijas 3",two:"Te recomendamos que elijas 3",many:"Aunque puedes elegir hasta 5, te recomendamos que elijas 3",reward:"Al guardar 3 o más",rewardContinue:"Continúa y guarda para recibir",rewardSave:"Guarda ahora para recibir",opportunity:"¡Solo si lo configuras ahora!",leaves:"Premio de +3 hojas al guardar 3 o más intereses",petalCondition:"Al guardar 1 o más",petals:"Premio de +2 pétalos al guardar 1 o más intereses",lockedInterested:"Elegido en el primer paso.",lockedNotInterested:"Marcado como que no te interesa en el segundo paso."},
+  en:{question:"What are you especially interested in?",negativeQuestion:"What are you not interested in at all?",one:"One interest is enough, but we recommend choosing 3",two:"We recommend choosing 3",many:"You can choose up to 5, but we recommend choosing 3",reward:"When you save 3 or more",rewardContinue:"Continue and save to receive",rewardSave:"Save now to receive",opportunity:"Only if you set it up now!",leaves:"Reward of +3 leaves for saving 3 or more interests",petalCondition:"When you save 1 or more",petals:"Reward of +2 petals for saving 1 or more interests",lockedInterested:"Selected in the first step.",lockedNotInterested:"Marked as not interested in the second step."}
 };
 
 // Local study policy: a choice belongs to one step until it is unticked there.
@@ -50,8 +50,8 @@ export function applyProposalUI(host,state,language){
   if(comma>=0)advice.replaceChildren(document.createTextNode(message.slice(0,comma+1)),document.createElement("br"),document.createTextNode(message.slice(comma+1).trim()));
   else advice.textContent=message;
   advice.hidden=!message;advice.id="study-interest-advice";advice.setAttribute("role","status");advice.setAttribute("aria-live","polite");
-  const incentive=host.querySelector("[data-initial-incentive]");incentive.hidden=count===0;
-  const [reward,note]=incentive.querySelectorAll(":scope > p");reward.firstElementChild.textContent=count===3?(second?c.rewardSave:c.rewardContinue):c.reward;note.textContent=c.opportunity;
+  const incentive=host.querySelector("[data-initial-incentive]");incentive.hidden=!second&&count===0;
+  const [reward,note]=incentive.querySelectorAll(":scope > p");reward.firstElementChild.textContent=second?(count>=1?c.rewardSave:c.petalCondition):count===3?c.rewardContinue:c.reward;note.textContent=c.opportunity;
   const tag=incentive.querySelector(".pricetag");tag.setAttribute("aria-label",second?c.petals:c.leaves);tag.querySelector(":scope > span:last-child").textContent=second?"+2":"+3";
   for(const input of selector.querySelectorAll("input")){
     const kind=second?"notInterested":"interested",other=second?"interested":"notInterested",locked=state.draft[other].includes(input.value),option=input.closest("label");
