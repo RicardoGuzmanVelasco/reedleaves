@@ -1,4 +1,5 @@
 import {words} from "/app/i18n.mjs";
+import {interestChoicePresentation} from "/app/interest-choice.mjs";
 
 const copy={
   es:{question:"¿Qué te interesa especialmente?",negativeQuestion:"¿Qué no te interesa en absoluto?",one:"Aunque un interés es suficiente, te recomendamos que elijas 3",two:"Te recomendamos que elijas 3",many:"Aunque puedes elegir hasta 5, te recomendamos que elijas 3",reward:"Al guardar 3 o más",rewardContinue:"Continúa y guarda para recibir",rewardSave:"Guarda ahora para recibir",opportunity:"¡Solo si lo configuras ahora!",leaves:"Premio de +3 hojas al guardar 3 o más intereses",petalCondition:"Al guardar 1 o más",petals:"Premio de +2 pétalos al guardar 1 o más intereses",lockedInterested:"Elegido en el primer paso.",lockedNotInterested:"Marcado como que no te interesa en el segundo paso."},
@@ -68,5 +69,6 @@ export function applyProposalUI(host,state,language){
     }
     input.setAttribute("aria-describedby",`${position.id}${advice.hidden?"":" study-interest-advice"}`);
   }
-  syncNext(host.querySelector('[data-initial-action="next"]'),!second&&count===3,words[language].next);
+  const view=interestChoicePresentation(state,words[language]);
+  syncNext(host.querySelector(`[data-initial-action="${second?"save":"next"}"]`),view.celebrate,words[language][state.saving?"working":second?"save":"next"]);
 }

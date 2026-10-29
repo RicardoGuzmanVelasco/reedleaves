@@ -115,3 +115,5 @@
 [data-study-refresh] .initial-interest-selector .interest-option[data-study-locked]:is(:active,.is-pressed){transform:none;box-shadow:0 2px 0 #c5ccbe}
 [data-study-refresh][data-study-format="flat"] .initial-interest-selector .interest-option[data-study-locked]{box-shadow:none}
 [data-study-refresh] .initial-interest-selector .interest-option[data-study-locked] .interest-emoji{transform:none!important;animation:none!important;transition:none!important}
+
+[data-study-refresh] [data-initial-interest-form]>.initial-interest-actions .primary[data-initial-action="save"]{flex:0 0 auto;width:max-content;min-width:0;padding-inline:24px}

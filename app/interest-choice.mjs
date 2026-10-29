@@ -7,7 +7,7 @@ export function interestChoicePresentation(state,c) {
     advice:count>3?c.interestChoiceMany:!second&&count===1?c.interestChoiceOne:!second&&count===2?c.interestChoiceTwo:"",
     reward:second?(count>=1?c.interestChoiceSaveReward:c.initialInterestPetalCondition):count===3?c.interestChoiceContinueReward:c.initialInterestRewardCondition,
     showReward:state.mode!=="edit"&&(second||count>0),
-    celebrate:!second&&count===3&&!state.saving&&!state.conflict
+    celebrate:(!second&&count===3||second&&state.mode!=="edit"&&(state.draft.interested.length>=3||count>=1))&&!state.saving&&!state.conflict
   };
 }
 
@@ -25,15 +25,16 @@ export function syncInterestChoice(host,state,c) {
     const position=input.closest("label").querySelector(".interest-order-description");
     input.setAttribute("aria-describedby",`${position.id}${view.advice?" interest-choice-advice":""}`);
   }
-  const button=host.querySelector('[data-initial-action="next"]');
+  const label=state.saving?c.working:view.second?c.save:c.next;
+  const button=host.querySelector(`[data-initial-action="${view.second?"save":"next"}"]`);
   if(!button)return;
   const wasCelebrating=button.classList.contains("practice-launch");
   if(view.celebrate===wasCelebrating)return;
   button.classList.toggle("practice-launch",view.celebrate);
-  if(!view.celebrate){button.textContent=c.next;button.removeAttribute("aria-label");return;}
-  button.setAttribute("aria-label",c.next);
+  if(!view.celebrate){button.textContent=label;button.removeAttribute("aria-label");return;}
+  button.setAttribute("aria-label",label);
   const text=host.ownerDocument.createElement("span");text.className="practice-launch-label";text.setAttribute("aria-hidden","true");
-  for(const char of c.next){const letter=host.ownerDocument.createElement("span");letter.className="practice-launch-char";letter.textContent=char===" "?"\u00a0":char;text.append(letter);}
+  for(const char of label){const letter=host.ownerDocument.createElement("span");letter.className="practice-launch-char";letter.textContent=char===" "?"\u00a0":char;text.append(letter);}
   button.replaceChildren(text);
   // Reuse Practice's animation timing and phase rather than duplicate its clock.
   const animations=button.getAnimations({subtree:true}),glint=animations.find(animation=>animation.animationName==="practice-launch-glint");
