@@ -4,6 +4,7 @@ import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION,POSTGRES_SCHEMA_VERSION} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {historicalDatabase,historicalReader} from "../test-support/historical-database.mjs";
+import {readReaderState} from "./reader-repository.mjs";
 import {readDiscoverPracticeAvailability,selectDiscoverPracticeForReader} from "./discover-practice.mjs";
 import {startPracticeSession,PRACTICE_ENABLED_TOPICS,PRACTICE_SCHEMA_TOPICS} from "./practice-economy.mjs";
 
@@ -26,7 +27,7 @@ for(const [dialect,version] of [["sqlite",51],["postgres",43]]) {
     {topic:"mixed",card_ids:JSON.stringify(ids),card_index:5,cost:2,started_at:startedAt,completed_at:"2026-10-28T10:05:00.000Z"});
     assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM practice_session_cards WHERE session_id=?").get("existing-session")).n,5);
     assert.ok(PRACTICE_SCHEMA_TOPICS.includes("discover"));
-    assert.equal(PRACTICE_ENABLED_TOPICS.includes("discover"),false);
+    assert.equal(PRACTICE_ENABLED_TOPICS.includes("discover"),true);
     await db.prepare(`INSERT INTO practice_sessions(id,user_id,topic,card_ids,card_index,cost,started_at)
       VALUES ('schema-discover',?,'discover',?,0,3,?)`).run(session.user_id,JSON.stringify(ids),startedAt);
     const invalidTopic=()=>db.prepare(`INSERT INTO practice_sessions(id,user_id,topic,card_ids,card_index,cost,started_at)
@@ -37,7 +38,7 @@ for(const [dialect,version] of [["sqlite",51],["postgres",43]]) {
 }
 
 for(const dialect of ["sqlite","postgres"]) {
-  test(`${dialect}: Discover availability and selection share eligible server candidates without enabling purchases`,async t=>{
+  test(`${dialect}: Discover availability and selection share eligible server candidates and revalidate before purchase`,async t=>{
     let db;
     if(dialect==="postgres") {
       const engine=new PGlite(),query=async(sql,values=[])=>{
@@ -65,8 +66,29 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.ok(selected.every(card=>["en","es"].includes(card.language||card.deck_language)));
 
     const walletBefore=(await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance;
-    await assert.rejects(startPracticeSession(db,session,"discover",new Date("2026-10-28T12:00:00.000Z")),{code:"invalidRequest"});
+    const now=new Date("2026-10-28T12:00:00.000Z");
+    // A successful availability read never authorizes candidates after preferences change.
+    await db.prepare("UPDATE reader_language_preferences SET languages='[\"ja\"]' WHERE user_id=?").run(session.user_id);
+    const insufficient=await startPracticeSession(db,session,"discover",now,null);
+    assert.equal(insufficient.reason,"notEnoughCards");assert.equal(insufficient.available,0);
     assert.equal((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance,walletBefore);
     assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM practice_sessions WHERE user_id=?").get(session.user_id)).n,0);
+    await db.prepare("UPDATE reader_language_preferences SET languages='[\"es\",\"en\"]' WHERE user_id=?").run(session.user_id);
+    await db.prepare("UPDATE petal_wallets SET balance=1 WHERE user_id=?").run(session.user_id);
+    const poor=await startPracticeSession(db,session,"discover",now,null);
+    assert.equal(poor.reason,"insufficientPetals");
+    assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM practice_sessions WHERE user_id=?").get(session.user_id)).n,0);
+    assert.equal((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance,1);
+    await db.prepare("UPDATE petal_wallets SET balance=? WHERE user_id=?").run(walletBefore,session.user_id);
+    const cost=(await readReaderState(db,session,now)).practiceDiscountTopic==="discover"?2:3;
+    const price=await startPracticeSession(db,session,"discover",now,null,cost===2?3:2);
+    assert.equal(price.reason,"practicePriceChanged");assert.equal(price.cost,cost);
+    assert.equal((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance,walletBefore);
+    const bought=await startPracticeSession(db,session,"discover",now,null,cost);
+    assert.equal(bought.session.topic,"discover");assert.equal(new Set(bought.session.cardIds).size,5);
+    const resumed=await startPracticeSession(db,session,"mixed",now,bought.session.id,2);
+    assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM studies WHERE user_id=?").get(session.user_id)).n,0,"Discover does not add decks");
+    assert.equal(resumed.resumed,true);assert.deepEqual(resumed.session.cardIds,bought.session.cardIds);assert.equal(resumed.session.cost,bought.session.cost);
+    assert.equal((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance,walletBefore-bought.session.cost);
   });
 }

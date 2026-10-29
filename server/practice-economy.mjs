@@ -12,8 +12,10 @@ import {readerLanguagePreferencesInside} from "./reader-language-preferences.mjs
 import {canReviewDeck,reviewableDeckIds} from "./review-card-access.mjs";
 import {discoverPracticeCandidateContext,selectDiscoverPracticeForReader} from "./discover-practice.mjs";
 
+import {PRACTICE_ENABLED_TOPICS} from "../app/practice-modes.mjs";
+
 export const PRACTICE_SCHEMA_TOPICS=["reading","read","saved","mixed","discover"];
-export const PRACTICE_ENABLED_TOPICS=["reading","read","saved","mixed"];
+export {PRACTICE_ENABLED_TOPICS} from "../app/practice-modes.mjs";
 // Keep the existing name for discount selection and callers that enumerate active modes.
 export const PRACTICE_TOPICS=PRACTICE_ENABLED_TOPICS;
 export const PRACTICE_BASE_COST=3;
@@ -150,8 +152,9 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   return {session:{...session,cardIds:repairedIds},recovery:"repaired",sessionId:active.id};
 }
 
-export async function startPracticeSession(db,session,topic,now=new Date(),expectedSessionId) {
+export async function startPracticeSession(db,session,topic,now=new Date(),expectedSessionId,expectedCost) {
   if(!PRACTICE_SCHEMA_TOPICS.includes(topic)||(expectedSessionId!==undefined&&expectedSessionId!==null&&(typeof expectedSessionId!=="string"||!expectedSessionId))) throw new ApiError(400,"invalidRequest");
+  if(expectedCost!==undefined&&![PRACTICE_BASE_COST,PRACTICE_DISCOUNT_COST].includes(expectedCost)) throw new ApiError(400,"invalidRequest");
   if(!PRACTICE_ENABLED_TOPICS.includes(topic)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     const userId=session.user_id;
@@ -178,6 +181,7 @@ export async function startPracticeSession(db,session,topic,now=new Date(),expec
     const cards=discovery?[]:await availableCards(db,userId,topic,languages),available=discovery?discovery.available:cards.length;
     if(available<PRACTICE_SESSION_SIZE) return {reason:"notEnoughCards",topic,available,required:PRACTICE_SESSION_SIZE,balance:wallet.balance};
     const discountTopic=await currentDiscount(db,userId),cost=topic===discountTopic?PRACTICE_DISCOUNT_COST:PRACTICE_BASE_COST;
+    if(expectedCost!==undefined&&expectedCost!==cost) return {reason:"practicePriceChanged",topic,cost,discountTopic,balance:wallet.balance};
     if(wallet.balance<cost) return {reason:"insufficientPetals",topic,cost,balance:wallet.balance};
     const selected=discovery?discovery.selected:selectPracticeCards(cards,answers,PRACTICE_SESSION_SIZE);
     const spent=await db.prepare("UPDATE petal_wallets SET balance=balance-? WHERE user_id=? AND balance>=?").run(cost,userId,cost);

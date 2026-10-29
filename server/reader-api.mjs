@@ -119,7 +119,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       if(path === "/api/reader/book-knowledge/visit") { send(200,await recognizeLibraryBookSnapshot(db,active,input)); return true; }
       if (path === "/api/reader/practice-answer") { send(200,await savePracticeAnswer(db,active,input,currentTime)); return true; }
       if (path === "/api/reader/practice/start") {
-        const result=await startPracticeSession(db,active,input.topic,currentTime,Object.hasOwn(input,"sessionId")?input.sessionId:undefined);
+        const result=await startPracticeSession(db,active,input.topic,currentTime,Object.hasOwn(input,"sessionId")?input.sessionId:undefined,input.expectedCost);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
       if (path === "/api/reader/practice/answer") {
