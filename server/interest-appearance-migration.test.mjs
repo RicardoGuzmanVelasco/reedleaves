@@ -13,7 +13,7 @@ async function retainedRows(db,dialect) {
   const result={};
   // These tables are introduced by later additive migrations and are outside
   // the data-preservation contract of the interest-appearance migration.
-  for(const {name} of tables) if(!["reed_schema","reader_book_sort_preferences","reader_interest_preferences","reader_interest_settings","reader_language_preferences"].includes(name)) {
+  for(const {name} of tables) if(!["reed_schema","reader_book_sort_preferences","reader_interest_preferences","reader_interest_settings","reader_interest_reward_claims","reader_language_preferences"].includes(name)) {
     const columns=name === "genres" ? "id" : name === "book_genres" ? "book_id,genre_id" : "*";
     result[name]=(await db.prepare(`SELECT ${columns} FROM "${name}"`).all()).map(row=>{
       const value={...row};if(name==="books"){delete value.incorporated_at;delete value.incorporation_order;}if(name==="practice_sessions")delete value.language_snapshot;return value;

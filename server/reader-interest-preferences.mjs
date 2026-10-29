@@ -82,3 +82,51 @@ export async function saveReaderInterestPreferences(db,session,input,now=new Dat
     return readState(db,userId);
   });
 }
+
+// The initial screen has its own write operation so profile edits can never
+// create or re-open a reward opportunity. Wallet credits are intentionally not
+// capped: refill thresholds apply only to daily accrual.
+export async function saveInitialReaderInterestPreferences(db,session,input,now=new Date()) {
+  if (!session?.user_id) throw new ApiError(401,"signInRequired");
+  validateInput(input);
+  const userId=session.user_id,timestamp=new Date(now).toISOString();
+  return transaction(db,async()=>{
+    await lockReaderAccount(db,userId);
+    if (!await db.prepare("SELECT user_id FROM accounts WHERE user_id=?").get(userId)) throw new ApiError(401,"signInRequired");
+    const current=await readState(db,userId);
+    const priorClaims=await db.prepare(`SELECT reward_type AS "rewardType",currency,amount,balance_after AS "balanceAfter"
+      FROM reader_interest_reward_claims WHERE user_id=? ORDER BY reward_type`).all(userId);
+    if (current.configured) {
+      if (priorClaims.length) return {state:current,rewards:priorClaims.map(row=>({...row,amount:Number(row.amount),balanceAfter:Number(row.balanceAfter)})),newlyGranted:[],replayed:true};
+      return {conflict:true,current};
+    }
+    if (input.revision!==current.revision) return {conflict:true,current};
+    const interests=new Set((await db.prepare("SELECT id FROM genres").all()).map(row=>row.id));
+    if ([...input.interested,...input.notInterested].some(id=>!interests.has(id))) throw new ApiError(400,"invalidRequest");
+
+    await db.prepare("DELETE FROM reader_interest_preferences WHERE user_id=?").run(userId);
+    for (const [preference,ids] of [["interested",input.interested],["not_interested",input.notInterested]]) {
+      for (let index=0;index<ids.length;index++) await db.prepare(`INSERT INTO reader_interest_preferences(user_id,interest_id,preference,position) VALUES (?,?,?,?)`)
+        .run(userId,ids[index],preference,index+1);
+    }
+    await db.prepare(`INSERT INTO reader_interest_settings(user_id,revision,configured_at,initial_opportunity_closed_at) VALUES (?,?,?,?)`)
+      .run(userId,1,timestamp,timestamp);
+
+    const newlyGranted=[];
+    const rewards=[];
+    const awards=[];
+    if (input.interested.length>=3) awards.push({rewardType:"interested_three",currency:"leaves",amount:3,wallet:"leaf_wallets"});
+    if (input.notInterested.length>=3) awards.push({rewardType:"not_interested_three",currency:"petals",amount:2,wallet:"petal_wallets"});
+    for (const reward of awards) {
+      const wallet=await db.prepare(`UPDATE ${reward.wallet} SET balance=balance+? WHERE user_id=? RETURNING balance`).get(reward.amount,userId);
+      if (!wallet) throw new Error("Missing reader reward wallet");
+      const balanceAfter=Number(wallet.balance);
+      const claimed=await db.prepare(`INSERT INTO reader_interest_reward_claims(user_id,reward_type,currency,amount,balance_after,granted_at)
+        VALUES (?,?,?,?,?,?) ON CONFLICT(user_id,reward_type) DO NOTHING RETURNING reward_type`).get(userId,reward.rewardType,reward.currency,reward.amount,balanceAfter,timestamp);
+      if (!claimed) throw new Error("Reader reward was already claimed");
+      const receipt={rewardType:reward.rewardType,currency:reward.currency,amount:reward.amount,balanceAfter};
+      rewards.push(receipt); newlyGranted.push(receipt);
+    }
+    return {state:await readState(db,userId),rewards,newlyGranted,replayed:false};
+  });
+}

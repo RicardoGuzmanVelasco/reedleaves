@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 42));
-INSERT INTO reed_schema VALUES (42);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 43));
+INSERT INTO reed_schema VALUES (43);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '');
@@ -85,6 +85,20 @@ ALTER TABLE reader_interest_settings ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_settings FROM anon; END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_settings FROM authenticated; END IF;
+END $$;
+CREATE TABLE reader_interest_reward_claims (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  reward_type TEXT NOT NULL CHECK(reward_type IN ('interested_three','not_interested_three')),
+  currency TEXT NOT NULL CHECK(currency IN ('leaves','petals')),
+  amount BIGINT NOT NULL CHECK(amount > 0),
+  balance_after BIGINT NOT NULL CHECK(balance_after >= amount),
+  granted_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY(user_id,reward_type)
+);
+ALTER TABLE reader_interest_reward_claims ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_reward_claims FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_reward_claims FROM authenticated; END IF;
 END $$;
 CREATE TABLE reader_language_preferences (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,

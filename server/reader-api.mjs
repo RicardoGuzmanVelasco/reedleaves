@@ -12,7 +12,7 @@ import {readCardVotes,setCardVote} from "./card-votes.mjs";
 import {readCardActions,readSavedCards,setCardSave} from "./card-saves.mjs";
 import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH} from "../app/core.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
-import {readReaderInterestPreferences,readPublicReaderInterestPreferences,saveReaderInterestPreferences} from "./reader-interest-preferences.mjs";
+import {readReaderInterestPreferences,readPublicReaderInterestPreferences,saveReaderInterestPreferences,saveInitialReaderInterestPreferences} from "./reader-interest-preferences.mjs";
 import {BOOK_INTEREST_CONFIRMATION_ENABLED} from "./book-interest-confirmation.mjs";
 import {readReaderLanguagePreferences,saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
 
@@ -44,7 +44,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
   return async (request,response,path,send) => {
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
       ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/collect",["POST"]],["/api/reader/remove",["POST"]],
-      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
+      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
     routes.set("/api/reader/guides",["POST"]);
     routes.set("/api/feedback",["POST"]);
     routes.set("/api/author/decks/finish-notes",["POST"]);
@@ -121,6 +121,12 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       }
       if (path === "/api/reader/interests/preferences") {
         const result=await saveReaderInterestPreferences(db,active,input,currentTime);
+        if (result.conflict) send(409,{error:"preferencesConflict",current:result.current});
+        else send(200,result);
+        return true;
+      }
+      if (path === "/api/reader/interests/initial") {
+        const result=await saveInitialReaderInterestPreferences(db,active,input,currentTime);
         if (result.conflict) send(409,{error:"preferencesConflict",current:result.current});
         else send(200,result);
         return true;

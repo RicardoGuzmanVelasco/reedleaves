@@ -93,6 +93,15 @@ CREATE TABLE reader_interest_settings (
   configured_at TEXT NOT NULL,
   initial_opportunity_closed_at TEXT NOT NULL
 ) STRICT;
+CREATE TABLE reader_interest_reward_claims (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  reward_type TEXT NOT NULL CHECK(reward_type IN ('interested_three','not_interested_three')),
+  currency TEXT NOT NULL CHECK(currency IN ('leaves','petals')),
+  amount INTEGER NOT NULL CHECK(amount > 0),
+  balance_after INTEGER NOT NULL CHECK(balance_after >= amount),
+  granted_at TEXT NOT NULL,
+  PRIMARY KEY(user_id,reward_type)
+) STRICT;
 CREATE TABLE reader_language_preferences (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
   languages TEXT NOT NULL,
@@ -351,4 +360,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 50;
+PRAGMA user_version = 51;
