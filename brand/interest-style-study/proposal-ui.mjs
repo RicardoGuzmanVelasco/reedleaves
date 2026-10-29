@@ -1,8 +1,8 @@
 import {words} from "/app/i18n.mjs";
 
 const copy={
-  es:{question:"¿Cuáles te interesan especialmente?",negativeQuestion:"¿Cuáles no te interesan en absoluto?",one:"Aunque un interés es suficiente, te recomendamos que elijas 3",two:"Te recomendamos que elijas 3",many:"Aunque puedes elegir hasta 5, te recomendamos que elijas 3",reward:"Al guardar 3 o más",opportunity:"Solo en esta primera configuración.",leaves:"Premio de +3 hojas al guardar 3 o más intereses",petals:"Premio de +2 pétalos al guardar 3 o más intereses"},
-  en:{question:"Which are you especially interested in?",negativeQuestion:"Which are you not interested in at all?",one:"One interest is enough, but we recommend choosing 3",two:"We recommend choosing 3",many:"You can choose up to 5, but we recommend choosing 3",reward:"When you save 3 or more",opportunity:"Only during this initial setup.",leaves:"Reward of +3 leaves for saving 3 or more interests",petals:"Reward of +2 petals for saving 3 or more interests"}
+  es:{question:"¿Qué te interesa especialmente?",negativeQuestion:"¿Qué no te interesa en absoluto?",one:"Aunque un interés es suficiente, te recomendamos que elijas 3",two:"Te recomendamos que elijas 3",many:"Aunque puedes elegir hasta 5, te recomendamos que elijas 3",reward:"Al guardar 3 o más",rewardContinue:"Continúa y guarda para recibir",rewardSave:"Guarda ahora para recibir",opportunity:"Solo en esta primera configuración.",leaves:"Premio de +3 hojas al guardar 3 o más intereses",petals:"Premio de +2 pétalos al guardar 3 o más intereses"},
+  en:{question:"What are you especially interested in?",negativeQuestion:"What are you not interested in at all?",one:"One interest is enough, but we recommend choosing 3",two:"We recommend choosing 3",many:"You can choose up to 5, but we recommend choosing 3",reward:"When you save 3 or more",rewardContinue:"Continue and save to receive",rewardSave:"Save now to receive",opportunity:"Only during this initial setup.",leaves:"Reward of +3 leaves for saving 3 or more interests",petals:"Reward of +2 petals for saving 3 or more interests"}
 };
 
 function syncNext(button,celebrate,label){
@@ -32,10 +32,12 @@ export function applyProposalUI(host,state,language){
   host.querySelector(".initial-interest-order")?.remove();
   const help=selector.querySelector(":scope > p");help.textContent="";help.hidden=true;
   const advice=host.querySelector("[data-initial-recommendation]");
-  advice.textContent=count>3?c.many:!second&&count===1?c.one:!second&&count===2?c.two:"";
-  advice.hidden=!advice.textContent;advice.id="study-interest-advice";advice.setAttribute("role","status");advice.setAttribute("aria-live","polite");
+  const message=count>3?c.many:!second&&count===1?c.one:!second&&count===2?c.two:"",comma=message.indexOf(",");
+  if(comma>=0)advice.replaceChildren(document.createTextNode(message.slice(0,comma+1)),document.createElement("br"),document.createTextNode(message.slice(comma+1).trim()));
+  else advice.textContent=message;
+  advice.hidden=!message;advice.id="study-interest-advice";advice.setAttribute("role","status");advice.setAttribute("aria-live","polite");
   const incentive=host.querySelector("[data-initial-incentive]");incentive.hidden=count===0;
-  const [reward,note]=incentive.querySelectorAll(":scope > p");reward.firstElementChild.textContent=c.reward;note.textContent=c.opportunity;
+  const [reward,note]=incentive.querySelectorAll(":scope > p");reward.firstElementChild.textContent=count===3?(second?c.rewardSave:c.rewardContinue):c.reward;note.textContent=c.opportunity;
   const tag=incentive.querySelector(".pricetag");tag.setAttribute("aria-label",second?c.petals:c.leaves);tag.querySelector(":scope > span:last-child").textContent=second?"+2":"+3";
   for(const input of selector.querySelectorAll("input")){
     const position=input.closest("label").querySelector(".interest-order-description");
