@@ -10,8 +10,12 @@ import {lockReaderAccount} from "./reader-account-lock.mjs";
 import {effectiveCardLanguage,normalizeLanguageList} from "../app/core.mjs";
 import {readerLanguagePreferencesInside} from "./reader-language-preferences.mjs";
 import {canReviewDeck,reviewableDeckIds} from "./review-card-access.mjs";
+import {discoverPracticeCandidateContext,selectDiscoverPracticeForReader} from "./discover-practice.mjs";
 
-export const PRACTICE_TOPICS=["reading","read","saved","mixed"];
+export const PRACTICE_SCHEMA_TOPICS=["reading","read","saved","mixed","discover"];
+export const PRACTICE_ENABLED_TOPICS=["reading","read","saved","mixed"];
+// Keep the existing name for discount selection and callers that enumerate active modes.
+export const PRACTICE_TOPICS=PRACTICE_ENABLED_TOPICS;
 export const PRACTICE_BASE_COST=3;
 export const PRACTICE_DISCOUNT_COST=2;
 export const PRACTICE_SESSION_SIZE=5;
@@ -38,6 +42,7 @@ function sessionFromRow(row) {
 }
 
 async function availableCards(db,userId,topic,languages=null) {
+  if(topic==="discover") return (await discoverPracticeCandidateContext(db,userId,languages)).cards;
   const catalog=prepareCatalog(await readCatalog(db,userId));
   const statuses=new Map((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(row=>[row.book_id,row.status]));
   const enrolled=new Set((await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(row=>row.deck_id));
@@ -113,7 +118,15 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   }
   if(!changed) return {session,recovery:null};
 
-  const candidates=await availableCards(db,userId,session.topic,session.languageSnapshot),replacementIds=candidates.map(card=>card.id).filter(id=>!seen.has(id));
+  let replacementIds;
+  if(session.topic==="discover") {
+    const answers=Object.fromEntries((await db.prepare("SELECT card_id,answer FROM practice_answers WHERE user_id=?").all(userId)).map(row=>[row.card_id,row.answer]));
+    const missing=pending.filter(id=>id===null).length;
+    replacementIds=(await selectDiscoverPracticeForReader(db,userId,{languages:session.languageSnapshot,answers,count:missing,excludeCardIds:[...seen]})).selected.map(card=>card.id);
+  } else {
+    const candidates=await availableCards(db,userId,session.topic,session.languageSnapshot);
+    replacementIds=candidates.map(card=>card.id).filter(id=>!seen.has(id));
+  }
   let replacementIndex=0;
   for(let pendingPosition=0;pendingPosition<pending.length;pendingPosition++) {
     if(pending[pendingPosition]!==null) continue;
@@ -138,7 +151,8 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
 }
 
 export async function startPracticeSession(db,session,topic,now=new Date(),expectedSessionId) {
-  if(!PRACTICE_TOPICS.includes(topic)||(expectedSessionId!==undefined&&expectedSessionId!==null&&(typeof expectedSessionId!=="string"||!expectedSessionId))) throw new ApiError(400,"invalidRequest");
+  if(!PRACTICE_SCHEMA_TOPICS.includes(topic)||(expectedSessionId!==undefined&&expectedSessionId!==null&&(typeof expectedSessionId!=="string"||!expectedSessionId))) throw new ApiError(400,"invalidRequest");
+  if(!PRACTICE_ENABLED_TOPICS.includes(topic)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     const userId=session.user_id;
     await lockReaderAccount(db,userId);
@@ -159,12 +173,13 @@ export async function startPracticeSession(db,session,topic,now=new Date(),expec
     if(recovery.session) return {session:recovery.session,resumed:true,...(recovery.recovery?{practiceRecovery:{status:recovery.recovery,topic:recovery.session.topic}}:{}),discountTopic:await currentDiscount(db,userId),balance:wallet.balance};
 
     const preferences=await readerLanguagePreferencesInside(db,userId),languages=preferences.languages;
-    const cards=await availableCards(db,userId,topic,languages),available=cards.length;
+    const answers=Object.fromEntries((await db.prepare("SELECT card_id,answer FROM practice_answers WHERE user_id=?").all(userId)).map(row=>[row.card_id,row.answer]));
+    const discovery=topic==="discover"?await selectDiscoverPracticeForReader(db,userId,{languages,answers,count:PRACTICE_SESSION_SIZE}):null;
+    const cards=discovery?[]:await availableCards(db,userId,topic,languages),available=discovery?discovery.available:cards.length;
     if(available<PRACTICE_SESSION_SIZE) return {reason:"notEnoughCards",topic,available,required:PRACTICE_SESSION_SIZE,balance:wallet.balance};
     const discountTopic=await currentDiscount(db,userId),cost=topic===discountTopic?PRACTICE_DISCOUNT_COST:PRACTICE_BASE_COST;
     if(wallet.balance<cost) return {reason:"insufficientPetals",topic,cost,balance:wallet.balance};
-    const answers=Object.fromEntries((await db.prepare("SELECT card_id,answer FROM practice_answers WHERE user_id=?").all(userId)).map(row=>[row.card_id,row.answer]));
-    const selected=selectPracticeCards(cards,answers,PRACTICE_SESSION_SIZE);
+    const selected=discovery?discovery.selected:selectPracticeCards(cards,answers,PRACTICE_SESSION_SIZE);
     const spent=await db.prepare("UPDATE petal_wallets SET balance=balance-? WHERE user_id=? AND balance>=?").run(cost,userId,cost);
     if(spent.changes!==1) throw new ApiError(409,"insufficientPetals");
     const id=randomUUID(),startedAt=now.toISOString(),cardIds=selected.map(card=>card.id);

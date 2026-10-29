@@ -15,8 +15,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 52;
-export const POSTGRES_SCHEMA_VERSION = 44;
+export const SQLITE_SCHEMA_VERSION = 53;
+export const POSTGRES_SCHEMA_VERSION = 45;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -103,6 +103,33 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 52) {
+    db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
+    try {
+      db.exec(`CREATE TABLE practice_sessions_new (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+          topic TEXT NOT NULL CHECK(topic IN ('reading','read','saved','mixed','discover')),
+          card_ids TEXT NOT NULL,
+          card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
+          cost INTEGER NOT NULL CHECK(cost IN (2,3)),
+          started_at TEXT NOT NULL,
+          completed_at TEXT,
+          completed_local_day TEXT CHECK(completed_local_day IS NULL OR (completed_local_day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(completed_local_day,'+0 days') IS completed_local_day)),
+          cancelled_at TEXT,
+          language_snapshot TEXT
+        ) STRICT;
+        INSERT INTO practice_sessions_new SELECT id,user_id,topic,card_ids,card_index,cost,started_at,completed_at,completed_local_day,cancelled_at,language_snapshot FROM practice_sessions;
+        DROP TABLE practice_sessions;
+        ALTER TABLE practice_sessions_new RENAME TO practice_sessions;
+        CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL AND cancelled_at IS NULL;
+        PRAGMA user_version=53;`);
+      if (db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("Discover practice migration broke database references");
+      db.exec("COMMIT;");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    finally { db.exec("PRAGMA foreign_keys=ON;"); }
+    return initializeDatabase(db);
+  }
   if (version === 51) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -848,6 +875,18 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 44) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,practice_sessions IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 45) return;
+          await db.exec(`ALTER TABLE practice_sessions DROP CONSTRAINT practice_sessions_topic_check;
+            ALTER TABLE practice_sessions ADD CONSTRAINT practice_sessions_topic_check CHECK(topic IN ('reading','read','saved','mixed','discover'));
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=45;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=45);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 43) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,accounts,books IN ACCESS EXCLUSIVE MODE;");

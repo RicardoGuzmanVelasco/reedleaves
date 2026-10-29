@@ -170,6 +170,29 @@ test("Feedback requires a session and CSRF, then stores the account and current 
   assert.deepEqual({...row},{user_id:state.user.id,username:"feedback.reader",message:input.message,page:input.page,language:"es"});
 });
 
+test("Discover exposes authenticated availability but rejects inactive purchases without charging or creating a session",async t=>{
+  const db=openDatabase(":memory:");initializeDatabase(db);await seedCatalog(db);
+  const server=createCatalogServer(db);server.listen(0,"127.0.0.1");await once(server,"listening");
+  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const availabilityPath="/api/reader/practice/discover-availability";
+  assert.equal((await fetch(base+availabilityPath)).status,401);
+  const registered=await fetch(base+"/api/auth/register",{method:"POST",headers:{Origin:base,"Content-Type":"application/json"},body:JSON.stringify({username:"discover.reader",password:"a local discover test phrase",language:"es",timeZone:"Europe/Madrid"})});
+  assert.equal(registered.status,200);
+  const state=await registered.json(),cookie=registered.headers.get("set-cookie").split(";")[0],headers={Cookie:cookie,"X-CSRF-Token":state.csrfToken};
+  const availabilityResponse=await fetch(base+availabilityPath,{headers:{Cookie:cookie}});
+  assert.equal(availabilityResponse.status,200);
+  const availability=await availabilityResponse.json();
+  assert.equal(availability.required,5);
+  assert.ok(availability.available>=availability.required);
+  const userId=state.user.id,walletBefore=db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance;
+  const rejected=await fetch(base+"/api/reader/practice/start",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify({topic:"discover"})});
+  assert.equal(rejected.status,400);
+  assert.deepEqual(await rejected.json(),{error:"invalidRequest"});
+  assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,walletBefore);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM practice_sessions WHERE user_id=?").get(userId).n,0);
+});
+
 test("Author HTTP routes require CSRF and share content while reserving edits to its creator",async t=>{
   const {randomUUID}=await import("node:crypto");
   const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);

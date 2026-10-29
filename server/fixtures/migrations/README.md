@@ -26,6 +26,7 @@ cuentas ni copias de bases reales.
 | 5acfbf1 | 37 | 29 |
 | 9c6ba47 | 41 | 33 |
 | 519f882 | 42 | 34 |
+| a6b97ce | 51 | 43 |
 
 Estas copias son inmutables. Al añadir una migración, guardar aquí el esquema
 anterior con otro nombre y añadir una prueba que migre desde él. No regenerar
