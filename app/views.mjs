@@ -1,3 +1,4 @@
+import {PRACTICE_ENABLED_TOPICS} from "./practice-modes.mjs";
 import {bookListMarkup,bookViewSelector,defaultBookView,selectedBookView} from "./book-list.mjs";
 import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES, INVITE_CODE_MIN_LENGTH, LANGUAGES, USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, CARD_BODY_MAX_LENGTH, READING_GUIDE_MAX_LENGTH, BOOK_AUTHOR_MAX_LENGTH, MAX_CARDS_PER_DECK,languageDisplayName} from "./core.mjs";
 import { availableDecks,isReadingGuideDeck,sortDecks } from "./decks.mjs";
@@ -284,9 +285,10 @@ export function homeView(s) {
   </section>`;
 }
 
-const practiceTopics=["reading","read","saved","mixed"];
+const practiceTopics=PRACTICE_ENABLED_TOPICS;
 // Iconos basados en Lucide (ISC): brand/icons/note-capture/LUCIDE-LICENSE.
 const practiceDeckIcons={
+  discover:'<circle class="practice-topic-icon-fill" cx="12" cy="12" r="10"/><path d="m16.5 7.5-3 6-6 3 3-6z"/><path d="m10.5 10.5 3 3"/>',
   reading:'<path class="practice-topic-icon-fill" d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/><path d="M12 7v14"/>',
   read:'<path class="practice-topic-icon-fill" d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="m9 9.5 2 2 4-4"/>',
   saved:'<path class="practice-topic-icon-fill" d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"/><path d="m9 10 2 2 4-4"/>',
@@ -308,17 +310,24 @@ export function practiceView(s,session) {
     const message=reason==="insufficientPetals"?c.practiceInsufficientPetals(failure.cost,failure.balance):reason==="notEnoughCards"?c.practiceNeedMoreCards(failure.available,failure.required):reason==="practiceSessionCancelled"?c.practiceSessionCancelled:reason==="connectionError"?c.connectionError:c.practiceNoCards;
     const links=[];
     if(["reading","read","mixed"].includes(topic))links.push(`<a class="practice-empty-link" href="#bookshelf/decks">${esc(c.practiceAddDecks)} <span aria-hidden="true">→</span></a>`);
-    if(["saved","mixed"].includes(topic))links.push(`<a class="practice-empty-link" href="#library">${esc(c.practiceFindCards)} <span aria-hidden="true">→</span></a>`);
+    if(["saved","mixed","discover"].includes(topic))links.push(`<a class="practice-empty-link" href="#library">${esc(c.practiceFindCards)} <span aria-hidden="true">→</span></a>`);
     return `<section class="practice-screen practice-empty">${back}<div class="practice-choice-mascot">${mascotArt("sprout")}</div><h1 tabindex="-1">${esc(message)}</h1>${links.length?`<nav class="practice-empty-links" aria-label="${esc(c.practiceSources)}">${links.join("")}</nav>`:""}<button class="practice-response practice-response--remembered" type="button" data-action="practice-choose">${esc(c.practiceChooseAgain)}</button></section>`;
   }
   if(s.practiceStage === "choose" && s.activePracticeSession) return `<section class="practice-screen practice-choose">${back}<div class="practice-choice-mascot">${mascotArt("sprout")}</div><h1 tabindex="-1">${esc(c.practiceResumeTitle)}</h1><p class="practice-resume-topic">${esc(c[`practiceTopic_${s.activePracticeSession.topic}`])}</p><button class="practice-response practice-response--remembered practice-resume" type="button" data-action="practice-resume">${esc(c.practiceResume)} · ${s.activePracticeSession.index}/${s.activePracticeSession.cardIds.length}</button></section>`;
   const help=`<dialog class="practice-help-modal" aria-labelledby="practice-help-title"><div class="practice-help-shell"><button class="practice-help-close" type="button" data-action="close-practice-help" aria-label="${esc(c.practiceHelpClose)}">${closeIconMarkup}</button><article class="practice-help-panel"><div class="practice-help-inner"><h2 id="practice-help-title">${esc(c.practiceHelpTitle)}</h2><dl class="practice-help-list">${practiceTopics.map(topic=>`<div class="practice-help-item practice-help-item--${topic}"><span class="practice-help-icon" aria-hidden="true">${practiceDeckIcon(topic)}</span><div><dt>${esc(c[`practiceTopic_${topic}`])}</dt><dd>${esc(c[`practiceHelp${topic[0].toUpperCase()+topic.slice(1)}`])}</dd></div></div>`).join("")}</dl><p class="practice-help-session">${esc(c.practiceHelpSession)}</p></div></article></div></dialog>`;
   const recoveryReason=s.practiceUnavailable?.reason;
-  const recoveryNotice=["practiceSessionCancelled","practiceSessionUnavailable"].includes(recoveryReason)?`<p class="practice-recovery-message" role="status">${esc(recoveryReason==="practiceSessionCancelled"?c.practiceSessionCancelled:c.practiceSessionUnavailable)}</p>`:"";
+  const recoveryNotice=["practiceSessionCancelled","practiceSessionUnavailable","practicePriceChanged"].includes(recoveryReason)?`<p class="practice-recovery-message" role="status">${esc(recoveryReason==="practiceSessionCancelled"?c.practiceSessionCancelled:recoveryReason==="practicePriceChanged"?c.practicePriceChanged:c.practiceSessionUnavailable)}</p>`:"";
   return `<section class="practice-screen practice-choose">${back}<div class="practice-choice-mascot">${mascotArt("sprout")}</div><div class="practice-question-row"><h1 tabindex="-1">${esc(c.practiceQuestion)}</h1><button class="practice-help-trigger" type="button" data-action="open-practice-help" aria-label="${esc(c.practiceHelp)}" aria-haspopup="dialog" title="${esc(c.practiceHelp)}"><span aria-hidden="true">i</span></button></div>${recoveryNotice}<div class="practice-topics">${practiceTopics.map(topic=>{
     const discounted=topic===s.practiceDiscountTopic,cost=discounted?2:3;
-    return `<button class="practice-topic practice-topic--${topic}" type="button" data-action="practice-topic" data-topic="${topic}"><span class="practice-topic-pack" aria-hidden="true"><span class="practice-topic-card practice-topic-card--left"></span><span class="practice-topic-card practice-topic-card--right"></span><span class="practice-topic-card practice-topic-card--cover">${practiceDeckIcon(topic)}</span></span><span class="practice-topic-label">${esc(c[`practiceTopic_${topic}`])}</span>${priceTag({amount:cost,icon:"petal",label:c.practicePrice(cost),...(discounted?{originalAmount:3}:{})})}</button>`;
-  }).join("")}</div>${help}</section>`;
+    const availability=s.discoverAvailability||{status:"loading"},discover=topic==="discover";
+    const notEnough=availability.status==="ready"&&availability.available<availability.required;
+    const unavailable=discover&&(availability.status!=="ready"||notEnough);
+    const status=discover?(availability.status==="error"?c.practiceDiscoverError:notEnough?c.practiceNeedMoreCards(availability.available,availability.required):availability.status!=="ready"?c.practiceDiscoverLoading:""):"";
+    const pending=!!s.practiceStarting;
+    const notice=status?`<span class="practice-topic-status" id="discover-status" role="status">${esc(status)}</span>`:"";
+    const retry=discover&&availability.status==="error"?`<button class="practice-discover-retry" type="button" data-action="retry-discover">${esc(c.practiceDiscoverRetry)}</button>`:"";
+    return `<div class="practice-topic-option${discover?" practice-topic-option--discover":""}"><button class="practice-topic practice-topic--${topic}" type="button" data-action="practice-topic" data-topic="${topic}"${unavailable||pending?" disabled":""}${status?' aria-describedby="discover-status"':""}${s.practiceStarting===topic?' aria-busy="true"':""}><span class="practice-topic-pack" aria-hidden="true"><span class="practice-topic-card practice-topic-card--left"></span><span class="practice-topic-card practice-topic-card--right"></span><span class="practice-topic-card practice-topic-card--cover">${practiceDeckIcon(topic)}</span></span><span class="practice-topic-label">${esc(c[`practiceTopic_${topic}`])}</span>${priceTag({amount:cost,icon:"petal",label:c.practicePrice(cost),...(discounted?{originalAmount:3}:{})})}</button>${notice}${retry}</div>`;
+  }).join("")}</div>${s.practiceStarting?`<p class="practice-start-status" role="status">${esc(c.practiceStarting)}</p>`:""}${help}</section>`;
 }
 
 function noteDestinationMarkup(s) {

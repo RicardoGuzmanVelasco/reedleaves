@@ -31,6 +31,16 @@ async function fixture(t,dialect="sqlite") {
   return {db,session:{user_id:"reader",csrf_token:"csrf"}};
 }
 
+// Discount membership can change when a new mode activates; arrange content for
+// the selected mode instead of assuming a particular hash result.
+async function prepareTopic(db,session,topic) {
+  if(["reading","read"].includes(topic)) await db.prepare("UPDATE book_reading SET status=? WHERE user_id=? AND book_id='seven-habits'").run(topic,session.user_id);
+  if(topic==="saved") {
+    const cards=await db.prepare("SELECT id FROM cards WHERE deck_id='seven-habits-editorial' AND is_reading_guide=0 LIMIT 5").all();
+    for(const card of cards)await db.prepare("INSERT INTO card_saves(user_id,card_id,saved_at) VALUES (?,?,?) ON CONFLICT(user_id,card_id) DO NOTHING").run(session.user_id,card.id,"2026-10-06T12:00:00.000Z");
+  }
+}
+
 for(const dialect of ["sqlite","postgres"]) {
   test(`${dialect}: reviewable decks preserve owner, invitation, open collective, and archive access rules`,async t=>{
     const {db,session}=await fixture(t,dialect);
@@ -127,6 +137,7 @@ for(const dialect of ["sqlite","postgres"]) {
   test(`${dialect}: paid sessions cost two or three, resume, persist answers and seed the next discount from completion time`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     const initial=await readReaderState(db,session,now),discount=initial.practiceDiscountTopic;
+    await prepareTopic(db,session,discount);
     const first=await startPracticeSession(db,session,discount,now);
     assert.equal(first.session.cardIds.length,PRACTICE_SESSION_SIZE);assert.equal(first.session.cost,2);
     assert.equal((await readReaderState(db,session,now)).petals,8);
@@ -142,6 +153,7 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM practice_session_cards WHERE session_id=?").get(first.session.id)).n,5);
     assert.equal((await db.prepare("SELECT completed_local_day FROM practice_sessions WHERE id=?").get(first.session.id)).completed_local_day,"2026-10-06");
     assert.equal(Object.keys(after.practiceAnswers).length,PRACTICE_SESSION_SIZE);
+    await prepareTopic(db,session,expected);
     const next=await startPracticeSession(db,session,expected,new Date(now.getTime()+7000));
     assert.equal(next.session.cost,2);
   });
@@ -383,6 +395,7 @@ test("sessions without five eligible cards stay free and do not create a partial
 
 test("session keeps its charge while unfinished and repeated answer submissions are idempotent",async t=>{
   const {db,session}=await fixture(t),now=new Date("2026-10-06T12:00:00.000Z"),topic=(await readReaderState(db,session,now)).practiceDiscountTopic;
+  await prepareTopic(db,session,topic);
   const started=await startPracticeSession(db,session,topic,now),first=started.session.cardIds[0];
   const firstAnswer=await answerPracticeSession(db,session,{sessionId:started.session.id,index:0,cardId:first,answer:"soon"},now);
   const retry=await answerPracticeSession(db,session,{sessionId:started.session.id,index:0,cardId:first,answer:"soon"},now);

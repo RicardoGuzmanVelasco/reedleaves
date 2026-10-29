@@ -170,7 +170,7 @@ test("Feedback requires a session and CSRF, then stores the account and current 
   assert.deepEqual({...row},{user_id:state.user.id,username:"feedback.reader",message:input.message,page:input.page,language:"es"});
 });
 
-test("Discover exposes authenticated availability but rejects inactive purchases without charging or creating a session",async t=>{
+test("Discover exposes authenticated availability and starts an enabled session at the confirmed price",async t=>{
   const db=openDatabase(":memory:");initializeDatabase(db);await seedCatalog(db);
   const server=createCatalogServer(db);server.listen(0,"127.0.0.1");await once(server,"listening");
   t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
@@ -186,11 +186,16 @@ test("Discover exposes authenticated availability but rejects inactive purchases
   assert.equal(availability.required,5);
   assert.ok(availability.available>=availability.required);
   const userId=state.user.id,walletBefore=db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance;
-  const rejected=await fetch(base+"/api/reader/practice/start",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify({topic:"discover"})});
-  assert.equal(rejected.status,400);
-  assert.deepEqual(await rejected.json(),{error:"invalidRequest"});
+  const expectedCost=state.practiceDiscountTopic==="discover"?2:3;
+  const changed=await fetch(base+"/api/reader/practice/start",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify({topic:"discover",expectedCost:expectedCost===2?3:2})});
+  assert.equal(changed.status,200);const quote=await changed.json();assert.equal(quote.reason,"practicePriceChanged");
+  assert.equal(quote.state.practiceDiscountTopic,state.practiceDiscountTopic);
   assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,walletBefore);
-  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM practice_sessions WHERE user_id=?").get(userId).n,0);
+  const purchased=await fetch(base+"/api/reader/practice/start",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify({topic:"discover",expectedCost})});
+  assert.equal(purchased.status,200);
+  const bought=await purchased.json();assert.equal(bought.session.topic,"discover");assert.equal(bought.session.cardIds.length,5);
+  assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,walletBefore-bought.session.cost);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM practice_sessions WHERE user_id=?").get(userId).n,1);
 });
 
 test("Author HTTP routes require CSRF and share content while reserving edits to its creator",async t=>{

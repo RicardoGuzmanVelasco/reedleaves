@@ -2,7 +2,7 @@
 
 Read the newest dated entry when recent progress, deployment state, or project handoff context is needed. Older entries provide history only; confirm current behavior in source code, configuration, and the hosting dashboard.
 
-- [2026-10-29 — Descubrir, soporte interno (24b)](2026-10-29.md)
+- [2026-10-29 — Descubrir, soporte interno e interfaz local (24b–24c)](2026-10-29.md)
 - [2026-10-28 — Intereses y descubrimiento, inicio de ejecución](2026-10-28.md)
 - [Plan de intereses, descubrimiento y novedades](INTERESTS_PLAN.md)
 
