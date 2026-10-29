@@ -3,8 +3,7 @@ import {initialInterestsView} from "./views.mjs";
 import {mountInterests,syncReaderInterestSelector} from "./interests.mjs";
 import {words} from "./i18n.mjs";
 
-// Explicit mounting only: no route, Home gate or active entry point in 22a/b.
-// The owner supplies its existing modal page lock and handles completion on Home.
+// The Home owner supplies its modal page lock and handles post-save recovery.
 export function mountInitialInterests({host,language="es",showModal=dialog=>dialog.showModal(),onUnmount=()=>{},...options}) {
   let previous=null,shape=null,focusAction=null;
   const render=state=>{

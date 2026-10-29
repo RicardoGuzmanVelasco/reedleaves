@@ -39,6 +39,8 @@ import {requestConfirmedMutation,requestPendingDeckIntent} from "./confirmed-mut
 import {createReadingInterestWarningFlow} from "./reading-interest-warning.mjs";
 import {mountInitialInterests} from "./initial-interests-ui.mjs";
 import {createCurrencyReceiptPresentation,pulseCurrencyWallet} from "./currency-receipt.mjs";
+import {completeInitialInterestSave} from "./initial-interest-completion.mjs";
+import {initialInterestRouteRedirect} from "./initial-interest-routing.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -68,6 +70,7 @@ export function startReader({createCardFeatures} = {}) {
   let deckLanguageError=null,deckTitleEdit=null,deckContributorError=null,deckContributorInput="";
   let profileId=null,profileData=null,profileError=null,profileReturnHash="#home",profileRequest=null,profileGeneration=0,profileInterests=null,profileLanguages=null;
   let homeInterestPreferences=null,homeInterestPreferencesUserId=null,homeInterestPreferencesRequest=null,homeInterestPreferencesGeneration=0;
+  let pendingInitialInterestReturn=null;
   const recordedViews=new Set(),pendingViews=new Set();
   let albumPosition = null;
   let pendingSavedFocus = null;
@@ -97,12 +100,21 @@ export function startReader({createCardFeatures} = {}) {
     if(snapshot.user?.id!==userId)return;
     initialInterestStatus=null;
     if(result?.state?.configured){homeInterestPreferences=result.state;homeInterestPreferencesUserId=userId;}
-    try{
-      const fresh=await api.request("/api/session");
-      if(snapshot.user?.id!==userId||fresh.user?.id!==userId)return;
-      applyState(fresh);currencyReceipt.present({userId,newlyGranted:result?.newlyGranted||[]});
-    }catch{currencyReceipt.sync();}
+    const completion=await completeInitialInterestSave({result,userId,readSession:()=>api.request("/api/session"),isCurrent:id=>snapshot.user?.id===id,applySession:applyState,applyReceiptBalances:applyInitialReceiptBalances,presentReceipt:receipt=>currencyReceipt.present(receipt)});
+    if(!completion.completed)return;
     if(mode==="home")render();
+    const destination=pendingInitialInterestReturn;pendingInitialInterestReturn=null;
+    if(destination&&destination!=="#home")navigate(destination);
+  }
+  function applyInitialReceiptBalances(receipt,userId){
+    if(snapshot.user?.id!==userId)return;
+    let wallet=snapshot.wallet,petals=snapshot.petals;
+    for(const row of receipt){
+      if(!Number.isSafeInteger(row?.balanceAfter)||row.balanceAfter<0)continue;
+      if(row.currency==="leaves"&&wallet)wallet={...wallet,balance:row.balanceAfter};
+      if(row.currency==="petals")petals=row.balanceAfter;
+    }
+    snapshot={...snapshot,...(wallet?{wallet}:{}),...(Number.isSafeInteger(petals)?{petals}:{})};refreshState();
   }
   function showInitialInterestStatus(kind){
     initialInterestStatus=kind;
@@ -499,6 +511,11 @@ export function startReader({createCardFeatures} = {}) {
       }
       if (mode === "home" && !snapshot.user) { pendingDeck = null; authReturn = "#home"; }
     }
+    const interestRedirect=initialInterestRouteRedirect({userId:snapshot.user?.id,mode,preferencesUserId:homeInterestPreferencesUserId,preferences:homeInterestPreferences,hash:location.hash});
+    if(interestRedirect){
+      if(interestRedirect.destination!=="#home")pendingInitialInterestReturn ||= interestRedirect.destination;
+      history.replaceState(history.state,"",interestRedirect.route);mode="home";openDeckId=null;openBookId=null;requestedId=null;
+    }
     const enteredLibrary=mode==="library"&&previousMode!=="library";
     if(mode!=="library") { libraryVisitId=null;libraryNewBookIds=[]; }
     render({focus});
@@ -563,7 +580,8 @@ export function startReader({createCardFeatures} = {}) {
     const userId=snapshot.user?.id;
     if(!userId){initialInterests.dispose();initialInterestStatus=null;return;}
     if(homeInterestPreferencesUserId===userId&&homeInterestPreferences){
-      if(mode==="home"&&!homeInterestPreferences.configured&&!homeInterestPreferences.initialOpportunityClosed)initialInterests.open({userId,catalog,preferences:homeInterestPreferences});
+      if(homeInterestPreferences.configured||homeInterestPreferences.initialOpportunityClosed){const destination=pendingInitialInterestReturn;pendingInitialInterestReturn=null;if(destination&&destination!=="#home")navigate(destination);}
+      else if(mode==="home")initialInterests.open({userId,catalog,preferences:homeInterestPreferences});
       return;
     }
     if(homeInterestPreferencesUserId===userId&&homeInterestPreferencesRequest){if(mode==="home")showInitialInterestStatus("loading");return;}
@@ -578,7 +596,7 @@ export function startReader({createCardFeatures} = {}) {
       homeInterestPreferences=result;
       initialInterestStatus=null;
       if(mode==="home"){
-        if(result.configured||result.initialOpportunityClosed){initialInterestStatus=null;initialInterests.dispose();}
+        if(result.configured||result.initialOpportunityClosed){initialInterestStatus=null;initialInterests.dispose();const destination=pendingInitialInterestReturn;pendingInitialInterestReturn=null;if(destination&&destination!=="#home"){navigate(destination);return;}}
         else initialInterests.open({userId,catalog,preferences:result});
         render();
       } else if(initialInterestHost.firstElementChild?.classList.contains("initial-interest-status")){
