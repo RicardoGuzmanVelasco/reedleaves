@@ -122,7 +122,7 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
       assert.ok(label.includes(c.quoteCount(quoteCount)),"The tile describes its quote count accessibly");
       const languageName=new Intl.DisplayNames([language],{type:"language"}).of(choice.deck.language);
       assert.ok(label.includes(languageName),"The flag retains an accessible language description");
-      assert.ok(html.includes(c.quoteCount(quoteCount)),"Every tile shows its quote count, including zero");
+      assert.equal(html.includes('class="deck-tile-count deck-tile-quote-count"'),quoteCount>0,"Only decks with quotes show a quote-count chip");
       assert.ok(html.includes(c.noteCardsCount(deck.cardCount)),"Every tile shows its card count");
       assert.ok(html.includes(`title="${c.noteCardsCount(deck.cardCount)}"`),"The card count chip has a localized title");
       assert.equal(html.includes('class="deck-tile deck-tile--quote-dominant"'),quoteCount>deck.cardCount-quoteCount,"Quote dominant decks use blue tones");
@@ -152,7 +152,7 @@ test("Quote counts use the existing quote mark and quote dominant deck previews 
   assert.match(selector,/class="deck-tile deck-tile--quote-dominant"/);
   assert.match(selector,/class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="\d+ tarjetas"><span class="cards-icon" aria-hidden="true"><\/span><span>\d+<\/span><\/span>/);
   assert.match(selector,/class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="4 citas"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4<\/span><\/span>/);
-  assert.match(selector,/title="0 citas"/);
+  assert.doesNotMatch(selector,/title="0 citas"/);
   assert.match(reviewView(state),/class="deck-facts"><span class="deck-card-count">\d+ tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span><\/span>/);
   assert.doesNotMatch(deckPeekView(state),/class="deck-facts"/);
   const collection=bookshelfView({...state,bookshelfTab:"decks"});
