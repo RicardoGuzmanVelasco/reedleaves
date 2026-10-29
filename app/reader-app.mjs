@@ -37,6 +37,8 @@ import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,
 import {hasAccessibleReadingGuide,shouldShowReadingGuidePrompt} from "./reading-guide-prompt.mjs";
 import {requestConfirmedMutation,requestPendingDeckIntent} from "./confirmed-mutation.mjs";
 import {createReadingInterestWarningFlow} from "./reading-interest-warning.mjs";
+import {mountInitialInterests} from "./initial-interests-ui.mjs";
+import {createCurrencyReceiptPresentation,pulseCurrencyWallet} from "./currency-receipt.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -79,6 +81,35 @@ export function startReader({createCardFeatures} = {}) {
   const setModalPageLock=createModalPageLock({document,window,getComputedStyle});
   function syncModalPageLock(){setModalPageLock(!!document.querySelector("dialog[open]"));}
   function showAppModal(dialog){if(!dialog.open)dialog.showModal();setModalPageLock(true);dialog.addEventListener("close",syncModalPageLock,{once:true});}
+  const initialInterestHost=document.createElement("div");initialInterestHost.id="initial-interest-host";document.body.append(initialInterestHost);
+  let initialInterestStatus=null,displayedCurrency=null;
+  const currencyReceipt=createCurrencyReceiptPresentation({
+    readCurrent:()=>snapshot.user?{userId:snapshot.user.id,leaves:budget?.balance,petals:snapshot.petals}:null,
+    onDisplay:value=>{displayedCurrency=snapshot.user?{userId:snapshot.user.id,...value}:null;header();},
+    onPulse:currency=>pulseCurrencyWallet(document,currency,{reducedMotion:matchMedia("(prefers-reduced-motion: reduce)").matches}),
+    reducedMotion:()=>matchMedia("(prefers-reduced-motion: reduce)").matches
+  });
+  const initialInterests=mountInitialInterests({host:initialInterestHost,language,showModal:dialog=>showAppModal(dialog),onUnmount:syncModalPageLock,store,request:(path,body)=>api.request(path,body),onComplete:(result,userId)=>{void finishInitialInterests(result,userId);},onSessionExpired:userId=>{
+    if(snapshot.user?.id!==userId)return;
+    applyState({user:null});initialInterestStatus=null;authReturn="#home";mode="account";navigate("#account");
+  }});
+  async function finishInitialInterests(result,userId){
+    if(snapshot.user?.id!==userId)return;
+    initialInterestStatus=null;
+    if(result?.state?.configured){homeInterestPreferences=result.state;homeInterestPreferencesUserId=userId;}
+    try{
+      const fresh=await api.request("/api/session");
+      if(snapshot.user?.id!==userId||fresh.user?.id!==userId)return;
+      applyState(fresh);currencyReceipt.present({userId,newlyGranted:result?.newlyGranted||[]});
+    }catch{currencyReceipt.sync();}
+    if(mode==="home")render();
+  }
+  function showInitialInterestStatus(kind){
+    initialInterestStatus=kind;
+    initialInterestHost.innerHTML=`<dialog class="initial-interests-modal initial-interest-status" closedby="none" aria-label="${escapeHtml(kind==="error"?words[language].connectionError:words[language].loading)}"><p role="${kind==="error"?"alert":"status"}">${escapeHtml(kind==="error"?words[language].connectionError:words[language].loading)}</p>${kind==="error"?`<button type="button" class="primary" data-initial-status-retry>${words[language].retry}</button>`:""}</dialog>`;
+    const dialog=initialInterestHost.firstElementChild;dialog.addEventListener("cancel",event=>event.preventDefault());showAppModal(dialog);
+  }
+  initialInterestHost.addEventListener("click",event=>{if(event.target.closest("[data-initial-status-retry]"))void loadHomeInterestPreferences(true);});
   function confirmSavedCard(result,userId){
     if(snapshot.user?.id!==userId)return;
     snapshot={...snapshot,cardSaves:updateSavedReferences(snapshot.cardSaves||[],result),...(result.saved?{statuses:{...snapshot.statuses,[result.bookId]:snapshot.statuses?.[result.bookId]||"unread"},shelfBookIds:[...new Set([...(snapshot.shelfBookIds||[]),result.bookId])]}:{})};refreshState();
@@ -126,6 +157,7 @@ export function startReader({createCardFeatures} = {}) {
       practiceStartRequest=null;
       practiceAnswerRequest=null;
       interestPreferences=null;interestPreferencesRequest=null;
+      displayedCurrency=null;initialInterests.dispose();initialInterestStatus=null;
       libraryInterestSortGeneration++;libraryInterestSortPending=false;libraryInterestSortError=false;
     }
     authoritativeStateGeneration++;
@@ -152,6 +184,7 @@ export function startReader({createCardFeatures} = {}) {
     if (state.inviteRequired !== undefined) inviteRequired = state.inviteRequired;
     if (state.user) { language = restoreLanguage(state.language); store.save(keys.language,language); }
     refreshState();
+    currencyReceipt.sync();
   }
   function refreshState() {
     if (!catalog) return;
@@ -218,12 +251,13 @@ export function startReader({createCardFeatures} = {}) {
     currencyWallets.hidden = !signedIn;
     if(!signedIn)setCurrencyRecoveryOpen(false);
     const petals = Number.isSafeInteger(snapshot.petals) ? snapshot.petals : 0,petalMaximum=Number.isSafeInteger(snapshot.petalMaximum)?snapshot.petalMaximum:15;
-    document.getElementById("petal-count").textContent = ready ? String(petals) : "—";
+    const currencyForUser=displayedCurrency?.userId===snapshot.user?.id?displayedCurrency:null;
+    document.getElementById("petal-count").textContent = ready ? String(currencyForUser?.petals??petals) : "—";
     document.getElementById("petal-maximum").textContent=`/ ${petalMaximum}`;
     document.getElementById("leaf-maximum").textContent=`/ ${MAX_LEAVES}`;
     const leaves=ready&&budget?budget.balance:0;
-    document.getElementById("leaf-count").textContent=ready&&budget?String(leaves):"—";
-    currencyWallets.setAttribute("aria-label",ready&&budget?c.currencyBalancesLabel(petals,petalMaximum,leaves,MAX_LEAVES):c.loading);
+    document.getElementById("leaf-count").textContent=ready&&budget?String(currencyForUser?.leaves??leaves):"—";
+    currencyWallets.setAttribute("aria-label",ready&&budget?c.currencyBalancesLabel(currencyForUser?.petals??petals,petalMaximum,currencyForUser?.leaves??leaves,MAX_LEAVES):c.loading);
     document.getElementById("currency-recovery-title").textContent=c.nextCurrencyRefill;
     document.getElementById("petal-refill-label").textContent=c.petalsRefillLabel;
     const wastedLeaves=leaves+DAILY_LEAF_REFILL>MAX_LEAVES,wastedPetals=petals+9>petalMaximum;
@@ -527,19 +561,35 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function loadHomeInterestPreferences() {
     const userId=snapshot.user?.id;
-    if(!userId||homeInterestPreferencesUserId===userId&&(homeInterestPreferences||homeInterestPreferencesRequest))return;
+    if(!userId){initialInterests.dispose();initialInterestStatus=null;return;}
+    if(homeInterestPreferencesUserId===userId&&homeInterestPreferences){
+      if(mode==="home"&&!homeInterestPreferences.configured&&!homeInterestPreferences.initialOpportunityClosed)initialInterests.open({userId,catalog,preferences:homeInterestPreferences});
+      return;
+    }
+    if(homeInterestPreferencesUserId===userId&&homeInterestPreferencesRequest){if(mode==="home")showInitialInterestStatus("loading");return;}
     const generation=++homeInterestPreferencesGeneration;
     homeInterestPreferencesUserId=userId;
+    if(mode==="home")showInitialInterestStatus("loading");
     const request=api.request("/api/reader/interests/preferences");
     homeInterestPreferencesRequest=request;
     try {
       const result=await request;
       if(generation!==homeInterestPreferencesGeneration||snapshot.user?.id!==userId)return;
       homeInterestPreferences=result;
-      if(mode==="home")render();
-    } catch {
+      initialInterestStatus=null;
+      if(mode==="home"){
+        if(result.configured||result.initialOpportunityClosed){initialInterestStatus=null;initialInterests.dispose();}
+        else initialInterests.open({userId,catalog,preferences:result});
+        render();
+      } else if(initialInterestHost.firstElementChild?.classList.contains("initial-interest-status")){
+        initialInterestHost.replaceChildren();syncModalPageLock();
+      }
+    } catch(error) {
       if(generation!==homeInterestPreferencesGeneration||snapshot.user?.id!==userId)return;
       homeInterestPreferences=null;homeInterestPreferencesUserId=null;
+      if(error.status===401){initialInterestStatus=null;applyState({user:null});authReturn="#home";mode="account";navigate("#account");return;}
+      if(mode==="home")showInitialInterestStatus("error");
+      else if(initialInterestHost.firstElementChild?.classList.contains("initial-interest-status")){initialInterestStatus=null;initialInterestHost.replaceChildren();syncModalPageLock();}
     } finally {
       if(homeInterestPreferencesRequest===request)homeInterestPreferencesRequest=null;
     }
@@ -1456,7 +1506,7 @@ export function startReader({createCardFeatures} = {}) {
     event.preventDefault();navigate(link.hash);
   });
   document.querySelectorAll("[data-language]").forEach(b=>b.addEventListener("click",async()=>{
-    if (snapshot.user) await mutation("/api/reader/preferences",{language:b.dataset.language}); else { language = restoreLanguage(b.dataset.language); store.save(keys.language,language); render(); }
+    if (snapshot.user) { await mutation("/api/reader/preferences",{language:b.dataset.language});initialInterests.setLanguage(language); } else { language = restoreLanguage(b.dataset.language); store.save(keys.language,language); initialInterests.setLanguage(language); render(); }
   }));
   const currencyWallets=document.getElementById("currency-wallets"),currencyRecovery=document.getElementById("currency-recovery");
   currencyWallets.addEventListener("click",()=>setCurrencyRecoveryOpen(currencyWallets.getAttribute("aria-expanded")!=="true"));
