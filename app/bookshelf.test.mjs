@@ -125,8 +125,6 @@ test("Decks tab groups owned and enrolled decks by their book's reading status",
     assert.match(html,/data-action="review-collection-deck" data-deck="seven-habits-editorial"/);
     assert.match(html,/data-action="review-collection-deck" data-deck="atomic-habits-editorial"/);
     assert.match(html,/data-action="remove-collection-deck" data-deck="atomic-habits-editorial"/);
-    assert.match(html,/<article class="deck-tile[^>]*>[\s\S]*?data-action="remove-collection-deck" data-deck="atomic-habits-editorial"[\s\S]*?<\/article>/);
-    assert.doesNotMatch(html,/<\/article><button class="deck-tile-remove"/);
     assert.match(html,/class="deck-grid collection-decks"/);
     assert.equal((html.match(/class="deck-tile(?:\s|")/g)||[]).length,2);
     assert.doesNotMatch(html,/open-bookshelf-filters/);

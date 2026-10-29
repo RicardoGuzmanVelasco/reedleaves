@@ -56,7 +56,7 @@
 .reading-guides-deck-tile .deck-tile-watermark{color:#9b5428;opacity:.12}
 .deck-tile-watermark-symbol--reading-guide{fill:none;stroke:currentColor;stroke-width:1.05;stroke-linecap:round;stroke-linejoin:round}
 .deck-tile-copy{position:relative;display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;width:100%}
-.deck-tile-remove{position:relative;z-index:2;flex:none;min-height:44px;margin-left:auto;padding:5px 10px;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);font:inherit;font-size:11px;font-weight:750;white-space:nowrap;cursor:pointer}
+.deck-tile-remove{position:relative;z-index:2;align-self:flex-start;min-height:36px;margin-top:8px;padding:5px 12px;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
 .deck-tile-remove:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .deck-tile-copy strong{display:-webkit-box;width:100%;padding-inline-end:0;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3;font-size:18px;line-height:1.2;overflow-wrap:anywhere}
 .deck-tile-creator{font-size:11px;margin:2px 0 4px;width:100%}
