@@ -172,7 +172,7 @@
 .book-search input::placeholder{color:var(--muted)}.book-search input::-webkit-search-cancel-button{display:none}
 .book-search:focus-within{outline:3px solid #8b541e;outline-offset:4px}.book-search input:focus-visible{outline:none}
 .book-search button{display:grid;place-items:center;flex-shrink:0;width:44px;height:44px;border:0;border-radius:12px;background:transparent;font-size:25px}.book-search button:hover{background:#eef3df}.book-search button[hidden]{display:none}
-.book-search-empty .text-button{margin-top:12px;color:var(--ink)}
+.book-search-empty .text-button{margin-top:12px;color:var(--ink)}.book-create-from-search{display:inline-flex;align-items:center;gap:9px;min-height:48px;margin-top:12px;padding:8px 14px;border:1.5px dashed var(--sage);border-radius:15px;background:#eef3df;color:var(--ink);font:inherit;font-size:13px;font-weight:800;cursor:pointer}.book-create-from-search:hover{background:#e4f0cc}.book-create-from-search:focus-visible{outline:3px solid var(--ink);outline-offset:3px}.book-create-from-search svg{width:27px;height:27px;flex:none;color:var(--forest)}
 .book-grid{gap:24px;padding:0 9px 9px 2px}
 .library-book-group{margin-top:22px}.library-book-group>h2{margin:0 0 14px;font-size:18px;font-weight:850;color:var(--ink)}.library-book-group+.library-book-group{margin-top:30px}.library-book-group>h2:has(.library-new-group-badge){display:flex;align-items:center;min-height:25px}.library-new-group-badge{left:auto;width:fit-content;font-size:12px;padding:4px 12px}
 .book-detail-author{font-size:14px;color:var(--muted);margin-top:11px;line-height:1.5}
@@ -223,7 +223,6 @@
 
 /* Personal authorship shares the reader's paper, depth and native dialogs. */
 .author-screen{padding:22px 0 36px}.author-screen>h1{font-size:30px;line-height:1.2;overflow-wrap:anywhere}
-.library-author-action{margin:0 0 24px}
 .deck-author-action{margin:0 0 25px}.author-actions{display:flex;flex-wrap:wrap;gap:14px;margin:24px 0 28px}
 .secondary{min-height:53px;padding:12px 20px;border:2px solid #99754d;border-radius:17px;background:#ffe0cb;box-shadow:0 5px 0 #b88f62;font-weight:800;font-size:14px}
 .secondary:hover:not(:disabled){transform:translateY(-2px)}.secondary span{font-family:Georgia,serif;font-size:23px;vertical-align:middle}

@@ -1066,7 +1066,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   function openAuthorForm(kind,options={}) {
     if (!snapshot.user) return;
-    const {forceParentId=false,...formOptions}=options;
+    const {forceParentId=false,focusBookTitleEnd=false,...formOptions}=options;
     authorForm = {kind,requestId:crypto.randomUUID(),title:kind === "book" ? libraryQuery : "",author:"",body:"",description:"",language:kind === "book" ? "" : language,parentId:kind === "quote" ? null : requestedId || null,...(kind === "deck"?{contributionMode:"owner"}:{}),...formOptions};
     if (kind === "book") authorForm.metadata=normalizeBookMetadata();
     if (["card","quote"].includes(kind)) {
@@ -1082,6 +1082,10 @@ export function startReader({createCardFeatures} = {}) {
       authorForm.draftStorageUnavailable=!store.available;
     }
     openDeckId = null; openBookId = null; render();
+    if(focusBookTitleEnd&&kind==="book"){
+      const title=main.querySelector("#author-title");
+      if(title){title.focus();title.setSelectionRange(title.value.length,title.value.length);}
+    }
   }
   function openDeckCompletion() {
     const deck=catalog.decksById.get(deckId);
@@ -1836,7 +1840,7 @@ export function startReader({createCardFeatures} = {}) {
         if(profileInterests?.current){profileInterests={...profileInterests,...profileInterests.current,editing:true,draft:{interested:[...profileInterests.current.interested],notInterested:[...profileInterests.current.notInterested]},feedback:null,error:null,conflict:false,current:null};render();main.querySelector('[data-profile-interest="interested"]')?.focus({preventScroll:true});}
         break;
       case "retry-profile-interests": profileInterests={loading:true};void loadProfile(true);render();break;
-      case "create-book": openAuthorForm("book"); break;
+      case "create-book": openAuthorForm("book",{focusBookTitleEnd:b.dataset.focusBookTitleEnd==="true"}); break;
       case "open-duplicate-book":
         if (catalog.booksById.has(b.dataset.book)) {authorForm=null;bookStatusError=null;noteNudgeBookId=null;openBookId=b.dataset.book;render();}
         break;
