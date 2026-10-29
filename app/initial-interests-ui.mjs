@@ -17,7 +17,7 @@ export function mountInitialInterests({host,language="es",showModal=dialog=>dial
       host.querySelector("[data-initial-feedback]").textContent=state.feedback?c[state.feedback]:"";
       host.querySelector('[type="submit"]').disabled=!state.draft.interested.length;
     } else {
-      const focused=host.ownerDocument.activeElement,action=focused?.dataset?.initialAction,scrollTop=host.firstElementChild?.scrollTop||0;
+      const focused=host.ownerDocument.activeElement,action=focused?.dataset?.initialAction,scrollTop=host.querySelector(".initial-interest-content")?.scrollTop||0;
       if(action)focusAction=action;
       const changedStep=previous?.draft.step!==state.draft.step;
       host.innerHTML=initialInterestsView({catalog:state.catalog,language,initialInterests:state});
@@ -25,10 +25,11 @@ export function mountInitialInterests({host,language="es",showModal=dialog=>dial
       dialog.addEventListener("cancel",event=>event.preventDefault());
       dialog.addEventListener("keydown",event=>{if(event.key==="Escape"){event.preventDefault();event.stopPropagation();}});
       showModal(dialog);
-      if(changedStep)dialog.querySelector("h1").focus({preventScroll:true});
+      const content=dialog.querySelector(".initial-interest-content");
+      if(changedStep){dialog.querySelector("h1").focus({preventScroll:true});content.scrollTop=0;}
       else {
         if(focusAction)dialog.querySelector(`[data-initial-action="${focusAction}"]`)?.focus({preventScroll:true});
-        dialog.scrollTop=scrollTop;
+        content.scrollTop=scrollTop;
       }
     }
     previous=state;shape=nextShape;
@@ -39,5 +40,7 @@ export function mountInitialInterests({host,language="es",showModal=dialog=>dial
   const click=event=>{const action=event.target.closest?.("[data-initial-action]")?.dataset.initialAction;if(action==="back")flow.back();else if(action==="recover")void flow.recover();};
   const submit=event=>{if(!event.target.matches("[data-initial-interest-form]"))return;event.preventDefault();if(flow.state?.draft.step===1)flow.next();else void flow.save();};
   host.addEventListener("change",change);host.addEventListener("click",click);host.addEventListener("submit",submit);
-  return {...flow,get state(){return flow.state;},setLanguage(value){language=value;shape=null;if(flow.state)render(flow.state);},dispose(){flow.dispose();host.removeEventListener("change",change);host.removeEventListener("click",click);host.removeEventListener("submit",submit);}};
+  // The host lives for the app's lifetime. Session changes reset the flow, then
+  // reuse this mount, so its delegated handlers must survive dispose/open.
+  return {...flow,get state(){return flow.state;},setLanguage(value){language=value;shape=null;if(flow.state)render(flow.state);},dispose(){flow.dispose();}};
 }
