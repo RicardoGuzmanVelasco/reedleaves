@@ -38,6 +38,8 @@ import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,
 import {hasAccessibleReadingGuide,shouldShowReadingGuidePrompt} from "./reading-guide-prompt.mjs";
 import {requestConfirmedMutation,requestPendingDeckIntent} from "./confirmed-mutation.mjs";
 import {createReadingInterestWarningFlow} from "./reading-interest-warning.mjs";
+import {newInterestRouteRedirect} from "./new-interest-routing.mjs";
+import {mountNewInterests} from "./new-interests-ui.mjs";
 import {mountInitialInterests} from "./initial-interests-ui.mjs";
 import {createCurrencyReceiptPresentation,pulseCurrencyWallet} from "./currency-receipt.mjs";
 import {createInitialInterestCompletion} from "./initial-interest-completion.mjs";
@@ -98,6 +100,13 @@ export function startReader({createCardFeatures} = {}) {
     if(snapshot.user?.id!==userId)return;
     applyState({user:null});initialInterestStatus=null;authReturn="#home";mode="account";navigate("#account");
   }});
+  const newInterestHost=document.createElement("div");newInterestHost.id="new-interest-host";document.body.append(newInterestHost);
+  const newInterests=mountNewInterests({host:newInterestHost,language,showModal:showAppModal,onUnmount:syncModalPageLock,store,request:(path,body)=>api.request(path,body),loadCatalog,onChange:state=>{if(state?.ready&&snapshot.user?.id===state.userId)catalog=state.catalog;},onComplete:(result,userId)=>{
+    if(snapshot.user?.id!==userId)return;
+    if(result?.state){homeInterestPreferences=result.state;homeInterestPreferencesUserId=userId;interestPreferences={...result.state,userId};}
+    if(mode==="home")render({focus:!!result});
+  },onSessionExpired:userId=>{if(snapshot.user?.id!==userId)return;applyState({user:null});authReturn="#home";mode="account";navigate("#account");}});
+  function checkNewInterests(){if(mode==="home"&&snapshot.user&&homeInterestPreferencesUserId===snapshot.user.id&&homeInterestPreferences?.configured)void newInterests.open({userId:snapshot.user.id,preferences:homeInterestPreferences});}
   async function finishInitialInterests(result,userId){
     if(snapshot.user?.id!==userId)return;
     initialInterestStatus=null;
@@ -171,7 +180,7 @@ export function startReader({createCardFeatures} = {}) {
       practiceStartRequest=null;
       practiceAnswerRequest=null;
       interestPreferences=null;interestPreferencesRequest=null;
-      displayedCurrency=null;initialInterests.dispose();initialInterestStatus=null;
+      displayedCurrency=null;newInterests.dispose();initialInterests.dispose();initialInterestStatus=null;
       libraryInterestSortGeneration++;libraryInterestSortPending=false;libraryInterestSortError=false;
     }
     authoritativeStateGeneration++;
@@ -423,6 +432,7 @@ export function startReader({createCardFeatures} = {}) {
     scrollToCard = false;
   }
   function route(focus = true) {
+    if(newInterestRouteRedirect({userId:snapshot.user?.id,flow:newInterests.state,hash:location.hash})){history.replaceState(history.state,"","#home");return;}
     const previousMode=mode;
     if(!location.hash.startsWith("#library"))libraryFiltersOpen=false;
     if (!ready) return; noteDestination=null;deckCompletion=null;notesCompletion=null;refreshState();
@@ -518,6 +528,7 @@ export function startReader({createCardFeatures} = {}) {
       if(interestRedirect.destination!=="#home")pendingInitialInterestReturn ||= interestRedirect.destination;
       history.replaceState(history.state,"",interestRedirect.route);mode="home";openDeckId=null;openBookId=null;requestedId=null;
     }
+    if(mode!=="home")newInterests.dispose();
     const enteredLibrary=mode==="library"&&!libraryVisitId;
     if(!inLibraryVisit(mode,bookOrigin)) { libraryVisitId=null;libraryNewBookIds=[]; }
     render({focus});
@@ -587,7 +598,7 @@ export function startReader({createCardFeatures} = {}) {
     const userId=snapshot.user?.id;
     if(!userId){initialInterests.dispose();initialInterestStatus=null;return;}
     if(homeInterestPreferencesUserId===userId&&homeInterestPreferences){
-      if(homeInterestPreferences.configured||homeInterestPreferences.initialOpportunityClosed){const destination=pendingInitialInterestReturn;pendingInitialInterestReturn=null;if(destination&&destination!=="#home")navigate(destination);}
+      if(homeInterestPreferences.configured||homeInterestPreferences.initialOpportunityClosed){const destination=pendingInitialInterestReturn;pendingInitialInterestReturn=null;if(destination&&destination!=="#home")navigate(destination);else checkNewInterests();}
       else if(mode==="home")initialInterests.open({userId,catalog,preferences:homeInterestPreferences});
       return;
     }
@@ -603,7 +614,7 @@ export function startReader({createCardFeatures} = {}) {
       homeInterestPreferences=result;
       initialInterestStatus=null;
       if(mode==="home"){
-        if(result.configured||result.initialOpportunityClosed){initialInterestStatus=null;initialInterests.dispose();const destination=pendingInitialInterestReturn;pendingInitialInterestReturn=null;if(destination&&destination!=="#home"){navigate(destination);return;}}
+        if(result.configured||result.initialOpportunityClosed){initialInterestStatus=null;initialInterests.dispose();const destination=pendingInitialInterestReturn;pendingInitialInterestReturn=null;if(destination&&destination!=="#home"){navigate(destination);return;}checkNewInterests();}
         else initialInterests.open({userId,catalog,preferences:result});
         render();
       } else if(initialInterestHost.firstElementChild?.classList.contains("initial-interest-status")){
@@ -1524,7 +1535,7 @@ export function startReader({createCardFeatures} = {}) {
     event.preventDefault();navigate(link.hash);
   });
   document.querySelectorAll("[data-language]").forEach(b=>b.addEventListener("click",async()=>{
-    if (snapshot.user) { await mutation("/api/reader/preferences",{language:b.dataset.language});initialInterests.setLanguage(language); } else { language = restoreLanguage(b.dataset.language); store.save(keys.language,language); initialInterests.setLanguage(language); render(); }
+    if (snapshot.user) { await mutation("/api/reader/preferences",{language:b.dataset.language});initialInterests.setLanguage(language);newInterests.setLanguage(language); } else { language = restoreLanguage(b.dataset.language); store.save(keys.language,language); initialInterests.setLanguage(language);newInterests.setLanguage(language); render(); }
   }));
   const currencyWallets=document.getElementById("currency-wallets"),currencyRecovery=document.getElementById("currency-recovery");
   currencyWallets.addEventListener("click",()=>setCurrencyRecoveryOpen(currencyWallets.getAttribute("aria-expanded")!=="true"));

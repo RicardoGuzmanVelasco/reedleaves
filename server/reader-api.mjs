@@ -13,7 +13,7 @@ import {readCardActions,readSavedCards,setCardSave} from "./card-saves.mjs";
 import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH} from "../app/core.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
 import {readReaderInterestPreferences,readPublicReaderInterestPreferences,saveReaderInterestPreferences,saveInitialReaderInterestPreferences} from "./reader-interest-preferences.mjs";
-import {captureReaderInterestSnapshot,recognizeReaderInterestSnapshot} from "./reader-interest-knowledge.mjs";
+import {captureReaderInterestSnapshot,saveAndRecognizeReaderInterestSnapshot} from "./reader-interest-knowledge.mjs";
 import {BOOK_INTEREST_CONFIRMATION_ENABLED} from "./book-interest-confirmation.mjs";
 import {readReaderLanguagePreferences,saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
 import {MAX_BOOK_KNOWLEDGE_REQUEST_BYTES,recognizeLibraryBookSnapshot} from "./book-knowledge-repository.mjs";
@@ -120,7 +120,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       const currentTime = now();
       if(path === "/api/reader/book-knowledge/visit") { send(200,await recognizeLibraryBookSnapshot(db,active,input)); return true; }
       if(path === "/api/reader/interests/knowledge/snapshot") { send(200,await captureReaderInterestSnapshot(db,active,input)); return true; }
-      if(path === "/api/reader/interests/knowledge/recognize") { send(200,await recognizeReaderInterestSnapshot(db,active,input)); return true; }
+      if(path === "/api/reader/interests/knowledge/recognize") { send(200,await saveAndRecognizeReaderInterestSnapshot(db,active,input)); return true; }
       if (path === "/api/reader/practice-answer") { send(200,await savePracticeAnswer(db,active,input,currentTime)); return true; }
       if (path === "/api/reader/practice/start") {
         const result=await startPracticeSession(db,active,input.topic,currentTime,Object.hasOwn(input,"sessionId")?input.sessionId:undefined,input.expectedCost);
