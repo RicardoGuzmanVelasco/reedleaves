@@ -538,11 +538,12 @@ export function bookInterestWarningView(s) {
   const interest=pending.warning?.interest||{},emoji=interest.emoji||"",name=interest.name||interest.id||"";
   const status=pending.warning?.operation?.parameters?.status;
   const statusLabel=c[status==="to-read"?"toRead":status==="read"?"readStatus":"readingStatus"];
+  const isCardSave=pending.kind==="save-card";
   return `<dialog class="book-interest-warning-modal" aria-labelledby="book-interest-warning-title" aria-describedby="book-interest-warning-copy"><article class="book-interest-warning-card">
     <h2 id="book-interest-warning-title"><span aria-hidden="true">${esc(emoji)}</span> ${esc(name)}</h2>
-    <p id="book-interest-warning-copy">${esc(c.bookInterestWarning(name,statusLabel))}</p>
-    ${pending.error ? `<p class="account-error" role="alert">${esc(c[pending.error]||c.bookInterestConfirmError)}</p>` : ""}
-    <div class="book-interest-warning-actions"><button class="text-button" type="button" data-action="cancel-book-interest-warning" autofocus>${esc(c.bookInterestCancel)}</button><button class="primary" type="button" data-action="confirm-book-interest-warning">${esc(c.bookInterestContinue)}</button></div>
+    <p id="book-interest-warning-copy">${esc(isCardSave?c.bookInterestSaveWarning(name):c.bookInterestWarning(name,statusLabel))}</p>
+    ${pending.error ? `<p class="account-error" role="alert">${esc(c[pending.error]||c[isCardSave?"cardSaveInterestConfirmError":"bookInterestConfirmError"])}</p>` : ""}
+    <div class="book-interest-warning-actions"><button class="text-button" type="button" data-action="cancel-book-interest-warning" autofocus ${pending.outcomeUnknown?"disabled":""}>${esc(c.bookInterestCancel)}</button><button class="primary" type="button" data-action="confirm-book-interest-warning">${esc(c.bookInterestContinue)}</button></div>
   </article></dialog>`;
 }
 

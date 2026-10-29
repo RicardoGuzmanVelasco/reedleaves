@@ -1,8 +1,8 @@
 import {detectUninterestingBook} from "../app/book-interest-affinity.mjs";
 import {distinguishedBookIds} from "./book-reading.mjs";
 
-// Kept off until all three entry points and their UI are ready to activate together.
-export const BOOK_INTEREST_CONFIRMATION_ENABLED = false;
+// Activated with the reading-status, deck-collection and saved-card entry points.
+export const BOOK_INTEREST_CONFIRMATION_ENABLED = true;
 
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==="object"?
   Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
