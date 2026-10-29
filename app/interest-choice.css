@@ -65,4 +65,7 @@
 .interest-choice-modal>.dialog-close{position:absolute;top:12px;right:12px;z-index:2}
 
 /* Save hugs its label instead of consuming the free space beside Back. */
-.interest-choice-modal [data-initial-interest-form]>.initial-interest-actions .primary[data-initial-action="save"]{flex:0 0 auto;width:max-content;min-width:0;padding-inline:24px}
+.interest-choice-modal [data-initial-interest-form]>.initial-interest-actions .primary[data-initial-action="save"]{flex:0 0 auto;width:max-content;min-width:144px;padding-inline:28px}
+
+.interest-choice-modal [data-initial-interest-form]>.initial-interest-actions:has([data-initial-action="back"]){padding-inline:12px}
+.interest-choice-modal [data-initial-interest-form]>.initial-interest-actions [data-initial-action="back"]{min-height:48px;padding:10px 0;font-size:15px;font-weight:750;line-height:1.2}

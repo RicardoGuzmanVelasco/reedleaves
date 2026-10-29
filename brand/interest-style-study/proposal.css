@@ -116,4 +116,7 @@
 [data-study-refresh][data-study-format="flat"] .initial-interest-selector .interest-option[data-study-locked]{box-shadow:none}
 [data-study-refresh] .initial-interest-selector .interest-option[data-study-locked] .interest-emoji{transform:none!important;animation:none!important;transition:none!important}
 
-[data-study-refresh] [data-initial-interest-form]>.initial-interest-actions .primary[data-initial-action="save"]{flex:0 0 auto;width:max-content;min-width:0;padding-inline:24px}
+[data-study-refresh] [data-initial-interest-form]>.initial-interest-actions .primary[data-initial-action="save"]{flex:0 0 auto;width:max-content;min-width:144px;padding-inline:28px}
+
+[data-study-refresh] [data-initial-interest-form]>.initial-interest-actions:has([data-initial-action="back"]){padding-inline:12px}
+[data-study-refresh] [data-initial-interest-form]>.initial-interest-actions [data-initial-action="back"]{min-height:48px;padding:10px 0;font-size:15px;font-weight:750;line-height:1.2}
