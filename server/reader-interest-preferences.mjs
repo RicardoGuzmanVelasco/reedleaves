@@ -116,6 +116,9 @@ export async function saveInitialReaderInterestPreferences(db,session,input,now=
     }
     await db.prepare(`INSERT INTO reader_interest_settings(user_id,revision,configured_at,initial_opportunity_closed_at,initial_submission_at) VALUES (?,?,?,?,?)`)
       .run(userId,1,timestamp,timestamp,timestamp);
+    // Interests present when initial onboarding is completed belong to its
+    // baseline, including interests added after account registration.
+    await db.prepare(`INSERT INTO reader_known_interests(user_id,interest_id) SELECT ?,id FROM genres WHERE true ON CONFLICT DO NOTHING`).run(userId);
 
     const newlyGranted=[];
     const rewards=[];
