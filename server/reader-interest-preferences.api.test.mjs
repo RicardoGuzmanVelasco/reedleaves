@@ -62,4 +62,18 @@ test("private ordered-interest API requires an account and CSRF, validates edits
   assert.equal(publicInterests.status,200);
   assert.deepEqual(publicInterests.body,{interested:["software","finance"],notInterested:["society"]});
   assert.deepEqual(Object.keys(publicInterests.body),["interested","notInterested"],"public reads omit revision and private setup state");
+
+  const initialPath="/api/reader/interests/initial";
+  assert.equal((await call(initialPath,{interested:["finance","software","society"],notInterested:[],revision:0})).status,401);
+  assert.equal((await call(initialPath,{interested:["finance","software","society"],notInterested:[],revision:0},{Cookie:secondAccount.headers.Cookie})).status,403,"initial rewards require CSRF");
+  const initial=await call(initialPath,{interested:["finance","software","society"],notInterested:["mindfulness","metaphysics","productivity"],revision:0},secondAccount.headers);
+  assert.equal(initial.status,200);
+  assert.equal(initial.body.newlyGranted.length,2);
+  assert.deepEqual(initial.body.newlyGranted.map(({currency,amount})=>({currency,amount})),[{currency:"leaves",amount:3},{currency:"petals",amount:2}]);
+  const replay=await call(initialPath,{interested:["finance","software","society"],notInterested:["mindfulness","metaphysics","productivity"],revision:0},secondAccount.headers);
+  assert.equal(replay.status,200);
+  assert.equal(replay.body.replayed,true);
+  assert.deepEqual(replay.body.newlyGranted,[]);
+  assert.equal(Number((await db.prepare("SELECT balance FROM leaf_wallets WHERE user_id=?").get(secondAccount.result.body.user.id)).balance),8);
+  assert.equal(Number((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(secondAccount.result.body.user.id)).balance),12);
 });

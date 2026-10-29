@@ -15,8 +15,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 50;
-export const POSTGRES_SCHEMA_VERSION = 42;
+export const SQLITE_SCHEMA_VERSION = 51;
+export const POSTGRES_SCHEMA_VERSION = 43;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -103,6 +103,23 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 50) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE reader_interest_reward_claims (
+        user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+        reward_type TEXT NOT NULL CHECK(reward_type IN ('interested_three','not_interested_three')),
+        currency TEXT NOT NULL CHECK(currency IN ('leaves','petals')),
+        amount INTEGER NOT NULL CHECK(amount > 0),
+        balance_after INTEGER NOT NULL CHECK(balance_after >= amount),
+        granted_at TEXT NOT NULL,
+        PRIMARY KEY(user_id,reward_type)
+      ) STRICT;
+      ALTER TABLE reader_interest_settings ADD COLUMN initial_submission_at TEXT;
+      PRAGMA user_version=51; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 48) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -812,6 +829,31 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 42) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,accounts IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 43) return;
+          await db.exec(`CREATE TABLE reader_interest_reward_claims (
+            user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+            reward_type TEXT NOT NULL CHECK(reward_type IN ('interested_three','not_interested_three')),
+            currency TEXT NOT NULL CHECK(currency IN ('leaves','petals')),
+            amount BIGINT NOT NULL CHECK(amount > 0),
+            balance_after BIGINT NOT NULL CHECK(balance_after >= amount),
+            granted_at TIMESTAMPTZ NOT NULL,
+            PRIMARY KEY(user_id,reward_type)
+          );
+          ALTER TABLE reader_interest_settings ADD COLUMN initial_submission_at TIMESTAMPTZ;
+          ALTER TABLE reader_interest_reward_claims ENABLE ROW LEVEL SECURITY;
+          DO $$ BEGIN
+            IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_reward_claims FROM anon; END IF;
+            IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_reward_claims FROM authenticated; END IF;
+          END $$;
+          ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+          UPDATE reed_schema SET version=43;
+          ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=43);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 40) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,reader_book_sort_preferences IN ACCESS EXCLUSIVE MODE;");
