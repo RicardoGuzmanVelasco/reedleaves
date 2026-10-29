@@ -125,9 +125,9 @@ function bookListFilterButton(s) {
 }
 
 function bookListControls(s) {
-  const c=words[s.language],selected=s.librarySortOrder||s.bookSortOrder,order=LIBRARY_SORT_ORDERS.includes(selected)?selected:"recent";
+  const c=words[s.language];
   const interestStatus=s.libraryInterestSortPending?`<span class="library-interest-sort-status" role="status">${esc(c.interestSortLoading)}</span>`:s.libraryInterestSortError?`<span class="library-interest-sort-status library-interest-sort-status--error" role="alert"><span>${esc(c.interestSortUnavailable)}</span><button class="text-button" type="button" data-action="retry-library-interest-sort">${esc(c.retry)}</button></span>`:"";
-  return `<label class="book-sort-selector"><span>${esc(c.sortBooksBy)}</span><select data-book-sort aria-label="${esc(c.sortBooksBy)}"><option value="recent" ${order==="recent"?"selected":""}>${esc(c.mostRecent)}</option><option value="alphabetical" ${order==="alphabetical"?"selected":""}>${esc(c.alphabetical)}</option><option value="interests" ${order==="interests"?"selected":""}>${esc(c.interests)}</option></select></label>${interestStatus}${bookListFilterButton(s)}`;
+  return `${interestStatus}${bookListFilterButton(s)}`;
 }
 
 function bookListPresentation(s,books,scope,{selector=true,count=books.length,note=false,catalog=!note,catalogNeutral=false,view=defaultBookView(count,s.bookViews?.[scope]),caption,label=words[s.language].books,newBookIds=[]}={}) {
@@ -186,6 +186,7 @@ function bookNoteDestinationMarkup(s,book) {
 
 function libraryFiltersMarkup(s) {
   const c=words[s.language], filters=s.libraryFilterDraft || s.libraryFilters || libraryDefaults;
+  const selectedSort=s.librarySortDraft||s.librarySortOrder||s.bookSortOrder||"recent";
   if(!s.libraryFiltersOpen)return "";
   const select=(key,label,options,icon="")=>`<label for="library-${key}"><span>${icon}${label}</span><select id="library-${key}" data-library-filter="${key}" aria-controls="book-search-results"><option value="">${c.allBooks}</option>${options.map(([value,text])=>`<option value="${esc(value)}" ${filters[key] === value ? "selected" : ""}>${esc(text)}</option>`).join("")}</select></label>`;
   const authors=[...new Set(s.catalog.books.map(book=>book.author))].sort((a,b)=>a.localeCompare(b,s.language));
@@ -195,7 +196,7 @@ function libraryFiltersMarkup(s) {
     ${select("author",c.bookAuthor,authors.map(author=>[author,author]))}
     ${select("genre",c.genre,s.catalog.genres.map(g=>[g.id,g.name[s.language]]))}
     ${select("language",c.deckLanguage,languages.map(tag=>[tag,languageName(tag)]))}
-    </div><footer class="bookshelf-filter-actions"><button class="text-button" type="button" data-action="reset-library-filter-draft">${c.resetFilters}</button><span><button class="text-button" type="button" data-action="close-library-filters">${c.cancel}</button><button class="primary" type="button" data-action="apply-library-filters">${c.applyFilters}</button></span></footer></dialog>`;
+    </div><section class="library-sort-section" aria-labelledby="library-sort-title"><h3 id="library-sort-title">${c.sortBooksSection}</h3><div class="segmented-selector library-sort-options" role="group" aria-labelledby="library-sort-title">${[["recent",c.mostRecent],["alphabetical",c.alphabetical],["interests",c.interests]].map(([value,label])=>`<button type="button" data-action="select-library-sort" data-sort="${value}" aria-pressed="${selectedSort===value}">${esc(label)}</button>`).join("")}</div></section><footer class="bookshelf-filter-actions"><button class="text-button" type="button" data-action="reset-library-filter-draft">${c.resetFilters}</button><span><button class="text-button" type="button" data-action="close-library-filters">${c.cancel}</button><button class="primary" type="button" data-action="apply-library-filters">${c.applyFilters}</button></span></footer></dialog>`;
 }
 
 export function libraryView(s) {

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {BOOK_SHELF_THRESHOLD,defaultBookView,bookListMarkup,bookViewSelector,leaningBookIndex,partitionLibraryBooks} from './book-list.mjs';
-import {libraryResultsMarkup,bookshelfView,accountView} from './views.mjs';
+import {libraryResultsMarkup,libraryView,bookshelfView,accountView} from './views.mjs';
 import {readerState} from '../test-support/reader-state.mjs';
 import {openDatabase,initializeDatabase} from '../server/database.mjs';
 import {seedCatalog} from '../server/seed.mjs';
@@ -91,9 +91,10 @@ test('Library choice remains independent of personal shelf groups',async()=>{
     for(const book of catalog.books)assert.ok(shelf.includes(`data-book="${book.id}"`));
     assert.match(libraryResultsMarkup({...state,bookViews:{library:'covers'}}),/study-books book-grid/);
     const az=libraryResultsMarkup({...state,bookSortOrder:'alphabetical',language:'en'});
-    assert.match(az,/aria-label="Sort by"/);assert.match(az,/Most recent/);assert.match(az,/A–Z/);
-    assert.match(az,/<option value="alphabetical" selected>A–Z<\/option>/);
-    assert.match(az,/<option value="interests" >My interests<\/option>/);
+    assert.doesNotMatch(az,/data-book-sort|Sort by|Most recent/);
+    const modal=libraryView({...state,language:'en',libraryFiltersOpen:true,librarySortDraft:'alphabetical'});
+    assert.match(modal,/<h3 id="library-sort-title">Sort books<\/h3>/);
+    assert.match(modal,/data-sort="alphabetical" aria-pressed="true">A–Z<\/button>/);
   }finally{await db.close();}
 });
 
@@ -112,7 +113,7 @@ test('Library interest sort follows reader preferences across all three presenta
     const state=readerState(catalog,{libraryQuery:'',libraryFilters:{},bookSortOrder:'interests',interestPreferences:{interested:['books'],notInterested:['society']},userId:'reader'});
     for(const view of ['covers','shelf','stack']){
       const html=libraryResultsMarkup({...state,bookViews:{library:view}});
-      assert.match(html,/<option value="interests" selected>Mis intereses<\/option>/);
+      assert.doesNotMatch(html,/data-book-sort|Mis intereses/);
       assert.match(html,new RegExp(`data-view="${view}"[^>]*aria-pressed="true"`));
       const ids=view==='covers'?['primary-book','secondary-book','neutral-book','rejected-book']:['primary-book','secondary-book','neutral-book','rejected-book'];
       const positions=ids.map(id=>html.indexOf(view==='covers'?`data-book="${id}"`:`href="#book/${id}"`));
@@ -139,13 +140,13 @@ test('interest sort loading/failure never marks the order active and exposes a r
     await initializeDatabase(db);await seedCatalog(db);
     const catalog=prepareCatalog(await readCatalog(db)),base=readerState(catalog,{libraryQuery:'',libraryFilters:{},userId:'reader'});
     const pending=libraryResultsMarkup({...base,bookSortOrder:'interests',librarySortOrder:'recent',libraryInterestSortPending:true});
-    assert.match(pending,/<option value="recent" selected>Más recientes<\/option>/);
     assert.match(pending,/role="status">Cargando tus intereses…<\/span>/);
-    assert.doesNotMatch(pending,/<option value="interests" selected>/);
+    const pendingModal=libraryView({...base,libraryFiltersOpen:true,librarySortDraft:"recent",libraryInterestSortPending:true});
+    assert.match(pendingModal,/data-sort="recent" aria-pressed="true">Más recientes<\/button>/);
     const failed=libraryResultsMarkup({...base,bookSortOrder:'interests',librarySortOrder:'recent',libraryInterestSortError:true});
-    assert.match(failed,/<option value="recent" selected>Más recientes<\/option>/);
     assert.match(failed,/role="alert"><span>No se pudieron cargar tus intereses\.<\/span><button[^>]*data-action="retry-library-interest-sort">Reintentar<\/button>/);
-    assert.doesNotMatch(failed,/<option value="interests" selected>/);
+    const failedModal=libraryView({...base,libraryFiltersOpen:true,librarySortDraft:"recent",libraryInterestSortError:true});
+    assert.match(failedModal,/data-sort="recent" aria-pressed="true">Más recientes<\/button>/);
   }finally{await db.close();}
 });
 
