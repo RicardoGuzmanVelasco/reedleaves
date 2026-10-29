@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {randomUUID} from "node:crypto";
 import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase,initializeDatabase} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
@@ -9,6 +10,8 @@ import {accruePetalWallet} from "./petal-wallet-repository.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
 import {setCardSave} from "./card-saves.mjs";
 import {readReaderLanguagePreferences,saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
+import {reviewableDeckIds} from "./review-card-access.mjs";
+import {createDeck,addCard,addDeckContributors} from "./author-repository.mjs";
 
 async function fixture(t,dialect="sqlite") {
   let db;
@@ -29,6 +32,88 @@ async function fixture(t,dialect="sqlite") {
 }
 
 for(const dialect of ["sqlite","postgres"]) {
+  test(`${dialect}: reviewable decks preserve owner, invitation, open collective, and archive access rules`,async t=>{
+    const {db,session}=await fixture(t,dialect);
+    const cases=[
+      ["seven-habits-editorial","selected","draft"],
+      ["seven-habits-inside-out","selected","draft"],
+      ["atomic-habits-editorial","open","draft"],
+      ["rich-dad-poor-dad-editorial","selected","draft"],
+      ["getting-things-done-editorial","selected","archived"],
+      ["same-as-ever-editorial","selected","archived"]
+    ];
+    for(const [deckId,policy,status] of cases) {
+      await db.prepare(`UPDATE decks SET kind='collective',contribution_policy=?,
+        max_cards_per_contributor=1,status=? WHERE id=?`).run(policy,status,deckId);
+    }
+    await db.prepare("INSERT INTO deck_contributors(deck_id,user_id) VALUES (?,?)").run("seven-habits-inside-out",session.user_id);
+    await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,"getting-things-done-editorial");
+    const ownerIds=await reviewableDeckIds(db,"reed-team"),memberIds=await reviewableDeckIds(db,session.user_id);
+    assert.equal(ownerIds.has("seven-habits-editorial"),true,"an owner retains access to their draft");
+    assert.equal(memberIds.has("seven-habits-inside-out"),true,"an invited reader can access a selected draft");
+    assert.equal(memberIds.has("atomic-habits-editorial"),true,"an open collective draft is available to readers");
+    assert.equal(memberIds.has("rich-dad-poor-dad-editorial"),false,"a selected draft stays private without an invitation");
+    assert.equal(memberIds.has("getting-things-done-editorial"),true,"an enrolled reader retains access to an archived deck");
+    assert.equal(memberIds.has("same-as-ever-editorial"),false,"an archived deck is unavailable without enrollment");
+    assert.equal(ownerIds.has("same-as-ever-editorial"),false,"ownership does not bypass archive enrollment requirements");
+  });
+
+  test(`${dialect}: language options and selected cards share all six review-access cases`,async t=>{
+    const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
+    const cases=[
+      {policy:"selected",status:"draft",language:"it",userId:"reed-team",expected:true,label:"owner"},
+      {policy:"selected",status:"draft",language:"fr-CA",userId:session.user_id,expected:true,label:"invited"},
+      {policy:"open",status:"draft",language:"de",userId:session.user_id,expected:true,label:"open"},
+      {policy:"selected",status:"draft",language:"ja",userId:session.user_id,expected:false,label:"selected-closed"},
+      {policy:"selected",status:"archived",language:"pt",userId:session.user_id,expected:true,label:"archived-enrolled"},
+      {policy:"selected",status:"archived",language:"nl",userId:session.user_id,expected:false,label:"archived-unenrolled"}
+    ];
+    await db.prepare("INSERT INTO accounts(user_id,username,password_hash,time_zone,language) VALUES (?,?,?,?,?)")
+      .run("reed-team","team.access","hash","Europe/Madrid","es");
+    await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run("reed-team",15,"2026-10-06");
+    const ownerSession={user_id:"reed-team",csrf_token:"owner-csrf"};
+    for(const item of cases) {
+      const requestId=randomUUID();
+      item.deckId=(await createDeck(db,ownerSession,{requestId,bookId:"seven-habits",title:`Access ${item.label}`,language:item.language,
+        kind:"collective",contributionPolicy:item.policy,maxCardsPerContributor:5})).deckId;
+      await db.prepare("DELETE FROM studies WHERE user_id=? AND deck_id=?").run(ownerSession.user_id,item.deckId);
+      item.cardIds=[];
+      for(let index=0;index<5;index++) {
+        const card=await addCard(db,ownerSession,{requestId:randomUUID(),deckId:item.deckId,
+          title:`${item.label} ${index+1}`,body:`Card ${index+1} for ${item.label}.`,parentId:null,isQuote:false});
+        item.cardIds.push(card.cardId);
+      }
+    }
+    await addDeckContributors(db,ownerSession,{deckId:cases[1].deckId,userIds:[session.user_id]});
+    for(const item of cases.filter(item=>item.status==="archived")) await db.prepare("UPDATE decks SET status='archived' WHERE id=?").run(item.deckId);
+    await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,cases[4].deckId);
+
+    const readerOptions=(await readReaderLanguagePreferences(db,session)).options,ownerOptions=(await readReaderLanguagePreferences(db,ownerSession)).options;
+    assert.equal(ownerOptions.includes("it"),true,"the owner sees their draft's card language");
+    for(const item of cases.filter(item=>item.userId===session.user_id)) {
+      assert.equal(readerOptions.includes(item.language),item.expected,`${item.deckId} language option follows review access`);
+    }
+    assert.equal(readerOptions.includes("it"),false,"ownership does not grant another reader access to the owner's draft");
+
+    for(const item of cases) {
+      const activeSession=item.userId==="reed-team"?ownerSession:session;
+      await db.prepare("DELETE FROM card_saves WHERE user_id=?").run(item.userId);
+      for(const cardId of item.cardIds) await db.prepare("INSERT INTO card_saves(user_id,card_id,saved_at) VALUES (?,?,?)")
+        .run(item.userId,cardId,now.toISOString());
+      const preferences=await readReaderLanguagePreferences(db,activeSession);
+      await saveReaderLanguagePreferences(db,activeSession,{languages:[item.language],revision:preferences.revision});
+      await db.prepare("UPDATE petal_wallets SET balance=15 WHERE user_id=?").run(item.userId);
+      const result=await startPracticeSession(db,activeSession,"saved",now);
+      if(item.expected) {
+        assert.ok(result.session,`${item.deckId} cards can be selected: ${JSON.stringify(result)}`);
+        assert.ok(result.session.cardIds.every(cardId=>item.cardIds.includes(cardId)),`${item.deckId} is the only eligible source`);
+        await db.prepare("UPDATE practice_sessions SET card_index=5,completed_at=?,completed_local_day='2026-10-06' WHERE id=?")
+          .run(now.toISOString(),result.session.id);
+      } else assert.equal(result.reason,"notEnoughCards",`${item.deckId} cards stay unavailable`);
+      await db.prepare("DELETE FROM card_saves WHERE user_id=?").run(item.userId);
+    }
+  });
+
   test(`${dialect}: petals refill by nine daily up to fifteen`,async t=>{
     const {db}=await fixture(t,dialect);
     assert.equal((await accruePetalWallet(db,"reader","2026-10-07")).balance,15);
@@ -262,6 +347,10 @@ for(const dialect of ["sqlite","postgres"]) {
     const initial=await readReaderState(db,session,now),started=await startPracticeSession(db,session,"reading",now);
     assert.ok(started.session);
     await db.prepare("DELETE FROM deck_contributors WHERE deck_id=? AND user_id=?").run("seven-habits-editorial",session.user_id);
+    const staleAnswer=await answerPracticeSession(db,session,{sessionId:started.session.id,index:0,cardId:started.session.cardIds[0],answer:"remembered"},now);
+    assert.equal(staleAnswer.practiceRecovery.status,"cancelled","answering revalidates the pending card after revocation");
+    assert.equal(await db.prepare("SELECT 1 FROM practice_answers WHERE user_id=? AND card_id=?").get(session.user_id,started.session.cardIds[0]),undefined,
+      "a revoked pending card is not recorded as answered");
     const state=await readReaderState(db,session,now);
     assert.equal(state.practiceRecovery.status,"cancelled");
     assert.equal(state.activePracticeSession,null);
