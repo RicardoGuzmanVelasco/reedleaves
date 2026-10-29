@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BOOK_SHELF_THRESHOLD,LIBRARY_BOOK_NOVELTY_ENABLED,defaultBookView,bookListMarkup,bookViewSelector,leaningBookIndex,partitionLibraryBooks} from './book-list.mjs';
+import {BOOK_SHELF_THRESHOLD,defaultBookView,bookListMarkup,bookViewSelector,leaningBookIndex,partitionLibraryBooks} from './book-list.mjs';
 import {libraryResultsMarkup,bookshelfView,accountView} from './views.mjs';
 import {readerState} from '../test-support/reader-state.mjs';
 import {openDatabase,initializeDatabase} from '../server/database.mjs';
 import {seedCatalog} from '../server/seed.mjs';
 import {readCatalog} from '../server/catalog-repository.mjs';
 import {prepareCatalog} from './catalog.mjs';
+import {filterLibrary} from './book-search.mjs';
 
 test('Book lists default at ten and respect explicit choices across count changes',()=>{
   assert.equal(BOOK_SHELF_THRESHOLD,10);
@@ -14,20 +15,51 @@ test('Book lists default at ten and respect explicit choices across count change
   for(const view of ['covers','shelf','stack'])assert.equal(defaultBookView(25,view),view);
   assert.equal(defaultBookView(2,'stack'),'stack');assert.equal(defaultBookView(15,'unknown'),'shelf');
 });
-test('new book groups preserve the filtered order and novelty remains hidden until all views are ready',async()=>{
-  const ordered=[{id:'new-b'},{id:'old-a'},{id:'new-a'},{id:'old-b'}];
-  const groups=partitionLibraryBooks(ordered,['new-a','new-b','unknown']);
+test('new book partitions preserve the chosen order',()=>{
+  const groups=partitionLibraryBooks([{id:'new-b'},{id:'old-a'},{id:'new-a'},{id:'old-b'}],['new-a','new-b','unknown']);
   assert.deepEqual(groups.newBooks.map(book=>book.id),['new-b','new-a']);
   assert.deepEqual(groups.otherBooks.map(book=>book.id),['old-a','old-b']);
-  assert.equal(LIBRARY_BOOK_NOVELTY_ENABLED,false);
-
+});
+test('Library novelty groups work in every view, locale and order without mutating the visit snapshot',async()=>{
   const db=openDatabase(':memory:');
   try{
     await initializeDatabase(db);await seedCatalog(db);
-    const catalog=prepareCatalog(await readCatalog(db));
-    const state=readerState(catalog,{libraryQuery:'',libraryFilters:{},libraryNewBookIds:[catalog.books[0].id]});
-    const html=libraryResultsMarkup(state);
-    assert.doesNotMatch(html,/study-book-new-badge|library-book-group|Novedades|New books/);
+    const source=prepareCatalog(await readCatalog(db));
+    const books=source.books.slice(0,4).map((book,index)=>({...book,author:index<2?'New author':'Other author'}));
+    const catalog={...source,books,booksById:new Map(books.map(book=>[book.id,book]))};
+    const snapshot=Object.freeze(books.slice(0,2).map(book=>book.id));
+    for(const language of ['es','en'])for(const view of ['covers','shelf','stack'])for(const order of ['recent','alphabetical','interests']){
+      const state=readerState(catalog,{language,libraryQuery:'',libraryFilters:{},libraryNewBookIds:snapshot,bookViews:{library:view},bookSortOrder:order,interestPreferences:{interested:['books'],notInterested:['society']}});
+      const html=libraryResultsMarkup(state);
+      const expected=partitionLibraryBooks(filterLibrary(catalog,'',{},order,language,state.interestPreferences),snapshot);
+      const ids=[...expected.newBooks,...expected.otherBooks].map(book=>book.id);
+      const positions=ids.map(id=>html.indexOf('data-book="'+id+'"'));
+      assert.ok(positions.every(position=>position>=0));
+      assert.deepEqual(positions,[...positions].sort((a,b)=>a-b),view+' / '+language+' / '+order);
+      for(const id of ids)assert.equal((html.match(new RegExp('data-book="'+id+'"','g'))||[]).length,1);
+      assert.ok(html.indexOf('id="library-book-group-new"')<html.indexOf('id="library-book-group-other"'));
+      assert.match(html,new RegExp('aria-label="'+(language==='es'?'Novedades':'New books')+'"'));
+      assert.match(html,new RegExp('aria-hidden="true">'+(language==='es'?'Nuevo':'New')+'<'));
+      assert.equal((html.match(/data-action="set-book-view"/g)||[]).length,3);
+      assert.match(html,new RegExp('data-view="'+view+'"[^>]*aria-pressed="true"'));
+      const filtered=libraryResultsMarkup({...state,libraryFilters:{author:'Other author'}});
+      assert.doesNotMatch(filtered,/id="library-book-group-new"/);
+      assert.match(filtered,/id="library-book-group-other"/);
+      const onlyNew=libraryResultsMarkup({...state,libraryFilters:{author:'New author'}});
+      assert.match(onlyNew,/id="library-book-group-new"/);
+      assert.doesNotMatch(onlyNew,/id="library-book-group-other"/);
+      const empty=libraryResultsMarkup({...state,libraryQuery:'no matching book'});
+      assert.doesNotMatch(empty,/library-book-group/);
+      assert.match(empty,/data-action="clear-book-search"/);
+      assert.equal(libraryResultsMarkup(state),html,'clearing a filter restores the same visit');
+      assert.equal(state.libraryNewBookIds,snapshot);
+      assert.deepEqual(snapshot,books.slice(0,2).map(book=>book.id));
+      assert.doesNotMatch(libraryResultsMarkup({...state,libraryNewBookIds:[]}),/library-book-group|study-book-new-badge/);
+    }
+    const tenBooks=Array.from({length:10},(_,index)=>({...books[index%books.length],id:'default-view-'+index}));
+    const denseCatalog={...catalog,books:tenBooks,booksById:new Map(tenBooks.map(book=>[book.id,book]))};
+    const dense=libraryResultsMarkup(readerState(denseCatalog,{libraryNewBookIds:[tenBooks[0].id],libraryQuery:'',libraryFilters:{}}));
+    assert.equal((dense.match(/data-book-spines="shelf"/g)||[]).length,2,'both groups use the view selected from the whole result count');
   }finally{await db.close();}
 });
 test('Spines retain safe destinations, titles, languages and authors in both orientations',()=>{
