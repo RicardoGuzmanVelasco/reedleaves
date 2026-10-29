@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 43));
-INSERT INTO reed_schema VALUES (43);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 44));
+INSERT INTO reed_schema VALUES (44);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '');
@@ -105,6 +105,27 @@ CREATE TABLE reader_language_preferences (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
   languages TEXT NOT NULL, configured BOOLEAN NOT NULL CHECK(configured IN (FALSE,TRUE)), revision INTEGER NOT NULL CHECK(revision>=0)
 );
+CREATE TABLE reader_known_books (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+  PRIMARY KEY(user_id,book_id)
+);
+ALTER TABLE reader_known_books ENABLE ROW LEVEL SECURITY;
+CREATE TABLE reader_book_knowledge_visits (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  visit_id TEXT NOT NULL CHECK(length(visit_id)=36),
+  book_ids TEXT NOT NULL,
+  PRIMARY KEY(user_id,visit_id)
+);
+ALTER TABLE reader_book_knowledge_visits ENABLE ROW LEVEL SECURITY;
+DO $$BEGIN
+  IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN
+    EXECUTE 'REVOKE ALL ON reader_known_books,reader_book_knowledge_visits FROM anon';
+  END IF;
+  IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN
+    EXECUTE 'REVOKE ALL ON reader_known_books,reader_book_knowledge_visits FROM authenticated';
+  END IF;
+END $$;
 ALTER TABLE reader_language_preferences ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_language_preferences FROM anon; END IF;

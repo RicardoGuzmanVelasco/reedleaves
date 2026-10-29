@@ -15,6 +15,7 @@ import {submitReadingGuide} from "./reading-guides.mjs";
 import {readReaderInterestPreferences,readPublicReaderInterestPreferences,saveReaderInterestPreferences,saveInitialReaderInterestPreferences} from "./reader-interest-preferences.mjs";
 import {BOOK_INTEREST_CONFIRMATION_ENABLED} from "./book-interest-confirmation.mjs";
 import {readReaderLanguagePreferences,saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
+import {recognizeLibraryBookSnapshot} from "./book-knowledge-repository.mjs";
 
 async function readBody(request,maxBytes = 8192) {
   if (request.headers["content-type"]?.split(";")[0].trim() !== "application/json") throw new ApiError(415,"invalidRequest");
@@ -44,6 +45,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
   return async (request,response,path,send) => {
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
       ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/collect",["POST"]],["/api/reader/remove",["POST"]],
+      ["/api/reader/book-knowledge/visit",["POST"]],
       ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
     routes.set("/api/reader/guides",["POST"]);
     routes.set("/api/feedback",["POST"]);
@@ -104,12 +106,13 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         response.setHeader("Set-Cookie",sessionCookie("",secureCookies,true)); send(200,inviteCode === undefined ? {user:null} : {user:null,inviteRequired:true}); return true;
       }
       if (path === "/api/reader/state") { send(200,await readReaderState(db,session,time)); return true; }
-      const input = await readBody(request,path === "/api/feedback" ? 24576 : path.startsWith("/api/author/books") ? 65536 : path.startsWith("/api/author/") ? 32768 : 8192);
+      const input = await readBody(request,path === "/api/reader/book-knowledge/visit" ? 65536 : path === "/api/feedback" ? 24576 : path.startsWith("/api/author/books") ? 65536 : path.startsWith("/api/author/") ? 32768 : 8192);
       // Re-check after awaiting the body: a concurrent logout/expiry must revoke writes.
       const active = await readSession(db,request,now());
       if (!active) throw new ApiError(401,"signInRequired");
       checkCsrf(active,request.headers["x-csrf-token"]);
       const currentTime = now();
+      if(path === "/api/reader/book-knowledge/visit") { send(200,await recognizeLibraryBookSnapshot(db,active,input)); return true; }
       if (path === "/api/reader/practice-answer") { send(200,await savePracticeAnswer(db,active,input,currentTime)); return true; }
       if (path === "/api/reader/practice/start") {
         const result=await startPracticeSession(db,active,input.topic,currentTime,Object.hasOwn(input,"sessionId")?input.sessionId:undefined);

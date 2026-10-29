@@ -109,6 +109,17 @@ CREATE TABLE reader_language_preferences (
   configured INTEGER NOT NULL CHECK(configured IN (0,1)),
   revision INTEGER NOT NULL CHECK(revision >= 0)
 ) STRICT;
+CREATE TABLE reader_known_books (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+  PRIMARY KEY(user_id,book_id)
+) STRICT;
+CREATE TABLE reader_book_knowledge_visits (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  visit_id TEXT NOT NULL CHECK(length(visit_id)=36),
+  book_ids TEXT NOT NULL CHECK(json_valid(book_ids)),
+  PRIMARY KEY(user_id,visit_id)
+) STRICT;
 CREATE TABLE sessions (
   token_hash TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -361,4 +372,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 51;
+PRAGMA user_version = 52;
