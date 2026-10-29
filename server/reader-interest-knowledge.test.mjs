@@ -6,7 +6,7 @@ import {historicalDatabase} from "../test-support/historical-database.mjs";
 import {initializeDatabase,SQLITE_SCHEMA_VERSION,POSTGRES_SCHEMA_VERSION} from "./database.mjs";
 import {authenticate} from "./auth.mjs";
 import {createReaderApi} from "./reader-api.mjs";
-import {captureReaderInterestSnapshot,recognizeReaderInterestSnapshot} from "./reader-interest-knowledge.mjs";
+import {captureReaderInterestSnapshot,recognizeReaderInterestSnapshot,saveAndRecognizeReaderInterestSnapshot} from "./reader-interest-knowledge.mjs";
 import {saveInitialReaderInterestPreferences} from "./reader-interest-preferences.mjs";
 
 async function insertAccount(db,id) {
@@ -103,5 +103,28 @@ test("reader API exposes snapshots only to the signed-in account and requires CS
   const captured=await call("/api/reader/interests/knowledge/snapshot",{visitId});
   assert.deepEqual(captured,{status:200,body:{visitId,newInterestIds:["api-new-interest"]}});
   assert.equal((await call("/api/reader/interests/knowledge/recognize",{visitId},"c".repeat(64))).status,403);
-  assert.deepEqual(await call("/api/reader/interests/knowledge/recognize",{visitId}),{status:200,body:{visitId,recognizedInterestIds:["api-new-interest"]}});
+  assert.equal((await call("/api/reader/interests/knowledge/recognize",{visitId})).status,400,"HTTP cannot recognize without saving preferences");
+  const input={visitId,shownInterestIds:["api-new-interest"],preferences:{interested:["finance"],notInterested:[],revision:1}};
+  assert.equal((await call("/api/reader/interests/knowledge/recognize",{...input,preferences:{...input.preferences,interested:[]}})).status,400);
+  const saved=await call("/api/reader/interests/knowledge/recognize",input);
+  assert.equal(saved.status,200);assert.deepEqual(saved.body.recognizedInterestIds,["api-new-interest"]);assert.deepEqual(saved.body.state.interested,["finance"]);
+});
+
+for(const [dialect,version] of [["sqlite",53],["postgres",45]]) test(`${dialect}: shown interest batch saves preferences atomically, replays safely, and leaves concurrent interests pending`,async t=>{
+  const db=await historicalDatabase(t,dialect,version);await insertAccount(db,"batch-reader");await initializeDatabase(db);
+  const session={user_id:"batch-reader"};await saveInitialReaderInterestPreferences(db,session,{interested:["finance"],notInterested:[],revision:0});
+  await addInterest(db,"batch-alpha");await addInterest(db,"batch-zeta");
+  const visitId=randomUUID();await captureReaderInterestSnapshot(db,session,{visitId});await addInterest(db,"batch-concurrent");
+  const input={visitId,shownInterestIds:["batch-alpha","batch-zeta"],preferences:{interested:["finance","batch-zeta","batch-alpha"],notInterested:[],revision:1}};
+  await assert.rejects(saveAndRecognizeReaderInterestSnapshot(db,session,{...input,shownInterestIds:["batch-concurrent"]}),{code:"invalidRequest"});
+  await assert.rejects(saveAndRecognizeReaderInterestSnapshot(db,session,{...input,preferences:{...input.preferences,revision:0}}),{code:"preferencesConflict"});
+  assert.deepEqual((await captureReaderInterestSnapshot(db,session,{visitId:randomUUID()})).newInterestIds,["batch-alpha","batch-concurrent","batch-zeta"]);
+  const saved=await saveAndRecognizeReaderInterestSnapshot(db,session,input);assert.deepEqual(saved.state.interested,["finance","batch-zeta","batch-alpha"]);assert.equal(saved.state.revision,2);
+  assert.deepEqual(await saveAndRecognizeReaderInterestSnapshot(db,session,input),saved,"lost response retry does not increment revision");
+  assert.deepEqual((await captureReaderInterestSnapshot(db,session,{visitId:randomUUID()})).newInterestIds,["batch-concurrent"]);
+  await assert.rejects(saveAndRecognizeReaderInterestSnapshot(db,session,{...input,preferences:{...input.preferences,interested:["finance"]}}),{code:"preferencesConflict"});
+  assert.deepEqual((await db.prepare("SELECT interest_id FROM reader_interest_preferences WHERE user_id=? ORDER BY position").all(session.user_id)).map(row=>row.interest_id),saved.state.interested);
+  const neutralVisit=randomUUID();await captureReaderInterestSnapshot(db,session,{visitId:neutralVisit});
+  const neutral=await saveAndRecognizeReaderInterestSnapshot(db,session,{visitId:neutralVisit,shownInterestIds:["batch-concurrent"],preferences:{interested:saved.state.interested,notInterested:[],revision:2}});
+  assert.deepEqual(neutral.state.interested,saved.state.interested);assert.deepEqual(neutral.recognizedInterestIds,["batch-concurrent"]);
 });

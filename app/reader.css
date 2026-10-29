@@ -930,3 +930,20 @@ textarea:focus-visible{outline:3px solid #8b541e;outline-offset:4px}
 .catalog-book--new .study-book-new-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:fit-content;max-width:calc(100% - 32px)}
 .catalog-book--new .study-book-footer{position:absolute;left:min(28px,15.9cqi);bottom:0;width:calc(100% - min(46px,26.13cqi));padding-top:0}
 @container(max-width:145px){.catalog-book--new .study-book-author{-webkit-line-clamp:2;line-clamp:2}}
+
+/* New interests share the compulsory flow's Practice surfaces and controls. */
+.new-interest-mascot{width:100px;height:92px;margin:18px auto -9px;display:grid;place-items:center}
+.new-interest-mascot .mascot-art{width:100px;height:100px}
+.new-interests-modal h1{margin-top:12px;margin-bottom:14px}
+.new-interest-instruction{margin:0 auto 12px;max-width:490px;text-align:center;font-size:22px;line-height:1.22;text-wrap:balance}
+.new-interest-context,.new-interest-replacement{padding:13px 16px;margin-top:18px;border-radius:18px;background:#fff9edba}
+.new-interest-context h3{margin:0 0 8px;font-size:13px;color:var(--muted)}
+.new-interest-context ol,.new-interest-replacement ol{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.new-interest-context li,.new-interest-replacement li{display:flex;align-items:center;gap:9px;font-size:14px}
+.new-interest-context li>span:not([aria-hidden]),.new-interest-replacement li>span:not([aria-hidden]){overflow-wrap:anywhere}
+.new-interest-context-number{font-weight:800;min-width:16px}
+.new-interest-replacement h2{margin:0 0 14px;font-size:20px;outline:none}
+.new-interest-replacement .text-button,.new-interest-context .text-button{margin-left:auto;min-height:44px;flex:none}
+.new-interest-replacement>.secondary{margin-top:16px;min-height:44px}
+@media(max-width:440px){.new-interest-mascot{margin-top:14px}.new-interest-instruction{font-size:21px}.new-interest-context,.new-interest-replacement{padding:12px}}
+@media(max-width:340px){.new-interests-modal .profile-interest-mark{display:grid;bottom:8px;right:13px}.new-interests-modal .initial-interest-selector .interest-option-content{padding-right:28px}}
