@@ -108,10 +108,12 @@ test("Library filters intersect author, interest, deck language and title search
 
 test("Library keeps the layout and filter controls compact and opens plain labels in a modal",async()=>{
   const catalog=prepareCatalog(await fixture()),state=readerState(catalog,{libraryFilters:{},libraryQuery:''});
-  const initial=libraryView(state);assert.match(initial,/data-action="open-library-filters"/);assert.doesNotMatch(initial,/<details[^>]*library-filters|id="library-genre"/);
-  const modal=libraryView({...state,libraryFiltersOpen:true,libraryFilterDraft:{author:'Stephen R. Covey',genre:'software',language:''}});
+  const initial=libraryView(state);assert.match(initial,/data-action="open-library-filters"/);assert.doesNotMatch(initial,/<details[^>]*library-filters|id="library-genre"|data-book-sort|book-sort-selector/);
+  const modal=libraryView({...state,libraryFiltersOpen:true,libraryFilterDraft:{author:'Stephen R. Covey',genre:'software',language:''},librarySortDraft:'interests'});
   assert.match(modal,/<dialog class="bookshelf-filter-modal library-filter-modal"/);
   assert.match(modal,/data-action="apply-library-filters"/);assert.match(modal,/data-action="close-library-filters"/);
+  assert.match(modal,/<h3 id="library-sort-title">Ordenar libros<\/h3>/);assert.equal((modal.match(/data-action="select-library-sort"/g)||[]).length,3);assert.match(modal,/data-sort="interests" aria-pressed="true">Mis intereses<\/button>/);
+  const english=libraryView({...state,language:'en',libraryFiltersOpen:true,librarySortDraft:'alphabetical'});assert.match(english,/<h3 id="library-sort-title">Sort books<\/h3>/);assert.match(english,/data-sort="alphabetical" aria-pressed="true">A–Z<\/button>/);
   const genreLabel=modal.match(/<label for="library-genre">([\s\S]*?)<\/label>/)?.[1];assert.ok(genreLabel);assert.doesNotMatch(genreLabel,/<svg|interest-icon/);
   assert.match(libraryView({...state,libraryQuery:'no-matches-ever'}),/data-action="open-library-filters"/);
 });
