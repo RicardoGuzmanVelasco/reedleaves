@@ -21,3 +21,15 @@ export async function visitVisitorBooks(store,bookIds,{lock=withBrowserLock}={})
     return newBookIds;
   });
 }
+
+export function pendingVisitorBookCount(store,bookIds) {
+  const saved=store.read(storageKeys.knownBooks);
+  if(!Array.isArray(saved))return 0;
+  const known=new Set(saved);
+  return bookIds.filter(id=>!known.has(id)).length;
+}
+
+// Details belong to the same visit; only a different main section ends it.
+export function inLibraryVisit(mode,bookOrigin) {
+  return mode==="library" || bookOrigin==="library"&&["book","guides","guide-preview","preview","review","read","saved","mascots","author"].includes(mode);
+}

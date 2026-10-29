@@ -9,6 +9,12 @@ const SNAPSHOT_QUERY_CHUNK_SIZE=400;
 // JSON escaping (6 bytes per code unit), quotes, commas, and the visit ID.
 export const MAX_BOOK_KNOWLEDGE_REQUEST_BYTES=6_100_000;
 
+// Read-only pending state; recognizing a visit remains the only acknowledgement.
+export async function pendingNewBookCount(db,userId) {
+  const row=await db.prepare("SELECT count(*) AS total FROM books b WHERE NOT EXISTS (SELECT 1 FROM reader_known_books k WHERE k.user_id=? AND k.book_id=b.id)").get(userId);
+  return Number(row.total);
+}
+
 export async function recognizeLibraryBookSnapshot(db,session,input) {
   const {visitId,bookIds}=input||{};
   if(typeof visitId!=="string"||!VISIT_ID.test(visitId)||!Array.isArray(bookIds)||bookIds.length>MAX_SNAPSHOT_BOOKS||
@@ -19,7 +25,7 @@ export async function recognizeLibraryBookSnapshot(db,session,input) {
     const account=await db.prepare("SELECT 1 FROM accounts WHERE user_id=?").get(userId);
     if(!account) throw new ApiError(401,"signInRequired");
     const previous=await db.prepare("SELECT book_ids FROM reader_book_knowledge_visits WHERE user_id=? AND visit_id=?").get(userId,visitId);
-    if(previous) return {newBookIds:JSON.parse(previous.book_ids)};
+    if(previous) return {newBookIds:JSON.parse(previous.book_ids),pendingNewBookCount:await pendingNewBookCount(db,userId)};
 
     const catalogIds=[],newBookIds=[];
     for(let offset=0;offset<bookIds.length;offset+=SNAPSHOT_QUERY_CHUNK_SIZE) {
@@ -47,6 +53,6 @@ export async function recognizeLibraryBookSnapshot(db,session,input) {
       for(const bookId of chunk) parameters.push(userId,bookId);
       await db.prepare(`INSERT INTO reader_known_books(user_id,book_id) VALUES ${values} ON CONFLICT DO NOTHING`).run(...parameters);
     }
-    return {newBookIds};
+    return {newBookIds,pendingNewBookCount:await pendingNewBookCount(db,userId)};
   });
 }

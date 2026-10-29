@@ -6,6 +6,7 @@ import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,initializeDatabase,PostgresDatabase} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {recognizeLibraryBookSnapshot} from "./book-knowledge-repository.mjs";
+import {readReaderState} from "./reader-repository.mjs";
 import {authenticate} from "./auth.mjs";
 import {createReaderApi} from "./reader-api.mjs";
 
@@ -36,21 +37,21 @@ test("account visit recognizes only IDs captured in the displayed catalog snapsh
   const displayed=(await db.prepare("SELECT id FROM books ORDER BY id").all()).map(row=>row.id);
   await addBook(db,"arrived-after-snapshot");
   const first=await recognizeLibraryBookSnapshot(db,a,{visitId,bookIds:displayed});
-  assert.deepEqual(first,{newBookIds:[]});
+  assert.deepEqual(first,{newBookIds:[],pendingNewBookCount:1});
   assert.equal(await db.prepare("SELECT 1 FROM reader_known_books WHERE user_id=? AND book_id=?").get(a.user_id,"arrived-after-snapshot"),undefined);
   const retry=await recognizeLibraryBookSnapshot(db,a,{visitId,bookIds:[...displayed,"arrived-after-snapshot"]});
   assert.deepEqual(retry,first,"retrying a visit returns its original snapshot");
   const next=await recognizeLibraryBookSnapshot(db,a,{visitId:randomUUID(),bookIds:[...displayed,"arrived-after-snapshot"]});
-  assert.deepEqual(next,{newBookIds:["arrived-after-snapshot"]});
+  assert.deepEqual(next,{newBookIds:["arrived-after-snapshot"],pendingNewBookCount:0});
   assert.equal((await db.prepare("SELECT 1 FROM reader_known_books WHERE user_id=? AND book_id=?").get(a.user_id,"arrived-after-snapshot"))!==undefined,true);
 });
 
 test("new book knowledge is account scoped and invalid IDs are ignored",async t=>{
   const {db,a,b}=await fixture(t);await addBook(db,"unseen-book");
   const result=await recognizeLibraryBookSnapshot(db,a,{visitId:randomUUID(),bookIds:["unseen-book","unknown-book"]});
-  assert.deepEqual(result,{newBookIds:["unseen-book"]});
+  assert.deepEqual(result,{newBookIds:["unseen-book"],pendingNewBookCount:0});
   const other=await recognizeLibraryBookSnapshot(db,b,{visitId:randomUUID(),bookIds:["unseen-book"]});
-  assert.deepEqual(other,{newBookIds:["unseen-book"]});
+  assert.deepEqual(other,{newBookIds:["unseen-book"],pendingNewBookCount:0});
   await assert.rejects(recognizeLibraryBookSnapshot(db,a,{visitId:randomUUID(),bookIds:["unseen-book","unseen-book"]}),{code:"invalidRequest"});
 });
 
@@ -58,7 +59,7 @@ test("same visit ID is serialized and idempotent under overlapping requests",asy
   const {db,a}=await fixture(t);await addBook(db,"one-new-book");
   const visitId=randomUUID(),input={visitId,bookIds:["one-new-book"]};
   const result=await Promise.all([recognizeLibraryBookSnapshot(db,a,input),recognizeLibraryBookSnapshot(db,a,input)]);
-  assert.deepEqual(result,[{newBookIds:["one-new-book"]},{newBookIds:["one-new-book"]}]);
+  assert.deepEqual(result,[{newBookIds:["one-new-book"],pendingNewBookCount:0},{newBookIds:["one-new-book"],pendingNewBookCount:0}]);
   assert.equal((await db.prepare("SELECT count(*) AS n FROM reader_known_books WHERE user_id=? AND book_id=?").get(a.user_id,"one-new-book")).n,1);
 });
 
@@ -70,6 +71,7 @@ test("a newly registered account starts with the current catalog as its baseline
   const total=(await db.prepare("SELECT count(*) AS n FROM books").get()).n;
   assert.equal((await db.prepare("SELECT count(*) AS n FROM reader_known_books WHERE user_id=?").get(user.user_id)).n,total);
   assert.equal((await db.prepare("SELECT 1 FROM reader_known_books WHERE user_id=? AND book_id=?").get(user.user_id,"existing-at-registration"))!==undefined,true);
+  assert.equal((await readReaderState(db,{user_id:user.user_id})).pendingNewBookCount,0);
 });
 
 test("reader API accepts a captured library snapshot and scopes it to the session",async t=>{
@@ -89,9 +91,9 @@ test("reader API accepts a captured library snapshot and scopes it to the sessio
   const visible=(await db.prepare("SELECT id FROM books ORDER BY id").all()).map(row=>row.id);
   await addBook(db,"api-race-book");
   const visitId=randomUUID(),captured=await call({visitId,bookIds:visible});
-  assert.equal(captured.status,200);assert.deepEqual(captured.body,{newBookIds:[]});
+  assert.equal(captured.status,200);assert.deepEqual(captured.body,{newBookIds:[],pendingNewBookCount:1});
   const next=await call({visitId:randomUUID(),bookIds:[...visible,"api-race-book"]});
-  assert.deepEqual(next.body,{newBookIds:["api-race-book"]});
+  assert.deepEqual(next.body,{newBookIds:["api-race-book"],pendingNewBookCount:0});
 });
 
 for(const dialect of ["sqlite","postgres"]) test(`${dialect}: reader API accepts a full 5,000-ID snapshot and keeps retries idempotent`,async t=>{
@@ -117,7 +119,25 @@ for(const dialect of ["sqlite","postgres"]) test(`${dialect}: reader API accepts
   };
   const first=await call(),retry=await call();
   assert.equal(first.status,200);
-  assert.deepEqual(first.body,{newBookIds:[bookIds[0],bookIds.at(-1)]});
+  assert.deepEqual(first.body,{newBookIds:[bookIds[0],bookIds.at(-1)],pendingNewBookCount:0});
   assert.deepEqual(retry,first);
   assert.equal((await db.prepare("SELECT count(*) AS n FROM reader_known_books WHERE user_id=? AND book_id=?").get(a.user_id,bookIds[0])).n,1);
+});
+
+for(const dialect of ["sqlite","postgres"])test(dialect+": pending count is read-only, account scoped and preserves books outside the visit snapshot",async t=>{
+  const {db,a,b}=await fixture(t,dialect);
+  assert.equal((await readReaderState(db,a)).pendingNewBookCount,0);
+  await addBook(db,"first-new");await addBook(db,"concurrent-new");
+  assert.equal((await readReaderState(db,a)).pendingNewBookCount,2);
+  assert.equal((await readReaderState(db,a)).pendingNewBookCount,2,"reading the badge does not acknowledge books");
+  const result=await recognizeLibraryBookSnapshot(db,a,{visitId:randomUUID(),bookIds:["first-new"]});
+  assert.deepEqual(result,{newBookIds:["first-new"],pendingNewBookCount:1});
+  assert.equal((await readReaderState(db,a)).pendingNewBookCount,1);
+  assert.equal((await readReaderState(db,b)).pendingNewBookCount,2);
+});
+
+test("a rejected snapshot leaves pending books untouched",async t=>{
+  const {db,a}=await fixture(t);await addBook(db,"still-pending");
+  await assert.rejects(recognizeLibraryBookSnapshot(db,a,{visitId:randomUUID(),bookIds:["still-pending","still-pending"]}),{code:"invalidRequest"});
+  assert.equal((await readReaderState(db,a)).pendingNewBookCount,1);
 });

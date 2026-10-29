@@ -1,3 +1,4 @@
+import {pendingNewBookCount} from "./book-knowledge-repository.mjs";
 import {randomInt} from "node:crypto";
 import {isPostgres,transaction} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
@@ -80,7 +81,7 @@ async function stateInside(db,session,now) {
     if (!noteActivity[row.book_id] || date > noteActivity[row.book_id]) noteActivity[row.book_id]=date;
   }
   return {user:{id:userId,username:account.username,timeZone:account.time_zone},csrfToken:session.csrf_token,language:account.language,showOriginalTitles:display?.show_original_titles === 1,bookSortOrder:validBookSortOrder(bookSort?.sort_order)?bookSort.sort_order:"recent",today,wallet,petals:petalWallet.balance,petalMaximum:MAX_PETALS,practiceDiscountTopic:discountTopic,activePracticeSession,practiceAnswers,growth,cardSaves:await cardSavesInside(db,userId),
-    noteActivity,noteDeckActivity,shelfBookIds:[...addedBooks],
+    noteActivity,noteDeckActivity,shelfBookIds:[...addedBooks],pendingNewBookCount:await pendingNewBookCount(db,userId),
     statuses:Object.fromEntries([...distinguished.map(id=>[id,"unread"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])]),
     enrolledIds:(await db.prepare("SELECT deck_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.deck_id),
     selections:Object.fromEntries((await db.prepare("SELECT book_id,deck_id FROM deck_selections WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.deck_id])),

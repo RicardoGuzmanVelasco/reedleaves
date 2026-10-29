@@ -192,4 +192,11 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 
 - Portadas, Estantería densa y Libros apilados separan primero el grupo «Nuevo / New» cuando la visita contiene novedades. La etiqueta reutiliza el sello naranja de las portadas, con fondo opaco y profundidad corta, sin animación adicional. Su nombre accesible es «Novedades / New books».
 - Cada libro aparece en un único grupo. Ambos mantienen el orden y los filtros elegidos. Los grupos vacíos se ocultan; al retirar el filtro, las novedades de esa visita reaparecen. El selector de presentación es único y se calcula antes de separar los grupos.
-- Las portadas conservan 11:15 y los sellos individuales dentro de su banda inferior. Las repisas conservan las medidas de los lomos; su sello identifica el grupo sin cubrir títulos.
+- Las portadas conservan 11:15 y sus tamaños. El sello de novedad se centra geométricamente en ambos ejes; una banda central separa el título superior del autor inferior, con el recuento al pie. En las portadas nuevas más estrechas, el autor se limita a dos líneas y mantiene su texto íntegro accesible. Las repisas conservan las medidas de los lomos; su sello identifica el grupo sin cubrir títulos.
+
+## Badges de novedades en navegación
+
+- Librería e Idea del día comparten punto naranja, profundidad y ondas acotadas dentro de un anclaje de 26 px. La onda usa el tono oscuro del sello para conservar contraste. El punto mide 12 px y las ondas no amplían el área de interacción.
+- Anclar ambas al vértice superior derecho de su propia pieza, con margen horizontal interior común. Compensar el marcapáginas seleccionado y mantener separación con icono, etiqueta y piezas vecinas, también a 320 px. El anclaje viaja con la pieza durante el desplazamiento de la barra.
+- El nombre accesible conserva el destino y añade su estado localizado: número de libros nuevos o nueva idea diaria. El punto es decorativo, sin foco ni acción propios. Movimiento reducido deja el punto estático y elimina llegada, ondas y transición del anclaje.
+- Actualizar ambas desde el estado común en cualquier sección. Reconocer Librería retira su badge; sus sellos y grupos permanecen en esa visita, incluidos ficha, barajas y previews. Solo otra sección principal termina la visita.
