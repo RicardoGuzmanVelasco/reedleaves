@@ -44,7 +44,7 @@ export function applyProposalUI(host,state,language){
   host.querySelector("h1").textContent=second?c.negativeQuestion:c.question;
   selector.querySelector("legend").textContent=second?c.negativeQuestion:c.question;
   host.querySelector(".initial-interest-order")?.remove();
-  const help=selector.querySelector(":scope > p");help.textContent="";help.hidden=true;
+  const help=selector.querySelector(":scope > p");if(help){help.textContent="";help.hidden=true;}
   const advice=host.querySelector("[data-initial-recommendation]");
   const message=count>3?c.many:!second&&count===1?c.one:!second&&count===2?c.two:"",comma=message.indexOf(",");
   if(comma>=0)advice.replaceChildren(document.createTextNode(message.slice(0,comma+1)),document.createElement("br"),document.createTextNode(message.slice(comma+1).trim()));

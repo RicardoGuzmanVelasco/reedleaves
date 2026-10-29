@@ -7,7 +7,7 @@ import {emptyCatalog} from "../test-support/reader-state.mjs";
 // Minimal event surface: view markup/accessibility is covered by the view tests.
 // These tests exercise the persistent host across the same resets as applyState.
 class InterestHost extends EventTarget {
-  ownerDocument={activeElement:null};
+  ownerDocument={activeElement:null,createTextNode:text=>({textContent:text}),createElement:tag=>({tag})};
   firstElementChild=null;
   controls=new Map();
   inputs=[];
@@ -15,7 +15,7 @@ class InterestHost extends EventTarget {
     this.markup=value;
     this.inputs=[...value.matchAll(/<input\b[^>]*data-initial-interest="([^"]+)"[^>]*value="([^"]+)"[^>]*>/g)].map(([markup,kind,id])=>{
       const spans=new Map([".interest-order",".interest-order-description",".profile-interest-mark"].map(selector=>[selector,{textContent:""}]));
-      const option={querySelector:selector=>spans.get(selector)};
+      const option={dataset:{},removeAttribute(){},querySelector:selector=>spans.get(selector)};
       const input={value:id,dataset:{initialInterest:kind},checked:/\schecked(?:\s|>)/.test(markup),setAttribute(){},closest:selector=>selector===".interest-option"?option:input};
       return input;
     });
@@ -24,7 +24,7 @@ class InterestHost extends EventTarget {
       [".initial-interest-content",content],
       ["fieldset",{querySelectorAll:()=>this.inputs}],
       ["h1",{focus(){}}],
-      ...["[data-initial-incentive]","[data-initial-recommendation]","[data-initial-feedback]",'[type="submit"]'].map(key=>[key,{}])
+      ...["[data-initial-incentive]","[data-initial-recommendation]","[data-initial-feedback]",'[type="submit"]'].map(key=>[key,{replaceChildren(){}}])
     ]);
     this.firstElementChild={addEventListener(){},querySelector:selector=>this.querySelector(selector)};
   }
@@ -49,11 +49,11 @@ class InterestHost extends EventTarget {
 }
 
 const catalog={...emptyCatalog(),genres:[{id:"software",name:{es:"Software",en:"Software"}}]};
-test("Initial interest controls survive session initialization, account changes and reopening",async()=>{
+for(const mode of ["initial","edit"])test(`${mode}: interest controls survive session initialization, account changes and reopening`,async()=>{
   const host=new InterestHost(),values=new Map(),calls=[],completed=[];
   const store=createBrowserStore(()=>({getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)}));
-  const flow=mountInitialInterests({host,store,showModal:()=>{},request:async(...args)=>{calls.push(args);return {state:{configured:true}};},onComplete:(...args)=>completed.push(args)});
-  const open=userId=>flow.open({userId,catalog,preferences:{configured:false,revision:0}});
+  const flow=mountInitialInterests({host,store,showModal:()=>{},request:async(...args)=>{calls.push(args);return mode==="edit"?{configured:true}:{state:{configured:true}};},onComplete:(...args)=>completed.push(args)});
+  const open=userId=>flow.open({userId,catalog,preferences:{configured:mode==="edit",revision:0},mode});
   // Authenticated startup calls dispose before the first open.
   flow.dispose();open("reader");host.choose("software");
   assert.deepEqual(flow.state.draft.interested,["software"]);
@@ -72,6 +72,6 @@ test("Initial interest controls survive session initialization, account changes 
   flow.dispose();open("reader");host.submit();assert.equal(flow.state.draft.step,2);
   host.submit();await Promise.resolve();
   assert.equal(calls.length,1);
-  assert.deepEqual(calls[0],["/api/reader/interests/initial",{interested:["software"],notInterested:[],revision:0}]);
+  assert.deepEqual(calls[0],[mode==="edit"?"/api/reader/interests/preferences":"/api/reader/interests/initial",{interested:["software"],notInterested:[],revision:0}]);
   assert.equal(completed.length,1);assert.equal(completed[0][1],"reader");assert.equal(flow.state,null);
 });

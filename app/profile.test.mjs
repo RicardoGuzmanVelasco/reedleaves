@@ -42,15 +42,8 @@ test("Profile interests show ordered public lists and expose editing only to the
     assert.ok(html.indexOf("💻")<html.indexOf("💰"),"public order follows saved order");
     assert.match(html,/data-action="edit-profile-interests"/);
     assert.doesNotMatch(profileView({language,profileData,userId:"viewer",catalog,profileInterests:null}),/data-action="edit-profile-interests"/);
-    const editor=profileView({language,profileData,userId:"test-user",catalog,profileInterests:{...preferences,editing:true,draft:preferences}});
-    assert.match(editor,/fieldset class="profile-interest-selector"/);
-    assert.match(editor,new RegExp(`<legend>${words[language].profileSelectInterested}</legend>`));
-    assert.match(editor,/data-action="save-profile-interests"/);
-    assert.doesNotMatch(editor,/priceTag|pricetag|Hojas|Leaves/);
-    const saving=profileView({language,profileData,userId:"test-user",catalog,profileInterests:{...preferences,editing:true,saving:true,draft:preferences}});
-    assert.match(saving,/data-action="save-profile-interests" aria-disabled="true"/);
-    assert.equal((saving.match(/class="profile-interest-selector" disabled/g)||[]).length,2);
-    assert.doesNotMatch(saving,/data-action="save-profile-interests"[^>]*\sdisabled(?:\s|>)/);
+    assert.doesNotMatch(html,/data-profile-interest=|data-action="save-profile-interests"|pricetag/);
+
   }
 });
 

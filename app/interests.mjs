@@ -49,18 +49,25 @@ export function mountInterests(root) {
 }
 
 // Shared by the compact profile editor and the expressive initial selection.
-export function readerInterestSelector({catalog,language,c,kind,selected,prefix="profile",expressive=false,disabled=false,allowReplacement=false}) {
+export function readerInterestSelector({catalog,language,c,kind,selected,prefix="profile",expressive=false,disabled=false,allowReplacement=false,choice=false,locked=[]}) {
   const scope=`${prefix}-interest-${kind}`;
-  return `<fieldset class="profile-interest-selector${expressive?" initial-interest-selector":""}" ${disabled?"disabled":""}><legend${expressive?' class="sr-only"':""}>${esc(c[kind==="interested"?"profileSelectInterested":"profileSelectNotInterested"])}</legend><p id="${scope}-help">${esc(c[kind==="interested"?"profileInterestedHelp":"profileNotInterestedHelp"])}</p><div class="reader-interest-options">${catalog.genres.map((interest,index)=>{const position=selected.indexOf(interest.id)+1;return `<label class="interest-option profile-interest-option"${interestColor(interest)}><input type="checkbox" data-${prefix}-interest="${kind}" value="${esc(interest.id)}" aria-labelledby="${scope}-name-${index}" aria-describedby="${scope}-help ${scope}-position-${index}" aria-disabled="${!allowReplacement&&!position&&selected.length>=5}" ${position?"checked":""}><span class="interest-option-content">${interestIcon(interest)}<span class="interest-name" id="${scope}-name-${index}">${esc(interest.name[language])}</span></span><span class="profile-interest-mark profile-interest-mark--${kind}" aria-hidden="true">${position?(kind==="interested"?"✓":"×"):""}</span><span class="interest-order" aria-hidden="true">${position||""}</span><span class="sr-only interest-order-description" id="${scope}-position-${index}">${position?esc(c.profileInterestPosition(position)):""}</span></label>`;}).join("")}</div></fieldset>`;
+  const title=c[choice?(kind==="interested"?"interestChoiceQuestion":"interestChoiceNegative"):(kind==="interested"?"profileSelectInterested":"profileSelectNotInterested")];
+  return `<fieldset class="profile-interest-selector${expressive?" initial-interest-selector":""}" ${disabled?"disabled":""}><legend${expressive?' class="sr-only"':""}>${esc(title)}</legend>${choice?"":`<p id="${scope}-help">${esc(c[kind==="interested"?"profileInterestedHelp":"profileNotInterestedHelp"])}</p>`}<div class="reader-interest-options">${catalog.genres.map((interest,index)=>{const position=selected.indexOf(interest.id)+1,blocked=locked.includes(interest.id),other=kind==="interested"?"notInterested":"interested",description=blocked?c[other==="interested"?"interestChoiceLockedInterested":"interestChoiceLockedNotInterested"]:position?c.profileInterestPosition(position):"";return `<label class="interest-option profile-interest-option"${blocked?` data-interest-locked="${other}" title="${esc(description)}"`:""}${interestColor(interest)}><input type="checkbox" data-${prefix}-interest="${kind}" value="${esc(interest.id)}" aria-labelledby="${scope}-name-${index}" aria-describedby="${choice?"":`${scope}-help `}${scope}-position-${index}" aria-disabled="${blocked||!allowReplacement&&!position&&selected.length>=5}" ${blocked?"disabled":""} ${position?"checked":""}><span class="interest-option-content">${interestIcon(interest)}<span class="interest-name" id="${scope}-name-${index}">${esc(interest.name[language])}</span></span><span class="profile-interest-mark profile-interest-mark--${kind}" aria-hidden="true">${blocked?(other==="interested"?"✓":"×"):position?(kind==="interested"?"✓":"×"):""}</span><span class="interest-order" aria-hidden="true">${position||""}</span><span class="sr-only interest-order-description" id="${scope}-position-${index}">${esc(description)}</span></label>`;}).join("")}</div></fieldset>`;
 }
 
-export function syncReaderInterestSelector(root,selected,c) {
+export function syncReaderInterestSelector(root,selected,c,{locked=[],choice=false}={}) {
   for(const input of root.querySelectorAll('input[type="checkbox"]')) {
     const position=selected.indexOf(input.value)+1,option=input.closest(".interest-option"),kind=input.dataset.initialInterest||input.dataset.newInterest||input.dataset.profileInterest;
+    const blocked=locked.includes(input.value),other=kind==="interested"?"notInterested":"interested";
     input.checked=position>0;
-    input.setAttribute("aria-disabled",String(!input.dataset.newInterest&&!position&&selected.length>=5));
+    if(choice){
+      input.disabled=blocked;
+      if(blocked){option.dataset.interestLocked=other;option.title=c[other==="interested"?"interestChoiceLockedInterested":"interestChoiceLockedNotInterested"];}
+      else{delete option.dataset.interestLocked;option.removeAttribute("title");}
+    }
+    input.setAttribute("aria-disabled",String(blocked||!input.dataset.newInterest&&!position&&selected.length>=5));
     option.querySelector(".interest-order").textContent=position||"";
-    option.querySelector(".interest-order-description").textContent=position?c.profileInterestPosition(position):"";
-    option.querySelector(".profile-interest-mark").textContent=position?(kind==="interested"?"✓":"×"):"";
+    option.querySelector(".interest-order-description").textContent=blocked?option.title:position?c.profileInterestPosition(position):"";
+    option.querySelector(".profile-interest-mark").textContent=blocked?(other==="interested"?"✓":"×"):position?(kind==="interested"?"✓":"×"):"";
   }
 }

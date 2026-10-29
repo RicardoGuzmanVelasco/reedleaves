@@ -17,6 +17,7 @@ import {defaultNoteDeckTitle} from "./note-defaults.mjs";
 import {dailyIdeaStreak} from "./daily-streak.mjs";
 import {DECK_ADD_COST} from "./wallet.mjs";
 import {interestIcon,interestColor,readerInterestSelector} from "./interests.mjs";
+import {interestChoicePresentation} from "./interest-choice.mjs";
 import {MAX_BOOK_INTERESTS} from "./book-interests.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {LIBRARY_SORT_ORDERS,BOOK_SORT_ORDERS} from "./book-sort.mjs";
@@ -808,11 +809,8 @@ export function profileView(s) {
   const interestList=(kind,ids,editable)=>`<section class="profile-interest-list" aria-labelledby="profile-${kind}"><h3 id="profile-${kind}">${c[kind === "interested" ? "profileInterested" : "profileNotInterested"]}</h3><ol>${ids.map((id,index)=>{const interest=s.catalog.genres.find(item=>item.id===id);if(!interest)return "";return `<li${interestColor(interest)}><span class="profile-interest-position" aria-hidden="true">${index+1}</span>${interestIcon(interest)}<span class="interest-name">${esc(interest.name[s.language])}</span><span class="profile-interest-mark profile-interest-mark--${kind}" aria-hidden="true">${kind === "interested" ? "✓" : "×"}</span></li>`;}).join("")}</ol>${!ids.length&&!editable?`<p class="profile-interests-empty">${c.profileInterestsEmpty}</p>`:""}</section>`;
   const interestEditor=()=>{
     if(!preferences||preferences.loading)return `<p class="profile-interests-loading" role="status">${c.loading}</p>`;
-    if(preferences.error&&!preferences.editing)return `<div class="profile-interest-error" role="alert"><p>${esc(c[preferences.error]||c.connectionError)}</p><button type="button" class="text-button" data-action="retry-profile-interests">${c.retry}</button></div>`;
-    const draft=preferences.editing?preferences.draft:preferences;
-    if(!preferences.editing)return `<div class="profile-interests">${interestList("interested",preferences.interested,false)}${interestList("notInterested",preferences.notInterested,false)}</div>`;
-    const selector=(kind,selected)=>readerInterestSelector({catalog:s.catalog,language:s.language,c,kind,selected,disabled:preferences.saving});
-    return `<form class="profile-interest-editor" data-profile-interest-editor aria-busy="${!!preferences.saving}"><p class="profile-interest-instructions">${c.profileInterestOrderHelp}</p><div class="profile-interest-groups">${selector("interested",draft.interested)}${selector("notInterested",draft.notInterested)}${!draft.interested.length?`<p class="profile-interest-required" role="alert">${c.profileInterestRequired}</p>`:""}</div>${draft.interested.length>3?`<p class="profile-interest-recommendation">${c.profileInterestRecommended}</p>`:""}<p class="profile-interest-feedback" role="status" aria-live="polite">${preferences.feedback?esc(c[preferences.feedback]||""):""}</p>${preferences.error?`<p class="account-error" role="alert">${esc(c[preferences.error]||c.connectionError)}</p>`:""}${preferences.conflict?`<div class="profile-interest-conflict" role="alert"><p>${c.profileInterestConflict}</p><button type="button" class="secondary" data-action="recover-profile-interests">${c.profileInterestRecover}</button></div>`:""}<div class="form-actions"><button class="text-button" type="button" data-action="cancel-profile-interests" ${preferences.saving?"disabled":""}>${c.cancel}</button><button class="primary" type="button" data-action="save-profile-interests" aria-disabled="${!!preferences.saving}" ${!draft.interested.length?"disabled":""}>${preferences.saving?c.working:c.save}</button></div></form>`;
+    if(preferences.error)return `<div class="profile-interest-error" role="alert"><p>${esc(c[preferences.error]||c.connectionError)}</p><button type="button" class="text-button" data-action="retry-profile-interests">${c.retry}</button></div>`;
+    return `<div class="profile-interests">${interestList("interested",preferences.interested,false)}${interestList("notInterested",preferences.notInterested,false)}</div>`;
   };
   const languageEditor=()=>{
     if(!languagePreferences||languagePreferences.loading)return `<p class="profile-interests-loading" role="status">${c.loading}</p>`;
@@ -828,7 +826,7 @@ export function profileView(s) {
   return `<section class="profile-screen"><header class="profile-heading"><div class="profile-avatar" aria-hidden="true">${attributionIcon("user")}</div><div><h1 tabindex="-1"><bdi>${esc(p.name)}</bdi></h1>${p.username && p.username !== p.name ? `<p class="profile-username"><bdi>@${esc(p.username)}</bdi></p>` : ""}<p class="profile-date">${c.memberSince} <time datetime="${esc(Number.isNaN(created.getTime()) ? "" : created.toISOString().slice(0,10))}">${esc(date)}</time></p></div></header>
     <section class="profile-section" aria-labelledby="profile-reader"><div class="profile-section-heading"><h2 id="profile-reader">${c.readerSummary}</h2>${shelfAction}</div>
       ${metrics(["booksRead","booksReading","cardsViewed"])}</section>
-    <section class="profile-section profile-interests-section" aria-labelledby="profile-interests-heading"><div class="profile-section-heading"><h2 id="profile-interests-heading">${c.profileInterests}</h2>${owner&&!preferences?.editing&&!preferences?.loading&&!preferences?.error?`<button class="text-button" type="button" data-action="edit-profile-interests">${c.edit}</button>`:""}</div>${interestEditor()}</section>
+    <section class="profile-section profile-interests-section" aria-labelledby="profile-interests-heading"><div class="profile-section-heading"><h2 id="profile-interests-heading">${c.profileInterests}</h2>${owner&&!preferences?.loading&&!preferences?.error?`<button class="text-button" type="button" data-action="edit-profile-interests">${c.edit}</button>`:""}</div>${interestEditor()}</section>
     ${owner?`<section class="profile-section profile-language-section" aria-labelledby="profile-languages-heading"><div class="profile-section-heading"><h2 id="profile-languages-heading">${c.profileLanguages}</h2>${!languagePreferences?.editing&&!languagePreferences?.loading&&!languagePreferences?.error?`<button class="text-button" type="button" data-action="edit-profile-languages">${c.edit}</button>`:""}</div>${languageEditor()}</section>`:""}
     <section class="profile-section" aria-labelledby="profile-archivist"><h2 id="profile-archivist">${c.archivistSummary}</h2>${metrics(["decksCreated","cardsCreated","quotesCreated"])}</section>
     <section class="profile-section" aria-labelledby="profile-mascots"><h2 id="profile-mascots">${c.currentMascots}</h2><ul class="profile-mascots">${mascotStages.filter(stage=>stage.unlocked || p.mascots[stage.id]>0).map(stage=>`<li>${mascotIcon(stage.id)}<span>${c[stage.name]}</span><strong>${p.mascots[stage.id] ?? 0}</strong></li>`).join("")}</ul></section>
@@ -841,19 +839,19 @@ export function profilePendingView(s) {
 
 export function initialInterestsView(s) {
   const c=words[s.language],flow=s.initialInterests,draft=flow.draft,second=draft.step===2,kind=second?"notInterested":"interested",selected=draft[kind];
-  const incentive=second||draft.interested.length>0;
-  return `<dialog class="initial-interests-modal" closedby="none" aria-labelledby="initial-interests-title" aria-describedby="initial-interest-order"><form data-initial-interest-form aria-busy="${!!flow.saving}">
+  const view=interestChoicePresentation(flow,c),editing=flow.mode==="edit";
+  const catalog={...s.catalog,genres:[...s.catalog.genres].sort((a,b)=>Number(b.id==="personal-growth")-Number(a.id==="personal-growth"))};
+  return `<dialog class="initial-interests-modal interest-choice-modal" closedby="none" aria-labelledby="initial-interests-title">${editing?`<button type="button" class="dialog-close" data-initial-action="cancel" aria-label="${esc(c.cancel)}" ${flow.saving?"disabled":""}>${closeIconMarkup}</button>`:""}<form data-initial-interest-form aria-busy="${!!flow.saving}">
     <div class="initial-interest-content"><div class="initial-interest-progress" aria-label="${esc(c.initialInterestStep(draft.step))}"><span class="${second?"is-complete":"is-current"}" aria-hidden="true">1</span><span class="initial-interest-progress-line" aria-hidden="true"></span><span class="${second?"is-current":""}" aria-hidden="true">2</span></div>
-    <h1 id="initial-interests-title" tabindex="-1" autofocus>${c[second?"profileSelectNotInterested":"profileSelectInterested"]}</h1>
+    <h1 id="initial-interests-title" tabindex="-1" autofocus>${esc(view.title)}</h1>
     ${second?`<p class="initial-interest-purpose">${c.initialInterestPurpose}</p>`:""}
-    <p class="initial-interest-order" id="initial-interest-order">${c.profileInterestOrderHelp}</p>
-    ${readerInterestSelector({catalog:s.catalog,language:s.language,c,kind,selected,prefix:"initial",expressive:true,disabled:flow.saving})}
-    <p class="initial-interest-recommendation" data-initial-recommendation ${selected.length>3?"":"hidden"}>${c.profileInterestRecommended}</p>
-    <div class="initial-interest-incentive" data-initial-incentive ${incentive?"":"hidden"}><p><span>${c.initialInterestRewardCondition}</span>${priceTag({amount:second?2:3,icon:second?"petal":"leaf",label:c[second?"initialInterestPetalReward":"initialInterestLeafReward"]})}</p><p>${c[second?"initialInterestPetalOpportunity":"initialInterestLeafOpportunity"]}</p></div>
+    ${readerInterestSelector({catalog,language:s.language,c,kind,selected,prefix:"initial",expressive:true,disabled:flow.saving,choice:true,locked:draft[second?"interested":"notInterested"]})}
+    <p class="initial-interest-recommendation" id="interest-choice-advice" role="status" aria-live="polite" data-initial-recommendation ${view.advice?"":"hidden"}>${esc(view.advice).replace(", ",",<br>")}</p>
+    ${editing?"":`<div class="initial-interest-incentive" data-initial-incentive ${view.showReward?"":"hidden"}><p><span data-interest-reward-label>${esc(view.reward)}</span>${priceTag({amount:second?"+2":"+3",icon:second?"petal":"leaf",label:c[second?"initialInterestPetalReward":"initialInterestLeafReward"]})}</p><p>${esc(c.interestChoiceOpportunity)}</p></div>`}
     <p class="initial-interest-feedback" role="status" aria-live="polite" data-initial-feedback>${flow.feedback?esc(c[flow.feedback]):""}</p>
     ${flow.storageAvailable===false?`<p class="account-error" role="status">${c.initialInterestStorageUnavailable}</p>`:""}
     ${flow.error?`<p class="account-error" role="alert">${esc(c[flow.error]||c.connectionError)}</p>`:""}
     ${flow.conflict?`<div class="profile-interest-conflict" role="alert"><p>${c.profileInterestConflict}</p><button class="secondary" type="button" data-initial-action="recover" ${flow.saving?"disabled":""}>${c.profileInterestRecover}</button></div>`:""}
-    </div><div class="initial-interest-actions">${second?`<button class="text-button" type="button" data-initial-action="back" ${flow.saving?"disabled":""}>${c.backToPrevious}</button>`:""}<button class="primary" type="submit" data-initial-action="${second?"save":"next"}" aria-disabled="${!!flow.saving}" ${!draft.interested.length||flow.conflict?"disabled":""}>${flow.saving?c.working:second?c.save:c.next}</button></div>
+    </div><div class="initial-interest-actions">${second?`<button class="text-button" type="button" data-initial-action="back" ${flow.saving?"disabled":""}>${c.backToPrevious}</button>`:""}<button class="primary interest-choice-next" type="submit" data-initial-action="${second?"save":"next"}" aria-disabled="${!!flow.saving}" ${!draft.interested.length||flow.conflict?"disabled":""}>${flow.saving?c.working:second?c.save:c.next}</button></div>
   </form></dialog>`;
 }

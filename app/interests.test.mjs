@@ -8,7 +8,7 @@ import {prepareCatalog} from "./catalog.mjs";
 import {libraryView,authorFormView} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 
-const approved={"personal-growth":"🌱",finance:"💰",productivity:"🎯",society:"🌍",software:"💻",mindfulness:"🧘",metaphysics:"🔮"};
+const approved={"personal-growth":"🌱",finance:"💰",productivity:"🎯",society:"🌍",software:"💻",mindfulness:"🧘‍♀️",metaphysics:"🔮"};
 test("All approved interests use catalog emojis and localized names in details, preview and real checkboxes; native filters stay text",async()=>{
   const db=openDatabase(":memory:");let catalog;
   try{initializeDatabase(db);await seedCatalog(db);catalog=prepareCatalog(await readCatalog(db));}finally{await db.close();}
