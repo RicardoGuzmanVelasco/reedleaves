@@ -65,6 +65,11 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 - Por defecto, ocupan el ancho necesario para sus opciones, sin estirarse para rellenar el contenedor. El selector de lectura de la ficha del libro se centra horizontalmente.
 - Las pestañas Estantería / Shelf y Tarjetero / Decks de Biblioteca / Bookcase mantienen por ahora su estilo propio. Posible unificación futura: revisar si conviene aplicarles el lenguaje visual del selector de cápsula.
 
+## Cabecera compartida
+
+- La cabecera mantiene sus controles globales y ofrece un espacio opcional de contenido a la izquierda. Cada vista decide qué inyectar en ese espacio; puede quedar vacío. No se determina su contenido mediante una lista central de rutas.
+- Las vistas principales pueden mostrar ahí su icono y nombre, alineados con los saldos y Ajustes. El título semántico de cada pantalla se conserva dentro de `main` para el foco y la navegación accesible.
+
 ## Ficha del libro
 
 - La ficha y la vista previa no muestran bibliografía, citas numeradas ni el desplegable de fuentes de investigación. El catálogo no guarda fuentes de investigación como metadatos.
@@ -83,7 +88,7 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 - La recomendación del equipo (`deck.isRecommended`, procedente de `is_recommended`) se muestra en el selector con la etiqueta flotante «Te recomendamos / We recommend» y estrella de puntas redondeadas. Usar la opción aprobada de papel ondulado, fondo dorado claro con un degradado suave para dar volumen, texto e iconos en dorado muy oscuro (`#684700`), con borde dorado de 1 px que sigue el contorno ondulado y sin sombra. El nombre accesible incluye el texto de la etiqueta y el tooltip identifica al equipo. No depende de votos ni de que la baraja esté en borrador o terminada.
 - Las barajas de guías de lectura muestran siempre el distintivo «Destacada / Featured», con medalla de dos cintas y el mismo papel dorado de la recomendación. Incluir «Destacada / Featured» en su nombre accesible.
 - Las distinciones de comunidad se conservan en datos y ordenación, pero siguen ocultas; el detalle no añade distintivos. No mostrar una etiqueta de relleno para barajas sin recomendación. Dar prioridad visual al título, con mayor tamaño que la autoría y todo el ancho disponible. Sus 26 px de margen superior dejan espacio al distintivo sin solapar el título.
-- El idioma se representa con un chip después del ojo y antes del estado de creación. Usar los SVG suaves de `brand/icons/languages/` (España para español y Reino Unido para inglés); para otros idiomas, globo neutro con su etiqueta de idioma. Conservar el nombre localizado del idioma en el nombre accesible y el tooltip de apertura. No reservar espacio lateral en el título para la bandera.
+- El idioma se representa con un chip después del ojo y antes del estado de creación. Usar el globo circular de `brand/icons/languages/globe.svg` y mostrar el código del idioma. Conservar el nombre localizado del idioma en el nombre accesible y el tooltip de apertura. El selector de idioma también usa el globo; no mostrar banderas nacionales.
 - Las barajas terminadas no muestran un indicador de estado en ninguna vista. Las barajas `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. En una baraja aún no añadida a Decks, indicar que puede previsualizarse y que hay que añadirla para repasarla. La fila de chips puede envolver en móvil estrecho.
 - Mostrar el número de tarjetas y el número de citas (incluso si es cero) en la vista previa y en la información de la baraja. Sustituir el dato de niveles por el de citas. Reutilizar el icono de tarjetas y el icono de cita existente. Si hay más citas que ideas normales, usar los tonos azules en las fichas de baraja del selector y del Tarjetero.
 
@@ -164,6 +169,7 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 - Base inferior con el fondo compartido de la página (`--page-background`), máscara en degradado y desenfoque suave para separar las piezas del contenido que pasa por detrás. Reutiliza también el degradado verde de lectura, con su escala de viewport. Sin contenedor visible ni borde añadido. La base sigue la última pieza visible y desaparece con la barra, incluido al abrir el teclado.
 
 - Barra compacta: piezas de 64 px de alto (60 px en móvil estrecho), conservando los iconos de 46/66 px y 42/60 px respectivamente. El marcapáginas sobresale menos, con muesca más corta y texto próximo al icono. Etiquetas en una línea, con tamaño de fuente proporcional al ancho de la pieza mediante unidades de contenedor.
+
 
 
 ## Intereses de libros

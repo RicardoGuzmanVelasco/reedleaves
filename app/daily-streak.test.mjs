@@ -32,6 +32,9 @@ test("Only a daily idea opened on its day increases the streak",async()=>{
   assert.doesNotMatch(unopened,/data-action="open-daily-card"|data-action="enter-review"/);
   assert.doesNotMatch(unopened,/daily-card-preview|data-reading-card|exclusive-card-modal/);
 
+  const loading=dailyView({...base,daily:null,dailyToday:null,dailyHistory:[],dailyLoading:true});
+  assert.match(loading,/<div class="empty-state" role="status" aria-live="polite"><p>Buscando la idea del día…<\/p><\/div>/);
+
   const opened=dailyView({...base,dailyExclusiveCardId:card.id});
   assert.match(opened,/exclusive-card-modal/);
   assert.match(opened,new RegExp(`data-reading-card="${card.id}"`));

@@ -40,6 +40,12 @@ test("Renaming the team changes only its public label, not creator identity or p
   assert.equal(storageKeys.noteDrafts("u","seven-habits"),"leaf-reader:note-drafts:v1:u:seven-habits");
 });
 
+test("The Home tab uses a simple outlined house instead of the Reedleaves logo",()=>{
+  const html=readFileSync(new URL("./index.html",import.meta.url),"utf8"),home=html.match(/<a class="bottom-navigation-link bottom-navigation-home"[\s\S]*?<\/a>/)?.[0]||"";
+  const icon=readFileSync(new URL("../brand/icons/navigation/home.svg",import.meta.url),"utf8");
+  assert.match(home,/brand\/icons\/navigation\/home\.svg/);assert.doesNotMatch(home,/d-compacto\.svg/);
+  assert.match(icon,/fill="none" stroke="#173d2c"/);assert.match(icon,/m3 10\.5 9-7\.5 9 7\.5/);
+});
 test("Seed stays a brown body with a separated face and no leaf",()=>{
   const seed=readFileSync(new URL("../brand/reed/growth/seed.svg",import.meta.url),"utf8");
   assert.doesNotMatch(seed,/fill="#58BE59"|fill="#B9E877"/);

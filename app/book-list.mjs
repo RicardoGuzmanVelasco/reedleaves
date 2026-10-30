@@ -9,7 +9,11 @@ export function partitionLibraryBooks(books,newBookIds=[]){
   return {newBooks:books.filter(book=>newIds.has(book.id)),otherBooks:books.filter(book=>!newIds.has(book.id))};
 }
 export const leaningBookIndex=(count,columns)=>count%columns>1?count-1:-1;
-const icons={covers:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',shelf:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/>',stack:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18"/>'};
+const icons={
+  covers:'<path d="M3 4h5v16H3zM9.5 4h5v16h-5zM16 4h5v16h-5z"/><path d="M4.5 7h2M11 7h2M17.5 7h2M4.5 9h2M11 9h2M17.5 9h2"/>',
+  shelf:'<path d="M2.5 20h19M4 6h4v14H4zM9.5 4h4.5v16H9.5zM15.5 7h4.5v13h-4.5z"/><path d="M5.5 8v2M11 6v2M17 9v2"/>',
+  stack:'<path d="M4 3.5h15v4H4zM6 9.5h15v4H6zM3 15.5h16v4H3z"/><path d="M6 5.5h2M8 11.5h2M5 17.5h2"/>'
+};
 export function bookViewSelector(view,scope,language='es',trailing=''){
   const labels=language==='es'?['Portadas','Estantería densa','Libros apilados']:['Covers','Dense shelf','Stacked books'];
   return `<div class="book-list-tools"><div class="segmented-selector book-view-selector" role="group" aria-label="${language==='es'?'Vista de libros':'Book view'}">${BOOK_VIEWS.map((value,index)=>`<button type="button" data-action="set-book-view" data-scope="${esc(scope)}" data-view="${value}" aria-pressed="${view===value}" aria-label="${labels[index]}" title="${labels[index]}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[value]}</svg></button>`).join('')}</div>${trailing}</div>`;
