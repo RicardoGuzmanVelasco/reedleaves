@@ -11,7 +11,7 @@ export function partitionLibraryBooks(books,newBookIds=[]){
 export const leaningBookIndex=(count,columns)=>count%columns>1?count-1:-1;
 export function bookViewSelector(view,scope,language='es',trailing=''){
   const labels=language==='es'?['Portadas','Estantería densa','Libros apilados']:['Covers','Dense shelf','Stacked books'];
-  return `<div class="book-list-tools"><div class="segmented-selector book-view-selector" role="group" aria-label="${language==='es'?'Vista de libros':'Book view'}">${BOOK_VIEWS.map((value,index)=>`<button type="button" data-action="set-book-view" data-scope="${esc(scope)}" data-view="${value}" aria-pressed="${view===value}" aria-label="${labels[index]}" title="${labels[index]}"><img src="../brand/icons/book-layout/${value}.svg" width="24" height="24" alt="" aria-hidden="true"></button>`).join('')}</div>${trailing}</div>`;
+  return `<div class="book-list-tools"><div class="segmented-selector book-view-selector" role="group" aria-label="${language==='es'?'Vista de libros':'Book view'}">${BOOK_VIEWS.map((value,index)=>`<button type="button" data-action="set-book-view" data-scope="${esc(scope)}" data-view="${value}" aria-pressed="${view===value}" aria-label="${labels[index]}" title="${labels[index]}"><span class="book-view-icon book-view-icon--${value}" aria-hidden="true"></span></button>`).join('')}</div>${trailing}</div>`;
 }
 export function bookListMarkup({books,view='covers',label='',cover}){
   if(view==='covers')return `<div class="study-books book-grid" role="group" aria-label="${esc(label)}">${books.map(cover).join('')}</div>`;

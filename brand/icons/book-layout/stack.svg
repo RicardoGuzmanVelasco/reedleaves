@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="24 24 208 208" fill="none" role="img" aria-labelledby="title">
   <title id="title">Tres libros apilados</title>
-  <g stroke="#000" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+  <g stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
     <path d="M196 62H66a22 22 0 0 0 0 44h130M188 62v44"/>
     <path d="M212 106H82a22 22 0 0 0 0 44h130M204 106v44"/>
     <path d="M196 150H66a22 22 0 0 0 0 44h130M188 150v44"/>

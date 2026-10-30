@@ -64,7 +64,7 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 
 - Por defecto, ocupan el ancho necesario para sus opciones, sin estirarse para rellenar el contenedor. El selector de lectura de la ficha del libro se centra horizontalmente.
 - Las pestañas Estantería / Shelf y Tarjetero / Decks de Biblioteca / Bookcase mantienen por ahora su estilo propio. Posible unificación futura: revisar si conviene aplicarles el lenguaje visual del selector de cápsula.
-- Los selectores de presentación de libros comparten los SVG aprobados de `brand/icons/book-layout/`: cuatro portadas en cuadrícula, dos lomos verticales y uno inclinado para Estantería, y tres libros horizontales para Apilados. Trazo negro puro, fondo e interiores transparentes. La opción activa usa verde claro para conservar el contraste; mantener las etiquetas accesibles en español e inglés.
+- Los selectores de presentación de libros comparten los SVG aprobados de `brand/icons/book-layout/`: cuatro portadas en cuadrícula, dos lomos verticales y uno inclinado para Estantería, y tres libros horizontales para Apilados. Fondo e interiores transparentes, con trazo `currentColor` y máscaras CSS que heredan el color del control. Los iconos son negros en reposo y blancos en la opción activa, que conserva el fondo verde oscuro del selector compartido. Mantener las etiquetas accesibles en español e inglés.
 
 ## Cabecera compartida
 

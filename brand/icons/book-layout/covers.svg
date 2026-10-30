@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="32 32 192 192" fill="none" role="img" aria-labelledby="title">
   <title id="title">Portadas de libros</title>
-  <g stroke="#000000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+  <g stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
     <rect x="62" y="42" width="55" height="75" rx="7"/>
     <path d="M77 42v75"/>
     <rect x="139" y="42" width="55" height="75" rx="7"/>
