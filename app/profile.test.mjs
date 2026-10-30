@@ -7,6 +7,7 @@ import {readCatalog} from "../server/catalog-repository.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {profileView,bookshelfView,dailyView} from "./views.mjs";
 import {words} from "./i18n.mjs";
+import {readerState} from "../test-support/reader-state.mjs";
 import {toggleProfileInterest} from "./profile-interests.mjs";
 
 async function fixture() {
@@ -31,10 +32,15 @@ test("Profiles show book, card-view and contribution counts without old per-card
   }
 });
 
-test("Profile interests show ordered public lists and expose editing only to the owner",async()=>{
+test("Profile interests show static chips in saved positive then negative order and expose editing only to the owner",async()=>{
   const catalog=await fixture(),preferences={interested:["software","finance"],notInterested:["society"],revision:3};
   for(const language of ["es","en"]) {
-    const html=profileView({language,profileData,userId:"test-user",catalog,profileInterests:preferences});
+    const html=profileView(readerState(catalog,{language,profileData,userId:"test-user",profileInterests:preferences}));
+    const section=html.match(/<section[^>]*aria-labelledby="profile-interests-heading"[^>]*>([\s\S]*?)<\/section>/)[1];
+    assert.equal((section.match(/class="interest-chip"/g)||[]).length,3);
+    assert.doesNotMatch(section,/<h3|profile-interest-position|<ol|<input/);
+    assert.ok(section.indexOf("💰")<section.indexOf("🌍"),"positive chips precede negative chips");
+    assert.equal((section.match(/class="sr-only"/g)||[]).length,3,"each chip retains its preference for screen readers");
     assert.match(html,new RegExp(words[language].profileInterests));
     assert.match(html,new RegExp(words[language].profileInterested));
     assert.match(html,new RegExp(words[language].profileNotInterested));
