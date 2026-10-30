@@ -32,6 +32,15 @@ test("Profiles show book, card-view and contribution counts without old per-card
   }
 });
 
+test("Profile back injection is a labelled chevron with a full touch target",()=>{
+  for(const [language,label] of [["es","Volver"],["en","Back"]]) {
+    let injected="";
+    profileView({language,profileData,userId:"test-user",showProfileBack:true,injectHeaderLeading:markup=>{injected=markup;}});
+    assert.match(injected,new RegExp(`class="icon-button profile-header-back"[^>]*aria-label="${label}"`));
+    assert.match(injected,/<svg viewBox="0 0 24 24"[^>]*><path d="m15 18-6-6 6-6"\/><\/svg>/);
+  }
+});
+
 test("Profile interests show static chips in saved positive then negative order and expose editing only to the owner",async()=>{
   const catalog=await fixture(),preferences={interested:["software","finance"],notInterested:["society"],revision:3};
   for(const language of ["es","en"]) {

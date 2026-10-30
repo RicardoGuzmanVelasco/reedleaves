@@ -45,6 +45,8 @@ const cardsIconMarkup = '<span class="cards-icon" aria-hidden="true"></span>';
 const quoteMarkMarkup = '<span class="quote-mark" aria-hidden="true">❝</span>';
 const takeNoteLabelMarkup = label => `<span class="take-note-content">${takeNoteIconMarkup}<span>${esc(label)}</span></span>`;
 const collectionIconMarkup = (name,size=22) => `<img src="../brand/icons/collections/${name}.svg" alt="" width="${size}" height="${size}">`;
+const pageHeaderTitleMarkup = (icon,title) => `<span class="header-screen-title" aria-hidden="true"><span class="header-screen-title-icon">${icon}</span><span>${esc(title)}</span></span>`;
+const injectPageHeaderTitle = (s,icon,title) => s.injectHeaderLeading?.(pageHeaderTitleMarkup(icon,title));
 const readingGuideIconMarkup = (size=24) => `<span class="reading-guide-icon" style="--reading-guide-icon-size:${size}px" aria-hidden="true"></span>`;
 const priceTag = ({amount,icon,label,originalAmount}) => `<span class="pricetag${originalAmount!==undefined?" pricetag--discounted":""}" role="img" aria-label="${esc(label)}"><svg class="pricetag-paper" viewBox="0 0 160 32" preserveAspectRatio="none" aria-hidden="true"><path d="M17 4C47 8 83-1 139 3C150 4 156 9 153 17C151 25 146 28 135 27C89 23 53 32 18 28C8 27 2 23 3 16C4 8 8 3 17 4Z" fill="currentColor"/></svg><img src="../brand/reed/${esc(icon)}-token.svg" alt="" width="20" height="20">${originalAmount!==undefined?`<span class="pricetag-discount-numbers" aria-hidden="true"><span class="pricetag-previous">${esc(originalAmount)}<svg class="pricetag-cross" viewBox="0 0 16 20" aria-hidden="true"><path d="m2 4 12 12M14 4 2 16"/></svg></span><strong>${esc(amount)}</strong></span><svg class="pricetag-offer-icon" viewBox="0 0 32 32" aria-hidden="true"><path fill-rule="evenodd" d="M7 6 16 5c1-.1 2 .3 2.8 1.1L29 16.4c1.3 1.3 1.3 3.4 0 4.7l-8 8c-1.3 1.3-3.4 1.3-4.7 0L6.1 18.8A3.6 3.6 0 0 1 5 16L6 8a2 2 0 0 1 1-2Z M9.5 7.7a2.3 2.3 0 1 0 0 4.6a2.3 2.3 0 1 0 0-4.6Z M16.2 11.1 20 27l1.5-.4-3.8-15.9Z M14 15.9a2.1 2.1 0 1 0 0 4.2a2.1 2.1 0 1 0 0-4.2Z M23 17.9a2.1 2.1 0 1 0 0 4.2a2.1 2.1 0 1 0 0-4.2Z"/><path d="m9.4 8.8 1-6.9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>`:`<span>${esc(amount)}</span>`}</span>`;
 const filterIconMarkup = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6.5 7.2v5.1l-3 1.7v-6.8L4 5Z"/></svg>';
@@ -202,10 +204,11 @@ function libraryFiltersMarkup(s) {
 
 export function libraryView(s) {
   const c = words[s.language];
+  injectPageHeaderTitle(s,collectionIconMarkup("library",24),c.books);
   const selected = s.catalog.booksById.get(s.openBookId);
   return `<section class="library-screen">
     ${["bookshelf","decks"].includes(s.libraryOrigin) ? `<button class="text-button collection-back" type="button" data-action="bookshelf" ${s.libraryOrigin === "decks" ? 'data-tab="decks"' : ""}>${s.libraryOrigin === "decks" ? collectionIconMarkup("decks",18) : collectionIconMarkup("shelf",18)}${s.libraryOrigin === "decks" ? c.deckCollectionBack : c.shelfBack}</button>` : ""}
-    <div class="screen-heading library-heading"><h1 tabindex="-1">${collectionIconMarkup("library",30)}${c.books}</h1></div>
+    <h1 class="sr-only" tabindex="-1">${collectionIconMarkup("library",30)}${c.books}</h1>
     <form class="book-search" role="search" data-book-search><label class="sr-only" for="book-search">${c.searchBooks}</label>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
       <input type="search" id="book-search" placeholder="${c.searchBooks}" value="${esc(s.libraryQuery || "")}" maxlength="200" autocomplete="off" enterkeyhint="search" aria-controls="book-search-results">
@@ -229,13 +232,15 @@ function deckTileWatermark(type) {
 function deckTileMarkup(s,deck,{book,action="open-deck"}={}) {
   const c=words[s.language],quoteCount=deckQuoteCount(s,deck);
   const language=(()=>{try{return new Intl.DisplayNames([s.language],{type:"language"}).of(deck.language)||deck.language;}catch{return deck.language;}})();
-  const flag=["es","en"].includes(deck.language) ? `<img class="deck-language-flag" src="../brand/icons/languages/${deck.language}.svg" width="16" height="12" alt="">` : `<svg class="deck-language-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span>${esc(deck.language)}</span>`;
+  const languageIndicator=["es","en"].includes(deck.language)
+    ? `<img class="deck-language-flag" src="../brand/icons/languages/${deck.language}.svg" width="16" height="12" alt="">`
+    : `<img class="deck-language-icon" src="../brand/icons/languages/globe.svg" width="16" height="16" alt=""><span>${esc(deck.language)}</span>`;
   const recommended=deck.isRecommended,isQuote=quoteDominant(s,deck,quoteCount),quoteClass=isQuote ? " deck-tile--quote-dominant" : "";
   const bookTitle=book ? displayedBookTitle(s,book,true) : null;
   const name=[contentText(deck.title,s.language,deck.language),`${c.by} ${deck.creator.name}`,bookTitle?.text,c.noteCardsCount(deck.cardCount),c.quoteCount(quoteCount),language,deck.status === "draft" ? c.deckInProgress : null,recommended ? c.teamRecommendationShort : null].filter(Boolean).join(", ");
   return `<article class="deck-tile${quoteClass}${book ? " deck-tile--collection" : ""}"${book ? ' role="listitem"' : ""}>${deckTileWatermark(cardTypeFor({isQuote}))}<button class="deck-tile-open" type="button" data-action="${action}" data-deck="${esc(deck.id)}" ${action === "open-deck" ? 'aria-haspopup="dialog"' : ""} title="${esc(language)}${recommended ? ` · ${esc(c.recommended)}` : ""}" aria-label="${esc(name)}">${recommended ? deckDistinctionMarkup(c) : ""}</button>
     <span class="deck-tile-copy"><strong lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</strong>${bookTitle ? `<span class="deck-tile-book" lang="${esc(bookTitle.language)}" dir="auto">${esc(bookTitle.text)}</span>` : ""}<span class="deck-creator deck-tile-creator">${deckCreator(deck)}</span>
-    <span class="deck-tile-metadata"><span class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="${esc(c.noteCardsCount(deck.cardCount))}">${cardsIconMarkup}<span>${deck.cardCount}</span></span>${quoteCount>0?`<span class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="${esc(c.quoteCount(quoteCount))}">${quoteMarkMarkup}<span>${quoteCount}</span></span>`:""}<span class="deck-tile-count deck-tile-language" aria-hidden="true" title="${esc(language)}">${flag}</span>${deckStatusMarkup(s,deck,{compact:true})}</span></span></article>`;
+    <span class="deck-tile-metadata"><span class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="${esc(c.noteCardsCount(deck.cardCount))}">${cardsIconMarkup}<span>${deck.cardCount}</span></span>${quoteCount>0?`<span class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="${esc(c.quoteCount(quoteCount))}">${quoteMarkMarkup}<span>${quoteCount}</span></span>`:""}<span class="deck-tile-count deck-tile-language" aria-hidden="true" title="${esc(language)}">${languageIndicator}</span>${deckStatusMarkup(s,deck,{compact:true})}</span></span></article>`;
 }
 
 function deckCollectionMarkup(s) {
@@ -259,13 +264,14 @@ function deckCollectionMarkup(s) {
 export function bookshelfView(s) {
   const c = words[s.language];
   const activeTab=s.readOnly ? "shelf" : s.bookshelfTab || "shelf";
+  if(!s.readOnly)injectPageHeaderTitle(s,collectionIconMarkup("bookcase",24),c.bookcase);
   const entries=s.readOnly ? (s.profileData?.bookshelf || []).map(entry=>({...entry,group:entry.group||entry.reading,book:s.catalog.booksById.get(entry.bookId)})).filter(entry=>entry.book) : bookshelfBooks(s);
   if (s.readOnly) s={...s,statuses:Object.fromEntries(entries.map(entry=>[entry.book.id,entry.group]))};
   const selected = s.catalog.booksById.get(s.openBookId);
   const groups = [["reading",c.readingStatus],["to-read",c.toRead],["read",c.readStatus]];
   return `<section class="bookshelf-screen">
     ${s.readOnly ? `<a class="text-button" href="#profile/${encodeURIComponent(s.profileData.profile.id)}">${c.profileBack}</a><p class="bookshelf-owner"><bdi>${esc(s.profileData.profile.name)}</bdi> · ${c.readOnly}</p>` : ""}
-    <div class="screen-heading bookshelf-heading"><h1 tabindex="-1">${collectionIconMarkup(s.readOnly ? "shelf" : "bookcase",30)}${s.readOnly ? c.shelf : c.bookcase}</h1></div>
+    ${s.readOnly ? `<h1 class="sr-only" tabindex="-1">${collectionIconMarkup("shelf",30)}${c.shelf}</h1>` : `<h1 class="sr-only" tabindex="-1">${collectionIconMarkup("bookcase",30)}${c.bookcase}</h1>`}
     ${s.readOnly ? "" : collectionTabs(s,activeTab)}
     ${activeTab === "decks" && !s.readOnly ? deckCollectionMarkup(s) : entries.length ? `
       ${groups.map(([key,title])=>{
@@ -322,7 +328,7 @@ export function practiceView(s,session) {
     return `<section class="practice-screen practice-empty">${back}<div class="practice-choice-mascot">${mascotArt("sprout")}</div><h1 tabindex="-1">${esc(message)}</h1>${links.length?`<nav class="practice-empty-links" aria-label="${esc(c.practiceSources)}">${links.join("")}</nav>`:""}<button class="practice-response practice-response--remembered" type="button" data-action="practice-choose">${esc(c.practiceChooseAgain)}</button></section>`;
   }
   if(s.practiceStage === "choose" && s.activePracticeSession) return `<section class="practice-screen practice-choose">${back}<div class="practice-choice-mascot">${mascotArt("sprout")}</div><h1 tabindex="-1">${esc(c.practiceResumeTitle)}</h1><p class="practice-resume-topic">${esc(c[`practiceTopic_${s.activePracticeSession.topic}`])}</p><button class="practice-response practice-response--remembered practice-resume" type="button" data-action="practice-resume">${esc(c.practiceResume)} · ${s.activePracticeSession.index}/${s.activePracticeSession.cardIds.length}</button></section>`;
-  const help=`<dialog class="practice-help-modal" aria-labelledby="practice-help-title"><div class="practice-help-shell"><button class="practice-help-close" type="button" data-action="close-practice-help" aria-label="${esc(c.practiceHelpClose)}">${closeIconMarkup}</button><article class="practice-help-panel"><div class="practice-help-inner"><h2 id="practice-help-title">${esc(c.practiceHelpTitle)}</h2><dl class="practice-help-list">${practiceTopics.map(topic=>`<div class="practice-help-item practice-help-item--${topic}"><span class="practice-help-icon" aria-hidden="true">${practiceDeckIcon(topic)}</span><div><dt>${esc(c[`practiceTopic_${topic}`])}</dt><dd>${esc(c[`practiceHelp${topic[0].toUpperCase()+topic.slice(1)}`])}</dd></div></div>`).join("")}</dl><p class="practice-help-session">${esc(c.practiceHelpSession)}</p></div></article></div></dialog>`;
+  const help=`<dialog class="practice-help-modal" aria-labelledby="practice-help-title"><div class="practice-help-shell"><button class="dialog-close practice-help-close" type="button" data-action="close-practice-help" aria-label="${esc(c.practiceHelpClose)}">${closeIconMarkup}</button><article class="practice-help-panel"><div class="practice-help-inner"><h2 id="practice-help-title">${esc(c.practiceHelpTitle)}</h2><dl class="practice-help-list">${practiceTopics.map(topic=>`<div class="practice-help-item practice-help-item--${topic}"><span class="practice-help-icon" aria-hidden="true">${practiceDeckIcon(topic)}</span><div><dt>${esc(c[`practiceTopic_${topic}`])}</dt><dd>${esc(c[`practiceHelp${topic[0].toUpperCase()+topic.slice(1)}`])}</dd></div></div>`).join("")}</dl><p class="practice-help-session">${esc(c.practiceHelpSession)}</p></div></article></div></dialog>`;
   const recoveryReason=s.practiceUnavailable?.reason;
   const recoveryNotice=["practiceSessionCancelled","practiceSessionUnavailable","practicePriceChanged"].includes(recoveryReason)?`<p class="practice-recovery-message" role="status">${esc(recoveryReason==="practiceSessionCancelled"?c.practiceSessionCancelled:recoveryReason==="practicePriceChanged"?c.practicePriceChanged:c.practiceSessionUnavailable)}</p>`:"";
   return `<section class="practice-screen practice-choose">${back}<div class="practice-choice-mascot">${mascotArt("sprout")}</div><div class="practice-question-row"><h1 tabindex="-1">${esc(c.practiceQuestion)}</h1><button class="practice-help-trigger" type="button" data-action="open-practice-help" aria-label="${esc(c.practiceHelp)}" aria-haspopup="dialog" title="${esc(c.practiceHelp)}"><span aria-hidden="true">i</span></button></div>${recoveryNotice}<div class="practice-topics">${practiceTopics.map(topic=>{
@@ -397,7 +403,7 @@ const attributionIcons = {
 };
 const linkArrow = '<svg class="attribution-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>';
 const attributionIcon = kind => `<svg class="attribution-icon" viewBox="0 0 24 24" aria-hidden="true">${attributionIcons[kind]}</svg>`;
-export const bottomNavigationProfileIconMarkup = () => `<svg class="bottom-navigation-profile-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${attributionIcons.user}</svg>`;
+export const bottomNavigationProfileIconMarkup = () => `<svg class="bottom-navigation-profile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${attributionIcons.user}</svg>`;
 
 function nameLink({icon,name,language=null,href=null}) {
   if (!name) return "";
@@ -452,6 +458,7 @@ function exclusiveCardMarkup(s,card,position="",navigation=null) {
 
 export function dailyView(s) {
   const c=words[s.language], item=s.daily, card=item&&s.catalog.cardsById.get(item.id);
+  injectPageHeaderTitle(s,calendarIconMarkup(),c.daily);
   const month=s.calendarMonth||s.dailyToday?.day?.slice(0,7)||new Date().toISOString().slice(0,7);
   const [year,monthNumber]=month.split("-").map(Number),first=new Date(Date.UTC(year,monthNumber-1,1,12));
   const offset=(first.getUTCDay()+6)%7,daysInMonth=new Date(Date.UTC(year,monthNumber,0,12)).getUTCDate();
@@ -476,8 +483,8 @@ export function dailyView(s) {
   const streak=dailyIdeaStreak(s.dailyHistory,s.dailyToday?.day);
   const streakStatus=streak.seenToday?c.dailyStreakToday:streak.days?c.dailyStreakContinue:c.dailyStreakStart;
   const streakMarkup=`<div class="daily-streak" role="status"><img src="../brand/reed/streak-flame.svg?v=3" alt="" width="42" height="42"><div><strong>${esc(c.dailyStreakDays(streak.days))}</strong><span>${esc(streakStatus)}</span></div></div>`;
-  return `<section class="daily-screen"><div class="screen-heading"><h1 tabindex="-1" class="daily-title">${calendarIconMarkup()}<span>${c.daily}</span></h1></div>
-    ${calendar}${card ? `${streakMarkup}${exclusive}` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p></div>`}
+  return `<section class="daily-screen"><h1 class="sr-only" tabindex="-1">${calendarIconMarkup()}<span>${c.daily}</span></h1>
+    ${calendar}${card ? `${streakMarkup}${exclusive}` : `<div class="empty-state"${s.dailyLoading?' role="status" aria-live="polite"':''}><p>${s.dailyLoading?c.dailyLoading:s.storageAvailable ? c.empty : c.storage}</p></div>`}
     </section>`;
 }
 
@@ -800,6 +807,9 @@ export function authorFormView(s) {
 
 export function profileView(s) {
   const c=words[s.language];
+  const profileBackLabel=c.backToPrevious.replace(/^[←‹]\s*/u,"")||c.backToPrevious;
+  const profileBack=s.showProfileBack?`<button class="icon-button profile-header-back" type="button" data-action="profile-back" aria-label="${esc(profileBackLabel)}" title="${esc(profileBackLabel)}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m15 18-6-6 6-6"/></svg></button>`:"";
+  s.injectHeaderLeading?.(`${profileBack}${pageHeaderTitleMarkup(bottomNavigationProfileIconMarkup(),c.profile)}`);
   if (!s.profileData) return profilePendingView(s);
   const p=s.profileData.profile,counts=p.counts;
   const shelfAction=s.userId === p.id ? "" : `<a class="text-button" href="#bookshelf/${encodeURIComponent(p.id)}">${c.viewShelf} →</a>`;

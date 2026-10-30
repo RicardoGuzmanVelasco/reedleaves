@@ -168,6 +168,15 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.ok(started.session.cardIds.every(cardId=>deckCardIds.has(cardId)));
   });
 
+  test(`${dialect}: a practice session covers every available book before repeating one`,async t=>{
+    const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
+    await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'reading') ON CONFLICT(user_id,book_id) DO UPDATE SET status=excluded.status").run(session.user_id,"atomic-habits");
+    await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,"atomic-habits-editorial");
+    const started=await startPracticeSession(db,session,"reading",now);
+    const selectedBooks=await db.prepare(`SELECT DISTINCT book_id FROM cards WHERE id IN (${started.session.cardIds.map(()=>"?").join(",")})`).all(...started.session.cardIds);
+    assert.equal(selectedBooks.length,2);
+  });
+
   test(`${dialect}: every practice mode filters by the saved card language and an active session keeps its cards`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     const before=await readReaderLanguagePreferences(db,session);

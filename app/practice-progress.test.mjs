@@ -59,6 +59,31 @@ test("Practice samples cards without replacement and leaves its input untouched"
   assert.deepEqual(cards,original);
 });
 
+test("Practice uses another book before repeating one when the selected set allows it",()=>{
+  const cards=[
+    {id:"a1",bookId:"book-a",deckId:"deck-a1"},
+    {id:"a2",bookId:"book-a",deckId:"deck-a2"},
+    {id:"b1",bookId:"book-b",deckId:"deck-b1"},
+    {id:"c1",bookId:"book-c",deckId:"deck-c1"}
+  ];
+  const result=selectPracticeCards(cards,{},3,()=>0);
+  assert.equal(result.length,3);
+  assert.equal(new Set(result.map(card=>card.bookId)).size,3);
+});
+
+test("Practice falls back to distinct decks when a reader has only one available book",()=>{
+  const cards=[
+    {id:"a1",bookId:"book-a",deckId:"deck-a1"},
+    {id:"a2",bookId:"book-a",deckId:"deck-a2"},
+    {id:"a3",bookId:"book-a",deckId:"deck-a3"},
+    {id:"a4",bookId:"book-a",deckId:"deck-a3"}
+  ];
+  const result=selectPracticeCards(cards,{},3,()=>0);
+  assert.deepEqual(result.map(card=>card.id),["a1","a2","a3"]);
+  const additional=selectPracticeCards(cards,{},4,()=>0);
+  assert.equal(new Set(additional.map(card=>card.id)).size,4);
+});
+
 test("Practice weights each card, not its response group",()=>{
   const cards=[...Array.from({length:8},(_,index)=>({id:`unanswered-${index}`})),{id:"less"}];
   const result=selectPracticeCards(cards,{less:"soon"},1,()=>0.1);
