@@ -169,7 +169,8 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 ## Intereses de libros
 
 - Cada interés muestra el emoji aprobado y su nombre localizado en las fichas, la preview del libro y el editor. El catálogo conserva emoji y color; la interfaz no mantiene otra lista por ID. El emoji es decorativo y no sustituye el nombre accesible.
-- Los chips usan un degradado radial tenue de blanco al color del interés, tinta del proyecto y una composición común. Sin borde ni sombra propia. Los chips completos envuelven al faltar ancho.
+- Los chips informativos usan el color del interés en el centro, degradado hacia el papel en los extremos, tinta del proyecto y una composición común. Sin borde, sombra ni interacción. Los chips completos envuelven al faltar ancho.
+- En la vista del perfil, mostrar primero los intereses positivos en su orden guardado, con tick verde a la derecha; después los descartados en su orden, con aspa roja. Sin encabezados de grupo, números ni separadores de fila. Conservar el significado de cada preferencia para lectores de pantalla.
 - Las casillas reales se presentan en superficies luminosas con profundidad y pulsación táctil; mantienen nombre completo, foco visible y posición estable. Movimiento reducido elimina desplazamientos. El selector de filtro conserva opciones nativas de texto y una etiqueta sin emoji.
 - Software y Mindfulness están disponibles en español e inglés. No asignar Mindfulness a libros de crecimiento personal por asociación general; clasificar según el contenido del libro.
 
