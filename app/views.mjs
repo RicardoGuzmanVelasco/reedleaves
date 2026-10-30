@@ -232,7 +232,9 @@ function deckTileWatermark(type) {
 function deckTileMarkup(s,deck,{book,action="open-deck"}={}) {
   const c=words[s.language],quoteCount=deckQuoteCount(s,deck);
   const language=(()=>{try{return new Intl.DisplayNames([s.language],{type:"language"}).of(deck.language)||deck.language;}catch{return deck.language;}})();
-  const languageIndicator=`<img class="deck-language-icon" src="../brand/icons/languages/globe.svg" width="16" height="16" alt=""><span>${esc(deck.language)}</span>`;
+  const languageIndicator=["es","en"].includes(deck.language)
+    ? `<img class="deck-language-flag" src="../brand/icons/languages/${deck.language}.svg" width="16" height="12" alt="">`
+    : `<img class="deck-language-icon" src="../brand/icons/languages/globe.svg" width="16" height="16" alt=""><span>${esc(deck.language)}</span>`;
   const recommended=deck.isRecommended,isQuote=quoteDominant(s,deck,quoteCount),quoteClass=isQuote ? " deck-tile--quote-dominant" : "";
   const bookTitle=book ? displayedBookTitle(s,book,true) : null;
   const name=[contentText(deck.title,s.language,deck.language),`${c.by} ${deck.creator.name}`,bookTitle?.text,c.noteCardsCount(deck.cardCount),c.quoteCount(quoteCount),language,deck.status === "draft" ? c.deckInProgress : null,recommended ? c.teamRecommendationShort : null].filter(Boolean).join(", ");

@@ -14,6 +14,13 @@ test("Official name stays Reedleaves on every screen and in every interface lang
   const html = readFileSync(new URL("./index.html",import.meta.url),"utf8");
   assert.match(html,/<title>Reedleaves · Inicio<\/title>/);
   assert.match(html,/<meta name="application-name" content="Reedleaves">/);
+  const languageSelector=html.match(/<span id="language-label"[^>]*>(.*?)<\/span>\s*<div class="segmented-selector" id="language-selector"[^>]*>([\s\S]*?)<\/div>/)?.slice(1) || [];
+  assert.equal(languageSelector[0],"Idioma");
+  assert.match(html,/id="language-label" class="sr-only"/);
+  assert.match(languageSelector[1]||"",/languages\/es\.svg/);
+  assert.match(languageSelector[1]||"",/languages\/en\.svg/);
+  assert.doesNotMatch(languageSelector[1]||"",/globe\.svg|>ES<|>EN</);
+  assert.match(readFileSync(new URL("./reader.css",import.meta.url),"utf8"),/#language-selector\{[^}]*margin:0 auto/);
   const header=html.match(/<header class="app-header">([\s\S]*?)<\/header>/)?.[1] || "";
   assert.doesNotMatch(header,/class="brand"|brand-name|d-compacto\.svg/);
   const actions=header.match(/<div class="header-actions">([\s\S]*?)<\/div>/)?.[1] || "";

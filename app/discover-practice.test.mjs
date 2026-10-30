@@ -36,6 +36,17 @@ test("Discover fills from earlier levels before using later levels",()=>{
   assert.equal(result.required,4);
 });
 
+test("Discover reaches a new book tier before repeating a preferred book",()=>{
+  const candidates=[
+    {id:"liked-1",bookId:"outside-liked",deckId:"deck-liked"},
+    {id:"liked-2",bookId:"outside-liked",deckId:"deck-liked"},
+    {id:"flagged",bookId:"outside-flagged",deckId:"deck-flagged"}
+  ];
+  const result=selectDiscoverPracticeCards(candidates,books,preferences,[],{},2,()=>0);
+  assert.deepEqual(result.selected.map(card=>card.id),["liked-1","flagged"]);
+  assert.equal(new Set(result.selected.map(card=>card.bookId)).size,2);
+});
+
 test("Frequency weights affect only the lottery inside a level",()=>{
   const sameLevel=[
     {id:"less",bookId:"outside-liked"},

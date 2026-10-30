@@ -122,8 +122,13 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
       assert.ok(label.includes(c.quoteCount(quoteCount)),"The tile describes its quote count accessibly");
       const languageName=new Intl.DisplayNames([language],{type:"language"}).of(choice.deck.language);
       assert.ok(label.includes(languageName),"The deck language remains accessible");
-      assert.match(html,/brand\/icons\/languages\/globe\.svg/);
-      assert.doesNotMatch(html,/brand\/icons\/languages\/(?:en|es)\.svg/);
+      if (["es","en"].includes(choice.deck.language)) {
+        assert.match(html,new RegExp(`brand/icons/languages/${choice.deck.language}\\.svg`));
+        assert.doesNotMatch(html,/deck-language-icon|>es<|>en</);
+      } else {
+        assert.match(html,/brand\/icons\/languages\/globe\.svg/);
+        assert.ok(html.includes(`>${choice.deck.language}</span>`));
+      }
       assert.equal(html.includes('class="deck-tile-count deck-tile-quote-count"'),quoteCount>0,"Only decks with quotes show a quote-count chip");
       assert.ok(html.includes(c.noteCardsCount(deck.cardCount)),"Every tile shows its card count");
       assert.ok(html.includes(`title="${c.noteCardsCount(deck.cardCount)}"`),"The card count chip has a localized title");

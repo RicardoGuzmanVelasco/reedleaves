@@ -24,7 +24,7 @@
   <link rel="icon" type="image/svg+xml" sizes="any" href="../brand/reed/d-compacto.svg">
   <link rel="stylesheet" href="mascot-art.css?v=flower-15-days">
   <link rel="stylesheet" href="book-list.css">
-  <link rel="stylesheet" href="reader.css?v=navigation-badge-corner-6">
+  <link rel="stylesheet" href="reader.css?v=language-flags-settings-1">
   <link rel="stylesheet" href="interest-choice.css?v=profile-choice-1">
 
   <link rel="stylesheet" href="card-themes.css?v=reading-guides-2">
@@ -66,8 +66,8 @@
   <dialog class="growth-feedback-modal" id="growth-feedback" aria-labelledby="growth-feedback-title"></dialog>
   <dialog class="settings-modal" id="settings" aria-labelledby="settings-title">
     <div class="settings-heading"><h2 id="settings-title">Ajustes</h2><button class="dialog-close" id="close-settings" type="button" aria-label="Cerrar ajustes" autofocus><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
-    <p id="language-label">Idioma</p>
-    <div class="segmented-selector" role="group" aria-labelledby="language-label"><button type="button" data-language="es" aria-pressed="true" lang="es"><img class="language-icon" src="../brand/icons/languages/globe.svg" width="16" height="16" alt="">Español</button><button type="button" data-language="en" aria-pressed="false" lang="en"><img class="language-icon" src="../brand/icons/languages/globe.svg" width="16" height="16" alt="">English</button></div>
+    <span id="language-label" class="sr-only">Idioma</span>
+    <div class="segmented-selector" id="language-selector" role="group" aria-labelledby="language-label"><button type="button" data-language="es" aria-pressed="true" lang="es"><img class="language-flag-icon" src="../brand/icons/languages/es.svg" width="16" height="12" alt="">Español</button><button type="button" data-language="en" aria-pressed="false" lang="en"><img class="language-flag-icon" src="../brand/icons/languages/en.svg" width="16" height="12" alt="">English</button></div>
     <p id="settings-error" class="settings-error" role="alert" hidden></p>
     <button type="button" class="primary" id="open-feedback" aria-haspopup="dialog">Enviar comentarios</button>
     <div id="account-controls" class="settings-account"></div>

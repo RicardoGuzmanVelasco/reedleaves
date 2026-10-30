@@ -59,6 +59,7 @@
 .deck-tile-copy strong{display:-webkit-box;width:100%;padding-inline-end:0;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3;font-size:18px;line-height:1.2;overflow-wrap:anywhere}
 .deck-tile-creator{font-size:11px;margin:2px 0 4px;width:100%}
 .deck-language-icon{display:block;width:16px;height:16px;flex:none}
+.deck-language-flag{display:block;width:16px;height:12px;flex:none}
 .team-recommendation{position:absolute;left:8px;top:-14px;display:flex;align-items:center;justify-content:center;width:142px;max-width:calc(100% - 8px);height:30px;transform:rotate(-1deg);color:#684700;border:0;box-shadow:none;pointer-events:none}
 .team-recommendation-paper{position:absolute;inset:0;width:100%;height:100%;background:linear-gradient(170deg,#fff3ca 0%,#fce6a6 30%,#f0d28b 65%,#fbe7b1 100%);mask:url("../brand/icons/collections/deck-badge.svg") center/100% 100% no-repeat;-webkit-mask:url("../brand/icons/collections/deck-badge.svg") center/100% 100% no-repeat}
 .team-recommendation-outline{position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:#a58337;stroke-width:1}
@@ -77,6 +78,7 @@
 .deck-modal #deck-dialog-title{padding-inline-end:35px}
 .deck-modal h2{font-size:30px;line-height:1.18;overflow-wrap:anywhere}
 .deck-modal .deck-description{margin-top:20px}
+/* Modal close controls share the same hit target, icon and surface; modifiers only position them. */
 .dialog-close{display:grid;place-items:center;flex:none;width:44px;height:44px;padding:0;border:1px solid rgb(23 61 44 / 24%);border-radius:50%;background:#fffdf6;color:var(--ink);box-shadow:0 3px 8px rgb(23 61 44 / 12%)}.dialog-close svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.dialog-close:hover{background:#eef3df}.dialog-close:active{transform:translateY(2px);box-shadow:0 1px 3px rgb(23 61 44 / 12%)}
 .deck-modal-close{position:absolute;top:15px;right:15px;z-index:1}
 .deck-modal.book-modal .deck-modal-close,.deck-modal.deck-detail-modal .deck-modal-close{top:3px;right:0}
@@ -218,7 +220,6 @@
 .external-link-arrow{width:14px;height:14px}.book-links-note{font-size:10px;color:var(--muted);line-height:1.5;margin-top:9px}
 @media(max-width:380px){.book-external-link{grid-template-columns:20px minmax(0,1fr) 12px;padding:9px 8px;gap:6px}.book-external-link>img{width:20px;height:20px}.external-link-arrow{width:12px;height:12px}.book-external-link-copy strong{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.book-external-link{transition:none}}
-.book-modal .deck-modal-close{width:44px;height:44px}
 @media(max-width:520px){.library-heading{margin:12px 0 23px}.library-heading h1{font-size:27px}.book-grid{gap:24px}}
 
 /* Personal authorship shares the reader's paper, depth and native dialogs. */
@@ -821,6 +822,8 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .settings-modal .segmented-selector{display:inline-flex;width:max-content;max-width:100%}
 .settings-modal .segmented-selector>button{flex:0 1 auto;min-width:0}
 .language-icon{width:16px;height:16px;margin-right:5px;flex:none}
+.language-flag-icon{width:16px;height:12px;margin-right:5px;flex:none}
+#language-selector{display:flex;width:max-content;max-width:100%;margin:0 auto 10px}
 .settings-account .settings-sign-out{display:block;margin:4px auto 0;color:var(--error);text-align:center}
 
 /* Prevent Safari's double-tap zoom while preserving pinch zoom and panning. */
@@ -963,4 +966,5 @@ textarea:focus-visible{outline:3px solid #8b541e;outline-offset:4px}
 @media(max-width:440px){.new-interest-mascot{margin-top:14px}.new-interest-instruction{font-size:21px}.new-interest-context,.new-interest-replacement{padding:12px}}
 .deck-remove-from-collection{display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;min-height:48px;padding:10px 12px;font-size:13px;line-height:1.35}.deck-remove-from-collection svg{display:block;flex:none;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
-html{overflow-x:clip}
+/* Keep accidental viewport overflow from turning into a horizontal page scroll. */
+html,body{overflow-x:clip}

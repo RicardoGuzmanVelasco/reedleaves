@@ -20,14 +20,34 @@ export function discoverPracticeLevels(cards,books,preferences,shelfBookIds=[]) 
   return levels;
 }
 
-/** Sort by level first, then use the shared per-card frequency lottery within each level. */
+/** Prefer one book at a time while respecting the six recommendation levels. */
 export function selectDiscoverPracticeCards(cards,books,preferences,shelfBookIds,answers={},count=5,random=Math.random) {
   const levels=discoverPracticeLevels(cards,books,preferences,shelfBookIds),required=Math.max(0,Math.floor(count));
   const available=levels.reduce((total,level)=>total+level.length,0),selected=[];
+  const selectedIds=new Set(),selectedBooks=new Set(),bookKey=card=>card.bookId??card.id;
+
+  // Walk the recommendation tiers and take at most one card per book first.
   for(const level of levels) {
     const remaining=required-selected.length;
     if(!remaining) break;
-    selected.push(...selectPracticeCards(level,answers,remaining,random));
+    const newBooks=level.filter(card=>!selectedBooks.has(bookKey(card)));
+    const bookCount=new Set(newBooks.map(bookKey)).size;
+    if(!bookCount) continue;
+    const batch=selectPracticeCards(newBooks,answers,Math.min(remaining,bookCount),random);
+    for(const card of batch) {
+      selected.push(card);selectedIds.add(card.id);selectedBooks.add(bookKey(card));
+    }
+  }
+
+  // If there are fewer eligible books than places in the session, fill the
+  // remaining places from the same recommendation tiers, preferring decks.
+  for(const level of levels) {
+    const remaining=required-selected.length;
+    if(!remaining) break;
+    const candidates=level.filter(card=>!selectedIds.has(card.id));
+    for(const card of selectPracticeCards(candidates,answers,remaining,random)) {
+      selected.push(card);selectedIds.add(card.id);
+    }
   }
   return {selected,available,required};
 }
