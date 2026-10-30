@@ -1,0 +1,71 @@
+/* The same two-step chooser is used by setup and profile editing. */
+.interest-choice-modal{padding:20px 24px}
+.interest-choice-modal [data-initial-interest-form]{max-height:calc(100dvh - 72px)}
+.interest-choice-modal .initial-interest-progress>span:not(.initial-interest-progress-line){width:28px;height:28px;font-size:13px}
+.interest-choice-modal .initial-interest-progress-line{width:32px}
+.interest-choice-modal h1{font-size:clamp(25px,4.8vw,32px);margin:16px auto 18px;line-height:1.15}
+.interest-choice-modal .initial-interest-content{flex:1;padding-bottom:3px}
+.interest-choice-modal .initial-interest-selector{margin-top:14px}
+.interest-choice-modal .reader-interest-options{grid-template-columns:max-content max-content;justify-content:center;gap:10px 8px}
+.interest-choice-modal .interest-option,
+.interest-choice-modal .interest-option:has(input:checked){
+  --interest-strong:color-mix(in srgb,var(--interest-color) 42%,#17191c);
+  --interest-depth:color-mix(in srgb,var(--interest-color) 65%,#77777b);
+  --profile-interest-edge:color-mix(in srgb,var(--interest-color) 60%,#919197);
+  min-height:44px;padding:8px 8px 8px 12px;gap:5px;border-width:1.5px;border-radius:999px;
+  box-shadow:0 2px 0 var(--interest-depth);
+  background:radial-gradient(ellipse at 50% 50%,var(--interest-color) 0%,color-mix(in srgb,var(--interest-color) 46%,#fffdf6) 44%,#fffdf6 100%);
+}
+.interest-choice-modal .interest-option:has(input:checked){--profile-interest-edge:var(--interest-strong);--interest-depth:color-mix(in srgb,var(--interest-color) 60%,var(--interest-strong))}
+.interest-choice-modal .interest-option-content{gap:10px}
+.interest-choice-modal .interest-emoji{width:1em;height:1em;font-size:20px;transform:none;transform-origin:50% 50%;transition:transform .24s cubic-bezier(.2,.8,.3,1)}
+.interest-choice-modal .interest-option:has(input:checked) .interest-emoji{transform:rotate(-12deg) scale(1.35)}
+.interest-choice-modal .interest-name{font-size:16px;font-weight:750;line-height:1.25;white-space:nowrap}
+.interest-choice-modal .interest-order{width:20px;height:20px;font-size:13px}
+.interest-choice-modal .interest-option:has(input:checked) .interest-order{background:var(--interest-strong);color:#fffdf6}
+.interest-choice-modal .interest-option:has(input[value="personal-growth"]){grid-column:1/-1;width:max-content;max-width:100%;justify-self:center}
+.interest-choice-modal .interest-option:is(:active,.is-pressed){transform:translateY(1px);box-shadow:0 1px 0 var(--interest-depth)}
+.interest-choice-modal .initial-interest-recommendation{width:fit-content;max-width:100%;margin:16px auto 0;padding:10px 14px;border:1px solid #dba95c;border-radius:13px;background:#fff0dd;color:#704219;font-size:14px;font-weight:650;line-height:1.4;text-align:center}
+.interest-choice-modal .initial-interest-incentive{margin:12px 0 0;padding:10px 13px;border-radius:15px}
+.interest-choice-modal .initial-interest-incentive p:first-child{margin-bottom:4px;font-size:14px}
+.interest-choice-modal .initial-interest-incentive p:last-child{font-size:12px;line-height:1.35}
+.interest-choice-modal .initial-interest-incentive .pricetag{min-width:58px}
+.interest-choice-modal .initial-interest-feedback:empty{display:none}
+.interest-choice-modal [data-initial-interest-form]>.initial-interest-actions{margin-top:8px;padding-top:8px;border-top:0}
+/* Reuse Practice's shimmer and wave; retain the normal primary action size. */
+.interest-choice-modal .initial-interest-actions .interest-choice-next.practice-launch{display:inline-flex;align-items:center;justify-content:center;gap:0;grid-template-columns:none;width:auto;min-height:49px;margin:0 0 0 auto;padding:12px 23px;border:2px solid var(--shadow);border-radius:17px;background:var(--green);box-shadow:0 5px 0 var(--shadow);font-size:14px;font-weight:850;line-height:normal;letter-spacing:normal;text-align:center;overflow:hidden}
+.interest-choice-modal .interest-choice-next.practice-launch::before{display:none}
+.interest-choice-modal .interest-choice-next.practice-launch .practice-launch-label{font:inherit;letter-spacing:inherit;line-height:inherit;transform:none}
+.interest-choice-modal .interest-choice-next.practice-launch:hover:not(:active) .practice-launch-label{transform:none}
+.interest-choice-modal .interest-option[data-interest-locked]{border-color:#bcc3b8;background:radial-gradient(ellipse at 50% 50%,#e8ebe4,#f6f7f0);box-shadow:0 2px 0 #c5ccbe;cursor:default}
+.interest-choice-modal .interest-option[data-interest-locked] .interest-option-content{opacity:.58;filter:grayscale(1)}
+.interest-choice-modal .interest-option[data-interest-locked] .interest-order{display:none}
+.interest-choice-modal .interest-option[data-interest-locked] .profile-interest-mark{display:grid;visibility:visible;position:static;flex:none;width:20px;height:20px;margin:0;border-radius:50%;background:#dce5d8;color:#608566;font-size:16px;opacity:.65}
+.interest-choice-modal .interest-option[data-interest-locked="notInterested"] .profile-interest-mark{background:#e8dedd;color:#986f69}
+.interest-choice-modal .interest-option[data-interest-locked]:is(:active,.is-pressed){transform:none;box-shadow:0 2px 0 #c5ccbe}
+.interest-choice-modal .interest-option[data-interest-locked] .interest-emoji{transform:none!important;animation:none!important;transition:none!important}
+@container(max-width:440px){.interest-choice-modal .interest-name{font-size:15px}}
+@container(max-width:350px){.interest-choice-modal .reader-interest-options{grid-template-columns:1fr}.interest-choice-modal .interest-option{width:max-content;max-width:100%;justify-self:center}}
+@media(max-width:440px){.interest-choice-modal{padding:18px 13px 20px}.interest-choice-modal [data-initial-interest-form]{height:calc(100dvh - 38px);max-height:calc(100dvh - 38px)}}
+@media(max-width:440px) and (max-height:600px){
+  .interest-choice-modal{padding-block:14px 16px}
+  .interest-choice-modal [data-initial-interest-form]{height:calc(100dvh - 30px);max-height:calc(100dvh - 30px)}
+  .interest-choice-modal h1{margin:12px auto 14px}
+  .interest-choice-modal .initial-interest-selector{margin-top:10px}
+  .interest-choice-modal .reader-interest-options{row-gap:8px}
+  .interest-choice-modal .initial-interest-recommendation{margin-top:12px;padding-block:8px}
+  .interest-choice-modal .initial-interest-incentive{margin-top:10px;padding-block:8px}
+  .interest-choice-modal [data-initial-interest-form]>.initial-interest-actions{margin-top:6px;padding-top:6px}
+}
+@media(prefers-reduced-motion:no-preference){
+  .interest-choice-modal .interest-option:has(input:checked) .interest-emoji{animation:interest-choice-picked .34s cubic-bezier(.2,.8,.3,1)}
+  @keyframes interest-choice-picked{0%{transform:rotate(0) scale(1)}58%{transform:rotate(-18deg) scale(1.55)}100%{transform:rotate(-12deg) scale(1.35)}}
+}
+@media(prefers-reduced-motion:reduce){.interest-choice-modal .interest-emoji{animation:none!important;transition:none!important;transform:none!important}}
+.interest-choice-modal>.dialog-close{position:absolute;top:12px;right:12px;z-index:2}
+
+/* Save hugs its label instead of consuming the free space beside Back. */
+.interest-choice-modal [data-initial-interest-form]>.initial-interest-actions .primary[data-initial-action="save"]{flex:0 0 auto;width:max-content;min-width:144px;padding-inline:28px}
+
+.interest-choice-modal [data-initial-interest-form]>.initial-interest-actions:has([data-initial-action="back"]){padding-inline:12px}
+.interest-choice-modal [data-initial-interest-form]>.initial-interest-actions [data-initial-action="back"]{min-height:48px;padding:10px 0;font-size:15px;font-weight:750;line-height:1.2}

@@ -3,7 +3,6 @@ import {createDiscoverAvailability} from "./discover-availability.mjs";
 import {mountDeckPresentation} from "./deck-presentation.mjs";
 import {deckPageHash,deckReadingHash,deckShareUrl} from "./deck-navigation.mjs";
 import {mountInterests,syncBookInterestSelector} from "./interests.mjs";
-import {toggleProfileInterest} from "./profile-interests.mjs";
 import {bookInterestError,selectBookInterest} from "./book-interests.mjs";
 import {mountBookLists,BOOK_VIEWS} from "./book-list.mjs";
 import {startBottomNavigationBehavior} from "./bottom-navigation-behavior.mjs";
@@ -100,6 +99,16 @@ export function startReader({createCardFeatures} = {}) {
     if(snapshot.user?.id!==userId)return;
     applyState({user:null});initialInterestStatus=null;authReturn="#home";mode="account";navigate("#account");
   }});
+  const profileInterestHost=document.createElement("div");profileInterestHost.id="profile-interest-host";document.body.append(profileInterestHost);
+  const focusProfileInterestEdit=()=>main.querySelector('[data-action="edit-profile-interests"]')?.focus({preventScroll:true});
+  const profileInterestEditor=mountInitialInterests({host:profileInterestHost,language,showModal:showAppModal,onUnmount:syncModalPageLock,store,request:(path,body)=>api.request(path,body),onCancel:focusProfileInterestEdit,onComplete:(result,userId)=>{
+    if(snapshot.user?.id!==userId)return;
+    interestPreferences={...result.state,userId};
+    homeInterestPreferencesGeneration++;homeInterestPreferencesRequest=null;
+    homeInterestPreferences=result.state;homeInterestPreferencesUserId=userId;
+    profileInterests={...result.state,feedback:"profileInterestSaved"};
+    if(mode==="profile"&&profileId===userId){render();focusProfileInterestEdit();live.textContent=words[language].profileInterestSaved;}
+  },onSessionExpired:userId=>{if(snapshot.user?.id!==userId)return;applyState({user:null});authReturn=location.hash;mode="account";navigate("#account");}});
   const newInterestHost=document.createElement("div");newInterestHost.id="new-interest-host";document.body.append(newInterestHost);
   const newInterests=mountNewInterests({host:newInterestHost,language,showModal:showAppModal,onUnmount:syncModalPageLock,store,request:(path,body)=>api.request(path,body),loadCatalog,onChange:state=>{if(state?.ready&&snapshot.user?.id===state.userId)catalog=state.catalog;},onComplete:(result,userId)=>{
     if(snapshot.user?.id!==userId)return;
@@ -180,7 +189,7 @@ export function startReader({createCardFeatures} = {}) {
       practiceStartRequest=null;
       practiceAnswerRequest=null;
       interestPreferences=null;interestPreferencesRequest=null;
-      displayedCurrency=null;newInterests.dispose();initialInterests.dispose();initialInterestStatus=null;
+      displayedCurrency=null;newInterests.dispose();initialInterests.dispose();profileInterestEditor.dispose();initialInterestStatus=null;
       libraryInterestSortGeneration++;libraryInterestSortPending=false;libraryInterestSortError=false;
     }
     authoritativeStateGeneration++;
@@ -529,6 +538,7 @@ export function startReader({createCardFeatures} = {}) {
       history.replaceState(history.state,"",interestRedirect.route);mode="home";openDeckId=null;openBookId=null;requestedId=null;
     }
     if(mode!=="home")newInterests.dispose();
+    if(mode!=="profile"||profileId!==snapshot.user?.id)profileInterestEditor.dispose();
     const enteredLibrary=mode==="library"&&!libraryVisitId;
     if(!inLibraryVisit(mode,bookOrigin)) { libraryVisitId=null;libraryNewBookIds=[]; }
     render({focus});
@@ -628,25 +638,6 @@ export function startReader({createCardFeatures} = {}) {
       else if(initialInterestHost.firstElementChild?.classList.contains("initial-interest-status")){initialInterestStatus=null;initialInterestHost.replaceChildren();syncModalPageLock();}
     } finally {
       if(homeInterestPreferencesRequest===request)homeInterestPreferencesRequest=null;
-    }
-  }
-  async function saveProfileInterests() {
-    if(!profileInterests?.editing||profileInterests.saving||!profileInterests.draft?.interested.length)return;
-    const before=profileInterests;
-    profileInterests={...before,saving:true,error:null,conflict:false};render();main.querySelector('[data-action="save-profile-interests"]')?.focus({preventScroll:true});
-    try {
-      const result=await api.request("/api/reader/interests/preferences",{interested:before.draft.interested,notInterested:before.draft.notInterested,revision:before.revision});
-      if(snapshot.user?.id!==profileId)return;
-      interestPreferences={...result,userId:profileId};
-      homeInterestPreferencesGeneration++;homeInterestPreferencesRequest=null;
-      homeInterestPreferences=result;homeInterestPreferencesUserId=profileId;
-      profileInterests={...result,editing:false,feedback:"profileInterestSaved"};render();main.querySelector('[data-action="edit-profile-interests"]')?.focus({preventScroll:true});live.textContent=words[language].profileInterestSaved;
-    } catch(error) {
-      if(snapshot.user?.id!==profileId)return;
-      if(error.status===409&&error.current)profileInterests={...before,saving:false,error:null,conflict:true,current:error.current};
-      else if(error.status===401){applyState({user:null});authReturn=location.hash;mode="account";navigate("#account");return;}
-      else profileInterests={...before,saving:false,error:"profileInterestSaveError"};
-      render();main.querySelector('[data-action="save-profile-interests"]')?.focus({preventScroll:true});
     }
   }
   async function saveProfileLanguages() {
@@ -1539,7 +1530,7 @@ export function startReader({createCardFeatures} = {}) {
     event.preventDefault();navigate(link.hash);
   });
   document.querySelectorAll("[data-language]").forEach(b=>b.addEventListener("click",async()=>{
-    if (snapshot.user) { await mutation("/api/reader/preferences",{language:b.dataset.language});initialInterests.setLanguage(language);newInterests.setLanguage(language); } else { language = restoreLanguage(b.dataset.language); store.save(keys.language,language); initialInterests.setLanguage(language);newInterests.setLanguage(language); render(); }
+    if (snapshot.user) { await mutation("/api/reader/preferences",{language:b.dataset.language});initialInterests.setLanguage(language);profileInterestEditor.setLanguage(language);newInterests.setLanguage(language); } else { language = restoreLanguage(b.dataset.language); store.save(keys.language,language); initialInterests.setLanguage(language);profileInterestEditor.setLanguage(language);newInterests.setLanguage(language); render(); }
   }));
   const currencyWallets=document.getElementById("currency-wallets"),currencyRecovery=document.getElementById("currency-recovery");
   currencyWallets.addEventListener("click",()=>setCurrencyRecoveryOpen(currencyWallets.getAttribute("aria-expanded")!=="true"));
@@ -1737,15 +1728,6 @@ export function startReader({createCardFeatures} = {}) {
   });
   main.addEventListener("change",async e=>{
     const input = e.target;
-    if(input.matches("[data-profile-interest]")&&profileInterests?.editing&&!profileInterests.saving){
-      const kind=input.dataset.profileInterest,id=input.value,target=kind;
-      const result=toggleProfileInterest(profileInterests.draft,id,target);
-      profileInterests={...profileInterests,draft:result.state,feedback:result.reason==="limit"?"profileInterestLimit":result.moved?"profileInterestMoved":null,error:null};
-      render();
-      main.querySelector(`[data-profile-interest="${kind}"][value="${CSS.escape(id)}"]`)?.focus({preventScroll:true});
-      if(profileInterests.feedback)live.textContent=words[language][profileInterests.feedback];
-      return;
-    }
     if(input.matches("[data-profile-language]")&&profileLanguages?.editing&&!profileLanguages.saving){
       const languages=profileLanguages.draft||[],tag=input.value;
       profileLanguages={...profileLanguages,draft:input.checked?[...languages,tag]:languages.filter(value=>value!==tag),error:null};
@@ -1819,7 +1801,7 @@ export function startReader({createCardFeatures} = {}) {
       case "profile-back": navigate(profileReturnHash || "#home"); break;
       case "retry-profile": profileData=null; profileError=null; loadProfile(true); render(); break;
       case "edit-profile-interests":
-        if(profileInterests&&!profileInterests.loading&&!profileInterests.error){profileInterests={...profileInterests,editing:true,draft:{interested:[...profileInterests.interested],notInterested:[...profileInterests.notInterested]},feedback:null,error:null,conflict:false};render();main.querySelector('[data-profile-interest="interested"]')?.focus({preventScroll:true});}
+        if(profileInterests&&!profileInterests.loading&&!profileInterests.error&&snapshot.user?.id===profileId)profileInterestEditor.open({userId:profileId,catalog,preferences:profileInterests,mode:"edit"});
         break;
       case "edit-profile-languages":
         if(profileLanguages&&!profileLanguages.loading&&!profileLanguages.error){profileLanguages={...profileLanguages,editing:true,draft:[...profileLanguages.languages],feedback:null,error:null,conflict:false};render();main.querySelector('[data-profile-language]')?.focus({preventScroll:true});}
@@ -1832,13 +1814,6 @@ export function startReader({createCardFeatures} = {}) {
         if(profileLanguages?.current){profileLanguages={...profileLanguages,...profileLanguages.current,editing:true,draft:[...profileLanguages.current.languages],feedback:null,error:null,conflict:false,current:null};render();main.querySelector('[data-profile-language]')?.focus({preventScroll:true});}
         break;
       case "retry-profile-languages": profileLanguages={loading:true};void loadProfile(true);render();break;
-      case "cancel-profile-interests":
-        if(profileInterests){profileInterests={...profileInterests,editing:false,draft:null,feedback:null,error:null,conflict:false,current:null};render();main.querySelector('[data-action="edit-profile-interests"]')?.focus({preventScroll:true});}
-        break;
-      case "save-profile-interests": void saveProfileInterests(); break;
-      case "recover-profile-interests":
-        if(profileInterests?.current){profileInterests={...profileInterests,...profileInterests.current,editing:true,draft:{interested:[...profileInterests.current.interested],notInterested:[...profileInterests.current.notInterested]},feedback:null,error:null,conflict:false,current:null};render();main.querySelector('[data-profile-interest="interested"]')?.focus({preventScroll:true});}
-        break;
       case "retry-profile-interests": profileInterests={loading:true};void loadProfile(true);render();break;
       case "create-book": openAuthorForm("book",{focusBookTitleEnd:b.dataset.focusBookTitleEnd==="true"}); break;
       case "open-duplicate-book":

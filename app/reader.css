@@ -95,8 +95,8 @@
 .header-tools{display:flex;align-items:center;gap:12px;width:100%}.header-leading{display:flex;align-items:center;min-width:0}.header-leading:empty{display:none}
 #open-settings{margin-left:0}.profile-header-back{min-height:44px;padding-inline:0;font-size:13px;white-space:nowrap}
 .interest-emoji{display:inline-grid;place-items:center;flex:none;width:1.35em;height:1.35em;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;font-size:20px;font-weight:400;line-height:1;vertical-align:middle}
-.deck-tags>.interest-chip{gap:7px;padding:7px 11px;border-radius:12px;color:var(--ink);background:radial-gradient(ellipse at 25% 10%,#fff 0%,var(--interest-color,var(--paper)) 100%);font-size:12px;white-space:normal}
-.deck-tags>.interest-chip .interest-emoji{font-size:22px}
+.deck-tags>.interest-chip{gap:6px;min-height:28px;padding:5px 10px;border:0;border-radius:999px;box-shadow:none;color:var(--ink);background:radial-gradient(ellipse at 50% 50%,var(--interest-color,var(--paper)) 0%,color-mix(in srgb,var(--interest-color,var(--paper)) 46%,#fffdf6) 44%,#fffdf6 100%);font-size:12px;white-space:normal;cursor:default}
+.deck-tags>.interest-chip .interest-emoji{width:1em;height:1em;font-size:16px}
 .book-genre-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:11px;padding:16px 12px 18px;border:1px solid #c6d2b8;border-radius:20px;background:radial-gradient(ellipse at 100% 100%,#d8efb3,transparent 65%),linear-gradient(25deg,#edf3d9,#fffdf6 80%)}
 .book-genre-fields legend{padding:0 6px;font-weight:800;font-size:15px}
 .book-interest-instructions{grid-column:1/-1;display:flex;align-items:flex-start;gap:12px;margin-bottom:2px}

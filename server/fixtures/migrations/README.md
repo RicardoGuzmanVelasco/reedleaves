@@ -33,6 +33,8 @@ anterior con otro nombre y añadir una prueba que migre desde él. No regenerar
 las copias antiguas desde el esquema nuevo, ni simular una versión anterior
 bajando solo `user_version`/`reed_schema`.
 
+Fixtures v54/v46: extraídos de `4b3fd78`, con las constantes de aplicación resueltas.
+
 `test-support/historical-database.mjs` abre el motor local, comprueba la versión
 de partida y carga el catálogo editorial histórico desde `catalog/`, usando el importador congelado en `test-support/historical-seed.mjs`. Estos archivos conservan la estructura antigua exclusivamente para comprobar migraciones; el seed y el catálogo activos no guardan bibliografía. Para v9/v10 de SQLite y v1/v2 de
 PostgreSQL, el validador actual del seed necesita temporalmente

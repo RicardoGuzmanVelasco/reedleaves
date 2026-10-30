@@ -18,7 +18,7 @@ async function fixture(t) {
 test("Real SQLite schema: five books, six authored decks and 42 single-language sample cards", async t => {
   const db = await fixture(t), catalog = await readCatalog(db);
   assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, cards: 42, genres: 7 });
-  assert.deepEqual(catalog.genres.find(genre=>genre.id === "society"),{id:"society",emoji:"🌍",color:"#E4EFFB",name:{es:"Sociedad",en:"Society"}});
+  assert.deepEqual(catalog.genres.find(genre=>genre.id === "society"),{id:"society",emoji:"🌍",color:"#8EC5EA",name:{es:"Sociedad",en:"Society"}});
   assert.equal(catalog.books.every(book=>!book.genres.includes("society")),true);
   assert.equal(catalog.cards.every(c => c.title[c.deckLanguage] && c.body[c.deckLanguage] && Object.keys(c.title).length === 1 && Object.keys(c.body).length === 1), true);
   assert.deepEqual(catalog.books.map(b => catalog.cards.filter(c => c.bookId === b.id).length), [14, 6, 7, 8, 7]);

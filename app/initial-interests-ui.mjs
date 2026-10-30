@@ -1,6 +1,7 @@
 import {createInitialInterestFlow} from "./initial-interests.mjs";
 import {initialInterestsView} from "./views.mjs";
 import {mountInterests,syncReaderInterestSelector} from "./interests.mjs";
+import {syncInterestChoice} from "./interest-choice.mjs";
 import {words} from "./i18n.mjs";
 
 // The Home owner supplies its modal page lock and handles post-save recovery.
@@ -8,22 +9,20 @@ export function mountInitialInterests({host,language="es",showModal=dialog=>dial
   let previous=null,shape=null,focusAction=null;
   const render=state=>{
     if(!state){host.replaceChildren();previous=null;shape=null;focusAction=null;onUnmount();return;}
-    const nextShape=JSON.stringify([state.draft.step,state.saving,state.error,state.conflict,state.storageAvailable]);
+    const nextShape=JSON.stringify([state.draft.step,state.saving,state.error,state.conflict,state.storageAvailable,state.mode]);
     const c=words[language],kind=state.draft.step===1?"interested":"notInterested",selected=state.draft[kind];
     if(nextShape===shape&&host.firstElementChild){
-      syncReaderInterestSelector(host.querySelector("fieldset"),selected,c);
-      host.querySelector("[data-initial-incentive]").hidden=state.draft.step===1&&!selected.length;
-      host.querySelector("[data-initial-recommendation]").hidden=selected.length<=3;
+      syncReaderInterestSelector(host.querySelector("fieldset"),selected,c,{choice:true,locked:state.draft[state.draft.step===1?"notInterested":"interested"]});
       host.querySelector("[data-initial-feedback]").textContent=state.feedback?c[state.feedback]:"";
-      host.querySelector('[type="submit"]').disabled=!state.draft.interested.length;
+      host.querySelector('[type="submit"]').disabled=!state.draft.interested.length||state.conflict;
     } else {
       const focused=host.ownerDocument.activeElement,action=focused?.dataset?.initialAction,scrollTop=host.querySelector(".initial-interest-content")?.scrollTop||0;
       if(action)focusAction=action;
       const changedStep=previous?.draft.step!==state.draft.step;
       host.innerHTML=initialInterestsView({catalog:state.catalog,language,initialInterests:state});
       mountInterests(host);const dialog=host.firstElementChild;
-      dialog.addEventListener("cancel",event=>event.preventDefault());
-      dialog.addEventListener("keydown",event=>{if(event.key==="Escape"){event.preventDefault();event.stopPropagation();}});
+      dialog.addEventListener("cancel",event=>{event.preventDefault();flow.cancel();});
+      dialog.addEventListener("keydown",event=>{if(event.key==="Escape"){event.preventDefault();event.stopPropagation();flow.cancel();}});
       showModal(dialog);
       const content=dialog.querySelector(".initial-interest-content");
       if(changedStep){dialog.querySelector("h1").focus({preventScroll:true});content.scrollTop=0;}
@@ -32,12 +31,13 @@ export function mountInitialInterests({host,language="es",showModal=dialog=>dial
         content.scrollTop=scrollTop;
       }
     }
+    syncInterestChoice(host,state,c);
     previous=state;shape=nextShape;
     options.onChange?.(state);
   };
   const flow=createInitialInterestFlow({...options,onChange:render});
   const change=event=>{const input=event.target.closest?.("[data-initial-interest]");if(input)flow.toggle(input.value,input.dataset.initialInterest);};
-  const click=event=>{const action=event.target.closest?.("[data-initial-action]")?.dataset.initialAction;if(action==="back")flow.back();else if(action==="recover")void flow.recover();};
+  const click=event=>{const action=event.target.closest?.("[data-initial-action]")?.dataset.initialAction;if(action==="back")flow.back();else if(action==="recover")void flow.recover();else if(action==="cancel")flow.cancel();};
   const submit=event=>{if(!event.target.matches("[data-initial-interest-form]"))return;event.preventDefault();if(flow.state?.draft.step===1)flow.next();else void flow.save();};
   host.addEventListener("change",change);host.addEventListener("click",click);host.addEventListener("submit",submit);
   // The host lives for the app's lifetime. Session changes reset the flow, then
