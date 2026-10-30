@@ -816,11 +816,12 @@ export function profileView(s) {
   const metrics=keys=>`<dl class="profile-metrics">${keys.map(key=>`<div><dt>${c[key]}</dt><dd>${new Intl.NumberFormat(s.language).format(counts[key])}</dd></div>`).join("")}</dl>`;
   const preferences=s.profileInterests;
   const languagePreferences=s.profileLanguages;
-  const interestList=(kind,ids,editable)=>`<section class="profile-interest-list" aria-labelledby="profile-${kind}"><h3 id="profile-${kind}">${c[kind === "interested" ? "profileInterested" : "profileNotInterested"]}</h3><ol>${ids.map((id,index)=>{const interest=s.catalog.genres.find(item=>item.id===id);if(!interest)return "";return `<li${interestColor(interest)}><span class="profile-interest-position" aria-hidden="true">${index+1}</span>${interestIcon(interest)}<span class="interest-name">${esc(interest.name[s.language])}</span><span class="profile-interest-mark profile-interest-mark--${kind}" aria-hidden="true">${kind === "interested" ? "✓" : "×"}</span></li>`;}).join("")}</ol>${!ids.length&&!editable?`<p class="profile-interests-empty">${c.profileInterestsEmpty}</p>`:""}</section>`;
+  const interestList=(kind,ids)=>ids.map(id=>{const interest=s.catalog.genres.find(item=>item.id===id);if(!interest)return "";return `<li class="profile-interest-item"><span class="sr-only">${esc(c[kind === "interested" ? "profileInterested" : "profileNotInterested"])}: </span><span class="interest-chip"${interestColor(interest)}>${interestIcon(interest)}<span class="interest-name">${esc(interest.name[s.language])}</span></span><span class="profile-interest-mark profile-interest-mark--${kind}" aria-hidden="true">${kind === "interested" ? "✓" : "×"}</span></li>`;}).join("");
   const interestEditor=()=>{
     if(!preferences||preferences.loading)return `<p class="profile-interests-loading" role="status">${c.loading}</p>`;
     if(preferences.error)return `<div class="profile-interest-error" role="alert"><p>${esc(c[preferences.error]||c.connectionError)}</p><button type="button" class="text-button" data-action="retry-profile-interests">${c.retry}</button></div>`;
-    return `<div class="profile-interests">${interestList("interested",preferences.interested,false)}${interestList("notInterested",preferences.notInterested,false)}</div>`;
+    const chips=interestList("interested",preferences.interested)+interestList("notInterested",preferences.notInterested);
+    return chips?`<ul class="profile-interests" role="list">${chips}</ul>`:`<p class="profile-interests-empty">${c.profileInterestsEmpty}</p>`;
   };
   const languageEditor=()=>{
     if(!languagePreferences||languagePreferences.loading)return `<p class="profile-interests-loading" role="status">${c.loading}</p>`;
