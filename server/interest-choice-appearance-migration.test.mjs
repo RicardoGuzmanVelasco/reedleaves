@@ -17,7 +17,9 @@ for(const [dialect,version] of [["sqlite",54],["postgres",46]])test(`${dialect}:
   // These are the actual released values, independent of the active seed.
   await db.exec("UPDATE genres SET color='#FAD7CE',emoji='🧘' WHERE id='mindfulness'; UPDATE genres SET color='#E4EFFB' WHERE id='software';");
   const session=await historicalReader(db);
-  await saveInitialReaderInterestPreferences(db,session,{interested:["finance","software","personal-growth"],notInterested:["mindfulness"],revision:0});
+  await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,0,NULL)").run(session.user_id);
+  const saved=await saveInitialReaderInterestPreferences(db,session,{interested:["finance","software","personal-growth"],notInterested:["mindfulness"],revision:0});
+  assert.deepEqual(saved.newlyGranted.map(({currency,amount})=>({currency,amount})),[{currency:"leaves",amount:3},{currency:"petals",amount:2}]);
   await db.exec("INSERT INTO genres(id,emoji,color) VALUES ('future-interest','📚','#123456');");
   await db.exec("INSERT INTO genre_translations(genre_id,language,name) VALUES ('future-interest','es','Futuro'),('future-interest','en','Future');");
   const before=await snapshot(db,dialect);
