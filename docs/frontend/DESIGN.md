@@ -80,6 +80,11 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 - Marcar «Leído» guarda la lectura y, si quedan barajas propias en borrador, abre un diálogo flotante para cerrarlas juntas. Cada fila muestra nombre y número de tarjetas, o «Vacía (se descartará)». «Confirmar» termina las que tienen contenido y descarta las vacías; «Mantener en borrador», Escape o cerrar conserva sus estados. La advertencia de congelación se muestra antes de confirmar, sin otro diálogo encadenado.
 - Un libro leído con notas pendientes permite recuperar ese diálogo desde «Barajas en borrador», junto al estado de lectura. El cierre devuelve al contexto de origen sin abrir un repaso. Los borradores locales deben guardarse o cancelarse antes de terminar sus barajas.
 
+## Guías de lectura
+
+- La pantalla de edición se centra en una sola tarea: escribir o editar la guía propia en un formulario con el tratamiento de las superficies y campos de autoría. No lista las guías comunitarias debajo del formulario.
+- La consulta de guías comunitarias ocurre en la vista dedicada de lectura, separada del editor. Mantener accesible «Volver a las barajas» y conservar el borrador y el error junto al formulario.
+
 ## Selector de barajas
 
 - Ordenar las barajas por prioridades sucesivas: distintivo visible; alguna tarjeta del usuario actual; título distinto de los títulos automáticos de `defaultNoteDeckTitle`; título sin las palabras «notas», «personales», «notes» o «personal». Conservar el orden previo cuando todos los criterios empatan. Incluir las guías de lectura en esta ordenación. Aplicar también dentro de cada grupo del Tarjetero.
