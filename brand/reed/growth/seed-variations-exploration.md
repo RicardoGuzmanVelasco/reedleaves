@@ -10,7 +10,7 @@ Lámina: `seed-variations-exploration.png`. Generada con la herramienta integrad
 
 ## Referencias
 
-- Familia vigente: cuerpos de `bodies/`, cara y anchuras de boca de `app/mascot-face.mjs`, escala y colocación de `app/mascot-art.css`. Se rasterizó una comparación de Maceta, Semilla, Raíz, Plántula y Brote para suministrarla como primera referencia.
+- Familia vigente: cuerpos de `bodies/`, cara y anchuras de boca de `app/mascot-face.mjs`, escala y colocación de `app/mascot-art.css`. Se rasterizó una comparación de Maceta, Semilla, Raíz, Germen y Brote para suministrarla como primera referencia.
 - `root-variations-exploration.png`: segunda referencia; tres siluetas diferentes de un mismo personaje.
 
 ## Prompt utilizado

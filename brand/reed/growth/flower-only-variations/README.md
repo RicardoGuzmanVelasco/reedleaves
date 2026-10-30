@@ -1,8 +1,8 @@
-# Flor sin tallo · estilo Plántula
+# Flor sin tallo · estilo Brote
 
 Segunda serie de exploraciones · 15 de octubre de 2026. **A · Flor elegida para la app**, como siguiente desbloqueo tras Tallo a los **15 días distintos de gasto de hojas por libro**. Las variantes B–F se conservan para otro momento.
 
-Petición del usuario: rehacer las seis flores mostrando **solo la flor**, sin tallo, y centrarse mucho más en el estilo de la mascota Plántula. La [serie anterior se conserva como «estilo tallo»](../flower-variations/README.md), con todas sus imágenes originales.
+Petición del usuario: rehacer las seis flores mostrando **solo la flor**, sin tallo, y centrarse mucho más en el estilo de la mascota Brote. La [serie anterior se conserva como «estilo tallo»](../flower-variations/README.md), con todas sus imágenes originales.
 
 ![Seis flores sin tallo](comparison.png)
 
@@ -17,9 +17,9 @@ Petición del usuario: rehacer las seis flores mostrando **solo la flor**, sin t
 
 ## Referencia y criterio de esta serie
 
-La única referencia de imagen es la **Plántula activa**, renderizada desde `../bodies/sprout.svg` con la cara compartida de `app/mascot-face.mjs`. Se conserva como [SVG](reference-plantula.svg) y [PNG](reference-plantula.png). No se han usado Tallo, la Plántula con tierra ni las flores anteriores como referencias de generación.
+La única referencia de imagen es el **Brote activo**, renderizado desde `../bodies/sprout.svg` con la cara compartida de `app/mascot-face.mjs`. Se conserva como [SVG](reference-brote.svg) y [PNG](reference-brote.png). No se han usado Tallo, el Brote con tierra ni las flores anteriores como referencias de generación.
 
-Se pide trasladar su simplicidad gráfica: formas orgánicas grandes, colores principales sencillos, pocas sombras de color y cara mínima verde oscura. Las hojas de Plántula son una referencia de lenguaje visual; no se añaden como partes de estas flores.
+Se pide trasladar su simplicidad gráfica: formas orgánicas grandes, colores principales sencillos, pocas sombras de color y cara mínima verde oscura. Las hojas del Brote son una referencia de lenguaje visual; no se añaden como partes de estas flores.
 
 Cada personaje termina en sus propios pétalos. No lleva tallo, cuello, cuerpo verde inferior, hojas laterales, sépalos, raíces, tierra o maceta. La flor ocupa todo el personaje.
 
@@ -31,7 +31,7 @@ La lámina permite comparar las seis a tamaño grande y la segunda muestra 128, 
 
 Comprobadas las seis: solo flor, sin tallo ni hojas; cara legible, silueta completa y transparencia en todos los PNG (1254 × 1254 px). A conserva el arquetipo más elemental; D tiene la silueta más compacta. La margarita pierde algo de contraste sobre crema. Girasol y amapola mantienen ahora la cara legible gracias al disco más claro y al pétalo frontal, respectivamente.
 
-El acabado elimina los grandes brillos blancos de la serie anterior y simplifica los planos. Las imágenes todavía presentan algunas transiciones suaves de tono; no son una reproducción literal de los colores completamente planos del SVG de Plántula.
+El acabado elimina los grandes brillos blancos de la serie anterior y simplifica los planos. Las imágenes todavía presentan algunas transiciones suaves de tono; no son una reproducción literal de los colores completamente planos del SVG de Brote.
 
 Estas imágenes son propuestas raster, con una cara aproximada a la compartida. Una elección de producto requerirá preparar cuerpo, cara y sombra independientes.
 

@@ -52,3 +52,15 @@ export async function loadCatalog(fetcher = fetch) {
   if (!response.ok) throw new Error("Catalog unavailable");
   return prepareCatalog(await response.json());
 }
+
+export async function loadInterests(fetcher=fetch){
+  const response=await fetcher("/api/interests",{cache:"no-cache"});
+  if(!response.ok)throw new Error("Interests unavailable");
+  return response.json();
+}
+
+export async function loadHomeBooks(fetcher = fetch) {
+  const response=await fetcher("/api/reader/home-books",{cache:"no-cache"});
+  if(!response.ok)throw new Error("Home books unavailable");
+  return response.json();
+}

@@ -6,7 +6,7 @@
 
 ## Criterio
 
-El usuario pide explorar Tallo a partir del estilo ya desarrollado, incluidas las variantes. Se toman como referencias visuales las semillas reservadas, las macetas y Plántula A · Tierra v3. Las referencias orientan el estilo; no implican elegir sus formas para esta etapa.
+El usuario pide explorar Tallo a partir del estilo ya desarrollado, incluidas las variantes. Se toman como referencias visuales las semillas reservadas, las macetas y Brote A · Tierra v3. Las referencias orientan el estilo; no implican elegir sus formas para esta etapa.
 
 Se conserva la cara sencilla de ojos pequeños separados, sonrisa cerrada, curvas orgánicas, verdes vivos, planos de sombra amplios, brillos claros y sombra de suelo independiente visualmente. El cuerpo protagonista es el propio tallo verde, con hojas laterales de apoyo. Las tres propuestas cambian la estructura, no solo las proporciones.
 
@@ -38,14 +38,14 @@ Herramienta integrada de imágenes (`image_gen`), sin CLI ni API propia. Referen
 
 - `seed-variations-future.png`
 - `pot-variations-future.png`
-- `plantula-variations-a-tierra-v3.png`
+- `brote-variations-a-tierra-v3.png`
 
 ## Prompt utilizado
 
 ```text
 Use case: stylized-concept.
 Asset type: ONE concept comparison sheet for the Reedleaves mascot family, exploring the stage "Tallo" (Stem).
-Input images are STYLE REFERENCES ONLY, not edit targets. Image 1: the seed variant family, for warm minimal character rendering, tiny widely spaced solid forest-green eyes, shallow closed smile, light front plane and colored darker underside. Image 2: flowerpot variants, same family facial simplicity and dimensional colored planes. Image 3: selected Plántula soil-and-leaves VARIANT, for rounded organic leaves, one green underside shade and broad ivory-white leaf highlight. Create entirely new Stem concepts, not another seed or plant-in-soil.
+Input images are STYLE REFERENCES ONLY, not edit targets. Image 1: the seed variant family, for warm minimal character rendering, tiny widely spaced solid forest-green eyes, shallow closed smile, light front plane and colored darker underside. Image 2: flowerpot variants, same family facial simplicity and dimensional colored planes. Image 3: selected Brote soil-and-leaves VARIANT, for rounded organic leaves, one green underside shade and broad ivory-white leaf highlight. Create entirely new Stem concepts, not another seed or plant-in-soil.
 Produce a clean landscape reference sheet with exactly THREE LARGE friendly characters in one row, equally spaced, same apparent visual weight, all on a plain warm cream #FFF9ED backdrop with generous margins. Their baselines align. The only text is a short dark forest-green label below each: "A · Carnoso", "B · Flexible", "C · Nudos". No heading, subtitle, badges, panels or decoration.
 Shared design: the MAIN BODY AND FACE ARE THE GREEN STEM ITSELF. Each stem is thick enough to have its own clear readable front face, plump, tactile, softly rounded ends. A stem with supporting small leaves, not a big round seed with a skinny stalk emerging, not an anthropomorphic human, not a tree trunk. Height roughly 1.5 to 1.8 times main body width, with leaf protrusions giving a balanced total silhouette. Bright living greens #B9E877 #83BD4D #58BE59 with one darker side/underside plane #369247, forest-green #173D2C face. Very small equal solid vertical oval eyes widely spaced across the main front stem, tiny thin shallow closed smile centered below, smile narrower than eye spacing. No eye glints, pupils, brows, blush, nose or open mouth. Organic asymmetry, bold simple contours. A small separate muted green-gray oval ground shadow sits underneath each, with a little floating gap.
 A · Carnoso: upright wide fleshy continuous stem, softly tapered upper end and broad rounded lower end, like a tender succulent plant shoot. Clearly a long rounded green stalk, not a round blob. TWO modest rounded oval side leaves emerge near the upper third at slightly different heights; stem continues visibly above and below their attachment. Upper stem tip a simple closed rounded tip, not a pointed asparagus spear. Face in broad lower-middle stem plane. One light broad front and one medium green side plane, small ivory curved highlight at the upper front.

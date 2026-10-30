@@ -44,7 +44,7 @@ for(const [dialect,version] of [["sqlite",42],["postgres",34]]) test(`${dialect}
   // Old writers can still insert an ID; publication requires complete editorial metadata.
   await db.exec("INSERT INTO genres(id) VALUES ('unpublished-interest');");
   await db.exec("INSERT INTO genre_translations(genre_id,language,name) VALUES ('unpublished-interest','es','Interés'),('unpublished-interest','en','Interest');");
-  await assert.rejects(checkCatalog(db),/interest appearance/);
+  await assert.rejects(checkCatalog(db),/Invalid interest catalog/);
 });
 test("Seed validates appearance before touching any books and round-trips future interests without a client list",async t=>{
   const db=await historicalDatabase(t,"sqlite",42);await initializeDatabase(db);

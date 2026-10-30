@@ -1,6 +1,6 @@
 import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=flower-15-days";
 import {playMascotExpression} from "/app/mascot-face.mjs?v=flower-15-days";
-const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Brote"],["sprout","Plántula · Referencia"]];
+const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Brote"],["sprout","Brote · Referencia"]];
 const originals = {
   pot:"/brand/reed/growth/pot.svg", seed:"/brand/reed/growth/seed.svg",
   root:"/brand/reed/growth/root-cutout.png", seedling:"/brand/reed/growth/seedling.svg",
