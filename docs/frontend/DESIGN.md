@@ -211,7 +211,7 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 
 - Portadas, Estantería densa y Libros apilados separan primero el grupo «Nuevo / New» cuando la visita contiene novedades. La etiqueta reutiliza el sello naranja de las portadas, con fondo opaco y profundidad corta, sin animación adicional. Su nombre accesible es «Novedades / New books».
 - Cada libro aparece en un único grupo. Ambos mantienen el orden y los filtros elegidos. Los grupos vacíos se ocultan; al retirar el filtro, las novedades de esa visita reaparecen. El selector de presentación es único y se calcula antes de separar los grupos.
-- Las portadas conservan 11:15 y sus tamaños. El sello de novedad se centra geométricamente en ambos ejes; una banda central separa el título superior del autor inferior, con el recuento al pie. En las portadas nuevas más estrechas, el autor se limita a dos líneas y mantiene su texto íntegro accesible. Las repisas conservan las medidas de los lomos; su sello identifica el grupo sin cubrir títulos.
+- Las portadas conservan 11:15 y sus tamaños. El sello de novedad se centra geométricamente en ambos ejes; una banda central separa el título superior del autor inferior, con el recuento al pie. En las portadas nuevas más estrechas, el autor se limita a dos líneas y mantiene su texto íntegro accesible. Cada estante acomoda hasta diez lomos de ancho base común y alturas variadas; los títulos largos se distribuyen en dos o tres líneas, aumentan el grosor del lomo y desplazan las piezas siguientes. El sello de novedad identifica el grupo sin cubrir títulos.
 
 ## Badges de novedades en navegación
 

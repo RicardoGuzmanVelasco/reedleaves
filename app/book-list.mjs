@@ -9,14 +9,33 @@ export function partitionLibraryBooks(books,newBookIds=[]){
   return {newBooks:books.filter(book=>newIds.has(book.id)),otherBooks:books.filter(book=>!newIds.has(book.id))};
 }
 export const leaningBookIndex=(count,columns)=>count%columns>1?count-1:-1;
+export function wrapSpineTitle(text,measure,maxWidth){
+  const lines=[];let line='';
+  for(const word of String(text).trim().split(/\s+/).filter(Boolean)){
+    if(measure(word)>maxWidth){
+      if(line){lines.push(line);line='';}
+      let part='';
+      for(const character of Array.from(word)){
+        if(part&&measure(part+character)>maxWidth){lines.push(part);part=character;}else part+=character;
+      }
+      line=part;
+    }else{
+      const next=line?line+' '+word:word;
+      if(line&&measure(next)>maxWidth){lines.push(line);line=word;}else line=next;
+    }
+  }
+  if(line)lines.push(line);
+  return lines.length?lines:[''];
+}
 export function bookViewSelector(view,scope,language='es',trailing=''){
   const labels=language==='es'?['Portadas','Estantería densa','Libros apilados']:['Covers','Dense shelf','Stacked books'];
   return `<div class="book-list-tools"><div class="segmented-selector book-view-selector" role="group" aria-label="${language==='es'?'Vista de libros':'Book view'}">${BOOK_VIEWS.map((value,index)=>`<button type="button" data-action="set-book-view" data-scope="${esc(scope)}" data-view="${value}" aria-pressed="${view===value}" aria-label="${labels[index]}" title="${labels[index]}"><img src="../brand/icons/book-layout/${value}.svg" width="24" height="24" alt="" aria-hidden="true"></button>`).join('')}</div>${trailing}</div>`;
 }
 export function bookListMarkup({books,view='covers',label='',cover}){
   if(view==='covers')return `<div class="study-books book-grid" role="group" aria-label="${esc(label)}">${books.map(cover).join('')}</div>`;
-  const ordered=books;
-  return `<div class="book-spines book-spines--${view}" data-book-spines="${view}" role="list" aria-label="${esc(label)}">${ordered.map(book=>`<div class="book-spine-item" role="listitem"><a class="book-spine" href="${esc(book.href)}" ${book.action?`data-action="${esc(book.action)}" data-book="${esc(book.id)}" aria-haspopup="dialog"`:''} aria-label="${esc(book.title+', '+book.author)}"><span class="book-spine-title" lang="${esc(book.language)}" dir="auto">${esc(book.title)}</span></a>${book.accessory||''}</div>`).join('')}</div>`;
+  const itemMarkup=book=>`<div class="book-spine-item" role="listitem"><a class="book-spine" href="${esc(book.href)}" ${book.action?`data-action="${esc(book.action)}" data-book="${esc(book.id)}" aria-haspopup="dialog"`:''} aria-label="${esc(book.title+', '+book.author)}"><span class="book-spine-title" lang="${esc(book.language)}" dir="auto">${esc(book.title)}</span></a>${book.accessory||''}</div>`;
+  const content=view==='shelf'?Array.from({length:Math.ceil(books.length/10)},(_,index)=>`<div class="book-shelf-row" role="presentation">${books.slice(index*10,index*10+10).map(itemMarkup).join('')}</div>`).join(''):books.map(itemMarkup).join('');
+  return `<div class="book-spines book-spines--${view}" data-book-spines="${view}" role="list" aria-label="${esc(label)}">${content}</div>`;
 }
 export function bookVariation(text,salt){let seed=2166136261;for(const char of text+'|'+salt){seed^=char.charCodeAt(0);seed=Math.imul(seed,16777619);}return (seed>>>0)/4294967295;}
 // Each mount owns observers; dispose before replacing its DOM.
@@ -29,35 +48,57 @@ export function mountBookLists(root){
     for(const list of lists){
       const width=list.clientWidth;if(!width)continue;
       const vertical=list.dataset.bookSpines==='shelf';
-      const columns=Math.max(1,Math.floor((width+2)/34));
-      list.style.setProperty('--spine-columns',columns);
+      const fontSize=15;
+      const measure=(text,size,title)=>{
+        if(!context)return text.length*size*.65;
+        context.font=`800 ${size}px ${getComputedStyle(title).fontFamily}`;
+        return context.measureText(text).width-Math.max(0,Array.from(text).length-1)*size*.035;
+      };
+      if(vertical){
+        const rows=[...list.children],lineThickness=fontSize*1.15;
+        const rowLayouts=rows.map((row,rowIndex)=>{
+          const items=[...row.children],layouts=items.map(item=>{
+            const book=item.querySelector('.book-spine'),title=book.querySelector('.book-spine-title');
+            const text=title.dataset.fullText??(title.dataset.fullText=title.textContent);
+            const height=Math.ceil(184*(.78+bookVariation(text,'length')*.21));
+            let size=fontSize,lines=wrapSpineTitle(text,value=>measure(value,size,title),Math.max(40,height-16));
+            while(lines.length>3&&size>11){size-=.5;lines=wrapSpineTitle(text,value=>measure(value,size,title),Math.max(40,height-16));}
+            if(lines.length>3)lines=[lines[0],lines[1],lines.slice(2).join(' ')];
+            title.style.fontSize=size+'px';title.style.setProperty('--spine-title-length',`${Math.max(40,height-16)}px`);title.style.textAlign='center';
+            title.replaceChildren(...lines.map(line=>{const span=document.createElement('span');span.className='book-spine-line';span.textContent=line;return span;}));
+            title.dataset.lines=String(lines.length);
+            item.style.setProperty('--spine-length',height+'px');
+            book.title=text;book.classList.remove('is-leaning');
+            return {item,book,lines};
+          });
+          return {row,rowIndex,items,layouts,extraLines:layouts.reduce((total,entry)=>total+entry.lines.length-1,0)};
+        });
+        const extraLines=Math.max(0,...rowLayouts.map(layout=>layout.extraLines));
+        const gap=parseFloat(getComputedStyle(rows[0]||list).columnGap)||0;
+        const baseWidth=Math.max(18,(width-gap*9-extraLines*lineThickness)/10);
+        rowLayouts.forEach(({rowIndex,items,layouts})=>{
+          layouts.forEach(({item,book,lines},index)=>{
+            item.style.setProperty('--spine-width',`${baseWidth+(lines.length-1)*lineThickness}px`);
+            if(rowIndex===rows.length-1&&items.length<10&&items.length>1&&index===items.length-1)book.classList.add('is-leaning');
+          });
+        });
+        continue;
+      }
       const items=[...list.children];
       items.forEach((item,index)=>{
-        const book=item.querySelector('.book-spine'),title=book.querySelector('.book-spine-title'),text=title.textContent;
-        const style=getComputedStyle(title),padding=vertical?16:24,nominal=vertical?184:Math.min(width-parseFloat(getComputedStyle(list).paddingLeft)-parseFloat(getComputedStyle(list).paddingRight),360);
-        const measure=size=>{if(!context)return text.length*size*.65;context.font=`800 ${size}px ${style.fontFamily}`;return context.measureText(text).width-Math.max(0,Array.from(text).length-1)*size*.035;};
-        const min=vertical?15:14,max=vertical?16:18;
-        let size=max;while(size>min&&measure(size)>nominal-padding-3)size-=.25;
-        const full=measure(size)+padding+4,factor=bookVariation(text,'length');
-        let length=vertical?nominal*(.78+factor*.21):nominal;
-        if(vertical&&full<=nominal)length=Math.max(length,full);
-        if(!vertical&&full<=nominal)length=Math.max(full,nominal*((full<nominal*.7?.68:.78)+factor*.21));
+        const book=item.querySelector('.book-spine'),title=book.querySelector('.book-spine-title');
+        const text=title.textContent,padding=24,nominal=Math.min(width-parseFloat(getComputedStyle(list).paddingLeft)-parseFloat(getComputedStyle(list).paddingRight),360);
+        const full=measure(text,18,title)+padding+4,factor=bookVariation(text,'length');
+        let size=18,length=nominal;
+        if(full<=nominal)length=Math.max(full,nominal*((full<nominal*.7?.68:.78)+factor*.21));
         length=Math.ceil(Math.min(nominal,length));
         item.style.setProperty('--spine-length',length+'px');title.style.fontSize=size+'px';
+        while(title.scrollWidth>title.clientWidth&&size>14){size=Math.max(14,size-.25);title.style.fontSize=size+'px';}
         book.classList.remove('is-leaning');
-        // The empty column supplies space for the foot; the top touches its neighbour.
-        if(vertical&&index===leaningBookIndex(items.length,columns)){
-          book.classList.add('is-leaning');
-        }
-        if(!vertical){
-          const atBase=index===items.length-1;
-          item.style.setProperty('--spine-offset',atBase?'0px':((bookVariation(text,'offset')-.5)*12).toFixed(2)+'px');
-          item.style.setProperty('--spine-tilt',atBase?'0deg':((bookVariation(text,'tilt')-.5)*1.2).toFixed(2)+'deg');
-        }
-        // Browser measurement wins over canvas estimates for fallback fonts.
-        while(title.scrollWidth>title.clientWidth&&size>min){size=Math.max(min,size-.25);title.style.fontSize=size+'px';}
-        title.style.textAlign=vertical&&title.scrollWidth<=title.clientWidth?'center':'left';
-        book.title=text;
+        const atBase=index===items.length-1;
+        item.style.setProperty('--spine-offset',atBase?'0px':((bookVariation(text,'offset')-.5)*12).toFixed(2)+'px');
+        item.style.setProperty('--spine-tilt',atBase?'0deg':((bookVariation(text,'tilt')-.5)*1.2).toFixed(2)+'deg');
+        title.style.textAlign='left';book.title=text;
       });
     }
   }

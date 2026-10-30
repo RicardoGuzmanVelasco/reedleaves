@@ -5,7 +5,7 @@ import {mountDeckPresentation} from "./deck-presentation.mjs";
 import {deckPageHash,deckReadingHash,deckShareUrl} from "./deck-navigation.mjs";
 import {mountInterests,syncBookInterestSelector} from "./interests.mjs";
 import {bookInterestError,selectBookInterest} from "./book-interests.mjs";
-import {mountBookLists,BOOK_VIEWS} from "./book-list.mjs";
+import {mountBookLists,BOOK_VIEWS} from "./book-list.mjs?v=adaptive-shelf-spines-1";
 import {updateNavigationBadges} from "./navigation-badges.mjs";
 import {loadCatalog} from "./catalog.mjs";
 import {createBookKnowledgeVisitId,visitVisitorBooks,pendingVisitorBookCount,inLibraryVisit} from "./book-knowledge.mjs";
