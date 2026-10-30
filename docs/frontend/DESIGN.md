@@ -13,6 +13,7 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - Las portadas de libros conservan globalmente la proporción aprobada 176:240. Al cambiar de tamaño, texto, espaciado, lomo y arte interior escalan proporcionalmente; las cuadrículas evitan deformar el libro. Si un texto supera el espacio de la portada, se limita con elipsis y permanece completo en su nombre accesible y tooltip.
 - Diseñar primero para uso táctil (touch first). Las acciones, el atractivo visual y las animaciones principales deben funcionar sin hover. El hover es un refuerzo opcional para dispositivos con cursor preciso, nunca el centro de la experiencia ni un requisito para descubrir una acción.
 - Los botones circulares que muestran solo un icono deben parecer controles sólidos, no translúcidos: usar un fondo opaco, borde visible y una sombra ligera cuando corresponda, también sobre fondos variables. Mantener una zona táctil de al menos 44 × 44 px aunque el círculo visible sea más pequeño. Aplicar el mismo lenguaje a las acciones de cerrar, ayuda y navegación circular, salvo el cierre exterior de un modal sobre el fondo atenuado, que puede llevar superficie translúcida sin sombra.
+- En diálogos con un panel delimitado, colocar la X de cierre fuera del panel, encima de su esquina superior derecha y alineada con el borde. En diálogos a pantalla completa, situarla arriba a la derecha fuera del contenido y respetar el margen seguro.
 - Las respuestas de hover de un contenedor no deben sustituir, reiniciar ni mover la animación propia de una mascota. Separar las capas visuales cuando sea necesario.
 
 ## Paleta de reutilización · inventario preliminar
@@ -79,6 +80,11 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 - Idioma, estado de creación y progreso de repaso se muestran en el contexto de cada baraja. La ficha del libro no repite el número ni muestra idiomas o un resumen agregado de repaso como filas independientes.
 - Marcar «Leído» guarda la lectura y, si quedan barajas propias en borrador, abre un diálogo flotante para cerrarlas juntas. Cada fila muestra nombre y número de tarjetas, o «Vacía (se descartará)». «Confirmar» termina las que tienen contenido y descarta las vacías; «Mantener en borrador», Escape o cerrar conserva sus estados. La advertencia de congelación se muestra antes de confirmar, sin otro diálogo encadenado.
 - Un libro leído con notas pendientes permite recuperar ese diálogo desde «Barajas en borrador», junto al estado de lectura. El cierre devuelve al contexto de origen sin abrir un repaso. Los borradores locales deben guardarse o cancelarse antes de terminar sus barajas.
+
+## Guías de lectura
+
+- La pantalla de edición se centra en una sola tarea: escribir o editar la guía propia en un formulario con el tratamiento de las superficies y campos de autoría. No lista las guías comunitarias debajo del formulario.
+- La consulta de guías comunitarias ocurre en la vista dedicada de lectura, separada del editor. Mantener accesible «Volver a las barajas» y conservar el borrador y el error junto al formulario.
 
 ## Selector de barajas
 

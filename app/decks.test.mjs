@@ -5,7 +5,7 @@ import {readCatalog} from "../server/catalog-repository.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {availableDecks,featuredDecks,treeLinks} from "./decks.mjs";
-import {deckView,readingGuideDeckPreviewView,deckPeekView,reviewView,homeView,practiceView,authorView,authorFormView,bookshelfView,escapeHtml} from "./views.mjs";
+import {deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,homeView,practiceView,authorView,authorFormView,bookshelfView,escapeHtml} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
 
@@ -61,6 +61,20 @@ test("Reading guides have a dedicated book tile, add entry, and vertical reading
     assert.ok(preview.includes(c.readingGuides));
     cards.forEach(item=>{item.creatorUserId="guide-author";});
   }
+});
+
+test("Reading guide authoring shows only its styled editor; community guides stay in the reading view",async()=>{
+  const catalog=await fixture(),deck=catalog.decks.find(item=>item.bookId==="seven-habits"),cards=catalog.deckModels.get(deck.id).cards;
+  cards.forEach(card=>{card.isReadingGuide=true;card.creatorUserId="guide-author";card.language="es";});
+  cards[0].creatorUserId="reader";
+  const editor=readingGuidesView(readerState(catalog,{bookId:deck.bookId,statuses:{[deck.bookId]:"read"},userId:"reader",language:"es"}));
+  assert.match(editor,/reading-guides-screen--editing/);
+  assert.match(editor,/class="reading-guide-editor"/);
+  assert.match(editor,/class="primary" type="submit"/);
+  assert.doesNotMatch(editor,/class="reading-guide-row"|empty-state/);
+  const browse=readingGuidesView(readerState(catalog,{bookId:deck.bookId,statuses:{[deck.bookId]:"read"},userId:null,language:"en"}));
+  assert.equal((browse.match(/class="reading-guide-row"/g)||[]).length,cards.length);
+  assert.doesNotMatch(browse,/id="reading-guide-form"/);
 });
 
 test("Collective draft review UI lets invited contributors add cards without exposing deck management",async()=>{

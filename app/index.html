@@ -24,7 +24,7 @@
   <link rel="icon" type="image/svg+xml" sizes="any" href="../brand/reed/d-compacto.svg">
   <link rel="stylesheet" href="mascot-art.css?v=flower-15-days">
   <link rel="stylesheet" href="book-list.css">
-  <link rel="stylesheet" href="reader.css?v=language-flags-settings-1">
+  <link rel="stylesheet" href="reader.css?v=modal-close-outside-1">
   <link rel="stylesheet" href="interest-choice.css?v=profile-choice-1">
 
   <link rel="stylesheet" href="card-themes.css?v=reading-guides-2">
@@ -65,23 +65,33 @@
   <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
   <dialog class="growth-feedback-modal" id="growth-feedback" aria-labelledby="growth-feedback-title"></dialog>
   <dialog class="settings-modal" id="settings" aria-labelledby="settings-title">
-    <div class="settings-heading"><h2 id="settings-title">Ajustes</h2><button class="dialog-close" id="close-settings" type="button" aria-label="Cerrar ajustes" autofocus><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
-    <span id="language-label" class="sr-only">Idioma</span>
-    <div class="segmented-selector" id="language-selector" role="group" aria-labelledby="language-label"><button type="button" data-language="es" aria-pressed="true" lang="es"><img class="language-flag-icon" src="../brand/icons/languages/es.svg" width="16" height="12" alt="">Español</button><button type="button" data-language="en" aria-pressed="false" lang="en"><img class="language-flag-icon" src="../brand/icons/languages/en.svg" width="16" height="12" alt="">English</button></div>
-    <p id="settings-error" class="settings-error" role="alert" hidden></p>
-    <button type="button" class="primary" id="open-feedback" aria-haspopup="dialog">Enviar comentarios</button>
-    <div id="account-controls" class="settings-account"></div>
+    <div class="settings-modal-shell">
+      <button class="dialog-close settings-modal-close" id="close-settings" type="button" aria-label="Cerrar ajustes" autofocus><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      <div class="settings-modal-panel">
+        <div class="settings-heading"><h2 id="settings-title">Ajustes</h2></div>
+        <span id="language-label" class="sr-only">Idioma</span>
+        <div class="segmented-selector" id="language-selector" role="group" aria-labelledby="language-label"><button type="button" data-language="es" aria-pressed="true" lang="es"><img class="language-flag-icon" src="../brand/icons/languages/es.svg" width="16" height="12" alt="">Español</button><button type="button" data-language="en" aria-pressed="false" lang="en"><img class="language-flag-icon" src="../brand/icons/languages/en.svg" width="16" height="12" alt="">English</button></div>
+        <p id="settings-error" class="settings-error" role="alert" hidden></p>
+        <button type="button" class="primary" id="open-feedback" aria-haspopup="dialog">Enviar comentarios</button>
+        <div id="account-controls" class="settings-account"></div>
+      </div>
+    </div>
   </dialog>
   <dialog class="settings-modal feedback-modal" id="feedback" aria-labelledby="feedback-title">
-    <form id="feedback-form">
-      <div class="settings-heading"><h2 id="feedback-title">Enviar comentarios</h2><button class="dialog-close" id="close-feedback" type="button" aria-label="Cerrar comentarios"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
-      <p id="feedback-sign-in" hidden>Entra en tu cuenta para enviar comentarios.</p>
-      <label for="feedback-message" id="feedback-label">Comentario</label>
-      <textarea id="feedback-message" name="message" rows="6" required></textarea>
-      <p id="feedback-error" class="settings-error" role="alert" hidden></p>
-      <button id="feedback-sign-in-button" class="text-button" type="button" hidden>Entrar</button>
-      <button id="feedback-submit" class="primary" type="submit">Enviar</button>
-    </form>
+    <div class="settings-modal-shell">
+      <button class="dialog-close settings-modal-close" id="close-feedback" type="button" aria-label="Cerrar comentarios"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      <div class="settings-modal-panel">
+        <form id="feedback-form">
+          <div class="settings-heading"><h2 id="feedback-title">Enviar comentarios</h2></div>
+          <p id="feedback-sign-in" hidden>Entra en tu cuenta para enviar comentarios.</p>
+          <label for="feedback-message" id="feedback-label">Comentario</label>
+          <textarea id="feedback-message" name="message" rows="6" required></textarea>
+          <p id="feedback-error" class="settings-error" role="alert" hidden></p>
+          <button id="feedback-sign-in-button" class="text-button" type="button" hidden>Entrar</button>
+          <button id="feedback-submit" class="primary" type="submit">Enviar</button>
+        </form>
+      </div>
+    </div>
   </dialog>
   <noscript><p class="noscript-note">Activa JavaScript para ver la idea del día y repasar.</p></noscript>
 </body>
