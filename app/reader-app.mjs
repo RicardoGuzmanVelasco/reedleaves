@@ -14,8 +14,8 @@ import {featuredDecks,isReadingGuideDeck} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=library-interest-sort-login-15";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=small-feedback-ui-1";
+import {words} from "./i18n.mjs?v=reading-guide-write-prompt-1";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=reading-guide-write-prompt-1";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -34,7 +34,7 @@ import {createModalPageLock} from "./modal-page-lock.mjs";
 import {adjacentCard,swipeStep} from "./card-reading-navigation.mjs";
 import {growthFeedbackChanges,growthFeedbackMarkup,fitGrowthFeedbackTitle,playGrowthFeedback} from "./growth-feedback.mjs";
 import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,practiceSessionAfterAnimation,restorePracticeSession as restorePracticeSessionFromState,samePracticeRecoveryTicket} from "./practice-session.mjs";
-import {hasAccessibleReadingGuide,shouldShowReadingGuidePrompt} from "./reading-guide-prompt.mjs";
+import {hasAccessibleReadingGuide,hasOwnReadingGuide,shouldShowReadingGuidePrompt,shouldOfferReadingGuideCreationPrompt} from "./reading-guide-prompt.mjs";
 import {requestConfirmedMutation,requestPendingDeckIntent} from "./confirmed-mutation.mjs";
 import {createReadingInterestWarningFlow} from "./reading-interest-warning.mjs";
 import {newInterestRouteRedirect} from "./new-interest-routing.mjs";
@@ -1396,9 +1396,11 @@ export function startReader({createCardFeatures} = {}) {
       onCommit:result=>{
         bookInterestPrompt=null;applyState(result.state||result,{captureGrowth:true});refreshState();
         live.textContent=words[language][status === "to-read" ? "bookAddedToShelf" : status === "read" ? "bookMarkedRead" : status === "reading" ? "bookMarkedReading" : "bookMarkedUnread"];
-        const showGuidePrompt=["home","library","bookshelf"].includes(mode)&&shouldShowReadingGuidePrompt({previousStatus,nextStatus:status,saveSucceeded:true,hasGuideCards:hasAccessibleReadingGuide(catalog,id)});
-        readingGuidePromptBookId=showGuidePrompt?id:null;
-        noteNudgeBookId=mode === "library" && status !== "unread" && !showGuidePrompt ? id : null;
+        const guidePromptContext=["home","library","bookshelf"].includes(mode);
+        const showGuidePrompt=guidePromptContext&&shouldShowReadingGuidePrompt({previousStatus,nextStatus:status,saveSucceeded:true,hasGuideCards:hasAccessibleReadingGuide(catalog,id)});
+        const showGuideWritingPrompt=guidePromptContext&&shouldOfferReadingGuideCreationPrompt({previousStatus,nextStatus:status,saveSucceeded:true,hasOwnGuide:hasOwnReadingGuide(catalog,id,snapshot.user.id)});
+        readingGuidePromptBookId=showGuidePrompt||showGuideWritingPrompt?id:null;
+        noteNudgeBookId=mode === "library" && status !== "unread" && !showGuidePrompt && !showGuideWritingPrompt ? id : null;
         if (status === "read") notesCompletion=createNotesCompletion(id);
       },
       onFailure:async(error,pending)=>{
@@ -1442,9 +1444,10 @@ export function startReader({createCardFeatures} = {}) {
     await runBookInterestAction(()=>bookInterestFlow.confirm(),id,status);
   }
   function dismissReadingGuidePrompt(id) {
-    if(readingGuidePromptBookId!==id||statuses[id]!=="reading")return;
+    const status=statuses[id];
+    if(readingGuidePromptBookId!==id||!(["reading","read"].includes(status)))return;
     readingGuidePromptBookId=null;noteNudgeBookId=null;render();
-    [...main.querySelectorAll('[data-action="set-book-reading"]')].find(button=>button.dataset.book===id&&button.dataset.status==="reading")?.focus({preventScroll:true});
+    [...main.querySelectorAll('[data-action="set-book-reading"]')].find(button=>button.dataset.book===id&&button.dataset.status===status)?.focus({preventScroll:true});
   }
   function openReadingGuidePrompt(id) {
     if(readingGuidePromptBookId!==id||statuses[id]!=="reading"||!hasAccessibleReadingGuide(catalog,id))return;
@@ -1794,6 +1797,7 @@ export function startReader({createCardFeatures} = {}) {
       case "cancel-book-interest-warning": cancelBookInterestWarning(); break;
       case "confirm-book-interest-warning": confirmBookInterestWarning(); break;
       case "dismiss-reading-guide-reading-prompt": dismissReadingGuidePrompt(b.dataset.book); break;
+      case "dismiss-reading-guide-writing-prompt": dismissReadingGuidePrompt(b.dataset.book); break;
       case "view-reading-guides-after-reading": openReadingGuidePrompt(b.dataset.book); break;
       case "finish-book-notes": openNotesCompletion(b.dataset.book); break;
       case "keep-note-decks": closeNotesCompletion(); break;
@@ -1870,7 +1874,7 @@ export function startReader({createCardFeatures} = {}) {
       }
       case "daily-month": calendarNavFocus=b.dataset.direction;calendarMonth=b.dataset.month;render();break;
       case "open-book": openBook(b.dataset.book); break;
-      case "open-reading-guides": bookId=b.dataset.book;requestedId=null;navigate("#guides/"+encodeURIComponent(bookId));break;
+      case "open-reading-guides": readingGuidePromptBookId=null;noteNudgeBookId=null;bookId=b.dataset.book;requestedId=null;navigate("#guides/"+encodeURIComponent(bookId));break;
       case "open-reading-guide-preview": bookId=b.dataset.book;requestedId=null;navigate("#guide-preview/"+encodeURIComponent(bookId));break;
       case "edit-reading-guide": navigate("#guides/"+encodeURIComponent(bookId));break;
       case "back-from-reading-guide-preview": backFromReadingGuidePreview();break;
