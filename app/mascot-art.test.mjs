@@ -51,7 +51,8 @@ test("Root uses an alpha PNG and the static loading fallback matches the shared 
   assert.equal(png.readUInt32BE(0),0x89504e47);
   assert.equal(png[25],6); // RGBA PNG.
   const html=readFileSync(new URL("./index.html",import.meta.url),"utf8");
-  assert.ok(html.includes(mascotArt("sprout","initial-mascot")));
+  assert.match(html,/<div class="loading opening-loading"[^>]*>[\s\S]*?<span class="mascot-art initial-mascot" data-mascot="sprout" data-idle="none"/);
+  assert.match(html,/class="mascot-face"/);
 });
 
 

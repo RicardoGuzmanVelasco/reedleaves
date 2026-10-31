@@ -1,4 +1,4 @@
-// Presentation only. The owner first applies a fresh /api/session state, then
+// Presentation only. The owner first applies a fresh /api/reader/state snapshot, then
 // passes the initial-operation receipt on Home. Never credit a local wallet.
 export const CURRENCY_RECEIPT_STEP_MS=360;
 const validBalance=value=>Number.isSafeInteger(value)&&value>=0;

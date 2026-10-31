@@ -25,7 +25,7 @@ Son conceptos raster de una sola pieza con cara y sombra incluidas. No son cuerp
 
 - `stem-directions-exploration.png`: las tres direcciones previas y su lenguaje facial.
 - `bodies/stem.png`: Carnoso aprobado; volumen, paleta y planos de sombra.
-- `plantula-variations-a-tierra-v3.png`: curvas y acabado de hojas de la familia.
+- `brote-variations-a-tierra-v3.png`: curvas y acabado de hojas de la familia.
 
 También se han leído `AGENTS.md`, `docs/frontend/DESIGN.md`, la skill `reedleaves-mascots` y la skill `imagegen`.
 
@@ -41,7 +41,7 @@ Herramienta integrada `image_gen`, una llamada por variante, con las tres imáge
 ```text
 Use case: stylized-concept.
 Asset type: ONE standalone Reedleaves mascot variant exploration named Junco, with no written name or text in image.
-Reference images: Image 1 (three Tallo directions) provides established mascot rendering and facial language; Image 2 (the isolated Carnoso body) provides approved green palette and broad colored planes; Image 3 (Plántula) provides simple organic leaf rendering. These are style references, not an edit target. Invent a recognizably RUSH / JUNCO body rather than merely resizing Carnoso.
+Reference images: Image 1 (three Tallo directions) provides established mascot rendering and facial language; Image 2 (the isolated Carnoso body) provides approved green palette and broad colored planes; Image 3 (Brote) provides simple organic leaf rendering. These are style references, not an edit target. Invent a recognizably RUSH / JUNCO body rather than merely resizing Carnoso.
 Scene: plain warm ivory cream #FFF9ED background, one subtle muted green-gray oval ground shadow under character.
 Subject: a single friendly green rush plant character, plump but with a distinctive upright flexible rush silhouette. A cohesive small tuft of exactly THREE smooth cylindrical living-green stems emerges from a single tidy shared base, no visible soil or roots. One dominant front stem is broad enough in its lower half for a tiny wide-set face and sweeps gently upward into a soft taper with rounded tip bending slightly right. Its lower two-thirds are continuous and substantial, not a spherical base. The other TWO stems are much slimmer, behind on either side at unequal heights, lean naturally outward, and end in clean narrow round-tipped tapers. All three remain cylindrical, leafless, without joints or branching; restrained rhythm like a small wetland rush tuft. The broad leading stem remains clearly the character, the two secondary rush stems are supporting silhouette. No broad oval leaves.
 Face: exactly TWO tiny equal dark forest-green #173D2C vertical oval eyes, spaced wide on the front stem's lower-middle plane; one short shallow closed curved smile beneath. Quiet warm expression. No eye glints, pupils, eyebrows, nose, blush, mouth opening, hands or feet.
@@ -55,7 +55,7 @@ Avoid: cattail / espadaña brown sausage seed heads; flowers, inflorescences, re
 ```text
 Use case: stylized-concept.
 Asset type: ONE standalone Reedleaves mascot variant exploration named Bambú; no name, label or any text visible.
-Reference images: Image 1 (three Tallo directions) supplies family rendering and quiet face; Image 2 (approved isolated Carnoso body) supplies the green planes and gentle rounded volume; Image 3 (Plántula) supplies friendly organic leaf rendering. These are style references. Invent a clearly recognizable young green BAMBOO character, distinguishable from the succulent-looking Carnoso and the three-bulb C Nudos.
+Reference images: Image 1 (three Tallo directions) supplies family rendering and quiet face; Image 2 (approved isolated Carnoso body) supplies the green planes and gentle rounded volume; Image 3 (Brote) supplies friendly organic leaf rendering. These are style references. Invent a clearly recognizable young green BAMBOO character, distinguishable from the succulent-looking Carnoso and the three-bulb C Nudos.
 Scene/backdrop: plain warm ivory cream #FFF9ED. One independent subtle muted green-gray oval ground shadow directly beneath.
 Subject: one upright plump living-green bamboo culm as protagonist, continuous almost parallel sides with very gently rounded corners and a slight organic lean. A long coherent stalk, not a stack of globes: exactly THREE long cylindrical internodes separated by exactly TWO narrow clearly readable pale lime-green node collars, each collar a simple curved thin ring with minimal projection. Internode lengths gently unequal; the lowest has ample uninterrupted space for the quiet face. The upper tip is closed and softly rounded, NEVER a sawn-off hollow tube. No taper into a spear.
 Two short fine curved green side branchlets emerge from node collars at different heights. The upper-right branch carries exactly THREE narrow curved lance-shaped bamboo leaves; the lower-left branch carries exactly TWO narrow curved lance-shaped leaves. Each leaf is long and slender, softly pointed, with simple bright front and medium green underside planes. Leaves look like bamboo foliage rather than wide succulent paddles, no complex veins. Keep only five leaves total and make their silhouette simple. Main culm always visually dominant and substantial enough to be friendly, not spindly.

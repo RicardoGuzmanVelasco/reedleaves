@@ -10,7 +10,7 @@
 - **4 · Brote con cascarón**: Cáscara centrada como casquito, sin hojas.
 - **5 · Brote con tupé**: Variante aprobada, en lugar de Espiral.
 
-Brote sigue siendo la etapa anterior a Plántula, con ID histórico `seedling`. Se reutiliza la geometría facial de `mascotFace`, con posición, escala uniforme y giro propios de cada propuesta. Colores planos tomados de Brote y Semilla, sin texturas ni degradados. La sombra de suelo permanece separada del cuerpo.
+Esta exploración parte del Germen activo, cuyo ID histórico es `seedling`; Brote (`sprout`) es la etapa siguiente. Se reutiliza la geometría facial de `mascotFace`, con posición, escala uniforme y giro propios de cada propuesta. Colores planos tomados de Brote y Semilla, sin texturas ni degradados. La sombra de suelo permanece separada del cuerpo.
 
 Cada propuesta dispone de un SVG completo y otro solo de cuerpo, fuera del registro de la app. El estudio HTML permite comprobar tamaños de 160, 100, 60 y 32 px, e iconos sin cara a 60 y 32 px. La referencia vigente permanece intacta.
 

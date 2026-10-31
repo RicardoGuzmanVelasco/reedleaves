@@ -38,55 +38,11 @@ test("read books are used only after unread candidates are exhausted, with all-c
   assert.deepEqual(all.map(book=>book.id),catalog.books.slice(0,3).map(book=>book.id));
 });
 
-test("Inicio shows up to three personal suggestions only without Leyendo and keeps draft books",async()=>{
-  const catalog=await fixture(),draftBook=catalog.books[0];
-  const draftDeck=catalog.decks.find(deck=>deck.bookId===draftBook.id);
-  draftDeck.creator.userId="reader";draftDeck.status="draft";
-  const preferences={interested:["software"],notInterested:[]};
-  const base=readerState(catalog,{userId:"reader",language:"es",homeInterestPreferences:preferences,statuses:{[draftBook.id]:"unread"}});
-  const html=homeView(base),section=html.match(/<section class="home-book-recommendations"[^]*?<\/section>/)?.[0];
-  assert.ok(section);
-  assert.match(section,/<h2 id="home-book-recommendations-title">Sugerencias de libros<\/h2>/);
-  const recommendationIds=[...section.matchAll(/data-action="open-book-details" data-book="([^"]+)"/g)].map(match=>match[1]);
-  assert.equal(recommendationIds.length,3);
-  assert.equal(new Set(recommendationIds).size,3);
-  assert.equal((section.match(/catalog-book--neutral/g)||[]).length,3);
-  assert.doesNotMatch(section,/study-book-mark|study-book-footer|home-book-state|team-recommendation|mystery/);
-  assert.doesNotMatch(section,new RegExp(`data-book="${draftBook.id}"`));
-  assert.match(html,new RegExp(`data-book="${draftBook.id}"`));
-  const emptyHome=homeView({...base,userId:"another-reader",statuses:{}}),compactEmpty=emptyHome.match(/<div class="home-empty home-empty--with-recommendations">([\s\S]*?)<\/div>/)?.[1];
-  assert.ok(compactEmpty);
-  assert.doesNotMatch(compactEmpty,/mascot-art/);
-  assert.match(homeView({...base,language:"en"}),/Book suggestions/);
-  assert.doesNotMatch(homeView({...base,statuses:{[draftBook.id]:"reading"}}),/home-book-recommendations/);
-  assert.doesNotMatch(html,/class="home-empty"/);
-});
-
 test("Inicio always shows reading books as covers without a view selector",async()=>{
   const catalog=await fixture(),book=catalog.books[0];
   const html=homeView(readerState(catalog,{statuses:{[book.id]:"reading"},bookViews:{home:"shelf"}}));
   assert.match(html,/class="study-books book-grid"/);
   assert.doesNotMatch(html,/data-action="set-book-view"/);
-});
-
-test("maximum localized title and author remain accessible inside fixed-ratio recommendation covers",async()=>{
-  const catalog=await fixture(),book=catalog.books[0];
-  const titleEs="E".repeat(TITLE_MAX_LENGTH),titleEn="W".repeat(TITLE_MAX_LENGTH),author="A".repeat(BOOK_AUTHOR_MAX_LENGTH);
-  book.title={...book.title,es:titleEs,en:titleEn};book.author=author;
-  const base=readerState(catalog,{userId:"reader",language:"es",homeInterestPreferences:{interested:[],notInterested:[]},statuses:{}});
-  for(const [language,title] of [["es",titleEs],["en",titleEn]]){
-    const section=homeView({...base,language}).match(/<section class="home-book-recommendations"[^]*?<\/section>/)?.[0];
-    assert.ok(section);
-    const cover=section.match(new RegExp(`<button class="study-book catalog-book catalog-book--neutral"[^>]*data-book="${book.id}"[^>]*>[\\s\\S]*?<\\/button>`))?.[0];
-    assert.ok(cover);
-    assert.match(cover,new RegExp(`aria-label="${title}, ${author}"`));
-    assert.match(cover,new RegExp(`title="${title}"[^>]*>${title}<\\/strong>`));
-    assert.match(cover,new RegExp(`<span class="study-book-author" title="${author}">${author}<\\/span>`));
-  }
-  const css=await readFile(new URL("./reader.css",import.meta.url),"utf8");
-  assert.match(css,/\.study-book\{[^}]*min-height:0;aspect-ratio:11\/15;overflow:hidden/);
-  assert.match(css,/\.study-book-cover-title\{[^}]*-webkit-line-clamp:4;line-clamp:4;overflow:hidden/);
-  assert.match(css,/\.study-book-author\{[^}]*-webkit-line-clamp:3;line-clamp:3;overflow:hidden;font-size:max\(10px/);
 });
 
 test("maximum title and author leave room for the notes mark and two-line state at 351 and 390 px",async()=>{

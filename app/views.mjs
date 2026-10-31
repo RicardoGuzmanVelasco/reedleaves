@@ -21,7 +21,6 @@ import {interestChoicePresentation} from "./interest-choice.mjs";
 import {MAX_BOOK_INTERESTS} from "./book-interests.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {LIBRARY_SORT_ORDERS,BOOK_SORT_ORDERS} from "./book-sort.mjs";
-import {homeInterestRecommendations} from "./home-interest-recommendations.mjs";
 
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const esc = escapeHtml;
@@ -141,6 +140,16 @@ function bookListPresentation(s,books,scope,{selector=true,count=books.length,no
   });
   const newIds=new Set(newBookIds);
   return (selector?bookViewSelector(view,scope,s.language,scope==="library"?bookListControls(s):""):'')+bookListMarkup({books:entries,view,label,cover:entry=>closedBookMarkup(s,entry.book,{caption:scope==="library"?words[s.language].deckCount(availableDecks(s.catalog,entry.id).length):caption??(s.statuses?.[entry.id]&&s.statuses[entry.id]!=="unread"?words[s.language][s.statuses[entry.id]==="read"?"readStatus":"readingStatus"]:""),catalog,catalogNeutral,note,isNew:scope==="library"&&newIds.has(entry.id)})});
+}
+
+function homeBookMarkup(s,book){
+  const c=words[s.language],title=bookCoverTitle(book,s.language),status=s.statuses?.[book.id]||book.status||"unread",noteDeckCount=book.noteDeckCount||0;
+  const statusLines=[{label:status==="reading"?c.readingStatus:status==="read"?c.readStatus:c.unread,icon:bookReadingIcon(status)},{label:noteDeckCount?c.notesInProgress:""}].filter(row=>row.label);
+  const label=`${c.bookInfo}: ${title.text}, ${book.author}`;
+  const cover=`<button class="study-book" type="button" data-action="open-book-details" data-book="${esc(book.id)}" aria-haspopup="dialog" title="${esc(`${title.text}, ${book.author}`)}" aria-describedby="home-book-state-${esc(book.id)}" aria-label="${esc(label)}"><span class="study-book-cover"><strong class="study-book-cover-title" lang="${esc(title.language)}" dir="auto" title="${esc(title.text)}">${esc(title.text)}</strong><span class="study-book-author" title="${esc(book.author)}">${esc(book.author)}</span>${mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}<span class="home-book-state" id="home-book-state-${esc(book.id)}">${statusLines.map(row=>`<span>${row.icon||""}${esc(row.label)}</span>`).join("")}</span></span></button>`;
+  const complete=completeBookButton(s,book),noteLabel=`${c.takeNote}: ${title.text}`;
+  const addNote=s.userId?`<button class="book-note-add" type="button" data-action="take-note" data-book="${esc(book.id)}" aria-label="${esc(noteLabel)}" title="${esc(noteLabel)}">${takeNoteIconMarkup}</button>`:"";
+  return complete||addNote?`<div class="study-book-entry study-book-entry--notes">${cover}${complete}${addNote}</div>`:cover;
 }
 
 export function libraryResultsMarkup(s) {
@@ -288,15 +297,12 @@ export function bookshelfView(s) {
 }
 
 export function homeView(s) {
-  const c = words[s.language], books = homeBooks(s.catalog,s.statuses,s.noteActivity,s.userId);
-  const recommendations=s.userId&&Array.isArray(s.homeInterestPreferences?.interested)&&Array.isArray(s.homeInterestPreferences?.notInterested)&&!books.some(book=>s.statuses[book.id]==="reading")
-    ? homeInterestRecommendations(s.catalog,s.statuses,s.homeInterestPreferences,books.map(book=>book.id)) : [];
+  const c=words[s.language],books=s.catalog?homeBooks(s.catalog,s.statuses,s.noteActivity,s.userId):(s.homeBooks||[]).filter(book=>s.statuses?.[book.id]==="reading"||(book.noteDeckCount||0)>0);
   return `<section class="home-screen"><h1 class="sr-only" tabindex="-1">${c.home}</h1>
     <button class="practice-launch" type="button" data-action="practice" aria-label="${esc(c.practiceLaunch)}"><span class="practice-launch-mascot">${mascotArt("sprout","practice-launch-art")}</span><span class="practice-launch-label" aria-hidden="true">${practiceLaunchLabel(c.practiceLaunch)}</span></button>
-    ${books.length ? `${bookListPresentation(s,books,"home",{note:true,selector:false,view:"covers"})}` : `<div class="home-empty${recommendations.length?" home-empty--with-recommendations":""}">${recommendations.length?"":mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
-    ${recommendations.length ? `<section class="home-book-recommendations" aria-labelledby="home-book-recommendations-title"><h2 id="home-book-recommendations-title">${esc(c.homeBookRecommendations)}</h2>${bookListPresentation(s,recommendations,"home-recommendations",{selector:false,catalog:true,catalogNeutral:true,view:"covers",label:c.homeBookRecommendations})}</section>` : ""}
+    ${books.length ? s.catalog?bookListPresentation(s,books,"home",{note:true,selector:false,view:"covers"}):bookListMarkup({books,view:"covers",label:c.books,cover:book=>homeBookMarkup(s,book)}) : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
     ${s.noteDestination ? noteDestinationMarkup(s) : ""}
-    ${s.catalog.booksById.has(s.openBookId) ? bookDetailsMarkup(s,s.catalog.booksById.get(s.openBookId)) : ""}
+    ${s.catalog?.booksById.has(s.openBookId) ? bookDetailsMarkup(s,s.catalog.booksById.get(s.openBookId)) : ""}
   </section>`;
 }
 
@@ -491,7 +497,8 @@ export function dailyView(s) {
 
 export function loadingView(language, failed) {
   const c = words[language];
-  return `<section class="loading${failed ? " loading-error" : ""}">${mascotArt("sprout")}<h1>${failed ? c.error : c.loading}</h1>${failed ? button(c.retry, "retry") : ""}</section>`;
+  if (!failed) return `<section class="loading opening-loading" role="status" aria-live="polite"><span class="opening-sprout">${mascotArt("sprout","initial-mascot",{idle:false})}</span><span class="sr-only">${c.loading}</span></section>`;
+  return `<section class="loading loading-error">${mascotArt("sprout")}<h1>${c.error}</h1>${button(c.retry, "retry")}</section>`;
 }
 
 export function accountView(s) {

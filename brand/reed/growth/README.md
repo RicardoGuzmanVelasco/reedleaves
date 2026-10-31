@@ -1,12 +1,12 @@
 # Growth mascot study
 
-This is the art source for the per-book mascot stages used by the app. The existing two-leaf app mascot is the **Seedling** stage. **Root** uses the selected ginger-root concept from `root.png`, composited through the transparent derivative `root-cutout.png`, and unlocks after spending leaves on cards for that book on two distinct local days. **Sprout** uses the green leafy seed from the original Sprout study and unlocks after three distinct review days. **Seedling** follows after five distinct review days. The final **Evergreen** stage restores the original **Living loop / Bucle vivo** mascot as a local asset, including its face placement.
+This is the art source for the per-book mascot stages used by the app. In Spanish, the sequence is **Maceta → Semilla → Raíz → Germen → Brote → Tallo → Flor**. The historical IDs remain `seedling` for Germen / Seedling at three review days and `sprout` for Brote / Sprout at five. The current two-leaf app mascot is **Brote / Sprout**. **Root** uses the selected ginger-root concept from `root.png`, composited through the transparent derivative `root-cutout.png`, and unlocks after spending leaves on cards for that book on two distinct local days. **Evergreen** restores the original **Living loop / Bucle vivo** mascot as a local asset, including its face placement.
 
-The user approved **Flowerpot** and **Seed** as shown, initially named the existing app mascot **Sprout** (now **Seedling**), approved the ginger-root **Root** artwork, approved **Sprout** with widely spaced eyes, asked to distinguish **Seedling** from **Sapling**, and asked to restore the original loop symbol. **Stem** uses the selected **A · Carnoso** direction in the shared component and calibration editor, and unlocks after ten distinct local spend days for the book. Sapling was removed from the sequence on 15 October 2026; Stem follows Seedling. Flower uses the approved A · Flor blossom-only design and unlocks at fifteen distinct local spend days. Plant remains reserved outside the growth sequence. Fruit follows Flower before Evergreen; its artwork, motto and unlock condition remain undecided.
+The user approved **Flowerpot** and **Seed**, approved the ginger-root **Root** artwork, approved **Sprout** with widely spaced eyes, asked to distinguish **Seedling** from **Sapling**, and asked to restore the original loop symbol. In Spanish, **Germen / Seedling** unlocks after three distinct review days and **Brote / Sprout** after five. **Stem** uses the selected **A · Carnoso** direction in the shared component and calibration editor, and unlocks after ten distinct local spend days for the book. Sapling was removed from the sequence on 15 October 2026; Stem follows Brote. Flower uses the approved A · Flor blossom-only design and unlocks at fifteen distinct local spend days. Plant remains reserved outside the growth sequence. Fruit follows Flower before Evergreen; its artwork, motto and unlock condition remain undecided.
 
 ## Current names and preserved identifiers
 
-The implemented sequence is **Flowerpot → Seed → Root → Sprout → Seedling → Stem → Flower**. Flower follows Stem directly at fifteen distinct local spend days. Plant is reserved outside that sequence. Historical IDs and filenames stay unchanged: `seedling` means **Brote / Sprout** at three review days; `sprout` means **Plántula / Seedling** at five. This naming correction preserves artwork, calibration, saved progress and profile counts.
+The implemented sequence is **Flowerpot → Seed → Root → Seedling → Sprout → Stem → Flower** (Spanish: **Maceta → Semilla → Raíz → Germen → Brote → Tallo → Flor**). Flower follows Stem directly at fifteen distinct local spend days. Plant is reserved outside that sequence. Historical IDs and filenames stay unchanged: `seedling` means **Germen / Seedling** at three review days; `sprout` means **Brote / Sprout** at five. This naming correction preserves artwork, calibration, saved progress and profile counts.
 
 ## Proposed stages
 
@@ -15,8 +15,8 @@ The implemented sequence is **Flowerpot → Seed → Root → Sprout → Seedlin
 | Flowerpot | Add a book to the user's shelf. Its original reading status can be `reading` or `read`. | `bodies/pot-a-body.png` (A · Classic; previous body retained in `pot.svg`) |
 | Seed | Open the first review card. | `bodies/seed.svg` (B · Almendrada; previous art: `seed.svg`) |
 | Root | Spend leaves on cards for the book on two distinct local days. | `root-cutout.png` (original: `root.png`) |
-| Sprout | Spend leaves on three distinct local days across any deck for the book. | `seedling.svg` |
-| Seedling | Spend leaves on five distinct local days across any deck for the book. | `../mascot.svg` |
+| Seedling / Germen | Spend leaves on three distinct local days across any deck for the book. | `seedling.svg` |
+| Sprout / Brote | Spend leaves on five distinct local days across any deck for the book. | `../mascot.svg` |
 | Stem | Spend leaves on ten distinct local days across any deck for the book. | `bodies/stem-flat.svg`, shared component and calibration editor. |
 | Flower | Spend leaves on fifteen distinct local days across any deck for the book. | `bodies/flower.png`: approved A · Flor, without stem, shared SVG face and separate shadow. |
 | Fruit | TBD; not active in the app; no approved artwork or motto. | Hidden silhouette in the app. |
@@ -58,7 +58,7 @@ The shared browser component also installs automatic blinking: both eyes close a
 
 - [Tallo — Junco y Bambú](stem-reed-bamboo-variants.md): dos exploraciones conservadas, con referencias y prompts completos. Carnoso sigue siendo la forma activa.
 
-- [Variantes de Plántula](plantula-variations-exploration.md): **A · Tierra v3**, aprobada y reservada, con la franja exterior oscura de las hojas recortada; **B · Cotiledones**, propuesta pendiente. Imágenes completas guardadas como exploraciones; el arte activo de la app se conserva.
+- [Variantes de Brote](brote-variations-exploration.md): **A · Tierra v3**, aprobada y reservada, con la franja exterior oscura de las hojas recortada; **B · Cotiledones**, propuesta pendiente. Imágenes completas guardadas como exploraciones; el arte activo de la app se conserva.
 
 - `index.html`: visual comparison of all stages.
 - `root-variations-exploration.png`: rough sheet of three alternate root shapes, saved for future exploration. These are proposals only; the approved Root remains `root.png` and the variants are not used in the app.

@@ -24,7 +24,7 @@ Son distinciones de diseño, no tres menús nuevos. En la interfaz bastan **Crec
 
 ## Una evolución por libro
 
-Conservar Maceta → Semilla → Raíz → Brote → Plántula → Tallo. La siguiente etapa propuesta es **Flor**. Siempreverde puede conservarse como candidato a cierre futuro; su requisito merece una decisión propia. Planta y Fruto saldrían de la secuencia solo cuando se apruebe este cambio.
+Conservar Maceta → Semilla → Raíz → Brote → Brote → Tallo. La siguiente etapa propuesta es **Flor**. Siempreverde puede conservarse como candidato a cierre futuro; su requisito merece una decisión propia. Planta y Fruto saldrían de la secuencia solo cuando se apruebe este cambio.
 
 **Flor: 20 días distintos de repaso del mismo libro, acumulados y sin racha.** Es una propuesta de ritmo, no una afirmación sobre formación de hábitos ni aprendizaje demostrado. Desde Tallo exige diez días adicionales.
 
@@ -36,7 +36,7 @@ Las etapas ya conseguidas se conservan. No habría marchitamiento ni pérdida de
 
 ## Las seis flores
 
-Exploración visual vigente: [Seis flores sin tallo · estilo Plántula](flower-only-variations/README.md). La primera serie se conserva como [«estilo tallo»](flower-variations/README.md). Por indicación del usuario, la mascota Flor debe mostrar solo la flor, sin tallo.
+Exploración visual vigente: [Seis flores sin tallo · estilo Brote](flower-only-variations/README.md). La primera serie se conserva como [«estilo tallo»](flower-variations/README.md). Por indicación del usuario, la mascota Flor debe mostrar solo la flor, sin tallo.
 
 Las seis propuestas visuales exploran **el mismo nivel**, no seis escalones de rareza o esfuerzo. La flor genérica sería la apariencia inicial. Si varias se eligen para producto, llegar a Flor permitiría escoger entre las aprobadas, sin más requisitos.
 

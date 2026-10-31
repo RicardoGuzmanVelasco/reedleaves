@@ -1,6 +1,6 @@
 import {mascotArt,restartMascotIdle} from "/app/mascot-art.mjs?v=flower-15-days";
 import {mascotMouthConfig,mascotMouthWidth,mascotMouthPath,playMascotExpression} from "/app/mascot-face.mjs?v=flower-15-days";
-const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Brote"],["sprout","Plántula"]];
+const stages = [["pot","Maceta"],["seed","Semilla"],["root","Raíz"],["seedling","Brote"],["sprout","Brote"]];
 const widths = [1,1.5,2,3,"custom"];
 const format = value => `${String(value).replace(".",",")}×`;
 // Start from the approved product configuration; sliders only change this study.

@@ -2,7 +2,7 @@ import {randomUUID} from "node:crypto";
 import {authenticate, readSession, revokeSession, checkCsrf, sessionCookie} from "./auth.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {ApiError} from "./errors.mjs";
-import {readReaderState, selectDeck, addDeckToCollection, removeDeckFromCollection, openCard, changeReading, changePreferences, dailyIdea, dailyIdeaStatus, savePracticeAnswer} from "./reader-repository.mjs";
+import {readReaderState,readReaderBalances,readReaderHomeBooks,selectDeck,addDeckToCollection,removeDeckFromCollection,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus,savePracticeAnswer} from "./reader-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 
 import {createBook,createDeck,addDeckContributors,changeDeckLanguage,changeDeckTitle,addCard,takeFirstNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
@@ -18,6 +18,7 @@ import {BOOK_INTEREST_CONFIRMATION_ENABLED} from "./book-interest-confirmation.m
 import {readReaderLanguagePreferences,saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
 import {MAX_BOOK_KNOWLEDGE_REQUEST_BYTES,recognizeLibraryBookSnapshot} from "./book-knowledge-repository.mjs";
 import {readDiscoverPracticeAvailability} from "./discover-practice.mjs";
+import {readInterests} from "./catalog-repository.mjs";
 
 async function readBody(request,maxBytes = 8192) {
   if (request.headers["content-type"]?.split(";")[0].trim() !== "application/json") throw new ApiError(415,"invalidRequest");
@@ -46,7 +47,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
   }
   return async (request,response,path,send) => {
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
-      ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/practice/discover-availability",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/collect",["POST"]],["/api/reader/remove",["POST"]],
+      ["/api/auth/logout",["POST"]],["/api/interests",["GET","HEAD"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/balances",["GET","HEAD"]],["/api/reader/home-books",["GET","HEAD"]],["/api/reader/practice/discover-availability",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/collect",["POST"]],["/api/reader/remove",["POST"]],
       ["/api/reader/book-knowledge/visit",["POST"]],
       ["/api/reader/interests/knowledge/snapshot",["POST"]],["/api/reader/interests/knowledge/recognize",["POST"]],
       ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
@@ -77,9 +78,10 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       }
       const time = now(), session = await readSession(db,request,time);
       if (path === "/api/session") {
-        const state = session ? await readReaderState(db,session,time) : {user:null};
+        const state = session ? {user:{id:session.user_id,username:session.username,timeZone:session.time_zone},csrfToken:session.csrf_token,language:session.language} : {user:null};
         send(200,inviteCode === undefined ? state : {...state,inviteRequired:true}); return true;
       }
+      if(path==="/api/interests"){send(200,await readInterests(db));return true;}
       if (cardVotesMatch && request.method !== "POST") { send(200,await readCardVotes(db,session,decodeURIComponent(cardVotesMatch[1]))); return true; }
       if (request.method === "POST") sameOrigin(request,origin);
       if (["/api/auth/register","/api/auth/login"].includes(path)) {
@@ -91,6 +93,8 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         send(200,inviteCode === undefined ? state : {...state,inviteRequired:true}); return true;
       }
       if (!session) throw new ApiError(401,"signInRequired");
+      if (path === "/api/reader/balances") { send(200,await readReaderBalances(db,session,time)); return true; }
+      if (path === "/api/reader/home-books") { send(200,await readReaderHomeBooks(db,session)); return true; }
       if (profileMatch) { send(200,await readProfile(db,profileMatch[1],session.user_id)); return true; }
       if (profileInterestsMatch) { send(200,await readPublicReaderInterestPreferences(db,profileInterestsMatch[1])); return true; }
       if (path === "/api/reader/interests/preferences" && ["GET","HEAD"].includes(request.method)) {

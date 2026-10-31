@@ -3,16 +3,23 @@ import { validateBookLinks } from "../app/book-links.mjs";
 import {validInterestAppearance} from "../app/interests.mjs";
 import { isPostgres } from "./database.mjs";
 
+export async function readInterests(db) {
+  const genres=[];
+  for(const {id,emoji,color} of await db.prepare("SELECT id,emoji,color FROM genres ORDER BY id").all()){
+    const translations=await db.prepare("SELECT language,name FROM genre_translations WHERE genre_id = ?").all(id);
+    const genre={id,emoji,color,name:Object.fromEntries(translations.map(row=>[row.language,row.name]))};
+    if(!validInterestAppearance(genre)||LANGUAGES.some(language=>!genre.name[language]?.trim()))throw new Error("Invalid interest catalog");
+    genres.push(genre);
+  }
+  return {genres};
+}
+
 export async function readCatalog(db, userId) {
   const bookColumns=isPostgres(db)
     ? await db.prepare("SELECT column_name AS name FROM information_schema.columns WHERE table_schema='public' AND table_name='books'").all()
     : await db.prepare("PRAGMA table_info(books)").all();
   const supportsIncorporation=bookColumns.some(column=>column.name==="incorporated_at");
-  const genres = [];
-  for (const {id,emoji,color} of await db.prepare("SELECT id,emoji,color FROM genres ORDER BY id").all()) {
-    const translations = await db.prepare("SELECT language,name FROM genre_translations WHERE genre_id = ?").all(id);
-    genres.push({id,emoji,color,name:Object.fromEntries(translations.map(t=>[t.language,t.name]))});
-  }
+  const {genres}=await readInterests(db);
   const books = [];
   for (const row of await db.prepare(`SELECT b.id,b.author,b.popular_title,b.popular_language,b.editorial_status,b.creator_user_id,
     ${supportsIncorporation?"b.incorporated_at,b.incorporation_order":"NULL AS incorporated_at,NULL AS incorporation_order"},

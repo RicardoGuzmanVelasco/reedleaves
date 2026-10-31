@@ -34,6 +34,56 @@ export async function readReaderState(db,session,now=new Date()) {
     return state;
   });
 }
+export async function readReaderBalances(db,session,now=new Date()) {
+  return transaction(db,async()=>{
+    await lockReaderAccount(db,session.user_id);
+    const cycleDay=dailyCycleDay(session.time_zone,now,DAILY_CYCLE_STARTS.currencyRefill);
+    const wallet=await accrueLeafWallet(db,session.user_id,cycleDay);
+    const petals=await accruePetalWallet(db,session.user_id,cycleDay);
+    return {wallet,petals:petals.balance,petalMaximum:MAX_PETALS};
+  });
+}
+export async function readReaderHomeBooks(db,session) {
+  return transaction(db,async()=>{
+    const userId=session.user_id;await lockReaderAccount(db,userId);
+    const books=await db.prepare(`WITH active_books AS (
+        SELECT book_id FROM book_reading WHERE user_id=? AND status='reading'
+        UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='draft'
+      ), home_book_summaries AS (
+      SELECT b.id,b.author,b.popular_title,b.popular_language,b.creator_user_id,b.position,
+        COALESCE(br.status,'unread') AS status,
+        (SELECT COUNT(*) FROM decks owned WHERE owned.book_id=b.id AND owned.creator_user_id=? AND owned.status='draft') AS note_deck_count,
+        (SELECT MAX(c.created_at) FROM decks owned JOIN cards c ON c.deck_id=owned.id
+          WHERE owned.book_id=b.id AND owned.creator_user_id=?) AS last_note_at
+      FROM active_books active JOIN books b ON b.id=active.book_id
+      LEFT JOIN book_reading br ON br.book_id=b.id AND br.user_id=?
+      ) SELECT * FROM home_book_summaries
+      ORDER BY CASE WHEN last_note_at IS NULL THEN 1 ELSE 0 END,last_note_at DESC,position`).all(userId,userId,userId,userId,userId);
+    const translations=await db.prepare(`SELECT bt.book_id,bt.language,bt.title,bt.description,b.popular_title
+      FROM book_translations bt JOIN (
+        SELECT book_id FROM book_reading WHERE user_id=? AND status='reading'
+        UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='draft'
+      ) active ON active.book_id=bt.book_id JOIN books b ON b.id=bt.book_id`).all(userId,userId);
+    const genres=await db.prepare(`SELECT bg.book_id,bg.genre_id FROM book_genres bg JOIN (
+        SELECT book_id FROM book_reading WHERE user_id=? AND status='reading'
+        UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='draft'
+      ) active ON active.book_id=bg.book_id ORDER BY bg.position`).all(userId,userId);
+    const reviewDays=await db.prepare(`SELECT d.book_id,COUNT(DISTINCT ps.completed_local_day) AS review_days
+      FROM practice_sessions ps JOIN practice_session_cards psc ON psc.session_id=ps.id
+      JOIN cards c ON c.id=psc.card_id JOIN decks d ON d.id=c.deck_id
+      WHERE ps.user_id=? AND ps.completed_at IS NOT NULL AND ps.completed_local_day IS NOT NULL
+        AND d.book_id IN (SELECT book_id FROM book_reading WHERE user_id=? AND status='reading'
+          UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='draft') GROUP BY d.book_id`).all(userId,userId,userId);
+    const translationsByBook=new Map(),genresByBook=new Map(),growthByBook=new Map();
+    for(const row of translations){const translated=translationsByBook.get(row.book_id)||{title:{},description:{}};if(row.title.trim()!==row.popular_title.trim())translated.title[row.language]=row.title;translated.description[row.language]=row.description;translationsByBook.set(row.book_id,translated);}
+    for(const row of genres){const values=genresByBook.get(row.book_id)||[];values.push(row.genre_id);genresByBook.set(row.book_id,values);}
+    for(const row of reviewDays)growthByBook.set(row.book_id,Number(row.review_days));
+    return {pendingNewBookCount:await pendingNewBookCount(db,userId),books:books.map(row=>({id:row.id,author:row.author,popularTitle:row.popular_title,popularLanguage:row.popular_language,
+      creatorUserId:row.creator_user_id,status:row.status,noteDeckCount:Number(row.note_deck_count),lastNoteAt:row.last_note_at,
+      title:translationsByBook.get(row.id)?.title||{},description:translationsByBook.get(row.id)?.description||{},genres:genresByBook.get(row.id)||[],
+      growth:{added:true,reviewDays:growthByBook.get(row.id)||0}}))};
+  });
+}
 async function stateInside(db,session,now) {
   const account=await db.prepare("SELECT * FROM accounts WHERE user_id = ?").get(session.user_id);
   if(!account) throw new ApiError(401,"signInRequired");
