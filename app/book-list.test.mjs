@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BOOK_SHELF_THRESHOLD,defaultBookView,bookListMarkup,bookViewSelector,leaningBookIndex,partitionLibraryBooks} from './book-list.mjs';
+import {BOOK_SHELF_THRESHOLD,defaultBookView,bookListMarkup,bookViewSelector,leaningBookIndex,partitionLibraryBooks,wrapSpineTitle} from './book-list.mjs';
 import {libraryResultsMarkup,libraryView,bookshelfView,accountView} from './views.mjs';
 import {readerState} from '../test-support/reader-state.mjs';
 import {openDatabase,initializeDatabase} from '../server/database.mjs';
@@ -19,6 +19,13 @@ test('new book partitions preserve the chosen order',()=>{
   const groups=partitionLibraryBooks([{id:'new-b'},{id:'old-a'},{id:'new-a'},{id:'old-b'}],['new-a','new-b','unknown']);
   assert.deepEqual(groups.newBooks.map(book=>book.id),['new-b','new-a']);
   assert.deepEqual(groups.otherBooks.map(book=>book.id),['old-a','old-b']);
+});
+test('Dense shelves allocate ten books per row and wrap spine titles without losing words',()=>{
+  const books=Array.from({length:21},(_,index)=>({id:String(index),href:'#book/'+index,title:'Book '+index,author:'Author',language:'en'}));
+  const html=bookListMarkup({books,view:'shelf',label:'Books'});
+  assert.equal((html.match(/class="book-shelf-row"/g)||[]).length,3);
+  assert.equal((html.match(/role="listitem"/g)||[]).length,21);
+  assert.deepEqual(wrapSpineTitle('A Long Book Title',(value)=>value.length*10,60),['A Long','Book','Title']);
 });
 test('Library novelty groups work in every view, locale and order without mutating the visit snapshot',async()=>{
   const db=openDatabase(':memory:');

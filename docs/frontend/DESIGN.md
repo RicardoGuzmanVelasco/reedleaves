@@ -65,7 +65,7 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 
 - Por defecto, ocupan el ancho necesario para sus opciones, sin estirarse para rellenar el contenedor. El selector de lectura de la ficha del libro se centra horizontalmente.
 - Las pestañas Estantería / Shelf y Tarjetero / Decks de Biblioteca / Bookcase mantienen por ahora su estilo propio. Posible unificación futura: revisar si conviene aplicarles el lenguaje visual del selector de cápsula.
-- Los selectores de presentación de libros comparten los SVG aprobados de `brand/icons/book-layout/`: cuatro portadas en cuadrícula, dos lomos verticales y uno inclinado para Estantería, y tres libros horizontales para Apilados. Trazo negro puro, fondo e interiores transparentes. La opción activa usa verde claro para conservar el contraste; mantener las etiquetas accesibles en español e inglés.
+- Los selectores de presentación de libros comparten los SVG aprobados de `brand/icons/book-layout/`: cuatro portadas en cuadrícula, dos lomos verticales y uno inclinado para Estantería, y tres libros horizontales para Apilados. Fondo e interiores transparentes, con trazo `currentColor` y máscaras CSS que heredan el color del control. Los iconos son negros en reposo y blancos en la opción activa, que conserva el fondo verde oscuro del selector compartido. Mantener las etiquetas accesibles en español e inglés.
 
 ## Cabecera compartida
 
@@ -77,6 +77,7 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 - La ficha y la vista previa no muestran bibliografía, citas numeradas ni el desplegable de fuentes de investigación. El catálogo no guarda fuentes de investigación como metadatos.
 - La zona inferior concentra el acceso al contenido en una única acción: «Ver barajas · N» / «View decks · N», con el número de barajas disponibles.
 - Después de cambiar un libro a «Leyendo» o «Leído» desde Librería, la ficha abierta ofrece una sugerencia temporal para «Tomar nota». El atajo abre el editor o el selector de baraja que corresponda y regresar conserva la misma ficha.
+- Al marcar un libro como «Leído», si la persona aún no ha aportado su propia guía, ofrecer escribirla desde la ficha. La acción abre el editor de guías de ese libro; «Ahora no» cierra la sugerencia. No repetirla si ya tiene una guía.
 - Idioma, estado de creación y progreso de repaso se muestran en el contexto de cada baraja. La ficha del libro no repite el número ni muestra idiomas o un resumen agregado de repaso como filas independientes.
 - Marcar «Leído» guarda la lectura y, si quedan barajas propias en borrador, abre un diálogo flotante para cerrarlas juntas. Cada fila muestra nombre y número de tarjetas, o «Vacía (se descartará)». «Confirmar» termina las que tienen contenido y descarta las vacías; «Mantener en borrador», Escape o cerrar conserva sus estados. La advertencia de congelación se muestra antes de confirmar, sin otro diálogo encadenado.
 - Un libro leído con notas pendientes permite recuperar ese diálogo desde «Barajas en borrador», junto al estado de lectura. El cierre devuelve al contexto de origen sin abrir un repaso. Los borradores locales deben guardarse o cancelarse antes de terminar sus barajas.
@@ -211,7 +212,7 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 
 - Portadas, Estantería densa y Libros apilados separan primero el grupo «Nuevo / New» cuando la visita contiene novedades. La etiqueta reutiliza el sello naranja de las portadas, con fondo opaco y profundidad corta, sin animación adicional. Su nombre accesible es «Novedades / New books».
 - Cada libro aparece en un único grupo. Ambos mantienen el orden y los filtros elegidos. Los grupos vacíos se ocultan; al retirar el filtro, las novedades de esa visita reaparecen. El selector de presentación es único y se calcula antes de separar los grupos.
-- Las portadas conservan 11:15 y sus tamaños. El sello de novedad se centra geométricamente en ambos ejes; una banda central separa el título superior del autor inferior, con el recuento al pie. En las portadas nuevas más estrechas, el autor se limita a dos líneas y mantiene su texto íntegro accesible. Las repisas conservan las medidas de los lomos; su sello identifica el grupo sin cubrir títulos.
+- Las portadas conservan 11:15 y sus tamaños. El sello de novedad se centra geométricamente en ambos ejes; una banda central separa el título superior del autor inferior, con el recuento al pie. En las portadas nuevas más estrechas, el autor se limita a dos líneas y mantiene su texto íntegro accesible. Cada estante acomoda hasta diez lomos de ancho base común y alturas variadas; los títulos largos se distribuyen en dos o tres líneas, aumentan el grosor del lomo y desplazan las piezas siguientes. El sello de novedad identifica el grupo sin cubrir títulos.
 
 ## Badges de novedades en navegación
 
