@@ -497,7 +497,7 @@ export function dailyView(s) {
 
 export function loadingView(language, failed) {
   const c = words[language];
-  if (!failed) return `<section class="loading opening-loading" role="status" aria-live="polite"><span class="opening-sprout">${mascotArt("sprout","initial-mascot",{idle:false})}</span><span class="sr-only">${c.loading}</span></section>`;
+  if (!failed) return `<section class="loading opening-loading" role="status" aria-live="polite" aria-label="${esc(c.loading)}"><span class="opening-sprout">${mascotArt("sprout","initial-mascot",{idle:false})}</span></section>`;
   return `<section class="loading loading-error">${mascotArt("sprout")}<h1>${c.error}</h1>${button(c.retry, "retry")}</section>`;
 }
 

@@ -15,7 +15,7 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=library-interest-sort-login-15";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=startup-resources-2";
+import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=startup-resources-3";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -63,7 +63,7 @@ export function startReader({createCardFeatures} = {}) {
     onResult:state=>{applyState(state);syncError=null;},
     onError:(error,{order})=>{bookSortOrder=validBookSortOrder(snapshot.bookSortOrder)?snapshot.bookSortOrder:"recent";librarySortOrder=bookSortOrder;libraryInterestSortPending=false;libraryInterestSortError=order==="interests";syncError=error.code||"connectionError";render();}
   });
-  let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, inviteRequired = false, renderVersion = 0, scrollToCard = false;
+  let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, openingOverlay = null, inviteRequired = false, renderVersion = 0, scrollToCard = false;
   let libraryVisitId=null,libraryNewBookIds=[];
   let practiceStage="choose",practiceSession=null,practiceUnavailable=null,practiceRecoveryRequest=null,practiceRecoveryGeneration=0,authoritativeStateGeneration=0,practiceIntroSession=null,practiceStartRequest=null,practiceAnswerRequest=null;
   let pendingGrowthFeedback=[];
@@ -365,11 +365,25 @@ export function startReader({createCardFeatures} = {}) {
     disposeBookLists();
     disposeDeckPresentation();
     practicePresentation.dispose();
+    const openingScreen=ready&&!openingOverlay?main.querySelector(".opening-loading"):null;
+    if(openingScreen){
+      openingOverlay=document.createElement("div");
+      openingOverlay.className="opening-screen-overlay";
+      openingOverlay.setAttribute("aria-hidden","true");
+      openingOverlay.append(openingScreen);
+      document.body.append(openingOverlay);
+      const overlay=openingOverlay;
+      requestAnimationFrame(()=>{
+        const finish=()=>{overlay.remove();if(openingOverlay===overlay)openingOverlay=null;};
+        if(matchMedia("(prefers-reduced-motion: reduce)").matches){finish();return;}
+        overlay.animate([{opacity:1},{opacity:0}],{duration:320,easing:"ease-out"}).finished.then(finish,finish);
+      });
+    }
     ++renderVersion; document.body.classList.toggle("is-opening",!ready&&!failed); document.body.classList.toggle("is-presenting",ready&&(mode === "preview"||mode === "guide-preview")); document.body.classList.toggle("is-practicing",ready&&mode === "practice"); document.body.classList.toggle("is-practice-choosing",ready&&mode === "practice" && practiceStage === "choose"); setHeaderLeading(""); header();
     if (!ready) {
       // Keep the first-paint flight running when the application module arrives.
       if(failed||!main.querySelector(".opening-loading"))main.innerHTML=loadingView(language,failed);
-      else main.querySelector(".opening-loading .sr-only").textContent=words[language].loading;
+      else main.querySelector(".opening-loading").setAttribute("aria-label",words[language].loading);
       syncModalPageLock();presentReading(main);updateCardFeatures();return;
     }
     refreshState(); header();
