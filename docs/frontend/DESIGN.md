@@ -13,6 +13,7 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - Las portadas de libros conservan globalmente la proporción aprobada 176:240. Al cambiar de tamaño, texto, espaciado, lomo y arte interior escalan proporcionalmente; las cuadrículas evitan deformar el libro. Si un texto supera el espacio de la portada, se limita con elipsis y permanece completo en su nombre accesible y tooltip.
 - Diseñar primero para uso táctil (touch first). Las acciones, el atractivo visual y las animaciones principales deben funcionar sin hover. El hover es un refuerzo opcional para dispositivos con cursor preciso, nunca el centro de la experiencia ni un requisito para descubrir una acción.
 - Los botones circulares que muestran solo un icono deben parecer controles sólidos, no translúcidos: usar un fondo opaco, borde visible y una sombra ligera cuando corresponda, también sobre fondos variables. Mantener una zona táctil de al menos 44 × 44 px aunque el círculo visible sea más pequeño. Aplicar el mismo lenguaje a las acciones de cerrar, ayuda y navegación circular, salvo el cierre exterior de un modal sobre el fondo atenuado, que puede llevar superficie translúcida sin sombra.
+- En diálogos con un panel delimitado, colocar la X de cierre fuera del panel, encima de su esquina superior derecha y alineada con el borde. En diálogos a pantalla completa, situarla arriba a la derecha fuera del contenido y respetar el margen seguro.
 - Las respuestas de hover de un contenedor no deben sustituir, reiniciar ni mover la animación propia de una mascota. Separar las capas visuales cuando sea necesario.
 
 ## Paleta de reutilización · inventario preliminar
@@ -64,6 +65,12 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 
 - Por defecto, ocupan el ancho necesario para sus opciones, sin estirarse para rellenar el contenedor. El selector de lectura de la ficha del libro se centra horizontalmente.
 - Las pestañas Estantería / Shelf y Tarjetero / Decks de Biblioteca / Bookcase mantienen por ahora su estilo propio. Posible unificación futura: revisar si conviene aplicarles el lenguaje visual del selector de cápsula.
+- Los selectores de presentación de libros comparten los SVG aprobados de `brand/icons/book-layout/`: cuatro portadas en cuadrícula, dos lomos verticales y uno inclinado para Estantería, y tres libros horizontales para Apilados. Trazo negro puro, fondo e interiores transparentes. La opción activa usa verde claro para conservar el contraste; mantener las etiquetas accesibles en español e inglés.
+
+## Cabecera compartida
+
+- La cabecera mantiene sus controles globales y ofrece un espacio opcional de contenido a la izquierda. Cada vista decide qué inyectar en ese espacio; puede quedar vacío. No se determina su contenido mediante una lista central de rutas.
+- Las vistas principales pueden mostrar ahí su icono y nombre, alineados con los saldos y Ajustes. El título semántico de cada pantalla se conserva dentro de `main` para el foco y la navegación accesible.
 
 ## Ficha del libro
 
@@ -75,6 +82,11 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 - Marcar «Leído» guarda la lectura y, si quedan barajas propias en borrador, abre un diálogo flotante para cerrarlas juntas. Cada fila muestra nombre y número de tarjetas, o «Vacía (se descartará)». «Confirmar» termina las que tienen contenido y descarta las vacías; «Mantener en borrador», Escape o cerrar conserva sus estados. La advertencia de congelación se muestra antes de confirmar, sin otro diálogo encadenado.
 - Un libro leído con notas pendientes permite recuperar ese diálogo desde «Barajas en borrador», junto al estado de lectura. El cierre devuelve al contexto de origen sin abrir un repaso. Los borradores locales deben guardarse o cancelarse antes de terminar sus barajas.
 
+## Guías de lectura
+
+- La pantalla de edición se centra en una sola tarea: escribir o editar la guía propia en un formulario con el tratamiento de las superficies y campos de autoría. No lista las guías comunitarias debajo del formulario.
+- La consulta de guías comunitarias ocurre en la vista dedicada de lectura, separada del editor. Mantener accesible «Volver a las barajas» y conservar el borrador y el error junto al formulario.
+
 ## Selector de barajas
 
 - Ordenar las barajas por prioridades sucesivas: distintivo visible; alguna tarjeta del usuario actual; título distinto de los títulos automáticos de `defaultNoteDeckTitle`; título sin las palabras «notas», «personales», «notes» o «personal». Conservar el orden previo cuando todos los criterios empatan. Incluir las guías de lectura en esta ordenación. Aplicar también dentro de cada grupo del Tarjetero.
@@ -84,7 +96,7 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 - La recomendación del equipo (`deck.isRecommended`, procedente de `is_recommended`) se muestra en el selector con la etiqueta flotante «Te recomendamos / We recommend» y estrella de puntas redondeadas. Usar la opción aprobada de papel ondulado, fondo dorado claro con un degradado suave para dar volumen, texto e iconos en dorado muy oscuro (`#684700`), con borde dorado de 1 px que sigue el contorno ondulado y sin sombra. El nombre accesible incluye el texto de la etiqueta y el tooltip identifica al equipo. No depende de votos ni de que la baraja esté en borrador o terminada.
 - Las barajas de guías de lectura muestran siempre el distintivo «Destacada / Featured», con medalla de dos cintas y el mismo papel dorado de la recomendación. Incluir «Destacada / Featured» en su nombre accesible.
 - Las distinciones de comunidad se conservan en datos y ordenación, pero siguen ocultas; el detalle no añade distintivos. No mostrar una etiqueta de relleno para barajas sin recomendación. Dar prioridad visual al título, con mayor tamaño que la autoría y todo el ancho disponible. Sus 26 px de margen superior dejan espacio al distintivo sin solapar el título.
-- El idioma se representa con un chip después del ojo y antes del estado de creación. Usar los SVG suaves de `brand/icons/languages/` (España para español y Reino Unido para inglés); para otros idiomas, globo neutro con su etiqueta de idioma. Conservar el nombre localizado del idioma en el nombre accesible y el tooltip de apertura. No reservar espacio lateral en el título para la bandera.
+- El idioma se representa con un chip después del ojo y antes del estado de creación. Para español e inglés, usar las banderas suavizadas y redondeadas de `brand/icons/languages/`; no mostrar texto de código en esos chips. Para otros idiomas, usar el globo circular y mostrar el código. Conservar el nombre localizado del idioma en el nombre accesible y el tooltip de apertura. El selector de Ajustes usa esas mismas banderas junto a Español e English, centradas y sin etiqueta visible; conservar su nombre accesible.
 - Las barajas terminadas no muestran un indicador de estado en ninguna vista. Las barajas `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. En una baraja aún no añadida a Decks, indicar que puede previsualizarse y que hay que añadirla para repasarla. La fila de chips puede envolver en móvil estrecho.
 - Mostrar el número de tarjetas y el número de citas (incluso si es cero) en la vista previa y en la información de la baraja. Sustituir el dato de niveles por el de citas. Reutilizar el icono de tarjetas y el icono de cita existente. Si hay más citas que ideas normales, usar los tonos azules en las fichas de baraja del selector y del Tarjetero.
 
@@ -167,6 +179,7 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 - Barra compacta: piezas de 64 px de alto (60 px en móvil estrecho), conservando los iconos de 46/66 px y 42/60 px respectivamente. El marcapáginas sobresale menos, con muesca más corta y texto próximo al icono. Etiquetas en una línea, con tamaño de fuente proporcional al ancho de la pieza mediante unidades de contenedor.
 
 
+
 ## Intereses de libros
 
 - Cada interés muestra el emoji aprobado y su nombre localizado en las fichas, la preview del libro y el editor. El catálogo conserva emoji y color; la interfaz no mantiene otra lista por ID. El emoji es decorativo y no sustituye el nombre accesible.
@@ -199,7 +212,7 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 
 - Portadas, Estantería densa y Libros apilados separan primero el grupo «Nuevo / New» cuando la visita contiene novedades. La etiqueta reutiliza el sello naranja de las portadas, con fondo opaco y profundidad corta, sin animación adicional. Su nombre accesible es «Novedades / New books».
 - Cada libro aparece en un único grupo. Ambos mantienen el orden y los filtros elegidos. Los grupos vacíos se ocultan; al retirar el filtro, las novedades de esa visita reaparecen. El selector de presentación es único y se calcula antes de separar los grupos.
-- Las portadas conservan 11:15 y sus tamaños. El sello de novedad se centra geométricamente en ambos ejes; una banda central separa el título superior del autor inferior, con el recuento al pie. En las portadas nuevas más estrechas, el autor se limita a dos líneas y mantiene su texto íntegro accesible. Las repisas conservan las medidas de los lomos; su sello identifica el grupo sin cubrir títulos.
+- Las portadas conservan 11:15 y sus tamaños. El sello de novedad se centra geométricamente en ambos ejes; una banda central separa el título superior del autor inferior, con el recuento al pie. En las portadas nuevas más estrechas, el autor se limita a dos líneas y mantiene su texto íntegro accesible. Cada estante acomoda hasta diez lomos de ancho base común y alturas variadas; los títulos largos se distribuyen en dos o tres líneas, aumentan el grosor del lomo y desplazan las piezas siguientes. El sello de novedad identifica el grupo sin cubrir títulos.
 
 ## Badges de novedades en navegación
 

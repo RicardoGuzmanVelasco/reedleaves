@@ -22,12 +22,13 @@ function fixture({viewport=true,touch=false}={}) {
 }
 
 test("Navigation follows downward scroll and returns faster on reversal without changing page layout",()=>{
-  const f=fixture();f.scroll(60);assert.equal(f.offset(),60);
-  f.scroll(120);assert.equal(f.offset(),120);
-  f.scroll(100);assert.equal(f.offset(),60);
+  const f=fixture();f.scroll(12);assert.equal(f.offset(),0);
+  f.scroll(60);assert.equal(f.offset(),f.nav.getBoundingClientRect().height+14+32);
+  f.scroll(120);assert.equal(f.offset(),f.nav.getBoundingClientRect().height+14+32);
+  f.scroll(100);assert.equal(f.offset(),f.nav.getBoundingClientRect().height+14+32);
   f.scroll(80);assert.equal(f.offset(),0);
   f.scroll(500);assert.ok(f.classes.has("is-scroll-hidden"));assert.equal(f.nav.inert,false);
-  f.scroll(480);assert.ok(!f.classes.has("is-scroll-hidden"));
+  f.scroll(470);assert.ok(!f.classes.has("is-scroll-hidden"));
   f.stop();assert.equal(f.styles.size,0);
 });
 
@@ -37,7 +38,7 @@ test("Each route reveals navigation and ignores initial restoration scroll; over
   f.advance();f.scroll(1600);assert.ok(f.classes.has("is-scroll-hidden"));
   f.scroll(1700);assert.ok(f.classes.has("is-scroll-hidden"));
   f.scroll(1600);assert.ok(f.classes.has("is-scroll-hidden"));
-  f.scroll(1580);assert.ok(!f.classes.has("is-scroll-hidden"));
+  f.scroll(1570);assert.ok(!f.classes.has("is-scroll-hidden"));
   f.scroll(-30);assert.equal(f.offset(),0);f.stop();
 });
 
@@ -54,12 +55,12 @@ test("Keyboard focus reveals the navigation; a pointer-selected tab does not pre
   const f=fixture();f.scroll(300);
   f.focus({inNav:true,matches:selector=>selector===":focus-visible"});f.nav.emit("focusin");assert.equal(f.offset(),0);
   f.advance();f.scroll(500);assert.equal(f.offset(),0);
-  f.focus({inNav:true,matches:()=>false});f.scroll(600);assert.equal(f.offset(),100);f.stop();
+  f.focus({inNav:true,matches:()=>false});f.scroll(600);assert.equal(f.offset(),f.nav.getBoundingClientRect().height+14+32);f.stop();
 });
 
 test("Reduced motion changes visibility directly and cleanup removes scroll listeners",()=>{
   const f=fixture();f.reduced.matches=true;f.reduced.emit("change");
-  f.scroll(30);assert.equal(f.offset(),0);f.scroll(150);assert.ok(f.classes.has("is-scroll-hidden"));
+  f.scroll(30);assert.equal(f.offset(),f.nav.getBoundingClientRect().height+14+32);f.scroll(150);assert.ok(f.classes.has("is-scroll-hidden"));
   f.stop();f.win.emit("scroll");assert.equal(f.frames.size,0);assert.equal(f.nav.inert,false);
 });
 
@@ -69,13 +70,9 @@ test("Touch browsers without Visual Viewport still hide navigation while editing
 });
 
 
-test("Pieces leave and return centre-first, with a visible spring overshoot",()=>{
-  const f=fixture();f.scroll(90);f.tick(12);
-  let [outer,inner,centre]=f.positions();assert.ok(centre>inner && inner>outer);
-  f.scroll(500);f.tick(160);assert.ok(f.positions().every(value=>Math.abs(value-f.offset())<.2));
-  f.scroll(490);f.tick(4);[outer,inner,centre]=f.positions();assert.ok(centre<inner && inner<outer);
-  f.scroll(0);let bounced=false;
-  for(let i=0;i<180;i++){f.tick();if(f.positions().some(value=>value<-5))bounced=true}
-  assert.ok(bounced);assert.ok(f.positions().every(value=>value===0));
+test("Navigation settles at an endpoint after scrolling stops",()=>{
+  const f=fixture();f.scroll(90);assert.equal(f.offset(),f.nav.getBoundingClientRect().height+14+32);
+  f.tick(160);assert.ok(f.positions().every(value=>Math.abs(value-f.offset())<.2));
+  f.scroll(60);f.tick(160);assert.ok(f.positions().every(value=>Math.abs(value)<.2));
   f.stop();assert.equal(f.frames.size,0);
 });

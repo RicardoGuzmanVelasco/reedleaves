@@ -5,7 +5,7 @@ import {readCatalog} from "../server/catalog-repository.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {availableDecks,featuredDecks,treeLinks} from "./decks.mjs";
-import {deckView,readingGuideDeckPreviewView,deckPeekView,reviewView,homeView,practiceView,authorView,authorFormView,bookshelfView,escapeHtml} from "./views.mjs";
+import {deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,homeView,practiceView,authorView,authorFormView,bookshelfView,escapeHtml} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
 
@@ -61,6 +61,20 @@ test("Reading guides have a dedicated book tile, add entry, and vertical reading
     assert.ok(preview.includes(c.readingGuides));
     cards.forEach(item=>{item.creatorUserId="guide-author";});
   }
+});
+
+test("Reading guide authoring shows only its styled editor; community guides stay in the reading view",async()=>{
+  const catalog=await fixture(),deck=catalog.decks.find(item=>item.bookId==="seven-habits"),cards=catalog.deckModels.get(deck.id).cards;
+  cards.forEach(card=>{card.isReadingGuide=true;card.creatorUserId="guide-author";card.language="es";});
+  cards[0].creatorUserId="reader";
+  const editor=readingGuidesView(readerState(catalog,{bookId:deck.bookId,statuses:{[deck.bookId]:"read"},userId:"reader",language:"es"}));
+  assert.match(editor,/reading-guides-screen--editing/);
+  assert.match(editor,/class="reading-guide-editor"/);
+  assert.match(editor,/class="primary" type="submit"/);
+  assert.doesNotMatch(editor,/class="reading-guide-row"|empty-state/);
+  const browse=readingGuidesView(readerState(catalog,{bookId:deck.bookId,statuses:{[deck.bookId]:"read"},userId:null,language:"en"}));
+  assert.equal((browse.match(/class="reading-guide-row"/g)||[]).length,cards.length);
+  assert.doesNotMatch(browse,/id="reading-guide-form"/);
 });
 
 test("Collective draft review UI lets invited contributors add cards without exposing deck management",async()=>{
@@ -121,7 +135,14 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
       assert.ok(label.includes(c.noteCardsCount(deck.cardCount)),"The tile describes its card count accessibly");
       assert.ok(label.includes(c.quoteCount(quoteCount)),"The tile describes its quote count accessibly");
       const languageName=new Intl.DisplayNames([language],{type:"language"}).of(choice.deck.language);
-      assert.ok(label.includes(languageName),"The flag retains an accessible language description");
+      assert.ok(label.includes(languageName),"The deck language remains accessible");
+      if (["es","en"].includes(choice.deck.language)) {
+        assert.match(html,new RegExp(`brand/icons/languages/${choice.deck.language}\\.svg`));
+        assert.doesNotMatch(html,/deck-language-icon|>es<|>en</);
+      } else {
+        assert.match(html,/brand\/icons\/languages\/globe\.svg/);
+        assert.ok(html.includes(`>${choice.deck.language}</span>`));
+      }
       assert.equal(html.includes('class="deck-tile-count deck-tile-quote-count"'),quoteCount>0,"Only decks with quotes show a quote-count chip");
       assert.ok(html.includes(c.noteCardsCount(deck.cardCount)),"Every tile shows its card count");
       assert.ok(html.includes(`title="${c.noteCardsCount(deck.cardCount)}"`),"The card count chip has a localized title");
@@ -277,13 +298,14 @@ test("Practice prices show one discounted topic, the wallet cap, and useful empt
   const choice=practiceView(state,null);
   assert.match(choice,/data-action="open-practice-help"[^>]*aria-haspopup="dialog"/);
   assert.match(choice,/class="practice-help-modal" aria-labelledby="practice-help-title"/);
+  assert.match(choice,/class="dialog-close practice-help-close" type="button" data-action="close-practice-help" aria-label="Cerrar ayuda"/);
   assert.match(choice,/Todas las tarjetas de tus barajas añadidas al tarjetero cuyos libros están en «Leyendo»\./);
   assert.match(choice,/Todas las tarjetas de tus barajas añadidas al tarjetero cuyos libros están en «Leído»\./);
   assert.match(choice,/aunque su baraja no esté en tu tarjetero/);
   const englishChoice=practiceView({...state,language:"en"},null);
   assert.match(englishChoice,/What each mode includes/);
   assert.match(englishChoice,/All cards from decks in your Decks whose books are marked “Reading”\./);
-  assert.match(englishChoice,/data-action="close-practice-help" aria-label="Close help"/);
+  assert.match(englishChoice,/class="dialog-close practice-help-close" type="button" data-action="close-practice-help" aria-label="Close help"/);
   assert.equal(state.petalMaximum,15);
   assert.equal((choice.match(/class="pricetag(?: pricetag--discounted)?"/g)||[]).length,5);
   assert.match(choice,/aria-label="2 pétalos"/);

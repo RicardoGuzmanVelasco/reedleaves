@@ -14,6 +14,13 @@ test("Official name stays Reedleaves on every screen and in every interface lang
   const html = readFileSync(new URL("./index.html",import.meta.url),"utf8");
   assert.match(html,/<title>Reedleaves · Inicio<\/title>/);
   assert.match(html,/<meta name="application-name" content="Reedleaves">/);
+  const languageSelector=html.match(/<span id="language-label"[^>]*>(.*?)<\/span>\s*<div class="segmented-selector" id="language-selector"[^>]*>([\s\S]*?)<\/div>/)?.slice(1) || [];
+  assert.equal(languageSelector[0],"Idioma");
+  assert.match(html,/id="language-label" class="sr-only"/);
+  assert.match(languageSelector[1]||"",/languages\/es\.svg/);
+  assert.match(languageSelector[1]||"",/languages\/en\.svg/);
+  assert.doesNotMatch(languageSelector[1]||"",/globe\.svg|>ES<|>EN</);
+  assert.match(readFileSync(new URL("./reader.css",import.meta.url),"utf8"),/#language-selector\{[^}]*margin:0 auto/);
   const header=html.match(/<header class="app-header">([\s\S]*?)<\/header>/)?.[1] || "";
   assert.doesNotMatch(header,/class="brand"|brand-name|d-compacto\.svg/);
   const actions=header.match(/<div class="header-actions">([\s\S]*?)<\/div>/)?.[1] || "";
@@ -40,6 +47,12 @@ test("Renaming the team changes only its public label, not creator identity or p
   assert.equal(storageKeys.noteDrafts("u","seven-habits"),"leaf-reader:note-drafts:v1:u:seven-habits");
 });
 
+test("The Home tab uses a simple outlined house instead of the Reedleaves logo",()=>{
+  const html=readFileSync(new URL("./index.html",import.meta.url),"utf8"),home=html.match(/<a class="bottom-navigation-link bottom-navigation-home"[\s\S]*?<\/a>/)?.[0]||"";
+  const icon=readFileSync(new URL("../brand/icons/navigation/home.svg",import.meta.url),"utf8");
+  assert.match(home,/brand\/icons\/navigation\/home\.svg/);assert.doesNotMatch(home,/d-compacto\.svg/);
+  assert.match(icon,/fill="none" stroke="#173d2c"/);assert.match(icon,/m3 10\.5 9-7\.5 9 7\.5/);
+});
 test("Seed stays a brown body with a separated face and no leaf",()=>{
   const seed=readFileSync(new URL("../brand/reed/growth/seed.svg",import.meta.url),"utf8");
   assert.doesNotMatch(seed,/fill="#58BE59"|fill="#B9E877"/);
