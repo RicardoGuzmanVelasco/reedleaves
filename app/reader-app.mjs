@@ -368,11 +368,21 @@ export function startReader({createCardFeatures} = {}) {
     practicePresentation.dispose();
     const openingScreen=ready&&!openingOverlay?main.querySelector(".opening-loading"):null;
     if(openingScreen){
+      const openingMotion=openingScreen.getAnimations({subtree:true}).map(animation=>({
+        target:animation.effect?.target,pseudoElement:animation.effect?.pseudoElement,
+        name:animation.animationName,time:animation.currentTime
+      }));
       openingOverlay=document.createElement("div");
       openingOverlay.className="opening-screen-overlay";
       openingOverlay.setAttribute("aria-hidden","true");
       openingOverlay.append(openingScreen);
       document.body.append(openingOverlay);
+      // Reparenting can recreate CSS animations. Keep their current phase so
+      // the fade grows the visible character instead of restarting its flight.
+      for(const animation of openingScreen.getAnimations({subtree:true})){
+        const previous=openingMotion.find(item=>item.target===animation.effect?.target&&item.pseudoElement===animation.effect?.pseudoElement&&item.name===animation.animationName);
+        if(typeof previous?.time==="number")animation.currentTime=previous.time;
+      }
       const overlay=openingOverlay;
       requestAnimationFrame(()=>{
         const finish=()=>{overlay.remove();if(openingOverlay===overlay)openingOverlay=null;};
