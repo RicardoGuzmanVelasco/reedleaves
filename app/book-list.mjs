@@ -9,24 +9,6 @@ export function partitionLibraryBooks(books,newBookIds=[]){
   return {newBooks:books.filter(book=>newIds.has(book.id)),otherBooks:books.filter(book=>!newIds.has(book.id))};
 }
 export const leaningBookIndex=(count,columns)=>count%columns>1?count-1:-1;
-export function wrapSpineTitle(text,measure,maxWidth){
-  const lines=[];let line='';
-  for(const word of String(text).trim().split(/\s+/).filter(Boolean)){
-    if(measure(word)>maxWidth){
-      if(line){lines.push(line);line='';}
-      let part='';
-      for(const character of Array.from(word)){
-        if(part&&measure(part+character)>maxWidth){lines.push(part);part=character;}else part+=character;
-      }
-      line=part;
-    }else{
-      const next=line?line+' '+word:word;
-      if(line&&measure(next)>maxWidth){lines.push(line);line=word;}else line=next;
-    }
-  }
-  if(line)lines.push(line);
-  return lines.length?lines:[''];
-}
 export function bookViewSelector(view,scope,language='es',trailing=''){
   const labels=language==='es'?['Portadas','Estantería densa','Libros apilados']:['Covers','Dense shelf','Stacked books'];
   return `<div class="book-list-tools"><div class="segmented-selector book-view-selector" role="group" aria-label="${language==='es'?'Vista de libros':'Book view'}">${BOOK_VIEWS.map((value,index)=>`<button type="button" data-action="set-book-view" data-scope="${esc(scope)}" data-view="${value}" aria-pressed="${view===value}" aria-label="${labels[index]}" title="${labels[index]}"><span class="book-view-icon book-view-icon--${value}" aria-hidden="true"></span></button>`).join('')}</div>${trailing}</div>`;
@@ -48,37 +30,33 @@ export function mountBookLists(root){
     for(const list of lists){
       const width=list.clientWidth;if(!width)continue;
       const vertical=list.dataset.bookSpines==='shelf';
-      const fontSize=15;
       const measure=(text,size,title)=>{
         if(!context)return text.length*size*.65;
         context.font=`800 ${size}px ${getComputedStyle(title).fontFamily}`;
         return context.measureText(text).width-Math.max(0,Array.from(text).length-1)*size*.035;
       };
       if(vertical){
-        const rows=[...list.children],lineThickness=fontSize*1.15;
+        const rows=[...list.children];
         const rowLayouts=rows.map((row,rowIndex)=>{
           const items=[...row.children],layouts=items.map(item=>{
             const book=item.querySelector('.book-spine'),title=book.querySelector('.book-spine-title');
             const text=title.dataset.fullText??(title.dataset.fullText=title.textContent);
             const height=Math.ceil(184*(.78+bookVariation(text,'length')*.21));
-            let size=fontSize,lines=wrapSpineTitle(text,value=>measure(value,size,title),Math.max(40,height-16));
-            while(lines.length>3&&size>11){size-=.5;lines=wrapSpineTitle(text,value=>measure(value,size,title),Math.max(40,height-16));}
-            if(lines.length>3)lines=[lines[0],lines[1],lines.slice(2).join(' ')];
-            title.style.fontSize=size+'px';title.style.setProperty('--spine-title-length',`${Math.max(40,height-16)}px`);title.style.textAlign='center';
-            title.replaceChildren(...lines.map(line=>{const span=document.createElement('span');span.className='book-spine-line';span.textContent=line;return span;}));
-            title.dataset.lines=String(lines.length);
+            let size=16;
+            if(measure(text,size,title)>height-16)size=15;
+            title.style.fontSize=size+'px';title.style.setProperty('--spine-title-length',`${Math.max(40,height-16)}px`);
+            title.textContent=text;
             item.style.setProperty('--spine-length',height+'px');
             book.title=text;book.classList.remove('is-leaning');
-            return {item,book,lines};
+            return {item,book};
           });
-          return {row,rowIndex,items,layouts,extraLines:layouts.reduce((total,entry)=>total+entry.lines.length-1,0)};
+          return {row,rowIndex,items,layouts};
         });
-        const extraLines=Math.max(0,...rowLayouts.map(layout=>layout.extraLines));
         const gap=parseFloat(getComputedStyle(rows[0]||list).columnGap)||0;
-        const baseWidth=Math.max(18,(width-gap*9-extraLines*lineThickness)/10);
+        const baseWidth=Math.max(18,(width-gap*9)/10);
         rowLayouts.forEach(({rowIndex,items,layouts})=>{
-          layouts.forEach(({item,book,lines},index)=>{
-            item.style.setProperty('--spine-width',`${baseWidth+(lines.length-1)*lineThickness}px`);
+          layouts.forEach(({item,book},index)=>{
+            item.style.setProperty('--spine-width',`${baseWidth}px`);
             if(rowIndex===rows.length-1&&items.length<10&&items.length>1&&index===items.length-1)book.classList.add('is-leaning');
           });
         });

@@ -5,7 +5,7 @@ import {mountDeckPresentation} from "./deck-presentation.mjs";
 import {deckPageHash,deckReadingHash,deckShareUrl} from "./deck-navigation.mjs";
 import {mountInterests,syncBookInterestSelector} from "./interests.mjs";
 import {bookInterestError,selectBookInterest} from "./book-interests.mjs";
-import {mountBookLists,BOOK_VIEWS} from "./book-list.mjs?v=adaptive-shelf-spines-1";
+import {mountBookLists,BOOK_VIEWS} from "./book-list.mjs?v=adaptive-shelf-spines-2";
 import {updateNavigationBadges} from "./navigation-badges.mjs";
 import {loadCatalog,loadHomeBooks,loadInterests} from "./catalog.mjs";
 import {createBookKnowledgeVisitId,visitVisitorBooks,pendingVisitorBookCount,inLibraryVisit} from "./book-knowledge.mjs";
@@ -1599,9 +1599,6 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function load() {
     failed = false; ready = false; render();
-    // CSS owns the duration. Reduced motion has no animation to wait for;
-    // cancellation (including a preference change) also releases this gate.
-    const openingFinished=Promise.allSettled((main.querySelector(".opening-sprout")?.getAnimations()||[]).map(animation=>animation.finished));
     const openingPreview=new URLSearchParams(location.search).get("openingPreview")==="1"&&["localhost","127.0.0.1"].includes(location.hostname);
     const previewFinished=openingPreview&&!matchMedia("(prefers-reduced-motion: reduce)").matches?new Promise(resolve=>setTimeout(resolve,5600)):Promise.resolve();
     try {
@@ -1622,7 +1619,7 @@ export function startReader({createCardFeatures} = {}) {
         }
         pendingGrowthFeedback=growthFeedbackChanges(before,after);
       }
-      await Promise.all([openingFinished,previewFinished]);
+      await previewFinished;
       ready = true; route(false);
     }
     catch { failed = true; ready = false; render(); }

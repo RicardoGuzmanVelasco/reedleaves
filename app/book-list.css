@@ -8,3 +8,4 @@
 .library-interest-sort-status{display:flex;align-items:center;gap:8px;min-height:44px;color:var(--muted);font-size:12px;font-weight:700}.library-interest-sort-status--error{color:var(--error)}.library-interest-sort-status .text-button{min-height:44px}
 @media(max-width:520px){.book-list-tools{gap:7px;flex-wrap:wrap}.segmented-selector.book-view-selector>button{min-width:40px;padding-inline:8px}}
 .bookshelf-group-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.bookshelf-group .bookshelf-group-heading h2{margin:0}.bookshelf-group-heading .book-list-tools{margin:0}
+.book-spines--shelf .book-spine-title{display:block;height:1.15em;text-align:left;white-space:nowrap}

@@ -977,6 +977,7 @@ textarea:focus-visible{outline:3px solid #8b541e;outline-offset:4px}
 @keyframes navigation-badge-arrive{from{transform:scale(.82)}70%{transform:scale(1.08)}to{transform:scale(1)}}
 @keyframes navigation-badge-wave{0%{transform:scale(.35);opacity:1}40%{transform:scale(1);opacity:.9}65%,100%{transform:scale(1);opacity:0}}
 @media(prefers-reduced-motion:reduce){.navigation-new-badge{transition:none}.navigation-new-badge:before,.navigation-new-badge:after{animation:none}.navigation-new-badge:after{display:none}}
+.deck-modal-close{width:44px;height:44px}
 
 /* Novelty gets its own centre band, independent from title and author length. */
 .catalog-book--new .study-book-cover{display:grid;grid-template-rows:minmax(0,1fr) 30px minmax(0,1fr);padding-bottom:min(12px,6.82cqi)}
