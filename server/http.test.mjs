@@ -29,8 +29,8 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   const appHtml = await app.text();
   assert.equal(app.status, 200); assert.match(appHtml, /id="leaf-count"/);
   assert.match(appHtml, /name="robots" content="noindex, nofollow"/);
-  assert.match(appHtml,/class="dialog-close" id="close-settings"[^>]*aria-label="Cerrar ajustes"[^>]*><svg/);
-  assert.match(appHtml,/class="dialog-close" id="close-feedback"[^>]*aria-label="Cerrar comentarios"[^>]*><svg/);
+  assert.match(appHtml,/class="[^"]*\bdialog-close\b[^"]*" id="close-settings"[^>]*aria-label="Cerrar ajustes"[^>]*><svg/);
+  assert.match(appHtml,/class="[^"]*\bdialog-close\b[^"]*" id="close-feedback"[^>]*aria-label="Cerrar comentarios"[^>]*><svg/);
   assert.match(app.headers.get("content-security-policy"), /script-src 'self'/);
   assert.match((await fetch(base + "/app/reader.mjs")).headers.get("content-type"), /javascript/);
   assert.equal((await fetch(base + "/brand/reed/d-compacto.svg")).status, 200);

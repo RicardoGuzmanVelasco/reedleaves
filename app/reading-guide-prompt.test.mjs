@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {runInNewContext} from "node:vm";
-import {hasAccessibleReadingGuide,shouldShowReadingGuidePrompt} from "./reading-guide-prompt.mjs";
+import {hasAccessibleReadingGuide,hasOwnReadingGuide,shouldOfferReadingGuideCreationPrompt,shouldShowReadingGuidePrompt} from "./reading-guide-prompt.mjs";
 import {libraryView,bookshelfView} from "./views.mjs";
 import {words} from "./i18n.mjs";
 
@@ -37,6 +37,21 @@ test("Only a saved transition into reading with accessible guide cards qualifies
   assert.equal(qualifies({nextStatus:"read"}),false);
 });
 
+test("A saved transition into read offers a guide only when the reader has not written one",()=>{
+  const catalog={decks:[{id:"guide",bookId:"b",status:"published"}],deckModels:new Map([
+    ["guide",{cards:[{isReadingGuide:true,creatorUserId:"reader"}]}]
+  ])};
+  assert.equal(hasOwnReadingGuide(catalog,"b","reader"),true);
+  assert.equal(hasOwnReadingGuide(catalog,"b","someone-else"),false);
+  assert.equal(hasOwnReadingGuide(catalog,"b",null),false);
+  const qualifies=values=>shouldOfferReadingGuideCreationPrompt({previousStatus:"reading",nextStatus:"read",saveSucceeded:true,hasOwnGuide:false,...values});
+  assert.equal(qualifies({}),true);
+  assert.equal(qualifies({previousStatus:"read"}),false);
+  assert.equal(qualifies({saveSucceeded:false}),false);
+  assert.equal(qualifies({hasOwnGuide:true}),false);
+  assert.equal(qualifies({nextStatus:"reading"}),false);
+});
+
 test("Successful state mutation offers the guide; a failed mutation does not",async()=>{
   for(const succeeds of [true,false]) {
     let shown=null,focused=null;
@@ -45,7 +60,7 @@ test("Successful state mutation offers the guide; a failed mutation does not",as
       snapshot:{user:{id:"reader"},statuses:{[bookId]:"to-read"}},statuses:{[bookId]:"to-read"},mode:"library",openBookId:bookId,
       catalog:{booksById:new Map([[bookId,{}]])},busy:false,bookStatusError:null,noteNudgeBookId:null,readingGuidePromptBookId:null,
       words,language:"es",live:{textContent:""},notesCompletion:null,createNotesCompletion:()=>null,
-      hasAccessibleReadingGuide:()=>true,shouldShowReadingGuidePrompt,bookInterestPrompt:null,bookInterestFlow:null,
+      hasAccessibleReadingGuide:()=>true,hasOwnReadingGuide:()=>false,shouldShowReadingGuidePrompt,shouldOfferReadingGuideCreationPrompt,bookInterestPrompt:null,bookInterestFlow:null,
       createReadingInterestWarningFlow:({onCommit,onFailure})=>({start:async()=>{if(succeeds)onCommit({});else onFailure({code:"connectionError"},null);}}),
       runBookInterestAction:async action=>action(),applyState:()=>{},refreshState:()=>{},lockControls:()=>{},syncGeneration:0,
       main:{querySelectorAll:()=>[]},render:()=>{},
@@ -55,6 +70,24 @@ test("Successful state mutation offers the guide; a failed mutation does not",as
     await run(bookId,"reading");
     shown=context.readingGuidePromptBookId;
     assert.equal(shown,succeeds?bookId:null);
+  }
+});
+
+test("Marking a book read offers a guide and still opens note completion when needed",async()=>{
+  for(const {hasOwnGuide,expected} of [{hasOwnGuide:false,expected:"book"},{hasOwnGuide:true,expected:null}]) {
+    const bookId="book";
+    const context={
+      snapshot:{user:{id:"reader"},statuses:{[bookId]:"reading"}},statuses:{[bookId]:"reading"},mode:"library",openBookId:bookId,
+      catalog:{booksById:new Map([[bookId,{}]])},busy:false,bookStatusError:null,noteNudgeBookId:null,readingGuidePromptBookId:null,
+      words,language:"es",live:{textContent:""},notesCompletion:null,createNotesCompletion:()=>({bookId}),
+      hasAccessibleReadingGuide:()=>true,hasOwnReadingGuide:()=>hasOwnGuide,shouldShowReadingGuidePrompt,shouldOfferReadingGuideCreationPrompt,
+      createReadingInterestWarningFlow:({onCommit})=>({start:async()=>onCommit({})}),
+      runBookInterestAction:async action=>action(),applyState:()=>{},refreshState:()=>{},lockControls:()=>{},syncGeneration:0,
+      main:{querySelectorAll:()=>[]},render:()=>{}
+    };
+    await handlerWith("setBookReading","dismissReadingGuidePrompt",context)(bookId,"read");
+    assert.equal(context.readingGuidePromptBookId,expected);
+    assert.deepEqual(context.notesCompletion,{bookId});
   }
 });
 
@@ -81,6 +114,26 @@ test("Reading-guide prompt replaces the note nudge and exposes translated, keybo
   assert.equal(book.id,bookId);
 });
 
+test("Marking a book read offers the user a translated shortcut to its guide editor",async()=>{
+  const dbState=await import("../server/database.mjs");
+  const {seedCatalog}=await import("../server/seed.mjs");
+  const {readCatalog}=await import("../server/catalog-repository.mjs");
+  const {prepareCatalog}=await import("./catalog.mjs");
+  const db=dbState.openDatabase(":memory:");let catalog;
+  try{dbState.initializeDatabase(db);await seedCatalog(db);catalog=prepareCatalog(await readCatalog(db));}finally{await db.close();}
+  const bookId="seven-habits",state={catalog,language:"es",statuses:{[bookId]:"read"},openBookId:bookId,mode:"library",readingGuidePromptBookId:bookId,noteNudgeBookId:bookId,storageAvailable:true,userId:"reader"};
+  for(const language of ["es","en"]) {
+    const html=libraryView({...state,language});
+    assert.ok(html.includes(words[language].readingGuideWritePrompt));
+    assert.ok(html.includes(words[language].readingGuideWrite));
+    assert.ok(html.includes(words[language].readingGuidePromptDismiss));
+    assert.match(html,/data-action="open-reading-guides"/);
+    assert.match(html,/data-action="dismiss-reading-guide-writing-prompt"/);
+    assert.doesNotMatch(html,/data-action="take-note-from-book"/);
+  }
+  assert.doesNotMatch(libraryView({...state,readingGuidePromptBookId:null}),/reading-guide-writing-prompt/);
+});
+
 test("A reading transition from the personal Shelf gets the guide prompt; public shelves never do",async()=>{
   const dbState=await import("../server/database.mjs");
   const {seedCatalog}=await import("../server/seed.mjs");
@@ -98,7 +151,7 @@ test("A reading transition from the personal Shelf gets the guide prompt; public
   assert.doesNotMatch(bookshelfView(publicState),/reading-guide-reading-prompt/);
 });
 
-test("Guide action routes to the existing preview and dismiss restores reading focus",()=>{
+test("Guide action routes to the existing preview and dismiss restores status focus",()=>{
   const bookId="b",focused=[];let target=null,rendered=false;
   const context={readingGuidePromptBookId:bookId,statuses:{[bookId]:"reading"},catalog:{},mode:"bookshelf",hasAccessibleReadingGuide:()=>true,
     location:{hash:"#library"},bookOrigin:"library",openBookId:bookId,window:{scrollY:28},main:{querySelector:()=>({scrollTop:9})},
@@ -117,6 +170,11 @@ test("Guide action routes to the existing preview and dismiss restores reading f
   assert.equal(dismissContext.noteNudgeBookId,null);
   assert.deepEqual(focused,[true]);
   assert.equal(rendered,true);
+  const readContext={readingGuidePromptBookId:bookId,statuses:{[bookId]:"read"},noteNudgeBookId:bookId,render:()=>{},
+    main:{querySelectorAll:()=>[{dataset:{book:bookId,status:"read"},focus:()=>focused.push("read")}]}};
+  handlerWith("dismissReadingGuidePrompt","openReadingGuidePrompt",readContext)(bookId);
+  assert.equal(readContext.readingGuidePromptBookId,null);
+  assert.deepEqual(focused,[true,"read"]);
 });
 
 test("Returning from guide preview restores its Library or Shelf context, scroll and reading focus",()=>{
