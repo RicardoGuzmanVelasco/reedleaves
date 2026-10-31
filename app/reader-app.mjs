@@ -1,4 +1,5 @@
 import {PRACTICE_ENABLED_TOPICS} from "./practice-modes.mjs";
+import {waitForOpeningFlight} from "./opening-flight.mjs";
 import {createDiscoverAvailability} from "./discover-availability.mjs";
 import {startBottomNavigationBehavior} from "./bottom-navigation-behavior.mjs";
 import {mountDeckPresentation} from "./deck-presentation.mjs";
@@ -1638,6 +1639,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function load() {
     failed = false; ready = false; render();
+    const flightFinished=waitForOpeningFlight(main,matchMedia("(prefers-reduced-motion: reduce)").matches);
     const openingPreview=new URLSearchParams(location.search).get("openingPreview")==="1"&&["localhost","127.0.0.1"].includes(location.hostname);
     const previewFinished=openingPreview&&!matchMedia("(prefers-reduced-motion: reduce)").matches?new Promise(resolve=>setTimeout(resolve,5600)):Promise.resolve();
     try {
@@ -1658,7 +1660,7 @@ export function startReader({createCardFeatures} = {}) {
         }
         pendingGrowthFeedback=growthFeedbackChanges(before,after);
       }
-      await previewFinished;
+      await Promise.all([flightFinished,previewFinished]);
       ready = true; route(false);
     }
     catch { failed = true; ready = false; render(); }
