@@ -1,6 +1,6 @@
 # Reedleaves
 
-Catálogo real: cinco libros, seis barajas y 42 tarjetas. Cada baraja tiene un idioma original y puede añadir traducciones. Reedleaves es el nombre oficial del proyecto, la web y la app; logo y mascota aprobados sin cambios. Lemas: «Read. Plant a seed.» y «De hoja a hoja».
+Catálogo real: cinco libros, seis barajas y 42 tarjetas. Cada baraja tiene un idioma original y puede añadir traducciones. Reedleaves es el nombre oficial del proyecto, la web y la app. Brote sonriente, sin libro, es el símbolo y el icono actual. Lemas: «Read. Plant a seed.» y «De hoja a hoja».
 
 ## Ejecutar
 

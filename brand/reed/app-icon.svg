@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 160 160">
+<rect width="160" height="160" fill="#FFF9ED"/>
+<svg x="0" y="0" width="160" height="160" viewBox="0 0 160 160">
+<path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+  <path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+  <path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+  <path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/>
+
+<g class="mascot-face-placement" transform="translate(79 104) rotate(0) scale(1) translate(-82 -104)" fill="#173D2C"><g class="mascot-eye mascot-eye--left" transform="translate(53 104)"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-eye mascot-eye--right" transform="translate(111 104)"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-mouth"><path d="M74 119q8 6 16 0" stroke="#173D2C" stroke-width="3" stroke-linecap="round" fill="none"/></g></g></svg>
+</svg>

@@ -15,7 +15,7 @@
 <script type="module">
 import {bottomNavigationProfileIconMarkup,calendarIconMarkup} from '../../../app/views.mjs';
 const root='../../../';
-const icons=[`<img src="${root}brand/icons/collections/library.svg" alt="">`,`<img src="${root}brand/icons/collections/bookcase.svg" alt="">`,`<img src="${root}brand/reed/d-compacto.svg" alt="">`,bottomNavigationProfileIconMarkup(),calendarIconMarkup()];
+const icons=[`<img src="${root}brand/icons/collections/library.svg" alt="">`,`<img src="${root}brand/icons/collections/bookcase.svg" alt="">`,`<img src="${root}brand/reed/mascot.svg" alt="">`,bottomNavigationProfileIconMarkup(),calendarIconMarkup()];
 const labels=['Librería','Biblioteca','Inicio','Perfil','Idea del día'];
 const variants=[['A · Madera + marcapáginas verde','wood'],['B · Verde continuo + marcapáginas de papel','green'],['C · Piezas verdes + marcapáginas de madera','mixed']];
 document.querySelector('main').innerHTML=variants.map(([name,style])=>`<figure><figcaption>${name}</figcaption><nav class="${style}" aria-label="${name}">${labels.map((label,i)=>`<button type="button" aria-label="${label}" title="${label}" class="${i===2?'home':''}" ${i===2?'aria-current="page"':''}><span class="icon" aria-hidden="true">${icons[i]}</span><span class="label" aria-hidden="true">${label}</span></button>`).join('')}</nav></figure>`).join('');
