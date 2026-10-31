@@ -49,7 +49,7 @@ export function CardActions({record,saved,c,onVote,onSave,error,onRetry,requires
       {[-1,1].map(value=>{const count=total(value);return <button key={value} className="vote-target" type="button" data-card-action="vote" data-value={value} aria-label={`${value===1?c.likeCard:c.dislikeCard}${count?`, ${count}`:''}`} aria-pressed={record?.vote===value} disabled={(!ready&&!requiresAuth)||own} title={own?c.ownCardVotes:value===1?c.likeCard:c.dislikeCard} onClick={()=>onVote(value)}/>})}
       {own&&<span className="sr-only">{c.ownCardVotes}</span>}
     </div>
-    <button className="save-target" type="button" data-card-action="save" aria-label={saved?c.unsaveCard:c.saveCard} aria-pressed={saved} title={saved?c.unsaveCard:c.saveCard} onClick={onSave}>
+    <button className="save-target" type="button" data-card-action="save" aria-label={saved?c.unsaveCard:c.saveCard} aria-pressed={saved} title={saved?c.unsaveCard:c.saveCard} onClick={()=>onSave()}>
       <svg viewBox="0 0 64 124" aria-hidden="true"><g transform="translate(4 2)"><g className="ribbon-tilt"><path className="ribbon-shape ribbon-shadow" d={ribbonPath} transform="translate(0 5)"/><path className="ribbon-shape ribbon-body" d={ribbonPath}/><path className="ribbon-fold" d="M11 10h34"/><path data-plus d="M20 34h16m-8-8v16"/><path data-tick d="m19 34 6 6 13-14"/></g></g></svg>
     </button>
     {error&&<div className="card-action-error" role="status"><span>{c[error.code]||c.connectionError}</span><button type="button" onClick={onRetry}>{c.retry}</button></div>}
