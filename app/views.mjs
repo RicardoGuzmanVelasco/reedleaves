@@ -1,17 +1,18 @@
 import {PRACTICE_ENABLED_TOPICS} from "./practice-modes.mjs";
+import {callout} from "./callout.mjs";
 import {bookListMarkup,bookViewSelector,defaultBookView,selectedBookView,partitionLibraryBooks} from "./book-list.mjs";
 import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES, INVITE_CODE_MIN_LENGTH, LANGUAGES, USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, CARD_BODY_MAX_LENGTH, READING_GUIDE_MAX_LENGTH, BOOK_AUTHOR_MAX_LENGTH, MAX_CARDS_PER_DECK,languageDisplayName} from "./core.mjs";
 import { availableDecks,isReadingGuideDeck,sortDecks } from "./decks.mjs";
 import {homeBooks,editableNoteDecks,noteDecksWithSpace,recentNoteDecks} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=library-interest-sort-login-15";
+import { words } from "./i18n.mjs?v=library-interest-sort-login-16";
 import { bookLinkUrl } from "./book-links.mjs";
 import { validQuoteSourceUrl } from "./quote-source.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks} from "./bookshelf.mjs";
 import {currentMascotStage} from "./mascot-progress.mjs?v=flower-15-days";
-import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=flower-15-days";
+import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=sleep-2";
 import {missingBookInformation,TRANSLATION_FIELDS} from "./book-metadata.mjs";
 import {defaultNoteDeckTitle} from "./note-defaults.mjs";
 import {dailyIdeaStreak} from "./daily-streak.mjs";
@@ -27,7 +28,7 @@ const esc = escapeHtml;
 export function bookDuplicateSuggestionsMarkup(s,matches) {
   if (!matches.length) return "";
   const blocked=matches.some(match=>match.blocked),c=words[s.language];
-  return `<section class="book-duplicate-suggestions" aria-label="${esc(c.bookDuplicateQuestion)}"><p ${blocked?'role="alert"':""}>${blocked?c.bookAlreadyExists:c.bookDuplicateNotice}</p><h3>${c.bookDuplicateQuestion}</h3><ul>${matches.map(({book})=>`<li><span lang="${esc(displayedBookTitle(s,book).language)}" dir="auto">${esc(displayedBookTitle(s,book).text)}</span><small>${esc(book.author)}</small><button class="text-button" type="button" data-action="open-duplicate-book" data-book="${esc(book.id)}">${c.bookDuplicateView}</button></li>`).join("")}</ul></section>`;
+  return callout({variant:blocked?"error":"warning",role:blocked?"alert":"status",label:c.bookDuplicateQuestion,className:"book-duplicate-suggestions",content:`<p>${blocked?c.bookAlreadyExists:c.bookDuplicateNotice}</p><h3>${c.bookDuplicateQuestion}</h3><ul>${matches.map(({book})=>`<li><span lang="${esc(displayedBookTitle(s,book).language)}" dir="auto">${esc(displayedBookTitle(s,book).text)}</span><small>${esc(book.author)}</small><button class="text-button" type="button" data-action="open-duplicate-book" data-book="${esc(book.id)}">${c.bookDuplicateView}</button></li>`).join("")}</ul>`});
 }
 const practiceLaunchLabel = text => {
   const chars = typeof Intl.Segmenter === "function"
@@ -179,7 +180,7 @@ function bookDetailsMarkup(s,book) {
     <div class="deck-tags">${bookGenresMarkup(s,book)}</div>
     <h2 id="book-dialog-title" lang="${esc(displayedBookTitle(s,book).language)}" dir="auto">${esc(displayedBookTitle(s,book).text)}</h2>${popularBookTitleMarkup(s,book)}<div class="book-detail-author-row"><p class="book-detail-author">${esc(book.author)}</p>${completeBookButton(s,book)}</div>
     ${bookReadingControls(s,book)}
-    ${guidePrompt ? `<div class="reading-guide-reading-prompt" role="status" aria-live="polite"><span>${c.readingGuideReadingPrompt}</span><div><button class="primary" type="button" data-action="view-reading-guides-after-reading" data-book="${esc(book.id)}">${c.viewReadingGuides}</button><button class="text-button" type="button" data-action="dismiss-reading-guide-reading-prompt" data-book="${esc(book.id)}">${c.readingGuidePromptDismiss}</button></div></div>` : guideWritingPrompt ? `<div class="reading-guide-reading-prompt reading-guide-writing-prompt" role="status" aria-live="polite"><span>${c.readingGuideWritePrompt}</span><div><button class="primary" type="button" data-action="open-reading-guides" data-book="${esc(book.id)}">${c.readingGuideWrite}</button><button class="text-button" type="button" data-action="dismiss-reading-guide-writing-prompt" data-book="${esc(book.id)}">${c.readingGuidePromptDismiss}</button></div></div>` : noteNudge ? `<div class="book-note-nudge"><span>${c.bookNoteNudge}</span><button class="primary book-note-nudge-action note-icon-only" type="button" data-action="take-note-from-book" data-book="${esc(book.id)}" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}">${takeNoteIconMarkup}</button></div>` : ""}
+    ${guidePrompt ? callout({variant:"info",role:"status",className:"reading-guide-reading-prompt",content:`<span>${c.readingGuideReadingPrompt}</span>`,actions:`<button class="primary" type="button" data-action="view-reading-guides-after-reading" data-book="${esc(book.id)}">${c.viewReadingGuides}</button><button class="text-button" type="button" data-action="dismiss-reading-guide-reading-prompt" data-book="${esc(book.id)}">${c.readingGuidePromptDismiss}</button>`}) : guideWritingPrompt ? callout({variant:"info",role:"status",className:"reading-guide-reading-prompt reading-guide-writing-prompt",content:`<span>${c.readingGuideWritePrompt}</span>`,actions:`<button class="primary" type="button" data-action="open-reading-guides" data-book="${esc(book.id)}">${c.readingGuideWrite}</button><button class="text-button" type="button" data-action="dismiss-reading-guide-writing-prompt" data-book="${esc(book.id)}">${c.readingGuidePromptDismiss}</button>`}) : noteNudge ? callout({variant:"info",role:"status",className:"book-note-nudge",content:`<span>${c.bookNoteNudge}</span>`,actions:`<button class="primary book-note-nudge-action note-icon-only" type="button" data-action="take-note-from-book" data-book="${esc(book.id)}" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}">${takeNoteIconMarkup}</button>`}) : ""}
     ${noteChoices}
     ${book.creatorName ? `<p class="book-added-by"><span>${c.bookAddedBy}</span>${nameLink({icon:"user",name:book.creatorName,href:creatorProfileId ? `#profile/${encodeURIComponent(creatorProfileId)}` : null})}</p>` : ""}
     ${contentText(book.description,s.language,book.popularLanguage) ? `<p class="deck-description" id="book-dialog-description" lang="${esc(contentLocale(book.description,s.language,book.popularLanguage))}" dir="auto">${esc(contentText(book.description,s.language,book.popularLanguage))}</p>` : ""}
@@ -505,8 +506,8 @@ export function accountView(s) {
   const c = words[s.language], signup = s.authMode === "register";
   return `<section class="account-screen">
     <div class="account-welcome">${mascotArt("sprout")}<h1 tabindex="-1">${signup ? c.signUp : c.signIn}</h1></div>
-    ${s.accountLearningNotice ? `<p class="account-learning-notice" role="status">${esc(c.accountLearningNotice)}</p>` : ""}
-    ${s.accountInterestSortNotice ? `<p class="account-learning-notice" role="status">${esc(c.interestSortSignInNotice)}</p>` : ""}
+    ${s.accountLearningNotice ? callout({variant:"info",role:"status",className:"account-learning-notice callout--centered",content:`<p>${esc(c.accountLearningNotice)}</p>`}) : ""}
+    ${s.accountInterestSortNotice ? callout({variant:"info",role:"status",className:"account-learning-notice callout--centered",content:`<p>${esc(c.interestSortSignInNotice)}</p>`}) : ""}
     <form class="account-form" data-account-form>
       <label for="account-username">${c.username}</label><input id="account-username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required minlength="${USERNAME_MIN_LENGTH}" maxlength="${USERNAME_MAX_LENGTH}" pattern="[a-zA-Z0-9][a-zA-Z0-9._\\-]{${USERNAME_MIN_LENGTH - 1},${USERNAME_MAX_LENGTH - 1}}" aria-describedby="username-hint"><small id="username-hint">${signup ? c.usernameRegistrationHint : c.usernameHint}</small>
       ${signup && s.inviteRequired ? `<label for="account-invite">${c.inviteCode}</label><input id="account-invite" name="inviteCode" type="password" autocomplete="off" required minlength="${INVITE_CODE_MIN_LENGTH}" maxlength="256">` : ""}
@@ -579,7 +580,7 @@ export function bookInterestWarningView(s) {
   return `<dialog class="book-interest-warning-modal" aria-labelledby="book-interest-warning-title" aria-describedby="book-interest-warning-copy"><article class="book-interest-warning-card">
     <h2 id="book-interest-warning-title"><span aria-hidden="true">${esc(emoji)}</span> ${esc(name)}</h2>
     <p id="book-interest-warning-copy">${esc(isCardSave?c.bookInterestSaveWarning(name):c.bookInterestWarning(name,statusLabel))}</p>
-    ${pending.error ? `<p class="account-error" role="alert">${esc(c[pending.error]||c[isCardSave?"cardSaveInterestConfirmError":"bookInterestConfirmError"])}</p>` : ""}
+    ${pending.error ? callout({variant:"error",role:"alert",className:"book-interest-error",content:`<p>${esc(c[pending.error]||c[isCardSave?"cardSaveInterestConfirmError":"bookInterestConfirmError"])}</p>`}) : ""}
     <div class="book-interest-warning-actions"><button class="text-button" type="button" data-action="cancel-book-interest-warning" autofocus ${pending.outcomeUnknown?"disabled":""}>${esc(c.bookInterestCancel)}</button><button class="primary" type="button" data-action="confirm-book-interest-warning">${esc(c.bookInterestContinue)}</button></div>
   </article></dialog>`;
 }
@@ -828,17 +829,17 @@ export function profileView(s) {
   const interestList=(kind,ids)=>ids.map(id=>{const interest=s.catalog.genres.find(item=>item.id===id);if(!interest)return "";return `<li class="profile-interest-item"><span class="sr-only">${esc(c[kind === "interested" ? "profileInterested" : "profileNotInterested"])}: </span><span class="interest-chip"${interestColor(interest)}>${interestIcon(interest)}<span class="interest-name">${esc(interest.name[s.language])}</span></span><span class="profile-interest-mark profile-interest-mark--${kind}" aria-hidden="true">${kind === "interested" ? "✓" : "×"}</span></li>`;}).join("");
   const interestEditor=()=>{
     if(!preferences||preferences.loading)return `<p class="profile-interests-loading" role="status">${c.loading}</p>`;
-    if(preferences.error)return `<div class="profile-interest-error" role="alert"><p>${esc(c[preferences.error]||c.connectionError)}</p><button type="button" class="text-button" data-action="retry-profile-interests">${c.retry}</button></div>`;
+    if(preferences.error)return callout({variant:"error",role:"alert",className:"profile-interest-error",content:`<p>${esc(c[preferences.error]||c.connectionError)}</p>`,actions:`<button type="button" class="text-button" data-action="retry-profile-interests">${c.retry}</button>`});
     const chips=interestList("interested",preferences.interested)+interestList("notInterested",preferences.notInterested);
     return chips?`<ul class="profile-interests" role="list">${chips}</ul>`:`<p class="profile-interests-empty">${c.profileInterestsEmpty}</p>`;
   };
   const languageEditor=()=>{
     if(!languagePreferences||languagePreferences.loading)return `<p class="profile-interests-loading" role="status">${c.loading}</p>`;
-    if(languagePreferences.error&&!languagePreferences.editing)return `<div class="profile-language-error" role="alert"><p>${esc(c[languagePreferences.error]||c.connectionError)}</p><button type="button" class="text-button" data-action="retry-profile-languages">${c.retry}</button></div>`;
+    if(languagePreferences.error&&!languagePreferences.editing)return callout({variant:"error",role:"alert",className:"profile-language-error",content:`<p>${esc(c[languagePreferences.error]||c.connectionError)}</p>`,actions:`<button type="button" class="text-button" data-action="retry-profile-languages">${c.retry}</button>`});
     const labels=tags=>tags.map(tag=>languageDisplayName(tag,s.language));
     if(!languagePreferences.editing)return `<p class="profile-language-list">${esc(labels(languagePreferences.languages).join(", "))}</p>`;
     const draft=languagePreferences.draft||[],options=languagePreferences.options||draft;
-    return `<form class="profile-language-editor" aria-busy="${!!languagePreferences.saving}"><fieldset class="profile-language-options" ${languagePreferences.saving?"disabled":""}><legend>${c.profileLanguageChoose}</legend><div>${options.map(tag=>`<label><input type="checkbox" data-profile-language value="${esc(tag)}" aria-describedby="profile-language-required" ${draft.includes(tag)?"checked":""}><span lang="${esc(tag)}">${esc(languageDisplayName(tag,s.language))}</span></label>`).join("")}</div></fieldset><p id="profile-language-required" class="profile-language-required" ${draft.length?"hidden":""} role="alert">${c.profileLanguageRequired}</p><p class="profile-language-feedback" role="status" aria-live="polite">${languagePreferences.feedback?esc(c[languagePreferences.feedback]||""):""}</p>${languagePreferences.error?`<p class="account-error" role="alert">${esc(c[languagePreferences.error]||c.connectionError)}</p>`:""}${languagePreferences.conflict?`<div class="profile-language-error" role="alert"><p>${c.profileLanguagesConflict}</p><button class="secondary" type="button" data-action="recover-profile-languages">${c.profileLanguagesRecover}</button></div>`:""}<div class="form-actions"><button class="text-button" type="button" data-action="cancel-profile-languages" ${languagePreferences.saving?"disabled":""}>${c.cancel}</button><button class="primary" type="button" data-action="save-profile-languages" aria-disabled="${!!languagePreferences.saving}" ${!draft.length?"disabled":""}>${languagePreferences.saving?c.working:c.save}</button></div></form>`;
+    return `<form class="profile-language-editor" aria-busy="${!!languagePreferences.saving}"><fieldset class="profile-language-options" ${languagePreferences.saving?"disabled":""}><legend>${c.profileLanguageChoose}</legend><div>${options.map(tag=>`<label><input type="checkbox" data-profile-language value="${esc(tag)}" aria-describedby="profile-language-required" ${draft.includes(tag)?"checked":""}><span lang="${esc(tag)}">${esc(languageDisplayName(tag,s.language))}</span></label>`).join("")}</div></fieldset><p id="profile-language-required" class="profile-language-required" ${draft.length?"hidden":""} role="alert">${c.profileLanguageRequired}</p><p class="profile-language-feedback" role="status" aria-live="polite">${languagePreferences.feedback?esc(c[languagePreferences.feedback]||""):""}</p>${languagePreferences.error?`<p class="account-error" role="alert">${esc(c[languagePreferences.error]||c.connectionError)}</p>`:""}${languagePreferences.conflict?callout({variant:"error",role:"alert",className:"profile-language-error",content:`<p>${c.profileLanguagesConflict}</p>`,actions:`<button class="secondary" type="button" data-action="recover-profile-languages">${c.profileLanguagesRecover}</button>`}):""}<div class="form-actions"><button class="text-button" type="button" data-action="cancel-profile-languages" ${languagePreferences.saving?"disabled":""}>${c.cancel}</button><button class="primary" type="button" data-action="save-profile-languages" aria-disabled="${!!languagePreferences.saving}" ${!draft.length?"disabled":""}>${languagePreferences.saving?c.working:c.save}</button></div></form>`;
   };
   const owner=s.userId===p.id;
   const created=new Date(p.createdAt.endsWith("Z") || /[+-]\d\d:\d\d$/.test(p.createdAt) ? p.createdAt : p.createdAt.replace(" ","T")+"Z");
@@ -852,9 +853,15 @@ export function profileView(s) {
     <section class="profile-section" aria-labelledby="profile-mascots"><h2 id="profile-mascots">${c.currentMascots}</h2><ul class="profile-mascots">${mascotStages.filter(stage=>stage.unlocked || p.mascots[stage.id]>0).map(stage=>`<li>${mascotIcon(stage.id)}<span>${c[stage.name]}</span><strong>${p.mascots[stage.id] ?? 0}</strong></li>`).join("")}</ul></section>
   </section>`;
 }
+export function profileWakeOverlayView() {
+  return `<div class="profile-wake-overlay" aria-hidden="true">${mascotArt("sprout","profile-wake-mascot",{animation:"wake"})}</div>`;
+}
 export function profilePendingView(s) {
   const c=words[s.language];
-  return `<section class="profile-screen"><h1 tabindex="-1" class="profile-pending-title">${c.profile}</h1><div class="empty-state" ${s.profileError ? 'role="alert"' : 'role="status"'}><p>${s.profileError ? esc(c[s.profileError] || c.connectionError) : c.loading}</p>${s.profileError ? `<button class="text-button" type="button" data-action="retry-profile">${c.retry}</button>` : ""}</div></section>`;
+  const pending=s.profileError
+    ? `<div class="profile-error-state">${mascotArt("sprout","profile-error-mascot",{expression:"sad",idle:false})}${callout({variant:"error",role:"alert",className:"profile-error-callout",width:"content",main:s.profileError==="connectionError"?c.profileLoadErrorMain:c[s.profileError]||c.connectionError,suggestion:s.profileError==="connectionError"?c.profileLoadErrorSuggestion:"",action:{label:c.retry,dataAction:"retry-profile"}})}</div>`
+    : `<div class="profile-loading-state" role="status"><span class="sr-only">${esc(c.loading)}</span>${mascotArt("sprout","profile-loading-mascot",{animation:"sleep"})}</div>`;
+  return `<section class="profile-screen"><h1 tabindex="-1" class="profile-pending-title">${c.profile}</h1>${pending}</section>`;
 }
 
 export function initialInterestsView(s) {
@@ -871,7 +878,7 @@ export function initialInterestsView(s) {
     <p class="initial-interest-feedback" role="status" aria-live="polite" data-initial-feedback>${flow.feedback?esc(c[flow.feedback]):""}</p>
     ${flow.storageAvailable===false?`<p class="account-error" role="status">${c.initialInterestStorageUnavailable}</p>`:""}
     ${flow.error?`<p class="account-error" role="alert">${esc(c[flow.error]||c.connectionError)}</p>`:""}
-    ${flow.conflict?`<div class="profile-interest-conflict" role="alert"><p>${c.profileInterestConflict}</p><button class="secondary" type="button" data-initial-action="recover" ${flow.saving?"disabled":""}>${c.profileInterestRecover}</button></div>`:""}
+    ${flow.conflict?callout({variant:"error",role:"alert",className:"profile-interest-conflict",content:`<p>${c.profileInterestConflict}</p>`,actions:`<button class="secondary" type="button" data-initial-action="recover" ${flow.saving?"disabled":""}>${c.profileInterestRecover}</button>`}):""}
     </div><div class="initial-interest-actions">${second?`<button class="text-button" type="button" data-initial-action="back" ${flow.saving?"disabled":""}>${c.backToPrevious}</button>`:""}<button class="primary interest-choice-next" type="submit" data-initial-action="${second?"save":"next"}" aria-disabled="${!!flow.saving}" ${!draft.interested.length||flow.conflict?"disabled":""}>${flow.saving?c.working:second?c.save:c.next}</button></div>
   </form></dialog>`;
 }

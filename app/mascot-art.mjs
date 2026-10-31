@@ -1,4 +1,4 @@
-import {mascotFace} from "./mascot-face.mjs?v=flower-15-days";
+import {mascotFace} from "./mascot-face.mjs?v=sleep-3";
 import {startMascotBlinking} from "./mascot-blink.mjs?v=mascot-random-blink";
 
 if (typeof document !== "undefined") startMascotBlinking(document);
@@ -20,11 +20,13 @@ export const mascotAssets = Object.freeze({
 export const mascotIdlePatterns = Object.freeze({seed:"float",seedling:"float",sprout:"float",mystery:"float"});
 const escapeAttribute = value => String(value).replace(/[&<>"']/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character]));
 
-export function mascotArt(stage, className = "", {expression = "neutral", mouth, face, variant = "mascot", idle = true} = {}) {
+export function mascotArt(stage, className = "", {expression = "neutral", mouth, face, variant = "mascot", idle = true, animation = "idle"} = {}) {
   if (variant === "icon") return mascotIcon(stage,className);
   const id = Object.hasOwn(mascotAssets, stage) ? stage : "mystery";
-  const pattern = idle ? (mascotIdlePatterns[id] ?? "hop") : "none";
-  return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}" data-idle="${pattern}" aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${mascotAssets[id]}" width="160" height="160" alt="" draggable="false">${mascotFace(id,expression,mouth,face)}</span></span></span>`;
+  const sleeping = animation === "sleep", waking=animation === "wake";
+  const pattern = sleeping ? "sleep" : waking ? "wake" : idle ? (mascotIdlePatterns[id] ?? "hop") : "none";
+  const sleepSymbols = sleeping ? '<span class="mascot-sleep-symbols"><span>Z</span><span>z</span><span>z</span></span>' : "";
+  return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}" data-idle="${pattern}" aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${mascotAssets[id]}" width="160" height="160" alt="" draggable="false">${mascotFace(id,sleeping ? "sleep" : expression,mouth,face)}</span></span>${sleepSymbols}</span>`;
 }
 
 // Restart body and ground together in the preview tools without touching eye gestures.

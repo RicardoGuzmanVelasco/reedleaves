@@ -43,7 +43,7 @@ export function mascotMouthPath(stage, config = mascotMouthConfig) {
   return `M${82-width/2} 119q${width/2} 6 ${width} 0`;
 }
 
-const expressions = new Set(["neutral","wink-left","wink-right","blink"]);
+const expressions = new Set(["neutral","wink-left","wink-right","blink","sleep","sad"]);
 
 // Lossless face crops from reserved A. Together with pot-a-body.png these
 // restore the source artwork, while retaining separate eye-expression layers.
@@ -75,6 +75,22 @@ export function mascotFace(stage, expression = "neutral", mouth = mascotMouthCon
   if (!placement) return "";
   const {x,y,rotation,scale,eyeOffsets} = placement;
   const state = expressions.has(expression) ? expression : "neutral";
+  if (state === "sleep") {
+    const closedEye = side => {
+      const center = side === "left" ? 53 : 111;
+      const offset = eyeOffsets[side];
+      return `<path d="M${center-6+offset.x} ${104+offset.y}q6 5 12 0" stroke="#173D2C" stroke-width="3.5" stroke-linecap="round" fill="none"/>`;
+    };
+    return `<svg class="mascot-face" viewBox="0 0 160 160" aria-hidden="true" focusable="false" data-expression="sleep"><g class="mascot-face-placement" transform="translate(${x} ${y}) rotate(${rotation}) scale(${scale}) translate(-82 -104)">${closedEye("left")}${closedEye("right")}<ellipse class="mascot-sleep-mouth" cx="82" cy="119" rx="5.5" ry="4.5" fill="#173D2C"/></g></svg>`;
+  }
+  if (state === "sad") {
+    const sadMouthWidth=Math.max(mascotMouthWidth(stage,mouth),3.5);
+    const closedEye = side => {
+      const center=side==="left"?53:111,offset=eyeOffsets[side];
+      return `<path d="M${center-6+offset.x} ${104+offset.y}q6 5 12 0" stroke="#173D2C" stroke-width="3.5" stroke-linecap="round" fill="none"/>`;
+    };
+    return `<svg class="mascot-face" viewBox="0 0 160 160" aria-hidden="true" focusable="false" data-expression="sad"><g class="mascot-face-placement" transform="translate(${x} ${y}) rotate(${rotation}) scale(${scale}) translate(-82 -104)">${closedEye("left")}${closedEye("right")}<path d="M${82-sadMouthWidth*4} 119q${sadMouthWidth*4} -8 ${sadMouthWidth*8} 0" stroke="#173D2C" stroke-width="3" stroke-linecap="round" fill="none"/></g></svg>`;
+  }
   if (stage==="pot") return `<svg class="mascot-face" viewBox="0 0 160 160" aria-hidden="true" focusable="false" data-expression="${state}"><g class="mascot-face-placement" transform="translate(${x} ${y}) rotate(${rotation}) scale(${scale}) translate(-82 -104)">${potSourceFace(eyeOffsets,mouth)}</g></svg>`;
   return `<svg class="mascot-face" viewBox="0 0 160 160" aria-hidden="true" focusable="false" data-expression="${state}"><g class="mascot-face-placement" transform="translate(${x} ${y}) rotate(${rotation}) scale(${scale}) translate(-82 -104)" fill="#173D2C"><g class="mascot-eye mascot-eye--left" transform="translate(${53+eyeOffsets.left.x} ${104+eyeOffsets.left.y})"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-eye mascot-eye--right" transform="translate(${111+eyeOffsets.right.x} ${104+eyeOffsets.right.y})"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-mouth"><path d="${mascotMouthPath(stage,mouth)}" stroke="#173D2C" stroke-width="3" stroke-linecap="round" fill="none"/></g></g></svg>`;
 }
