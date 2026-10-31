@@ -559,6 +559,8 @@ body.is-opening main{width:100%;padding:0}
 .opening-sprout .mascot-art::before{display:none;content:none}
 .opening-sprout .mascot-art[data-idle="none"] .mascot-art-motion{animation:none;transition:none}
 .opening-sprout .mascot-eye-expression{animation:opening-sprout-look var(--opening-duration) both}
+.is-opening-exiting .opening-sprout .mascot-art::after{content:"";position:absolute;inset:7%;z-index:-1;border-radius:50%;border:1.5px solid rgb(255 255 237 / 55%);background:radial-gradient(circle,rgb(237 255 205 / 28%),rgb(237 255 205 / 8%) 58%,transparent 72%);box-shadow:0 0 0 8px rgb(244 255 222 / 12%),0 0 0 19px rgb(244 255 222 / 7%),0 0 26px rgb(244 255 222 / 30%);animation:opening-exit-ripple 500ms cubic-bezier(.16,.65,.3,1) both;pointer-events:none}
+@keyframes opening-exit-ripple{0%{transform:scale(.65);opacity:0}20%{opacity:.8}100%{transform:scale(1.7);opacity:0}}
 /* Independent horizontal and vertical easing makes one curved approach.
    The character banks and grows on its own layer, without scaling the route. */
 @keyframes opening-flight-x{
@@ -598,7 +600,7 @@ body.is-opening main{width:100%;padding:0}
   50%,58%{transform:translate(-1px,0) scaleY(1.08)}
   76%,100%{transform:translate(0,0) scaleY(1)}
 }
-@media(prefers-reduced-motion:reduce){.opening-sprout,.opening-sprout .mascot-art,.opening-loading::before,.opening-sprout .mascot-eye-expression{animation:none}}
+@media(prefers-reduced-motion:reduce){.opening-sprout,.opening-sprout .mascot-art,.opening-loading::before,.opening-sprout .mascot-eye-expression{animation:none}.is-opening-exiting .opening-sprout .mascot-art::after{display:none}}
 
 /* Shared skin for compact, mutually exclusive segmented choices. */
 :root{--control-surface:#f0f3e5;--segmented-option-height:28px;--segmented-padding-block:4px;--segmented-text-icon-size:14px}

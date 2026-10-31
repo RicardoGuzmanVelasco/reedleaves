@@ -377,7 +377,15 @@ export function startReader({createCardFeatures} = {}) {
       requestAnimationFrame(()=>{
         const finish=()=>{overlay.remove();if(openingOverlay===overlay)openingOverlay=null;};
         if(matchMedia("(prefers-reduced-motion: reduce)").matches){finish();return;}
-        overlay.animate([{opacity:1},{opacity:0}],{duration:320,easing:"ease-out"}).finished.then(finish,finish);
+        overlay.classList.add("is-opening-exiting");
+        // Scale is independent of the flight's transform, so departure continues
+        // smoothly from whichever pose is visible when the app becomes ready.
+        overlay.querySelector(".opening-sprout .mascot-art")?.animate(
+          [{scale:"1",opacity:1},{scale:"1.45",opacity:0}],
+          {duration:500,easing:"cubic-bezier(.2,.65,.3,1)",fill:"forwards"}
+        );
+        overlay.animate([{opacity:1},{opacity:.95,offset:.15},{opacity:0}],
+          {duration:560,easing:"cubic-bezier(.2,.65,.3,1)"}).finished.then(finish,finish);
       });
     }
     ++renderVersion; document.body.classList.toggle("is-opening",!ready&&!failed); document.body.classList.toggle("is-presenting",ready&&(mode === "preview"||mode === "guide-preview")); document.body.classList.toggle("is-practicing",ready&&mode === "practice"); document.body.classList.toggle("is-practice-choosing",ready&&mode === "practice" && practiceStage === "choose"); setHeaderLeading(""); header();
