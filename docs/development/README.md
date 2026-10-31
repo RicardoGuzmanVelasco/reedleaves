@@ -2,6 +2,7 @@
 
 Read the newest dated entry when recent progress, deployment state, or project handoff context is needed. Older entries provide history only; confirm current behavior in source code, configuration, and the hosting dashboard.
 
+- [2026-10-31 — Flujo SDLC con Staging](2026-10-31.md)
 - [2026-10-30 — Selector de intereses: corrección de CI y chips de libro](2026-10-30.md)
 - [2026-10-29 — Descubrir, soporte interno e interfaz local (24b–24c)](2026-10-29.md)
 - [2026-10-28 — Intereses y descubrimiento, inicio de ejecución](2026-10-28.md)
