@@ -375,8 +375,13 @@ export function startReader({createCardFeatures} = {}) {
       openingOverlay=document.createElement("div");
       openingOverlay.className="opening-screen-overlay";
       openingOverlay.setAttribute("aria-hidden","true");
+      const backdrop=document.createElement("div");
+      backdrop.className="opening-screen-backdrop";
+      openingOverlay.append(backdrop);
       openingOverlay.append(openingScreen);
       document.body.append(openingOverlay);
+      const cameraTime=openingMotion.find(item=>item.name==="opening-camera-depth")?.time;
+      if(typeof cameraTime==="number")for(const animation of backdrop.getAnimations({subtree:true}))animation.currentTime=cameraTime;
       // Reparenting can recreate CSS animations. Keep their current phase so
       // the fade grows the visible character instead of restarting its flight.
       for(const animation of openingScreen.getAnimations({subtree:true})){
@@ -390,12 +395,12 @@ export function startReader({createCardFeatures} = {}) {
         overlay.classList.add("is-opening-exiting");
         // Scale is independent of the flight's transform, so departure continues
         // smoothly from whichever pose is visible when the app becomes ready.
-        overlay.querySelector(".opening-sprout .mascot-art")?.animate(
-          [{scale:"1",opacity:1},{scale:"1.16",opacity:1,offset:.35},{scale:"1.45",opacity:0}],
-          {duration:500,easing:"ease-out",fill:"forwards"}
-        );
-        overlay.animate([{opacity:1},{opacity:0}],
-          {duration:560,easing:"ease-in-out"}).finished.then(finish,finish);
+        const mascot=overlay.querySelector(".opening-sprout .mascot-art");
+        backdrop.animate([{opacity:1},{opacity:0}],{duration:440,easing:"ease-out",fill:"forwards"});
+        mascot?.animate([{scale:"1"},{scale:"1.8"}],{duration:1500,easing:"ease-out",fill:"forwards"});
+        const departure=(mascot||overlay).animate([{opacity:1},{opacity:0}],
+          {duration:1500,easing:"ease-in-out",fill:"forwards"});
+        departure.finished.then(finish,finish);
       });
     }
     ++renderVersion; document.body.classList.toggle("is-opening",!ready&&!failed); document.body.classList.toggle("is-presenting",ready&&(mode === "preview"||mode === "guide-preview")); document.body.classList.toggle("is-practicing",ready&&mode === "practice"); document.body.classList.toggle("is-practice-choosing",ready&&mode === "practice" && practiceStage === "choose"); setHeaderLeading(""); header();

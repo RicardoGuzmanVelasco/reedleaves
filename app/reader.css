@@ -551,16 +551,18 @@ button.daily-calendar-day{cursor:pointer;color:var(--ink);font-weight:750}
 .is-opening .app-header,.is-opening .bottom-navigation{display:none}
 body.is-opening main{width:100%;padding:0}
 .opening-loading{--opening-duration:1600ms;--opening-close-scale:4.35;position:relative;isolation:isolate;min-height:100dvh;overflow:hidden}
-.opening-screen-overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;overflow:hidden;background:var(--page-background,var(--paper))}
+.opening-screen-overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;overflow:hidden;pointer-events:none}
+.opening-screen-backdrop{position:absolute;inset:0;overflow:hidden;--opening-duration:1600ms}
+.opening-screen-overlay .opening-loading::before{display:none}
 .opening-screen-overlay>.opening-loading{width:100%;min-height:100dvh}
-.opening-loading::before{position:absolute;inset:-8%;background:url('../brand/reed/vein-pattern.svg') center/96px 128px repeat;opacity:.55;content:"";pointer-events:none;animation:opening-camera-depth var(--opening-duration) both}
+.opening-loading::before,.opening-screen-backdrop::before{position:absolute;inset:-8%;background:url('../brand/reed/vein-pattern.svg') center/96px 128px repeat;opacity:.55;content:"";pointer-events:none;animation:opening-camera-depth var(--opening-duration) both}
 .opening-sprout{position:relative;z-index:1;display:block;width:clamp(190px,35vmin,300px);aspect-ratio:1;animation:opening-flight-x var(--opening-duration) both,opening-flight-y var(--opening-duration) both}
 .opening-sprout .mascot-art{width:100%;height:100%;transform-origin:50% 60%;animation:opening-sprout-flight var(--opening-duration) both}
 .opening-sprout .mascot-art::before{display:none;content:none}
 .opening-sprout .mascot-art[data-idle="none"] .mascot-art-motion{animation:none;transition:none}
 .opening-sprout .mascot-eye-expression{animation:opening-sprout-look var(--opening-duration) both}
-.is-opening-exiting .opening-sprout .mascot-art::after{content:"";position:absolute;inset:7%;z-index:-1;border-radius:50%;border:2px solid rgb(88 190 89 / 45%);background:radial-gradient(circle,rgb(237 255 205 / 28%),rgb(237 255 205 / 8%) 58%,transparent 72%);box-shadow:0 0 0 8px rgb(185 232 119 / 22%),0 0 0 19px rgb(185 232 119 / 12%),0 0 26px rgb(244 255 222 / 30%);animation:opening-exit-ripple 500ms cubic-bezier(.16,.65,.3,1) both;pointer-events:none}
-@keyframes opening-exit-ripple{0%{transform:scale(.65);opacity:0}20%{opacity:.8}100%{transform:scale(1.7);opacity:0}}
+.is-opening-exiting .opening-sprout .mascot-art::after{content:"";position:absolute;inset:7%;z-index:-1;border-radius:50%;border:2px solid rgb(88 190 89 / 45%);background:radial-gradient(circle,rgb(237 255 205 / 28%),rgb(237 255 205 / 8%) 58%,transparent 72%);box-shadow:0 0 0 8px rgb(185 232 119 / 22%),0 0 0 19px rgb(185 232 119 / 12%),0 0 26px rgb(244 255 222 / 30%);animation:opening-exit-ripple 1500ms cubic-bezier(.16,.65,.3,1) both;pointer-events:none}
+@keyframes opening-exit-ripple{0%{transform:scale(.65);opacity:0}15%{opacity:.95}55%{opacity:.7}100%{transform:scale(2);opacity:0}}
 /* Independent horizontal and vertical easing makes one curved approach.
    The character banks and grows on its own layer, without scaling the route. */
 @keyframes opening-flight-x{
@@ -600,7 +602,7 @@ body.is-opening main{width:100%;padding:0}
   50%,58%{transform:translate(-1px,0) scaleY(1.08)}
   76%,100%{transform:translate(0,0) scaleY(1)}
 }
-@media(prefers-reduced-motion:reduce){.opening-sprout,.opening-sprout .mascot-art,.opening-loading::before,.opening-sprout .mascot-eye-expression{animation:none}.is-opening-exiting .opening-sprout .mascot-art::after{display:none}}
+@media(prefers-reduced-motion:reduce){.opening-sprout,.opening-sprout .mascot-art,.opening-loading::before,.opening-screen-backdrop::before,.opening-sprout .mascot-eye-expression{animation:none}.is-opening-exiting .opening-sprout .mascot-art::after{display:none}}
 
 /* Shared skin for compact, mutually exclusive segmented choices. */
 :root{--control-surface:#f0f3e5;--segmented-option-height:28px;--segmented-padding-block:4px;--segmented-text-icon-size:14px}
@@ -696,7 +698,7 @@ body.is-opening main{width:100%;padding:0}
 .practice-launch-char:nth-child(2){animation-delay:24ms}.practice-launch-char:nth-child(3){animation-delay:48ms}.practice-launch-char:nth-child(4){animation-delay:72ms}.practice-launch-char:nth-child(5){animation-delay:96ms}.practice-launch-char:nth-child(6){animation-delay:120ms}.practice-launch-char:nth-child(7){animation-delay:144ms}.practice-launch-char:nth-child(8){animation-delay:168ms}.practice-launch-char:nth-child(9){animation-delay:192ms}.practice-launch-char:nth-child(10){animation-delay:216ms}.practice-launch-char:nth-child(11){animation-delay:240ms}.practice-launch-char:nth-child(12){animation-delay:264ms}.practice-launch-char:nth-child(13){animation-delay:288ms}.practice-launch-char:nth-child(14){animation-delay:312ms}.practice-launch-char:nth-child(15){animation-delay:336ms}.practice-launch-char:nth-child(16){animation-delay:360ms}.practice-launch-char:nth-child(17){animation-delay:384ms}.practice-launch-char:nth-child(18){animation-delay:408ms}.practice-launch-char:nth-child(19){animation-delay:432ms}.practice-launch-char:nth-child(20){animation-delay:456ms}
 @keyframes practice-launch-char-wave{0%,64%,78%,100%{transform:translateY(0) scale(1)}64%{animation-timing-function:cubic-bezier(.2,.75,.3,1)}67%{transform:translateY(-3px) scale(1.045);animation-timing-function:cubic-bezier(.5,0,.8,.35)}70%{transform:translateY(0) scale(1)}72%{transform:translateY(1px) scale(.99);animation-timing-function:cubic-bezier(.2,.65,.3,1)}74%{transform:translateY(0) scale(1)}}
 .is-practicing{min-height:100dvh;background:radial-gradient(ellipse at 50% 37%,#fffdf5 0%,#f3f4de 53%,#e5ecd8 100%);background-attachment:fixed;color:#173d2c}
-.is-practice-choosing,.is-opening{background:radial-gradient(circle 170px at 100% 0%,rgb(203 228 166 / 68%),transparent 100%),radial-gradient(ellipse at 100% 100%,#d8efb3,transparent 52%),linear-gradient(25deg,#b7e56e,#edf3d9 70%)}
+.is-practice-choosing,.is-opening,.opening-screen-backdrop{background:radial-gradient(circle 170px at 100% 0%,rgb(203 228 166 / 68%),transparent 100%),radial-gradient(ellipse at 100% 100%,#d8efb3,transparent 52%),linear-gradient(25deg,#b7e56e,#edf3d9 70%)}
 .is-practicing .app-header{display:none}
 .is-practicing main{width:min(850px,calc(100% - 48px));margin:0 auto}
 .is-practice-choosing main{width:min(430px,calc(100% - 32px))}
