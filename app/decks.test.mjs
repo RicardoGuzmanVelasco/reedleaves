@@ -4,8 +4,8 @@ import {openDatabase,initializeDatabase} from "../server/database.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {prepareCatalog} from "./catalog.mjs";
-import {featuredDecks,treeLinks} from "./decks.mjs";
-import {deckView,reviewView,homeView,practiceView,authorView,authorFormView,escapeHtml} from "./views.mjs";
+import {availableDecks,featuredDecks,treeLinks} from "./decks.mjs";
+import {deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,homeView,practiceView,authorView,authorFormView,bookshelfView,escapeHtml} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
 
@@ -27,21 +27,95 @@ test("Deck recommendations and community likes stay separate", async () => {
   for (const deck of catalog.decks) deck.metrics = {likes:0,dislikes:0};
   assert.equal(featuredDecks(catalog,"seven-habits").some(c => c.tags.includes("preferred")),false);
 });
-test("Deck grid opens a complete modal; every review card is visible and openable", async () => {
+test("Collective decks remain ordinary book decks, while reading-guide cards stay in their dedicated view",async()=>{
+  const catalog=await fixture(),deck=catalog.decks.find(item=>item.bookId==="seven-habits"),card=catalog.deckModels.get(deck.id).cards[0];
+  deck.kind="collective";deck.contributionPolicy="selected";
+  assert.ok(availableDecks(catalog,deck.bookId).some(item=>item.deck.id===deck.id));
+  card.isReadingGuide=true;
+  assert.ok(!availableDecks(catalog,deck.bookId).some(item=>item.deck.id===deck.id));
+});
+
+test("Reading guides have a dedicated book tile, add entry, and vertical reading preview",async()=>{
+  const catalog=await fixture(),deck=catalog.decks.find(item=>item.bookId==="seven-habits"),cards=catalog.deckModels.get(deck.id).cards;
+  cards.forEach(item=>{item.isReadingGuide=true;item.creatorUserId="guide-author";item.language="es";});
+  const choices=featuredDecks(catalog,deck.bookId);
+  assert.ok(!choices.some(choice=>choice.deck.id===deck.id));
+  for(const language of ["es","en"]){
+    const c=words[language],base=readerState(catalog,{language,bookId:deck.bookId,deckChoices:choices,statuses:{[deck.bookId]:"read"},userId:"reader"});
+    const before=deckView(base),tile=before.match(/<button class="deck-tile reading-guides-deck-tile"[^]*?<\/button>/)?.[0];
+    assert.ok(tile);assert.ok(tile.includes(c.readingGuides));assert.ok(tile.includes(c.noteCardsCount(cards.length)));
+    assert.ok(tile.includes(c.featuredDeck));assert.ok(tile.match(/aria-label="[^"]*"/)[0].includes(c.featuredDeck));
+    assert.doesNotMatch(tile,/deck-creator|data-action="delete|delete-deck/);
+    assert.ok(before.indexOf('data-action="open-reading-guide-preview"')<before.indexOf(`data-deck="${choices[0].deck.id}"`));
+    assert.match(before,/class="reading-guides-entry reading-guides-entry--empty"[^>]*data-action="open-reading-guides"/);
+    assert.match(before,/reading-guide-icon/);
+    cards.forEach(item=>{item.creatorUserId="reader";});
+    const after=deckView(base);
+    assert.doesNotMatch(after,/data-action="open-reading-guides"/);
+    assert.match(after,/class="deck-tile reading-guides-deck-tile"/);
+    const preview=readingGuideDeckPreviewView(base);
+    assert.match(preview,/data-deck-presentation="list"/);assert.match(preview,/class="deck-peek-cards reading-guide-peek-cards"/);
+    assert.equal((preview.match(/data-reading-card=/g)||[]).length,cards.length);
+    assert.doesNotMatch(preview,/data-action="presentation-layout"|data-action="presentation-card"|class="deck-creator"/);
+    assert.match(preview,/data-action="edit-reading-guide"/);
+    assert.ok(preview.includes(c.readingGuides));
+    cards.forEach(item=>{item.creatorUserId="guide-author";});
+  }
+});
+
+test("Reading guide authoring shows only its styled editor; community guides stay in the reading view",async()=>{
+  const catalog=await fixture(),deck=catalog.decks.find(item=>item.bookId==="seven-habits"),cards=catalog.deckModels.get(deck.id).cards;
+  cards.forEach(card=>{card.isReadingGuide=true;card.creatorUserId="guide-author";card.language="es";});
+  cards[0].creatorUserId="reader";
+  const editor=readingGuidesView(readerState(catalog,{bookId:deck.bookId,statuses:{[deck.bookId]:"read"},userId:"reader",language:"es"}));
+  assert.match(editor,/reading-guides-screen--editing/);
+  assert.match(editor,/class="reading-guide-editor"/);
+  assert.match(editor,/class="primary" type="submit"/);
+  assert.doesNotMatch(editor,/class="reading-guide-row"|empty-state/);
+  const browse=readingGuidesView(readerState(catalog,{bookId:deck.bookId,statuses:{[deck.bookId]:"read"},userId:null,language:"en"}));
+  assert.equal((browse.match(/class="reading-guide-row"/g)||[]).length,cards.length);
+  assert.doesNotMatch(browse,/id="reading-guide-form"/);
+});
+
+test("Collective draft review UI lets invited contributors add cards without exposing deck management",async()=>{
+  const catalog=await fixture(),deck=catalog.decks.find(item=>item.bookId==="seven-habits"),userId="contributor";
+  deck.kind="collective";deck.contributionPolicy="selected";deck.status="draft";deck.canContribute=true;
+  const state=readerState(catalog,{userId,deckId:deck.id,bookId:deck.bookId,language:"en"});
+  const html=reviewView(state);
+  assert.match(html,/data-action="take-deck-note"/);
+  assert.doesNotMatch(html,/data-action="author-deck"|data-action="finish-deck"|data-contributor-form/);
+});
+test("Deck grid links to one page; every card is visible and openable", async () => {
   const catalog = await fixture(),base = {catalog,language:"es",deckId,bookId:"seven-habits",requestedId:"inside-out-2",storageAvailable:true,userId:"reader",enrolledIds:[deckId]};
   const html = reviewView(base);
+  assert.match(html,/data-action="previous-reading-card" aria-label="← Anterior"/);
+  assert.match(html,/data-action="next-reading-card" aria-label="Siguiente →"/);
+  const controls=html.match(/<div class="exclusive-card-controls">([^]*?)<\/div>/)?.[1];
+  assert.ok(controls);
+  const previous=controls.indexOf('data-action="previous-reading-card"'),position=controls.indexOf("<span>2 de 7</span>"),next=controls.indexOf('data-action="next-reading-card"');
+  assert.ok(previous>=0 && position>previous && next>position);
   assert.match(html,/Equipo Reedleaves/); assert.match(html,/class="tree-map/);
   assert.doesNotMatch(html,/tree-node--seen|tree-node--unseen|Ya repasada|Sin repasar/);
   assert.match(html,/Make room for what matters/); assert.doesNotMatch(html,/leaf-token|Bloqueada|tree-node-hidden/);
-  assert.doesNotMatch(html,/leaf-balance|Mañana tendrás otra hoja/);
+  assert.doesNotMatch(html,/leaf-balance|Mañana (?:tendrás otra hoja|podrás recibir hasta 5 hojas)/);
   const deckChoices = featuredDecks(catalog,base.bookId);
   const grid = deckView({...base,deckChoices,openDeckId:null});
   assert.match(grid,/class="deck-grid"/); assert.match(grid,/Ideas esenciales/); assert.match(grid,/From the inside out/);
   assert.doesNotMatch(grid,/<dialog/); assert.doesNotMatch(grid,/deck-carousel/);
-  const modal = deckView({...base,deckChoices,openDeckId:deckId});
-  assert.match(modal,/<dialog class="deck-modal"/); assert.match(modal,/7 tarjetas · 2 niveles/);
-  assert.match(modal,/href="#profile\//); assert.match(modal,/inglés/i); assert.match(modal,/Ver baraja/);
-  assert.doesNotMatch(modal,/Más popular/);
+  assert.doesNotMatch(deckView({...base,deckChoices,openDeckId:deckId}),/<dialog/);
+  assert.match(html,/class="deck-information|sources deck-information/);
+  assert.match(html,/0 citas/);assert.match(html,/href="#profile\//);assert.match(html,/inglés/i);
+  assert.match(html,/data-action="preview-deck"/);assert.match(html,/Leer tarjetas/);
+
+});
+
+test("Reading navigation offers an alternative control at deck boundaries",async()=>{
+  const catalog=await fixture(),cards=catalog.deckModels.get(deckId).cards,base={catalog,language:"en",deckId,bookId:"seven-habits",storageAvailable:true,userId:"reader",enrolledIds:[deckId]};
+  const first=reviewView({...base,requestedId:cards[0].id}),last=reviewView({...base,requestedId:cards.at(-1).id});
+  assert.doesNotMatch(first,/data-action="previous-reading-card"/);assert.match(first,/data-action="next-reading-card"/);
+  assert.match(last,/data-action="previous-reading-card"/);assert.doesNotMatch(last,/data-action="next-reading-card"/);
+  assert.match(first,/exclusive-card-step-placeholder" aria-hidden="true"><\/span><span>1 of 7<\/span>/);
+  assert.match(last,/<span>7 of 7<\/span><span class="exclusive-card-step-placeholder" aria-hidden="true"><\/span>/);
 });
 
 test("Deck tiles only label ongoing creation and retain the change warning in their details, in both languages",async()=>{
@@ -57,24 +131,57 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
       assert.deepEqual(taggedChoice.tags,tags,"Rendering preserves the underlying distinctions");
       const openButton=html.match(/<button\b[^>]*data-action="open-deck"[^>]*>/)[0];
       const label=openButton.match(/aria-label="([^"]*)"/)[1];
+      const quoteCount=catalog.deckModels.get(deck.id).cards.filter(card=>card.isQuote).length;
       assert.ok(label.includes(c.noteCardsCount(deck.cardCount)),"The tile describes its card count accessibly");
+      assert.ok(label.includes(c.quoteCount(quoteCount)),"The tile describes its quote count accessibly");
       const languageName=new Intl.DisplayNames([language],{type:"language"}).of(choice.deck.language);
-      assert.ok(label.includes(languageName),"The flag retains an accessible language description");
-      assert.ok(!html.includes(c.deckSize(deck.cardCount,deck.depth)),"The selector omits the old count and level summary");
+      assert.ok(label.includes(languageName),"The deck language remains accessible");
+      if (["es","en"].includes(choice.deck.language)) {
+        assert.match(html,new RegExp(`brand/icons/languages/${choice.deck.language}\\.svg`));
+        assert.doesNotMatch(html,/deck-language-icon|>es<|>en</);
+      } else {
+        assert.match(html,/brand\/icons\/languages\/globe\.svg/);
+        assert.ok(html.includes(`>${choice.deck.language}</span>`));
+      }
+      assert.equal(html.includes('class="deck-tile-count deck-tile-quote-count"'),quoteCount>0,"Only decks with quotes show a quote-count chip");
+      assert.ok(html.includes(c.noteCardsCount(deck.cardCount)),"Every tile shows its card count");
+      assert.ok(html.includes(`title="${c.noteCardsCount(deck.cardCount)}"`),"The card count chip has a localized title");
+      assert.equal(html.includes('class="deck-tile deck-tile--quote-dominant"'),quoteCount>deck.cardCount-quoteCount,"Quote dominant decks use blue tones");
       if (deck.status === "draft") {
         assert.ok(label.includes(c.deckInProgress));
         assert.ok(html.replace(/<[^>]*>/g,"").includes(c.deckInProgressShort),"The tile has a short visible ongoing label");
       } else {
-        assert.ok(!html.includes(c.deckFinished),"A finished tile has no visual or accessible status label");
+        assert.doesNotMatch(html,/Terminada|Finished/,"A finished tile has no visual or accessible status label");
         assert.ok(!html.includes(c.deckInProgress),"A finished tile has no ongoing indicator");
         assert.ok(!html.includes(c.deckInProgressShort),"A finished tile has no ongoing chip");
       }
     }
-    const details=deckView({...state,openDeckId:deckChoices[0].deck.id}).split("<dialog")[1];
+    const details=reviewView({...state,deckId:deckChoices[0].deck.id,catalog:{...catalog,decksById:new Map(catalog.decksById).set(deckChoices[0].deck.id,deckChoices[0].deck)}});
     assert.ok(details.includes(c.deckInProgress));
     assert.ok(details.includes(c.deckMayChangeUnadded));
     for (const tag of ["recommended","popular","preferred","otherDeck"]) assert.ok(!details.includes(c[tag]),"Deck details also omit distinctions and fallback labels");
   }
+});
+
+test("Quote counts use the existing quote mark and quote dominant deck previews use blue",async()=>{
+  const catalog=await fixture(),decks=catalog.decks.filter(deck=>deck.bookId==="seven-habits"),first=decks[0],second=decks[1];
+  const firstCards=catalog.deckModels.get(first.id).cards,secondCards=catalog.deckModels.get(second.id).cards;
+  firstCards.forEach((card,index)=>{card.isQuote=index<4;});
+  secondCards.forEach(card=>{card.isQuote=false;});
+  const choices=decks.map(deck=>({deck,tags:[]})),state=readerState(catalog,{language:"es",bookId:"seven-habits",deckId:first.id,deckChoices:choices,enrolledIds:decks.map(deck=>deck.id)});
+  const selector=deckView(state);
+  assert.match(selector,/class="deck-tile deck-tile--quote-dominant"/);
+  assert.match(selector,/class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="\d+ tarjetas"><span class="cards-icon" aria-hidden="true"><\/span><span>\d+<\/span><\/span>/);
+  assert.match(selector,/class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="4 citas"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4<\/span><\/span>/);
+  assert.doesNotMatch(selector,/title="0 citas"/);
+  assert.match(reviewView(state),/class="deck-facts"><span class="deck-card-count">\d+ tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span><\/span>/);
+  assert.doesNotMatch(deckPeekView(state),/class="deck-facts"/);
+  const collection=bookshelfView({...state,bookshelfTab:"decks"});
+  assert.match(collection,/class="deck-tile deck-tile--quote-dominant deck-tile--collection"/);
+  assert.match(collection,/class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="\d+ tarjetas"/);
+  assert.match(collection,/class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="4 citas"/);
+  assert.match(collection,/4 citas/);
+  assert.match(collection,/0 citas/);
 });
 
 test("Deck authors link to their profiles independently of deck opening, including safe fallbacks",async()=>{
@@ -121,7 +228,8 @@ test("Deck albums show cards without per-deck progress",async()=>{
     const modal=detail.match(/<dialog\b[^>]*class="exclusive-card-modal"[\s\S]*?<\/dialog>/)?.[0];
     assert.ok(modal,"An explicitly opened card has its own exclusive dialog");
     assert.ok(modal.includes(escapeHtml(card.body[deck.language])));
-    assert.match(modal,/data-action="close-exclusive"/);
+    assert.match(modal,/class="dialog-close exclusive-card-close" type="button" data-action="close-exclusive" aria-label=/);
+    assert.match(modal,/<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"\/><\/svg>/);
     assert.doesNotMatch(modal,/tree-map|data-action="choose-book"|data-action="home"/);
     assert.doesNotMatch(detail,/tarjetas repasadas|<progress/,"The album stays behind the dialog without a progress indicator");
     const empty=view({...state});
@@ -176,7 +284,7 @@ test("Practice exposes only the active card, enables writing and keeps the pile 
   const catalog=await fixture(),cards=catalog.cards.slice(0,3),state=readerState(catalog,{practiceStage:"session"});
   const html=practiceView(state,{cards,index:0,advancing:false,leaving:null});
   assert.deepEqual([...html.matchAll(/data-reading-card="([^"]+)"/g)].map(match=>match[1]),[cards[0].id]);
-  assert.doesNotMatch(html,/data-reading-mode="complete"/);
+  assert.doesNotMatch(html,/data-reading-mode/);
   assert.match(html,/class="practice-pile" aria-hidden="true" inert/);
   const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]);
   assert.equal(ids.length,new Set(ids).size);
@@ -188,8 +296,18 @@ test("Practice exposes only the active card, enables writing and keeps the pile 
 test("Practice prices show one discounted topic, the wallet cap, and useful empty-session paths",async()=>{
   const catalog=await fixture(),state=readerState(catalog,{practiceStage:"choose",practiceDiscountTopic:"saved",petals:10,petalMaximum:15});
   const choice=practiceView(state,null);
+  assert.match(choice,/data-action="open-practice-help"[^>]*aria-haspopup="dialog"/);
+  assert.match(choice,/class="practice-help-modal" aria-labelledby="practice-help-title"/);
+  assert.match(choice,/class="dialog-close practice-help-close" type="button" data-action="close-practice-help" aria-label="Cerrar ayuda"/);
+  assert.match(choice,/Todas las tarjetas de tus barajas añadidas al tarjetero cuyos libros están en «Leyendo»\./);
+  assert.match(choice,/Todas las tarjetas de tus barajas añadidas al tarjetero cuyos libros están en «Leído»\./);
+  assert.match(choice,/aunque su baraja no esté en tu tarjetero/);
+  const englishChoice=practiceView({...state,language:"en"},null);
+  assert.match(englishChoice,/What each mode includes/);
+  assert.match(englishChoice,/All cards from decks in your Decks whose books are marked “Reading”\./);
+  assert.match(englishChoice,/class="dialog-close practice-help-close" type="button" data-action="close-practice-help" aria-label="Close help"/);
   assert.equal(state.petalMaximum,15);
-  assert.equal((choice.match(/class="pricetag(?: pricetag--discounted)?"/g)||[]).length,4);
+  assert.equal((choice.match(/class="pricetag(?: pricetag--discounted)?"/g)||[]).length,5);
   assert.match(choice,/aria-label="2 pétalos"/);
   assert.match(choice,/aria-label="3 pétalos"/);
   assert.match(choice,/petal-token\.svg/);
@@ -198,6 +316,11 @@ test("Practice prices show one discounted topic, the wallet cap, and useful empt
   assert.match(choice,/<strong>2<\/strong>/);
   assert.match(choice,/class="pricetag-offer-icon"/);
   assert.doesNotMatch(choice,/practice-topic-cost/);
+  const recovered=practiceView({...state,practiceUnavailable:{reason:"practiceSessionCancelled",topic:"reading"}},null);
+  assert.match(recovered,/role="status">El repaso se canceló y se devolvió su coste\.<\/p>/);
+  assert.equal((recovered.match(/data-action="practice-topic"/g)||[]).length,5);
+  const recoveredEnglish=practiceView({...state,language:"en",practiceUnavailable:{reason:"practiceSessionCancelled",topic:"saved"}},null);
+  assert.match(recoveredEnglish,/The session was cancelled and its cost was refunded\./);
   const insufficient=practiceView({...state,practiceStage:"empty",practiceUnavailable:{reason:"notEnoughCards",topic:"mixed",available:4,required:5}},null);
   assert.match(insufficient,/Necesitas 5 para empezar/);
   assert.match(insufficient,/#bookshelf\/decks/);assert.match(insufficient,/#library/);
@@ -213,7 +336,7 @@ test("Draft creation status stays distinct from practice sessions across deck su
     const c=words[language],base=readerState(catalog,{language,bookId:deck.bookId,deckId,today:"2026-10-17",deckChoices:featuredDecks(catalog,deck.bookId)});
     for(const userId of [deck.creator.userId,"another-reader"]){
       const state={...base,userId},explanation=userId===deck.creator.userId?c.deckDraftOwnerExplanation:c.deckMayChangeUnadded;
-      const surfaces=[deckView({...state,openDeckId:deckId}),reviewView(state)];
+      const surfaces=[reviewView(state)];
       if(userId===deck.creator.userId)surfaces.push(authorView({...state,mode:"author"}));
       for(const html of surfaces){
         assert.ok(html.includes(c.deckInProgress));
@@ -227,7 +350,7 @@ test("Draft creation status stays distinct from practice sessions across deck su
     const html=reviewView({...base,userId:deck.creator.userId});
     assert.ok(html.includes(`data-action="share-deck"`));
     assert.ok(reviewView({...base,userId:"another-reader"}).includes(`data-action="share-deck"`));
-    assert.ok(html.includes(c.deckFinished));
+    assert.doesNotMatch(html,/Terminada|Finished/);
     assert.ok(!html.includes(c.deckDraftOwnerExplanation));
     assert.ok(!html.includes(c.deckMayChange));
     deck.status="draft";
@@ -251,5 +374,43 @@ test("Only the explicit team recommendation gets the translated visible and acce
         for(const key of ["popular","preferred","otherDeck"])assert.ok(!html.includes(c[key]));
       }
     }
+  }
+});
+
+test('Book and collection deck lists prioritize the current viewer’s contributions',async()=>{
+  const catalog=await fixture(),decks=catalog.decks.filter(deck=>deck.bookId==='seven-habits');
+  const [first,second]=decks;
+  for(const deck of decks){
+    deck.isRecommended=false;
+    for(const card of catalog.deckModels.get(deck.id).cards)card.creatorUserId=deck.id===first.id?'first-reader':'second-reader';
+  }
+  for(const [userId,preferred,other] of [['second-reader',second,first],['first-reader',first,second]]){
+    const state=readerState(catalog,{userId,bookId:'seven-habits',deckChoices:availableDecks(catalog,'seven-habits'),enrolledIds:decks.map(deck=>deck.id),bookshelfTab:'decks'});
+    for(const html of [deckView(state),bookshelfView(state)]){
+      assert.ok(html.indexOf(`data-deck="${preferred.id}"`)<html.indexOf(`data-deck="${other.id}"`));
+    }
+  }
+});
+
+
+test("Discover explains availability, retry, discount and resume in both interface languages",async()=>{
+  const catalog=await fixture();
+  for(const language of ["es","en"]) {
+    const c=words[language],state=readerState(catalog,{language,practiceStage:"choose",practiceDiscountTopic:"discover"});
+    for(const availability of [{status:"loading"},{status:"error"},{status:"ready",available:4,required:5},{status:"ready",available:5,required:5}]) {
+      const html=practiceView({...state,discoverAvailability:availability},null);
+      const button=html.match(/<button[^>]*data-topic="discover"[^>]*>/)[0];
+      assert.equal(button.includes(" disabled"),availability.status!=="ready"||availability.available<5);
+      assert.ok(html.includes(c.practiceTopic_discover));assert.ok(html.includes(c.practiceHelpDiscover));
+      assert.match(html,/pricetag--discounted[^>]*aria-label="2 /);
+      assert.equal(html.includes('data-action="retry-discover"'),availability.status==="error");
+      if(button.includes(" disabled"))assert.match(button,/aria-describedby="discover-status"/);
+    }
+    const resume=practiceView({...state,activePracticeSession:{topic:"discover",index:2,cardIds:["a","b","c","d","e"]}},null);
+    assert.ok(resume.includes(c.practiceTopic_discover));assert.match(resume,/data-action="practice-resume"/);assert.doesNotMatch(resume,/pricetag/);
+    const changed=practiceView({...state,practiceUnavailable:{reason:"practicePriceChanged"}},null);
+    assert.ok(changed.includes(c.practicePriceChanged));
+    const pending=practiceView({...state,practiceStarting:"discover",discoverAvailability:{status:"ready",available:5,required:5}},null);
+    assert.match(pending,/data-topic="discover" disabled aria-busy="true"/);assert.ok(pending.includes(c.practiceStarting));
   }
 });

@@ -1,5 +1,5 @@
 import {transaction,isPostgres} from "./database.mjs";
-import {restoreWallet,MAX_DAILY_LEAVES} from "../app/wallet.mjs";
+import {restoreWallet,MAX_LEAVES,DAILY_LEAF_REFILL,INITIAL_LEAVES} from "../app/wallet.mjs";
 import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
 
 // Administrative operation, available only through the database CLI.
@@ -30,12 +30,12 @@ export async function accrueLeafWallet(db, userId, today) {
       "CAST(julianday(excluded.last_accrual_day) - julianday(leaf_wallets.last_accrual_day) AS INTEGER)";
     // Calculate from the locked current row so a state read cannot overwrite a
     // concurrent manual adjustment or spend with a previously read balance.
-    const wallet = await db.prepare(`INSERT INTO leaf_wallets(user_id,balance,last_accrual_day) VALUES (?,1,?)
+    const wallet = await db.prepare(`INSERT INTO leaf_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)
       ON CONFLICT(user_id) DO UPDATE SET
         balance=CASE WHEN excluded.last_accrual_day > leaf_wallets.last_accrual_day
-          THEN ${maximum}(leaf_wallets.balance,${minimum}(${MAX_DAILY_LEAVES},leaf_wallets.balance + ${days})) ELSE leaf_wallets.balance END,
+          THEN ${maximum}(leaf_wallets.balance,${minimum}(${MAX_LEAVES},leaf_wallets.balance + ${DAILY_LEAF_REFILL} * ${days})) ELSE leaf_wallets.balance END,
         last_accrual_day=CASE WHEN excluded.last_accrual_day > leaf_wallets.last_accrual_day
           THEN excluded.last_accrual_day ELSE leaf_wallets.last_accrual_day END
-      RETURNING balance,last_accrual_day AS "lastAccrualDay"`).get(userId,today);
+      RETURNING balance,last_accrual_day AS "lastAccrualDay"`).get(userId,INITIAL_LEAVES,today);
     return {...wallet};
 }

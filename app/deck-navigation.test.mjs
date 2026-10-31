@@ -1,0 +1,51 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {deckPageHash,deckReadingHash,deckShareUrl} from './deck-navigation.mjs';
+import {reviewView,deckPeekView,deckView} from './views.mjs';
+import {words} from './i18n.mjs';
+import {openDatabase,initializeDatabase} from '../server/database.mjs';
+import {seedCatalog} from '../server/seed.mjs';
+import {readCatalog} from '../server/catalog-repository.mjs';
+import {prepareCatalog} from './catalog.mjs';
+import {readerState} from '../test-support/reader-state.mjs';
+
+test('Shared decks open clean reading without carrying the selected card',()=>{
+  const url=deckShareUrl('https://reedleaves.com/app/#review/old/card-2','a-deck');
+  assert.equal(url,'https://reedleaves.com/app/#preview/a-deck');
+  assert.equal(deckPageHash('a/deck'),'#review/a%2Fdeck');
+  assert.equal(deckReadingHash('a/deck'),'#preview/a%2Fdeck');
+});
+
+test('One deck page handles discovery, collection and ownership while clean reading keeps only cards',async()=>{
+  const db=openDatabase(':memory:');let catalog;
+  try{await initializeDatabase(db);await seedCatalog(db);catalog=prepareCatalog(await readCatalog(db));}finally{await db.close();}
+  const deck=catalog.decks[0],model=catalog.deckModels.get(deck.id);
+  for(const language of ['es','en']){
+    const c=words[language],base=readerState(catalog,{language,deckId:deck.id,bookId:deck.bookId,deckChoices:[{deck,tags:[]}]});
+    assert.equal(c.addDeckToCollection,language==='es'?'Añadir al tarjetero':'Add to Decks');
+    assert.equal(c.removeDeckFromCollection,language==='es'?'Quitar del tarjetero':'Remove from Decks');
+    assert.doesNotMatch(deckView({...base,openDeckId:deck.id}),/<dialog/);
+    for(const userId of [undefined,'visitor',deck.creator.userId]){
+      const state={...base,userId},page=reviewView(state);
+      assert.ok(page.includes(c.readDeckCards));assert.match(page,/data-action="preview-deck"/);
+      assert.match(page,/data-action="share-deck"/);assert.ok(page.includes(c.deckInformation));
+      assert.equal(page.includes('data-action="add-deck-to-collection"'),true);
+      assert.equal(page.includes('data-action="take-deck-note"'),userId===deck.creator.userId&&deck.status==='draft');
+    }
+    const collected=reviewView({...base,userId:'visitor',enrolledIds:[deck.id]});
+    assert.doesNotMatch(collected,/data-action="add-deck-to-collection"/);assert.match(collected,/data-action="remove-collection-deck"/);assert.ok(collected.includes(c.removeDeckFromCollection));
+    const reading=deckPeekView(base);
+    assert.ok(reading.includes(c.viewDeck));assert.match(reading,/data-action="back-from-deck-preview"/);
+    assert.equal((reading.match(/<li>/g)||[]).length,model.cards.length);
+    assert.equal((reading.match(/data-card-actions=/g)||[]).length,model.cards.length);
+    const carousel=deckPeekView({...base,presentationLayout:'carousel',presentationIndex:1});
+    assert.match(carousel,/data-deck-presentation="carousel" data-index="1"/);
+    assert.equal((carousel.match(/data-reading-card=/g)||[]).length,1);
+    assert.equal((carousel.match(/data-card-actions=/g)||[]).length,1);
+    assert.equal((carousel.match(/data-action="presentation-card"/g)||[]).length,model.cards.length);
+    assert.match(carousel,/data-action="presentation-step"/);
+    assert.ok(carousel.includes(c.closePresentation));
+    assert.doesNotMatch(carousel,/class="deck-facts"|data-action="share-deck"|data-action="add-deck-to-collection"/);
+    assert.doesNotMatch(reading,/class="deck-facts"|class="deck-description"|class="deck-creator"|data-action="add-deck-to-collection"|data-action="share-deck"/);
+  }
+});

@@ -6,6 +6,8 @@ import {readCatalog} from "./catalog-repository.mjs";
 import {appendTeamDeckCards,createTeamDeck,finishTeamDeck,reassignTeamDeckCreator,readTeamDeckDrafts} from "./author-repository.mjs";
 import {TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH,MAX_CARDS_PER_DECK} from "../app/core.mjs";
 import {ApiError} from "./errors.mjs";
+import {normalizeQuoteSourceUrl} from "../app/quote-source.mjs";
+import {mergeBooks} from "./book-merge.mjs";
 
 function validBearer(request,token) {
   if (!token) return false;
@@ -32,7 +34,7 @@ function safeTool(handler) {
 
 function makeServer(db,publicBaseUrl) {
   const server=new McpServer({name:"reedleaves-deck-authoring",version:"1.2.0"},{
-    instructions:"Create finished Reedleaves team decks from the user's conversation. Saving publishes and freezes the complete deck in the shared catalog, attributed to Equipo Reedleaves. Prepare all cards before creating. Find a book only when unclear. Use list_team_drafts to identify older team drafts and finish_deck only when the user asks to finish them. Use reassign_deck_creator only when the user explicitly requests changing attribution of a published team deck to an existing account by username. Never invent source quotes; use isQuote only for wording supplied by the user.",
+    instructions:"Create finished Reedleaves team decks from the user's conversation. Saving publishes and freezes the complete deck in the shared catalog, attributed to Equipo Reedleaves. Prepare all cards before creating. Find a book only when unclear. Use list_team_drafts to identify older team drafts and finish_deck only when the user asks to finish them. Use reassign_deck_creator only when the user explicitly requests changing attribution of a published team deck to an existing account by username. Never invent source quotes or quote-source URLs; use isQuote only for wording supplied by the user and quoteSourceUrl only for a supplied or verified page.",
     maxToolInputElements:5000
   });
   server.registerTool("find_book",{
@@ -44,20 +46,22 @@ function makeServer(db,publicBaseUrl) {
     const catalog=await readCatalog(db);
     const needle=query.trim().toLocaleLowerCase("es");
     const matches=catalog.books.filter(book=>[
-      book.originalTitle,book.author,...Object.values(book.title)
+      book.popularTitle,book.author,...Object.values(book.title)
     ].some(value=>value?.toLocaleLowerCase("es").includes(needle))).slice(0,12).map(book=>({
-      bookId:book.id,title:book.originalTitle,author:book.author,originalLanguage:book.originalLanguage,
+      bookId:book.id,title:book.popularTitle,author:book.author,popularLanguage:book.popularLanguage,
       localizedTitles:book.title,deckCount:catalog.decks.filter(deck=>deck.bookId===book.id).length
     }));
     return toolText({matches});
   }));
   server.registerTool("create_deck",{
     title:"Crear baraja",
-    description:"Save a complete finished deck (published) to the shared Reedleaves catalog, attributed to Equipo Reedleaves. Prepare all cards first: creating freezes the deck and prevents further additions. The user must have clearly asked to save/create it; saving makes it visible to other catalog users.",
+    description:"Save a complete finished deck (published) to the shared Reedleaves catalog, attributed to Equipo Reedleaves. Prepare all cards first: creating freezes the deck and prevents further additions. An optional quoteSourceUrl links to the supplied or verified source page for quotes in the deck. The user must have clearly asked to save/create it; saving makes it visible to other catalog users.",
     inputSchema:{
       requestId:z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i).describe("Stable UUID for this creation attempt; reuse it if retrying after a timeout."),
       bookId:z.string().min(1).max(240),title:z.string().trim().min(1).max(TITLE_MAX_LENGTH),
       description:z.string().trim().max(DESCRIPTION_MAX_LENGTH).optional(),editorialNote:z.string().trim().min(1).max(EDITORIAL_NOTE_MAX_LENGTH).optional(),
+      quoteSourceUrl:z.string().trim().max(2048).refine(value=>normalizeQuoteSourceUrl(value)!==null)
+        .optional().describe("Optional HTTPS page used as the source for quotes in this team deck. Only include a supplied or verified URL; this can only be set when creating the deck."),
       language:z.string().min(2).max(35),
       cards:z.array(z.object({title:z.string().trim().max(TITLE_MAX_LENGTH).optional(),body:z.string().trim().min(1).max(CARD_BODY_MAX_LENGTH),
         isQuote:z.boolean().default(false),parentIndex:z.number().int().nonnegative().nullable().optional()})).min(1).max(MAX_CARDS_PER_DECK)
@@ -94,6 +98,13 @@ function makeServer(db,publicBaseUrl) {
       username:z.string().trim().min(1).max(64).describe("Existing Reedleaves username to show as the deck creator.")},
     annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:false}
   },safeTool(async(input)=>toolText(await reassignTeamDeckCreator(db,input))));
+  server.registerTool("merge_books",{
+    title:"Fusionar libros duplicados",
+    description:"Move every deck and card reference from a duplicate book to the canonical target book, preserve IDs and reader data, merge metadata, then delete the duplicate. Call only when the user explicitly asks to merge these two books. sourceBookId is removed; targetBookId remains.",
+    inputSchema:{sourceBookId:z.string().trim().min(1).max(240).describe("Duplicate book ID to remove after moving its data."),
+      targetBookId:z.string().trim().min(1).max(240).describe("Canonical book ID that keeps its identity and receives the duplicate's data.")},
+    annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:false,openWorldHint:false}
+  },safeTool(async(input)=>toolText(await mergeBooks(db,input))));
   return server;
 }
 

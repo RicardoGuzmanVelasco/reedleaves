@@ -17,7 +17,7 @@ The implemented sequence is **Flowerpot → Seed → Root → Sprout → Seedlin
 | Root | Spend leaves on cards for the book on two distinct local days. | `root-cutout.png` (original: `root.png`) |
 | Sprout | Spend leaves on three distinct local days across any deck for the book. | `seedling.svg` |
 | Seedling | Spend leaves on five distinct local days across any deck for the book. | `../mascot.svg` |
-| Stem | Spend leaves on ten distinct local days across any deck for the book. | `bodies/stem.png` (A · Carnoso), shared component and calibration editor. |
+| Stem | Spend leaves on ten distinct local days across any deck for the book. | `bodies/stem-flat.svg`, shared component and calibration editor. |
 | Flower | Spend leaves on fifteen distinct local days across any deck for the book. | `bodies/flower.png`: approved A · Flor, without stem, shared SVG face and separate shadow. |
 | Fruit | TBD; not active in the app; no approved artwork or motto. | Hidden silhouette in the app. |
 | Evergreen | TBD; not active in the app. | Hidden silhouette in the app. |
@@ -61,7 +61,6 @@ The shared browser component also installs automatic blinking: both eyes close a
 - [Variantes de Plántula](plantula-variations-exploration.md): **A · Tierra v3**, aprobada y reservada, con la franja exterior oscura de las hojas recortada; **B · Cotiledones**, propuesta pendiente. Imágenes completas guardadas como exploraciones; el arte activo de la app se conserva.
 
 - `index.html`: visual comparison of all stages.
-- `mottos.md`: edit the Spanish and English motto placeholders here.
 - `root-variations-exploration.png`: rough sheet of three alternate root shapes, saved for future exploration. These are proposals only; the approved Root remains `root.png` and the variants are not used in the app.
 - `pot-variations-exploration.png`: six Flowerpot shape proposals: classic, bowl, round-bellied, tall, square and asymmetrical. No selection yet; the active Flowerpot is unchanged. Reference, review and prompt: `pot-variations-exploration.md`.
 - `pot-variations-exploration-v2.png`: historical Flowerpot revision; A has coherent recessed soil inside an oval opening, and F replaces Asymmetrical with a rectangular planter based on `pot-planter-reference.png`. Review and prompt: `pot-variations-exploration-v2.md`.
@@ -71,9 +70,9 @@ The shared browser component also installs automatic blinking: both eyes close a
 - `seed-variations-future.png`: consolidated future-only sheet of A, C, D, F and G. D is narrower with softer tips; F and G have subtler central grooves. Decisions and prompt: `seed-variations-future.md`. B is the active app Seed; E is discarded.
 - `seedling.svg` reuses the original green seed artwork. `infinity.svg` restores the original **Bucle vivo / Living loop** mascot as the **Siempreverde / Evergreen** stage. Its face coordinates come from `faceMarkup` in `brand/sprout/spike.js`: eyes `(23,76)` and `(137,76)`, mouth centered at `(80,96)`. The spike contains the animated expressions.
 
-Open `index.html` to review the art. Progress is aggregated across decks for the same book. Motto text is maintained in `mottos.md`.
+Open `index.html` to review the art. Progress is aggregated across decks for the same book.
 
-Names and Spanish/English mottos follow `mottos.md`: **Tallo / Stem** follows Seedling; **Siempreverde / Evergreen** keeps the existing `infinity.svg` artwork and internal `infinity` ID. Sapling is no longer in the sequence. Stem unlocks on the tenth distinct local spend day, accumulated across decks of the same book; consecutive days are not required.
+The app shows only mascot names and unlock information. The former motto table was removed; Git history retains it. **Germen / Seedling** follows Root and **Brote / Sprout** follows Germen, retaining the historical `seedling` and `sprout` IDs and artwork. **Tallo / Stem** follows Brote; **Siempreverde / Evergreen** keeps the existing `infinity.svg` artwork and internal `infinity` ID. Sapling is no longer in the sequence. Stem unlocks on the tenth distinct local spend day, accumulated across decks of the same book; consecutive days are not required.
 
 ## Root cutout prompt
 
@@ -81,6 +80,6 @@ Built-in image tool, transparent background: “Background extraction only. Make
 
 ## Known artwork across books
 
-The collection uses the account-wide maximum from the existing per-book growth snapshot. Earned stages stay in color. A locked stage at or below that maximum uses its real illustration in muted grayscale; its numbered marker and locked text remain. Higher stages keep the generic unknown silhouette. No unlock threshold, artwork asset, progress key, motto visibility or account data changes.
+The collection uses the account-wide maximum from the existing per-book growth snapshot. Earned stages stay in color. A locked stage at or below that maximum uses its real illustration in muted grayscale; its numbered marker and locked text remain. Higher stages keep the generic unknown silhouette. No unlock threshold, artwork asset, progress key or account data changes.
 
 [Sprout shape proposals](brote-variations-exploration.md) retains A as the current reference and B–F as unselected flat-vector alternatives.

@@ -5,13 +5,15 @@ La app consulta SQLite, no estos archivos. Los CSV son el formato plano de autor
 | Archivo | Una fila representa |
 | --- | --- |
 | `users.csv` | Usuario creador; actualmente el equipo editorial real, sin sesiones ni lectores inventados |
-| `genres.csv` | Un interés con nombre ES/EN |
+| `genres.csv` | Un interés con nombre ES/EN, emoji y color tenue `#RRGGBB` |
 | `books.csv` | Un libro con metadatos ES/EN y géneros separados por `|` |
 | `links.csv` | Enlace externo de un libro: plataforma (`amazon` o `goodreads`) y URL HTTPS de su ficha |
 | `decks.csv` | Baraja, creador, libro, idioma principal y estado; enfoque y nota editorial |
 | `cards.csv` | Tarjeta con baraja, padre opcional, orden entre hermanas y texto |
 
 `decks.csv` declara una etiqueta de idioma BCP 47 en `language`, por ejemplo `fr`, `pt-BR` o `zh-Hant`. Esa columna fija el idioma original de la baraja. Las columnas traducidas usan sufijos de idioma, por ejemplo `title_fr` y `body_fr`. Añade una columna y rellénala solo si quieres ofrecer esa traducción; cada tarjeta siempre debe tener título y texto en el idioma principal.
+
+Todo interés nuevo exige nombre en ambos idiomas, un único emoji y color de las familias existentes antes de importar/publicar. Emoji y color viajan en `genres[]` del catálogo como campos aditivos; no cambian las asociaciones ni su orden. Los valores de apariencia se definen aquí, no en el cliente.
 
 El catálogo de intereses incluye Sociedad (`society`) en español e inglés. Está disponible para futuras asignaciones; ningún libro actual tiene ese interés.
 
@@ -33,11 +35,13 @@ Editar → `npm run db:seed` → `npm run db:check` → `npm test`. La importaci
 
 ## Títulos localizados
 
-`books.csv` incluye `original_title` y `original_language`, obligatorios e importados como columnas propias de `books`. La etiqueta de idioma debe ser BCP 47 canónica. Los cinco libros actuales fueron escritos en inglés; futuros libros pueden tener otro idioma original. La ficha muestra ese título siempre, incluso si coincide con el título localizado. No deducirlo de `title_en`.
+`books.csv` incluye `popular_title` y `popular_language`, obligatorios e importados como columnas propias de `books`. El primero es el nombre base reconocido del libro; el segundo es el idioma de ese nombre (BCP 47 canónico), independiente del idioma en que se escribió la obra. Por ejemplo: Surrounded by Idiots, en inglés. No se conserva un título original histórico como campo separado.
 
-La búsqueda del catálogo cruza el título original y todos los títulos completos disponibles, sin depender del idioma de pantalla. Ignora mayúsculas, tildes y puntuación; no añade traducciones ni cambia el contenido del libro.
+La búsqueda cruza el título popular y todos los títulos preferidos disponibles. Ignora mayúsculas, tildes y puntuación.
 
-Cada idioma guarda el título completo en `book_translations.title`. En las portadas pequeñas, los títulos largos se limitan visualmente a tres líneas; la ficha y la etiqueta accesible conservan el título completo. No cambiar IDs al traducir títulos. Las descripciones y notas francesas son traducciones de nuestros textos propios.
+Cada idioma puede guardar un título preferido opcional en `book_translations.title`. Vacío indica fallback al popular. No guardar el inglés en el preferido castellano para forzar ese resultado. La ficha muestra el preferido del idioma de interfaz en grande y, si son distintos, el popular debajo en cursiva gris y más pequeño, sin etiquetas. Las descripciones y notas no se eliminan al vaciar un título.
+
+El contrato del catálogo es `schemaVersion: 5`, con `popularTitle` y `popularLanguage` para cada libro.
 
 ## Comprar y reseñar
 

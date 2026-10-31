@@ -7,6 +7,40 @@ import {words} from "./i18n.mjs";
 import {readerState,emptyCatalog} from "../test-support/reader-state.mjs";
 
 const state=readerState({...emptyCatalog(),genres:[{id:"personal-growth",name:{es:"Crecimiento personal"}}]});
+test("New books expose interests, both translations and links before AI, including after an unavailable provider",()=>{
+  for (const language of ["es","en"]) for (const error of [undefined,"aiUnavailable"]) {
+    const html=authorFormView({...state,language,authorForm:{kind:"book",title:"Mi libro",author:"Mi autor",language:"es",error}});
+    assert.match(html,/<details class="book-metadata-editor" open>/);
+    assert.match(html,/name="metadata.genres"/);
+    assert.ok(html.includes(words[language].bookInterestHelp));
+    for (const tag of ["es","en"]) for (const field of ["title","description","editorialNote"]) {
+      assert.ok(html.includes(`name="metadata.${field}.${tag}"`));
+      assert.ok(html.includes(`for="author-metadata.${field}.${tag}"`));
+    }
+    for (const platform of ["amazon","goodreads"]) assert.ok(html.includes(`name="metadata.links.${platform}"`));
+    assert.match(html,/data-action="autofill-book"/);
+    assert.match(html,/type="submit"/);
+    assert.doesNotMatch(html,/name="metadata\.(?:description|editorialNote)\.[^"]+"[^>]*required/);
+  }
+});
+
+test("A started manual translation keeps the server's complete-translation contract without requiring the untouched language",()=>{
+  const metadata=normalizeBookMetadata({description:{es:"Descripción manual"}},{completeTranslations:false});
+  const html=authorFormView({...state,authorForm:{kind:"book",metadata}});
+  for (const field of ["description","editorialNote"]) {
+    assert.match(html,new RegExp(`name="metadata\\.${field}\\.es"[^>]*required`));
+    assert.doesNotMatch(html,new RegExp(`name="metadata\\.${field}\\.en"[^>]*required`));
+  }
+});
+
+test("Preferred titles are optional and an empty preference preserves the popular title",()=>{
+  const value={...structuredClone(bookMetadata),title:{es:"",en:""}};
+  assert.deepEqual(normalizeBookMetadata(value).title,{es:"",en:""});
+  assert.deepEqual(normalizeBookMetadata({...value,title:undefined}).title,{es:"",en:""});
+  assert.equal(missingBookInformation(value).length,0);
+  assert.equal(mergeBookMetadata(value,bookMetadata).title.es,"");
+  assert.equal(mergeBookMetadata(bookMetadata,bookMetadata).title.en,"");
+});
 test("Existing metadata survives autofill; invalid translations and unsafe links cannot enter the catalog",()=>{
   const current=structuredClone(bookMetadata);current.title.es="Título escrito";current.genres=["productivity"];
   const merged=mergeBookMetadata(current,bookMetadata);
@@ -20,8 +54,8 @@ test("Existing metadata survives autofill; invalid translations and unsafe links
 });
 
 test("Only incomplete owned books offer completion; optional links do not keep the indicator visible",()=>{
-  const minimal={...normalizeBookMetadata(),id:"mine",creatorUserId:"owner",author:"Daniel Kahneman",originalTitle:bookMetadata.originalTitle,originalLanguage:"en"};
-  assert.equal(missingBookInformation(minimal).length,5);
+  const minimal={...normalizeBookMetadata(),id:"mine",creatorUserId:"owner",author:"Daniel Kahneman",popularTitle:bookMetadata.popularTitle,popularLanguage:"en"};
+  assert.equal(missingBookInformation(minimal).length,3);
   const complete={...minimal,...bookMetadata};
   assert.equal(missingBookInformation(complete).length,0);
   const catalog={...state.catalog,books:[minimal],booksById:new Map([["mine",minimal]]),decks:[]};
@@ -40,15 +74,15 @@ test("Only incomplete owned books offer completion; optional links do not keep t
 });
 
 test("Completion reuses the preview but saves to the current book and locks existing fields",()=>{
-  const metadata=structuredClone(bookMetadata),original=normalizeBookMetadata({title:{en:bookMetadata.originalTitle}},{completeTranslations:false});
-  const form={kind:"book",bookId:"mine",title:bookMetadata.originalTitle,author:"Autor guardado",language:"en",metadata,originalMetadata:original};
+  const metadata=structuredClone(bookMetadata),original=normalizeBookMetadata({title:{en:bookMetadata.popularTitle}},{completeTranslations:false});
+  const form={kind:"book",bookId:"mine",title:bookMetadata.popularTitle,author:"Autor guardado",language:"en",metadata,originalMetadata:original};
   const initial=authorFormView({...state,authorForm:form});
   assert.match(initial,/Completar información/);assert.match(initial,/Solo se rellenarán los datos que faltan/);
   assert.match(initial,/name="title"[^>]*readonly/);assert.doesNotMatch(initial,/type="submit"/);
   const preview=authorFormView({...state,authorForm:{...form,preview:true,hasProposal:true}});
   assert.match(preview,/type="submit">Guardar/);assert.doesNotMatch(preview,/type="submit">Añadir libro a la librería/);
   const editing=authorFormView({...state,authorForm:{...form,hasProposal:true}});
-  assert.match(editing,/name="metadata.title.en"[^>]*readonly/);
+  assert.match(editing,/name="metadata.title.en"/);
   assert.doesNotMatch(editing,/name="metadata.description.es"[^>]*readonly/);
 });
 test("Book form keeps loading, retry, translations and save; book interfaces omit research sources",()=>{

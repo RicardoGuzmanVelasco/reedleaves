@@ -4,12 +4,20 @@ import { mkdirSync, readFileSync, chmodSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Pool, types } from "pg";
-import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH,USERNAME_MIN_LENGTH,USERNAME_MAX_LENGTH} from "../app/core.mjs";
+import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH,USERNAME_MIN_LENGTH,USERNAME_MAX_LENGTH,defaultCardLanguages} from "../app/core.mjs";
+import {INTEREST_MIGRATION_SQL,SOFTWARE_BOOK_IDENTITY,SOFTWARE_RECLASSIFICATION_QUERIES} from "./interest-migration.mjs";
+
+import {INTEREST_CHOICE_APPEARANCE_SQL} from "./interest-choice-appearance-migration.mjs";
+import {INTEREST_APPEARANCE_SQL} from "./interest-appearance-migration.mjs";
+
+import {POPULAR_TITLE_RENAME_SQL,POPULAR_TITLE_UPDATES} from "./popular-title-migration.mjs";
+import {BOOK_INTEREST_ORDER_SQLITE,BOOK_INTEREST_ORDER_POSTGRES} from "./book-interest-order-migration.mjs";
+import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgres} from "./book-interest-editorial-migration.mjs";
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 35;
-export const POSTGRES_SCHEMA_VERSION = 27;
+export const SQLITE_SCHEMA_VERSION = 55;
+export const POSTGRES_SCHEMA_VERSION = 47;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -96,6 +104,315 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 54) {
+    db.exec("BEGIN IMMEDIATE");
+    try {db.exec(INTEREST_CHOICE_APPEARANCE_SQL);db.exec("PRAGMA user_version=55; COMMIT;");}
+    catch(error){db.exec("ROLLBACK");throw error;}
+    return initializeDatabase(db);
+  }
+  if (version === 53) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE reader_known_interests (
+        user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+        interest_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+        PRIMARY KEY(user_id,interest_id)
+      ) STRICT;
+      CREATE TABLE reader_interest_knowledge_visits (
+        user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+        visit_id TEXT NOT NULL CHECK(length(visit_id)=36),
+        interest_ids TEXT NOT NULL CHECK(json_valid(interest_ids)),
+        PRIMARY KEY(user_id,visit_id)
+      ) STRICT;
+      INSERT INTO reader_known_interests(user_id,interest_id) SELECT a.user_id,g.id FROM accounts a CROSS JOIN genres g;
+      PRAGMA user_version=54; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 52) {
+    db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
+    try {
+      db.exec(`CREATE TABLE practice_sessions_new (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+          topic TEXT NOT NULL CHECK(topic IN ('reading','read','saved','mixed','discover')),
+          card_ids TEXT NOT NULL,
+          card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
+          cost INTEGER NOT NULL CHECK(cost IN (2,3)),
+          started_at TEXT NOT NULL,
+          completed_at TEXT,
+          completed_local_day TEXT CHECK(completed_local_day IS NULL OR (completed_local_day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(completed_local_day,'+0 days') IS completed_local_day)),
+          cancelled_at TEXT,
+          language_snapshot TEXT
+        ) STRICT;
+        INSERT INTO practice_sessions_new SELECT id,user_id,topic,card_ids,card_index,cost,started_at,completed_at,completed_local_day,cancelled_at,language_snapshot FROM practice_sessions;
+        DROP TABLE practice_sessions;
+        ALTER TABLE practice_sessions_new RENAME TO practice_sessions;
+        CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL AND cancelled_at IS NULL;
+        PRAGMA user_version=53;`);
+      if (db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("Discover practice migration broke database references");
+      db.exec("COMMIT;");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    finally { db.exec("PRAGMA foreign_keys=ON;"); }
+    return initializeDatabase(db);
+  }
+  if (version === 51) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE reader_known_books (
+        user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+        book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+        PRIMARY KEY(user_id,book_id)
+      ) STRICT;
+      CREATE TABLE reader_book_knowledge_visits (
+        user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+        visit_id TEXT NOT NULL CHECK(length(visit_id)=36),
+        book_ids TEXT NOT NULL CHECK(json_valid(book_ids)),
+        PRIMARY KEY(user_id,visit_id)
+      ) STRICT;
+      INSERT INTO reader_known_books(user_id,book_id) SELECT a.user_id,b.id FROM accounts a CROSS JOIN books b;
+      PRAGMA user_version=52; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 50) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE reader_interest_reward_claims (
+        user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+        reward_type TEXT NOT NULL CHECK(reward_type IN ('interested_three','not_interested_three')),
+        currency TEXT NOT NULL CHECK(currency IN ('leaves','petals')),
+        amount INTEGER NOT NULL CHECK(amount > 0),
+        balance_after INTEGER NOT NULL CHECK(balance_after >= amount),
+        granted_at TEXT NOT NULL,
+        PRIMARY KEY(user_id,reward_type)
+      ) STRICT;
+      ALTER TABLE reader_interest_settings ADD COLUMN initial_submission_at TEXT;
+      PRAGMA user_version=51; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 48) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE reader_book_sort_preferences RENAME TO reader_book_sort_preferences_old;
+        CREATE TABLE reader_book_sort_preferences (user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE, sort_order TEXT NOT NULL CHECK(sort_order IN ('recent','alphabetical','interests'))) STRICT;
+        INSERT INTO reader_book_sort_preferences(user_id,sort_order) SELECT user_id,sort_order FROM reader_book_sort_preferences_old;
+        DROP TABLE reader_book_sort_preferences_old;
+        PRAGMA user_version=49; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 49) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE reader_language_preferences (
+        user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+        languages TEXT NOT NULL,
+        configured INTEGER NOT NULL CHECK(configured IN (0,1)),
+        revision INTEGER NOT NULL CHECK(revision >= 0)
+      ) STRICT;
+      ALTER TABLE practice_sessions ADD COLUMN language_snapshot TEXT;`);
+      const insert=db.prepare("INSERT INTO reader_language_preferences(user_id,languages,configured,revision) VALUES (?,?,0,0)");
+      for(const account of db.prepare("SELECT user_id,language FROM accounts").all()) insert.run(account.user_id,JSON.stringify(defaultCardLanguages(account.language)));
+      db.exec("PRAGMA user_version=50; COMMIT;");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 47) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE reader_interest_preferences (
+        user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+        interest_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+        preference TEXT NOT NULL CHECK(preference IN ('interested','not_interested')),
+        position INTEGER NOT NULL CHECK(position BETWEEN 1 AND 5),
+        PRIMARY KEY(user_id,interest_id), UNIQUE(user_id,preference,position)
+      ) STRICT;
+      CREATE TABLE reader_interest_settings (
+        user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+        revision INTEGER NOT NULL CHECK(revision > 0),
+        configured_at TEXT NOT NULL,
+        initial_opportunity_closed_at TEXT NOT NULL
+      ) STRICT;
+      PRAGMA user_version=48; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 46) {
+    db.exec("BEGIN IMMEDIATE");
+    try { db.exec(`CREATE TABLE reader_book_sort_preferences (user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE, sort_order TEXT NOT NULL CHECK(sort_order IN ('recent','alphabetical'))) STRICT; PRAGMA user_version=47; COMMIT;`); }
+    catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 45) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE books ADD COLUMN incorporated_at TEXT;
+        ALTER TABLE books ADD COLUMN incorporation_order INTEGER;
+        UPDATE books SET incorporation_order=position;
+        PRAGMA user_version=46; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 44) {
+    db.exec("BEGIN IMMEDIATE");
+    try { reorderEditorialBookInterestsSqlite(db); db.exec("PRAGMA user_version=45; COMMIT;"); }
+    catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 43) {
+    db.exec("BEGIN IMMEDIATE");
+    try { db.exec(BOOK_INTEREST_ORDER_SQLITE); db.exec("PRAGMA user_version=44; COMMIT;"); }
+    catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 42) {
+    db.exec("BEGIN IMMEDIATE");
+    try { db.exec(INTEREST_APPEARANCE_SQL); db.exec("PRAGMA user_version=43; COMMIT;"); }
+    catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 41) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE practice_sessions ADD COLUMN cancelled_at TEXT;
+        DROP INDEX one_active_practice_session;
+        CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id)
+          WHERE completed_at IS NULL AND cancelled_at IS NULL;
+        PRAGMA user_version=42; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 40) {
+    const cardTable=db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='cards'").get()?.sql;
+    if (!cardTable) throw new Error("Cannot migrate book merge: cards table is missing");
+    const rebuilt=cardTable.replace(/^CREATE TABLE\s+(?:"cards"|`cards`|\[cards\]|cards)(?=\s|\()/iu,"CREATE TABLE cards_new")
+      .replace(/FOREIGN KEY\s*\(\s*(?:"deck_id"|`deck_id`|\[deck_id\]|deck_id)\s*,\s*(?:"book_id"|`book_id`|\[book_id\]|book_id)\s*\)\s*REFERENCES\s+(?:"decks"|`decks`|\[decks\]|decks)\s*\(\s*(?:"id"|`id`|\[id\]|id)\s*,\s*(?:"book_id"|`book_id`|\[book_id\]|book_id)\s*\)/iu,
+        "FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id) ON UPDATE CASCADE")
+      .replace(/REFERENCES\s+(?:"cards"|`cards`|\[cards\]|cards)\s*\(\s*(?:"id"|`id`|\[id\]|id)\s*,\s*(?:"deck_id"|`deck_id`|\[deck_id\]|deck_id)\s*\)/iu,
+        "REFERENCES cards_new(id,deck_id)");
+    if (!/^CREATE TABLE cards_new(?:\s|\()/iu.test(rebuilt) ||
+        !/FOREIGN KEY\s*\(deck_id,book_id\)\s*REFERENCES\s+decks\(id,book_id\)\s+ON UPDATE CASCADE/iu.test(rebuilt) ||
+        !/REFERENCES\s+cards_new\(id,deck_id\)/iu.test(rebuilt)) {
+      throw new Error("Cannot migrate book merge: cards foreign key shape is unknown");
+    }
+    const indexes=db.prepare("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='cards' AND sql IS NOT NULL").all();
+    const triggers=db.prepare("SELECT name,sql FROM sqlite_master WHERE type='trigger'").all();
+    db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
+    try {
+      for (const trigger of triggers) db.exec(`DROP TRIGGER "${trigger.name.replaceAll('"','""')}";`);
+      db.exec(`CREATE TABLE book_merge_operations (
+          source_book_id TEXT NOT NULL, target_book_id TEXT NOT NULL,
+          PRIMARY KEY(source_book_id,target_book_id), CHECK(source_book_id <> target_book_id)
+        ) STRICT;
+        ${rebuilt};
+        INSERT INTO cards_new SELECT * FROM cards;
+        DROP TABLE cards;
+        ALTER TABLE cards_new RENAME TO cards;`);
+      for (const index of indexes) db.exec(index.sql);
+      for (const trigger of triggers) if(trigger.name!=="keep_deck_owner") db.exec(trigger.sql);
+      db.exec(`CREATE TRIGGER keep_deck_owner BEFORE UPDATE OF creator_user_id,book_id,language ON decks
+        WHEN (NEW.creator_user_id IS NOT OLD.creator_user_id AND NOT (
+          OLD.creator_user_id='reed-team' AND OLD.status='published' AND
+          COALESCE((SELECT can_create_decks FROM users WHERE id=NEW.creator_user_id),0)=1
+        )) OR (NEW.book_id <> OLD.book_id AND NOT EXISTS (
+          SELECT 1 FROM book_merge_operations m WHERE m.source_book_id=OLD.book_id AND m.target_book_id=NEW.book_id
+        )) OR (NEW.language <> OLD.language AND OLD.status <> 'draft')
+        BEGIN SELECT RAISE(ABORT,'Deck ownership is immutable'); END;
+        PRAGMA user_version=41;`);
+      if (db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("Book merge migration broke database references");
+      db.exec("COMMIT;");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    finally { db.exec("PRAGMA foreign_keys=ON;"); }
+    return initializeDatabase(db);
+  }
+  if (version === 39) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE decks ADD COLUMN kind TEXT NOT NULL DEFAULT 'standard' CHECK(kind IN ('standard','collective'));
+        ALTER TABLE decks ADD COLUMN contribution_policy TEXT NOT NULL DEFAULT 'owner' CHECK(contribution_policy IN ('owner','open','selected'));
+        ALTER TABLE decks ADD COLUMN max_cards_per_contributor INTEGER CHECK(max_cards_per_contributor IS NULL OR max_cards_per_contributor > 0);
+        ALTER TABLE cards ADD COLUMN is_reading_guide INTEGER NOT NULL DEFAULT 0 CHECK(is_reading_guide IN (0,1));
+        ALTER TABLE cards ADD COLUMN creator_user_id TEXT REFERENCES users(id);
+        ALTER TABLE cards ADD COLUMN language TEXT NOT NULL DEFAULT 'en' CHECK(length(language) BETWEEN 2 AND 35);
+        UPDATE cards SET creator_user_id=(SELECT creator_user_id FROM decks WHERE decks.id=cards.deck_id),
+          language=(SELECT language FROM decks WHERE decks.id=cards.deck_id);
+        CREATE INDEX cards_by_creator ON cards(creator_user_id,deck_id);
+        CREATE UNIQUE INDEX one_reading_guide_per_contributor ON cards(deck_id,creator_user_id) WHERE is_reading_guide=1;
+        CREATE TABLE deck_contributors (
+          deck_id TEXT NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          added_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY(deck_id,user_id)
+        ) STRICT;
+        CREATE INDEX deck_contributors_by_user ON deck_contributors(user_id,deck_id);
+        CREATE TRIGGER freeze_collective_contributors_insert BEFORE INSERT ON deck_contributors
+        WHEN (SELECT status FROM decks WHERE id=NEW.deck_id) <> 'draft'
+        BEGIN SELECT RAISE(ABORT,'Published contributor list is immutable'); END;
+        CREATE TRIGGER freeze_collective_contributors_update BEFORE UPDATE ON deck_contributors
+        WHEN (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft'
+        BEGIN SELECT RAISE(ABORT,'Published contributor list is immutable'); END;
+        CREATE TRIGGER freeze_collective_contributors_delete BEFORE DELETE ON deck_contributors
+        WHEN (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft'
+        BEGIN SELECT RAISE(ABORT,'Published contributor list is immutable'); END;
+        PRAGMA user_version=40; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 38) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(POPULAR_TITLE_RENAME_SQL);
+      for(const {sql,values} of POPULAR_TITLE_UPDATES)db.prepare(sql).run(...values);
+      db.exec("PRAGMA user_version=39; COMMIT;");
+    } catch(error) { db.exec("ROLLBACK");throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 37) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(INTEREST_MIGRATION_SQL);
+      for(const query of SOFTWARE_RECLASSIFICATION_QUERIES)db.prepare(query).run(...SOFTWARE_BOOK_IDENTITY);
+      db.exec("PRAGMA user_version=38; COMMIT;");
+    }
+    catch(error) { db.exec("ROLLBACK");throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 36) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE book_translations_new (
+          book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+          language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
+          title TEXT NOT NULL DEFAULT '',
+          description TEXT NOT NULL CHECK(length(trim(description)) > 0),
+          editorial_note TEXT NOT NULL CHECK(length(trim(editorial_note)) > 0),
+          PRIMARY KEY(book_id,language)
+        ) STRICT;
+        INSERT INTO book_translations_new SELECT t.book_id,t.language,
+          t.title,
+          t.description,t.editorial_note FROM book_translations t JOIN books b ON b.id=t.book_id;
+        DROP TABLE book_translations;
+        ALTER TABLE book_translations_new RENAME TO book_translations;
+        PRAGMA user_version=37; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 35) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`ALTER TABLE decks ADD COLUMN quote_source_url TEXT CHECK(quote_source_url IS NULL OR (quote_source_url LIKE 'https://%' AND length(trim(quote_source_url)) BETWEEN 9 AND 2048));
+        CREATE TRIGGER team_only_deck_quote_source BEFORE INSERT ON decks
+        WHEN NEW.quote_source_url IS NOT NULL AND NEW.creator_user_id <> 'reed-team'
+        BEGIN SELECT RAISE(ABORT,'Only team decks can have a quote source'); END;
+        CREATE TRIGGER keep_deck_quote_source BEFORE UPDATE OF quote_source_url ON decks
+        WHEN NEW.quote_source_url IS NOT OLD.quote_source_url
+        BEGIN SELECT RAISE(ABORT,'Deck quote source is immutable'); END;
+        PRAGMA user_version=36; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 34) {
     db.exec("BEGIN IMMEDIATE");
     try { db.exec("ALTER TABLE book_translations DROP COLUMN short_title; PRAGMA user_version=35; COMMIT;"); }
@@ -584,6 +901,387 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 46) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,genres IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 47) return;
+          await db.exec(INTEREST_CHOICE_APPEARANCE_SQL);
+          await db.exec(`ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=47;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=47);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 45) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,accounts,genres IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 46) return;
+          await db.exec(`CREATE TABLE reader_known_interests (
+              user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+              interest_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+              PRIMARY KEY(user_id,interest_id)
+            );
+            ALTER TABLE reader_known_interests ENABLE ROW LEVEL SECURITY;
+            CREATE TABLE reader_interest_knowledge_visits (
+              user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+              visit_id TEXT NOT NULL CHECK(length(visit_id)=36),
+              interest_ids TEXT NOT NULL,
+              PRIMARY KEY(user_id,visit_id)
+            );
+            ALTER TABLE reader_interest_knowledge_visits ENABLE ROW LEVEL SECURITY;
+            DO $$ BEGIN
+              IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_known_interests,reader_interest_knowledge_visits FROM anon; END IF;
+              IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_known_interests,reader_interest_knowledge_visits FROM authenticated; END IF;
+            END $$;
+            INSERT INTO reader_known_interests(user_id,interest_id) SELECT a.user_id,g.id FROM accounts a CROSS JOIN genres g;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=46;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=46);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 44) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,practice_sessions IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 45) return;
+          await db.exec(`ALTER TABLE practice_sessions DROP CONSTRAINT practice_sessions_topic_check;
+            ALTER TABLE practice_sessions ADD CONSTRAINT practice_sessions_topic_check CHECK(topic IN ('reading','read','saved','mixed','discover'));
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=45;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=45);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 43) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,accounts,books IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 44) return;
+          await db.exec(`CREATE TABLE reader_known_books (
+              user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+              book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+              PRIMARY KEY(user_id,book_id)
+            );
+            ALTER TABLE reader_known_books ENABLE ROW LEVEL SECURITY;
+            CREATE TABLE reader_book_knowledge_visits (
+              user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+              visit_id TEXT NOT NULL CHECK(length(visit_id)=36),
+              book_ids TEXT NOT NULL,
+              PRIMARY KEY(user_id,visit_id)
+            );
+            ALTER TABLE reader_book_knowledge_visits ENABLE ROW LEVEL SECURITY;
+            DO $$BEGIN
+              IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN
+                EXECUTE 'REVOKE ALL ON reader_known_books,reader_book_knowledge_visits FROM anon';
+              END IF;
+              IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN
+                EXECUTE 'REVOKE ALL ON reader_known_books,reader_book_knowledge_visits FROM authenticated';
+              END IF;
+            END $$;
+            INSERT INTO reader_known_books(user_id,book_id) SELECT a.user_id,b.id FROM accounts a CROSS JOIN books b;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=44;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=44);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 42) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,accounts IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 43) return;
+          await db.exec(`CREATE TABLE reader_interest_reward_claims (
+            user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+            reward_type TEXT NOT NULL CHECK(reward_type IN ('interested_three','not_interested_three')),
+            currency TEXT NOT NULL CHECK(currency IN ('leaves','petals')),
+            amount BIGINT NOT NULL CHECK(amount > 0),
+            balance_after BIGINT NOT NULL CHECK(balance_after >= amount),
+            granted_at TIMESTAMPTZ NOT NULL,
+            PRIMARY KEY(user_id,reward_type)
+          );
+          ALTER TABLE reader_interest_settings ADD COLUMN initial_submission_at TIMESTAMPTZ;
+          ALTER TABLE reader_interest_reward_claims ENABLE ROW LEVEL SECURITY;
+          DO $$ BEGIN
+            IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_reward_claims FROM anon; END IF;
+            IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_reward_claims FROM authenticated; END IF;
+          END $$;
+          ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+          UPDATE reed_schema SET version=43;
+          ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=43);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 40) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,reader_book_sort_preferences IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 41) return;
+          await db.exec(`ALTER TABLE reader_book_sort_preferences DROP CONSTRAINT reader_book_sort_preferences_sort_order_check;
+            ALTER TABLE reader_book_sort_preferences ADD CONSTRAINT reader_book_sort_preferences_sort_order_check CHECK(sort_order IN ('recent','alphabetical','interests'));
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=41;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=41);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 41) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,accounts,practice_sessions IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 42) return;
+          await db.exec(`CREATE TABLE reader_language_preferences (
+              user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+              languages TEXT NOT NULL, configured BOOLEAN NOT NULL DEFAULT FALSE, revision INTEGER NOT NULL DEFAULT 0 CHECK(revision>=0)
+            );
+            ALTER TABLE reader_language_preferences ENABLE ROW LEVEL SECURITY;
+            DO $$ BEGIN
+              IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_language_preferences FROM anon; END IF;
+              IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_language_preferences FROM authenticated; END IF;
+            END $$;
+            INSERT INTO reader_language_preferences(user_id,languages,configured,revision)
+              SELECT user_id,CASE WHEN language='en' THEN '["en"]' ELSE json_build_array('en',language)::text END,FALSE,0 FROM accounts;
+            ALTER TABLE practice_sessions ADD COLUMN language_snapshot TEXT;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=42;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=42);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 39) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,accounts IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 40) return;
+          await db.exec(`CREATE TABLE reader_interest_preferences (
+            user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+            interest_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+            preference TEXT NOT NULL CHECK(preference IN ('interested','not_interested')),
+            position INTEGER NOT NULL CHECK(position BETWEEN 1 AND 5),
+            PRIMARY KEY(user_id,interest_id), UNIQUE(user_id,preference,position)
+          );
+          ALTER TABLE reader_interest_preferences ENABLE ROW LEVEL SECURITY;
+          DO $$ BEGIN
+            IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_preferences FROM anon; END IF;
+            IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_preferences FROM authenticated; END IF;
+          END $$;
+          CREATE TABLE reader_interest_settings (
+            user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+            revision INTEGER NOT NULL CHECK(revision > 0),
+            configured_at TIMESTAMPTZ NOT NULL,
+            initial_opportunity_closed_at TIMESTAMPTZ NOT NULL
+          );
+          ALTER TABLE reader_interest_settings ENABLE ROW LEVEL SECURITY;
+          DO $$ BEGIN
+            IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_settings FROM anon; END IF;
+            IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_settings FROM authenticated; END IF;
+          END $$;
+          ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+          UPDATE reed_schema SET version=40;
+          ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=40);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 38) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,accounts IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 39) return;
+          await db.exec(`CREATE TABLE reader_book_sort_preferences (user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE, sort_order TEXT NOT NULL CHECK(sort_order IN ('recent','alphabetical')));
+            ALTER TABLE reader_book_sort_preferences ENABLE ROW LEVEL SECURITY;
+            DO $$ BEGIN
+              IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_book_sort_preferences FROM anon; END IF;
+              IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_book_sort_preferences FROM authenticated; END IF;
+            END $$;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=39;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=39);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 37) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,books IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 38) return;
+          await db.exec(`ALTER TABLE books ADD COLUMN incorporated_at TIMESTAMPTZ;
+            ALTER TABLE books ADD COLUMN incorporation_order INTEGER;
+            UPDATE books SET incorporation_order=position;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=38;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=38);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 36) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,book_genres IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 37) return;
+          await reorderEditorialBookInterestsPostgres(db);
+          await db.exec(`ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=37;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=37);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 35) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,book_genres IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 36) return;
+          await db.exec(BOOK_INTEREST_ORDER_POSTGRES);
+          await db.exec(`ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=36;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=36);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 34) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,genres IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 35) return;
+          await db.exec(INTEREST_APPEARANCE_SQL);
+          await db.exec(`ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=35;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=35);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 33) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,practice_sessions IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 34) return;
+          await db.exec(`ALTER TABLE practice_sessions ADD COLUMN cancelled_at TIMESTAMPTZ;
+            DROP INDEX one_active_practice_session;
+            CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id)
+              WHERE completed_at IS NULL AND cancelled_at IS NULL;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=34;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=34);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 32) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,books,decks,cards IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 33) return;
+          await db.exec(`CREATE TABLE book_merge_operations(
+              source_book_id TEXT NOT NULL, target_book_id TEXT NOT NULL,
+              PRIMARY KEY(source_book_id,target_book_id), CHECK(source_book_id<>target_book_id)
+            );
+            ALTER TABLE book_merge_operations ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE cards DROP CONSTRAINT cards_deck_id_book_id_fkey;
+            ALTER TABLE cards ADD CONSTRAINT cards_deck_id_book_id_fkey
+              FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id) ON UPDATE CASCADE;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=33;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=33);`);
+          await db.exec(`CREATE OR REPLACE FUNCTION reed_keep_deck_owner() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              IF (NEW.creator_user_id IS DISTINCT FROM OLD.creator_user_id AND NOT (
+                OLD.creator_user_id='reed-team' AND OLD.status='published' AND
+                COALESCE((SELECT can_create_decks FROM users WHERE id=NEW.creator_user_id),0)=1
+              )) OR (NEW.book_id IS DISTINCT FROM OLD.book_id AND NOT EXISTS (
+                SELECT 1 FROM book_merge_operations m WHERE m.source_book_id=OLD.book_id AND m.target_book_id=NEW.book_id
+              )) OR (NEW.language IS DISTINCT FROM OLD.language AND OLD.status <> 'draft') THEN
+                RAISE EXCEPTION 'Deck ownership is immutable';
+              END IF;
+              RETURN NEW;
+            END $$;`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 31) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,decks,cards IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 32) return;
+          await db.exec(`ALTER TABLE decks ADD COLUMN kind TEXT NOT NULL DEFAULT 'standard' CHECK(kind IN ('standard','collective'));
+            ALTER TABLE decks ADD COLUMN contribution_policy TEXT NOT NULL DEFAULT 'owner' CHECK(contribution_policy IN ('owner','open','selected'));
+            ALTER TABLE decks ADD COLUMN max_cards_per_contributor INTEGER CHECK(max_cards_per_contributor IS NULL OR max_cards_per_contributor > 0);
+            ALTER TABLE decks ADD CONSTRAINT decks_collective_policy_check CHECK((kind='standard' AND contribution_policy='owner' AND max_cards_per_contributor IS NULL) OR (kind='collective' AND contribution_policy IN ('open','selected')));
+            ALTER TABLE cards ADD COLUMN is_reading_guide INTEGER NOT NULL DEFAULT 0 CHECK(is_reading_guide IN (0,1));
+            ALTER TABLE cards ADD COLUMN creator_user_id TEXT REFERENCES users(id);
+            ALTER TABLE cards ADD COLUMN language TEXT NOT NULL DEFAULT 'en' CHECK(length(language) BETWEEN 2 AND 35);
+            UPDATE cards c SET creator_user_id=d.creator_user_id,language=d.language FROM decks d WHERE d.id=c.deck_id;
+            CREATE INDEX cards_by_creator ON cards(creator_user_id,deck_id);
+            CREATE UNIQUE INDEX one_reading_guide_per_contributor ON cards(deck_id,creator_user_id) WHERE is_reading_guide=1;
+            CREATE TABLE deck_contributors(
+              deck_id TEXT NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+              user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+              added_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY(deck_id,user_id));
+            ALTER TABLE deck_contributors ENABLE ROW LEVEL SECURITY;
+            CREATE INDEX deck_contributors_by_user ON deck_contributors(user_id,deck_id);
+            CREATE FUNCTION reed_freeze_collective_contributors() RETURNS trigger LANGUAGE plpgsql AS $$
+            DECLARE target_deck TEXT; deck_status TEXT;
+            BEGIN
+              target_deck := CASE WHEN TG_OP='DELETE' THEN OLD.deck_id ELSE NEW.deck_id END;
+              SELECT status INTO deck_status FROM decks WHERE id=target_deck;
+              IF deck_status <> 'draft' THEN RAISE EXCEPTION 'Published contributor list is immutable'; END IF;
+              IF TG_OP='DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
+            END $$;
+            CREATE TRIGGER freeze_collective_contributors BEFORE INSERT OR UPDATE OR DELETE ON deck_contributors FOR EACH ROW EXECUTE FUNCTION reed_freeze_collective_contributors();
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=32;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=32);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 30) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,books,book_translations IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 31) return;
+          await db.exec(POPULAR_TITLE_RENAME_SQL);
+          for(const {sql,values} of POPULAR_TITLE_UPDATES)await db.prepare(sql).run(...values);
+          await db.exec(`ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=31;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=31);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 29) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,genres,genre_translations,book_genres,books IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 30) return;
+          await db.exec(INTEREST_MIGRATION_SQL);
+          for(const query of SOFTWARE_RECLASSIFICATION_QUERIES)await db.prepare(query).run(...SOFTWARE_BOOK_IDENTITY);
+          await db.exec(`ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=30;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=30);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 28) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,book_translations IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 29) return;
+          await db.exec(`ALTER TABLE book_translations DROP CONSTRAINT book_translations_title_check;
+            ALTER TABLE book_translations ALTER COLUMN title SET DEFAULT '';
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=29;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=29);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 27) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,decks IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 28) return;
+          await db.exec(`ALTER TABLE decks ADD COLUMN quote_source_url TEXT
+              CHECK(quote_source_url IS NULL OR (quote_source_url LIKE 'https://%' AND length(btrim(quote_source_url)) BETWEEN 9 AND 2048));
+            CREATE FUNCTION reed_team_only_deck_quote_source() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              IF NEW.quote_source_url IS NOT NULL AND NEW.creator_user_id <> 'reed-team' THEN
+                RAISE EXCEPTION 'Only team decks can have a quote source';
+              END IF;
+              RETURN NEW;
+            END $$;
+            CREATE TRIGGER team_only_deck_quote_source BEFORE INSERT ON decks FOR EACH ROW EXECUTE FUNCTION reed_team_only_deck_quote_source();
+            CREATE FUNCTION reed_keep_deck_quote_source() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              IF NEW.quote_source_url IS DISTINCT FROM OLD.quote_source_url THEN
+                RAISE EXCEPTION 'Deck quote source is immutable';
+              END IF;
+              RETURN NEW;
+            END $$;
+            CREATE TRIGGER keep_deck_quote_source BEFORE UPDATE OF quote_source_url ON decks FOR EACH ROW EXECUTE FUNCTION reed_keep_deck_quote_source();
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=28;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=28);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 26) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,book_translations IN ACCESS EXCLUSIVE MODE;");

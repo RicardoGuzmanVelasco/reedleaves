@@ -37,7 +37,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal((await readLeafWallet(db,"reader","2026-10-13")).balance,99);
     await db.prepare("UPDATE leaf_wallets SET balance=2 WHERE user_id=?").run("reader");
     assert.equal((await readLeafWallet(db,"reader","2026-10-13")).balance,2);
-    assert.equal((await readLeafWallet(db,"reader","2026-10-14")).balance,3);
+    assert.equal((await readLeafWallet(db,"reader","2026-10-14")).balance,7);
     await setLeafBalance(db,"reader.name",Number.MAX_SAFE_INTEGER,now);
     assert.equal((await readLeafWallet(db,"reader","2026-10-20")).balance,Number.MAX_SAFE_INTEGER);
     await setLeafBalance(db,"reader.name",0,now);

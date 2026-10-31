@@ -10,7 +10,10 @@ Esta guía reúne criterios generales para diseñar Reedleaves. No es una especi
 - Escribir de forma breve, clara y humana. Incluir solo el texto necesario para usar la interfaz.
 - Tratar la iconografía de las acciones clave como parte del sistema de producto: una acción recurrente debe conservar un símbolo reconocible en todos sus puntos de entrada. Cuando haya espacio, el icono acompaña al texto y no lo sustituye.
 - Diseñar para distintos tamaños de pantalla y respetar accesibilidad, movimiento reducido y controles semánticos.
+- Las portadas de libros conservan globalmente la proporción aprobada 176:240. Al cambiar de tamaño, texto, espaciado, lomo y arte interior escalan proporcionalmente; las cuadrículas evitan deformar el libro. Si un texto supera el espacio de la portada, se limita con elipsis y permanece completo en su nombre accesible y tooltip.
 - Diseñar primero para uso táctil (touch first). Las acciones, el atractivo visual y las animaciones principales deben funcionar sin hover. El hover es un refuerzo opcional para dispositivos con cursor preciso, nunca el centro de la experiencia ni un requisito para descubrir una acción.
+- Los botones circulares que muestran solo un icono deben parecer controles sólidos, no translúcidos: usar un fondo opaco, borde visible y una sombra ligera cuando corresponda, también sobre fondos variables. Mantener una zona táctil de al menos 44 × 44 px aunque el círculo visible sea más pequeño. Aplicar el mismo lenguaje a las acciones de cerrar, ayuda y navegación circular, salvo el cierre exterior de un modal sobre el fondo atenuado, que puede llevar superficie translúcida sin sombra.
+- En diálogos con un panel delimitado, colocar la X de cierre fuera del panel, encima de su esquina superior derecha y alineada con el borde. En diálogos a pantalla completa, situarla arriba a la derecha fuera del contenido y respetar el margen seguro.
 - Las respuestas de hover de un contenedor no deben sustituir, reiniciar ni mover la animación propia de una mascota. Separar las capas visuales cuando sea necesario.
 
 ## Paleta de reutilización · inventario preliminar
@@ -48,8 +51,9 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 - Conservar el patrón vegetal del reverso en `brand/reed/card-back.svg`: aprobado como recurso visual reutilizable en otras superficies. El motivo central usa la mascota oficial estática y sin sombra, ampliada y girada 12° a la izquierda, sobresaliendo de un círculo claro. El marco exterior es crema, del mismo color que el círculo; dos brotes con tallo verticales adornan arriba y abajo. El patrón conserva su posición original y una opacidad del 17 %.
 - Inicio ofrece «¡Vamos a repasar!» en una sola línea, sin flecha, con Plántula dentro de un círculo grande. Mascota y texto ocupan el mayor tamaño que admite el ancho del botón; el conjunto se adapta a móvil sin desbordarse y evita altura sobrante. El degradado conserva el extremo claro a la derecha, oscurece más el lado izquierdo y mantiene el tono medio hacia la derecha para distinguirse de Plántula. El fondo permanece fijo; un brillo estrecho cruza durante unos 0,75 s cada 7,5 s y una ola rápida recorre el texto carácter por carácter: las letras suben y bajan con easing y se solapan. Movimiento reducido desactiva ambas animaciones.
 - La selección de tema y el cierre pueden dar protagonismo a Plántula. Mientras se muestra una tarjeta, retirar la mascota y concentrar la atención en el contenido.
-- La elección de tema usa un fondo verde suave con luz en ambas esquinas de la diagonal, Plántula sobre el título y cuatro barajas en cuadrícula de 2×2. Cada baraja tiene tres tarjetas en abanico y un único icono grande, semitransparente y recortado por la tarjeta frontal. Mantener los cuatro iconos y sus posiciones calibradas por separado. El cierre es una X centrada dentro de un círculo fino con fondo claro opaco. Conservar la tipografía de la app.
-- Los precios de Repasar reutilizan el componente `priceTag` de «Añadir a mi tarjetero». Comparten papel ondulado melocotón; varían moneda, cantidad y nombre accesible según el contexto. El tema rebajado muestra el precio anterior y el nuevo al mismo tamaño, aspas translúcidas sobre el anterior y un icono de oferta colgando a su derecha (43 px) y abajo (25 px). El icono recorta el porcentaje y el agujero para dejar ver el fondo. El precio rebajado usa un melocotón más vivo y conserva un brillo estrecho de unos 0,75 s cada 7,5 s. Movimiento reducido desactiva el brillo.
+- La elección de tema usa un fondo verde suave con luz en ambas esquinas de la diagonal, Plántula sobre el título y los cuatro modos originales en cuadrícula de 2×2. Descubrir añade una quinta fila de ancho completo, con el abanico a la izquierda y el título y precio a la derecha. Conserva fondo vegetal claro, borde y profundidad; los estados de disponibilidad y el reintento quedan junto a esa opción. Cada baraja tiene tres tarjetas en abanico y un único icono grande, semitransparente y recortado por la tarjeta frontal. Mantener los cuatro iconos y sus posiciones calibradas por separado. El título de selección queda centrado en una sola línea, con la ℹ centrada encima. La ayuda explica cada modo con el icono de su baraja sobre una misma base verde clara. La X del modal se coloca fuera del panel, sobre la esquina superior derecha; reutiliza la X larga y fina de salida de Repasar, con borde e icono blanco muy claro, fondo casi transparente y sin sombra. Conservar la tipografía de la app.
+- Los precios de Repasar reutilizan el componente `priceTag` de «Añadir a mi tarjetero». Comparten papel ondulado melocotón; varían moneda, cantidad y nombre accesible según el contexto. El tema rebajado muestra el precio anterior y el nuevo al mismo tamaño, aspas translúcidas sobre el anterior y un icono de oferta colgando a su derecha (43 px) y abajo (25 px). El icono recorta el porcentaje y el agujero para dejar ver el fondo. El precio rebajado usa un melocotón más vivo; no lleva shimmer.
+- Descubrir consulta la disponibilidad al entrar en el selector y al reintentar. Mientras carga, falla o no reúne cinco tarjetas, deshabilita solo su opción y explica el estado. La ayuda conserva el foco y no se cierra al terminar esa consulta. Al comprar, deshabilitar las cinco opciones y anunciar la preparación; el servidor vuelve a validar disponibilidad y precio. Un precio cambiado vuelve al selector para que el usuario lo revise. Reanudar conserva el precio ya pagado. El feedback de pulsación usa desplazamiento y profundidad; movimiento reducido elimina las transiciones y el desplazamiento.
 - Durante la tarjeta, reservar espacio superior para salir y separar las respuestas del contenido: tarjeta algo más arriba y botonera algo más abajo, sin fijarlas sobre el texto. Mantener «Ver menos a menudo» a la izquierda y «Ver más a menudo» a la derecha. Se puede arrastrar la tarjeta horizontalmente: sigue el dedo con una inclinación suave, realza la respuesta correspondiente y sale hacia ese lado al soltar más allá del umbral; un gesto corto vuelve al centro. Los botones siguen disponibles como alternativa.
 - Las respuestas conservan su paleta al pasar el cursor y al pulsar: fondo, texto, borde y tono de sombra. El feedback cambia solo el desplazamiento y la profundidad de sombra; no aplicar filtros de color.
 
@@ -61,6 +65,12 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 
 - Por defecto, ocupan el ancho necesario para sus opciones, sin estirarse para rellenar el contenedor. El selector de lectura de la ficha del libro se centra horizontalmente.
 - Las pestañas Estantería / Shelf y Tarjetero / Decks de Biblioteca / Bookcase mantienen por ahora su estilo propio. Posible unificación futura: revisar si conviene aplicarles el lenguaje visual del selector de cápsula.
+- Los selectores de presentación de libros comparten los SVG aprobados de `brand/icons/book-layout/`: cuatro portadas en cuadrícula, dos lomos verticales y uno inclinado para Estantería, y tres libros horizontales para Apilados. Trazo negro puro, fondo e interiores transparentes. La opción activa usa verde claro para conservar el contraste; mantener las etiquetas accesibles en español e inglés.
+
+## Cabecera compartida
+
+- La cabecera mantiene sus controles globales y ofrece un espacio opcional de contenido a la izquierda. Cada vista decide qué inyectar en ese espacio; puede quedar vacío. No se determina su contenido mediante una lista central de rutas.
+- Las vistas principales pueden mostrar ahí su icono y nombre, alineados con los saldos y Ajustes. El título semántico de cada pantalla se conserva dentro de `main` para el foco y la navegación accesible.
 
 ## Ficha del libro
 
@@ -71,17 +81,27 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 - Marcar «Leído» guarda la lectura y, si quedan barajas propias en borrador, abre un diálogo flotante para cerrarlas juntas. Cada fila muestra nombre y número de tarjetas, o «Vacía (se descartará)». «Confirmar» termina las que tienen contenido y descarta las vacías; «Mantener en borrador», Escape o cerrar conserva sus estados. La advertencia de congelación se muestra antes de confirmar, sin otro diálogo encadenado.
 - Un libro leído con notas pendientes permite recuperar ese diálogo desde «Barajas en borrador», junto al estado de lectura. El cierre devuelve al contexto de origen sin abrir un repaso. Los borradores locales deben guardarse o cancelarse antes de terminar sus barajas.
 
+## Guías de lectura
+
+- La pantalla de edición se centra en una sola tarea: escribir o editar la guía propia en un formulario con el tratamiento de las superficies y campos de autoría. No lista las guías comunitarias debajo del formulario.
+- La consulta de guías comunitarias ocurre en la vista dedicada de lectura, separada del editor. Mantener accesible «Volver a las barajas» y conservar el borrador y el error junto al formulario.
+
 ## Selector de barajas
 
-- La recomendación del equipo (`deck.isRecommended`, procedente de `is_recommended`) se muestra en el selector con la etiqueta flotante «Te recomendamos / We recommend» y estrella de puntas redondeadas. Usar la opción aprobada de papel ondulado, fondo madera `var(--wood)` (`#e8d3a4`), texto y estrella en el verde bosque existente `var(--ink)` (`#173d2c`), sin borde ni sombra. El nombre accesible incluye el texto de la etiqueta y el tooltip identifica al equipo. No depende de votos ni de que la baraja esté en borrador o terminada.
+- Ordenar las barajas por prioridades sucesivas: distintivo visible; alguna tarjeta del usuario actual; título distinto de los títulos automáticos de `defaultNoteDeckTitle`; título sin las palabras «notas», «personales», «notes» o «personal». Conservar el orden previo cuando todos los criterios empatan. Incluir las guías de lectura en esta ordenación. Aplicar también dentro de cada grupo del Tarjetero.
+
+- Si una baraja tiene `quoteSourceUrl`, mostrar en su detalle un único enlace con el texto «Fuente de las citas / Quote source», usando el tratamiento visual de los enlaces externos del libro. Abrir en otra pestaña con nombre accesible y foco visible. Omitirlo por completo cuando el campo no existe. Solo el equipo puede fijar la referencia al crear una baraja mediante MCP.
+- Guardadas usa un botón principal con icono de marcapáginas junto al título de la cabecera del libro. No ocupa una posición de la cuadrícula. Está disponible con sesión aunque la colección esté vacía; el contador solo aparece cuando hay tarjetas guardadas de ese libro.
+- La recomendación del equipo (`deck.isRecommended`, procedente de `is_recommended`) se muestra en el selector con la etiqueta flotante «Te recomendamos / We recommend» y estrella de puntas redondeadas. Usar la opción aprobada de papel ondulado, fondo dorado claro con un degradado suave para dar volumen, texto e iconos en dorado muy oscuro (`#684700`), con borde dorado de 1 px que sigue el contorno ondulado y sin sombra. El nombre accesible incluye el texto de la etiqueta y el tooltip identifica al equipo. No depende de votos ni de que la baraja esté en borrador o terminada.
+- Las barajas de guías de lectura muestran siempre el distintivo «Destacada / Featured», con medalla de dos cintas y el mismo papel dorado de la recomendación. Incluir «Destacada / Featured» en su nombre accesible.
 - Las distinciones de comunidad se conservan en datos y ordenación, pero siguen ocultas; el detalle no añade distintivos. No mostrar una etiqueta de relleno para barajas sin recomendación. Dar prioridad visual al título, con mayor tamaño que la autoría y todo el ancho disponible. Sus 26 px de margen superior dejan espacio al distintivo sin solapar el título.
-- El idioma se representa con un chip después del ojo y antes del estado de creación. Usar los SVG suaves de `brand/icons/languages/` (España para español y Reino Unido para inglés); para otros idiomas, globo neutro con su etiqueta de idioma. Conservar el nombre localizado del idioma en el nombre accesible y el tooltip de apertura. No reservar espacio lateral en el título para la bandera.
-- Las tarjetas de baraja terminadas no muestran un indicador de estado. Las barajas `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. En una baraja aún no añadida a Decks, indicar que puede previsualizarse y que hay que añadirla para repasarla. La fila de chips puede envolver en móvil estrecho.
-- Antes del ojo, mostrar un chip con el icono de dos tarjetas cerradas y su número. Sustituye a «X tarjetas · Y niveles»; el selector omite los niveles también en su nombre accesible. El icono `cards.svg` deriva de `cards-pen.svg` y mantiene sus dos tarjetas sin lápiz; no sustituye al icono de «Tomar nota». Todos los chips de la fila comparten estilo sin borde.
+- El idioma se representa con un chip después del ojo y antes del estado de creación. Para español e inglés, usar las banderas suavizadas y redondeadas de `brand/icons/languages/`; no mostrar texto de código en esos chips. Para otros idiomas, usar el globo circular y mostrar el código. Conservar el nombre localizado del idioma en el nombre accesible y el tooltip de apertura. El selector de Ajustes usa esas mismas banderas junto a Español e English, centradas y sin etiqueta visible; conservar su nombre accesible.
+- Las barajas terminadas no muestran un indicador de estado en ninguna vista. Las barajas `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. En una baraja aún no añadida a Decks, indicar que puede previsualizarse y que hay que añadirla para repasarla. La fila de chips puede envolver en móvil estrecho.
+- Mostrar el número de tarjetas y el número de citas (incluso si es cero) en la vista previa y en la información de la baraja. Sustituir el dato de niveles por el de citas. Reutilizar el icono de tarjetas y el icono de cita existente. Si hay más citas que ideas normales, usar los tonos azules en las fichas de baraja del selector y del Tarjetero.
 
 ## Vista exclusiva de tarjetas
 
-- La valoración («Me gusta» / «No me gusta») y las acciones «Guardar tarjeta» / «Quitar de guardadas» aparecen únicamente dentro de la vista exclusiva de la tarjeta. Nunca aparecen en previsualizaciones fuera de esa vista, incluida la tarjeta del calendario de la idea del día.
+- La valoración («Me gusta» / «No me gusta») y las acciones «Guardar tarjeta» / «Quitar de guardadas» aparecen en la vista exclusiva y en las tarjetas completas del modo presentación, tanto en lista como en carrusel. Las miniaturas y la preview del calendario no incluyen estas acciones. Las tarjetas completas se ajustan al contenido; las atribuciones de libro, autor y usuario se agrupan de forma compacta.
 - Si la baraja de la tarjeta está en borrador, mostrar «Baraja en borrador / Draft deck» como chip informativo en su vista exclusiva.
 - Al pulsar la tarjeta compacta de la idea del día, se abre su vista exclusiva. Las acciones de valoración y guardado viven dentro de esa vista.
 
@@ -112,7 +132,7 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 | Barajas de la colección personal | Tarjetero | Decks |
 | Conjunto de repaso | Baraja | Deck |
 | Creación abierta (`status=draft`) | Borrador / Baraja en borrador | Draft / Draft deck |
-| Creación cerrada (`status=published`) | Terminada | Finished |
+| Creación cerrada (`status=published`) | Sin etiqueta de estado | No status label |
 | Contenido pendiente del editor | Nota sin guardar | Unsaved note |
 | Aprendizaje activo | Barajas en repaso | Decks being practiced |
 | Coste de añadir una baraja ajena | Una hoja | One leaf |
@@ -131,7 +151,7 @@ Para iniciar la captura de una idea o cita, usar siempre **Tomar nota / Take a n
 
 «Tomar nota» abre el editor directamente cuando la baraja ya está determinada. Guardar o cancelar devuelve al punto de partida, conservando vista, filtros, posición y foco. «Gestionar baraja / Manage deck» es el acceso a revisar las notas propias y marcar la baraja como terminada; no es un paso previo para tomar una nota.
 
-Si el «+» de Inicio no tiene una baraja propia en borrador, abre el editor de nota directamente. Se avisa de que se creará «Notas de lectura» / «Reading notes». La baraja nace al guardar la primera nota, con el idioma elegido para la app al abrir el editor, independiente del idioma original del libro. No se pide configurar nombre o idioma. Cancelar no crea una baraja vacía.
+Si el «+» de Inicio no tiene una baraja propia en borrador, abre el editor de nota directamente. Se avisa de que se creará «Notas de lectura» / «Reading notes». La baraja nace al guardar la primera nota, con el idioma elegido para la app al abrir el editor, independiente del idioma del título popular del libro. No se pide configurar nombre o idioma. Cancelar no crea una baraja vacía.
 
 Borrador describe creación y no privacidad. Guardar comparte el contenido con quienes tienen acceso al catálogo; terminar cierra cambios, no lo hace visible por primera vez. El estado editorial `draft/reviewed` es independiente de `status`. Los nombres internos `deckInProgress` y `notesInProgress` conservan su contrato, pero su copy de creación usa Borrador. Las notas sin guardar solo se recuperan en el navegador y dispositivo donde se conservaron.
 
@@ -156,3 +176,46 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 - Base inferior con el fondo compartido de la página (`--page-background`), máscara en degradado y desenfoque suave para separar las piezas del contenido que pasa por detrás. Reutiliza también el degradado verde de lectura, con su escala de viewport. Sin contenedor visible ni borde añadido. La base sigue la última pieza visible y desaparece con la barra, incluido al abrir el teclado.
 
 - Barra compacta: piezas de 64 px de alto (60 px en móvil estrecho), conservando los iconos de 46/66 px y 42/60 px respectivamente. El marcapáginas sobresale menos, con muesca más corta y texto próximo al icono. Etiquetas en una línea, con tamaño de fuente proporcional al ancho de la pieza mediante unidades de contenedor.
+
+
+
+## Intereses de libros
+
+- Cada interés muestra el emoji aprobado y su nombre localizado en las fichas, la preview del libro y el editor. El catálogo conserva emoji y color; la interfaz no mantiene otra lista por ID. El emoji es decorativo y no sustituye el nombre accesible.
+- Los chips informativos usan el color del interés en el centro, degradado hacia el papel en los extremos, tinta del proyecto y una composición común. Sin borde, sombra ni interacción. Los chips completos envuelven al faltar ancho.
+- En la vista del perfil, mostrar primero los intereses positivos en su orden guardado, con tick verde a la derecha; después los descartados en su orden, con aspa roja. Sin encabezados de grupo, números ni separadores de fila. Conservar el significado de cada preferencia para lectores de pantalla.
+- Las casillas reales se presentan en superficies luminosas con profundidad y pulsación táctil; mantienen nombre completo, foco visible y posición estable. Movimiento reducido elimina desplazamientos. El selector de filtro conserva opciones nativas de texto y una etiqueta sin emoji.
+- Software y Mindfulness están disponibles en español e inglés. No asignar Mindfulness a libros de crecimiento personal por asociación general; clasificar según el contenido del libro.
+
+## Selección inicial de intereses
+
+- Al abrir cada paso, enfocar su título y mostrar el contenido desde arriba. Las opciones, instrucciones y estados se desplazan dentro del panel; «Siguiente», «Volver» y «Guardar» quedan fuera de esa zona y siempre visibles, también en móvil estrecho. Mantener las casillas nativas y la prioridad según el orden de selección.
+- Las opciones de selección inicial y de nuevos intereses son rectangulares y compactas: icono a la izquierda y nombre a su lado, con el bloque de texto centrado verticalmente respecto al icono cuando ocupa dos líneas. El número de prioridad queda a la derecha; no duplicarlo con otra marca. En móvil estrecho usar una columna para mantener la legibilidad.
+
+## Orden de libros
+
+- En la Librería, el selector nativo «Ordenar / Sort by» acompaña a la vista y los filtros. Ofrece «Más recientes / Most recent» y «A–Z»; «Más recientes» es la opción inicial. «Mis intereses» se añadirá en el incremento 15.
+- A–Z compara el título que realmente se muestra en el idioma de interfaz, con el fallback habitual al título popular. Normaliza acentos y conserva el orden previo cuando los títulos empatan.
+- Cambiar el orden no altera la búsqueda, los filtros, la vista ni la posición de lectura. Portadas, Estantería y Apilados conservan la misma secuencia semántica.
+- La elección se guarda por cuenta en el servidor. Para visitantes se guarda en el navegador; al cambiar de cuenta se aplica la elección de la cuenta activa.
+
+## Título popular y títulos preferidos
+
+- El título popular es el nombre base por el que se conoce el libro. Puede estar en inglés aunque la obra se haya escrito en otro idioma. No se conserva un título original histórico como dato distinto. Su idioma describe el texto del título popular, no el idioma de escritura de la obra.
+- Cada idioma de interfaz puede tener un título preferido opcional. Si está vacío, se muestra el popular. No copiar el nombre inglés al preferido castellano para obtener ese resultado. Vaciar el título conserva descripciones y notas editoriales.
+- La ficha y la vista previa muestran el título preferido del idioma de interfaz en grande. Justo debajo aparece el popular en cursiva gris y a menor tamaño, solo cuando es distinto. Sin etiquetas «Título original», «Título popular» ni «Título preferido» junto a los nombres.
+- Se retira de Ajustes la opción de forzar títulos originales: la presentación usa siempre el preferido del idioma de interfaz, con fallback al popular.
+- Surrounded by Idiots es un título popular inglés válido; su preferido castellano queda vacío. No hace falta guardar Omgiven av idioter para mostrar el libro.
+
+## Novedades de Librería
+
+- Portadas, Estantería densa y Libros apilados separan primero el grupo «Nuevo / New» cuando la visita contiene novedades. La etiqueta reutiliza el sello naranja de las portadas, con fondo opaco y profundidad corta, sin animación adicional. Su nombre accesible es «Novedades / New books».
+- Cada libro aparece en un único grupo. Ambos mantienen el orden y los filtros elegidos. Los grupos vacíos se ocultan; al retirar el filtro, las novedades de esa visita reaparecen. El selector de presentación es único y se calcula antes de separar los grupos.
+- Las portadas conservan 11:15 y sus tamaños. El sello de novedad se centra geométricamente en ambos ejes; una banda central separa el título superior del autor inferior, con el recuento al pie. En las portadas nuevas más estrechas, el autor se limita a dos líneas y mantiene su texto íntegro accesible. Cada estante acomoda hasta diez lomos de ancho base común y alturas variadas; los títulos largos se distribuyen en dos o tres líneas, aumentan el grosor del lomo y desplazan las piezas siguientes. El sello de novedad identifica el grupo sin cubrir títulos.
+
+## Badges de novedades en navegación
+
+- Librería e Idea del día comparten punto naranja, profundidad y ondas acotadas dentro de un anclaje de 26 px. La onda usa el tono oscuro del sello para conservar contraste. El punto mide 12 px y las ondas no amplían el área de interacción.
+- Anclar ambas al vértice superior derecho de su propia pieza, con margen horizontal interior común. Compensar el marcapáginas seleccionado y mantener separación con icono, etiqueta y piezas vecinas, también a 320 px. El anclaje viaja con la pieza durante el desplazamiento de la barra.
+- El nombre accesible conserva el destino y añade su estado localizado: número de libros nuevos o nueva idea diaria. El punto es decorativo, sin foco ni acción propios. Movimiento reducido deja el punto estático y elimina llegada, ondas y transición del anclaje.
+- Actualizar ambas desde el estado común en cualquier sección. Reconocer Librería retira su badge; sus sellos y grupos permanecen en esa visita, incluidos ficha, barajas y previews. Solo otra sección principal termina la visita.

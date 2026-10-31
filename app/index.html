@@ -23,29 +23,32 @@
   <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="/favicon.ico">
   <link rel="icon" type="image/svg+xml" sizes="any" href="../brand/reed/d-compacto.svg">
   <link rel="stylesheet" href="mascot-art.css?v=flower-15-days">
-  <link rel="stylesheet" href="reader.css?v=practice-swipe-1">
+  <link rel="stylesheet" href="book-list.css?v=adaptive-shelf-spines-1">
+  <link rel="stylesheet" href="reader.css?v=modal-close-outside-1">
+  <link rel="stylesheet" href="interest-choice.css?v=profile-choice-1">
 
-  <link rel="stylesheet" href="card-themes.css?v=shared-card-types">
-  <link rel="stylesheet" href="card-actions.css?v=saved-cards">
-  <script type="module" src="reader.mjs?v=practice-swipe-1"></script>
+  <link rel="stylesheet" href="card-themes.css?v=reading-guides-2">
+  <link rel="stylesheet" href="card-actions.css?v=small-feedback-ui-1">
+  <script type="module" src="reader.mjs?v=profile-icon-outline-1"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Ir al contenido</a>
   <header class="app-header">
-    <a href="#home" class="brand" aria-label="Reedleaves · Inicio"><img src="../brand/reed/d-compacto.svg" width="46" height="46" alt=""><span class="brand-name" id="brand-name" hidden>Reedleaves</span></a>
     <div class="header-tools">
-      <button class="currency-wallets" id="currency-wallets" type="button" aria-expanded="false" aria-controls="currency-recovery" hidden>
-        <span class="wallet wallet-petals"><img src="../brand/reed/petal-token.svg" width="18" height="18" alt=""><span class="wallet-balance"><span id="petal-count" aria-hidden="true">—</span><span class="wallet-maximum" id="petal-maximum" aria-hidden="true">/15</span></span></span>
-        <span class="wallet"><img src="../brand/reed/leaf-token.svg" width="18" height="18" alt=""><span class="wallet-balance"><span id="leaf-count" aria-hidden="true">—</span><span class="wallet-maximum" id="leaf-maximum" aria-hidden="true">/3</span></span></span>
-        <svg class="currency-info-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>
-      </button>
-      <button class="icon-button" id="open-settings" type="button" aria-label="Ajustes" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 3-.7 2.4-2 .9-2.3-.6L2 10l1.7 1.8v2.3L2 16l2.5 4.3 2.3-.6 2 .9.7 2.4h5l.7-2.4 2-.9 2.3.6L22 16l-1.7-1.9v-2.3L22 10l-2.5-4.3-2.3.6-2-.9L14.5 3Z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+      <div class="header-leading" id="header-leading"></div>
+      <div class="header-actions">
+        <button class="currency-wallets" id="currency-wallets" type="button" aria-expanded="false" aria-controls="currency-recovery" hidden>
+          <span class="wallet wallet-petals"><img src="../brand/reed/petal-token.svg" width="18" height="18" alt=""><span class="wallet-balance"><span id="petal-count" aria-hidden="true">—</span><span class="wallet-maximum" id="petal-maximum" aria-hidden="true">/ 15</span></span></span>
+          <span class="wallet"><img src="../brand/reed/leaf-token.svg" width="18" height="18" alt=""><span class="wallet-balance"><span id="leaf-count" aria-hidden="true">—</span><span class="wallet-maximum" id="leaf-maximum" aria-hidden="true">/ 10</span></span></span>
+        </button>
+        <button class="icon-button" id="open-settings" type="button" aria-label="Ajustes" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 3-.7 2.4-2 .9-2.3-.6L2 10l1.7 1.8v2.3L2 16l2.5 4.3 2.3-.6 2 .9.7 2.4h5l.7-2.4 2-.9 2.3.6L22 16l-1.7-1.9v-2.3L22 10l-2.5-4.3-2.3.6-2-.9L14.5 3Z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+      </div>
     </div>
     <section class="currency-recovery" id="currency-recovery" aria-labelledby="currency-recovery-title" hidden>
       <div class="currency-recovery-heading"><h2 id="currency-recovery-title">Próxima recarga</h2><span class="currency-recovery-time"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg><time id="currency-recovery-countdown">—</time></span></div>
       <div class="currency-recovery-gains">
         <div class="currency-recovery-gain currency-recovery-gain--petals"><img src="../brand/reed/petal-token.svg" width="23" height="25" alt=""><span><strong id="petal-refill-amount">+9</strong><small id="petal-refill-label">pétalos</small></span></div>
-        <div class="currency-recovery-gain"><img src="../brand/reed/leaf-token.svg" width="23" height="25" alt=""><span><strong id="leaf-refill-amount">+1</strong><small id="leaf-refill-label">hoja</small></span></div>
+        <div class="currency-recovery-gain"><img src="../brand/reed/leaf-token.svg" width="23" height="25" alt=""><span><strong id="leaf-refill-amount">+5</strong><small id="leaf-refill-label">hojas</small></span></div>
       </div>
       <p class="currency-recovery-warning" id="currency-recovery-warning" role="status" hidden></p>
     </section>
@@ -53,31 +56,42 @@
   <nav class="bottom-navigation" id="main-navigation" aria-label="Secciones" hidden>
     <a class="bottom-navigation-link" data-nav="library" href="#library"><svg class="bottom-navigation-bookmark" viewBox="0 0 100 134" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path class="depth" d="M22 2 Q2 2 2 22 L2 126 L50 118 L98 126 L98 22 Q98 2 78 2 Z" transform="translate(0 5)"/><path class="face" d="M22 2 Q2 2 2 22 L2 126 L50 118 L98 126 L98 22 Q98 2 78 2 Z"/></svg><span class="bottom-navigation-icon" aria-hidden="true"><img src="../brand/icons/collections/library.svg" width="21" height="21" alt=""></span><span class="bottom-navigation-label" id="nav-library-label">Librería</span></a>
     <a class="bottom-navigation-link" data-nav="bookshelf" href="#bookshelf"><svg class="bottom-navigation-bookmark" viewBox="0 0 100 134" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path class="depth" d="M22 2 Q2 2 2 22 L2 126 L50 118 L98 126 L98 22 Q98 2 78 2 Z" transform="translate(0 5)"/><path class="face" d="M22 2 Q2 2 2 22 L2 126 L50 118 L98 126 L98 22 Q98 2 78 2 Z"/></svg><span class="bottom-navigation-icon" aria-hidden="true"><img src="../brand/icons/collections/bookcase.svg" width="21" height="21" alt=""></span><span class="bottom-navigation-label" id="nav-bookshelf-label">Biblioteca</span></a>
-    <a class="bottom-navigation-link bottom-navigation-home" data-nav="home" href="#home"><svg class="bottom-navigation-bookmark" viewBox="0 0 100 134" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path class="depth" d="M22 2 Q2 2 2 22 L2 126 L50 118 L98 126 L98 22 Q98 2 78 2 Z" transform="translate(0 5)"/><path class="face" d="M22 2 Q2 2 2 22 L2 126 L50 118 L98 126 L98 22 Q98 2 78 2 Z"/></svg><span class="bottom-navigation-icon" aria-hidden="true"><img src="../brand/reed/d-compacto.svg" width="23" height="23" alt=""></span><span class="bottom-navigation-label" id="nav-home-label">Inicio</span></a>
+    <a class="bottom-navigation-link bottom-navigation-home" data-nav="home" href="#home"><svg class="bottom-navigation-bookmark" viewBox="0 0 100 134" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path class="depth" d="M22 2 Q2 2 2 22 L2 126 L50 118 L98 126 L98 22 Q98 2 78 2 Z" transform="translate(0 5)"/><path class="face" d="M22 2 Q2 2 2 22 L2 126 L50 118 L98 126 L98 22 Q98 2 78 2 Z"/></svg><span class="bottom-navigation-icon" aria-hidden="true"><img src="../brand/icons/navigation/home.svg" width="23" height="23" alt=""></span><span class="bottom-navigation-label" id="nav-home-label">Inicio</span></a>
     <a class="bottom-navigation-link" data-nav="profile" id="nav-profile" href="#profile"><svg class="bottom-navigation-bookmark" viewBox="0 0 100 134" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path class="depth" d="M22 2 Q2 2 2 22 L2 126 L50 118 L98 126 L98 22 Q98 2 78 2 Z" transform="translate(0 5)"/><path class="face" d="M22 2 Q2 2 2 22 L2 126 L50 118 L98 126 L98 22 Q98 2 78 2 Z"/></svg><span class="bottom-navigation-icon" aria-hidden="true"><span id="nav-profile-icon" aria-hidden="true"></span></span><span class="bottom-navigation-label" id="nav-profile-label">Perfil</span></a>
     <a class="bottom-navigation-link" data-nav="daily" href="#daily"><svg class="bottom-navigation-bookmark" viewBox="0 0 100 134" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path class="depth" d="M22 2 Q2 2 2 22 L2 126 L50 118 L98 126 L98 22 Q98 2 78 2 Z" transform="translate(0 5)"/><path class="face" d="M22 2 Q2 2 2 22 L2 126 L50 118 L98 126 L98 22 Q98 2 78 2 Z"/></svg><span class="bottom-navigation-icon" aria-hidden="true"><span id="nav-daily-icon" aria-hidden="true"></span></span><span class="bottom-navigation-label" id="nav-daily-label">Idea del día</span></a>
   </nav>
+
   <main id="main" tabindex="-1"><div class="loading" role="status"><span class="mascot-art initial-mascot" data-mascot="sprout" data-idle="float" aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="/brand/reed/growth/bodies/sprout.svg" width="160" height="160" alt="" draggable="false"><svg class="mascot-face" viewBox="0 0 160 160" aria-hidden="true" focusable="false" data-expression="neutral"><g class="mascot-face-placement" transform="translate(79 104) rotate(0) scale(1) translate(-82 -104)" fill="#173D2C"><g class="mascot-eye mascot-eye--left" transform="translate(53 104)"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-eye mascot-eye--right" transform="translate(111 104)"><g class="mascot-eye-expression"><ellipse cx="0" cy="0" rx="3.5" ry="5"/></g></g><g class="mascot-mouth"><path d="M74 119q8 6 16 0" stroke="#173D2C" stroke-width="3" stroke-linecap="round" fill="none"/></g></g></svg></span></span></span><p>Abriendo tu libro…</p></div></main>
   <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+  <dialog class="growth-feedback-modal" id="growth-feedback" aria-labelledby="growth-feedback-title"></dialog>
   <dialog class="settings-modal" id="settings" aria-labelledby="settings-title">
-    <div class="settings-heading"><h2 id="settings-title">Ajustes</h2><button class="icon-button" id="close-settings" type="button" aria-label="Cerrar ajustes" autofocus>×</button></div>
-    <p id="language-label">Idioma</p>
-    <div class="segmented-selector" role="group" aria-labelledby="language-label"><button type="button" data-language="es" aria-pressed="true" lang="es">Español</button><button type="button" data-language="en" aria-pressed="false" lang="en">English</button></div>
-    <label class="check-row settings-title-preference" for="original-titles"><input type="checkbox" id="original-titles"><span id="original-titles-label">Mostrar títulos originales</span></label>
-    <p id="settings-error" class="settings-error" role="alert" hidden></p>
-    <div id="account-controls" class="settings-account"></div>
-    <button type="button" class="text-button" id="open-feedback" aria-haspopup="dialog">Enviar comentarios</button>
+    <div class="settings-modal-shell">
+      <button class="dialog-close settings-modal-close" id="close-settings" type="button" aria-label="Cerrar ajustes" autofocus><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      <div class="settings-modal-panel">
+        <div class="settings-heading"><h2 id="settings-title">Ajustes</h2></div>
+        <span id="language-label" class="sr-only">Idioma</span>
+        <div class="segmented-selector" id="language-selector" role="group" aria-labelledby="language-label"><button type="button" data-language="es" aria-pressed="true" lang="es"><img class="language-flag-icon" src="../brand/icons/languages/es.svg" width="16" height="12" alt="">Español</button><button type="button" data-language="en" aria-pressed="false" lang="en"><img class="language-flag-icon" src="../brand/icons/languages/en.svg" width="16" height="12" alt="">English</button></div>
+        <p id="settings-error" class="settings-error" role="alert" hidden></p>
+        <button type="button" class="primary" id="open-feedback" aria-haspopup="dialog">Enviar comentarios</button>
+        <div id="account-controls" class="settings-account"></div>
+      </div>
+    </div>
   </dialog>
   <dialog class="settings-modal feedback-modal" id="feedback" aria-labelledby="feedback-title">
-    <form id="feedback-form">
-      <div class="settings-heading"><h2 id="feedback-title">Enviar comentarios</h2><button class="icon-button" id="close-feedback" type="button" aria-label="Cerrar comentarios">×</button></div>
-      <p id="feedback-sign-in" hidden>Entra en tu cuenta para enviar comentarios.</p>
-      <label for="feedback-message" id="feedback-label">Comentario</label>
-      <textarea id="feedback-message" name="message" rows="6" required></textarea>
-      <p id="feedback-error" class="settings-error" role="alert" hidden></p>
-      <button id="feedback-sign-in-button" class="text-button" type="button" hidden>Entrar</button>
-      <button id="feedback-submit" class="primary" type="submit">Enviar</button>
-    </form>
+    <div class="settings-modal-shell">
+      <button class="dialog-close settings-modal-close" id="close-feedback" type="button" aria-label="Cerrar comentarios"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      <div class="settings-modal-panel">
+        <form id="feedback-form">
+          <div class="settings-heading"><h2 id="feedback-title">Enviar comentarios</h2></div>
+          <p id="feedback-sign-in" hidden>Entra en tu cuenta para enviar comentarios.</p>
+          <label for="feedback-message" id="feedback-label">Comentario</label>
+          <textarea id="feedback-message" name="message" rows="6" required></textarea>
+          <p id="feedback-error" class="settings-error" role="alert" hidden></p>
+          <button id="feedback-sign-in-button" class="text-button" type="button" hidden>Entrar</button>
+          <button id="feedback-submit" class="primary" type="submit">Enviar</button>
+        </form>
+      </div>
+    </div>
   </dialog>
   <noscript><p class="noscript-note">Activa JavaScript para ver la idea del día y repasar.</p></noscript>
 </body>

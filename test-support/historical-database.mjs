@@ -3,7 +3,9 @@ import {readFileSync} from "node:fs";
 import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase} from "../server/database.mjs";
 import {seedCatalog} from "./historical-seed.mjs";
-import {seedCatalog as seedCurrentCatalog,readSeed as readCurrentSeed} from "../server/seed.mjs";
+import {readSeed as readCurrentSeed,seedCatalog as seedPreAppearanceCatalog} from "./pre-interest-appearance-seed.mjs";
+import {seedCatalog as seedPrePopularCatalog} from "./pre-popular-title-seed.mjs";
+import {seedCatalog as seedLatestCatalog} from "../server/seed.mjs";
 
 // Load a real released schema, never a current schema with its version lowered.
 export async function historicalDatabase(t,dialect,version) {
@@ -24,12 +26,20 @@ export async function historicalDatabase(t,dialect,version) {
   // seeding editorial books (all NULL), then restore the exact old table shape.
   const beforePersonalBooks=version < (dialect === "postgres" ? 3 : 11);
   if (beforePersonalBooks) await db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
-  if (version >= (dialect === "postgres" ? 21 : 29)) {
-    const seed=readCurrentSeed();
-    // Historical schemas still require this retired field until the migration runs.
-    for (const book of seed.books) for (const language of ["es","en"]) book[`short_title_${language}`]=book[`title_${language}`];
-    if (version < (dialect === "postgres" ? 25 : 33)) seed.genres=seed.genres.filter(genre=>genre.id!=="society");
-    await seedCurrentCatalog(db,seed);
+  if(version >= (dialect==="postgres"?43:51)) await seedLatestCatalog(db);
+  else if (version >= (dialect === "postgres" ? 21 : 29)) {
+    const seed=readCurrentSeed(),hasPopularTitle=version >= (dialect === "postgres" ? 33 : 41);
+    if (hasPopularTitle) await seedPreAppearanceCatalog(db,seed);
+    else {
+      for (const book of seed.books) { book.original_title=book.popular_title; book.original_language=book.popular_language; }
+      // Released schemas required a nonempty translated title, even when it was
+      // only a duplicate of the original title.
+      if (version < (dialect === "postgres" ? 29 : 37)) for (const book of seed.books) for (const language of ["es","en"]) book[`title_${language}`] ||= book.original_title;
+      // Historical schemas still require this retired field until the migration runs.
+      for (const book of seed.books) for (const language of ["es","en"]) book[`short_title_${language}`]=book[`title_${language}`];
+      if (version < (dialect === "postgres" ? 25 : 33)) seed.genres=seed.genres.filter(genre=>genre.id!=="society");
+      await seedPrePopularCatalog(db,seed);
+    }
   }
   else await seedCatalog(db);
   if (beforePersonalBooks) await db.exec("ALTER TABLE books DROP COLUMN creator_user_id;");
@@ -81,12 +91,22 @@ export async function migrationData(db) {
     : !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name);
   const tables=["users","accounts","sessions","auth_limits","genres","genre_translations","books","book_links",
     "book_translations","book_genres","decks","card_translations","deck_votes","book_reading","leaf_wallets","daily_ideas"];
-  const columns={books:"id,author,position,editorial_status,original_title,original_language,updated_at",
+  const bookColumns=db.dialect === "postgres"
+    ? await db.prepare("SELECT column_name AS name FROM information_schema.columns WHERE table_schema='public' AND table_name='books'").all()
+    : db.prepare("PRAGMA table_info(books)").all();
+  const popular=bookColumns.some(column=>column.name === "popular_title");
+  const columns={genres:"id",book_genres:"book_id,genre_id",books:popular ? "id,author,position,editorial_status,popular_title AS original_title,popular_language AS original_language,updated_at" : "id,author,position,editorial_status,original_title,original_language,updated_at",
     decks:"id,book_id,creator_user_id,language,is_recommended,created_at"};
   for (const table of tables) {
-    const additiveGenre=table === "genres" ? " WHERE id<>'society'" : table === "genre_translations" ? " WHERE genre_id<>'society'" : "";
+    const additiveGenre=table === "genres" ? " WHERE id NOT IN ('society','software','mindfulness')" : table === "genre_translations" ? " WHERE genre_id NOT IN ('society','software','mindfulness')" : "";
     result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${table}${additiveGenre} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();
-    if (table === "book_translations") result[table]=result[table].map(({short_title,...translation})=>translation);
+    if (table === "book_translations") result[table]=result[table].map(({short_title,...translation})=>{
+      // The approved GTD title cleanup is the only editorial change in these
+      // released fixtures. Transform the expected legacy snapshot, never the
+      // migrated result, so a missed cleanup or any other text loss still fails.
+      if (!popular && translation.book_id === "getting-things-done" && translation.language === "es" && translation.title === "Organízate con eficacia") translation.title="";
+      return translation;
+    });
   }
   const flattened=await has("deck_versions");
   result.deckStatus=flattened

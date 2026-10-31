@@ -15,9 +15,11 @@ async function retainedData(db,dialect) {
   const result={};
   for (const {name} of rows) {
     if (["sources","reed_schema","reader_filters","reader_interests","review_unlocks","reviews","review_cards","review_positions","practices","practice_cards","practice_positions","petal_wallets","practice_answers","practice_sessions","practice_session_cards","daily_idea_views"].includes(name)) continue;
-    const additiveGenre=name === "genres" ? " WHERE id<>'society'" : name === "genre_translations" ? " WHERE genre_id<>'society'" : "";
+    const additiveGenre=name === "genres" ? " WHERE id NOT IN ('society','software','mindfulness')" : name === "genre_translations" ? " WHERE genre_id NOT IN ('society','software','mindfulness')" : "";
     result[name]=(await db.prepare(`SELECT * FROM "${name}"${additiveGenre}`).all()).map(row=>{
       const value={...row};if (name === "cards") delete value.source_id;
+      if (name === "genres") { delete value.emoji; delete value.color; }
+      if (name === "books") { delete value.incorporated_at; delete value.incorporation_order; }
       return value;
     }).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
   }
@@ -59,7 +61,9 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal((await db.prepare("SELECT body FROM card_translations WHERE card_id=? AND language=?").get(card.cardId,"es")).body,"Corrección directa");
     await assert.rejects(async()=>db.prepare("DELETE FROM cards WHERE id=?").run(card.cardId),/immutable/);
     await completeBook(db,session,{bookId:book.bookId,metadata:bookMetadata});
-    const added=await createBook(db,session,{requestId:randomUUID(),author:"Daniel Kahneman",metadata:bookMetadata});
+    const distinctMetadata={...bookMetadata,popularTitle:"Notes on Thinking, Fast and Slow",
+      title:{...bookMetadata.title,es:"Notas sobre Pensar rápido, pensar despacio",en:"Notes on Thinking, Fast and Slow"}};
+    const added=await createBook(db,session,{requestId:randomUUID(),author:"Daniel Kahneman",metadata:distinctMetadata});
     assert.ok(added.bookId);
     const seed=readSeed();seed.decks.find(value=>value.id === "seven-habits-editorial").status="published";
     await seedCatalog(db,seed);await seedCatalog(db,seed);

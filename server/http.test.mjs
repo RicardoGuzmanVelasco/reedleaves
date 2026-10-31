@@ -29,6 +29,8 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   const appHtml = await app.text();
   assert.equal(app.status, 200); assert.match(appHtml, /id="leaf-count"/);
   assert.match(appHtml, /name="robots" content="noindex, nofollow"/);
+  assert.match(appHtml,/class="[^"]*\bdialog-close\b[^"]*" id="close-settings"[^>]*aria-label="Cerrar ajustes"[^>]*><svg/);
+  assert.match(appHtml,/class="[^"]*\bdialog-close\b[^"]*" id="close-feedback"[^>]*aria-label="Cerrar comentarios"[^>]*><svg/);
   assert.match(app.headers.get("content-security-policy"), /script-src 'self'/);
   assert.match((await fetch(base + "/app/reader.mjs")).headers.get("content-type"), /javascript/);
   assert.equal((await fetch(base + "/brand/reed/d-compacto.svg")).status, 200);
@@ -52,14 +54,10 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   const touchIconHead = await fetch(base + "/apple-touch-icon-v2.png", { method: "HEAD" });
   assert.equal(touchIconHead.status, 200); assert.equal(Number(touchIconHead.headers.get("content-length")), touchIconBytes.length);
   assert.equal(await touchIconHead.text(), "");
-  const fontPath = "/app/fonts/eb-garamond-latin-400-normal-v5.3.0.woff2";
-  const font = await fetch(base + fontPath);
-  assert.equal(font.status, 200); assert.equal(font.headers.get("content-type"), "font/woff2");
-  assert.equal(font.headers.get("cache-control"), "public, max-age=31536000, immutable");
-  const fontBytes = Buffer.from(await font.arrayBuffer()); assert.equal(fontBytes.subarray(0,4).toString(), "wOF2");
-  const fontHead = await fetch(base + fontPath, {method:"HEAD"});
-  assert.equal(fontHead.status, 200); assert.equal(Number(fontHead.headers.get("content-length")),fontBytes.length); assert.equal(await fontHead.text(), "");
-  assert.equal((await fetch(base + "/app/reader.css")).headers.get("cache-control"), "no-cache");
+  const styles = await fetch(base + "/app/reader.css");
+  assert.equal(styles.headers.get("cache-control"), "no-cache");
+  assert.doesNotMatch(await styles.text(), /@font-face/);
+  assert.equal((await fetch(base + "/app/fonts/card-body.woff2")).status, 404);
   for (const path of ["/var/catalog.sqlite", "/content/catalog/books.csv", "/content/books/seven-habits.ndjson", "/server/index.mjs", "/AGENTS.md", "/app/core.test.mjs", "/app/../server/index.mjs", "/app/%2e%2e%2fserver/index.mjs", "/brand/"]) {
     assert.equal((await fetch(base + path)).status, 404, path);
   }
@@ -172,6 +170,34 @@ test("Feedback requires a session and CSRF, then stores the account and current 
   assert.deepEqual({...row},{user_id:state.user.id,username:"feedback.reader",message:input.message,page:input.page,language:"es"});
 });
 
+test("Discover exposes authenticated availability and starts an enabled session at the confirmed price",async t=>{
+  const db=openDatabase(":memory:");initializeDatabase(db);await seedCatalog(db);
+  const server=createCatalogServer(db);server.listen(0,"127.0.0.1");await once(server,"listening");
+  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const availabilityPath="/api/reader/practice/discover-availability";
+  assert.equal((await fetch(base+availabilityPath)).status,401);
+  const registered=await fetch(base+"/api/auth/register",{method:"POST",headers:{Origin:base,"Content-Type":"application/json"},body:JSON.stringify({username:"discover.reader",password:"a local discover test phrase",language:"es",timeZone:"Europe/Madrid"})});
+  assert.equal(registered.status,200);
+  const state=await registered.json(),cookie=registered.headers.get("set-cookie").split(";")[0],headers={Cookie:cookie,"X-CSRF-Token":state.csrfToken};
+  const availabilityResponse=await fetch(base+availabilityPath,{headers:{Cookie:cookie}});
+  assert.equal(availabilityResponse.status,200);
+  const availability=await availabilityResponse.json();
+  assert.equal(availability.required,5);
+  assert.ok(availability.available>=availability.required);
+  const userId=state.user.id,walletBefore=db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance;
+  const expectedCost=state.practiceDiscountTopic==="discover"?2:3;
+  const changed=await fetch(base+"/api/reader/practice/start",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify({topic:"discover",expectedCost:expectedCost===2?3:2})});
+  assert.equal(changed.status,200);const quote=await changed.json();assert.equal(quote.reason,"practicePriceChanged");
+  assert.equal(quote.state.practiceDiscountTopic,state.practiceDiscountTopic);
+  assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,walletBefore);
+  const purchased=await fetch(base+"/api/reader/practice/start",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify({topic:"discover",expectedCost})});
+  assert.equal(purchased.status,200);
+  const bought=await purchased.json();assert.equal(bought.session.topic,"discover");assert.equal(bought.session.cardIds.length,5);
+  assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,walletBefore-bought.session.cost);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM practice_sessions WHERE user_id=?").get(userId).n,1);
+});
+
 test("Author HTTP routes require CSRF and share content while reserving edits to its creator",async t=>{
   const {randomUUID}=await import("node:crypto");
   const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);
@@ -181,7 +207,7 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   const post=(path,input,headers={})=>fetch(base+path,{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify(input)});
   const response=await post("/api/auth/register",{username:"author.http",password:"a local author test phrase"});
   const state=await response.json(),headers={Cookie:response.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":state.csrfToken};
-  const bookInput={requestId:randomUUID(),title:"Mon livre",author:"Auteur",language:"fr"};
+  const bookInput={requestId:randomUUID(),title:"Mon livre",author:"Auteur",language:"fr",metadata:{genres:["society"]}};
   assert.equal((await post("/api/author/books",bookInput)).status,401);
   assert.equal((await post("/api/author/books",bookInput,{Cookie:headers.Cookie})).status,403);
   const bookResponse=await post("/api/author/books",bookInput,headers);assert.equal(bookResponse.status,200);
@@ -203,7 +229,7 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   assert.equal(owned.cards.filter(c=>c.deckId===deckId).length,1);
   assert.equal(owned.cards.find(c=>c.deckId===deckId).isQuote,true);
   assert.equal(Object.hasOwn(owned.cards.find(c=>c.deckId===deckId),"sourceUrl"),false);
-  assert.equal(owned.books.find(b=>b.id===bookId).originalTitle,"Mon livre");
+  assert.equal(owned.books.find(b=>b.id===bookId).popularTitle,"Mon livre");
   const unicodeInput={...cardInput,requestId:randomUUID(),body:"葉".repeat(300)};
   assert.equal((await post("/api/author/cards",unicodeInput,headers)).status,200);
   const tooLongInput={...cardInput,requestId:randomUUID(),body:"葉".repeat(301)};
@@ -211,6 +237,7 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   const guest=await fetch(base+"/api/catalog").then(r=>r.json());assert.equal(guest.decks.some(v=>v.id===deckId),true);
   assert.equal(guest.cards.some(card=>card.id===cardId),true);
   assert.equal(guest.books.some(b=>b.id===bookId),true);
+  assert.equal((await post("/api/reader/reading",{bookId,status:"reading"})).status,401);
   const other=await post("/api/auth/register",{username:"other.http",password:"another local test phrase"});
   const otherCookie=other.headers.get("set-cookie").split(";")[0];
   const shared=await fetch(base+"/api/catalog",{headers:{Cookie:otherCookie}}).then(r=>r.json());
@@ -238,6 +265,40 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   assert.equal(editedDeck.language,"en");assert.equal(editedDeck.title.en,"Reading");
   const finish=await post("/api/author/decks/finish",{deckId},headers);assert.equal(finish.status,200);
   assert.equal((await post("/api/author/decks/language",{deckId,language:"es",previousLanguage:"en"},headers)).status,409);
+});
+
+test("Selected collective author routes enforce invitation, owner and CSRF rules",async t=>{
+  const {randomUUID}=await import("node:crypto");
+  const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);
+  const server=createCatalogServer(db);server.listen(0,"127.0.0.1");await once(server,"listening");
+  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const post=(path,input,headers={})=>fetch(base+path,{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify(input)});
+  async function register(username) {
+    const response=await post("/api/auth/register",{username,password:`${username} selected collective test phrase`});
+    const state=await response.json();
+    return {user:state.user,headers:{Cookie:response.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":state.csrfToken}};
+  }
+  const owner=await register("selected.owner"),member=await register("selected.member"),outsider=await register("selected.outsider");
+  const created=await post("/api/author/decks",{requestId:randomUUID(),bookId:"atomic-habits",title:"Invited draft",language:"en",kind:"collective",contributionPolicy:"selected",maxCardsPerContributor:1},owner.headers);
+  assert.equal(created.status,200);const {deckId}=await created.json();
+  const path="/api/author/decks/contributors",input={deckId,usernames:[member.user.username]};
+  assert.equal((await post(path,input)).status,401);
+  assert.equal((await post(path,input,{Cookie:owner.headers.Cookie})).status,403);
+  assert.equal((await post(path,input,outsider.headers)).status,404);
+  const invited=await post(path,input,owner.headers);assert.equal(invited.status,200);assert.deepEqual((await invited.json()).userIds,[member.user.id]);
+  const ownerCatalog=await fetch(base+"/api/catalog",{headers:{Cookie:owner.headers.Cookie}}).then(r=>r.json()),ownerDeck=ownerCatalog.decks.find(deck=>deck.id===deckId);
+  assert.deepEqual(ownerDeck.contributors.map(person=>person.username),[member.user.username]);assert.equal(ownerDeck.canContribute,true);
+  const memberCatalog=await fetch(base+"/api/catalog",{headers:{Cookie:member.headers.Cookie}}).then(r=>r.json()),memberDeck=memberCatalog.decks.find(deck=>deck.id===deckId);
+  assert.equal(memberDeck.canContribute,true);assert.equal("contributors" in memberDeck,false);
+  const add=(headers,body)=>post("/api/author/cards",{requestId:randomUUID(),deckId,isQuote:false,parentId:null,title:"An idea",body},headers);
+  assert.equal((await add(member.headers,"A contribution from the invited member.")).status,200);
+  assert.equal((await add(member.headers,"The contributor limit applies here.").then(async response=>response.json())).error,"contributorCardLimitReached");
+  assert.equal((await add(outsider.headers,"An outsider cannot add this.")).status,404);
+  const removed=await post(path,{deckId,usernames:[]},owner.headers);assert.equal(removed.status,200);
+  assert.equal((await add(member.headers,"The removed contributor cannot add this.")).status,404);
+  assert.equal((await post("/api/author/decks/finish",{deckId},owner.headers)).status,200);
+  assert.equal((await post(path,input,owner.headers)).status,409);
 });
 
 test("Profiles require a session and view writes require origin, CSRF and a valid card",async t=>{

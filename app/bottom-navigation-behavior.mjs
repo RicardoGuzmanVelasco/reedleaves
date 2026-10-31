@@ -9,7 +9,7 @@ export function startBottomNavigationBehavior(win=window,doc=document) {
   const viewport=win.visualViewport;
   const reduced=win.matchMedia("(prefers-reduced-motion: reduce)");
   const touch=win.matchMedia("(any-pointer: coarse)");
-  let lastY=position(),offset=0,keyboard=false,frame=0;
+  let lastY=position(),offset=0,scrollIntent=0,keyboard=false,frame=0;
   let baseline=Math.max(win.innerHeight,viewport?.height||0),ignoreUntil=0;
   const listeners=[];
   function listen(target,type,callback,options) {
@@ -73,18 +73,25 @@ export function startBottomNavigationBehavior(win=window,doc=document) {
     nav.inert=keyboard;
   }
   function reveal() {
-    offset=0;direction=1;motionStart=0;motionOrigins=pieces.map(()=>0);lastY=position();ignoreUntil=win.performance.now()+350;paint();
+    offset=0;scrollIntent=0;direction=1;motionStart=0;motionOrigins=pieces.map(()=>0);lastY=position();ignoreUntil=win.performance.now()+350;paint();
   }
   function scroll() {
     frame=0;
     const next=position(),delta=next-lastY;lastY=next;
     if(keyboard || nav.hidden || doc.body.classList.contains("is-practicing"))return;
     if(win.performance.now()<ignoreUntil || nav.contains(doc.activeElement)&&doc.activeElement?.matches?.(":focus-visible"))return;
-    if(delta && Math.sign(delta)!==direction){
-      direction=Math.sign(delta);motionStart=offset;motionOrigins=springs.map(spring=>spring.position);
+    if(next<=24){offset=0;scrollIntent=0}
+    else if(delta){
+      if(Math.sign(delta)!==Math.sign(scrollIntent))scrollIntent=0;
+      scrollIntent+=delta;
+      if(Math.abs(scrollIntent)>=24){
+        const target=scrollIntent>0?travel():0;
+        if(target!==offset){
+          direction=scrollIntent>0?1:-1;motionStart=offset;motionOrigins=springs.map(spring=>spring.position);offset=target;
+        }
+        scrollIntent=0;
+      }
     }
-    if(next<=24)offset=0;
-    else offset=Math.max(0,Math.min(travel(),offset+delta*(delta<0?3:1)));
     paint();
   }
   function scheduleScroll() {if(!frame)frame=win.requestAnimationFrame(scroll)}
@@ -92,7 +99,7 @@ export function startBottomNavigationBehavior(win=window,doc=document) {
     const focused=editable(),height=viewport?.height??win.innerHeight;
     if(!focused)baseline=Math.max(win.innerHeight,height);
     const next=focused && (baseline-height>140 || baseline-win.innerHeight>140 || !viewport&&touch.matches);
-    if(next!==keyboard){keyboard=next;offset=0;direction=1;motionStart=0;motionOrigins=pieces.map(()=>0);lastY=position()}
+    if(next!==keyboard){keyboard=next;offset=0;scrollIntent=0;direction=1;motionStart=0;motionOrigins=pieces.map(()=>0);lastY=position()}
     paint();
   }
   function orientation() {baseline=Math.max(win.innerHeight,viewport?.height||0);reveal();updateViewport()}

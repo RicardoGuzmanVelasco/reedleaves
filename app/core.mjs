@@ -7,6 +7,7 @@ export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
 export const TITLE_MAX_LENGTH = 72;
 export const CARD_BODY_MAX_LENGTH = 300;
+export const READING_GUIDE_MAX_LENGTH = 1200;
 export const DESCRIPTION_MAX_LENGTH = 240;
 export const EDITORIAL_NOTE_MAX_LENGTH = 240;
 export const EDITORIAL_NOTE_PREFERRED_LENGTH = 120;
@@ -22,6 +23,27 @@ export function restoreLanguage(saved) {
 export function isCanonicalLocale(language) {
   try { return typeof language === "string" && language.length <= 35 && Intl.getCanonicalLocales(language)[0] === language; }
   catch { return false; }
+}
+
+export function normalizeLanguageList(values, fallback = []) {
+  if (!Array.isArray(values)) return [...new Set(fallback.filter(isCanonicalLocale))];
+  const languages=[...new Set(values.filter(isCanonicalLocale))];
+  return languages.length ? languages : [...new Set(fallback.filter(isCanonicalLocale))];
+}
+
+export function defaultCardLanguages(interfaceLanguage) {
+  return normalizeLanguageList(["en",interfaceLanguage], ["en"]);
+}
+
+export function effectiveCardLanguage(card) {
+  return isCanonicalLocale(card?.language) ? card.language :
+    isCanonicalLocale(card?.deckLanguage) ? card.deckLanguage : "en";
+}
+
+export function languageDisplayName(language, interfaceLanguage) {
+  if (!isCanonicalLocale(language)) return String(language || "");
+  try { return new Intl.DisplayNames([interfaceLanguage],{type:"language"}).of(language) || language; }
+  catch { return language; }
 }
 
 export function contentText(translations, interfaceLanguage, deckLanguage = interfaceLanguage) {
@@ -47,42 +69,44 @@ export function contentLocale(translations, interfaceLanguage, deckLanguage = in
   return entries.find(([language]) => language.split("-")[0] === deckLanguage.split("-")[0])?.[0] || entries[0]?.[0] || deckLanguage;
 }
 
-export function bookTitle(book, interfaceLanguage, {original = false} = {}) {
-  if (original && book.originalTitle) return {text:book.originalTitle, language:book.originalLanguage};
-  const translations = book.title;
-  return {text:contentText(translations,interfaceLanguage,book.originalLanguage) || book.originalTitle,
-    language:contentLocale(translations,interfaceLanguage,book.originalLanguage)};
+export function bookTitle(book, interfaceLanguage) {
+  const translations = book.title || {};
+  const preferredLanguage = typeof translations[interfaceLanguage] === "string" && translations[interfaceLanguage].trim()
+    ? interfaceLanguage
+    : Object.keys(translations).find(language=>language.split("-")[0]===interfaceLanguage.split("-")[0] && translations[language]?.trim());
+  if(preferredLanguage) return {text:translations[preferredLanguage],language:preferredLanguage};
+  return {text:book.popularTitle || "",language:book.popularLanguage || interfaceLanguage};
 }
 
-export function bookCoverTitle(book, interfaceLanguage, {original = false} = {}) {
-  return bookTitle(book,interfaceLanguage,{original});
+export function bookCoverTitle(book, interfaceLanguage) {
+  return bookTitle(book,interfaceLanguage);
 }
 
-export function validateBook(book, requiredLanguages = ["es", "en"], {requireOriginal = false} = {}) {
+export function validateBook(book, requiredLanguages = ["es", "en"], {requirePopular = false} = {}) {
   if (!book || book.schemaVersion !== 1 || typeof book.id !== "string" || !book.id.trim() ||
       typeof book.author !== "string" || !book.author.trim()) throw new Error("Invalid book");
   if (book.genres !== undefined && (!Array.isArray(book.genres) || book.genres.some(id => typeof id !== "string" || !id.trim()))) throw new Error("Invalid genres");
-  if (requireOriginal || book.originalTitle !== undefined || book.originalLanguage !== undefined) {
-    if (typeof book.originalTitle !== "string" || !book.originalTitle.trim() || !isCanonicalLocale(book.originalLanguage)) throw new Error("Invalid original book title or language");
+  if (requirePopular || book.popularTitle !== undefined || book.popularLanguage !== undefined) {
+    if (typeof book.popularTitle !== "string" || !book.popularTitle.trim() || !isCanonicalLocale(book.popularLanguage)) throw new Error("Invalid popular book title or language");
   }
   const fields = ["title","description","editorialNote"];
   if (book.creatorUserId != null) {
-    if (typeof book.creatorUserId !== "string" || !book.creatorUserId.trim() || !isCanonicalLocale(book.originalLanguage)) throw new Error("Invalid book owner");
+    if (typeof book.creatorUserId !== "string" || !book.creatorUserId.trim() || !isCanonicalLocale(book.popularLanguage)) throw new Error("Invalid book owner");
     for (const field of fields) {
       for (const [language,value] of Object.entries(book[field] || {})) {
-        if (!isCanonicalLocale(language) || typeof value !== "string" || !value.trim()) throw new Error("Invalid book translation");
+        if (!isCanonicalLocale(language) || typeof value !== "string" || field !== "title" && !value.trim()) throw new Error("Invalid book translation");
       }
     }
-    if (!book.title?.[book.originalLanguage]?.trim()) throw new Error("Missing book title");
     return book;
   }
   for (const field of fields) {
     for (const language of requiredLanguages) {
       if (!isCanonicalLocale(language)) throw new Error("Invalid book language");
+      if (field === "title" && book.popularTitle) continue;
       if (typeof book[field]?.[language] !== "string" || !book[field][language].trim()) throw new Error("Missing book translation");
     }
     for (const [language,value] of Object.entries(book[field] || {})) {
-      if (!isCanonicalLocale(language) || typeof value !== "string" || !value.trim()) throw new Error("Invalid book translation");
+      if (!isCanonicalLocale(language) || typeof value !== "string" || field !== "title" && !value.trim()) throw new Error("Invalid book translation");
     }
   }
   return book;
@@ -100,6 +124,7 @@ export function validateCards(cards, bookId, {allowEmpty = false} = {}) {
   for (const card of cards) {
     if (!card || typeof card.id !== "string" || !card.id.trim() || byId.has(card.id)) throw new Error("Invalid or duplicate ID");
     if (card.isQuote !== undefined && typeof card.isQuote !== "boolean") throw new Error("Invalid quote tag");
+    if (card.isReadingGuide !== undefined && typeof card.isReadingGuide !== "boolean") throw new Error("Invalid reading guide tag");
     if (card.bookId !== bookId) throw new Error("Wrong book");
     if (card.parentId !== null && (typeof card.parentId !== "string" || !card.parentId)) throw new Error("Invalid parent");
     if (!Number.isInteger(card.order) || card.order < 1) throw new Error("Invalid order");

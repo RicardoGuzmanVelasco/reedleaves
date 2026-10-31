@@ -5,7 +5,7 @@
 Abrir `/brand/reed/covers/` con el servidor del proyecto. Lee el catálogo común y reutiliza las portadas y fichas de `app/views.mjs`. Los controles permiten comparar **Base** y **Entelada**, en Inicio o Librería, español o inglés y con títulos originales. Base usa borde continuo, sin páginas sobresalientes, y sombra verde bosque. El progreso de las cinco primeras etapas es una muestra local; no se modifica ninguna cuenta ni se gasta ninguna hoja.
 
 - **Base**: cubierta verde redondeada y tipografía de la interfaz. Título arriba a la izquierda, de 23 px (19 px en móvil), y autor debajo, también a la izquierda.
-- **Entelada**: verde salvia, textura de tela sutil, lomo oscuro y título en EB Garamond. Sin marco interior.
+- **Entelada**: verde salvia, textura de tela sutil, lomo oscuro y título con serif clásica. Sin marco interior.
 
 Entelada tiene el autor arriba del título; Base conserva título primero y autor debajo. Entelada mantiene el canto de páginas a la derecha; Base deja el borde continuo, sin páginas sobresalientes, y sombra verde bosque. No hay páginas debajo de la cubierta. Inicio no lleva «Repasar» ni flecha; los intereses aparecen solo en la ficha descriptiva. Librería conserva el número de barajas dentro del libro, al pie. Ningún dato de la portada queda fuera del libro. Los iconos muestran directamente la imagen del cuerpo, sin cara ni sombra y sin la escala ni los desplazamientos de la mascota completa.
 

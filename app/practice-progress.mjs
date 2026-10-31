@@ -1,20 +1,40 @@
-const priority = answer => answer === "soon" ? "soon" : answer === "remembered" ? "remembered" : "new";
-const weights = {soon:3,new:2,remembered:1};
+const weightForSavedAnswer = answer => answer === "soon" ? 0.5 : answer === "remembered" ? 2 : 1;
+const unitRandom = random => {
+  const value=random();
+  return Number.isFinite(value) ? Math.min(1-Number.EPSILON,Math.max(0,value)) : 0;
+};
 
-// Draw a priority by weight, then choose a random card from that group.
-// Selected cards are removed, so a session never repeats a card.
+// The stored answer names are legacy values. Keep their UI meaning and weight
+// translation here so selection operates on cards, not response groups.
 export function selectPracticeCards(cards,answers={},count=5,random=Math.random) {
-  const groups=new Map(["soon","new","remembered"].map(key=>[key,cards.filter(card=>priority(answers[card.id])===key)]));
-  const selected=[];
   const targetCount=Math.min(cards.length,Math.max(0,Math.floor(count)));
+  const remaining=cards.map(card=>({card,weight:weightForSavedAnswer(answers[card.id])}));
+  const selected=[],selectedBooks=new Set(),selectedDecks=new Set();
+  const bookKey=card=>card.bookId??card.id,deckKey=card=>card.deckId??card.id;
+
   while(selected.length<targetCount) {
-    const available=[...groups].filter(([,group])=>group.length);
-    const totalWeight=available.reduce((sum,[key])=>sum+weights[key],0);
-    let roll=Math.min(1-Number.EPSILON,Math.max(0,random()))*totalWeight;
-    let selectedGroup=available.find(([key])=>(roll-=weights[key])<0)?.[1];
-    if(!selectedGroup) selectedGroup=available.at(-1)?.[1];
-    const index=Math.min(selectedGroup.length-1,Math.floor(Math.min(1-Number.EPSILON,Math.max(0,random()))*selectedGroup.length));
-    selected.push(selectedGroup.splice(index,1)[0]);
+    // Prefer a new book whenever one remains. If the reader has cards from
+    // only a few books, use another deck before repeating a deck as well.
+    const distinctBooks=remaining.filter(({card})=>!selectedBooks.has(bookKey(card)));
+    const distinctDecks=remaining.filter(({card})=>!selectedDecks.has(deckKey(card)));
+    const eligible=distinctBooks.length?distinctBooks:distinctDecks.length?distinctDecks:remaining;
+    const totalWeight=eligible.reduce((sum,item)=>sum+item.weight,0);
+    let roll=unitRandom(random)*totalWeight;
+    let index=eligible.length-1;
+    for(let candidate=0;candidate<eligible.length;candidate++) {
+      roll-=eligible[candidate].weight;
+      if(roll<0) {
+        index=candidate;
+        break;
+      }
+    }
+    const chosen=eligible[index];
+    const originalIndex=remaining.indexOf(chosen);
+    const [{card}]=remaining.splice(originalIndex,1);
+    selected.push(card);
+    selectedBooks.add(bookKey(card));
+    selectedDecks.add(deckKey(card));
   }
+
   return selected;
 }

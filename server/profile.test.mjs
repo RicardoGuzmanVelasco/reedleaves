@@ -45,6 +45,17 @@ test("Profile counts unique views; daily assignment alone is not a view",async t
   await recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(11));
 });
 
+test("Opening a past daily idea does not credit today when the same card was reused",async t=>{
+  const {db,a}=await fixture(t);
+  db.prepare("INSERT INTO daily_ideas VALUES ('2026-10-09','habit-2'),('2026-10-10','habit-2')").run();
+  const past=await recordCardView(db,a,{cardId:"habit-2",context:"daily",day:"2026-10-09"},day(10));
+  assert.equal(past.seenCurrentDay,false);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM daily_idea_views WHERE user_id=?").get(a.user_id).n,0);
+  const current=await recordCardView(db,a,{cardId:"habit-2",context:"daily",day:"2026-10-10"},day(10));
+  assert.equal(current.seenCurrentDay,true);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM daily_idea_views WHERE user_id=?").get(a.user_id).n,1);
+});
+
 test("Profile counts one current pet per book rather than all unlocked stages, including completion",async t=>{
   const {db,a}=await fixture(t),v="seven-habits-editorial";
   await changeReading(db,a,"atomic-habits","read",day(10));
@@ -87,7 +98,7 @@ test("Nonconsecutive review days across decks earn Tallo at ten and Flor at fift
 
 test("Author stats include quotes as a subset; shared libraries expose content but not account data or author permissions",async t=>{
   const {db,a,b}=await fixture(t);
-  const {bookId}=await createBook(db,a,{requestId:randomUUID(),title:"Shared book",author:"Book author",language:"es"});
+  const {bookId}=await createBook(db,a,{requestId:randomUUID(),title:"Shared book",author:"Book author",language:"es",metadata:{genres:["society"]}});
   const {deckId}=await createDeck(db,a,{requestId:randomUUID(),bookId,title:"Shared deck",language:"es"});
   const {cardId}=await addCard(db,a,{requestId:randomUUID(),deckId,title:"Personal card",body:"Personal text",parentId:null,isQuote:false});
   await addCard(db,a,{requestId:randomUUID(),deckId,body:"A personal quote",parentId:null,isQuote:true});
@@ -104,6 +115,15 @@ test("Author stats include quotes as a subset; shared libraries expose content b
   await assert.rejects(recordCardView(db,b,{cardId,context:"author"}),{code:"notAllowed"});
   await assert.rejects(readProfile(db,"missing",b.user_id),{code:"profileUnavailable"});
   assert.equal((await readProfile(db,"reed-team",b.user_id)).profile.counts.cardsCreated,42);
+});
+
+test("Public bookshelf groups explicit and deck-associated books as Para leer",async t=>{
+  const {db,a,b}=await fixture(t);
+  await changeReading(db,a,"atomic-habits","to-read",day(10));
+  await createDeck(db,a,{requestId:randomUUID(),bookId:"seven-habits",title:"Another deck",language:"es"});
+  const shelf=(await readProfile(db,a.user_id,b.user_id)).bookshelf;
+  assert.deepEqual(shelf.find(entry=>entry.bookId==="atomic-habits"),{bookId:"atomic-habits",reading:"unread",group:"to-read"});
+  assert.deepEqual(shelf.find(entry=>entry.bookId==="seven-habits"),{bookId:"seven-habits",reading:"unread",group:"to-read"});
 });
 
 test("SQLite v12 view migration preserves accounts and unlocks, backfills once and is repeatable",async t=>{

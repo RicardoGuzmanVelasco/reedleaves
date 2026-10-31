@@ -1,9 +1,20 @@
 import {transaction,isPostgres} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
-import {isCanonicalLocale,quoteExcerpt,LANGUAGES,validateCards,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH,BOOK_AUTHOR_MAX_LENGTH,MAX_CARDS_PER_DECK} from "../app/core.mjs";
+import {isCanonicalLocale,quoteExcerpt,LANGUAGES,validateCards,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH,BOOK_AUTHOR_MAX_LENGTH,MAX_CARDS_PER_DECK,USERNAME_MIN_LENGTH,USERNAME_MAX_LENGTH} from "../app/core.mjs";
 import {normalizeBookMetadata,mergeBookMetadata} from "../app/book-metadata.mjs";
 import {defaultNoteDeckTitle} from "../app/note-defaults.mjs";
+import {normalizeQuoteSourceUrl} from "../app/quote-source.mjs";
 import {isDeepStrictEqual} from "node:util";
+import {ensureBookToRead} from "./book-reading.mjs";
+import {findBookTitleMatches} from "../app/book-duplicates.mjs";
+import {catalogBookIncorporationTimestamp} from "../app/catalog-incorporation.mjs";
+import {bookInterestError} from "../app/book-interests.mjs";
+
+async function validateBookInterests(db,ids,options={}) {
+  const knownIds=new Set((await db.prepare("SELECT id FROM genres").all()).map(row=>row.id));
+  const error=bookInterestError(ids,knownIds,options);
+  if (error) throw new ApiError(400,error);
+}
 
 function text(value,max,required=true) {
   if (typeof value !== "string" || value.trim().length > max || required && !value.trim()) throw new ApiError(400,"invalidRequest");
@@ -17,19 +28,19 @@ export async function ownedBookInformation(db,session,bookId,{lock=false}={}) {
   if (typeof bookId !== "string" || !bookId.trim() || bookId.length > 240) throw new ApiError(400,"invalidRequest");
   const book=await db.prepare(`SELECT * FROM books WHERE id=? AND creator_user_id=?${lock && isPostgres(db) ? " FOR UPDATE" : ""}`).get(bookId,session.user_id);
   if (!book) throw new ApiError(404,"bookUnavailable");
-  const metadata={originalTitle:book.original_title,originalLanguage:book.original_language,title:{},description:{},editorialNote:{},
-    genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY genre_id").all(bookId)).map(row=>row.genre_id),
+  const metadata={popularTitle:book.popular_title,popularLanguage:book.popular_language,title:{},description:{},editorialNote:{},
+    genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY position").all(bookId)).map(row=>row.genre_id),
     links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id=?").all(bookId)).map(row=>[row.platform,row.url]))};
   for (const row of await db.prepare("SELECT * FROM book_translations WHERE book_id=?").all(bookId)) {
     metadata.title[row.language]=row.title;
     metadata.description[row.language]=row.description; metadata.editorialNote[row.language]=row.editorial_note;
   }
-  return {title:book.original_title,author:book.author,language:book.original_language,metadata};
+  return {title:book.popular_title,author:book.author,language:book.popular_language,metadata};
 }
 
 export function mergeOwnedBookMetadata(existing,proposal) {
   const current=structuredClone(existing.metadata);
-  if (proposal?.title?.[existing.language]) current.title[existing.language] ||= existing.title;
+  if (bookInterestError(proposal?.genres ?? [],undefined,{required:false,existingIds:current.genres})) throw new Error("Invalid book interests");
   return mergeBookMetadata(current,proposal);
 }
 
@@ -39,43 +50,59 @@ export async function completeBook(db,session,input) {
   return transaction(db,async()=>{
     // Merge against current data under a lock, including additions from another session.
     const existing=await ownedBookInformation(db,session,input.bookId,{lock:true});
+    await validateBookInterests(db,proposal.genres,{required:false,existingIds:existing.metadata.genres});
     let metadata;
     try { metadata=mergeOwnedBookMetadata(existing,proposal); } catch { throw new ApiError(400,"invalidRequest"); }
-    for (const genre of metadata.genres) if (!await db.prepare("SELECT 1 FROM genres WHERE id=?").get(genre)) throw new ApiError(400,"invalidRequest");
+    await validateBookInterests(db,metadata.genres,{existingIds:existing.metadata.genres});
     for (const language of Object.keys(metadata.title)) await db.prepare(`INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)
       ON CONFLICT(book_id,language) DO NOTHING`).run(input.bookId,language,metadata.title[language],metadata.description[language],metadata.editorialNote[language]);
-    for (const genre of metadata.genres) await db.prepare("INSERT INTO book_genres(book_id,genre_id) VALUES (?,?) ON CONFLICT(book_id,genre_id) DO NOTHING").run(input.bookId,genre);
+    let nextInterestPosition=(await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM book_genres WHERE book_id=?").get(input.bookId)).position;
+    for (const genre of metadata.genres) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?) ON CONFLICT(book_id,genre_id) DO NOTHING").run(input.bookId,genre,nextInterestPosition++);
     for (const [platform,url] of Object.entries(metadata.links)) await db.prepare("INSERT INTO book_links(book_id,platform,url) VALUES (?,?,?) ON CONFLICT(book_id,platform) DO NOTHING").run(input.bookId,platform,url);
     return {bookId:input.bookId};
   });
 }
 export async function createBook(db,session,input) {
+  await validateBookInterests(db,input.metadata?.genres ?? []);
   let metadata;
   try { metadata=normalizeBookMetadata(input.metadata); } catch { throw new ApiError(400,"invalidRequest"); }
-  const id=requestId(input.requestId),title=text(metadata.originalTitle || input.title,TITLE_MAX_LENGTH),author=text(input.author,BOOK_AUTHOR_MAX_LENGTH),language=metadata.originalLanguage || input.language;
+  const id=requestId(input.requestId),title=text(metadata.popularTitle || input.title,TITLE_MAX_LENGTH),author=text(input.author,BOOK_AUTHOR_MAX_LENGTH),language=metadata.popularLanguage || input.language;
   if (!isCanonicalLocale(language)) throw new ApiError(400,"invalidRequest");
-  metadata.originalTitle=title; metadata.originalLanguage=language;
-  for (const genre of metadata.genres) if (!await db.prepare("SELECT 1 FROM genres WHERE id=?").get(genre)) throw new ApiError(400,"invalidRequest");
+  metadata.popularTitle=title; metadata.popularLanguage=language;
+  metadata=normalizeBookMetadata(metadata,{canonicalTitles:true});
   return transaction(db,async()=>{
     // Serializes catalog positions, including requests from different authors.
     if (isPostgres(db)) await db.exec("LOCK TABLE books IN SHARE ROW EXCLUSIVE MODE;");
     const previous=await db.prepare("SELECT * FROM books WHERE id=?").get(id);
     if (previous) {
-      if (previous.creator_user_id !== session.user_id || previous.original_title !== title || previous.author !== author || previous.original_language !== language) throw new ApiError(409,"invalidRequest");
-      const saved={originalTitle:title,originalLanguage:language,title:{},description:{},editorialNote:{},
-        genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY genre_id").all(id)).map(row=>row.genre_id),
+      if (previous.creator_user_id !== session.user_id || previous.popular_title !== title || previous.author !== author || previous.popular_language !== language) throw new ApiError(409,"invalidRequest");
+      const saved={popularTitle:title,popularLanguage:language,title:{},description:{},editorialNote:{},
+        genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY position").all(id)).map(row=>row.genre_id),
         links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id=?").all(id)).map(row=>[row.platform,row.url]))};
       for (const row of await db.prepare("SELECT * FROM book_translations WHERE book_id=?").all(id)) {
         saved.title[row.language]=row.title;
         saved.description[row.language]=row.description; saved.editorialNote[row.language]=row.editorial_note;
       }
-      if (!isDeepStrictEqual(normalizeBookMetadata(saved),metadata)) throw new ApiError(409,"invalidRequest");
+      if (!isDeepStrictEqual(normalizeBookMetadata(saved,{canonicalTitles:true}),metadata)) throw new ApiError(409,"invalidRequest");
       return {bookId:id};
     }
+    const titleRows=await db.prepare(`SELECT b.id,b.author,b.popular_title,t.language,t.title
+      FROM books b LEFT JOIN book_translations t ON t.book_id=b.id ORDER BY b.position`).all();
+    const existingBooks=new Map();
+    for (const row of titleRows) {
+      let book=existingBooks.get(row.id);
+      if (!book) {book={id:row.id,author:row.author,popularTitle:row.popular_title,title:{}};existingBooks.set(row.id,book);}
+      if (row.language && row.title) book.title[row.language]=row.title;
+    }
+    if (findBookTitleMatches([title,...Object.values(metadata.title)],[...existingBooks.values()]).some(match=>match.blocked)) {
+      throw new ApiError(409,"bookAlreadyExists");
+    }
     const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM books").get();
-    await db.prepare("INSERT INTO books(id,author,original_title,original_language,position,creator_user_id) VALUES (?,?,?,?,?,?)").run(id,author,title,language,position,session.user_id);
+    const {incorporation_order:incorporationOrder}=await db.prepare("SELECT COALESCE(MAX(incorporation_order),0)+1 AS incorporation_order FROM books").get();
+    await db.prepare("INSERT INTO books(id,author,popular_title,popular_language,position,creator_user_id,incorporated_at,incorporation_order) VALUES (?,?,?,?,?,?,?,?)")
+      .run(id,author,title,language,position,session.user_id,catalogBookIncorporationTimestamp(),incorporationOrder);
     for (const language of Object.keys(metadata.title)) await db.prepare("INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,metadata.title[language],metadata.description[language],metadata.editorialNote[language]);
-    for (const genre of metadata.genres) await db.prepare("INSERT INTO book_genres(book_id,genre_id) VALUES (?,?)").run(id,genre);
+    for (const [index,genre] of metadata.genres.entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(id,genre,index+1);
     for (const [platform,url] of Object.entries(metadata.links)) await db.prepare("INSERT INTO book_links(book_id,platform,url) VALUES (?,?,?)").run(id,platform,url);
     await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'reading')").run(session.user_id,id);
     return {bookId:id};
@@ -87,19 +114,56 @@ export async function createDeck(db,session,input) {
 async function writeDeck(db,session,input) {
   const id=requestId(input.requestId),title=text(input.title,TITLE_MAX_LENGTH),description=text(input.description ?? "",DESCRIPTION_MAX_LENGTH,false),language=input.language;
   if (!isCanonicalLocale(language) || typeof input.bookId !== "string") throw new ApiError(400,"invalidRequest");
+  const kind=input.kind ?? "standard",contributionPolicy=input.contributionPolicy ?? (kind === "collective" ? "open" : "owner"),maxCardsPerContributor=input.maxCardsPerContributor ?? null;
+  if (!["standard","collective"].includes(kind) || !["owner","open","selected"].includes(contributionPolicy) ||
+      !(maxCardsPerContributor === null || Number.isSafeInteger(maxCardsPerContributor) && maxCardsPerContributor > 0) ||
+      kind === "standard" && (contributionPolicy !== "owner" || maxCardsPerContributor !== null) ||
+      kind === "collective" && contributionPolicy === "owner") throw new ApiError(400,"invalidRequest");
   if (!await db.prepare("SELECT 1 FROM books WHERE id=?").get(input.bookId)) throw new ApiError(404,"bookUnavailable");
   await db.prepare("UPDATE users SET can_create_decks=1 WHERE id=?").run(session.user_id);
   const previous=await db.prepare("SELECT * FROM decks WHERE id=?").get(id);
   if (previous) {
-    if (previous.creator_user_id !== session.user_id || previous.book_id !== input.bookId || previous.language !== language) throw new ApiError(409,"invalidRequest");
+    if (previous.creator_user_id !== session.user_id || previous.book_id !== input.bookId || previous.language !== language || previous.kind !== kind || previous.contribution_policy !== contributionPolicy || previous.max_cards_per_contributor !== maxCardsPerContributor) throw new ApiError(409,"invalidRequest");
     const saved = await db.prepare("SELECT title,description FROM deck_translations WHERE deck_id=? AND language=?").get(id,language);
     if (saved.title !== title || saved.description !== (description || title)) throw new ApiError(409,"invalidRequest");
     return {deckId:id};
   }
-  await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language,status) VALUES (?,?,?,?,'draft')").run(id,input.bookId,session.user_id,language);
+  await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language,status,kind,contribution_policy,max_cards_per_contributor) VALUES (?,?,?,?,'draft',?,?,?)").run(id,input.bookId,session.user_id,language,kind,contributionPolicy,maxCardsPerContributor);
   await db.prepare("INSERT INTO deck_translations(deck_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,title,description || title,title);
   await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,id);
+  await ensureBookToRead(db,session.user_id,input.bookId);
   return {deckId:id};
+}
+export async function addDeckContributors(db,session,input) {
+  const hasUserIds=Array.isArray(input.userIds),hasUsernames=Array.isArray(input.usernames);
+  if (typeof input.deckId !== "string" || !input.deckId || input.deckId.length > 256 || hasUserIds === hasUsernames) throw new ApiError(400,"invalidRequest");
+  let userIds=input.userIds;
+  if (hasUserIds && (userIds.length > 100 || userIds.some(id=>typeof id !== "string" || !id.trim() || id.length > 256) || new Set(userIds).size !== userIds.length)) throw new ApiError(400,"invalidRequest");
+  let usernames=[];
+  if (hasUsernames) {
+    usernames=input.usernames.map(value=>typeof value === "string" ? value.trim().replace(/^@/u,"").toLowerCase() : "");
+    const pattern=new RegExp(`^[a-z0-9][a-z0-9._-]{${USERNAME_MIN_LENGTH-1},${USERNAME_MAX_LENGTH-1}}$`);
+    if (usernames.length > 100 || usernames.some(name=>!pattern.test(name)) || new Set(usernames).size !== usernames.length) throw new ApiError(400,"invalidRequest");
+  }
+  return transaction(db,async()=>{
+    const deck=await db.prepare(`SELECT * FROM decks WHERE id=?${isPostgres(db) ? " FOR UPDATE" : ""}`).get(input.deckId);
+    if (!deck || deck.creator_user_id !== session.user_id || deck.kind !== "collective" || deck.contribution_policy !== "selected") throw new ApiError(404,"deckUnavailable");
+    if (deck.status !== "draft") throw new ApiError(409,"deckReadOnly");
+    if (hasUsernames) {
+      userIds=[];
+      for (const username of usernames) {
+        const account=await db.prepare("SELECT user_id FROM accounts WHERE username=?").get(username);
+        if (!account) throw new ApiError(400,"contributorUnavailable");
+        userIds.push(account.user_id);
+      }
+    }
+    for (const userId of userIds) if (!await db.prepare("SELECT 1 FROM accounts WHERE user_id=?").get(userId)) throw new ApiError(400,"invalidRequest");
+    const existing=(await db.prepare("SELECT user_id FROM deck_contributors WHERE deck_id=?").all(deck.id)).map(row=>row.user_id);
+    const requested=new Set(userIds);
+    for (const userId of existing) if (!requested.has(userId)) await db.prepare("DELETE FROM deck_contributors WHERE deck_id=? AND user_id=?").run(deck.id,userId);
+    for (const userId of userIds) if (!existing.includes(userId)) await db.prepare("INSERT INTO deck_contributors(deck_id,user_id) VALUES (?,?)").run(deck.id,userId);
+    return {deckId:deck.id,userIds:[...userIds].sort()};
+  });
 }
 export async function changeDeckTitle(db,session,input) {
   if (typeof input.deckId !== "string" || !input.deckId || input.deckId.length > 256) throw new ApiError(400,"invalidRequest");
@@ -131,6 +195,7 @@ export async function changeDeckLanguage(db,session,input) {
     await db.prepare(`UPDATE card_translations SET language=? WHERE card_id IN (SELECT id FROM cards WHERE deck_id=?) AND language=?
       AND NOT EXISTS (SELECT 1 FROM card_translations target WHERE target.card_id=card_translations.card_id AND target.language=?)`)
       .run(input.language,deck.id,deck.language,input.language);
+    await db.prepare("UPDATE cards SET language=? WHERE deck_id=?").run(input.language,deck.id);
     await db.prepare("UPDATE decks SET language=? WHERE id=?").run(input.language,deck.id);
     return {deckId:deck.id};
   });
@@ -145,19 +210,27 @@ async function writeCard(db,session,input) {
   // Serializes sibling allocation against other author sessions in PostgreSQL.
   const deckId=input.deckId;
   const deck=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db) ? " FOR UPDATE OF d" : ""}`).get(deckId);
-  if (!deck || deck.creator_user_id !== session.user_id) throw new ApiError(404,"deckUnavailable");
+  if (!deck) throw new ApiError(404,"deckUnavailable");
   if (deck.status !== "draft") throw new ApiError(409,"deckReadOnly");
+  const isOwner=deck.creator_user_id === session.user_id;
+  if (deck.kind !== "collective" && !isOwner || deck.kind === "collective" && deck.contribution_policy === "selected" && !isOwner && !await db.prepare("SELECT 1 FROM deck_contributors WHERE deck_id=? AND user_id=?").get(deck.id,session.user_id)) throw new ApiError(404,"deckUnavailable");
   const previous=await db.prepare("SELECT * FROM cards WHERE id=?").get(id);
   if (previous) {
     const saved = await db.prepare("SELECT title,body FROM card_translations WHERE card_id=? AND language=?").get(id,deck.language);
     if (previous.deck_id !== deck.id || previous.parent_id !== input.parentId || !!previous.is_quote !== input.isQuote || (!input.isQuote && saved?.title !== title) || saved?.body !== body) throw new ApiError(409,"invalidRequest");
     return {deckId:deck.id,cardId:id};
   }
-  const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(deck.id);
-  if (total>=MAX_CARDS_PER_DECK) throw new ApiError(409,"deckCardLimitReached");
+  if (deck.max_cards_per_contributor !== null) {
+    const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=? AND creator_user_id=?").get(deck.id,session.user_id);
+    if (total>=deck.max_cards_per_contributor) throw new ApiError(409,"contributorCardLimitReached");
+  }
+  if (deck.kind !== "collective") {
+    const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(deck.id);
+    if (total>=MAX_CARDS_PER_DECK) throw new ApiError(409,"deckCardLimitReached");
+  }
   if (input.parentId !== null && !await db.prepare("SELECT 1 FROM cards WHERE id=? AND deck_id=?").get(input.parentId,deck.id)) throw new ApiError(400,"invalidParent");
   const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM cards WHERE deck_id=? AND (parent_id=? OR (parent_id IS NULL AND CAST(? AS TEXT) IS NULL))").get(deck.id,input.parentId,input.parentId);
-  await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)").run(id,deck.id,deck.book_id,input.parentId,position,input.isQuote ? 1 : 0,new Date().toISOString());
+  await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,creator_user_id,language,created_at) VALUES (?,?,?,?,?,?,?,?,?)").run(id,deck.id,deck.book_id,input.parentId,position,input.isQuote ? 1 : 0,session.user_id,deck.language,new Date().toISOString());
   await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)").run(id,deck.language,title,body);
   return {deckId:deck.id,cardId:id};
 }
@@ -205,7 +278,7 @@ export async function finishTeamDeck(db,input) {
 
 export async function readTeamDeckDrafts(db,{bookId}={}) {
   if (bookId!==undefined && (typeof bookId!=="string" || !bookId.trim() || bookId.length>240)) throw new ApiError(400,"invalidRequest");
-  const rows=await db.prepare(`SELECT d.id AS deck_id,d.book_id,d.language,b.original_title AS book_title,t.title,
+  const rows=await db.prepare(`SELECT d.id AS deck_id,d.book_id,d.language,b.popular_title AS book_title,t.title,
     (SELECT COUNT(*) FROM cards c WHERE c.deck_id=d.id) AS card_count
     FROM decks d JOIN books b ON b.id=d.book_id
     JOIN deck_translations t ON t.deck_id=d.id AND t.language=d.language
@@ -265,6 +338,8 @@ export async function finishNoteDecks(db,session,input) {
 export async function createTeamDeck(db,input) {
   const id=requestId(input.requestId),title=text(input.title,TITLE_MAX_LENGTH),description=text(input.description ?? "",DESCRIPTION_MAX_LENGTH,false),language=input.language;
   if (!isCanonicalLocale(language) || typeof input.bookId !== "string" || !Array.isArray(input.cards) || !input.cards.length || input.cards.length>MAX_CARDS_PER_DECK) throw new ApiError(400,"invalidRequest");
+  const quoteSourceUrl=input.quoteSourceUrl === undefined ? null : normalizeQuoteSourceUrl(input.quoteSourceUrl);
+  if (input.quoteSourceUrl !== undefined && (!quoteSourceUrl || !input.cards.some(card=>card?.isQuote === true))) throw new ApiError(400,"invalidRequest");
   const editorialNote=text(input.editorialNote ?? title,EDITORIAL_NOTE_MAX_LENGTH);
   const normalizedCards=[];
   const siblingPositions=new Map();
@@ -292,7 +367,7 @@ export async function createTeamDeck(db,input) {
       if (previous.creator_user_id!=="reed-team" || previous.book_id!==input.bookId || previous.language!==language) throw new ApiError(409,"invalidRequest");
       const deck=await db.prepare(`SELECT * FROM decks WHERE id=?${isPostgres(db) ? " FOR UPDATE" : ""}`).get(id);
       const metadata=await db.prepare("SELECT title,description,editorial_note FROM deck_translations WHERE deck_id=? AND language=?").get(id,language);
-      if (!deck || !["draft","published"].includes(deck.status) || !metadata || metadata.title!==title || metadata.description!==(description||title) || metadata.editorial_note!==editorialNote) throw new ApiError(409,"invalidRequest");
+      if (!deck || !["draft","published"].includes(deck.status) || deck.quote_source_url!==quoteSourceUrl || !metadata || metadata.title!==title || metadata.description!==(description||title) || metadata.editorial_note!==editorialNote) throw new ApiError(409,"invalidRequest");
       const rows=await db.prepare(`SELECT c.id,c.parent_id,c.position,c.is_quote,t.title,t.body FROM cards c JOIN card_translations t ON t.card_id=c.id AND t.language=? WHERE c.deck_id=? ORDER BY c.position,c.id`).all(language,id);
       const actual=rows.map(row=>({id:row.id,parentId:row.parent_id,order:row.position,isQuote:!!row.is_quote,title:row.title,body:row.body})).sort((a,b)=>a.id.localeCompare(b.id));
       const expected=normalizedCards.map(card=>({id:card.id,parentId:card.parentId,order:card.order,isQuote:card.isQuote,title:card.title[language],body:card.body[language]})).sort((a,b)=>a.id.localeCompare(b.id));
@@ -300,13 +375,13 @@ export async function createTeamDeck(db,input) {
       if (deck.status==="draft") await db.prepare("UPDATE decks SET status='published' WHERE id=? AND status='draft'").run(deck.id);
       return {deckId:id,status:"published",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:true};
     }
-    await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language,status) VALUES (?,?, 'reed-team',?,'draft')").run(id,input.bookId,language);
+    await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language,status,quote_source_url) VALUES (?,?, 'reed-team',?,'draft',?)").run(id,input.bookId,language,quoteSourceUrl);
     await db.prepare("INSERT INTO deck_translations(deck_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,title,description||title,editorialNote);
     await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES ('reed-team',?)").run(id);
     const createdAt=new Date().toISOString();
     for (const card of normalizedCards) {
-      await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)")
-        .run(card.id,id,input.bookId,card.parentId,card.order,card.isQuote?1:0,createdAt);
+      await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,creator_user_id,language,created_at) VALUES (?,?,?,?,?,?,?,?,?)")
+        .run(card.id,id,input.bookId,card.parentId,card.order,card.isQuote?1:0,"reed-team",language,createdAt);
       await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)")
         .run(card.id,language,card.title[language],card.body[language]);
     }
@@ -356,8 +431,8 @@ export async function appendTeamDeckCards(db,input) {
     if (existingIds.size+normalized.length>MAX_CARDS_PER_DECK) throw new ApiError(409,"deckCardLimitReached");
     const createdAt=new Date().toISOString();
     for (const card of normalized) {
-      await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,created_at) VALUES (?,?,?,?,?,?,?)")
-        .run(card.id,deckId,deck.book_id,card.parentId,card.order,card.isQuote?1:0,createdAt);
+      await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,creator_user_id,language,created_at) VALUES (?,?,?,?,?,?,?,?,?)")
+        .run(card.id,deckId,deck.book_id,card.parentId,card.order,card.isQuote?1:0,"reed-team",deck.language,createdAt);
       await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)")
         .run(card.id,deck.language,card.title,card.body);
     }

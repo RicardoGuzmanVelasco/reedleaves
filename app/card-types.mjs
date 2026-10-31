@@ -9,7 +9,11 @@ export const cardTypes=Object.freeze({
   quote:{
     id:'quote',className:'quote-card',showTitle:false,bodyTag:'blockquote',accessibleHeading:'quoteBody',headerIcon:'❝',
     watermark:{viewBox:'-6 -6 207 156',paths:`<path d="${quotePath}"/><path d="${quotePath}" transform="translate(106)"/>`}
+  },
+  readingGuide:{
+    id:'reading-guide',className:'reading-guide-card',showTitle:false,bodyTag:'p',accessibleHeading:'readingGuideBody',headerIcon:'reading-guide',
+    watermark:{viewBox:'0 0 20 20',paths:'<path d="M5 2.5h10.5v15H5a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2Z"/><path d="M3 14h12.5"/><path d="M8.5 7.5H10v4M8 11.5h4"/><circle cx="10" cy="5" r=".85" fill="currentColor" stroke="none"/>'}
   }
 });
 
-export function cardTypeFor(card){return cardTypes[card.isQuote?'quote':'idea']}
+export function cardTypeFor(card){return cardTypes[card.isReadingGuide?'readingGuide':card.isQuote?'quote':'idea']}

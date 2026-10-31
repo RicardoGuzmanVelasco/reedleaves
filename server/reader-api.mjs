@@ -2,14 +2,22 @@ import {randomUUID} from "node:crypto";
 import {authenticate, readSession, revokeSession, checkCsrf, sessionCookie} from "./auth.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {ApiError} from "./errors.mjs";
-import {readReaderState, selectDeck, addDeckToCollection, openCard, changeReading, changePreferences, dailyIdea, dailyIdeaStatus, savePracticeAnswer} from "./reader-repository.mjs";
+import {readReaderState, selectDeck, addDeckToCollection, removeDeckFromCollection, openCard, changeReading, changePreferences, dailyIdea, dailyIdeaStatus, savePracticeAnswer} from "./reader-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 
-import {createBook,createDeck,changeDeckLanguage,changeDeckTitle,addCard,takeFirstNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
+import {createBook,createDeck,addDeckContributors,changeDeckLanguage,changeDeckTitle,addCard,takeFirstNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
 import {createBookAutofill} from "./book-autofill.mjs";
+import {MAX_BOOK_INTERESTS} from "../app/book-interests.mjs";
 import {readCardVotes,setCardVote} from "./card-votes.mjs";
 import {readCardActions,readSavedCards,setCardSave} from "./card-saves.mjs";
 import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH} from "../app/core.mjs";
+import {submitReadingGuide} from "./reading-guides.mjs";
+import {readReaderInterestPreferences,readPublicReaderInterestPreferences,saveReaderInterestPreferences,saveInitialReaderInterestPreferences} from "./reader-interest-preferences.mjs";
+import {captureReaderInterestSnapshot,saveAndRecognizeReaderInterestSnapshot} from "./reader-interest-knowledge.mjs";
+import {BOOK_INTEREST_CONFIRMATION_ENABLED} from "./book-interest-confirmation.mjs";
+import {readReaderLanguagePreferences,saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
+import {MAX_BOOK_KNOWLEDGE_REQUEST_BYTES,recognizeLibraryBookSnapshot} from "./book-knowledge-repository.mjs";
+import {readDiscoverPracticeAvailability} from "./discover-practice.mjs";
 
 async function readBody(request,maxBytes = 8192) {
   if (request.headers["content-type"]?.split(";")[0].trim() !== "application/json") throw new ApiError(415,"invalidRequest");
@@ -31,25 +39,31 @@ function sameOrigin(request,origin) {
   const allowed = origin ? [origin] : [`http://127.0.0.1:${localPort}`,`http://localhost:${localPort}`];
   if (!allowed.includes(originHeader) || request.headers["sec-fetch-site"] && request.headers["sec-fetch-site"] !== "same-origin") throw new ApiError(403,"invalidRequest");
 }
-export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = false,inviteCode,bookAutofill=createBookAutofill()} = {}) {
+export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = false,inviteCode,bookAutofill=createBookAutofill(),bookInterestConfirmationEnabled=BOOK_INTEREST_CONFIRMATION_ENABLED} = {}) {
   if (origin) {
     const url = new URL(origin);
     if (url.origin !== origin || !["https:","http:"].includes(url.protocol) || url.protocol === "https:" && !secureCookies) throw new Error("Invalid API origin/cookie configuration");
   }
   return async (request,response,path,send) => {
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
-      ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/collect",["POST"]],
-      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
+      ["/api/auth/logout",["POST"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/practice/discover-availability",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/collect",["POST"]],["/api/reader/remove",["POST"]],
+      ["/api/reader/book-knowledge/visit",["POST"]],
+      ["/api/reader/interests/knowledge/snapshot",["POST"]],["/api/reader/interests/knowledge/recognize",["POST"]],
+      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
+    routes.set("/api/reader/guides",["POST"]);
     routes.set("/api/feedback",["POST"]);
     routes.set("/api/author/decks/finish-notes",["POST"]);
+    routes.set("/api/author/decks/contributors",["POST"]);
     routes.set("/api/author/decks/language",["POST"]);
     routes.set("/api/author/decks/title",["POST"]);
     routes.set("/api/author/notes",["POST"]);
     const profileMatch=path.match(/^\/api\/profiles\/([^/]+)$/);
+    const profileInterestsMatch=path.match(/^\/api\/profiles\/([^/]+)\/interests$/);
     const cardVotesMatch=path.match(/^\/api\/cards\/([^/]+)\/votes$/);
     const cardActionsMatch=path.match(/^\/api\/cards\/([^/]+)\/actions$/);
     const savedCardsMatch=path.match(/^\/api\/reader\/saved\/([^/]+)$/);
     if (profileMatch) routes.set(path,["GET","HEAD"]);
+    if (profileInterestsMatch) routes.set(path,["GET","HEAD"]);
     if (cardVotesMatch) routes.set(path,["GET","HEAD"]);
     if (cardActionsMatch || savedCardsMatch) routes.set(path,["GET","HEAD"]);
     routes.set("/api/cards/vote",["POST"]);
@@ -78,6 +92,16 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       }
       if (!session) throw new ApiError(401,"signInRequired");
       if (profileMatch) { send(200,await readProfile(db,profileMatch[1],session.user_id)); return true; }
+      if (profileInterestsMatch) { send(200,await readPublicReaderInterestPreferences(db,profileInterestsMatch[1])); return true; }
+      if (path === "/api/reader/interests/preferences" && ["GET","HEAD"].includes(request.method)) {
+        send(200,await readReaderInterestPreferences(db,session)); return true;
+      }
+      if (path === "/api/reader/language-preferences" && ["GET","HEAD"].includes(request.method)) {
+        send(200,await readReaderLanguagePreferences(db,session)); return true;
+      }
+      if (path === "/api/reader/practice/discover-availability" && ["GET","HEAD"].includes(request.method)) {
+        send(200,await readDiscoverPracticeAvailability(db,session)); return true;
+      }
       if (path === "/api/reader/daily-status") { send(200,await dailyIdeaStatus(db,session,time)); return true; }
       if (cardVotesMatch) { send(200,await readCardVotes(db,session,decodeURIComponent(cardVotesMatch[1]))); return true; }
       if (cardActionsMatch) { send(200,await readCardActions(db,session,decodeURIComponent(cardActionsMatch[1]))); return true; }
@@ -88,20 +112,41 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         response.setHeader("Set-Cookie",sessionCookie("",secureCookies,true)); send(200,inviteCode === undefined ? {user:null} : {user:null,inviteRequired:true}); return true;
       }
       if (path === "/api/reader/state") { send(200,await readReaderState(db,session,time)); return true; }
-      const input = await readBody(request,path === "/api/feedback" ? 24576 : path.startsWith("/api/author/books") ? 65536 : path.startsWith("/api/author/") ? 32768 : 8192);
+      const input = await readBody(request,path === "/api/reader/book-knowledge/visit" ? MAX_BOOK_KNOWLEDGE_REQUEST_BYTES : path === "/api/feedback" ? 24576 : path.startsWith("/api/author/books") ? 65536 : path.startsWith("/api/author/") ? 32768 : 8192);
       // Re-check after awaiting the body: a concurrent logout/expiry must revoke writes.
       const active = await readSession(db,request,now());
       if (!active) throw new ApiError(401,"signInRequired");
       checkCsrf(active,request.headers["x-csrf-token"]);
       const currentTime = now();
+      if(path === "/api/reader/book-knowledge/visit") { send(200,await recognizeLibraryBookSnapshot(db,active,input)); return true; }
+      if(path === "/api/reader/interests/knowledge/snapshot") { send(200,await captureReaderInterestSnapshot(db,active,input)); return true; }
+      if(path === "/api/reader/interests/knowledge/recognize") { send(200,await saveAndRecognizeReaderInterestSnapshot(db,active,input)); return true; }
       if (path === "/api/reader/practice-answer") { send(200,await savePracticeAnswer(db,active,input,currentTime)); return true; }
       if (path === "/api/reader/practice/start") {
-        const result=await startPracticeSession(db,active,input.topic,currentTime);
+        const result=await startPracticeSession(db,active,input.topic,currentTime,Object.hasOwn(input,"sessionId")?input.sessionId:undefined,input.expectedCost);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
       if (path === "/api/reader/practice/answer") {
         const result=await answerPracticeSession(db,active,input,currentTime);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
+      }
+      if (path === "/api/reader/interests/preferences") {
+        const result=await saveReaderInterestPreferences(db,active,input,currentTime);
+        if (result.conflict) send(409,{error:"preferencesConflict",current:result.current});
+        else send(200,result);
+        return true;
+      }
+      if (path === "/api/reader/interests/initial") {
+        const result=await saveInitialReaderInterestPreferences(db,active,input,currentTime);
+        if (result.conflict) send(409,{error:"preferencesConflict",current:result.current});
+        else send(200,result);
+        return true;
+      }
+      if (path === "/api/reader/language-preferences") {
+        const result=await saveReaderLanguagePreferences(db,active,input);
+        if (result.conflict) send(409,{error:"preferencesConflict",current:result.current});
+        else send(200,result);
+        return true;
       }
       if (path === "/api/feedback") {
         const message=typeof input.message === "string" ? input.message.trim() : "",page=input.page;
@@ -114,14 +159,18 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         send(200,{saved:true,id}); return true;
       }
       if (path === "/api/reader/view") { send(200,await recordCardView(db,active,input,currentTime)); return true; }
+      if (path === "/api/reader/guides") { const result=await submitReadingGuide(db,active,input); send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true; }
       if (path === "/api/cards/vote") { send(200,await setCardVote(db,active,input)); return true; }
-      if (path === "/api/cards/save") { send(200,await setCardSave(db,active,input,currentTime)); return true; }
+      if (path === "/api/cards/save") { send(200,await setCardSave(db,active,input,currentTime,{confirmationEnabled:bookInterestConfirmationEnabled})); return true; }
       if (path === "/api/author/books/autofill") {
         let search=input;
         if (input.bookId !== undefined) {
           const existing=await ownedBookInformation(db,active,input.bookId);
           try { search={...existing,metadata:input.metadata ? mergeOwnedBookMetadata(existing,input.metadata) : existing.metadata}; }
           catch { throw new ApiError(400,"invalidRequest"); }
+          // A historical list is immutable here. Generate missing text under the
+          // current proposal contract, then restore the stored associations below.
+          if (search.metadata.genres.length>MAX_BOOK_INTERESTS) search.metadata={...search.metadata,genres:[]};
         }
         const genres=await db.prepare("SELECT g.id,t.name FROM genres g JOIN genre_translations t ON t.genre_id=g.id WHERE t.language='en' ORDER BY g.id").all();
         const preview=await bookAutofill(active.user_id,search,genres);
@@ -142,13 +191,14 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
           const result=await (path.endsWith("title") ? changeDeckTitle : changeDeckLanguage)(db,active,input);
           send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
         }
-        const result = path === "/api/author/notes" ? await takeFirstNote(db,active,input) : path === "/api/author/decks/finish-notes" ? await finishNoteDecks(db,active,input) : path === "/api/author/decks/finish" ? await finishDeck(db,active,input) : path.endsWith("complete") ? await completeBook(db,active,input) : path.endsWith("books") ? await createBook(db,active,input) : path.endsWith("decks") ? await createDeck(db,active,input) : await addCard(db,active,input);
+        const result = path === "/api/author/notes" ? await takeFirstNote(db,active,input) : path === "/api/author/decks/finish-notes" ? await finishNoteDecks(db,active,input) : path === "/api/author/decks/contributors" ? await addDeckContributors(db,active,input) : path === "/api/author/decks/finish" ? await finishDeck(db,active,input) : path.endsWith("complete") ? await completeBook(db,active,input) : path.endsWith("books") ? await createBook(db,active,input) : path.endsWith("decks") ? await createDeck(db,active,input) : await addCard(db,active,input);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
-      const result = path === "/api/reader/collect" ? await addDeckToCollection(db,active,input.deckId,currentTime) :
+      const result = path === "/api/reader/collect" ? await addDeckToCollection(db,active,input.deckId,currentTime,{confirmation:input.confirmation,confirmationEnabled:bookInterestConfirmationEnabled}) :
+        path === "/api/reader/remove" ? await removeDeckFromCollection(db,active,input.deckId,currentTime) :
         path === "/api/reader/select" ? await selectDeck(db,active,input.deckId,currentTime,{requireCollection:true}) :
         path === "/api/reader/open" ? await openCard(db,active,input.deckId,input.cardId,currentTime,{requireCollection:true}) :
-        path === "/api/reader/reading" ? await changeReading(db,active,input.bookId,input.status,currentTime) :
+        path === "/api/reader/reading" ? await changeReading(db,active,input.bookId,input.status,currentTime,{confirmation:input.confirmation,confirmationEnabled:bookInterestConfirmationEnabled}) :
         path === "/api/reader/preferences" ? await changePreferences(db,active,input,currentTime) : await dailyIdea(db,active,currentTime);
       send(200,result);
     } catch(error) {

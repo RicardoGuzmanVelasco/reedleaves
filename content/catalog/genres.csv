@@ -1,5 +1,8 @@
-id,name_es,name_en
-personal-growth,Crecimiento personal,Personal growth
-finance,Finanzas,Finance
-productivity,Productividad,Productivity
-society,Sociedad,Society
+id,name_es,name_en,emoji,color
+personal-growth,Crecimiento personal,Personal growth,🌱,#AAD57B
+finance,Finanzas,Finance,💰,#EDC566
+productivity,Productividad,Productivity,🎯,#F2937D
+society,Sociedad,Society,🌍,#8EC5EA
+software,Software,Software,💻,#BBC2C9
+mindfulness,Mindfulness,Mindfulness,🧘‍♀️,#F09FCB
+metaphysics,Metafísica,Metaphysics,🔮,#B99AED

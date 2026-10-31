@@ -1,7 +1,8 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 27));
-INSERT INTO reed_schema VALUES (27);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 47));
+INSERT INTO reed_schema VALUES (47);
 
-CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0));
+CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
+  emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '');
 CREATE TABLE genre_translations(
   genre_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
@@ -9,11 +10,13 @@ CREATE TABLE genre_translations(
 );
 CREATE TABLE books(
   id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0), author TEXT NOT NULL CHECK(length(btrim(author)) > 0),
-  original_title TEXT NOT NULL CHECK(length(btrim(original_title)) > 0),
-  original_language TEXT NOT NULL CHECK(length(original_language) BETWEEN 2 AND 35),
+  popular_title TEXT NOT NULL CHECK(length(btrim(popular_title)) > 0),
+  popular_language TEXT NOT NULL CHECK(length(popular_language) BETWEEN 2 AND 35),
   position INTEGER NOT NULL UNIQUE CHECK(position > 0),
   editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft','reviewed')),
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  incorporated_at TIMESTAMPTZ,
+  incorporation_order INTEGER
 );
 CREATE TABLE book_links(
   book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
@@ -23,13 +26,13 @@ CREATE TABLE book_links(
 CREATE TABLE book_translations(
   book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
-  title TEXT NOT NULL CHECK(length(btrim(title)) > 0),
+  title TEXT NOT NULL DEFAULT '',
   description TEXT NOT NULL CHECK(length(btrim(description)) > 0), editorial_note TEXT NOT NULL CHECK(length(btrim(editorial_note)) > 0),
   PRIMARY KEY(book_id,language)
 );
 CREATE TABLE book_genres(
   book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE, genre_id TEXT NOT NULL REFERENCES genres(id),
-  PRIMARY KEY(book_id,genre_id)
+  position INTEGER NOT NULL CHECK(position > 0), PRIMARY KEY(book_id,genre_id), UNIQUE(book_id,position)
 );
 CREATE INDEX book_genres_by_genre ON book_genres(genre_id,book_id);
 CREATE TABLE users(
@@ -37,6 +40,11 @@ CREATE TABLE users(
   can_create_decks SMALLINT NOT NULL DEFAULT 0 CHECK(can_create_decks IN (0,1)), created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);
+CREATE TABLE book_merge_operations(
+  source_book_id TEXT NOT NULL, target_book_id TEXT NOT NULL,
+  PRIMARY KEY(source_book_id,target_book_id), CHECK(source_book_id<>target_book_id)
+);
+ALTER TABLE book_merge_operations ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE accounts(
   user_id TEXT PRIMARY KEY REFERENCES users(id), username TEXT NOT NULL UNIQUE CHECK(length(username) BETWEEN __USERNAME_MIN_LENGTH__ AND __USERNAME_MAX_LENGTH__),
@@ -46,6 +54,100 @@ CREATE TABLE reader_display_preferences (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
   show_original_titles INTEGER NOT NULL CHECK(show_original_titles IN (0,1))
 );
+CREATE TABLE reader_book_sort_preferences (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  sort_order TEXT NOT NULL CHECK(sort_order IN ('recent','alphabetical','interests'))
+);
+ALTER TABLE reader_book_sort_preferences ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_book_sort_preferences FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_book_sort_preferences FROM authenticated; END IF;
+END $$;
+CREATE TABLE reader_interest_preferences (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  interest_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+  preference TEXT NOT NULL CHECK(preference IN ('interested','not_interested')),
+  position INTEGER NOT NULL CHECK(position BETWEEN 1 AND 5),
+  PRIMARY KEY(user_id,interest_id), UNIQUE(user_id,preference,position)
+);
+ALTER TABLE reader_interest_preferences ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_preferences FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_preferences FROM authenticated; END IF;
+END $$;
+CREATE TABLE reader_interest_settings (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  revision INTEGER NOT NULL CHECK(revision > 0),
+  configured_at TIMESTAMPTZ NOT NULL,
+  initial_opportunity_closed_at TIMESTAMPTZ NOT NULL,
+  initial_submission_at TIMESTAMPTZ
+);
+ALTER TABLE reader_interest_settings ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_settings FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_settings FROM authenticated; END IF;
+END $$;
+CREATE TABLE reader_known_interests (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  interest_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+  PRIMARY KEY(user_id,interest_id)
+);
+ALTER TABLE reader_known_interests ENABLE ROW LEVEL SECURITY;
+CREATE TABLE reader_interest_knowledge_visits (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  visit_id TEXT NOT NULL CHECK(length(visit_id)=36),
+  interest_ids TEXT NOT NULL,
+  PRIMARY KEY(user_id,visit_id)
+);
+ALTER TABLE reader_interest_knowledge_visits ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_known_interests,reader_interest_knowledge_visits FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_known_interests,reader_interest_knowledge_visits FROM authenticated; END IF;
+END $$;
+CREATE TABLE reader_interest_reward_claims (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  reward_type TEXT NOT NULL CHECK(reward_type IN ('interested_three','not_interested_three')),
+  currency TEXT NOT NULL CHECK(currency IN ('leaves','petals')),
+  amount BIGINT NOT NULL CHECK(amount > 0),
+  balance_after BIGINT NOT NULL CHECK(balance_after >= amount),
+  granted_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY(user_id,reward_type)
+);
+ALTER TABLE reader_interest_reward_claims ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_reward_claims FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_interest_reward_claims FROM authenticated; END IF;
+END $$;
+CREATE TABLE reader_language_preferences (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  languages TEXT NOT NULL, configured BOOLEAN NOT NULL CHECK(configured IN (FALSE,TRUE)), revision INTEGER NOT NULL CHECK(revision>=0)
+);
+CREATE TABLE reader_known_books (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+  PRIMARY KEY(user_id,book_id)
+);
+ALTER TABLE reader_known_books ENABLE ROW LEVEL SECURITY;
+CREATE TABLE reader_book_knowledge_visits (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  visit_id TEXT NOT NULL CHECK(length(visit_id)=36),
+  book_ids TEXT NOT NULL,
+  PRIMARY KEY(user_id,visit_id)
+);
+ALTER TABLE reader_book_knowledge_visits ENABLE ROW LEVEL SECURITY;
+DO $$BEGIN
+  IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN
+    EXECUTE 'REVOKE ALL ON reader_known_books,reader_book_knowledge_visits FROM anon';
+  END IF;
+  IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN
+    EXECUTE 'REVOKE ALL ON reader_known_books,reader_book_knowledge_visits FROM authenticated';
+  END IF;
+END $$;
+ALTER TABLE reader_language_preferences ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_language_preferences FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_language_preferences FROM authenticated; END IF;
+END $$;
 CREATE TABLE sessions(
   token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
   csrf_token TEXT NOT NULL, expires_at BIGINT NOT NULL
@@ -57,10 +159,32 @@ CREATE TABLE decks(
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35), is_recommended SMALLINT NOT NULL DEFAULT 0 CHECK(is_recommended IN (0,1)),
   status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived')),
   editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft','reviewed')),
+  quote_source_url TEXT CHECK(quote_source_url IS NULL OR (quote_source_url LIKE 'https://%' AND length(btrim(quote_source_url)) BETWEEN 9 AND 2048)),
+  kind TEXT NOT NULL DEFAULT 'standard' CHECK(kind IN ('standard','collective')),
+  contribution_policy TEXT NOT NULL DEFAULT 'owner' CHECK(contribution_policy IN ('owner','open','selected')),
+  max_cards_per_contributor INTEGER CHECK(max_cards_per_contributor IS NULL OR max_cards_per_contributor > 0),
+  CHECK((kind='standard' AND contribution_policy='owner' AND max_cards_per_contributor IS NULL) OR
+        (kind='collective' AND contribution_policy IN ('open','selected'))),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(id,book_id)
 );
 CREATE INDEX decks_by_book ON decks(book_id);
 CREATE UNIQUE INDEX one_recommendation_per_book ON decks(book_id) WHERE is_recommended = 1;
+CREATE FUNCTION reed_team_only_deck_quote_source() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.quote_source_url IS NOT NULL AND NEW.creator_user_id <> 'reed-team' THEN
+    RAISE EXCEPTION 'Only team decks can have a quote source';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER team_only_deck_quote_source BEFORE INSERT ON decks FOR EACH ROW EXECUTE FUNCTION reed_team_only_deck_quote_source();
+CREATE FUNCTION reed_keep_deck_quote_source() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.quote_source_url IS DISTINCT FROM OLD.quote_source_url THEN
+    RAISE EXCEPTION 'Deck quote source is immutable';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER keep_deck_quote_source BEFORE UPDATE OF quote_source_url ON decks FOR EACH ROW EXECUTE FUNCTION reed_keep_deck_quote_source();
 CREATE TABLE deck_translations(
   deck_id TEXT NOT NULL REFERENCES decks(id), language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
   title TEXT NOT NULL CHECK(length(btrim(title)) > 0), description TEXT NOT NULL CHECK(length(btrim(description)) > 0),
@@ -68,8 +192,11 @@ CREATE TABLE deck_translations(
 );
 CREATE TABLE cards(
   id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0), deck_id TEXT NOT NULL, book_id TEXT NOT NULL, parent_id TEXT,
-  position INTEGER NOT NULL CHECK(position > 0), is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)), created_at TIMESTAMPTZ, UNIQUE(id,deck_id),
-  FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id),
+  position INTEGER NOT NULL CHECK(position > 0), is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),
+  is_reading_guide INTEGER NOT NULL DEFAULT 0 CHECK(is_reading_guide IN (0,1)),
+  creator_user_id TEXT REFERENCES users(id), language TEXT NOT NULL DEFAULT 'en' CHECK(length(language) BETWEEN 2 AND 35),
+  created_at TIMESTAMPTZ, UNIQUE(id,deck_id),
+  FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id) ON UPDATE CASCADE,
   FOREIGN KEY(parent_id,deck_id) REFERENCES cards(id,deck_id) DEFERRABLE INITIALLY DEFERRED,
   CHECK(parent_id IS NULL OR parent_id <> id)
 );
@@ -77,6 +204,26 @@ CREATE UNIQUE INDEX root_order ON cards(deck_id,position) WHERE parent_id IS NUL
 CREATE UNIQUE INDEX sibling_order ON cards(deck_id,parent_id,position) WHERE parent_id IS NOT NULL;
 CREATE INDEX cards_by_deck ON cards(deck_id,parent_id,position);
 CREATE INDEX cards_by_note_date ON cards(deck_id,created_at DESC) WHERE created_at IS NOT NULL;
+CREATE INDEX cards_by_creator ON cards(creator_user_id,deck_id);
+CREATE UNIQUE INDEX one_reading_guide_per_contributor ON cards(deck_id,creator_user_id) WHERE is_reading_guide=1;
+CREATE TABLE deck_contributors(
+  deck_id TEXT NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  added_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(deck_id,user_id)
+);
+ALTER TABLE deck_contributors ENABLE ROW LEVEL SECURITY;
+CREATE INDEX deck_contributors_by_user ON deck_contributors(user_id,deck_id);
+CREATE FUNCTION reed_freeze_collective_contributors() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE target_deck TEXT; deck_status TEXT;
+BEGIN
+  target_deck := CASE WHEN TG_OP='DELETE' THEN OLD.deck_id ELSE NEW.deck_id END;
+  SELECT status INTO deck_status FROM decks WHERE id=target_deck;
+  IF deck_status <> 'draft' THEN RAISE EXCEPTION 'Published contributor list is immutable'; END IF;
+  IF TG_OP='DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
+END $$;
+CREATE TRIGGER freeze_collective_contributors BEFORE INSERT OR UPDATE OR DELETE ON deck_contributors
+FOR EACH ROW EXECUTE FUNCTION reed_freeze_collective_contributors();
 CREATE TABLE card_translations(
   card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE, language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
   title TEXT NOT NULL CHECK(length(btrim(title)) > 0), body TEXT NOT NULL CHECK(length(btrim(body)) > 0), PRIMARY KEY(card_id,language)
@@ -122,12 +269,13 @@ CREATE TABLE practice_answers(
 ALTER TABLE practice_answers ENABLE ROW LEVEL SECURITY;
 CREATE TABLE practice_sessions(
   id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
-  topic TEXT NOT NULL CHECK(topic IN ('reading','read','saved','mixed')),
+  topic TEXT NOT NULL CHECK(topic IN ('reading','read','saved','mixed','discover')),
   card_ids TEXT NOT NULL, card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
   cost INTEGER NOT NULL CHECK(cost IN (2,3)), started_at TIMESTAMPTZ NOT NULL, completed_at TIMESTAMPTZ,
-  completed_local_day TEXT CHECK(completed_local_day IS NULL OR (completed_local_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(completed_local_day,'YYYY-MM-DD'),'YYYY-MM-DD') = completed_local_day))
+  completed_local_day TEXT CHECK(completed_local_day IS NULL OR (completed_local_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(completed_local_day,'YYYY-MM-DD'),'YYYY-MM-DD') = completed_local_day)),
+  cancelled_at TIMESTAMPTZ, language_snapshot TEXT
 );
-CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL;
+CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL AND cancelled_at IS NULL;
 ALTER TABLE practice_sessions ENABLE ROW LEVEL SECURITY;
 CREATE TABLE practice_session_cards(
   session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
@@ -177,7 +325,9 @@ BEGIN
   IF (NEW.creator_user_id IS DISTINCT FROM OLD.creator_user_id AND NOT (
     OLD.creator_user_id='reed-team' AND OLD.status='published' AND
     COALESCE((SELECT can_create_decks FROM users WHERE id=NEW.creator_user_id),0)=1
-  )) OR NEW.book_id IS DISTINCT FROM OLD.book_id OR (NEW.language IS DISTINCT FROM OLD.language AND OLD.status <> 'draft') THEN
+  )) OR (NEW.book_id IS DISTINCT FROM OLD.book_id AND NOT EXISTS (
+    SELECT 1 FROM book_merge_operations m WHERE m.source_book_id=OLD.book_id AND m.target_book_id=NEW.book_id
+  )) OR (NEW.language IS DISTINCT FROM OLD.language AND OLD.status <> 'draft') THEN
     RAISE EXCEPTION 'Deck ownership is immutable';
   END IF;
   RETURN NEW;

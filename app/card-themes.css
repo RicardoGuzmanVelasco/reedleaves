@@ -13,6 +13,7 @@
   --card-tab-edge:#95bc69;
   --card-divider:#e1e5d0;
   --card-body-font:Courier,"Courier New",monospace;
+  --card-body-style:normal;
   --card-body-weight:400;
   --card-body-size:clamp(19px,2.3vw,23px);
   --card-body-size-mobile:18px;
@@ -46,10 +47,9 @@
   --card-tab:#cbdced;
   --card-tab-edge:#9ab3cb;
   --card-divider:#cbdced;
-  --card-body-font:"Cormorant Garamond","EB Garamond",Garamond,"Baskerville","Times New Roman",serif;
-  --card-body-weight:300;
-  --card-body-size:clamp(23px,calc(3.3vw - 1px),31px);
-  --card-body-size-mobile:23px;
+  --card-body-font:Courier,"Courier New",monospace;
+  --card-body-style:italic;
+  --card-body-weight:400;
   --card-body-leading:1.65;
   --card-body-align:justify;
   --watermark-opacity:.13;
@@ -62,4 +62,31 @@
   --actions-ribbon-shadow:#c1d4e8;
   --actions-ribbon-saved:#d8e7f6;
   --actions-accent:#5c87ab;
+}
+.reading-stage[data-card-type="reading-guide"] {
+  --card-paper-start:#fff8ef;
+  --card-paper-end:#fbd6b3;
+  --card-edge:#d88b4b;
+  --card-shadow:#e8b17f;
+  --card-shadow-rgb:180 97 38;
+  --card-layer-back:#f5bb8a;
+  --card-layer-front:#ffe1c3;
+  --card-layer-edge:#df9b61;
+  --card-tab:#ffdfbd;
+  --card-tab-edge:#dc9c65;
+  --card-divider:#f2c9a6;
+  --card-body-font:inherit;
+  --card-body-leading:1.65;
+  --card-body-size:clamp(18px,2.1vw,22px);
+  --card-body-size-mobile:17px;
+  --watermark-ink:#c47738;
+  --watermark-opacity:.16;
+  --actions-ink:#b66a32;
+  --actions-edge:#deaa7d;
+  --actions-counter:#9b5428;
+  --actions-surface:#ffe7d0;
+  --actions-shadow:#edbc93;
+  --actions-ribbon:#fff8ef;
+  --actions-ribbon-shadow:#edbc93;
+  --actions-ribbon-saved:#ffd9b5;
 }
