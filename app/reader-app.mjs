@@ -4,6 +4,7 @@ import {createDiscoverAvailability} from "./discover-availability.mjs";
 import {startBottomNavigationBehavior} from "./bottom-navigation-behavior.mjs";
 import {mountDeckPresentation} from "./deck-presentation.mjs";
 import {deckPageHash,deckReadingHash,deckShareUrl} from "./deck-navigation.mjs";
+import {coverTintMode,mountBookCoverTints} from "./book-cover-tint.mjs";
 import {mountInterests,syncBookInterestSelector} from "./interests.mjs";
 import {bookInterestError,selectBookInterest} from "./book-interests.mjs";
 import {callout} from "./callout.mjs";
@@ -54,6 +55,7 @@ export function startReader({createCardFeatures} = {}) {
   const presentReading = createReadingArrival();
   const practicePresentation = createPracticePresentation({presentReading});
   let language = restoreLanguage(store.read(keys.language)), catalog, catalogIsFull=false,homeBooksUserId=null,homeBooksData=[],homeBooksRequest=null,fullCatalogRequest=null,snapshot = {user:null}, budget, preferences, statuses, daily, dailyHistory=[],dailyStatus=null,dailyStatusRequest=null,dailyStatusGeneration=0,dailySeenDays=new Set(),dailyLoading=false, selectedDailyDay=null, dailyExclusiveCardId=null, calendarMonth=null,calendarNavFocus=null,bookId, deckId, requestedId, selections, enrolledIds;
+  let tintMode=coverTintMode(store.read(keys.coverTint)),homeCoverInterests=[];
   let bookSortOrder=validVisitorBookSortOrder(store.read(keys.visitorBookSort))?store.read(keys.visitorBookSort):"recent";
   let librarySortOrder=bookSortOrder,interestPreferences=null,interestPreferencesRequest=null,libraryInterestSortPending=false,libraryInterestSortError=false,libraryInterestSortGeneration=0;
   const interestSortLoginIntent=createInterestSortLoginIntent();
@@ -226,8 +228,10 @@ export function startReader({createCardFeatures} = {}) {
     if(homeBooksRequest)return homeBooksRequest;
     const request=Promise.all([
       api.request("/api/reader/balances",undefined,{queueKey:"reader-balances"}),
-      loadHomeBooks()
-    ]).then(([balances,home])=>{
+      loadHomeBooks(),
+      loadInterests().catch(()=>({genres:[]}))
+    ]).then(([balances,home,interests])=>{
+      homeCoverInterests=interests.genres;
       if(snapshot.user?.id!==userId)return;
       catalog=null;catalogIsFull=false;homeBooksUserId=userId;homeBooksData=home.books;
       const homeStatuses=Object.fromEntries(home.books.map(book=>[book.id,book.status||"unread"]));
@@ -295,6 +299,9 @@ export function startReader({createCardFeatures} = {}) {
     document.title = pageTitle(["card","quote"].includes(authorForm?.kind) ? c.takeNote : mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.books : mode === "bookshelf" ? c.bookcase : mode === "public-bookshelf" ? c.shelf : mode === "profile" ? c.profile : mode === "daily" ? c.daily : mode === "practice" ? c.practice : mode === "saved" ? c.savedCards : ["guides","guide-preview"].includes(mode) ? c.readingGuides : mode === "book" ? c.chooseDeck : mode === "preview" ? c.deckPeekPage : mode === "review" ? c.viewDeck : mode === "mascots" ? c.mascots : mode === "author" ? c.manageDeck : c.review);
     document.querySelector(".skip-link").textContent = c.skip;
     for (const [id,text] of [["settings-title",c.settings],["language-label",c.language]]) document.getElementById(id).textContent = text;
+    for(const [id,text] of [["cover-tint-label",c.coverTint],["cover-tint-off",c.coverTintOff],["cover-tint-mono",c.coverTintMono],["cover-tint-poly",c.coverTintPoly]]) document.getElementById(id).textContent=text;
+    settings.querySelectorAll('[name="cover-tint"]').forEach(input=>{input.checked=input.value===tintMode;input.setAttribute("aria-describedby","cover-tint-hint");});
+    document.getElementById("cover-tint-hint").textContent=c[{off:"coverTintHintOff",mono:"coverTintHintMono",poly:"coverTintHintPoly"}[tintMode]];
     document.getElementById("open-settings").setAttribute("aria-label",c.settings); document.getElementById("close-settings").setAttribute("aria-label",c.closeSettings);
     document.getElementById("open-feedback").textContent=c.feedback;
     document.getElementById("feedback-title").textContent=c.feedback;
@@ -416,6 +423,7 @@ export function startReader({createCardFeatures} = {}) {
     main.innerHTML = (syncError ? callout({variant:"error",role:"alert",className:"sync-note",content:`<p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p>`,actions:`<button class="text-button" type="button" data-action="sync">${words[language].refresh}</button>`}) : "") +
       (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "bookshelf" ? bookshelfView(state) : mode === "public-bookshelf" ? (profileData ? bookshelfView(state) : profilePendingView(state))+(profileData&&profileTransition==="wake"?profileWakeOverlayView():"") : mode === "profile-loading-preview" ? profilePendingView(state) : mode === "profile" ? profileView(state)+(profileTransition==="wake"?profileWakeOverlayView():"") : mode === "daily" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "guides" ? readingGuidesView(state) : mode === "guide-preview" ? readingGuideDeckPreviewView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "") + bookInterestWarningView(state);
     mountInterests(main);
+    mountBookCoverTints(main,[...(catalog?.books||[]),...homeBooksData],catalog?.genres||homeCoverInterests,tintMode);
     for(const option of main.querySelectorAll('[data-action="practice-topic"]')) {
       const release=()=>option.classList.remove("is-pressed");
       option.addEventListener("pointerdown",event=>{if(event.button===0&&!option.disabled)option.classList.add("is-pressed");});
@@ -1677,6 +1685,12 @@ export function startReader({createCardFeatures} = {}) {
     const target="#profile/"+encodeURIComponent(snapshot.user.id);
     navigate(target);
   }
+  settings.addEventListener("change",event=>{
+    if(event.target.name!=="cover-tint")return;
+    tintMode=coverTintMode(event.target.value);store.save(keys.coverTint,tintMode);
+    mountBookCoverTints(main,[...(catalog?.books||[]),...homeBooksData],catalog?.genres||homeCoverInterests,tintMode);
+    header();
+  });
   document.getElementById("open-settings").addEventListener("click",()=>showAppModal(settings));
   document.getElementById("close-settings").addEventListener("click",()=>settings.close());
   const growthFeedbackDialog=document.getElementById("growth-feedback");
@@ -1713,7 +1727,7 @@ export function startReader({createCardFeatures} = {}) {
     if (action === "logout" && !busy) await mutation("/api/auth/logout",{},()=>{ settings.close(); pendingDeck = null;pendingIntent=null; authReturn = "#home"; navigate("#home"); });
   });
   main.addEventListener("toggle",e=>{ if (e.target.classList?.contains("library-filters")) libraryFiltersOpen=e.target.open; },true);
-  function updateBookSearch() { disposeBookLists(); main.querySelector("#book-search-results").innerHTML = libraryResultsMarkup({catalog,language,libraryQuery,libraryFilters,bookViews,bookSortOrder,librarySortOrder,interestPreferences,libraryInterestSortPending,libraryInterestSortError,libraryNewBookIds,statuses,userId:snapshot.user?.id}); disposeBookLists=mountBookLists(main); main.querySelector("[data-book-search] button").hidden = !libraryQuery; live.textContent = words[language].searchResults(filterLibrary(catalog,libraryQuery,libraryFilters,librarySortOrder,language,interestPreferences).length); }
+  function updateBookSearch() { disposeBookLists(); main.querySelector("#book-search-results").innerHTML = libraryResultsMarkup({catalog,language,libraryQuery,libraryFilters,bookViews,bookSortOrder,librarySortOrder,interestPreferences,libraryInterestSortPending,libraryInterestSortError,libraryNewBookIds,statuses,userId:snapshot.user?.id}); mountBookCoverTints(main,[...(catalog?.books||[]),...homeBooksData],catalog?.genres||homeCoverInterests,tintMode); disposeBookLists=mountBookLists(main); main.querySelector("[data-book-search] button").hidden = !libraryQuery; live.textContent = words[language].searchResults(filterLibrary(catalog,libraryQuery,libraryFilters,librarySortOrder,language,interestPreferences).length); }
   async function loadInterestPreferencesForSort(userId) {
     if(!userId)return null;
     if(interestPreferences?.userId===userId)return interestPreferences;
