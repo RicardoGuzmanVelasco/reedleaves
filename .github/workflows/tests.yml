@@ -85,4 +85,12 @@ jobs:
       - name: Fast-forward main to the tested commit
         run: git push origin "$TESTED_SHA:refs/heads/main"
       - name: Publish a main-branch check for Render
-        run: gh workflow run render-check.yml --ref main -f tested_sha="$TESTED_SHA"
+        run: |
+          for attempt in {1..12}; do
+            if gh workflow run render-check.yml --ref main -f tested_sha="$TESTED_SHA"; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 12 ]; then sleep 5; fi
+          done
+          echo "::error::Could not start the main-branch production check."
+          exit 1
