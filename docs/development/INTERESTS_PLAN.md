@@ -79,7 +79,7 @@ Rutas principales a contrastar al ejecutar: `app/interests.mjs`, `app/book-metad
 
 ### Flujo inicial y premios
 
-- Al llegar a Inicio con sesión y sin preferencias configuradas, abrir un flujo obligatorio de dos pasos. Los visitantes conservan el acceso actual a registro y exploración; no se inventa un onboarding de invitado.
+- Con sesión y sin preferencias configuradas, abrir un flujo obligatorio de dos pasos cuando esté preparado. Consultar los datos en segundo plano, sin bloquear ni redirigir la navegación mientras se cargan; el selector puede aparecer sobre la pantalla actual. Los visitantes conservan el acceso actual a registro y exploración; no se inventa un onboarding de invitado.
 - Paso 1: «Marca cuáles te interesan especialmente». Necesita al menos uno para continuar.
 - Paso 2: «Marca cuáles no te interesan en absoluto». Marcar alguno es opcional; explicar su utilidad para centrar recomendaciones y repasos y que podrá cambiarlo después. No prometer efectos nuevos sobre notas que este plan no define.
 - Apariencia coherente con Repasar: fondo compartido y lenguaje expresivo del proyecto, con controles accesibles y navegación táctil. Permitir volver al primer paso antes de guardar.

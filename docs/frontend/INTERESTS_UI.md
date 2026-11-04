@@ -48,6 +48,7 @@ Las medidas, composición y referencias de componentes indicadas aquí son guía
 
 ## 22 · Flujo inicial obligatorio
 
+- Consultar preferencias y preparar las opciones en segundo plano, sin mostrar «Abriendo…» ni redirigir o bloquear la navegación. Si falta la selección inicial, mostrar el selector cuando esté listo y haya terminado la apertura, sobre la pantalla actual. El selector sigue siendo obligatorio una vez abierto.
 - Dos pasos sobre el fondo compartido de Repasar. Jerarquía: progreso, instrucción, selector, incentivo y navegación. El título puede envolver en ES/EN; no forzar una línea que recorte texto.
 - Variante expresiva: emojis grandes, nombres completos y marcador reservado. Guía: dos columnas donde quepan y una en móvil estrecho. Cada casilla conserva su posición al interactuar. Permitir scroll y adaptar altura al texto.
 - Paso 1 necesita al menos uno. El incentivo de hojas aparece desde la primera selección. Paso 2 permite cero; el incentivo de pétalos aparece desde cero. Mantener la explicación funcional aprobada y el regreso al primer paso.

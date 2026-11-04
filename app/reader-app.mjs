@@ -39,12 +39,10 @@ import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,
 import {hasAccessibleReadingGuide,hasOwnReadingGuide,shouldShowReadingGuidePrompt,shouldOfferReadingGuideCreationPrompt} from "./reading-guide-prompt.mjs";
 import {requestConfirmedMutation,requestPendingDeckIntent} from "./confirmed-mutation.mjs";
 import {createReadingInterestWarningFlow} from "./reading-interest-warning.mjs";
-import {newInterestRouteRedirect} from "./new-interest-routing.mjs";
 import {mountNewInterests} from "./new-interests-ui.mjs";
 import {mountInitialInterests} from "./initial-interests-ui.mjs";
 import {createCurrencyReceiptPresentation,pulseCurrencyWallet} from "./currency-receipt.mjs";
 import {createInitialInterestCompletion} from "./initial-interest-completion.mjs";
-import {initialInterestRouteRedirect} from "./initial-interest-routing.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -74,7 +72,7 @@ export function startReader({createCardFeatures} = {}) {
   let deckLanguageError=null,deckTitleEdit=null,deckContributorError=null,deckContributorInput="";
   let profileId=null,profileData=null,profileError=null,profileReturnHash="#home",profileRequest=null,profileGeneration=0,profileInterests=null,profileLanguages=null,profileLoadingWasShown=false,profileTransition=null;
   let homeInterestPreferences=null,homeInterestPreferencesUserId=null,homeInterestPreferencesRequest=null,homeInterestPreferencesGeneration=0;
-  let pendingInitialInterestReturn=null;
+  let initialInterestSetupRequest=null,openingOverlayFinished=Promise.resolve();
   const recordedViews=new Set(),pendingViews=new Set();
   let albumPosition = null;
   let pendingSavedFocus = null;
@@ -89,7 +87,7 @@ export function startReader({createCardFeatures} = {}) {
   function syncModalPageLock(){setModalPageLock(!!document.querySelector("dialog[open]"));}
   function showAppModal(dialog){if(!dialog.open)dialog.showModal();setModalPageLock(true);dialog.addEventListener("close",syncModalPageLock,{once:true});}
   const initialInterestHost=document.createElement("div");initialInterestHost.id="initial-interest-host";document.body.append(initialInterestHost);
-  let initialInterestStatus=null,displayedCurrency=null;
+  let displayedCurrency=null;
   const currencyReceipt=createCurrencyReceiptPresentation({
     readCurrent:()=>snapshot.user?{userId:snapshot.user.id,leaves:budget?.balance,petals:snapshot.petals}:null,
     onDisplay:value=>{displayedCurrency=snapshot.user?{userId:snapshot.user.id,...value}:null;header();},
@@ -99,7 +97,7 @@ export function startReader({createCardFeatures} = {}) {
   const completeInitialInterestSave=createInitialInterestCompletion({readSession:()=>api.request("/api/reader/state"),isCurrent:userId=>snapshot.user?.id===userId,applySession:applyState,presentReceipt:receipt=>currencyReceipt.present(receipt),applyReceiptBalances:applyInitialReceiptBalances});
   const initialInterests=mountInitialInterests({host:initialInterestHost,language,showModal:dialog=>showAppModal(dialog),onUnmount:syncModalPageLock,store,request:(path,body)=>api.request(path,body),onComplete:(result,userId)=>{void finishInitialInterests(result,userId);},onSessionExpired:userId=>{
     if(snapshot.user?.id!==userId)return;
-    applyState({user:null});initialInterestStatus=null;authReturn="#home";mode="account";navigate("#account");
+    applyState({user:null});authReturn="#home";mode="account";navigate("#account");
   }});
   const profileInterestHost=document.createElement("div");profileInterestHost.id="profile-interest-host";document.body.append(profileInterestHost);
   const focusProfileInterestEdit=()=>main.querySelector('[data-action="edit-profile-interests"]')?.focus({preventScroll:true});
@@ -115,18 +113,16 @@ export function startReader({createCardFeatures} = {}) {
   const newInterests=mountNewInterests({host:newInterestHost,language,showModal:showAppModal,onUnmount:syncModalPageLock,store,request:(path,body)=>api.request(path,body),loadCatalog:async()=>({genres:(await loadInterests()).genres}),onComplete:(result,userId)=>{
     if(snapshot.user?.id!==userId)return;
     if(result?.state){homeInterestPreferences=result.state;homeInterestPreferencesUserId=userId;interestPreferences={...result.state,userId};}
-    if(mode==="home")render({focus:!!result});
+    if(mode==="home"&&result)render({focus:true});
+    else if(mode!=="home")newInterests.dispose();
   },onSessionExpired:userId=>{if(snapshot.user?.id!==userId)return;applyState({user:null});authReturn="#home";mode="account";navigate("#account");}});
   function checkNewInterests(){if(mode==="home"&&snapshot.user&&homeInterestPreferencesUserId===snapshot.user.id&&homeInterestPreferences?.configured)void newInterests.open({userId:snapshot.user.id,preferences:homeInterestPreferences});}
   async function finishInitialInterests(result,userId){
     if(snapshot.user?.id!==userId)return;
-    initialInterestStatus=null;
     if(result?.state?.configured){homeInterestPreferences=result.state;homeInterestPreferencesUserId=userId;}
     const completion=await completeInitialInterestSave({result,userId});
     if(!completion.completed)return;
     if(mode==="home")render();
-    const destination=pendingInitialInterestReturn;pendingInitialInterestReturn=null;
-    if(destination&&destination!=="#home")navigate(destination);
   }
   function applyInitialReceiptBalances(receipt,userId){
     if(snapshot.user?.id!==userId)return;
@@ -138,12 +134,6 @@ export function startReader({createCardFeatures} = {}) {
     }
     snapshot={...snapshot,...(wallet?{wallet}:{}),...(Number.isSafeInteger(petals)?{petals}:{})};refreshState();
   }
-  function showInitialInterestStatus(kind){
-    initialInterestStatus=kind;
-    initialInterestHost.innerHTML=`<dialog class="initial-interests-modal initial-interest-status" closedby="none" aria-label="${escapeHtml(kind==="error"?words[language].connectionError:words[language].loading)}"><p role="${kind==="error"?"alert":"status"}">${escapeHtml(kind==="error"?words[language].connectionError:words[language].loading)}</p>${kind==="error"?`<button type="button" class="primary" data-initial-status-retry>${words[language].retry}</button>`:""}</dialog>`;
-    const dialog=initialInterestHost.firstElementChild;dialog.addEventListener("cancel",event=>event.preventDefault());showAppModal(dialog);
-  }
-  initialInterestHost.addEventListener("click",event=>{if(event.target.closest("[data-initial-status-retry]"))void loadHomeInterestPreferences(true);});
   function confirmSavedCard(result,userId){
     if(snapshot.user?.id!==userId)return;
     snapshot={...snapshot,cardSaves:updateSavedReferences(snapshot.cardSaves||[],result),...(result.saved?{statuses:{...snapshot.statuses,[result.bookId]:snapshot.statuses?.[result.bookId]||"unread"},shelfBookIds:[...new Set([...(snapshot.shelfBookIds||[]),result.bookId])]}:{})};refreshState();
@@ -193,7 +183,7 @@ export function startReader({createCardFeatures} = {}) {
       practiceStartRequest=null;
       practiceAnswerRequest=null;
       interestPreferences=null;interestPreferencesRequest=null;
-      displayedCurrency=null;newInterests.dispose();initialInterests.dispose();profileInterestEditor.dispose();initialInterestStatus=null;
+      displayedCurrency=null;newInterests.dispose();initialInterests.dispose();profileInterestEditor.dispose();
       libraryInterestSortGeneration++;libraryInterestSortPending=false;libraryInterestSortError=false;
     }
     authoritativeStateGeneration++;
@@ -391,8 +381,10 @@ export function startReader({createCardFeatures} = {}) {
         if(typeof previous?.time==="number")animation.currentTime=previous.time;
       }
       const overlay=openingOverlay;
+      let resolveOpeningOverlay;
+      openingOverlayFinished=new Promise(resolve=>{resolveOpeningOverlay=resolve;});
       requestAnimationFrame(()=>{
-        const finish=()=>{overlay.remove();if(openingOverlay===overlay)openingOverlay=null;};
+        const finish=()=>{overlay.remove();if(openingOverlay===overlay)openingOverlay=null;resolveOpeningOverlay();};
         if(matchMedia("(prefers-reduced-motion: reduce)").matches){finish();return;}
         overlay.classList.add("is-opening-exiting");
         // Scale is independent of the flight's transform, so departure continues
@@ -523,7 +515,6 @@ export function startReader({createCardFeatures} = {}) {
     scrollToCard = false;
   }
   function route(focus = true) {
-    if(newInterestRouteRedirect({userId:snapshot.user?.id,flow:newInterests.state,hash:location.hash})){history.replaceState(history.state,"","#home");return;}
     const requestedHome=!location.hash||location.hash==="#home";
     if(ready&&snapshot.user&&!catalogIsFull&&(requestedHome?homeBooksUserId!==snapshot.user.id: true)){
       const request=requestedHome?ensureHomeData():ensureFullCatalog();
@@ -628,12 +619,7 @@ export function startReader({createCardFeatures} = {}) {
       }
       if (mode === "home" && !snapshot.user) { pendingDeck = null; authReturn = "#home"; }
     }
-    const interestRedirect=initialInterestRouteRedirect({userId:snapshot.user?.id,mode,preferencesUserId:homeInterestPreferencesUserId,preferences:homeInterestPreferences,hash:location.hash});
-    if(interestRedirect){
-      if(interestRedirect.destination!=="#home")pendingInitialInterestReturn ||= interestRedirect.destination;
-      history.replaceState(history.state,"",interestRedirect.route);mode="home";openDeckId=null;openBookId=null;requestedId=null;
-    }
-    if(mode!=="home")newInterests.dispose();
+    if(mode!=="home"&&!newInterests.state)newInterests.dispose();
     if(mode!=="profile"||profileId!==snapshot.user?.id)profileInterestEditor.dispose();
     const enteredLibrary=mode==="library"&&!libraryVisitId;
     if(!inLibraryVisit(mode,bookOrigin)) { libraryVisitId=null;libraryNewBookIds=[]; }
@@ -642,7 +628,8 @@ export function startReader({createCardFeatures} = {}) {
     if(shouldLoadInterestPreferences({mode,order:bookSortOrder==="interests"?"interests":librarySortOrder,userId:snapshot.user?.id,preferences:interestPreferences}))void activateInterestSort({persist:false});
     if(returningFromGuidePreview)finishGuidePreviewReturn(returningFromGuidePreview);
     if(snapshot.user&&!dailyStatus)void refreshDailyStatus();
-    if (mode === "home" && snapshot.user) { void refreshDailyStatus(); void loadHomeInterestPreferences(); }
+    if(mode==="home"&&snapshot.user)void refreshDailyStatus();
+    if(snapshot.user)void loadHomeInterestPreferences();
     if (focus && ["library","bookshelf"].includes(mode) && listPositions[mode] && !openBookId && !authorForm) {
       window.scrollTo({top:listPositions[mode].scrollY});
       [...main.querySelectorAll('[data-action="open-book-details"]')].find(b=>b.dataset.book === listPositions[mode].bookId)?.focus({preventScroll:true});
@@ -713,47 +700,49 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function loadHomeInterestPreferences() {
     const userId=snapshot.user?.id;
-    if(!userId){initialInterests.dispose();initialInterestStatus=null;return;}
+    if(!userId)return;
     if(homeInterestPreferencesUserId===userId&&homeInterestPreferences){
-      if(homeInterestPreferences.configured||homeInterestPreferences.initialOpportunityClosed){const destination=pendingInitialInterestReturn;pendingInitialInterestReturn=null;if(destination&&destination!=="#home")navigate(destination);else checkNewInterests();}
-      else if(mode==="home")await openInitialInterestSetup(userId,homeInterestPreferences);
+      if(homeInterestPreferences.configured||homeInterestPreferences.initialOpportunityClosed){
+        await openingOverlayFinished;
+        if(snapshot.user?.id===userId)checkNewInterests();
+      }else await openInitialInterestSetup(userId,homeInterestPreferences);
       return;
     }
-    if(homeInterestPreferencesUserId===userId&&homeInterestPreferencesRequest){if(mode==="home")showInitialInterestStatus("loading");return;}
+    if(homeInterestPreferencesUserId===userId&&homeInterestPreferencesRequest)return;
     const generation=++homeInterestPreferencesGeneration;
     homeInterestPreferencesUserId=userId;
-    if(mode==="home")showInitialInterestStatus("loading");
     const request=api.request("/api/reader/interests/preferences");
     homeInterestPreferencesRequest=request;
     try {
       const result=await request;
       if(generation!==homeInterestPreferencesGeneration||snapshot.user?.id!==userId)return;
       homeInterestPreferences=result;
-      initialInterestStatus=null;
-      if(mode==="home"){
-        if(result.configured||result.initialOpportunityClosed){initialInterestStatus=null;initialInterests.dispose();const destination=pendingInitialInterestReturn;pendingInitialInterestReturn=null;if(destination&&destination!=="#home"){navigate(destination);return;}checkNewInterests();}
-        else await openInitialInterestSetup(userId,result);
-        render();
-      } else if(initialInterestHost.firstElementChild?.classList.contains("initial-interest-status")){
-        initialInterestHost.replaceChildren();syncModalPageLock();
-      }
+      if(result.configured||result.initialOpportunityClosed){
+        initialInterests.dispose();
+        await openingOverlayFinished;
+        if(generation===homeInterestPreferencesGeneration&&snapshot.user?.id===userId)checkNewInterests();
+      }else await openInitialInterestSetup(userId,result);
     } catch(error) {
       if(generation!==homeInterestPreferencesGeneration||snapshot.user?.id!==userId)return;
       homeInterestPreferences=null;homeInterestPreferencesUserId=null;
-      if(error.status===401){initialInterestStatus=null;applyState({user:null});authReturn="#home";mode="account";navigate("#account");return;}
-      if(mode==="home")showInitialInterestStatus("error");
-      else if(initialInterestHost.firstElementChild?.classList.contains("initial-interest-status")){initialInterestStatus=null;initialInterestHost.replaceChildren();syncModalPageLock();}
+      if(error.status===401){applyState({user:null});authReturn="#home";mode="account";navigate("#account");}
     } finally {
       if(homeInterestPreferencesRequest===request)homeInterestPreferencesRequest=null;
     }
   }
   async function openInitialInterestSetup(userId,preferences){
-    try{
-      const interests=await loadInterests();
-      if(mode==="home"&&snapshot.user?.id===userId)initialInterests.open({userId,catalog:interests,preferences});
-    }catch{
-      if(mode==="home"&&snapshot.user?.id===userId)showInitialInterestStatus("error");
-    }
+    if(initialInterests.state?.userId===userId)return;
+    if(initialInterestSetupRequest?.userId===userId&&initialInterestSetupRequest.generation===homeInterestPreferencesGeneration)return initialInterestSetupRequest.promise;
+    const generation=homeInterestPreferencesGeneration;
+    const promise=(async()=>{
+      try{
+        const interests=await loadInterests();
+        await openingOverlayFinished;
+        if(generation===homeInterestPreferencesGeneration&&snapshot.user?.id===userId&&!initialInterests.state&&homeInterestPreferencesUserId===userId&&!homeInterestPreferences?.configured&&!homeInterestPreferences?.initialOpportunityClosed)initialInterests.open({userId,catalog:interests,preferences});
+      }catch{ /* Retry on the next navigation; the reader can continue meanwhile. */ }
+    })();
+    initialInterestSetupRequest={userId,generation,promise};
+    try{await promise;}finally{if(initialInterestSetupRequest?.promise===promise)initialInterestSetupRequest=null;}
   }
   async function saveProfileLanguages() {
     if(!profileLanguages?.editing||profileLanguages.saving||!profileLanguages.draft?.length)return;

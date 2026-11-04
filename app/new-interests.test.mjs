@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {newInterestRouteRedirect} from "./new-interest-routing.mjs";
 import {createNewInterestFlow} from "./new-interests.mjs";
 import {newInterestsView} from "./new-interests-ui.mjs";
 import {createBrowserStore,storageKeys} from "./storage.mjs";
@@ -47,8 +46,29 @@ test("Network save failure retains the exact draft for retry",async()=>{
   let fail=true;const {flow,open,store}=setup({request:async()=>{if(fail)throw new Error('network');return {state:prefs};}});await open();flow.toggle('i6','interested');flow.next();await flow.save();assert.equal(flow.state.error,'profileInterestSaveError');assert.deepEqual(store.read(storageKeys.newInterests('reader')).draft.interested,['i0','i1','i6']);fail=false;await flow.save();assert.equal(flow.state,null);
 });
 
-test("An already presented batch stays in Home on browser Back and direct navigation",async()=>{
-  const {flow,open}=setup();await open();for(const hash of ["#practice","#library","#profile/reader"]){assert.equal(newInterestRouteRedirect({userId:"reader",flow:flow.state,hash}),true);}assert.equal(newInterestRouteRedirect({userId:"reader",flow:flow.state,hash:"#home"}),false);assert.equal(newInterestRouteRedirect({userId:"other",flow:flow.state,hash:"#library"}),false);flow.next();await flow.save();assert.equal(newInterestRouteRedirect({userId:"reader",flow:flow.state,hash:"#library"}),false);
+test("Discovering new interests leaves navigation unblocked until the actual chooser is ready",async()=>{
+  let resolveSnapshot,resolveCatalog;
+  const snapshot=new Promise(resolve=>{resolveSnapshot=resolve;}),catalogRequest=new Promise(resolve=>{resolveCatalog=resolve;});
+  const values=new Map(),store=createBrowserStore(()=>({getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)}));
+  const flow=createNewInterestFlow({store,request:()=>snapshot,loadCatalog:()=>catalogRequest,createVisitId:()=>"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"});
+  const loading=flow.open({userId:"reader",preferences:prefs});
+  assert.equal(flow.state.blocking,false);
+  resolveSnapshot({newInterestIds:["i6"]});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(flow.state.blocking,false);
+  resolveCatalog(catalog);
+  await loading;
+  assert.equal(flow.state.ready,true);
+  assert.equal(flow.state.blocking,true);
+});
+test("A failed background check without known new interests leaves no modal and can retry",async()=>{
+  const values=new Map(),store=createBrowserStore(()=>({getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)}));
+  let calls=0;
+  const flow=createNewInterestFlow({store,request:async()=>{if(!calls++)throw new Error("offline");return {newInterestIds:["i6"]};},loadCatalog:async()=>catalog,createVisitId:()=>"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"});
+  await flow.open({userId:"reader",preferences:prefs});
+  assert.equal(flow.state,null);
+  await flow.open({userId:"reader",preferences:prefs});
+  assert.equal(flow.state.ready,true);
 });
 test("Moving the last interesting interest blocks save and keeps the draft recoverable",async()=>{
   const {flow,open,calls}=setup({ids:["i6"],preferences:{...prefs,interested:["i6"],notInterested:[]}});await open();flow.next();flow.toggle("i6","notInterested");assert.equal((await flow.save()).saved,false);assert.equal(calls.length,1);flow.back();flow.toggle("i6","interested");flow.next();await flow.save();assert.equal(calls.length,2);

@@ -9,7 +9,7 @@ export function newInterestsView({flow,language}) {
   const c=words[language],second=flow.draft.step===2,kind=second?"notInterested":"interested",selected=flow.draft[kind],title=!flow.ids?.length?c.profileInterests:c[flow.ids?.length===1?"newInterestTitle":"newInterestsTitle"];
   const heading=`<h1 id="new-interests-title" tabindex="-1">${title}</h1>`;
   const shell=content=>`<dialog class="initial-interests-modal new-interests-modal" closedby="none" aria-labelledby="new-interests-title"><form data-new-interest-form aria-busy="${!!flow.saving}">${content}</form></dialog>`;
-  if(!flow.ready)return shell(`${heading}<p role="${flow.error?"alert":"status"}">${flow.error?c.connectionError:c.loading}</p>${flow.error?`<button class="primary" type="button" data-new-action="retry">${c.retry}</button>`:""}`);
+  if(!flow.ready)return shell(`${heading}${flow.error?`<p role="alert">${c.connectionError}</p><button class="primary" type="button" data-new-action="retry" ${flow.saving?"disabled":""}>${c.retry}</button>`:""}`);
   const interest=id=>flow.catalog.genres.find(item=>item.id===id);
   const row=(id,index,action)=>{const item=interest(id);return item?`<li><span class="new-interest-context-number">${index+1}</span>${interestIcon(item)}<span>${esc(item.name[language])}</span>${action?`<button class="text-button" type="button" data-new-action="${action}" data-id="${esc(id)}" data-kind="${kind}" ${flow.saving?"disabled":""}>${action==="replace"?c.newInterestReplace:c.newInterestRemove}</button>`:""}</li>`:"";};
   const context=selected.map((id,index)=>({id,index})).filter(({id})=>!flow.ids.includes(id));

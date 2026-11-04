@@ -13,12 +13,12 @@ export function createNewInterestFlow({store,request,loadCatalog,createVisitId=(
   async function load() {
     if(!state||state.saving)return;
     const token=generation,userId=state.userId;
-    state={...state,saving:true,error:null};notify();
+    state={...state,saving:true,error:state.blocking?state.error:null};notify();
     try {
       const snapshot=await request("/api/reader/interests/knowledge/snapshot",{visitId:state.visitId});
       if(!current(token,userId))return;
       if(!snapshot.newInterestIds.length)return finish(null);
-      state={...state,ids:snapshot.newInterestIds,blocking:true};persist();notify();
+      state={...state,ids:snapshot.newInterestIds,blocking:false};persist();notify();
       const catalog=await loadCatalog();
       if(!current(token,userId))return;
       const ids=snapshot.newInterestIds.filter(id=>catalog.genres.some(item=>item.id===id));
@@ -26,11 +26,12 @@ export function createNewInterestFlow({store,request,loadCatalog,createVisitId=(
       const available=new Set(catalog.genres.map(item=>item.id)),used=new Set();
       const draft={step:state.draft.step};
       for(const kind of kinds)draft[kind]=state.draft[kind].filter(id=>available.has(id)&&!used.has(id)&&used.add(id));
-      state={...state,catalog,ids,draft,saving:false,ready:true};persist();notify();
+      state={...state,catalog,ids,draft,saving:false,ready:true,blocking:true};persist();notify();
     } catch(error) {
       if(!current(token,userId))return;
+      if(error.status===401){onSessionExpired(userId);return;}
+      if(!state.ids.length){state=null;visitedUser=null;notify();return;}
       state={...state,saving:false,blocking:true,error:"connectionError"};notify();
-      if(error.status===401)onSessionExpired(userId);
     }
   }
   const flow={
@@ -39,7 +40,7 @@ export function createNewInterestFlow({store,request,loadCatalog,createVisitId=(
       if(!userId||!preferences?.configured||visitedUser===userId)return;
       generation++;pending=null;visitedUser=userId;
       const saved=store.read(storageKeys.newInterests(userId)),valid=saved?.userId===userId&&validSaved(saved);
-      state={userId,visitId:valid?saved.visitId:createVisitId(),ids:valid?saved.ids:[],base:valid?saved.base:copy(preferences),draft:valid?saved.draft:{...copy(preferences),step:1},revision:valid?saved.revision:preferences.revision,catalog:null,ready:false,blocking:valid&&saved.ids.length>0,saving:false,error:null,conflict:false,replacement:null};
+      state={userId,visitId:valid?saved.visitId:createVisitId(),ids:valid?saved.ids:[],base:valid?saved.base:copy(preferences),draft:valid?saved.draft:{...copy(preferences),step:1},revision:valid?saved.revision:preferences.revision,catalog:null,ready:false,blocking:false,saving:false,error:null,conflict:false,replacement:null};
       persist();return load();
     },
     dispose(){generation++;pending=null;visitedUser=null;state=null;notify();},
