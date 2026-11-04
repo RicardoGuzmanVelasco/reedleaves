@@ -151,6 +151,7 @@ export function startReader({createCardFeatures} = {}) {
   function showCardSaveWarning(pending,controls){
     if(pending){bookInterestPrompt={kind:"save-card",cardId:pending.action.cardId,warning:pending.warning,error:pending.error||null};bookInterestCardControls=controls;}
     else if(bookInterestPrompt?.kind==="save-card"){bookInterestPrompt=null;bookInterestCardControls=null;}
+    else return;
     render();
   }
   const cardFeatures = createCardFeatures?.({api,
