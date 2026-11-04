@@ -195,3 +195,26 @@ test('Only the last book of an incomplete shelf with a neighbour leans',()=>{
   assert.equal(leaningBookIndex(10,8),9);assert.equal(leaningBookIndex(77,9),76);
   assert.equal(leaningBookIndex(77,1),-1);
 });
+
+
+test('Library shows ordered interest emoji only on covers',async()=>{
+  const db=openDatabase(':memory:');
+  try{
+    await initializeDatabase(db);await seedCatalog(db);
+    const catalog=prepareCatalog(await readCatalog(db)),book=catalog.books[0];
+    const interests=book.genres.map(id=>catalog.genres.find(interest=>interest.id===id));
+    const state=readerState(catalog,{libraryQuery:'',libraryFilters:{},userId:'reader',statuses:{[book.id]:'reading'},shelfBookIds:[book.id]});
+    for(const view of ['covers','shelf','stack']){
+      const html=libraryResultsMarkup({...state,bookViews:{library:view}});
+      if(view!=='covers'){assert.doesNotMatch(html,/library-book-interests/);continue;}
+      const section=html.slice(html.indexOf(`data-book="${book.id}"`));
+      const row=section.match(/<span class="library-book-interests" aria-hidden="true">([\s\S]*?)<\/span><\/span>/)?.[0];
+      assert.ok(row,view);
+      const positions=interests.map(interest=>row.indexOf(interest.emoji));
+      assert.ok(positions.every(position=>position>=0));
+      assert.deepEqual(positions,[...positions].sort((a,b)=>a-b));
+      assert.ok(section.includes(interests.map(interest=>interest.name.es).join(', '))||html.includes(interests.map(interest=>interest.name.es).join(', ')));
+    }
+    assert.doesNotMatch(bookshelfView(state),/library-book-interests/);
+  }finally{await db.close();}
+});

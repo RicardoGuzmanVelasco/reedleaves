@@ -107,15 +107,23 @@ function bookReadingIcon(status) {
   return path ? `<svg class="reading-status-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>` : "";
 }
 
-function closedBookMarkup(s,book,{caption=words[s.language].review,catalog=false,catalogNeutral=false,note=false,isNew=false}={}) {
+function libraryBookInterests(s,book) {
+  const interests=new Map((s.catalog?.genres||[]).map(interest=>[interest.id,interest]));
+  return (book.genres||[]).map(id=>interests.get(id)).filter(Boolean);
+}
+function libraryInterestEmojis(interests) {
+  return interests.length?`<span class="library-book-interests" aria-hidden="true">${interests.map(interestIcon).join("")}</span>`:"";
+}
+function closedBookMarkup(s,book,{caption=words[s.language].review,catalog=false,catalogNeutral=false,note=false,isNew=false,libraryInterests=null}={}) {
   const c = words[s.language];
   const title=bookCoverTitle(book,s.language);
   const noteDecks=note ? editableNoteDecks(s.catalog,book.id,s.userId) : [];
   const status=s.statuses[book.id] || "unread",statusLines=note ? [{label:status === "reading" ? c.readingStatus : status === "read" ? c.readStatus : c.unread,icon:bookReadingIcon(status)},{label:noteDecks.length ? c.notesInProgress : ""}].filter(row=>row.label) : [];
-  const accessibleBookLabel=catalog ? `${displayedBookTitle(s,book).text}, ${book.author}${catalogNeutral?"":`, ${caption}`}${isNew?`, ${c.newBookBadge}`:""}` : `${c.bookInfo}: ${displayedBookTitle(s,book).text}, ${book.author}`;
+  const interestNames=libraryInterests?.map(interest=>interest.name?.[s.language]).filter(Boolean).join(", ")||"";
+  const accessibleBookLabel=catalog ? `${displayedBookTitle(s,book).text}, ${book.author}${catalogNeutral?"":`, ${caption}`}${isNew?`, ${c.newBookBadge}`:""}${interestNames?`, ${interestNames}`:""}` : `${c.bookInfo}: ${displayedBookTitle(s,book).text}, ${book.author}`;
   const cover=`<button class="study-book${catalog ? " catalog-book" : ""}${catalog&&isNew?" catalog-book--new":""}${catalogNeutral?" catalog-book--neutral":""}" type="button" data-action="open-book-details" data-book="${esc(book.id)}" aria-haspopup="dialog" title="${esc(`${title.text}, ${book.author}`)}" ${note ? `aria-describedby="home-book-state-${esc(book.id)}"` : ""} aria-label="${esc(accessibleBookLabel)}">
     <span class="study-book-cover"><strong class="study-book-cover-title" lang="${esc(title.language)}" dir="auto" title="${esc(title.text)}">${esc(title.text)}</strong><span class="study-book-author" title="${esc(book.author)}">${esc(book.author)}</span>
-    ${catalog ? catalogNeutral ? "" : isNew ? `<span class="study-book-new-badge">${esc(c.newBookBadge)}</span><span class="study-book-footer">${esc(caption)}</span>` : `<span class="study-book-footer">${esc(caption)}</span>` : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}${note ? `<span class="home-book-state" id="home-book-state-${esc(book.id)}">${statusLines.map(row=>`<span>${row.icon || ""}${esc(row.label)}</span>`).join("")}</span>` : ""}</span></button>`;
+    ${libraryInterests?libraryInterestEmojis(libraryInterests):""}${catalog ? catalogNeutral ? "" : isNew ? `<span class="study-book-new-badge">${esc(c.newBookBadge)}</span><span class="study-book-footer">${esc(caption)}</span>` : `<span class="study-book-footer">${esc(caption)}</span>` : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}${note ? `<span class="home-book-state" id="home-book-state-${esc(book.id)}">${statusLines.map(row=>`<span>${row.icon || ""}${esc(row.label)}</span>`).join("")}</span>` : ""}</span></button>`;
   const complete=completeBookButton(s,book);
   const noteLabel=`${c.takeNote}: ${displayedBookTitle(s,book).text}`;
   const addNote=note ? `<button class="book-note-add" type="button" data-action="take-note" data-book="${esc(book.id)}" aria-haspopup="dialog" ${noteDecks.length > 1 ? `aria-expanded="${s.noteDestination?.bookId === book.id}" aria-controls="note-destination-dialog"` : ""} aria-label="${esc(noteLabel)}" title="${esc(noteLabel)}">${takeNoteIconMarkup}</button>` : "";
@@ -140,7 +148,7 @@ function bookListPresentation(s,books,scope,{selector=true,count=books.length,no
     return {id:book.id,title:title.text,language:title.language,author:book.author,href:'#book/'+encodeURIComponent(book.id),action:'open-book-details',accessory,book};
   });
   const newIds=new Set(newBookIds);
-  return (selector?bookViewSelector(view,scope,s.language,scope==="library"?bookListControls(s):""):'')+bookListMarkup({books:entries,view,label,cover:entry=>closedBookMarkup(s,entry.book,{caption:scope==="library"?words[s.language].deckCount(availableDecks(s.catalog,entry.id).length):caption??(s.statuses?.[entry.id]&&s.statuses[entry.id]!=="unread"?words[s.language][s.statuses[entry.id]==="read"?"readStatus":"readingStatus"]:""),catalog,catalogNeutral,note,isNew:scope==="library"&&newIds.has(entry.id)})});
+  return (selector?bookViewSelector(view,scope,s.language,scope==="library"?bookListControls(s):""):'')+bookListMarkup({books:entries,view,label,cover:entry=>closedBookMarkup(s,entry.book,{caption:scope==="library"?words[s.language].deckCount(availableDecks(s.catalog,entry.id).length):caption??(s.statuses?.[entry.id]&&s.statuses[entry.id]!=="unread"?words[s.language][s.statuses[entry.id]==="read"?"readStatus":"readingStatus"]:""),catalog,catalogNeutral,note,libraryInterests:scope==="library"?libraryBookInterests(s,entry.book):null,isNew:scope==="library"&&newIds.has(entry.id)})});
 }
 
 function homeBookMarkup(s,book){

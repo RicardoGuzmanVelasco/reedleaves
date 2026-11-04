@@ -226,12 +226,15 @@ export function startReader({createCardFeatures} = {}) {
     const userId=snapshot.user?.id;
     if(!userId||!force&&homeBooksUserId===userId)return;
     if(homeBooksRequest)return homeBooksRequest;
+    void loadInterests().then(interests=>{
+      if(snapshot.user?.id!==userId)return;
+      homeCoverInterests=interests.genres;
+      mountBookCoverTints(main,[...(catalog?.books||[]),...homeBooksData],catalog?.genres||homeCoverInterests,tintMode);
+    }).catch(()=>{});
     const request=Promise.all([
       api.request("/api/reader/balances",undefined,{queueKey:"reader-balances"}),
-      loadHomeBooks(),
-      loadInterests().catch(()=>({genres:[]}))
-    ]).then(([balances,home,interests])=>{
-      homeCoverInterests=interests.genres;
+      loadHomeBooks()
+    ]).then(([balances,home])=>{
       if(snapshot.user?.id!==userId)return;
       catalog=null;catalogIsFull=false;homeBooksUserId=userId;homeBooksData=home.books;
       const homeStatuses=Object.fromEntries(home.books.map(book=>[book.id,book.status||"unread"]));

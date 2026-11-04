@@ -182,6 +182,8 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 
 ## Intereses de libros
 
+- En Ajustes, «Portadas tintadas / Tinted covers» ofrece No, Monocromático y Policromático. La elección es local al navegador y empieza en No. Monocromático usa el interés principal; Policromático distribuye los intereses en orden, con transiciones concentradas y mayor peso para el primero. El degradado va de arriba abajo en portadas y estantería, y de izquierda a derecha en libros apilados; el lomo conserva una versión más oscura.
+- Solo las portadas de Librería muestran los emojis de los intereses, centrados y en orden, por encima del recuento de barajas. Los dos layouts de lomos no los muestran. El selector usa cápsula centrada y explica debajo la opción elegida.
 - Cada interés muestra el emoji aprobado y su nombre localizado en las fichas, la preview del libro y el editor. El catálogo conserva emoji y color; la interfaz no mantiene otra lista por ID. El emoji es decorativo y no sustituye el nombre accesible.
 - Los chips informativos usan el color del interés en el centro, degradado hacia el papel en los extremos, tinta del proyecto y una composición común. Sin borde, sombra ni interacción. Los chips completos envuelven al faltar ancho.
 - En la vista del perfil, mostrar primero los intereses positivos en su orden guardado, con tick verde a la derecha; después los descartados en su orden, con aspa roja. Sin encabezados de grupo, números ni separadores de fila. Conservar el significado de cada preferencia para lectores de pantalla.

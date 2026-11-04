@@ -41,10 +41,10 @@ export function mountBookLists(root){
           const items=[...row.children],layouts=items.map(item=>{
             const book=item.querySelector('.book-spine'),title=book.querySelector('.book-spine-title');
             const text=title.dataset.fullText??(title.dataset.fullText=title.textContent);
-            const height=Math.ceil(184*(.78+bookVariation(text,'length')*.21));
+            const height=Math.ceil(184*(.78+bookVariation(text,'length')*.21)),reserved=16;
             let size=16;
-            if(measure(text,size,title)>height-16)size=15;
-            title.style.fontSize=size+'px';title.style.setProperty('--spine-title-length',`${Math.max(40,height-16)}px`);
+            if(measure(text,size,title)>height-reserved)size=15;
+            title.style.fontSize=size+'px';title.style.setProperty('--spine-title-length',`${Math.max(40,height-reserved)}px`);
             title.textContent=text;
             item.style.setProperty('--spine-length',height+'px');
             book.title=text;book.classList.remove('is-leaning');

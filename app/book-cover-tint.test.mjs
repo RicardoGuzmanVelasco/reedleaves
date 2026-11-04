@@ -11,8 +11,9 @@ test('tint respects the interest order, chosen mode, and missing colors',()=>{
   const mono=coverTintGradients(book,interests,'mono');
   assert.match(mono.cover,/#ed93ad/);assert.doesNotMatch(mono.cover,/#f4ad70/);
   const poly=coverTintGradients(book,interests,'poly');
-  assert.match(poly.cover,/#ed93ad 38%, #fffdf6\) 40%.*#f4ad70 38%, #fffdf6\) 60%.*#83a9e8/);
-  assert.match(coverTintGradients({...book,genres:['pink','orange']},interests,'poly').cover,/#ed93ad 38%, #fffdf6\) 30%/);
+  assert.match(poly.horizontal,/^linear-gradient\(to right,/);assert.match(poly.horizontalDark,/^linear-gradient\(to right,/);
+  assert.match(poly.cover,/#ed93ad 38%, #fffdf6\) 43%.*#f4ad70 38%, #fffdf6\) 57%.*#f4ad70 38%, #fffdf6\) 73%.*#83a9e8 38%, #fffdf6\) 87%/);
+  assert.match(coverTintGradients({...book,genres:['pink','orange']},interests,'poly').cover,/#ed93ad 38%, #fffdf6\) 58%.*#f4ad70 38%, #fffdf6\) 72%/);
   assert.equal(coverTintGradients({genres:[]},interests,'mono'),null);
 });
 

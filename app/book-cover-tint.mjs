@@ -10,20 +10,23 @@ export function coverTintGradients(book,interests,mode){
   const colors=(book?.genres||[]).map(id=>byId.get(id)).filter(validInterestColor);
   if(!colors.length)return null;
   const chosen=mode==='mono'?colors.slice(0,1):colors;
-  const positions=chosen.length===1?[0]:chosen.length===2?[0,30,100]:[0,40,...chosen.slice(1).map((_,index)=>Math.round(60+40*index/(chosen.length-2)))];
-  const sequence=chosen.length>1?[chosen[0],...chosen]:chosen;
-  const stops=sequence.map((color,index)=>({color,position:positions[index]}));
+  const boundaries=chosen.length===2?[65]:chosen.length===3?[50,80]:chosen.slice(1).map((_,index)=>50+index*50/(chosen.length-1));
+  const stops=[{color:chosen[0],position:0}];
+  for(const [index,boundary] of boundaries.entries()){
+    const previous=boundaries[index-1]??0,next=boundaries[index+1]??100;
+    const halfWidth=Math.min(7,(boundary-previous)/2,(next-boundary)/2);
+    stops.push({color:chosen[index],position:boundary-halfWidth},{color:chosen[index+1],position:boundary+halfWidth});
+  }
+  stops.push({color:chosen.at(-1),position:100});
   const gradient=amount=>`linear-gradient(to bottom, ${stops.map(({color,position})=>`color-mix(in srgb, ${color} ${amount}%, #fffdf6) ${position}%`).join(', ')})`;
-  // A duplicated stop makes the single-color case a valid CSS gradient.
-  if(stops.length===1)stops.push({...stops[0],position:100});
-  return {cover:gradient(38),dark:gradient(70)};
+  return {cover:gradient(38),dark:gradient(70),horizontal:gradient(38).replace('to bottom','to right'),horizontalDark:gradient(70).replace('to bottom','to right')};
 }
 
 export function mountBookCoverTints(root,books,interests,mode){
   const byId=new Map((books||[]).map(book=>[book.id,book]));
   for(const element of root.querySelectorAll('.study-book[data-book], .book-spine[data-book]')){
     const tint=coverTintGradients(byId.get(element.dataset.book),interests,mode);
-    if(tint){element.style.setProperty('--tinted-cover',tint.cover);element.style.setProperty('--tinted-spine',tint.dark);element.dataset.tintedCover='true';}
-    else {element.style.removeProperty('--tinted-cover');element.style.removeProperty('--tinted-spine');delete element.dataset.tintedCover;}
+    if(tint){element.style.setProperty('--tinted-cover',tint.cover);element.style.setProperty('--tinted-spine',tint.dark);element.style.setProperty('--tinted-horizontal',tint.horizontal);element.style.setProperty('--tinted-horizontal-dark',tint.horizontalDark);element.dataset.tintedCover='true';}
+    else {element.style.removeProperty('--tinted-cover');element.style.removeProperty('--tinted-spine');element.style.removeProperty('--tinted-horizontal');element.style.removeProperty('--tinted-horizontal-dark');delete element.dataset.tintedCover;}
   }
 }
