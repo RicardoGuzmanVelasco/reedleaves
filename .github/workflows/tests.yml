@@ -58,6 +58,7 @@ jobs:
     permissions:
       contents: write
       statuses: write
+      actions: write
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
@@ -83,3 +84,5 @@ jobs:
             -f target_url="https://github.com/$GH_REPO/actions/runs/$GITHUB_RUN_ID"
       - name: Fast-forward main to the tested commit
         run: git push origin "$TESTED_SHA:refs/heads/main"
+      - name: Publish a main-branch check for Render
+        run: gh workflow run render-check.yml --ref main -f tested_sha="$TESTED_SHA"

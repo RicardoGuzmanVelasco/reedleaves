@@ -1,0 +1,30 @@
+name: Verify production commit
+
+on:
+  workflow_dispatch:
+    inputs:
+      tested_sha:
+        description: SHA validated by Staging
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  statuses: read
+  checks: read
+
+jobs:
+  verify:
+    name: Verify promoted commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: Verify main matches the commit approved by CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TESTED_SHA: ${{ inputs.tested_sha }}
+        run: node scripts/verify-promoted-commit.mjs
