@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { createHash } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
 import { extname, resolve, sep } from "node:path";
 import { PROJECT_ROOT } from "./database.mjs";
@@ -11,6 +12,7 @@ const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=
   ".webmanifest": "application/manifest+json; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".woff2": "font/woff2" };
+const imageTypes = new Set([".svg", ".ico", ".png", ".jpg", ".webp"]);
 
 // Explicit URLs bypass Safari's previous icon URL; conventional names also cover
 // discovery at the origin root and alongside the app document. Keep the allowlist.
@@ -35,7 +37,8 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
       response.end(request.method === "HEAD" ? undefined : bytes);
     };
     try {
-      const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
+      const url = new URL(request.url, "http://localhost");
+      const pathname = decodeURIComponent(url.pathname);
       const path = publicFiles.get(pathname) || pathname;
       if (path === "/mcp") { response.setHeader("Cache-Control","no-store"); await handleMcpRequest(request,response,{db,token:options.mcpToken,publicBaseUrl:options.publicBaseUrl}); return; }
       if (await readerApi(request,response,path,send)) return;
@@ -59,12 +62,35 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
       const relative = path.endsWith("/") ? `${path}index.html` : path;
       const type = types[extname(relative)];
       if (!type) { send(404, { error: "Not found" }); return; }
+      if (imageTypes.has(extname(relative)) && url.searchParams.has("content")) response.setHeader("Cache-Control", "no-store");
       const allowed = await realpath(resolve(root, path.split("/")[1]));
       const file = await realpath(resolve(root, `.${relative}`));
       if (!file.startsWith(allowed + sep)) { send(404, { error: "Not found" }); return; }
       if (path.startsWith("/app/")) response.setHeader("Content-Security-Policy",
         "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
       const bytes = await readFile(file);
+      if (imageTypes.has(extname(relative))) {
+        const digest = createHash("sha256").update(bytes).digest("hex");
+        const versions = url.searchParams.getAll("content");
+        if (versions.length) {
+          if (versions.length !== 1 || !/^[a-f0-9]{64}$/.test(versions[0])) {
+            response.setHeader("Cache-Control", "no-store");
+            send(400, { error: "Invalid image version" }); return;
+          }
+          if (versions[0] !== digest) {
+            url.searchParams.set("content", digest);
+            response.writeHead(302, { "Cache-Control": "no-store", Location: url.pathname + url.search });
+            response.end(); return;
+          }
+          response.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        }
+        const etag = `"${digest}"`;
+        response.setHeader("ETag", etag);
+        const candidates = (request.headers["if-none-match"] || "").split(",").map(value => value.trim().replace(/^W\//, ""));
+        if (candidates.includes("*") || candidates.includes(etag)) {
+          response.writeHead(304); response.end(); return;
+        }
+      }
       if (/^\/app\/fonts\/[^/]+-v[\d.]+\.woff2$/.test(path)) response.setHeader("Cache-Control", "public, max-age=31536000, immutable");
       send(200, bytes, type);
     } catch (error) {
