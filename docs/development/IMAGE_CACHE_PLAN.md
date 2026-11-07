@@ -1,6 +1,6 @@
 # Image caching and opening animation: implementation plan
 
-Status: implementation started. The server supports SHA-256 image URLs via the `content` query parameter, ETag revalidation for existing image URLs and a no-store redirect for a valid but stale hash. Images are currently hashed from the bytes read on each request; the build manifest and client integration below remain to be implemented. Existing clients do not yet request content-addressed URLs, and the opening animation has not been changed.
+Status: implementation started. The server supports SHA-256 image URLs via the `content` query parameter, ETag revalidation for existing image URLs and a no-store redirect for a valid but stale hash. The UI build generates a deterministic manifest for the inventoried images and development watch refreshes it when assets change. The server still hashes bytes on each request; integration of the manifest into HTML, CSS and dynamic client references remains to be implemented. Existing clients do not yet request content-addressed URLs, and the opening animation has not been changed.
 
 ## Step 1 findings — 2026-11-04
 
