@@ -14,6 +14,7 @@ export const imagePaths = [
   ...["petal-token.svg","leaf-token.svg","streak-flame.svg","vein-pattern.svg","card-back.svg","app-icon.svg","app-icon-192-v4.png","app-icon-512-v4.png","share-card.png","favicon.ico","apple-touch-icon.png"].map(name=>`/brand/reed/${name}`),
   "/brand/icons/navigation/home.svg"
 ];
+export const imageStaticFiles = ["index.html","reader.css","book-list.css","manifest.webmanifest"];
 
 export async function makeImageManifest(root, paths = imagePaths) {
   const entries = [];
@@ -32,5 +33,18 @@ export async function writeImageManifest(root) {
   const target = resolve(root,"app/generated/image-manifest.json");
   await mkdir(dirname(target),{recursive:true});
   await writeFile(target,JSON.stringify(manifest,null,2)+"\n");
+  await writeFile(resolve(root,"app/generated/image-manifest.mjs"),`export default Object.freeze(${JSON.stringify(manifest)});\n`);
+  const staticDirectory = resolve(root,"app/generated/image-static");
+  await mkdir(staticDirectory,{recursive:true});
+  for (const name of imageStaticFiles) {
+    const source = await readFile(resolve(root,"app",name),"utf8");
+    const output = source.replace(/(?:\.\.\/brand\/|\/brand\/)[a-zA-Z0-9_./-]+\.(?:svg|png|jpg|webp|ico)(?:\?v=[a-zA-Z0-9._-]+)?/g, reference => {
+      const canonical = reference.replace(/^\.\.\/brand\//,"/brand/").replace(/\?v=[a-zA-Z0-9._-]+$/,"");
+      const hash = manifest[canonical];
+      if (!hash) throw new Error(`Image missing from manifest: ${canonical} in ${name}`);
+      return `${canonical}?content=${hash}`;
+    });
+    await writeFile(resolve(staticDirectory,name),output);
+  }
   return manifest;
 }

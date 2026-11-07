@@ -561,6 +561,8 @@ body.is-opening main{width:100%;padding:0}
 .opening-sprout .mascot-art::before{display:none;content:none}
 .opening-sprout .mascot-art[data-idle="none"] .mascot-art-motion{animation:none;transition:none}
 .opening-sprout .mascot-eye-expression{animation:opening-sprout-look var(--opening-duration) both}
+.opening-loading:not(.is-art-ready)::before,.opening-loading:not(.is-art-ready) .opening-sprout,.opening-loading:not(.is-art-ready) .opening-sprout .mascot-art,.opening-loading:not(.is-art-ready) .opening-sprout .mascot-eye-expression{animation-play-state:paused}
+.opening-loading:not(.is-art-ready)::before,.opening-loading:not(.is-art-ready) .opening-sprout{visibility:hidden}
 .is-opening-exiting .opening-sprout .mascot-art::after{content:"";position:absolute;inset:7%;z-index:-1;border-radius:50%;border:2px solid rgb(88 190 89 / 45%);background:radial-gradient(circle,rgb(237 255 205 / 28%),rgb(237 255 205 / 8%) 58%,transparent 72%);box-shadow:0 0 0 8px rgb(185 232 119 / 22%),0 0 0 19px rgb(185 232 119 / 12%),0 0 26px rgb(244 255 222 / 30%);animation:opening-exit-ripple 1500ms cubic-bezier(.16,.65,.3,1) both;pointer-events:none}
 @keyframes opening-exit-ripple{0%{transform:scale(.65);opacity:0}15%{opacity:.95}55%{opacity:.7}100%{transform:scale(2);opacity:0}}
 /* Independent horizontal and vertical easing makes one curved approach.

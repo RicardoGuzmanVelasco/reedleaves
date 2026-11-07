@@ -1,3 +1,5 @@
+import {imageUrl} from "./image-url.mjs";
+
 // Coordinates belong to the character's 160 × 160 frame, before its body motion.
 // One uniform transform preserves the canonical eye spacing and mouth proportions.
 export const mascotFacePlacement = Object.freeze(Object.fromEntries(Object.entries({
@@ -57,7 +59,7 @@ const potFacePatches = Object.freeze({
 const sourceFacePoint = (value,axis) => (value*160/potSourceFrame-potSourcePose[axis])/potSourcePose.scale+({x:82,y:104}[axis]);
 const sourceFaceImage = (patch,origin={x:0,y:0}) => {
   const [x,y,width,height]=patch.rect;
-  return `<image href="/brand/reed/growth/bodies/pot-a-${patch.file}.png" x="${sourceFacePoint(x,"x")-origin.x}" y="${sourceFacePoint(y,"y")-origin.y}" width="${width*160/potSourceFrame/potSourcePose.scale}" height="${height*160/potSourceFrame/potSourcePose.scale}"/>`;
+  return `<image href="${imageUrl(`/brand/reed/growth/bodies/pot-a-${patch.file}.png`)}" x="${sourceFacePoint(x,"x")-origin.x}" y="${sourceFacePoint(y,"y")-origin.y}" width="${width*160/potSourceFrame/potSourcePose.scale}" height="${height*160/potSourceFrame/potSourcePose.scale}"/>`;
 };
 function potSourceFace(eyeOffsets,mouth) {
   const eyes=["left","right"].map(side=>{

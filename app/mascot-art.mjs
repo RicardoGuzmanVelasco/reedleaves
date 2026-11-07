@@ -1,5 +1,6 @@
 import {mascotFace} from "./mascot-face.mjs?v=sleep-3";
 import {startMascotBlinking} from "./mascot-blink.mjs?v=mascot-random-blink";
+import {imageUrl} from "./image-url.mjs";
 
 if (typeof document !== "undefined") startMascotBlinking(document);
 
@@ -26,7 +27,7 @@ export function mascotArt(stage, className = "", {expression = "neutral", mouth,
   const sleeping = animation === "sleep", waking=animation === "wake";
   const pattern = sleeping ? "sleep" : waking ? "wake" : idle ? (mascotIdlePatterns[id] ?? "hop") : "none";
   const sleepSymbols = sleeping ? '<span class="mascot-sleep-symbols"><span>Z</span><span>z</span><span>z</span></span>' : "";
-  return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}" data-idle="${pattern}" aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${mascotAssets[id]}" width="160" height="160" alt="" draggable="false">${mascotFace(id,sleeping ? "sleep" : expression,mouth,face)}</span></span>${sleepSymbols}</span>`;
+  return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}" data-idle="${pattern}" aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${imageUrl(mascotAssets[id])}" width="160" height="160" alt="" draggable="false">${mascotFace(id,sleeping ? "sleep" : expression,mouth,face)}</span></span>${sleepSymbols}</span>`;
 }
 
 // Restart body and ground together in the preview tools without touching eye gestures.
@@ -39,5 +40,5 @@ export function restartMascotIdle(art) {
 // Icons display the body image directly; character calibration belongs to mascotArt.
 export function mascotIcon(stage, className = "") {
   const id = Object.hasOwn(mascotAssets, stage) ? stage : "mystery";
-  return `<img class="mascot-icon${className ? ` ${escapeAttribute(className)}` : ""}" src="${mascotAssets[id]}" width="160" height="160" aria-hidden="true" alt="" draggable="false">`;
+  return `<img class="mascot-icon${className ? ` ${escapeAttribute(className)}` : ""}" src="${imageUrl(mascotAssets[id])}" width="160" height="160" aria-hidden="true" alt="" draggable="false">`;
 }

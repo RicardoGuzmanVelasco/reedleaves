@@ -68,7 +68,11 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
       if (!file.startsWith(allowed + sep)) { send(404, { error: "Not found" }); return; }
       if (path.startsWith("/app/")) response.setHeader("Content-Security-Policy",
         "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
-      const bytes = await readFile(file);
+      let bytes = await readFile(file);
+      if (["/app/index.html","/app/reader.css","/app/book-list.css","/app/manifest.webmanifest"].includes(relative)) {
+        try { bytes = await readFile(resolve(root,"app/generated/image-static",relative.slice("/app/".length))); }
+        catch (error) { if (error.code !== "ENOENT") throw error; }
+      }
       if (imageTypes.has(extname(relative))) {
         const digest = createHash("sha256").update(bytes).digest("hex");
         const versions = url.searchParams.getAll("content");
