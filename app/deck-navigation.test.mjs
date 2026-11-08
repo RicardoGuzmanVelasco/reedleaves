@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {deckPageHash,deckReadingHash,deckShareUrl} from './deck-navigation.mjs';
-import {reviewView,deckPeekView,deckView} from './views.mjs';
+import {deckPageHash,deckReadingHash,deckShareUrl,cardShareUrl} from './deck-navigation.mjs';
+import {reviewView,deckPeekView,deckView,sharedCardView} from './views.mjs';
 import {words} from './i18n.mjs';
 import {openDatabase,initializeDatabase} from '../server/database.mjs';
 import {seedCatalog} from '../server/seed.mjs';
@@ -48,4 +48,24 @@ test('One deck page handles discovery, collection and ownership while clean read
     assert.doesNotMatch(carousel,/class="deck-facts"|data-action="share-deck"|data-action="add-deck-to-collection"/);
     assert.doesNotMatch(reading,/class="deck-facts"|class="deck-description"|class="deck-creator"|data-action="add-deck-to-collection"|data-action="share-deck"/);
   }
+});
+
+
+test('A shared card retains its content language and shows only the requested card',async()=>{
+  const db=openDatabase(':memory:');let catalog;
+  try{await initializeDatabase(db);await seedCatalog(db);catalog=prepareCatalog(await readCatalog(db));}finally{await db.close();}
+  const card=catalog.cards[0],deck=catalog.decksById.get(card.deckId);
+  const url=cardShareUrl('https://reedleaves.com/app/#daily','card/one','es');
+  assert.equal(url,'https://reedleaves.com/app/#card/card%2Fone/es');
+  card.body={...card.body,es:'Texto compartido',en:'Shared text'};
+  const state=readerState(catalog,{language:'en',sharedContentLanguage:'es',requestedId:card.id});
+  const html=sharedCardView(state);
+  assert.match(html,new RegExp(`data-reading-card="${card.id}"`));
+  assert.ok(html.includes("Texto compartido"));
+  assert.doesNotMatch(html,/Shared text/);
+  assert.ok(html.includes(catalog.booksById.get(card.bookId).author));
+  assert.ok(html.includes(deck.title.en || deck.title[deck.language]));
+  assert.doesNotMatch(html,/data-action="share-deck"|data-action="preview-deck"/);
+  assert.match(sharedCardView({...state,requestedId:'missing'}),/no longer available/);
+  assert.match(deckPeekView({...state,deckId:deck.id,bookId:deck.bookId}),/data-action="share-card"/);
 });

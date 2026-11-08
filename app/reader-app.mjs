@@ -3,7 +3,7 @@ import {prepareOpeningFlight} from "./opening-flight.mjs";
 import {createDiscoverAvailability} from "./discover-availability.mjs";
 import {startBottomNavigationBehavior} from "./bottom-navigation-behavior.mjs";
 import {mountDeckPresentation} from "./deck-presentation.mjs";
-import {deckPageHash,deckReadingHash,deckShareUrl} from "./deck-navigation.mjs";
+import {deckPageHash,deckReadingHash,deckShareUrl,cardShareUrl} from "./deck-navigation.mjs";
 import {coverTintMode,mountBookCoverTints} from "./book-cover-tint.mjs";
 import {mountInterests,syncBookInterestSelector} from "./interests.mjs";
 import {bookInterestError,selectBookInterest} from "./book-interests.mjs";
@@ -17,8 +17,8 @@ import {featuredDecks,isReadingGuideDeck} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=library-interest-sort-login-16";
-import {homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,profileWakeOverlayView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=startup-resources-8";
+import {words} from "./i18n.mjs?v=share-card-1";
+import {sharedCardView,homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,profileWakeOverlayView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=share-card-1";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -54,6 +54,7 @@ export function startReader({createCardFeatures} = {}) {
   const settings = document.getElementById("settings");
   const presentReading = createReadingArrival();
   const practicePresentation = createPracticePresentation({presentReading});
+  let sharedContentLanguage=null;
   let language = restoreLanguage(store.read(keys.language)), catalog, catalogIsFull=false,homeBooksUserId=null,homeBooksData=[],homeBooksRequest=null,fullCatalogRequest=null,snapshot = {user:null}, budget, preferences, statuses, daily, dailyHistory=[],dailyStatus=null,dailyStatusRequest=null,dailyStatusGeneration=0,dailySeenDays=new Set(),dailyLoading=false, selectedDailyDay=null, dailyExclusiveCardId=null, calendarMonth=null,calendarNavFocus=null,bookId, deckId, requestedId, selections, enrolledIds;
   let tintMode=coverTintMode(store.read(keys.coverTint)),homeCoverInterests=[];
   let bookSortOrder=validVisitorBookSortOrder(store.read(keys.visitorBookSort))?store.read(keys.visitorBookSort):"recent";
@@ -299,7 +300,7 @@ export function startReader({createCardFeatures} = {}) {
     const activeNavigation=mode==="home"||["book","guides","guide-preview","preview","review"].includes(mode)&&bookOrigin==="home"?"home":mode==="library"||["book","guides","guide-preview","preview"].includes(mode)&&bookOrigin==="library"?"library":mode==="bookshelf"||["book","guides","guide-preview","preview"].includes(mode)&&bookOrigin==="bookshelf"?"bookshelf":mode==="profile"||mode==="public-bookshelf"||mode==="account"?"profile":mode==="daily"||["review","preview"].includes(mode)&&bookOrigin==="daily"?"daily":null;
     navigation.querySelectorAll("[data-nav]").forEach(link=>{if(link.dataset.nav===activeNavigation)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current")});
     updateBadges();
-    document.title = pageTitle(["card","quote"].includes(authorForm?.kind) ? c.takeNote : mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.books : mode === "bookshelf" ? c.bookcase : mode === "public-bookshelf" ? c.shelf : mode === "profile" ? c.profile : mode === "daily" ? c.daily : mode === "practice" ? c.practice : mode === "saved" ? c.savedCards : ["guides","guide-preview"].includes(mode) ? c.readingGuides : mode === "book" ? c.chooseDeck : mode === "preview" ? c.deckPeekPage : mode === "review" ? c.viewDeck : mode === "mascots" ? c.mascots : mode === "author" ? c.manageDeck : c.review);
+    document.title = pageTitle(["card","quote"].includes(authorForm?.kind) ? c.takeNote : mode === "home" ? c.home : mode === "account" ? c.account : mode === "library" ? c.books : mode === "bookshelf" ? c.bookcase : mode === "public-bookshelf" ? c.shelf : mode === "profile" ? c.profile : mode === "daily" ? c.daily : mode === "practice" ? c.practice : mode === "saved" ? c.savedCards : ["guides","guide-preview"].includes(mode) ? c.readingGuides : mode === "book" ? c.chooseDeck : mode === "preview" ? c.deckPeekPage : mode === "shared-card" ? c.exclusiveCard : mode === "review" ? c.viewDeck : mode === "mascots" ? c.mascots : mode === "author" ? c.manageDeck : c.review);
     document.querySelector(".skip-link").textContent = c.skip;
     for (const [id,text] of [["settings-title",c.settings],["language-label",c.language]]) document.getElementById(id).textContent = text;
     for(const [id,text] of [["cover-tint-label",c.coverTint],["cover-tint-off",c.coverTintOff],["cover-tint-mono",c.coverTintMono],["cover-tint-poly",c.coverTintPoly]]) document.getElementById(id).textContent=text;
@@ -421,11 +422,11 @@ export function startReader({createCardFeatures} = {}) {
     const selectedDaily=dailyHistory.find(item=>item.day===selectedDailyDay)||daily;
     if(mode==="practice"&&practiceStage==="choose"&&!snapshot.activePracticeSession&&snapshot.user&&discoverAvailability.state.status==="idle")void discoverAvailability.load();
     const state = {discoverAvailability:discoverAvailability.state,practiceStarting:practiceStartRequest?.topic||null,presentationLayout,presentationIndex,bookViews,userId:snapshot.user?.id,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,deckContributorError,deckContributorInput,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,homeBooks:homeBooksData,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily:selectedDaily,dailyToday:daily,dailyHistory,dailyStatus,dailyLoading,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountTopic:snapshot.practiceDiscountTopic,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
-      deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,readingGuidePromptBookId,readingGuideError,readingGuideDraft,libraryQuery,libraryFilters,libraryFiltersOpen,libraryFilterDraft,librarySortDraft,bookSortOrder,librarySortOrder,interestPreferences,libraryInterestSortPending,libraryInterestSortError,bookshelfTab,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
+      sharedContentLanguage:mode === "shared-card" ? sharedContentLanguage : null,deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,readingGuidePromptBookId,readingGuideError,readingGuideDraft,libraryQuery,libraryFilters,libraryFiltersOpen,libraryFilterDraft,librarySortDraft,bookSortOrder,librarySortOrder,interestPreferences,libraryInterestSortPending,libraryInterestSortError,bookshelfTab,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
       profileData,profileError,profileInterests,profileLanguages,homeInterestPreferences,bookInterestPrompt,readOnly:mode === "public-bookshelf",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,accountLearningNotice,accountInterestSortNotice,libraryNewBookIds,injectHeaderLeading:setHeaderLeading,profileReturnHash,showProfileBack:snapshot.user&&usefulProfileReturnHash(profileReturnHash)};
     presentationState=state;
     main.innerHTML = (syncError ? callout({variant:"error",role:"alert",className:"sync-note",content:`<p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p>`,actions:`<button class="text-button" type="button" data-action="sync">${words[language].refresh}</button>`}) : "") +
-      (mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "bookshelf" ? bookshelfView(state) : mode === "public-bookshelf" ? (profileData ? bookshelfView(state) : profilePendingView(state))+(profileData&&profileTransition==="wake"?profileWakeOverlayView():"") : mode === "profile-loading-preview" ? profilePendingView(state) : mode === "profile" ? profileView(state)+(profileTransition==="wake"?profileWakeOverlayView():"") : mode === "daily" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "guides" ? readingGuidesView(state) : mode === "guide-preview" ? readingGuideDeckPreviewView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "") + bookInterestWarningView(state);
+      (mode === "shared-card" ? sharedCardView(state) : mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "library" ? libraryView(state) : mode === "bookshelf" ? bookshelfView(state) : mode === "public-bookshelf" ? (profileData ? bookshelfView(state) : profilePendingView(state))+(profileData&&profileTransition==="wake"?profileWakeOverlayView():"") : mode === "profile-loading-preview" ? profilePendingView(state) : mode === "profile" ? profileView(state)+(profileTransition==="wake"?profileWakeOverlayView():"") : mode === "daily" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "guides" ? readingGuidesView(state) : mode === "guide-preview" ? readingGuideDeckPreviewView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "") + bookInterestWarningView(state);
     mountInterests(main);
     mountBookCoverTints(main,[...(catalog?.books||[]),...homeBooksData],catalog?.genres||homeCoverInterests,tintMode);
     for(const option of main.querySelectorAll('[data-action="practice-topic"]')) {
@@ -548,7 +549,7 @@ export function startReader({createCardFeatures} = {}) {
     if(view!=="practice"||previousMode!=="practice")discoverAvailability.invalidate();
     const returningFromGuidePreview=guidePreviewReturn?.hash===location.hash?guidePreviewReturn:null;
     if(returningFromGuidePreview)openBookId=returningFromGuidePreview.openBookId;
-    const publicReadRoute=["library","book","guides","guide-preview","preview","review","read"].includes(view);
+    const publicReadRoute=["library","book","guides","guide-preview","preview","review","read","card"].includes(view);
     if (inviteRequired && !snapshot.user && view !== "account" && !publicReadRoute) { if (location.hash && location.hash !== "#account") authReturn = location.hash; mode = "account"; render({focus}); return; }
     if(view !== "account") {
       if(mode === "account") {pendingCardAction=null;pendingDeck=null;pendingIntent=null;if(!snapshot.user)interestSortLoginIntent.clear();}
@@ -578,6 +579,10 @@ export function startReader({createCardFeatures} = {}) {
       let id; try { id=decodeURIComponent(first || snapshot.user?.id || ""); } catch { id=""; }
       if (profileId !== id) { profileId=id; profileData=null; profileError=id?null:"profileUnavailable"; profileInterests=null; profileLanguages=null; profileLoadingWasShown=false;profileTransition=null;profileGeneration++; profileRequest=null; openBookId=null; }
       mode=view === "profile" ? "profile" : id === snapshot.user?.id ? "bookshelf" : "public-bookshelf";
+    }
+    else if (view === "card") {
+      try { requestedId=decodeURIComponent(first||""); sharedContentLanguage=decodeURIComponent(second||""); } catch { requestedId="";sharedContentLanguage=""; }
+      mode="shared-card";
     }
     else if (view === "bookshelf" && first === "decks") mode="bookshelf";
     else if (view === "guides" && catalog.booksById.has(first)) { bookId=first;openDeckId=null;const guideDeck=catalog.decks.find(deck=>deck.bookId===first&&isReadingGuideDeck(catalog,deck));requestedId=guideDeck&&catalog.deckModels.get(guideDeck.id).byId.has(second)?second:null;mode="guides"; }
@@ -1302,6 +1307,18 @@ export function startReader({createCardFeatures} = {}) {
     updateCardFeatures();
 
   }
+  async function shareCard(id) {
+    const card=catalog?.cardsById.get(id);
+    if(!card || busy) return;
+    const url=cardShareUrl(location.href,id,language);
+    try {
+      if(typeof navigator.share === "function") {
+        try { await navigator.share({url});return; } catch(error) { if(error?.name === "AbortError") return; }
+      }
+      if(typeof navigator.clipboard?.writeText !== "function") throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(url);live.textContent=words[language].cardLinkCopied;
+    } catch { live.textContent=words[language].deckShareError; }
+  }
   async function shareDeck() {
     const deck=catalog?.decksById.get(deckId);
     if (busy || mode !== "review" || !deck) return;
@@ -1986,6 +2003,7 @@ export function startReader({createCardFeatures} = {}) {
       case "cancel-finish-deck": closeDeckCompletion(); break;
       case "confirm-finish-deck": confirmDeckCompletion(); break;
       case "share-deck": void shareDeck(); break;
+      case "share-card": void shareCard(b.dataset.card); break;
       case "autofill-book": autofillBook(b.closest("form")); break;
       case "edit-book-preview": authorForm.title=authorForm.metadata.popularTitle; authorForm.preview=false; render(); break;
       case "author-deck": authorForm = null; quotesOnly = false; navigate("#author/"+b.dataset.deck); break;

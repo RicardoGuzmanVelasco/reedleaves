@@ -7,7 +7,7 @@ import { availableDecks,isReadingGuideDeck,sortDecks } from "./decks.mjs";
 import {homeBooks,editableNoteDecks,noteDecksWithSpace,recentNoteDecks} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=library-interest-sort-login-16";
+import { words } from "./i18n.mjs?v=share-card-1";
 import { bookLinkUrl } from "./book-links.mjs";
 import { validQuoteSourceUrl } from "./quote-source.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
@@ -458,12 +458,13 @@ function noteTypeIcon(kind) {
 
 function cardMarkup(s, card, heading = "h2", {exclusive = false, actions = exclusive, compact = false,linkBook=true,focusable=true,idPrefix="",decorative=false,layerClass=""} = {}) {
   const book = s.catalog.booksById.get(card.bookId), deckLanguage = card.language || card.deckLanguage || s.language;
-  const title = contentText(card.title,s.language,deckLanguage), body = contentText(card.body,s.language,deckLanguage);
-  const titleLanguage = contentLocale(card.title,s.language,deckLanguage), bodyLanguage = contentLocale(card.body,s.language,deckLanguage);
+  const contentLanguage=s.sharedContentLanguage || s.language;
+  const title = contentText(card.title,contentLanguage,deckLanguage), body = contentText(card.body,contentLanguage,deckLanguage);
+  const titleLanguage = contentLocale(card.title,contentLanguage,deckLanguage), bodyLanguage = contentLocale(card.body,contentLanguage,deckLanguage);
   const type=cardTypeFor(card),bodyTag=type.bodyTag;
   const contentId=idPrefix ? `${idPrefix}-idea-content` : "idea-content",focusTarget=focusable || idPrefix ? ` id="${esc(contentId)}"${focusable ? ' tabindex="-1"' : ""}` : "";
   return `<div class="reading-stage reading-stage--${type.id}${layerClass ? ` ${layerClass}` : ""}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${decorative ? ' aria-hidden="true" inert' : ""}><article class="idea-card${type.className ? ' '+type.className : ''}"><span class="card-header-icon" aria-hidden="true">${type.headerIcon === "reading-guide" ? readingGuideIconMarkup(26) : type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto"${focusTarget}>${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : focusTarget}>${esc(body)}</${bodyTag}></div>
-    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book,{compact,linkBook,showDraftStatus:exclusive})}</div>${actions ? cardActionsHost(card) : ""}</footer></article></div>`;
+    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book,{compact,linkBook,showDraftStatus:exclusive})}</div>${actions ? cardActionsHost(card) : ""}</footer>${actions ? `<button class="text-button card-share" type="button" data-action="share-card" data-card="${esc(card.id)}">${shareIconMarkup}<span>${esc(words[s.language].shareDeck)}</span></button>` : ""}</article></div>`;
 }
 
 function exclusiveCardMarkup(s,card,position="",navigation=null) {
@@ -471,6 +472,14 @@ function exclusiveCardMarkup(s,card,position="",navigation=null) {
   const previous=navigation?.previous?`<button class="exclusive-card-step exclusive-card-step--previous" type="button" data-action="previous-reading-card" aria-label="${esc(c.previous)}" title="${esc(c.previous)}">‹</button>`:`<span class="exclusive-card-step-placeholder" aria-hidden="true"></span>`;
   const next=navigation?.next?`<button class="exclusive-card-step exclusive-card-step--next" type="button" data-action="next-reading-card" aria-label="${esc(c.next)}" title="${esc(c.next)}">›</button>`:`<span class="exclusive-card-step-placeholder" aria-hidden="true"></span>`;
   return `<dialog class="exclusive-card-modal" aria-label="${c.exclusiveCard}"><div class="exclusive-card-shell"><div class="exclusive-card-content"><button class="dialog-close exclusive-card-close" type="button" data-action="close-exclusive" aria-label="${c.closeCard}">${closeIconMarkup}</button><div class="exclusive-card-controls">${previous}<span>${esc(position)}</span>${next}</div>${type.accessibleHeading ? `<h1 class="sr-only">${c[type.accessibleHeading]}</h1>` : ""}${cardMarkup(s,card,"h1",{exclusive:true})}</div></div></dialog>`;
+}
+
+export function sharedCardView(s) {
+  const card=s.catalog.cardsById.get(s.requestedId), c=words[s.language];
+  if(!card || !s.catalog.booksById.has(card.bookId) || !s.catalog.decksById.has(card.deckId)) return `<section class="shared-card-screen"><p class="empty-state" role="status">${esc(c.sharedCardUnavailable)}</p></section>`;
+  const deck=s.catalog.decksById.get(card.deckId);
+  const title=contentText(deck.title,s.language,deck.language);
+  return `<section class="shared-card-screen"><p class="shared-card-deck" lang="${esc(contentLocale(deck.title,s.language,deck.language))}">${esc(title)}</p>${cardMarkup(s,card,"h1",{linkBook:false})}</section>`;
 }
 
 export function dailyView(s) {

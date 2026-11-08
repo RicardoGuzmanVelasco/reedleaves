@@ -69,7 +69,7 @@ test("Each book modal offers labelled external anchors and platform icons in ES/
     assert.equal((modal.match(/class="book-external-link"/g) || []).length, 2);
     for (const platform of ["amazon", "goodreads"]) {
       assert.ok(modal.includes(`href="${book.links[platform]}" target="_blank" rel="noopener noreferrer"`));
-      assert.ok(modal.includes(`../brand/platforms/${platform}.svg`));
+      assert.ok(modal.includes(`/brand/platforms/${platform}.svg`));
     }
     assert.ok(modal.includes(words[language].newTab));
     assert.ok(modal.includes(words[language].amazonEdition));

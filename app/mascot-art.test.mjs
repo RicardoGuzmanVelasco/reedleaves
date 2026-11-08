@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {mascotMouthWidth,mascotMouthPath,mascotFaceGeometry} from "./mascot-face.mjs";
+import {imageUrl} from "./image-url.mjs";
 import {mascotArt,mascotAssets,mascotIcon} from "./mascot-art.mjs";
 
 test("Decorative mascot artwork reserves separate placement and motion layers",()=>{
@@ -9,7 +10,7 @@ test("Decorative mascot artwork reserves separate placement and motion layers",(
     const html=mascotArt(stage,"mascot-stage-art");
     assert.match(html,/aria-hidden="true"/);
     assert.match(html,/mascot-art-placement"><span class="mascot-art-motion"><img/);
-    assert.ok(html.includes(`src="${mascotAssets[stage]}"`));
+    assert.ok(html.includes(`src="${imageUrl(mascotAssets[stage])}"`));
     assert.doesNotMatch(html,/style=|tabindex=|<button|role="img"/);
     assert.match(html,/alt="" draggable="false"/);
   }
@@ -60,7 +61,7 @@ test("Active mascots share a face inside body motion; unknown stages stay facele
   for (const stage of ["pot","seed","root","seedling","sprout","stem","flower"]) {
     const html=mascotArt(stage);
     assert.match(html,/mascot-art-motion"><img[^>]*><svg class="mascot-face"/);
-    const body=readFileSync(new URL(`..${mascotAssets[stage]}`,import.meta.url));
+    const body=readFileSync(new URL(`..${imageUrl(mascotAssets[stage])}`,import.meta.url));
     if(!["root","flower"].includes(stage)) assert.doesNotMatch(body.toString(),/<ellipse|id="face"|#173D2C/i);
     assert.equal((html.match(/class="mascot-eye-expression"/g)||[]).length,2);
     assert.match(html,/class="mascot-mouth"/);
@@ -114,7 +115,7 @@ test("Mascot icons are direct images without character placement, motion or face
     const icon=mascotIcon(stage,"study-book-mark");
     assert.match(icon,/^<img class="mascot-icon study-book-mark"/);
     assert.doesNotMatch(icon,/<span|<svg|mascot-art|mascot-face|mascot-mouth|mascot-eye|style=|data-mascot/);
-    assert.ok(icon.includes(`src="${mascotAssets[stage]}"`));
+    assert.ok(icon.includes(`src="${imageUrl(mascotAssets[stage])}"`));
     assert.match(icon,/aria-hidden="true" alt="" draggable="false"/);
     assert.match(mascotArt(stage),/mascot-art-placement/);
   }

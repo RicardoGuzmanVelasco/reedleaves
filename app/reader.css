@@ -1052,3 +1052,5 @@ html,body{overflow-x:clip}
 .study-book[data-tinted-cover]::after{background:var(--tinted-spine)}
 .library-book-interests{display:flex;align-items:center;justify-content:center;white-space:nowrap;pointer-events:none}.study-book .library-book-interests{position:absolute;left:0;right:0;bottom:min(31px,17.6cqi);gap:2px;font-size:min(22px,12cqi);line-height:1.2}.catalog-book--new .study-book-author{padding-bottom:min(24px,13.6cqi)}
 .library-book-interests .interest-emoji{font-size:inherit;width:1.1em;height:1.1em}
+
+.shared-card-screen{padding:32px 0 48px}.shared-card-deck{font-size:14px;font-weight:750;color:var(--muted);overflow-wrap:anywhere}.card-share{display:inline-flex;align-items:center;gap:7px;margin-top:42px}.card-share .share-deck-icon{width:18px;height:18px}
