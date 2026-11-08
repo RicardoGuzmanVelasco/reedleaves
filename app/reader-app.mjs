@@ -18,7 +18,7 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=share-card-1";
-import {sharedCardView,homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,profileWakeOverlayView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=share-card-controls-2";
+import {sharedCardView,homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,profileWakeOverlayView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=share-icon-3";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";

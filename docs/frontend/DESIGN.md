@@ -116,7 +116,7 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 
 ## Compartir barajas
 
-- Presentar «Compartir / Share» como botón principal con icono reconocible y texto visible, también en móvil.
+- Presentar «Compartir / Share» como botón principal con texto visible, también en móvil. Las barajas y las tarjetas comparten el icono de cuadrado con flecha ascendente.
 - Compartir envía el texto funcional en el idioma de la interfaz elegida, con el título completo del libro traducido a ese idioma cuando exista y el nombre de la baraja. La copia empieza en inglés hasta que se elige un idioma de interfaz.
 - La tarjeta de imagen es genérica: brote oficial con ojos y boca del componente compartido, grande sobre `#fff9ed`, sin nombres ni copy. Usarla como imagen de preview social; Web Share envía una propiedad de texto con el copy y el enlace juntos, siguiendo el patrón de compartir de Competi.
 - Si el dispositivo no abre Web Share, copiar el texto y el enlace juntos.
