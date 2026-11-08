@@ -13,7 +13,7 @@ import { validQuoteSourceUrl } from "./quote-source.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks} from "./bookshelf.mjs";
 import {mascotStages,mascotStageEarned,currentMascotStage} from "./mascot-progress.mjs?v=soil-rosebud-1";
-import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=soil-rosebud-1";
+import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=soil-rosebud-3";
 import {missingBookInformation,TRANSLATION_FIELDS} from "./book-metadata.mjs";
 import {defaultNoteDeckTitle} from "./note-defaults.mjs";
 import {dailyIdeaStreak} from "./daily-streak.mjs";

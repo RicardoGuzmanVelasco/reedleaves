@@ -1,5 +1,5 @@
 import {bookTitle} from "./core.mjs";
-import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=soil-rosebud-1";
+import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=soil-rosebud-3";
 import {mascotStages,currentMascotStage} from "./mascot-progress.mjs?v=soil-rosebud-1";
 import {words} from "./i18n.mjs?v=soil-rosebud-1";
 

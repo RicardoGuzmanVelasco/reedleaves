@@ -1,4 +1,4 @@
-import {mascotFace} from "./mascot-face.mjs?v=soil-rosebud-2";
+import {mascotFace} from "./mascot-face.mjs?v=soil-rosebud-3";
 import {startMascotBlinking} from "./mascot-blink.mjs?v=mascot-random-blink";
 import {imageUrl} from "./image-url.mjs";
 
@@ -20,7 +20,7 @@ export const mascotAssets = Object.freeze({
   infinity: "/brand/reed/growth/infinity.svg"
 });
 // New stages hop by default. The historical seedling/sprout IDs name Seedling/Sprout.
-export const mascotIdlePatterns = Object.freeze({seed:"float",seedling:"float",sprout:"float",mystery:"float"});
+export const mascotIdlePatterns = Object.freeze({seed:"float",seedling:"float",sprout:"float",rosebud:"float",mystery:"float"});
 const escapeAttribute = value => String(value).replace(/[&<>"']/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character]));
 
 export function mascotArt(stage, className = "", {expression = "neutral", mouth, face, variant = "mascot", idle = true, animation = "idle"} = {}) {

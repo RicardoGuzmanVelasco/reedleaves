@@ -18,7 +18,7 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=soil-rosebud-1";
-import {sharedCardView,homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,profileWakeOverlayView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=soil-rosebud-1";
+import {sharedCardView,homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,profileWakeOverlayView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=soil-rosebud-3";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -36,7 +36,7 @@ import {usefulProfileReturnHash,profileReturnTarget} from "./profile-navigation.
 import {createModalPageLock} from "./modal-page-lock.mjs";
 import {adjacentCard,swipeStep} from "./card-reading-navigation.mjs";
 import {mascotStages} from "./mascot-progress.mjs?v=soil-rosebud-1";
-import {growthFeedbackChanges,growthFeedbackMarkup,fitGrowthFeedbackTitle,playGrowthFeedback} from "./growth-feedback.mjs?v=soil-rosebud-1";
+import {growthFeedbackChanges,growthFeedbackMarkup,fitGrowthFeedbackTitle,playGrowthFeedback} from "./growth-feedback.mjs?v=soil-rosebud-3";
 import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,practiceSessionAfterAnimation,restorePracticeSession as restorePracticeSessionFromState,samePracticeRecoveryTicket} from "./practice-session.mjs";
 import {hasAccessibleReadingGuide,hasOwnReadingGuide,shouldShowReadingGuidePrompt,shouldOfferReadingGuideCreationPrompt} from "./reading-guide-prompt.mjs";
 import {requestConfirmedMutation,requestPendingDeckIntent} from "./confirmed-mutation.mjs";
