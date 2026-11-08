@@ -121,6 +121,11 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 - La tarjeta de imagen es genérica: brote oficial con ojos y boca del componente compartido, grande sobre `#fff9ed`, sin nombres ni copy. Usarla como imagen de preview social; Web Share envía una propiedad de texto con el copy y el enlace juntos, siguiendo el patrón de compartir de Competi.
 - Si el dispositivo no abre Web Share, copiar el texto y el enlace juntos.
 
+## Compartir tarjetas
+
+- El mensaje identifica si se comparte una idea, una cita u otra tarjeta y nombra el libro, en el idioma de la interfaz. La URL conserva el idioma en que se vio el contenido.
+- La preview del enlace usa la imagen genérica del brote, el título de la idea o un fragmento de la cita u otra tarjeta y el nombre del libro. Si la tarjeta ya no existe, conserva la preview genérica.
+
 ## Glosario
 
 Usar estos términos de forma consistente en la interfaz y en la documentación editorial vigente. Los nombres internos del código y los archivos de datos pueden conservar sus términos técnicos.

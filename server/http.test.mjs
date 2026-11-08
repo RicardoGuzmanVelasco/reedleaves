@@ -4,6 +4,7 @@ import { once } from "node:events";
 import { openDatabase, initializeDatabase } from "./database.mjs";
 import { seedCatalog } from "./seed.mjs";
 import { createCatalogServer } from "./http.mjs";
+import {bookTitle,contentText,quoteExcerpt} from "../app/core.mjs";
 
 test("Live HTTP API reads SQL; static access cannot expose private files", async t => {
   const db = openDatabase(":memory:"); initializeDatabase(db); await seedCatalog(db);
@@ -65,6 +66,33 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   const head = await fetch(base + "/api/catalog", { method: "HEAD" });
   assert.equal(head.status, 200); assert.equal(await head.text(), "");
   assert.equal((await fetch(base + "/app/%xx")).status, 400);
+});
+
+test("Shared card links expose per-card previews without a session", async t => {
+  const db=openDatabase(":memory:");await initializeDatabase(db);await seedCatalog(db);
+  await db.prepare("UPDATE cards SET is_quote=1 WHERE id=?").run("atomic-1");
+  await db.prepare("UPDATE card_translations SET title=? WHERE card_id=? AND language=?").run('Idea <especial> & "clara"',"habit-1","es");
+  const server=createCatalogServer(db,undefined,{inviteCode:"r".repeat(32)});
+  server.listen(0,"127.0.0.1");await once(server,"listening");
+  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const catalog=await fetch(base+"/api/catalog").then(r=>r.json());
+  const escape=value=>String(value).replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+  for(const card of [catalog.cards.find(c=>!c.isQuote&&!c.isReadingGuide),catalog.cards.find(c=>c.isQuote)]) {
+    assert.ok(card);
+    const book=catalog.books.find(b=>b.id===card.bookId);
+    for(const language of ["es","en"]) {
+      const params=new URLSearchParams({sharedCard:card.id,cardLanguage:language});
+      const response=await fetch(`${base}/app/?${params}`),html=await response.text();
+      const title=card.isQuote?quoteExcerpt(contentText(card.body,language,card.language)):contentText(card.title,language,card.language);
+      assert.equal(response.status,200);
+      assert.ok(html.includes(`property="og:title" content="${escape(title)}"`));
+      assert.ok(html.includes(`property="og:description" content="${escape(bookTitle(book,language).text)}"`));
+      assert.match(html,/property="og:image" content="https:\/\/reedleaves\.com\/brand\/reed\/share-card\.png(?:\?[^" ]*)?"/);
+    }
+  }
+  const missing=await fetch(base+"/app/?sharedCard=missing&cardLanguage=es").then(r=>r.text());
+  assert.match(missing,/property="og:title" content="Reedleaves"/);
 });
 
 test("Public catalog and card votes remain readable without a session when account creation is invite-only", async t => {

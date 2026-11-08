@@ -4,6 +4,7 @@ import { readFile, realpath } from "node:fs/promises";
 import { extname, resolve, sep } from "node:path";
 import { PROJECT_ROOT } from "./database.mjs";
 import { readCatalog } from "./catalog-repository.mjs";
+import {bookTitle,contentText,quoteExcerpt} from "../app/core.mjs";
 import {createReaderApi} from "./reader-api.mjs";
 import {readSession} from "./auth.mjs";
 import {handleMcpRequest} from "./mcp-server.mjs";
@@ -72,6 +73,17 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
       if (["/app/index.html","/app/reader.css","/app/book-list.css","/app/manifest.webmanifest"].includes(relative)) {
         try { bytes = await readFile(resolve(root,"app/generated/image-static",relative.slice("/app/".length))); }
         catch (error) { if (error.code !== "ENOENT") throw error; }
+      }
+      if (relative === "/app/index.html" && url.searchParams.has("sharedCard")) {
+        const language=url.searchParams.get("cardLanguage") === "en" ? "en" : "es";
+        const catalog=await readCatalog(db), card=catalog.cards.find(item=>item.id===url.searchParams.get("sharedCard"));
+        const book=card && catalog.books.find(item=>item.id===card.bookId);
+        if(card && book) {
+          const text=card.isQuote || card.isReadingGuide ? quoteExcerpt(contentText(card.body,language,card.language)) : contentText(card.title,language,card.language);
+          const escape=value=>String(value).replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+          const title=escape(text),description=escape(bookTitle(book,language).text);
+          bytes=Buffer.from(bytes.toString().replace('<meta property="og:title" content="Reedleaves">',`<meta property="og:title" content="${title}">\n  <meta property="og:description" content="${description}">\n  <meta name="twitter:title" content="${title}">\n  <meta name="twitter:description" content="${description}">`));
+        }
       }
       if (imageTypes.has(extname(relative))) {
         const digest = createHash("sha256").update(bytes).digest("hex");

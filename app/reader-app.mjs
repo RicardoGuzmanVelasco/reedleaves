@@ -17,8 +17,8 @@ import {featuredDecks,isReadingGuideDeck} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=share-card-1";
-import {sharedCardView,homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,profileWakeOverlayView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=cards-filled-1";
+import {words} from "./i18n.mjs?v=card-preview-1";
+import {sharedCardView,homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,profileWakeOverlayView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=card-preview-1";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -1311,12 +1311,16 @@ export function startReader({createCardFeatures} = {}) {
     const card=catalog?.cardsById.get(id);
     if(!card || busy) return;
     const url=cardShareUrl(location.href,id,language);
+    const book=catalog.booksById.get(card.bookId);
+    if(!book) return;
+    const type=card.isReadingGuide ? "card" : card.isQuote ? "quote" : "idea";
+    const shareText=words[language].cardShareText(type,bookTitle(book,language).text);
     try {
       if(typeof navigator.share === "function") {
-        try { await navigator.share({url});return; } catch(error) { if(error?.name === "AbortError") return; }
+        try { await navigator.share({text:`${shareText} ${url}`});return; } catch(error) { if(error?.name === "AbortError") return; }
       }
       if(typeof navigator.clipboard?.writeText !== "function") throw new Error("Clipboard unavailable");
-      await navigator.clipboard.writeText(url);live.textContent=words[language].cardLinkCopied;
+      await navigator.clipboard.writeText(`${shareText}\n${url}`);live.textContent=words[language].cardLinkCopied;
     } catch { live.textContent=words[language].deckShareError; }
   }
   async function shareDeck() {

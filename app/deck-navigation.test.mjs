@@ -14,6 +14,12 @@ test('Shared decks open clean reading without carrying the selected card',()=>{
   assert.equal(url,'https://reedleaves.com/app/#preview/a-deck');
   assert.equal(deckPageHash('a/deck'),'#review/a%2Fdeck');
   assert.equal(deckReadingHash('a/deck'),'#preview/a%2Fdeck');
+  assert.equal(deckShareUrl('https://reedleaves.com/app/?sharedCard=old&cardLanguage=es#card/old/es','new'),'https://reedleaves.com/app/#preview/new');
+  for(const language of ['es','en']) for(const type of ['idea','quote','card']) {
+    const message=words[language].cardShareText(type,'Libro');
+    assert.ok(message.includes('Libro'));
+    assert.ok(message.includes(language==='es'?({idea:'idea',quote:'cita',card:'tarjeta'}[type]):type));
+  }
 });
 
 test('One deck page handles discovery, collection and ownership while clean reading keeps only cards',async()=>{
@@ -56,7 +62,7 @@ test('A shared card retains its content language and shows only the requested ca
   try{await initializeDatabase(db);await seedCatalog(db);catalog=prepareCatalog(await readCatalog(db));}finally{await db.close();}
   const card=catalog.cards[0],deck=catalog.decksById.get(card.deckId);
   const url=cardShareUrl('https://reedleaves.com/app/#daily','card/one','es');
-  assert.equal(url,'https://reedleaves.com/app/#card/card%2Fone/es');
+  assert.equal(url,'https://reedleaves.com/app/?sharedCard=card%2Fone&cardLanguage=es#card/card%2Fone/es');
   card.body={...card.body,es:'Texto compartido',en:'Shared text'};
   const state=readerState(catalog,{language:'en',sharedContentLanguage:'es',requestedId:card.id});
   const html=sharedCardView(state);
