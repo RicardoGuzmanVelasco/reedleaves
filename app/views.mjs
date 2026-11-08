@@ -424,7 +424,7 @@ export const bottomNavigationProfileIconMarkup = () => `<svg class="bottom-navig
 
 function nameLink({icon,name,language=null,href=null}) {
   if (!name) return "";
-  const contents=`${icon === "deck" ? cardsIconMarkup : attributionIcon(icon)}<bdi${language ? ` lang="${esc(language)}" dir="auto"` : ""}>${esc(name)}</bdi>${href ? linkArrow : ""}`;
+  const contents=`${icon === "deck" ? '<span class="cards-icon cards-icon--filled" aria-hidden="true"></span>' : attributionIcon(icon)}<bdi${language ? ` lang="${esc(language)}" dir="auto"` : ""}>${esc(name)}</bdi>${href ? linkArrow : ""}`;
   return href ? `<a class="card-attribution-row" href="${esc(href)}">${contents}</a>` : `<span class="card-attribution-row">${contents}</span>`;
 }
 

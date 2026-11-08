@@ -1062,3 +1062,4 @@ html,body{overflow-x:clip}
 .card-share .share-deck-icon{width:19px;height:19px}
 
 .card-attribution-row .cards-icon{width:17px;height:17px;background-color:rgb(0 0 0 / 30%)}
+.cards-icon--filled{-webkit-mask-image:url("../brand/icons/note-capture/cards-filled.svg");mask-image:url("../brand/icons/note-capture/cards-filled.svg")}
