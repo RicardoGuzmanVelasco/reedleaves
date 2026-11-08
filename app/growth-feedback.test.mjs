@@ -5,9 +5,9 @@ import {growthChanges,growthFeedbackChanges,growthFeedbackMarkup,playGrowthFeedb
 test("growth feedback reports only changed current stages across books",()=>{
   const before={a:{added:true,reviewDays:1},b:{added:true,reviewDays:4},c:{added:true,reviewDays:5},d:{added:true,reviewDays:4}};
   const after={a:{added:true,reviewDays:2},b:{added:true,reviewDays:5},c:{added:true,reviewDays:5},d:{added:true,reviewDays:5}};
-  assert.deepEqual(growthChanges(before,after),[{bookId:"a",previous:"seed",stage:"root"},{bookId:"b",previous:"seedling",stage:"sprout"},{bookId:"d",previous:"seedling",stage:"sprout"}]);
+  assert.deepEqual(growthChanges(before,after),[{bookId:"a",previous:"soil",stage:"seed"},{bookId:"b",previous:"seedling",stage:"sprout"},{bookId:"d",previous:"seedling",stage:"sprout"}]);
   assert.deepEqual(growthFeedbackChanges(before,after),[
-    {bookId:"a",previous:"seed",stage:"root",previousCount:1,previousCountAfter:0,stageCount:0,stageCountAfter:1},
+    {bookId:"a",previous:"soil",stage:"seed",previousCount:1,previousCountAfter:0,stageCount:0,stageCountAfter:1},
     {bookId:"b",previous:"seedling",stage:"sprout",previousCount:2,previousCountAfter:1,stageCount:1,stageCountAfter:2},
     {bookId:"d",previous:"seedling",stage:"sprout",previousCount:1,previousCountAfter:0,stageCount:2,stageCountAfter:3}
   ]);
@@ -16,14 +16,14 @@ test("growth feedback reports only changed current stages across books",()=>{
 
 test("growth feedback identifies each book and stage in both interface languages",()=>{
   const catalog={booksById:new Map([["a",{popularTitle:"Book A",popularLanguage:"en",title:{es:"Libro A"}}],["b",{popularTitle:"Book B",popularLanguage:"en",title:{}}]])};
-  const changes=[{bookId:"a",previous:"seed",stage:"root"},{bookId:"b",previous:"seedling",stage:"sprout"}];
+  const changes=[{bookId:"a",previous:"soil",stage:"seed"},{bookId:"b",previous:"stem",stage:"rosebud"}];
   const es=growthFeedbackMarkup(changes,catalog,"es"),en=growthFeedbackMarkup(changes,catalog,"en");
   assert.match(es,/¡Tus mascotas han crecido!/);
-  assert.match(es,/Libro A/);assert.match(es,/Raíz/);assert.match(es,/Book B/);assert.match(es,/Brote/);
+  assert.match(es,/Libro A/);assert.match(es,/Tierra/);assert.match(es,/Book B/);assert.match(es,/Capullo/);
   assert.match(es,/growth-feedback-art-old/);assert.match(es,/data-idle="none"/);assert.match(es,/data-idle="hop"/);
   assert.match(es,/class="growth-feedback-art-new" hidden/);assert.match(es,/class="growth-feedback-stage-new" hidden/);
   assert.doesNotMatch(es,/growth-feedback-eyebrow|growth-feedback-arrow|growth-feedback-halo/);
-  assert.match(en,/Your mascots have grown/);assert.match(en,/Root/);assert.match(en,/Sprout/);
+  assert.match(en,/Your mascots have grown/);assert.match(en,/Soil/);assert.match(en,/Rosebud/);
   assert.match(growthFeedbackMarkup(changes.slice(0,1),catalog,"es"),/¡Tu mascota ha crecido!/);
 });
 

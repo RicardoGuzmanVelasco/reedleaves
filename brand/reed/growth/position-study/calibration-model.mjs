@@ -1,4 +1,4 @@
-import {mascotFaceGeometry,mascotMouthWidth,mascotFacePlacement} from "../../../../app/mascot-face.mjs?v=flower-15-days";
+import {mascotFaceGeometry,mascotMouthWidth,mascotFacePlacement} from "../../../../app/mascot-face.mjs?v=soil-rosebud-1";
 export const calibrationStages = Object.keys(mascotFacePlacement);
 export const calibrationFields = Object.freeze([
   {key:"bodyX",group:"body",label:"Horizontal (%)",min:-50,max:50,step:.5},

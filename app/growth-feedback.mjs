@@ -1,9 +1,9 @@
 import {bookTitle} from "./core.mjs";
-import {mascotArt,mascotIcon} from "./mascot-art.mjs";
-import {currentMascotStage} from "./mascot-progress.mjs";
-import {words} from "./i18n.mjs";
+import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=soil-rosebud-1";
+import {mascotStages,currentMascotStage} from "./mascot-progress.mjs?v=soil-rosebud-1";
+import {words} from "./i18n.mjs?v=soil-rosebud-1";
 
-const stageNames={pot:"mascotNamePot",seed:"mascotNameSeed",root:"mascotNameRoot",seedling:"mascotNameSeedling",sprout:"mascotNameSprout",stem:"mascotNameStem",flower:"mascotNameFlower"};
+const stageNames=Object.fromEntries(mascotStages.filter(stage=>stage.days!==undefined).map(stage=>[stage.id,stage.name]));
 const esc=value=>String(value).replace(/[&<>"']/g,character=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character]));
 
 export function growthChanges(before={},after={}) {

@@ -1,4 +1,4 @@
-import {mascotFace} from "./mascot-face.mjs?v=sleep-3";
+import {mascotFace} from "./mascot-face.mjs?v=soil-rosebud-1";
 import {startMascotBlinking} from "./mascot-blink.mjs?v=mascot-random-blink";
 import {imageUrl} from "./image-url.mjs";
 
@@ -7,6 +7,7 @@ if (typeof document !== "undefined") startMascotBlinking(document);
 // Decorative artwork only. Stage availability remains the caller's responsibility.
 export const mascotAssets = Object.freeze({
   pot: "/brand/reed/growth/bodies/pot-a-body.png",
+  soil: "/brand/reed/growth/bodies/soil.svg",
   seed: "/brand/reed/growth/bodies/seed.svg",
   root: "/brand/reed/growth/bodies/root.png",
   seedling: "/brand/reed/growth/bodies/seedling.svg",
@@ -14,6 +15,7 @@ export const mascotAssets = Object.freeze({
   mystery: "/brand/reed/growth/mystery.svg",
   stem: "/brand/reed/growth/bodies/stem-flat.svg",
   plant: "/brand/reed/growth/plant.svg",
+  rosebud: "/brand/reed/growth/bodies/rosebud.svg",
   flower: "/brand/reed/growth/bodies/flower.png",
   infinity: "/brand/reed/growth/infinity.svg"
 });

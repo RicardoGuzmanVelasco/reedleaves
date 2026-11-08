@@ -17,8 +17,8 @@ import {featuredDecks,isReadingGuideDeck} from "./decks.mjs";
 import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
-import {words} from "./i18n.mjs?v=card-preview-1";
-import {sharedCardView,homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,profileWakeOverlayView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=card-preview-1";
+import {words} from "./i18n.mjs?v=soil-rosebud-1";
+import {sharedCardView,homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,profileWakeOverlayView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=soil-rosebud-1";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -35,7 +35,8 @@ import {nextDailyCycleBoundary} from "./daily-cycle.mjs";
 import {usefulProfileReturnHash,profileReturnTarget} from "./profile-navigation.mjs";
 import {createModalPageLock} from "./modal-page-lock.mjs";
 import {adjacentCard,swipeStep} from "./card-reading-navigation.mjs";
-import {growthFeedbackChanges,growthFeedbackMarkup,fitGrowthFeedbackTitle,playGrowthFeedback} from "./growth-feedback.mjs";
+import {mascotStages} from "./mascot-progress.mjs?v=soil-rosebud-1";
+import {growthFeedbackChanges,growthFeedbackMarkup,fitGrowthFeedbackTitle,playGrowthFeedback} from "./growth-feedback.mjs?v=soil-rosebud-1";
 import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,practiceSessionAfterAnimation,restorePracticeSession as restorePracticeSessionFromState,samePracticeRecoveryTicket} from "./practice-session.mjs";
 import {hasAccessibleReadingGuide,hasOwnReadingGuide,shouldShowReadingGuidePrompt,shouldOfferReadingGuideCreationPrompt} from "./reading-guide-prompt.mjs";
 import {requestConfirmedMutation,requestPendingDeckIntent} from "./confirmed-mutation.mjs";
@@ -1674,7 +1675,7 @@ export function startReader({createCardFeatures} = {}) {
       else if(location.hash&&!homeRoute&&location.hash!=="#account")await ensureFullCatalog();
       const preview=new URLSearchParams(location.search).get("growthPreview");
       if(catalogIsFull&&["localhost","127.0.0.1"].includes(location.hostname) && ["one","many"].includes(preview)) {
-        const examples=[{previous:"pot",stage:"seed"},{previous:"seedling",stage:"sprout"},{previous:"stem",stage:"flower"}],days={pot:0,seed:1,root:2,seedling:3,sprout:5,stem:10,flower:15};
+        const examples=[{previous:"pot",stage:"soil"},{previous:"seedling",stage:"sprout"},{previous:"stem",stage:"rosebud"}],days=Object.fromEntries(mascotStages.map(stage=>[stage.id,stage.days]));
         const books=catalog.books.slice(0,preview==="many"?3:1),before={...snapshot.growth},after={...snapshot.growth};
         for(const [index,book] of books.entries()){
           const {previous,stage}=examples[index];

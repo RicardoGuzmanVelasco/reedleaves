@@ -62,7 +62,7 @@ test("Old per-deck practice progress copy is gone", () => {
 });
 
 test("Germ precedes Sprout in both languages without changing earned stage IDs", () => {
-  const stages=[currentMascotStage({added:true,reviewDays:3}),currentMascotStage({added:true,reviewDays:5})];
+  const stages=[currentMascotStage({added:true,reviewDays:4}),currentMascotStage({added:true,reviewDays:5})];
   assert.deepEqual(stages,["seedling","sprout"]);
   assert.deepEqual(stages.map(id=>words.es[id==="seedling"?"mascotNameSeedling":"mascotNameSprout"]),["Germen","Brote"]);
   assert.deepEqual(stages.map(id=>words.en[id==="seedling"?"mascotNameSeedling":"mascotNameSprout"]),["Seedling","Sprout"]);

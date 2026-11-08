@@ -7,13 +7,13 @@ import { availableDecks,isReadingGuideDeck,sortDecks } from "./decks.mjs";
 import {homeBooks,editableNoteDecks,noteDecksWithSpace,recentNoteDecks} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
 import {cardTypeFor} from "./card-types.mjs";
-import { words } from "./i18n.mjs?v=card-preview-1";
+import { words } from "./i18n.mjs?v=soil-rosebud-1";
 import { bookLinkUrl } from "./book-links.mjs";
 import { validQuoteSourceUrl } from "./quote-source.mjs";
 import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks} from "./bookshelf.mjs";
-import {currentMascotStage} from "./mascot-progress.mjs?v=flower-15-days";
-import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=sleep-2";
+import {mascotStages,mascotStageEarned,currentMascotStage} from "./mascot-progress.mjs?v=soil-rosebud-1";
+import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=soil-rosebud-1";
 import {missingBookInformation,TRANSLATION_FIELDS} from "./book-metadata.mjs";
 import {defaultNoteDeckTitle} from "./note-defaults.mjs";
 import {dailyIdeaStreak} from "./daily-streak.mjs";
@@ -371,20 +371,9 @@ function noteDestinationMarkup(s) {
   }).join("")}</div>${all ? "" : `<button type="button" class="note-destination-all" data-action="all-note-decks">${esc(c.viewAllNoteDecks)}<span aria-hidden="true">→</span></button>`}</dialog>`;
 }
 
-const mascotStages = [
-  {id:"pot",name:"mascotNamePot",milestone:"mascotPot",unlocked:g=>g.added},
-  {id:"seed",name:"mascotNameSeed",milestone:"mascotSeed",unlocked:g=>g.reviewDays>=1},
-  {id:"root",name:"mascotNameRoot",milestone:"mascotRoot",unlocked:g=>g.reviewDays>=2},
-  {id:"seedling",name:"mascotNameSeedling",milestone:"mascotSeedling",unlocked:g=>g.reviewDays>=3},
-  {id:"sprout",name:"mascotNameSprout",milestone:"mascotSprout",unlocked:g=>g.reviewDays>=5},
-  {id:"stem",name:"mascotNameStem",milestone:"mascotStem",unlocked:g=>g.reviewDays>=10},
-  {id:"flower",name:"mascotNameFlower",milestone:"mascotFlower",unlocked:g=>g.reviewDays>=15},
-  {id:"fruit",name:"mascotNameFruit"},
-  {id:"infinity",name:"mascotNameInfinity"}
-];
 function mascotState(s,bookId) {
   const g=s.growth?.[bookId] || {added:false,reviewDays:0};
-  const unlocked=mascotStages.filter(stage=>stage.unlocked?.(g)).map(stage=>stage.id);
+  const unlocked=mascotStages.filter(stage=>mascotStageEarned(stage,g)).map(stage=>stage.id);
   return {g,unlocked,latest:currentMascotStage(g)};
 }
 function mascotEntry(s,bookId,className="") {
@@ -403,10 +392,10 @@ export function mascotsView(s) {
   return `<section class="mascots-screen"><button class="text-button" type="button" data-action="close-mascots">${c.mascotsBack}</button>
     <header class="mascots-heading"><div><p class="small-book">${esc(displayedBookTitle(s,book).text)}</p><h1 tabindex="-1">${c.mascots}</h1></div>${mascotArt(latest)}</header>
     <ol class="mascot-collection">${mascotStages.map((stage,index)=>{
-      const earned=unlocked.includes(stage.id),implemented=!!stage.unlocked,current=latest===stage.id;
+      const earned=unlocked.includes(stage.id),implemented=stage.days!==undefined,current=latest===stage.id;
       const knownArtwork=earned || index<=maximumKnown;
       const marker=earned?`<span class="mascot-stage-marker mascot-check"><svg viewBox="0 0 24 24" role="img" aria-label="${c.mascotEarned}"><path d="m4 12 5 5L20 6"/></svg></span>`:`<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true"></span>`;
-      const unlock=implemented?c[stage.milestone]:"???";
+      const unlock=!implemented?"???":stage.days===0?c.mascotPot:stage.days===1?c.mascotFirstDay:c.mascotReviewDays(stage.days);
       const locked=!earned?c.mascotNotUnlocked:"";
       return `<li class="mascot-stage${earned?" is-earned":""}${knownArtwork?" is-known":" is-mystery"}${!earned?" is-locked":""}${current?" is-current":""}"${current?' aria-current="step"':""}>${marker}${mascotArt(knownArtwork?stage.id:"mystery","mascot-stage-art",{idle:false})}<div class="mascot-stage-copy"><h2>${c[stage.name]}</h2><p class="mascot-stage-unlock">${esc(unlock)}</p>${locked?`<p class="mascot-stage-lock">${esc(locked)}</p>`:""}</div></li>`;
     }).join("")}</ol>
@@ -869,7 +858,7 @@ export function profileView(s) {
     <section class="profile-section profile-interests-section" aria-labelledby="profile-interests-heading"><div class="profile-section-heading"><h2 id="profile-interests-heading">${c.profileInterests}</h2>${owner&&!preferences?.loading&&!preferences?.error?`<button class="text-button" type="button" data-action="edit-profile-interests">${c.edit}</button>`:""}</div>${interestEditor()}</section>
     ${owner?`<section class="profile-section profile-language-section" aria-labelledby="profile-languages-heading"><div class="profile-section-heading"><h2 id="profile-languages-heading">${c.profileLanguages}</h2>${!languagePreferences?.editing&&!languagePreferences?.loading&&!languagePreferences?.error?`<button class="text-button" type="button" data-action="edit-profile-languages">${c.edit}</button>`:""}</div>${languageEditor()}</section>`:""}
     <section class="profile-section" aria-labelledby="profile-archivist"><h2 id="profile-archivist">${c.archivistSummary}</h2>${metrics(["decksCreated","cardsCreated","quotesCreated"])}</section>
-    <section class="profile-section" aria-labelledby="profile-mascots"><h2 id="profile-mascots">${c.currentMascots}</h2><ul class="profile-mascots">${mascotStages.filter(stage=>stage.unlocked || p.mascots[stage.id]>0).map(stage=>`<li>${mascotIcon(stage.id)}<span>${c[stage.name]}</span><strong>${p.mascots[stage.id] ?? 0}</strong></li>`).join("")}</ul></section>
+    <section class="profile-section" aria-labelledby="profile-mascots"><h2 id="profile-mascots">${c.currentMascots}</h2><ul class="profile-mascots">${mascotStages.filter(stage=>stage.days!==undefined || p.mascots[stage.id]>0).map(stage=>`<li>${mascotIcon(stage.id)}<span>${c[stage.name]}</span><strong>${p.mascots[stage.id] ?? 0}</strong></li>`).join("")}</ul></section>
   </section>`;
 }
 export function profileWakeOverlayView() {

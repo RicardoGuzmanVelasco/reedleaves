@@ -6,7 +6,7 @@ import {imageUrl} from "./image-url.mjs";
 import {mascotArt,mascotAssets,mascotIcon} from "./mascot-art.mjs";
 
 test("Decorative mascot artwork reserves separate placement and motion layers",()=>{
-  for (const stage of ["pot","seed","root","seedling","sprout","stem","flower","mystery"]) {
+  for (const stage of ["pot","soil","seed","root","seedling","sprout","stem","rosebud","flower","mystery"]) {
     const html=mascotArt(stage,"mascot-stage-art");
     assert.match(html,/aria-hidden="true"/);
     assert.match(html,/mascot-art-placement"><span class="mascot-art-motion"><img/);
@@ -58,7 +58,7 @@ test("Root uses an alpha PNG and the static loading fallback matches the shared 
 
 
 test("Active mascots share a face inside body motion; unknown stages stay faceless",()=>{
-  for (const stage of ["pot","seed","root","seedling","sprout","stem","flower"]) {
+  for (const stage of ["pot","soil","seed","root","seedling","sprout","stem","rosebud","flower"]) {
     const html=mascotArt(stage);
     assert.match(html,/mascot-art-motion"><img[^>]*><svg class="mascot-face"/);
     const body=readFileSync(new URL(`..${imageUrl(mascotAssets[stage])}`,import.meta.url));
@@ -111,7 +111,7 @@ test("Invalid mouth widths fall back without injecting SVG attributes",()=>{
 
 
 test("Mascot icons are direct images without character placement, motion or face",()=>{
-  for(const stage of ["pot","seed","root","seedling","sprout","stem","flower","mystery"]) {
+  for(const stage of ["pot","soil","seed","root","seedling","sprout","stem","rosebud","flower","mystery"]) {
     const icon=mascotIcon(stage,"study-book-mark");
     assert.match(icon,/^<img class="mascot-icon study-book-mark"/);
     assert.doesNotMatch(icon,/<span|<svg|mascot-art|mascot-face|mascot-mouth|mascot-eye|style=|data-mascot/);

@@ -82,19 +82,19 @@ test("Views expose every review card and preserve book attribution", async () =>
   assert.doesNotMatch(reviewView(state), /Vuelve tras un fallo/);
 });
 test("Book mascot collection shows earned art, ordered names and a shared unknown for future forms",async()=>{
-  const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{"seven-habits":{added:true,reviewDays:3}}};
-  const html=mascotsView(state),names=["Maceta","Semilla","Raíz","Germen","Brote","Tallo","Flor","Fruto","Siempreverde"];
-  assert.equal((html.match(/data-idle="none"/g)||[]).length,9);
+  const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{"seven-habits":{added:true,reviewDays:4}}};
+  const html=mascotsView(state),names=["Maceta","Tierra","Semilla","Raíz","Germen","Brote","Tallo","Capullo","Flor","Fruto","Siempreverde"];
+  assert.equal((html.match(/data-idle="none"/g)||[]).length,11);
   assert.match(html,/<header class="mascots-heading">[\s\S]*?data-mascot="seedling" data-idle="float"[\s\S]*?<\/header>/);
   assert.deepEqual(names.map(name=>html.indexOf(`<h2>${name}</h2>`)),[...names].map(name=>html.indexOf(`<h2>${name}</h2>`)).sort((a,b)=>a-b));
-  assert.equal((html.match(/\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,5);
+  assert.equal((html.match(/\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,6);
   assert.match(html,/\/brand\/reed\/growth\/bodies\/pot-a-body\.png/);assert.match(html,/\/brand\/reed\/growth\/bodies\/seed\.svg/);assert.match(html,/\/brand\/reed\/growth\/bodies\/root\.png/);assert.match(html,/\/brand\/reed\/growth\/bodies\/seedling\.svg/);assert.doesNotMatch(html,/\/brand\/reed\/growth\/bodies\/sprout\.svg/);
   assert.doesNotMatch(html,/root\.svg|stem\.svg|plant\.svg|flower\.svg|loop\.svg|20\s*%|60\s*%|100\s*%/);
   assert.doesNotMatch(html,/<h2>Retoño<\/h2>|<h2>Sapling<\/h2>/);
   assert.match(html,/aria-current="step"/);assert.match(html,/role="img" aria-label="Conseguida"/);assert.doesNotMatch(html,/<span class="mascot-earned"/);
   assert.match(html,/Repasar este libro durante 2 días distintos/);assert.match(html,/Repasar este libro durante 3 días distintos/);assert.match(html,/Repasar este libro durante 5 días distintos/);
   assert.doesNotMatch(html,/mascot-stage-motto|mascotMotto|¡Algo asoma por fin!/);
-  const noDays=mascotsView({...state,growth:{"seven-habits":{added:true,reviewDays:2}}});
+  const noDays=mascotsView({...state,growth:{"seven-habits":{added:true,reviewDays:3}}});
   assert.match(noDays,/class="mascot-stage is-earned is-known is-current"[^>]*>.*?<span class="mascot-art mascot-stage-art"[^>]*>.*?<img src="\/brand\/reed\/growth\/bodies\/root\.png(?:\?[^" ]*)?"/s);
   assert.doesNotMatch(noDays,/class="mascot-stage is-earned is-known"[^>]*>.*?<span class="mascot-art mascot-stage-art"[^>]*>.*?<img src="\/brand\/reed\/growth\/bodies\/seedling\.svg(?:\?[^" ]*)?"/s);
   const fiveDays=mascotsView({...state,growth:{"seven-habits":{added:true,reviewDays:5}}});
@@ -104,41 +104,41 @@ test("Book mascot collection shows earned art, ordered names and a shared unknow
     assert.doesNotMatch(stemView(9),/growth\/bodies\/stem-flat\.svg/);
     const stemRow=stemView(10).match(/<li class="mascot-stage is-earned is-known is-current"[^>]*>[\s\S]*?<\/li>/)[0];
     assert.match(stemRow,/growth\/bodies\/stem-flat\.svg/);
-    assert.ok(stemRow.includes(words[language].mascotStem));
+    assert.ok(stemRow.includes(words[language].mascotReviewDays(10)));
     assert.ok(!stemRow.includes(words[language].mascotNotUnlocked));
   }
-  const empty=mascotsView({...state,growth:{}});assert.equal((empty.match(/\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,10);
-  assert.equal((empty.match(/\?\?\?/g)||[]).length,2);assert.equal((empty.match(/No desbloqueada/g)||[]).length,9);
+  const empty=mascotsView({...state,growth:{}});assert.equal((empty.match(/\/brand\/reed\/growth\/mystery\.svg/g)||[]).length,12);
+  assert.equal((empty.match(/\?\?\?/g)||[]).length,2);assert.equal((empty.match(/No desbloqueada/g)||[]).length,11);
   assert.match(mascotsView({...state,language:"en",growth:{}}),/Not unlocked/);
   const english=mascotsView({...state,language:"en",growth:{}});
   assert.ok(english.indexOf("<h2>Flower</h2>")<english.indexOf("<h2>Fruit</h2>"));
   assert.ok(english.indexOf("<h2>Fruit</h2>")<english.indexOf("<h2>Evergreen</h2>"));
   assert.match(empty,/<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true"><\/span>[\s\S]*?<h2>Fruto<\/h2><p class="mascot-stage-unlock">\?\?\?<\/p><p class="mascot-stage-lock">No desbloqueada<\/p>/);
 });
-test("Flor is the next milestone after Tallo and becomes current on day fifteen in both languages",async()=>{
+test("Flor is the next milestone after Capullo and becomes current on day fifteen in both languages",async()=>{
   const catalog=prepareCatalog(await payload()),bookId="seven-habits";
   for(const language of ["es","en"]) {
     const state={catalog,language,bookId,growth:{[bookId]:{added:true,reviewDays:14}}};
     const before=mascotsView(state);
     assert.doesNotMatch(before,/growth\/bodies\/flower\.png/);
-    assert.match(before,/data-mascot="stem"/);
+    assert.match(before,/aria-current="step"[^>]*>[\s\S]*?data-mascot="rosebud"/);
     const after=mascotsView({...state,growth:{[bookId]:{added:true,reviewDays:15}}});
     const rows=after.match(/<li class="mascot-stage[^\"]*"[^>]*>[\s\S]*?<\/li>/g);
-    assert.ok(rows[5].includes(`<h2>${words[language].mascotNameStem}</h2>`));
-    assert.ok(rows[6].includes(`<h2>${words[language].mascotNameFlower}</h2>`));
-    assert.match(rows[6],/is-earned is-known is-current/);
-    assert.match(rows[6],/growth\/bodies\/flower\.png/);
-    assert.ok(rows[6].includes(words[language].mascotFlower));
-    assert.ok(!rows[6].includes(words[language].mascotNotUnlocked));
-    assert.doesNotMatch(rows[6],/undefined|mascot-stage-motto/);
+    assert.ok(rows[7].includes(`<h2>${words[language].mascotNameRosebud}</h2>`));
+    assert.ok(rows[8].includes(`<h2>${words[language].mascotNameFlower}</h2>`));
+    assert.match(rows[8],/is-earned is-known is-current/);
+    assert.match(rows[8],/growth\/bodies\/flower\.png/);
+    assert.ok(rows[8].includes(words[language].mascotReviewDays(15)));
+    assert.ok(!rows[8].includes(words[language].mascotNotUnlocked));
+    assert.doesNotMatch(rows[8],/undefined|mascot-stage-motto/);
   }
 });
 
 test("Locked stages show known artwork and lock status up to the user's maximum in other books",async()=>{
   const catalog=prepareCatalog(await payload());
   for (const {localDays,otherDays,knownLocked,unknownFrom} of [
-    {localDays:1,otherDays:3,knownLocked:[[2,"root.png"],[3,"seedling.svg"]],unknownFrom:4},
-    {localDays:2,otherDays:5,knownLocked:[[3,"seedling.svg"],[4,"sprout.svg"]],unknownFrom:5}
+    {localDays:1,otherDays:4,knownLocked:[[2,"seed.svg"],[3,"root.png"],[4,"seedling.svg"]],unknownFrom:5},
+    {localDays:2,otherDays:5,knownLocked:[[3,"root.png"],[4,"seedling.svg"],[5,"sprout.svg"]],unknownFrom:6}
   ]) for (const language of ["es","en"]) {
     const growth={"seven-habits":{added:true,reviewDays:localDays},"atomic-habits":{added:true,reviewDays:otherDays},"same-as-ever":{added:true,reviewDays:0}};
     const before=structuredClone(growth);
@@ -167,7 +167,7 @@ test("Mascot collection opens from review album and deck selection, not library,
   const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{},statuses:{},enrolledIds:[],deckChoices:[],storageAvailable:false};
   assert.doesNotMatch(libraryView({...state,openBookId:"seven-habits"}),/data-action="open-mascots"/);
   assert.match(deckView(state),/data-action="open-mascots" data-book="seven-habits"/);
-  assert.match(deckView({...state,growth:{"seven-habits":{added:true,reviewDays:1}}}),/mascot-entry[^>]*data-book="seven-habits"[^>]*>.*?<img src="\/brand\/reed\/growth\/bodies\/seed\.svg(?:\?[^" ]*)?"/);
+  assert.match(deckView({...state,growth:{"seven-habits":{added:true,reviewDays:1}}}),/mascot-entry[^>]*data-book="seven-habits"[^>]*>.*?<img src="\/brand\/reed\/growth\/bodies\/soil\.svg(?:\?[^" ]*)?"/);
   assert.doesNotMatch(homeView(state),/data-action="open-mascots"/);
   const version=catalog.decks.find(item=>item.bookId==="seven-habits");
   const reviewing={...state,deckId:version.id,requestedId:null,today:"2026-10-11",budget:null,storageAvailable:true,
@@ -177,7 +177,7 @@ test("Mascot collection opens from review album and deck selection, not library,
   assert.match(review,/data-action="open-mascots" data-book="seven-habits"/);
   assert.doesNotMatch(review,/Ya has plantado la semilla|mascotMotto/);
   const english=reviewView({...reviewing,language:"en"});assert.doesNotMatch(english,/Read: plant a seed|mascotMotto/);
-  const seedlingReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,reviewDays:3}}});
+  const seedlingReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,reviewDays:4}}});
   assert.match(seedlingReview,/growth\/bodies\/seedling\.svg/);assert.doesNotMatch(seedlingReview,/¡Algo asoma por fin!|mascotMotto/);
   const sproutReview=reviewView({...reviewing,growth:{"seven-habits":{added:true,reviewDays:5}}});
   assert.match(sproutReview,/brand\/reed\/growth\/bodies\/sprout\.svg/);assert.doesNotMatch(sproutReview,/Las hojas verdes son el siguiente paso|mascotMotto/);
@@ -204,9 +204,9 @@ test("Home book cover uses that book's earned mascot as a body-only icon",async(
   };
   assert.doesNotMatch(cover(),/mascot-face/);
   assert.doesNotMatch(cover(),/mascot-art-placement|mascot-art-motion/);
-  assert.match(cover(),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/seed\.svg(?:\?[^" ]*)?"/);
-  assert.match(cover({growth:{[bookId]:{added:true,reviewDays:2}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/root\.png(?:\?[^" ]*)?"/);
-  assert.match(cover({growth:{[bookId]:{added:true,reviewDays:3}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/seedling\.svg(?:\?[^" ]*)?"/);
+  assert.match(cover(),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/soil\.svg(?:\?[^" ]*)?"/);
+  assert.match(cover({growth:{[bookId]:{added:true,reviewDays:3}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/root\.png(?:\?[^" ]*)?"/);
+  assert.match(cover({growth:{[bookId]:{added:true,reviewDays:4}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/seedling\.svg(?:\?[^" ]*)?"/);
   assert.match(cover({growth:{[bookId]:{added:true,reviewDays:5}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/sprout\.svg(?:\?[^" ]*)?"/);
   assert.match(cover({growth:{[bookId]:{added:true,reviewDays:10}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/stem-flat\.svg(?:\?[^" ]*)?"/);
   assert.match(cover({growth:{[bookId]:{added:true,reviewDays:15}}}),/<img class="mascot-icon study-book-mark" src="\/brand\/reed\/growth\/bodies\/flower\.png(?:\?[^" ]*)?"/);

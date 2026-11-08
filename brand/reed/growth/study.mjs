@@ -1,2 +1,2 @@
-import {mascotArt} from "/app/mascot-art.mjs?v=flower-15-days";
+import {mascotArt} from "/app/mascot-art.mjs?v=soil-rosebud-1";
 for (const frame of document.querySelectorAll("[data-mascot-preview]")) frame.innerHTML = mascotArt(frame.dataset.mascotPreview);

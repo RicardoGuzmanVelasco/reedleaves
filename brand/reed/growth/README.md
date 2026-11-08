@@ -1,28 +1,20 @@
 # Growth mascot study
 
-This is the art source for the per-book mascot stages used by the app. In Spanish, the sequence is **Maceta → Semilla → Raíz → Germen → Brote → Tallo → Flor**. The historical IDs remain `seedling` for Germen / Seedling at three review days and `sprout` for Brote / Sprout at five. The current two-leaf app mascot is **Brote / Sprout**. **Root** uses the selected ginger-root concept from `root.png`, composited through the transparent derivative `root-cutout.png`, and unlocks after spending leaves on cards for that book on two distinct local days. **Evergreen** restores the original **Living loop / Bucle vivo** mascot as a local asset, including its face placement.
+The active Spanish sequence is **Maceta → Tierra → Semilla → Raíz → Germen → Brote → Tallo → Capullo → Flor**. Each book contributes one current mascot to the profile. Its stage is derived from the existing count of distinct local practice days, using the same [milestones](../../../app/mascot-progress.mjs) in the app and server. Days need not be consecutive.
 
-The user approved **Flowerpot** and **Seed**, approved the ginger-root **Root** artwork, approved **Sprout** with widely spaced eyes, asked to distinguish **Seedling** from **Sapling**, and asked to restore the original loop symbol. In Spanish, **Germen / Seedling** unlocks after three distinct review days and **Brote / Sprout** after five. **Stem** uses the selected **A · Carnoso** direction in the shared component and calibration editor, and unlocks after ten distinct local spend days for the book. Sapling was removed from the sequence on 15 October 2026; Stem follows Brote. Flower uses the approved A · Flor blossom-only design and unlocks at fifteen distinct local spend days. Plant remains reserved outside the growth sequence. Fruit follows Flower before Evergreen; its artwork, motto and unlock condition remain undecided.
-
-## Current names and preserved identifiers
-
-The implemented sequence is **Flowerpot → Seed → Root → Seedling → Sprout → Stem → Flower** (Spanish: **Maceta → Semilla → Raíz → Germen → Brote → Tallo → Flor**). Flower follows Stem directly at fifteen distinct local spend days. Plant is reserved outside that sequence. Historical IDs and filenames stay unchanged: `seedling` means **Germen / Seedling** at three review days; `sprout` means **Brote / Sprout** at five. This naming correction preserves artwork, calibration, saved progress and profile counts.
-
-## Proposed stages
-
-| Stage | Proposed trigger | Source |
+| Stage | Unlock | Active body |
 | --- | --- | --- |
-| Flowerpot | Add a book to the user's shelf. Its original reading status can be `reading` or `read`. | `bodies/pot-a-body.png` (A · Classic; previous body retained in `pot.svg`) |
-| Seed | Open the first review card. | `bodies/seed.svg` (B · Almendrada; previous art: `seed.svg`) |
-| Root | Spend leaves on cards for the book on two distinct local days. | `root-cutout.png` (original: `root.png`) |
-| Seedling / Germen | Spend leaves on three distinct local days across any deck for the book. | `seedling.svg` |
-| Sprout / Brote | Spend leaves on five distinct local days across any deck for the book. | `../mascot.svg` |
-| Stem | Spend leaves on ten distinct local days across any deck for the book. | `bodies/stem-flat.svg`, shared component and calibration editor. |
-| Flower | Spend leaves on fifteen distinct local days across any deck for the book. | `bodies/flower.png`: approved A · Flor, without stem, shared SVG face and separate shadow. |
-| Fruit | TBD; not active in the app; no approved artwork or motto. | Hidden silhouette in the app. |
-| Evergreen | TBD; not active in the app. | Hidden silhouette in the app. |
+| Flowerpot / Maceta | Add the book | `bodies/pot-a-body.png` |
+| Soil / Tierra | First practice day | `bodies/soil.svg` |
+| Seed / Semilla | 2 days | `bodies/seed.svg` |
+| Root / Raíz | 3 days | `bodies/root.png` |
+| Seedling / Germen | 4 days | `bodies/seedling.svg` |
+| Sprout / Brote | 5 days | `bodies/sprout.svg` |
+| Stem / Tallo | 10 days | `bodies/stem-flat.svg` |
+| Rosebud / Capullo | 12 days | `bodies/rosebud.svg` |
+| Flower / Flor | 15 days | `bodies/flower.png` |
 
-The Root, Sprout, Seedling, Stem and Flower day thresholds are active product rules. Other unlock conditions are undecided. Progress is monotonic: switching decks or changing the book's `reading` / `read` status must never downgrade a mascot already earned.
+Soil is a low mound with a tiny two-leaf shoot; Rosebud is a closed pink rose. Both use the shared animated face and ground shadow. Fruit and Evergreen remain reserved after Flower; Sapling and Plant are outside the sequence.
 
 ## Flower · selected on 15 October 2026
 
@@ -44,7 +36,7 @@ The reusable `app/mascot-art.mjs` and `app/mascot-art.css` component composes fu
 
 Every full mascot runs its selected idle pattern in an infinite loop by default. Growth timeline rows opt out with `{idle:false}`, keeping both body and ground static; the current mascot in the header stays animated and shares the deck header's size (160 px desktop, 112 px mobile). Flowerpot and Root hop by default: the former greeting is a 600 ms hop (left/right rotation and one 8% upward arc without rebound, plus subtle squash and stretch) followed by a 1200 ms rest. Seed, Sprout (`seedling`), Seedling (`sprout`) and Mystery float smoothly through a 10% upward arc in 2800 ms. `mascotIdlePatterns` selects exceptions; future stages inherit the hop. Ground width shrinks to 78% during a hop and 70% during a float, then returns, with the same duration, keyframe timing and easing as the vertical motion. Independent CSS `translate`, `rotate` and `scale` preserve hover transforms. Reduced motion disables body, shadow and eye animation. Icons remain static body images.
 
-Ground shadows have been removed from Pot, Seed, Mystery, Stem, Plant and Flower SVGs. Embedded darker parts of the characters are retained. Plant, Flower, Fruit and Evergreen remain unavailable in the app.
+Ground shadows have been removed from Pot, Seed, Mystery, Stem, Plant and Flower SVGs. Embedded darker parts of the characters are retained. Plant, Fruit and Evergreen remain unavailable in the app.
 
 The shared browser component also installs automatic blinking: both eyes close and reopen in 160 ms, with a new independent random wait of 3–7 seconds for each mascot. It only animates eye-expression layers, preserving body/shadow loops and giving manual gestures priority. Timeline rows (`idle:false`), icons and faceless artwork do not blink. The controller follows inserted/removed markup, clears timers on navigation, and pauses for hidden tabs or reduced motion.
 
