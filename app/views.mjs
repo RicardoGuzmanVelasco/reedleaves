@@ -41,7 +41,7 @@ export const takeNoteIconMarkup = '<span class="take-note-icon" aria-hidden="tru
 const practiceFrequencyLabel = (c, direction) => `<span class="practice-frequency-main">${c.practiceFrequencyVerb ? `<span class="practice-frequency-verb">${esc(c.practiceFrequencyVerb)}</span> ` : ""}<strong>${esc(c[direction])}</strong></span><span class="practice-frequency-often">${esc(c.practiceOften)}</span>`;
 export const calendarIconMarkup = () => '<svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/></svg>';
 const closeIconMarkup = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg>';
-const shareIconMarkup = '<svg class="share-deck-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 15V3m-4 4 4-4 4 4M8 9H5.5A1.5 1.5 0 0 0 4 10.5v8A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 18.5 9H16"/></svg>';
+const shareIconMarkup = '<svg class="share-deck-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 14V2.5M8.5 6 12 2.5 15.5 6M8.5 10H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-2.5"/></svg>';
 const cardsIconMarkup = '<span class="cards-icon" aria-hidden="true"></span>';
 const quoteMarkMarkup = '<span class="quote-mark" aria-hidden="true">❝</span>';
 const takeNoteLabelMarkup = label => `<span class="take-note-content">${takeNoteIconMarkup}<span>${esc(label)}</span></span>`;
@@ -424,7 +424,7 @@ export const bottomNavigationProfileIconMarkup = () => `<svg class="bottom-navig
 
 function nameLink({icon,name,language=null,href=null}) {
   if (!name) return "";
-  const contents=`${attributionIcon(icon)}<bdi${language ? ` lang="${esc(language)}" dir="auto"` : ""}>${esc(name)}</bdi>${href ? linkArrow : ""}`;
+  const contents=`${icon === "deck" ? cardsIconMarkup : attributionIcon(icon)}<bdi${language ? ` lang="${esc(language)}" dir="auto"` : ""}>${esc(name)}</bdi>${href ? linkArrow : ""}`;
   return href ? `<a class="card-attribution-row" href="${esc(href)}">${contents}</a>` : `<span class="card-attribution-row">${contents}</span>`;
 }
 
@@ -435,6 +435,7 @@ function cardAttribution(s,card,book,{compact=false,linkBook=true,showDraftStatu
   const rows=[
     ["book",title.text,title.language,`#library/book/${encodeURIComponent(book.id)}`],
     ["author",book.author,null,`#library/author/${encodeURIComponent(book.author)}`],
+    ["deck",deck ? contentText(deck.title,s.language,deck.language) : "",deck ? contentLocale(deck.title,s.language,deck.language) : null,deck ? (isReadingGuideDeck(s.catalog,deck) ? `#guides/${encodeURIComponent(book.id)}` : `#review/${encodeURIComponent(deck.id)}`) : null],
     ["user",creator?.name,null,creator ? `#profile/${encodeURIComponent(creator.userId)}` : null]
   ];
   const draftStatus=showDraftStatus && deck?.status === "draft" ? `<span class="deck-writing-badge exclusive-card-draft-badge">${esc(words[s.language].deckInProgress)}</span>` : "";

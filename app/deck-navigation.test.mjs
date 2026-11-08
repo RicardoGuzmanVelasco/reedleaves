@@ -65,8 +65,16 @@ test('A shared card retains its content language and shows only the requested ca
   assert.doesNotMatch(html,/Shared text/);
   assert.ok(html.includes(catalog.booksById.get(card.bookId).author));
   assert.ok(html.includes(deck.title.en || deck.title[deck.language]));
+  const authorHref=`#library/author/${encodeURIComponent(catalog.booksById.get(card.bookId).author)}`;
+  const deckHref=deckPageHash(deck.id), creatorHref=`#profile/${encodeURIComponent(deck.creator.userId)}`;
+  assert.ok(html.indexOf(authorHref)<html.indexOf(deckHref));
+  assert.ok(html.indexOf(deckHref)<html.indexOf(creatorHref));
+  assert.ok(html.includes(`href="${deckHref}"`));
   assert.doesNotMatch(html,/data-action="share-deck"|data-action="preview-deck"/);
   assert.match(sharedCardView({...state,requestedId:'missing'}),/no longer available/);
+  card.isReadingGuide=true;
+  assert.ok(sharedCardView(state).includes(`href="#guides/${encodeURIComponent(card.bookId)}"`));
+  card.isReadingGuide=false;
   for(const language of ['es','en']) {
     const reading=deckPeekView({...state,language,deckId:deck.id,bookId:deck.bookId});
     const button=reading.match(/<button[^>]*data-action="share-card"[^>]*>[\s\S]*?<\/button>/)?.[0];

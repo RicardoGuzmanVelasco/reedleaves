@@ -1060,3 +1060,5 @@ html,body{overflow-x:clip}
 .reading-footer .card-share:hover:not(:disabled){box-shadow:0 6px 0 var(--actions-shadow)}
 .reading-footer .card-share:active:not(:disabled){box-shadow:0 1px 0 var(--actions-shadow)}
 .card-share .share-deck-icon{width:19px;height:19px}
+
+.card-attribution-row .cards-icon{width:17px;height:17px;background-color:rgb(0 0 0 / 30%)}
