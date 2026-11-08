@@ -1,4 +1,4 @@
-import {mascotFace} from "./mascot-face.mjs?v=soil-rosebud-1";
+import {mascotFace} from "./mascot-face.mjs?v=soil-rosebud-2";
 import {startMascotBlinking} from "./mascot-blink.mjs?v=mascot-random-blink";
 import {imageUrl} from "./image-url.mjs";
 

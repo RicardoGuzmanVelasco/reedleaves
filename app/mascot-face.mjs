@@ -10,7 +10,7 @@ export const mascotFacePlacement = Object.freeze(Object.fromEntries(Object.entri
   seedling: {x:80,y:101,rotation:0,scale:1},
   sprout: {x:79,y:104,rotation:0,scale:1},
   stem: {x:81,y:54,rotation:.5,scale:.74,eyeOffsets:{left:{x:-5,y:-4},right:{x:0,y:-7}}},
-  rosebud: {x:82,y:63,rotation:0,scale:.68},
+  rosebud: {x:80,y:89,rotation:0,scale:.92},
   flower: {x:80,y:82.5,rotation:0,scale:.7,eyeOffsets:{left:{x:8,y:0},right:{x:-8,y:0}}}
 }).map(([stage,placement]) => [stage,Object.freeze({...placement,
   ...(placement.eyeOffsets ? {eyeOffsets:Object.freeze(Object.fromEntries(Object.entries(placement.eyeOffsets).map(([side,offset])=>[side,Object.freeze(offset)])))} : {})

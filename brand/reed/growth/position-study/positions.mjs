@@ -1,5 +1,5 @@
 import {mascotArt,mascotAssets,restartMascotIdle} from "/app/mascot-art.mjs?v=soil-rosebud-1";
-import {playMascotExpression} from "/app/mascot-face.mjs?v=soil-rosebud-1";
+import {playMascotExpression} from "/app/mascot-face.mjs?v=soil-rosebud-2";
 import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=soil-rosebud-1";
 const storageKey="reedleaves:mascot-calibration:v1";
 const names={pot:"Maceta",soil:"Tierra",seed:"Semilla",root:"Raíz",seedling:"Germen",sprout:"Brote",stem:"Tallo",rosebud:"Capullo",flower:"Flor"};
