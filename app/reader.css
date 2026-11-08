@@ -1053,4 +1053,10 @@ html,body{overflow-x:clip}
 .library-book-interests{display:flex;align-items:center;justify-content:center;white-space:nowrap;pointer-events:none}.study-book .library-book-interests{position:absolute;left:0;right:0;bottom:min(31px,17.6cqi);gap:2px;font-size:min(22px,12cqi);line-height:1.2}.catalog-book--new .study-book-author{padding-bottom:min(24px,13.6cqi)}
 .library-book-interests .interest-emoji{font-size:inherit;width:1.1em;height:1.1em}
 
-.shared-card-screen{padding:32px 0 48px}.shared-card-deck{font-size:14px;font-weight:750;color:var(--muted);overflow-wrap:anywhere}.card-share{display:inline-flex;align-items:center;gap:7px;margin-top:42px}.card-share .share-deck-icon{width:18px;height:18px}
+.shared-card-screen{padding:32px 0 48px}.shared-card-deck{font-size:14px;font-weight:750;color:var(--muted);overflow-wrap:anywhere}.reading-footer:has(.card-actions-host){min-height:105px}
+.reading-footer:has(.card-actions-host) .card-source>.card-attribution-row:first-child{max-width:calc(100% - 54px)}
+.reading-footer:has(.card-actions-host) .card-source>.card-attribution-row:not(:first-child){max-width:calc(100% - 140px)}
+.reading-footer .card-share{position:absolute;right:0;bottom:51px;display:grid;place-items:center;width:44px;height:44px;min-height:44px;padding:0;border:2px solid var(--actions-edge);border-radius:14px;background:var(--actions-surface);color:var(--actions-counter);box-shadow:0 4px 0 var(--actions-shadow)}
+.reading-footer .card-share:hover:not(:disabled){box-shadow:0 6px 0 var(--actions-shadow)}
+.reading-footer .card-share:active:not(:disabled){box-shadow:0 1px 0 var(--actions-shadow)}
+.card-share .share-deck-icon{width:19px;height:19px}

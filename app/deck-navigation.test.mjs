@@ -67,5 +67,11 @@ test('A shared card retains its content language and shows only the requested ca
   assert.ok(html.includes(deck.title.en || deck.title[deck.language]));
   assert.doesNotMatch(html,/data-action="share-deck"|data-action="preview-deck"/);
   assert.match(sharedCardView({...state,requestedId:'missing'}),/no longer available/);
-  assert.match(deckPeekView({...state,deckId:deck.id,bookId:deck.bookId}),/data-action="share-card"/);
+  for(const language of ['es','en']) {
+    const reading=deckPeekView({...state,language,deckId:deck.id,bookId:deck.bookId});
+    const button=reading.match(/<button[^>]*data-action="share-card"[^>]*>[\s\S]*?<\/button>/)?.[0];
+    assert.ok(button);
+    assert.ok(button.includes(`aria-label="${words[language].shareDeck}"`));
+    assert.doesNotMatch(button,/<span/);
+  }
 });
