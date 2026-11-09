@@ -1,6 +1,6 @@
-import {mascotArt,mascotAssets,restartMascotIdle} from "/app/mascot-art.mjs?v=evergreen-1";
-import {playMascotExpression} from "/app/mascot-face.mjs?v=evergreen-1";
-import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=evergreen-1";
+import {mascotArt,mascotAssets,restartMascotIdle} from "/app/mascot-art.mjs?v=evergreen-2";
+import {playMascotExpression} from "/app/mascot-face.mjs?v=evergreen-2";
+import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=evergreen-2";
 const storageKey="reedleaves:mascot-calibration:v1";
 const names={pot:"Maceta",soil:"Tierra",seed:"Semilla",root:"Raíz",seedling:"Germen",sprout:"Brote",stem:"Tallo",bud:"Capullo",flower:"Flor",evergreen:"Siempreverde"};
 const groups={body:"Personaje",shadow:"Sombra",face:"Cara y boca",leftEye:"Ojo izquierdo",rightEye:"Ojo derecho"};

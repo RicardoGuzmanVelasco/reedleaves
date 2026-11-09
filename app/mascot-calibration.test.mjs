@@ -18,15 +18,16 @@ test("Flor is available in the shared calibration editor with a separate editabl
 
 test("Siempreverde is available after Flor with a faceless body and editable calibration",()=>{
   assert.ok(calibrationStages.indexOf("evergreen")>calibrationStages.indexOf("flower"));
-  const baseline=currentCalibration("evergreen",{x:0,y:-2,scale:1},{width:70,height:10});
+  const baseline=currentCalibration("evergreen",{x:0,y:-11.5,scale:1.13},{width:81.5,height:20.7183258376889});
   assert.equal(Object.keys(baseline).length,14);
+  assert.deepEqual({bodyY:baseline.bodyY,bodyScale:baseline.bodyScale,shadowWidth:baseline.shadowWidth,shadowHeight:baseline.shadowHeight,mouthWidth:baseline.mouthWidth,faceY:baseline.faceY,faceScale:baseline.faceScale},{bodyY:-11.5,bodyScale:1.13,shadowWidth:81.5,shadowHeight:20.7183258376889,mouthWidth:3.5,faceY:87,faceScale:.8});
   const edited=normalizeCalibration({...baseline,faceY:80,faceScale:1.05,bodyScale:1.1,mouthWidth:3},baseline);
   const config=calibrationConfiguration("evergreen",edited);
   const html=mascotArt("evergreen","",{face:config.face,mouth:config.mouth});
   assert.match(html,/growth\/bodies\/evergreen\.svg/);
   assert.match(html,/mascot-face-placement/);
   assert.match(html,/translate\(80 80\)/);
-  assert.deepEqual(config.shadow,{width:70,height:10});
+  assert.deepEqual(config.shadow,{width:81.5,height:20.7183258376889});
   assert.deepEqual(restoreCalibration({baseline:JSON.stringify(baseline),values:edited},baseline),edited);
 });
 

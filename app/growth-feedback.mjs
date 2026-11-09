@@ -1,7 +1,7 @@
 import {bookTitle} from "./core.mjs";
-import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=evergreen-1";
-import {mascotStages,currentMascotStage} from "./mascot-progress.mjs?v=evergreen-1";
-import {words} from "./i18n.mjs?v=evergreen-1";
+import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=evergreen-2";
+import {mascotStages,currentMascotStage} from "./mascot-progress.mjs?v=evergreen-2";
+import {words} from "./i18n.mjs?v=evergreen-2";
 
 const stageNames=Object.fromEntries(mascotStages.filter(stage=>stage.days!==undefined).map(stage=>[stage.id,stage.name]));
 const esc=value=>String(value).replace(/[&<>"']/g,character=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character]));
