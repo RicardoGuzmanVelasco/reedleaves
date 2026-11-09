@@ -9,6 +9,10 @@ import {ensureBookToRead} from "./book-reading.mjs";
 import {findBookTitleMatches} from "../app/book-duplicates.mjs";
 import {catalogBookIncorporationTimestamp} from "../app/catalog-incorporation.mjs";
 import {bookInterestError} from "../app/book-interests.mjs";
+import {lockReaderAccount} from "./reader-account-lock.mjs";
+import {grantReaderXpInside} from "./reader-xp-repository.mjs";
+
+const NEW_NOTE_XP=15;
 
 async function validateBookInterests(db,ids,options={}) {
   const knownIds=new Set((await db.prepare("SELECT id FROM genres").all()).map(row=>row.id));
@@ -201,7 +205,10 @@ export async function changeDeckLanguage(db,session,input) {
   });
 }
 export async function addCard(db,session,input) {
-  return transaction(db,()=>writeCard(db,session,input));
+  return transaction(db,async()=>{
+    await lockReaderAccount(db,session.user_id);
+    return writeCard(db,session,input);
+  });
 }
 async function writeCard(db,session,input) {
   const id=requestId(input.requestId),body=text(input.body,CARD_BODY_MAX_LENGTH);
@@ -232,7 +239,11 @@ async function writeCard(db,session,input) {
   const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM cards WHERE deck_id=? AND (parent_id=? OR (parent_id IS NULL AND CAST(? AS TEXT) IS NULL))").get(deck.id,input.parentId,input.parentId);
   await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,creator_user_id,language,created_at) VALUES (?,?,?,?,?,?,?,?,?)").run(id,deck.id,deck.book_id,input.parentId,position,input.isQuote ? 1 : 0,session.user_id,deck.language,new Date().toISOString());
   await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)").run(id,deck.language,title,body);
-  return {deckId:deck.id,cardId:id};
+  // Shared and team-authored catalog cards are not personal reader notes.
+  const personal=deck.kind==="standard" && deck.creator_user_id===session.user_id && session.user_id!=="reed-team"
+    && !!await db.prepare("SELECT 1 FROM accounts WHERE user_id=?").get(session.user_id);
+  const reward=personal ? await grantReaderXpInside(db,session.user_id,{eventKey:`note:${id}`,rewardType:"note",amount:NEW_NOTE_XP}) : null;
+  return {deckId:deck.id,cardId:id,...(reward?.awarded?{xpReward:{amount:reward.awarded,balance:reward.balance}}:{})};
 }
 
 export async function takeFirstNote(db,session,input) {
@@ -240,6 +251,7 @@ export async function takeFirstNote(db,session,input) {
   if (!LANGUAGES.includes(language) || typeof input.bookId !== "string" || typeof input.isQuote !== "boolean") throw new ApiError(400,"invalidRequest");
   const title=input.isQuote ? quoteExcerpt(body) : text(input.title,TITLE_MAX_LENGTH);
   return transaction(db,async()=>{
+    await lockReaderAccount(db,session.user_id);
     const previous=await db.prepare(`SELECT c.*,d.creator_user_id,d.language,t.title,t.body FROM cards c
       JOIN decks d ON d.id=c.deck_id
       JOIN card_translations t ON t.card_id=c.id AND t.language=d.language WHERE c.id=?`).get(id);

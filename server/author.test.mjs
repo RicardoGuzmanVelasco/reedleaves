@@ -38,7 +38,8 @@ for (const dialect of ["sqlite","postgres"]) {
     const before=await readReaderState(db,session),counts=await checkCatalog(db);
     const input={requestId:randomUUID(),bookId:"seven-habits",language:"es",isQuote:false,title:"Una idea",body:"Mi primera nota"};
     const saved=await takeFirstNote(db,session,input);
-    assert.deepEqual(await takeFirstNote(db,session,input),saved);
+    assert.deepEqual(saved.xpReward,{amount:15,balance:15});
+    assert.deepEqual(await takeFirstNote(db,session,input),{deckId:saved.deckId,cardId:saved.cardId});
     const catalog=await readCatalog(db),deck=catalog.decks.find(deck=>deck.id===input.requestId);
     const deckInfo=catalog.decks.find(deck=>deck.id===saved.deckId),card=catalog.cards.find(card=>card.id===saved.cardId);
     assert.equal(catalog.decks.length,counts.decks+1);assert.equal(catalog.cards.length,counts.cards+1);
