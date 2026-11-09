@@ -48,7 +48,7 @@ test(`${dialect}: MCP creates finished team decks atomically and retries safely`
   assert.equal(unauthenticated.status,401);
 
   const {tools}=await client.listTools();
-  assert.deepEqual(tools.map(tool=>tool.name),["find_book","create_deck","append_cards_to_draft","finish_deck","list_team_drafts","reassign_deck_creator","merge_books"]);
+  assert.deepEqual(tools.map(tool=>tool.name),["find_book","create_book","edit_book","create_deck","append_cards_to_draft","finish_deck","list_team_drafts","reassign_deck_creator","merge_books"]);
 
   const found=await client.callTool({name:"find_book",arguments:{query:"Atomic Habits"}});
   const matches=JSON.parse(found.content[0].text).matches;

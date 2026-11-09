@@ -4,10 +4,11 @@ import {StreamableHTTPServerTransport} from "@modelcontextprotocol/sdk/server/st
 import {z} from "zod/v4";
 import {readCatalog} from "./catalog-repository.mjs";
 import {appendTeamDeckCards,createTeamDeck,finishTeamDeck,reassignTeamDeckCreator,readTeamDeckDrafts} from "./author-repository.mjs";
-import {TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH,MAX_CARDS_PER_DECK} from "../app/core.mjs";
+import {TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH,BOOK_AUTHOR_MAX_LENGTH,MAX_CARDS_PER_DECK} from "../app/core.mjs";
 import {ApiError} from "./errors.mjs";
 import {normalizeQuoteSourceUrl} from "../app/quote-source.mjs";
 import {mergeBooks} from "./book-merge.mjs";
+import {createCatalogBook,editCatalogBook} from "./book-catalog-authoring.mjs";
 
 function validBearer(request,token) {
   if (!token) return false;
@@ -32,9 +33,25 @@ function safeTool(handler) {
   };
 }
 
+const bookTitleTranslations=z.record(z.string(),z.string().trim().max(TITLE_MAX_LENGTH));
+const bookDescriptionTranslations=z.record(z.string(),z.string().trim().min(1).max(DESCRIPTION_MAX_LENGTH));
+const bookEditorialNoteTranslations=z.record(z.string(),z.string().trim().min(1).max(EDITORIAL_NOTE_MAX_LENGTH));
+const bookGenres=z.array(z.string().trim().min(1).max(80)).min(1).max(3);
+const bookLinks=z.object({amazon:z.string().trim().max(2048),goodreads:z.string().trim().max(2048)}).strict();
+const newBookMetadata=z.object({
+  popularTitle:z.string().trim().min(1).max(TITLE_MAX_LENGTH),popularLanguage:z.string().min(2).max(35),
+  title:bookTitleTranslations,description:bookDescriptionTranslations,editorialNote:bookEditorialNoteTranslations,
+  genres:bookGenres,links:bookLinks
+}).strict();
+const bookMetadataPatch=z.object({
+  popularTitle:z.string().trim().min(1).max(TITLE_MAX_LENGTH).optional(),popularLanguage:z.string().min(2).max(35).optional(),
+  title:bookTitleTranslations.optional(),description:bookDescriptionTranslations.optional(),editorialNote:bookEditorialNoteTranslations.optional(),
+  genres:bookGenres.optional(),links:bookLinks.optional()
+}).strict();
+
 function makeServer(db,publicBaseUrl) {
   const server=new McpServer({name:"reedleaves-deck-authoring",version:"1.2.0"},{
-    instructions:"Create finished Reedleaves team decks from the user's conversation. Saving publishes and freezes the complete deck in the shared catalog, attributed to Equipo Reedleaves. Prepare all cards before creating. Find a book only when unclear. Use list_team_drafts to identify older team drafts and finish_deck only when the user asks to finish them. Use reassign_deck_creator only when the user explicitly requests changing attribution of a published team deck to an existing account by username. Never invent source quotes or quote-source URLs; use isQuote only for wording supplied by the user and quoteSourceUrl only for a supplied or verified page.",
+    instructions:"Create or edit public catalog books only when the user clearly asks to add or change a catalog book. Create finished Reedleaves team decks from the user's conversation. Saving publishes and freezes the complete deck in the shared catalog, attributed to Equipo Reedleaves. Prepare all cards first. Find a book only when unclear. Use list_team_drafts to identify older team drafts and finish_deck only when the user asks to finish them. Use reassign_deck_creator only when the user explicitly requests changing attribution of a published team deck to an existing account by username. Never invent source quotes, book links or quote-source URLs; use only links supplied by the user or verified at their target, and use isQuote only for wording supplied by the user.",
     maxToolInputElements:5000
   });
   server.registerTool("find_book",{
@@ -53,6 +70,18 @@ function makeServer(db,publicBaseUrl) {
     }));
     return toolText({matches});
   }));
+  server.registerTool("create_book",{
+    title:"Crear libro",
+    description:"Add a new public book to the shared Reedleaves catalog. The user must clearly ask to create/add the book. Supply a stable lowercase-hyphenated bookId, its author, popular title and language, Spanish and English descriptions/editorial notes, genres, and verified supported Amazon /dp and Goodreads book-page links. The popular title language is independent from the preferred title translations. The book becomes visible to catalog readers.",
+    inputSchema:{bookId:z.string().trim().min(1).max(240).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),author:z.string().trim().min(1).max(BOOK_AUTHOR_MAX_LENGTH),metadata:newBookMetadata},
+    annotations:{readOnlyHint:false,destructiveHint:false,openWorldHint:false}
+  },safeTool(async(input)=>toolText({...await createCatalogBook(db,input),url:`${publicBaseUrl.replace(/\/+$/ ,"")}/app/#book/${encodeURIComponent(input.bookId)}`})));
+  server.registerTool("edit_book",{
+    title:"Editar libro",
+    description:"Edit an existing public book in the shared Reedleaves catalog. Call only when the user clearly asks to change the book. Send only fields to change; translation maps merge by language. When changing genres or links, supply the complete replacement list. A preferred title can be cleared with an empty string so the popular title is used. User-owned books cannot be edited with this tool.",
+    inputSchema:{bookId:z.string().trim().min(1).max(240),author:z.string().trim().min(1).max(BOOK_AUTHOR_MAX_LENGTH).optional(),metadata:bookMetadataPatch.optional()},
+    annotations:{readOnlyHint:false,destructiveHint:false,openWorldHint:false}
+  },safeTool(async(input)=>toolText(await editCatalogBook(db,input))));
   server.registerTool("create_deck",{
     title:"Crear baraja",
     description:"Save a complete finished deck (published) to the shared Reedleaves catalog, attributed to Equipo Reedleaves. Prepare all cards first: creating freezes the deck and prevents further additions. An optional quoteSourceUrl links to the supplied or verified source page for quotes in the deck. The user must have clearly asked to save/create it; saving makes it visible to other catalog users.",
