@@ -7,6 +7,7 @@ Read the newest dated entry when recent progress, deployment state, or project h
 - [2026-10-29 — Descubrir, soporte interno e interfaz local (24b–24c)](2026-10-29.md)
 - [2026-10-28 — Intereses y descubrimiento, inicio de ejecución](2026-10-28.md)
 - [Plan de intereses, descubrimiento y novedades](INTERESTS_PLAN.md)
+- [Progresión lectora](READER_PROGRESSION_PLAN.md): XP, niveles, mascota global, progreso en el perfil y entrega incremental.
 
 - [2026-10-25 — Barajas colectivas y guías de lectura](2026-10-25.md)
 
