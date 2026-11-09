@@ -45,6 +45,16 @@ test("Frontend consumes the database API without a hard-coded book or card count
   assert.equal(result.books.length, 5);
   await assert.rejects(loadCatalog(async () => ({ ok: false })));
 });
+test("A team book without decks remains accessible and displays the empty state", async () => {
+  const data=await payload(),bookId="atomic-habits";
+  data.decks=data.decks.filter(deck=>deck.bookId!==bookId);
+  data.cards=data.cards.filter(card=>card.bookId!==bookId);
+  const catalog=prepareCatalog(data);
+  assert.ok(catalog.booksById.has(bookId));
+  assert.equal(catalog.selectedDecks.has(bookId),false);
+  const html=deckView({...readerState(catalog),bookId,deckChoices:[],language:"es"});
+  assert.ok(html.includes(words.es.noDecks));
+});
 test("Catalog validation rejects orphan cards, duplicate IDs and missing genre translations", async () => {
   for (const mutate of [p => p.cards[0].bookId = "unknown", p => p.cards.push(p.cards[0]), p => delete p.genres[0].name.en, p => delete p.genres[0].emoji, p => p.genres[0].color="url(https://example.com)", p => p.books[0].genres.push("unknown")]) {
     const data = await payload(); mutate(data); assert.throws(() => prepareCatalog(data));

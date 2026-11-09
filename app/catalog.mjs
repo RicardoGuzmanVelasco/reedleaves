@@ -39,7 +39,7 @@ export function prepareCatalog(payload) {
   for (const book of books) {
     const bookDecks=decks.filter(d=>d.bookId===book.id&&(d.kind||"standard")==="standard");
     const deck = bookDecks.find(d => d.isRecommended) || bookDecks[0];
-    if (!deck) { if (book.creatorUserId) continue; throw new Error("Missing book deck"); }
+    if (!deck) continue;
     models.set(book.id,deckModels.get(deck.id)); selectedDecks.set(book.id,deck.id);
   }
   const cards = allCards.filter(c => selectedDecks.get(c.bookId) === c.deckId);
