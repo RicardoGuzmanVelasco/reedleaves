@@ -36,7 +36,8 @@ test("Profile counts unique views; daily assignment alone is not a view",async t
   await recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(10));
   await recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(10));
   const after=await readReaderState(db,a,day(10));
-  assert.deepEqual(after,{...before,daily:{...before.daily,seenInDay:true},dailyHistory:before.dailyHistory.map(row=>({...row,seenInDay:true}))});
+  assert.equal(after.readerProgression.xp,20);
+  assert.deepEqual(after,{...before,readerProgression:after.readerProgression,daily:{...before.daily,seenInDay:true},dailyHistory:before.dailyHistory.map(row=>({...row,seenInDay:true}))});
   const {counts}= (await readProfile(db,a.user_id,a.user_id)).profile;
   assert.equal(counts.cardsViewed,2);assert.equal("cardsReviewed" in counts,false);
   assert.equal("decksInProgress" in counts,false);assert.equal("decksCompleted" in counts,false);

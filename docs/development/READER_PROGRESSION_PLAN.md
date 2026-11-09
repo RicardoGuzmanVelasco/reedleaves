@@ -1,6 +1,6 @@
 # Progresión lectora · Plan de implementación
 
-Estado: implementación en curso. Incrementos 1 y 2 completados; incremento 3 verificado localmente. Cada incremento se entrega de forma autocontenida y puede publicarse por separado.
+Estado: implementación en curso. Incrementos 1–3 completados; incremento 4 verificado localmente. Cada incremento se entrega de forma autocontenida y puede publicarse por separado.
 
 ## Objetivo
 
