@@ -77,14 +77,14 @@ export async function createCatalogBook(db,input) {
 
 async function readBookForEdit(db,id,{lock=false}={}) {
   const row=await db.prepare(`SELECT id,author,popular_title,popular_language,creator_user_id FROM books WHERE id=?${lock&&isPostgres(db)?" FOR UPDATE":""}`).get(id);
-  if(!row||row.creator_user_id!==null) throw new ApiError(404,"bookUnavailable");
+  if(!row) throw new ApiError(404,"bookUnavailable");
   const metadata={popularTitle:row.popular_title,popularLanguage:row.popular_language,title:{},description:{},editorialNote:{},
     genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY position").all(id)).map(item=>item.genre_id),
     links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id=? ORDER BY platform").all(id)).map(item=>[item.platform,item.url]))};
   for(const item of await db.prepare("SELECT language,title,description,editorial_note FROM book_translations WHERE book_id=?").all(id)) {
     metadata.title[item.language]=item.title;metadata.description[item.language]=item.description;metadata.editorialNote[item.language]=item.editorial_note;
   }
-  return {id,author:row.author,metadata};
+  return {id,author:row.author,creatorUserId:row.creator_user_id,metadata};
 }
 
 export async function editCatalogBook(db,input) {
@@ -118,18 +118,29 @@ export async function editCatalogBook(db,input) {
     try { next.metadata=normalizeBookMetadata(next.metadata,{canonicalTitles:true}); }
     catch { throw new ApiError(400,"invalidRequest"); }
     if(!next.metadata.popularTitle||!next.metadata.popularLanguage) throw new ApiError(400,"invalidRequest");
-    for(const language of LANGUAGES) if(!next.metadata.description[language]||!next.metadata.editorialNote[language]) throw new ApiError(400,"invalidRequest");
-    await validateBookInterests(db,next.metadata.genres,{existingIds:current.metadata.genres});
-    try { validateBookLinks(next.metadata.links,{required:true}); }
+    if(current.creatorUserId===null) for(const language of LANGUAGES) if(!next.metadata.description[language]||!next.metadata.editorialNote[language]) throw new ApiError(400,"invalidRequest");
+    if(current.creatorUserId===null||Object.hasOwn(input.metadata||{},"genres")) await validateBookInterests(db,next.metadata.genres,{existingIds:current.metadata.genres});
+    try { validateBookLinks(next.metadata.links,{required:current.creatorUserId===null}); }
     catch { throw new ApiError(400,"invalidRequest"); }
 
-    const others=(await readCatalog(db)).books.filter(book=>book.id!==id);
-    rejectTitleDuplicates({popularTitle:next.metadata.popularTitle,title:next.metadata.title},others);
+    if(Object.hasOwn(input.metadata||{},"popularTitle")||Object.hasOwn(input.metadata||{},"title")) {
+      const others=(await readCatalog(db)).books.filter(book=>book.id!==id);
+      rejectTitleDuplicates({popularTitle:next.metadata.popularTitle,title:next.metadata.title},others);
+    }
     await db.prepare("UPDATE books SET author=?,popular_title=?,popular_language=?,updated_at=CURRENT_TIMESTAMP WHERE id=?")
       .run(next.author,next.metadata.popularTitle,next.metadata.popularLanguage,id);
-    await db.prepare("DELETE FROM book_translations WHERE book_id=?").run(id);
-    for(const language of Object.keys(next.metadata.description)) await db.prepare(`INSERT INTO book_translations(book_id,language,title,description,editorial_note)
-      VALUES (?,?,?,?,?)`).run(id,language,next.metadata.title[language]||"",next.metadata.description[language],next.metadata.editorialNote[language]);
+    const translationFields={title:"title",description:"description",editorialNote:"editorial_note"};
+    const translationLanguages=new Set(Object.keys(translationFields).flatMap(field=>Object.keys(proposal?.[field]||{})));
+    for(const language of translationLanguages) {
+      if(!Object.hasOwn(current.metadata.description,language)) {
+        await db.prepare(`INSERT INTO book_translations(book_id,language,title,description,editorial_note)
+          VALUES (?,?,?,?,?)`).run(id,language,next.metadata.title[language]||"",next.metadata.description[language],next.metadata.editorialNote[language]);
+        continue;
+      }
+      for(const [field,column] of Object.entries(translationFields)) if(Object.hasOwn(proposal[field],language)) {
+        await db.prepare(`UPDATE book_translations SET ${column}=? WHERE book_id=? AND language=?`).run(next.metadata[field][language],id,language);
+      }
+    }
     if(Object.hasOwn(input.metadata||{},"genres")) {
       await db.prepare("DELETE FROM book_genres WHERE book_id=?").run(id);
       for(const [index,genre] of next.metadata.genres.entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(id,genre,index+1);

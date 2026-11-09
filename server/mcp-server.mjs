@@ -78,7 +78,7 @@ function makeServer(db,publicBaseUrl) {
   },safeTool(async(input)=>toolText({...await createCatalogBook(db,input),url:`${publicBaseUrl.replace(/\/+$/ ,"")}/app/#book/${encodeURIComponent(input.bookId)}`})));
   server.registerTool("edit_book",{
     title:"Editar libro",
-    description:"Edit an existing public book in the shared Reedleaves catalog. Call only when the user clearly asks to change the book. Send only fields to change; translation maps merge by language. When changing genres or links, supply the complete replacement list. A preferred title can be cleared with an empty string so the popular title is used. User-owned books cannot be edited with this tool.",
+    description:"Edit an existing public book in the shared Reedleaves catalog. Call only when the user clearly asks to change the book. Send only fields to change; translation maps merge by language. When changing genres or links, supply the complete replacement list. A preferred title can be cleared with an empty string so the popular title is used. Books with a creator can also be edited by this admin tool; the creator is preserved.",
     inputSchema:{bookId:z.string().trim().min(1).max(240),author:z.string().trim().min(1).max(BOOK_AUTHOR_MAX_LENGTH).optional(),metadata:bookMetadataPatch.optional()},
     annotations:{readOnlyHint:false,destructiveHint:false,openWorldHint:false}
   },safeTool(async(input)=>toolText(await editCatalogBook(db,input))));
