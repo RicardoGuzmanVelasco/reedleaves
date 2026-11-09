@@ -1,6 +1,6 @@
 # Progresión lectora · Plan de implementación
 
-Estado: implementación en curso. Incrementos 1–7 y 9 completados; el 8 espera una decisión sobre aprobación por libro o por guía; incremento 10 verificado localmente. Cada incremento se entrega de forma autocontenida y puede publicarse por separado.
+Estado: implementación en curso. Incrementos 1–7 y 9 completados; el incremento 10 está entregado; los incrementos 8 y 11 están en preparación. Cada incremento se entrega de forma autocontenida y puede publicarse por separado.
 
 ## Objetivo
 
@@ -47,7 +47,7 @@ El documento Numbers editado por el usuario es la referencia editorial para apel
 | «Me gusta» recibido | 5 | Una vez por persona que reacciona y contenido |
 | Guardado recibido | 10 | Una vez por persona que guarda y contenido |
 
-La guía pendiente muestra la recompensa fantasma al autor, separada del saldo confirmado y excluida del nivel y la barra. Al marcarse como revisada, los 30 XP pasan al saldo y se anuncia la ganancia. Si no se aprueba, se informa al autor y se retira la cantidad pendiente. Para esta primera versión se aprovecha el estado editorial `draft/reviewed` del catálogo. La cola de aprobación dentro de la app y los roles de Archivista quedan fuera de estos incrementos y se planifican aparte.
+Cada guía se revisa y aprueba o rechaza individualmente; el estado editorial compartido `draft/reviewed` del libro no sirve para decidir sobre varias guías a la vez. Las guías siguen visibles desde el envío y muestran un aviso de que aún no están aprobadas, similar al borrador de una baraja. Su autor ve 30 XP fantasma, separados del saldo confirmado y excluidos del nivel y la barra. La aprobación acredita esos 30 XP una sola vez y anuncia la ganancia; el rechazo informa al autor y retira la cantidad pendiente. La cola de aprobación dentro de la app y los roles de Archivista quedan fuera de estos incrementos y se planifican aparte.
 
 No retirar XP ya concedida por eventos que después se invaliden. El sistema podrá admitir reversiones en el futuro, pero no las implementa esta etapa.
 
@@ -95,7 +95,7 @@ Conceder 5 XP por «me gusta» recibido y 10 XP por guardado recibido. La clave 
 
 ### 8. Guía pendiente y aprobación editorial
 
-Conceder 30 XP fantasma al enviar una guía a revisión. Mantenerla separada del saldo y del nivel. Usar el estado editorial actual para reconocer la revisión manual. La aprobación convierte una sola vez el pendiente en XP real. El rechazo elimina el pendiente e informa al autor. No añadir aquí roles ni una cola de Archivistas.
+Registrar el estado de revisión por guía, con decisiones individuales de aprobar o rechazar. Mantener las guías visibles desde el envío y mostrar que siguen pendientes de aprobación, en un patrón parecido al borrador de una baraja. El autor ve 30 XP fantasma por guía pendiente, fuera del saldo y del nivel. La aprobación convierte una sola vez el pendiente en XP real; el rechazo lo retira e informa al autor. No añadir aquí roles ni una cola de Archivistas.
 
 ### 9. Mascota global por nivel
 
