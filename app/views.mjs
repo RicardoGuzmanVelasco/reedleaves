@@ -116,16 +116,19 @@ function libraryBookInterests(s,book) {
 function libraryInterestEmojis(interests) {
   return interests.length?`<span class="library-book-interests" aria-hidden="true">${interests.map(interestIcon).join("")}</span>`:"";
 }
-function closedBookMarkup(s,book,{caption=words[s.language].review,catalog=false,catalogNeutral=false,note=false,isNew=false,libraryInterests=null,showMascot=false}={}) {
+function closedBookMarkup(s,book,{caption=words[s.language].review,catalog=false,catalogNeutral=false,note=false,isNew=false,libraryInterests=null,showMascot=false,coverStatus=null}={}) {
   const c = words[s.language];
   const title=bookCoverTitle(book,s.language);
   const noteDecks=note ? editableNoteDecks(s.catalog,book.id,s.userId) : [];
   const status=s.statuses[book.id] || "unread",statusLines=note ? [{label:status === "reading" ? c.readingStatus : status === "read" ? c.readStatus : c.unread,icon:bookReadingIcon(status)},{label:noteDecks.length ? c.notesInProgress : ""}].filter(row=>row.label) : [];
+  const shownStatus=coverStatus||status;
+  const coverStatusLines=showMascot ? [{label:shownStatus === "reading" ? c.readingStatus : shownStatus === "to-read" ? c.toRead : shownStatus === "read" ? c.readStatus : c.unread,icon:bookReadingIcon(shownStatus)}] : [];
   const interestNames=libraryInterests?.map(interest=>interest.name?.[s.language]).filter(Boolean).join(", ")||"";
-  const accessibleBookLabel=catalog ? `${displayedBookTitle(s,book).text}, ${book.author}${catalogNeutral?"":`, ${caption}`}${isNew?`, ${c.newBookBadge}`:""}${interestNames?`, ${interestNames}`:""}` : `${c.bookInfo}: ${displayedBookTitle(s,book).text}, ${book.author}`;
-  const cover=`<button class="study-book${catalog ? " catalog-book" : ""}${catalog&&isNew?" catalog-book--new":""}${catalogNeutral?" catalog-book--neutral":""}" type="button" data-action="open-book-details" data-book="${esc(book.id)}" aria-haspopup="dialog" title="${esc(`${title.text}, ${book.author}`)}" ${note ? `aria-describedby="home-book-state-${esc(book.id)}"` : ""} aria-label="${esc(accessibleBookLabel)}">
+  const accessibleBookLabel=catalog ? `${displayedBookTitle(s,book).text}, ${book.author}${catalogNeutral||showMascot?"":`, ${caption}`}${isNew?`, ${c.newBookBadge}`:""}${interestNames?`, ${interestNames}`:""}` : `${c.bookInfo}: ${displayedBookTitle(s,book).text}, ${book.author}`;
+  const describedBy=note||showMascot?`aria-describedby="home-book-state-${esc(book.id)}"`:"";
+  const cover=`<button class="study-book${catalog ? " catalog-book" : ""}${catalog&&isNew?" catalog-book--new":""}${catalogNeutral?" catalog-book--neutral":""}" type="button" data-action="open-book-details" data-book="${esc(book.id)}" aria-haspopup="dialog" title="${esc(`${title.text}, ${book.author}`)}" ${describedBy} aria-label="${esc(accessibleBookLabel)}">
     <span class="study-book-cover"><strong class="study-book-cover-title" lang="${esc(title.language)}" dir="auto" title="${esc(title.text)}">${esc(title.text)}</strong><span class="study-book-author" title="${esc(book.author)}">${esc(book.author)}</span>
-    ${libraryInterests?libraryInterestEmojis(libraryInterests):""}${catalog ? catalogNeutral ? "" : isNew ? `<span class="study-book-new-badge">${esc(c.newBookBadge)}</span><span class="study-book-footer">${esc(caption)}</span>` : `<span class="study-book-footer">${esc(caption)}</span>` : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}${catalog&&showMascot?mascotIcon(mascotState(s,book.id).latest,"study-book-mark"):""}${note ? `<span class="home-book-state" id="home-book-state-${esc(book.id)}">${statusLines.map(row=>`<span>${row.icon || ""}${esc(row.label)}</span>`).join("")}</span>` : ""}</span></button>`;
+    ${libraryInterests?libraryInterestEmojis(libraryInterests):""}${catalog ? catalogNeutral ? "" : isNew ? `<span class="study-book-new-badge">${esc(c.newBookBadge)}</span><span class="study-book-footer">${esc(caption)}</span>` : showMascot ? "" : `<span class="study-book-footer">${esc(caption)}</span>` : mascotIcon(mascotState(s,book.id).latest,"study-book-mark")}${catalog&&showMascot?mascotIcon(mascotState(s,book.id).latest,"study-book-mark"):""}${note||showMascot ? `<span class="home-book-state" id="home-book-state-${esc(book.id)}">${[...statusLines,...coverStatusLines].map(row=>`<span>${row.icon || ""}${esc(row.label)}</span>`).join("")}</span>` : ""}</span></button>`;
   const complete=completeBookButton(s,book);
   const noteLabel=`${c.takeNote}: ${displayedBookTitle(s,book).text}`;
   const addNote=note ? `<button class="book-note-add" type="button" data-action="take-note" data-book="${esc(book.id)}" aria-haspopup="dialog" ${noteDecks.length > 1 ? `aria-expanded="${s.noteDestination?.bookId === book.id}" aria-controls="note-destination-dialog"` : ""} aria-label="${esc(noteLabel)}" title="${esc(noteLabel)}">${takeNoteIconMarkup}</button>` : "";
@@ -143,14 +146,14 @@ function bookListControls(s) {
   return `${interestStatus}${bookListFilterButton(s)}`;
 }
 
-function bookListPresentation(s,books,scope,{selector=true,count=books.length,note=false,catalog=!note,catalogNeutral=false,view=defaultBookView(count,s.bookViews?.[scope]),caption,label=words[s.language].books,newBookIds=[]}={}) {
+function bookListPresentation(s,books,scope,{selector=true,count=books.length,note=false,catalog=!note,catalogNeutral=false,view=defaultBookView(count,s.bookViews?.[scope]),caption,label=words[s.language].books,newBookIds=[],coverStatus=null}={}) {
   const entries=books.map(book=>{
     const title=bookCoverTitle(book,s.language);
     const accessory=note ? `<button class="book-note-add" type="button" data-action="take-note" data-book="${esc(book.id)}" aria-label="${esc(words[s.language].takeNote+': '+title.text)}" aria-haspopup="dialog">${takeNoteIconMarkup}</button>` : '';
     return {id:book.id,title:title.text,language:title.language,author:book.author,href:'#book/'+encodeURIComponent(book.id),action:'open-book-details',accessory,book};
   });
   const newIds=new Set(newBookIds);
-  return (selector?bookViewSelector(view,scope,s.language,scope==="library"?bookListControls(s):""):'')+bookListMarkup({books:entries,view,label,cover:entry=>closedBookMarkup(s,entry.book,{caption:scope==="library"?words[s.language].deckCount(availableDecks(s.catalog,entry.id).length):caption??(s.statuses?.[entry.id]&&s.statuses[entry.id]!=="unread"?words[s.language][s.statuses[entry.id]==="read"?"readStatus":"readingStatus"]:""),catalog,catalogNeutral,note,libraryInterests:scope==="library"?libraryBookInterests(s,entry.book):null,isNew:scope==="library"&&newIds.has(entry.id),showMascot:scope.includes("bookshelf-")&&view==="covers"&&!catalogNeutral})});
+  return (selector?bookViewSelector(view,scope,s.language,scope==="library"?bookListControls(s):""):'')+bookListMarkup({books:entries,view,label,cover:entry=>closedBookMarkup(s,entry.book,{caption:scope==="library"?words[s.language].deckCount(availableDecks(s.catalog,entry.id).length):caption??(s.statuses?.[entry.id]&&s.statuses[entry.id]!=="unread"?words[s.language][s.statuses[entry.id]==="read"?"readStatus":"readingStatus"]:""),catalog,catalogNeutral,note,libraryInterests:scope==="library"?libraryBookInterests(s,entry.book):null,isNew:scope==="library"&&newIds.has(entry.id),showMascot:scope.includes("bookshelf-")&&view==="covers"&&!catalogNeutral,coverStatus})});
 }
 
 function homeBookMarkup(s,book){
@@ -301,7 +304,7 @@ export function bookshelfView(s) {
         const scope=`${s.readOnly?'public-bookshelf':'bookshelf'}-${key}`;
         const view=key==='read'?defaultBookView(items.length,s.bookViews?.[scope]):key==='to-read'?selectedBookView(s.bookViews?.[scope],'stack'):'covers';
         const selector=['read','to-read'].includes(key)?bookViewSelector(view,scope,s.language):'';
-        return `<section class="bookshelf-group" aria-labelledby="bookshelf-group-${key}"><div class="bookshelf-group-heading"><h2 id="bookshelf-group-${key}">${title}</h2>${selector}</div>${bookListPresentation(s,items.map(item=>item.book),scope,{selector:false,view,caption:key==='unread'?'':title})}</section>`;
+        return `<section class="bookshelf-group" aria-labelledby="bookshelf-group-${key}"><div class="bookshelf-group-heading"><h2 id="bookshelf-group-${key}">${bookReadingIcon(key)}<span>${title}</span></h2>${selector}</div>${bookListPresentation(s,items.map(item=>item.book),scope,{selector:false,view,caption:key==='unread'?'':title,coverStatus:key})}</section>`;
       }).join("")}
     ` : `<div class="empty-state"><p>${s.readOnly ? c.noUserBookshelf : c.emptyBookshelf}</p></div>`}
     ${selected && activeTab === "shelf" && (!s.readOnly || entries.some(item=>item.book.id === selected.id)) ? bookDetailsMarkup(s,selected) : ""}</section>`;

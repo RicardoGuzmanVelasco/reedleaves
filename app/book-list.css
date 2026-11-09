@@ -7,7 +7,7 @@
 .book-list-tools{justify-content:space-between;align-items:center;gap:12px;margin:12px 0 16px}.library-filter-modal .library-filter-options{grid-template-columns:1fr;margin:0}.library-heading{margin-bottom:14px}.library-author-action{margin-bottom:12px}
 .library-interest-sort-status{display:flex;align-items:center;gap:8px;min-height:44px;color:var(--muted);font-size:12px;font-weight:700}.library-interest-sort-status--error{color:var(--error)}.library-interest-sort-status .text-button{min-height:44px}
 @media(max-width:520px){.book-list-tools{gap:7px;flex-wrap:wrap}.segmented-selector.book-view-selector>button{min-width:40px;padding-inline:8px}}
-.bookshelf-group-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.bookshelf-group .bookshelf-group-heading h2{margin:0}.bookshelf-group-heading .book-list-tools{margin:0}
+.bookshelf-group-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.bookshelf-group .bookshelf-group-heading h2{display:flex;align-items:center;gap:8px;margin:0}.bookshelf-group-heading h2 .reading-status-icon{width:18px;height:18px}.bookshelf-group-heading .book-list-tools{margin:0}
 .book-spines--shelf .book-spine-title{display:block;height:1.15em;text-align:left;white-space:nowrap}
 .book-spine[data-tinted-cover]{background-image:var(--tinted-cover)}
 .book-spines--shelf .book-spine[data-tinted-cover]{background-image:var(--tinted-spine),var(--tinted-spine),var(--tinted-cover);background-size:3px 100%,3px 100%,100% 100%;background-position:left top,right top,center;background-repeat:no-repeat}

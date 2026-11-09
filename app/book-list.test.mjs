@@ -168,9 +168,12 @@ test('Personal shelf fixes Reading to covers; To read and Read have selectors',a
     const statuses=Object.fromEntries(books.map((book,index)=>[book.id,index===0?'reading':index>=12?'unread':'read']));
     const base=readerState(catalog,{userId:'reader',statuses,shelfBookIds:books.filter((_,index)=>index!==12).map(book=>book.id),cardSaves:[{bookId:books[12].id}],bookViews:{bookshelf:'stack'}});
     const group=(html,key)=>html.match(new RegExp(`<section class="bookshelf-group" aria-labelledby="bookshelf-group-${key}">([\\s\\S]*?)<\\/section>`))?.[1];
-    const html=bookshelfView(base);
-    assert.match(group(html,'reading'),/study-books book-grid/);
-    assert.match(group(html,'reading'),/class="mascot-icon study-book-mark"/);
+    const html=bookshelfView(base),reading=group(html,'reading');
+    assert.match(reading,/study-books book-grid/);
+    assert.match(reading,/class="mascot-icon study-book-mark"/);
+    assert.ok(reading.indexOf('study-book-mark')<reading.indexOf('id="home-book-state-'));
+    assert.match(reading,/<\/svg>Leyendo<\/span>/);
+    for(const key of ['reading','to-read','read'])assert.match(html,new RegExp(`<h2 id="bookshelf-group-${key}"><svg class="reading-status-icon"`));
     assert.doesNotMatch(group(html,'reading'),/data-action="set-book-view"/);
     assert.equal(group(html,'unread'),undefined);
     assert.match(group(html,'to-read'),/data-book-spines="stack"/);
@@ -179,7 +182,9 @@ test('Personal shelf fixes Reading to covers; To read and Read have selectors',a
     assert.match(group(html,'read'),/data-book-spines="shelf"/);
     assert.equal((html.match(/data-action="set-book-view"/g)||[]).length,6);
     assert.match(group(bookshelfView({...base,bookViews:{'bookshelf-read':'stack'}}),'read'),/data-book-spines="stack"/);
-    assert.match(group(bookshelfView({...base,bookViews:{'bookshelf-to-read':'covers'}}),'to-read'),/study-books book-grid/);
+    const toReadCovers=group(bookshelfView({...base,bookViews:{'bookshelf-to-read':'covers'}}),'to-read');
+    assert.match(toReadCovers,/study-books book-grid/);
+    assert.match(toReadCovers,/<\/svg>Para leer<\/span>/);
     const ten={...base,statuses:{...statuses,[books[11].id]:'unread'}};
     assert.match(group(bookshelfView(ten),'read'),/data-book-spines="shelf"/);
     const nine={...base,statuses:{...ten.statuses,[books[10].id]:'unread'}};
