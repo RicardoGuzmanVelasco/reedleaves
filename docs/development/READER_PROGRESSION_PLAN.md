@@ -116,10 +116,11 @@ Comprobar deduplicación bajo repetición y concurrencia, permisos de perfil pro
 ## Entrega por incremento
 
 - Trabajar en la rama compartida `Staging`.
-- Cerrar, revisar y publicar un solo incremento por vez. No dejar varios incrementos listos en un lote si ya se puede entregar el primero.
-- El usuario pide que cada incremento se suba por separado para que el progreso ya completado no quede sin publicar si se interrumpe el trabajo. Al cerrar cada incremento, hacer push de `Staging` según el flujo del repositorio.
+- Cerrar y subir cada incremento por separado a `Staging`, para que el progreso no quede acumulado en un lote.
+- En cuanto un incremento esté completo, continuar con el siguiente sin esperar a que termine la CI, la promoción a `main` ni el despliegue a Render.
+- Se puede asignar a una persona agente Luna ligera la vigilancia de la CI del incremento recién subido. Si detecta un fallo, avisará para corregirlo; esa vigilancia no bloquea el trabajo del siguiente incremento.
 - La CI ejecuta lint, build y la suite completa. Si pasa, promueve automáticamente el SHA verificado a `main`; Render publica `main`. No saltar CI ni hacer push directo a `main`.
-- Comunicar el SHA/estado de entrega al terminar cada incremento. No afirmar que está en producción hasta verificar el estado publicado conforme al flujo solicitado.
+- Comunicar el SHA y el estado de entrega de cada incremento al terminarlo. No afirmar que está en producción sin verificarlo; no seguir CI, promoción o Render por defecto.
 - Las pruebas locales y la CI siguen los requisitos vigentes de `AGENTS.md`. Ejecutar `npm test` con Node de `.node-version` antes de cerrar un incremento de código. Reutilizar `test-support/reader-state.mjs` para estados base de vistas y usar proveedores simulados en pruebas de IA.
 
 ## Delegación de tareas
