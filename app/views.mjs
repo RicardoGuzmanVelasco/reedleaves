@@ -150,7 +150,7 @@ function bookListPresentation(s,books,scope,{selector=true,count=books.length,no
     return {id:book.id,title:title.text,language:title.language,author:book.author,href:'#book/'+encodeURIComponent(book.id),action:'open-book-details',accessory,book};
   });
   const newIds=new Set(newBookIds);
-  return (selector?bookViewSelector(view,scope,s.language,scope==="library"?bookListControls(s):""):'')+bookListMarkup({books:entries,view,label,cover:entry=>closedBookMarkup(s,entry.book,{caption:scope==="library"?words[s.language].deckCount(availableDecks(s.catalog,entry.id).length):caption??(s.statuses?.[entry.id]&&s.statuses[entry.id]!=="unread"?words[s.language][s.statuses[entry.id]==="read"?"readStatus":"readingStatus"]:""),catalog,catalogNeutral,note,libraryInterests:scope==="library"?libraryBookInterests(s,entry.book):null,isNew:scope==="library"&&newIds.has(entry.id),showMascot:scope==="library"&&view==="covers"&&!catalogNeutral})});
+  return (selector?bookViewSelector(view,scope,s.language,scope==="library"?bookListControls(s):""):'')+bookListMarkup({books:entries,view,label,cover:entry=>closedBookMarkup(s,entry.book,{caption:scope==="library"?words[s.language].deckCount(availableDecks(s.catalog,entry.id).length):caption??(s.statuses?.[entry.id]&&s.statuses[entry.id]!=="unread"?words[s.language][s.statuses[entry.id]==="read"?"readStatus":"readingStatus"]:""),catalog,catalogNeutral,note,libraryInterests:scope==="library"?libraryBookInterests(s,entry.book):null,isNew:scope==="library"&&newIds.has(entry.id),showMascot:scope.includes("bookshelf-")&&view==="covers"&&!catalogNeutral})});
 }
 
 function homeBookMarkup(s,book){

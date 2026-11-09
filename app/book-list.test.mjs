@@ -170,6 +170,7 @@ test('Personal shelf fixes Reading to covers; To read and Read have selectors',a
     const group=(html,key)=>html.match(new RegExp(`<section class="bookshelf-group" aria-labelledby="bookshelf-group-${key}">([\\s\\S]*?)<\\/section>`))?.[1];
     const html=bookshelfView(base);
     assert.match(group(html,'reading'),/study-books book-grid/);
+    assert.match(group(html,'reading'),/class="mascot-icon study-book-mark"/);
     assert.doesNotMatch(group(html,'reading'),/data-action="set-book-view"/);
     assert.equal(group(html,'unread'),undefined);
     assert.match(group(html,'to-read'),/data-book-spines="stack"/);
@@ -206,6 +207,7 @@ test('Library shows ordered interest emoji only on covers',async()=>{
     const state=readerState(catalog,{libraryQuery:'',libraryFilters:{},userId:'reader',statuses:{[book.id]:'reading'},shelfBookIds:[book.id]});
     for(const view of ['covers','shelf','stack']){
       const html=libraryResultsMarkup({...state,bookViews:{library:view}});
+      assert.doesNotMatch(html,/study-book-mark/,`store library ${view} view`);
       if(view!=='covers'){assert.doesNotMatch(html,/library-book-interests/);continue;}
       const section=html.slice(html.indexOf(`data-book="${book.id}"`));
       const row=section.match(/<span class="library-book-interests" aria-hidden="true">([\s\S]*?)<\/span><\/span>/)?.[0];
