@@ -6,6 +6,7 @@ import {mascotStages,currentMascotStage} from "../app/mascot-progress.mjs";
 import {bookshelfBooks} from "../app/bookshelf.mjs";
 import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
 import {distinguishedBookIds} from "./book-reading.mjs";
+import {readReaderProgression} from "./reader-xp-repository.mjs";
 
 export async function insertCardView(db,userId,cardId) {
   await db.prepare("INSERT INTO card_views(user_id,card_id) VALUES (?,?) ON CONFLICT(user_id,card_id) DO NOTHING").run(userId,cardId);
@@ -78,6 +79,10 @@ export async function readProfile(db,userId,viewerId) {
       quotesCreated:await count("SELECT COUNT(*) AS n FROM cards c WHERE c.creator_user_id=? AND c.is_quote=1",userId)
     };
     const bookshelf=entries.map(({book,reading,group})=>({bookId:book.id,reading,...(group==="to-read"?{group}:{})}));
-    return {profile:{id:user.id,name:user.display_name,username:user.username||null,createdAt:user.created_at,counts,mascots},bookshelf};
+    const progression=await readReaderProgression(db,userId,{allowMissing:true});
+    const readerProgression=progression&&(userId===viewerId
+      ? progression
+      : {level:progression.level,fullName:progression.fullName,stage:progression.stage});
+    return {profile:{id:user.id,name:user.display_name,username:user.username||null,createdAt:user.created_at,counts,mascots,...(readerProgression?{readerProgression}:{})},bookshelf};
   });
 }
