@@ -65,7 +65,7 @@ test("maximum title and author leave room for the notes mark and two-line state 
     assert.equal((state.match(/<span>/g)||[]).length,2,"status and draft note state both remain visible");
   }
   const css=await readFile(new URL("./reader.css",import.meta.url),"utf8");
-  assert.match(css,/\.study-book-entry--notes \.study-book-mark\{[^}]*margin-bottom:max\(34px,18cqi\)/);
+  assert.match(css,/\.study-book-mark\{[^}]*margin:auto 0 max\(34px,18cqi\)/);
   assert.match(css,/@media\(max-width:600px\)\{\.study-books\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\}/);
   assert.match(css,/\.study-book\{[^}]*aspect-ratio:11\/15/);
   assert.match(css,/\.study-book-author\{[^}]*font-size:max\(10px/);
