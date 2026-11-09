@@ -13,7 +13,7 @@ export function prepareCatalog(payload) {
   const genreIds = new Set(genres.map(g => g.id));
   const books = payload.books.map(book => {
     if (!validCatalogIncorporation(book)) throw new Error("Invalid book incorporation data");
-    validateBookLinks(book.links, {required:!book.creatorUserId});
+    validateBookLinks(book.links);
     return validateBook(book, LANGUAGES, {requirePopular:true});
   }), booksById = new Map(books.map(b => [b.id,b]));
   if (booksById.size !== books.length || books.some(b => !Array.isArray(b.genres) || !b.creatorUserId && !b.genres.length || b.genres.some(id => !genreIds.has(id)))) throw new Error("Invalid book references");

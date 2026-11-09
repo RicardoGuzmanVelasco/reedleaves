@@ -37,11 +37,11 @@ const bookTitleTranslations=z.record(z.string(),z.string().trim().max(TITLE_MAX_
 const bookDescriptionTranslations=z.record(z.string(),z.string().trim().min(1).max(DESCRIPTION_MAX_LENGTH));
 const bookEditorialNoteTranslations=z.record(z.string(),z.string().trim().min(1).max(EDITORIAL_NOTE_MAX_LENGTH));
 const bookGenres=z.array(z.string().trim().min(1).max(80)).min(1).max(3);
-const bookLinks=z.object({amazon:z.string().trim().max(2048),goodreads:z.string().trim().max(2048)}).strict();
+const bookLinks=z.object({amazon:z.string().trim().max(2048).optional(),goodreads:z.string().trim().max(2048).optional()}).strict();
 const newBookMetadata=z.object({
   popularTitle:z.string().trim().min(1).max(TITLE_MAX_LENGTH),popularLanguage:z.string().min(2).max(35),
   title:bookTitleTranslations,description:bookDescriptionTranslations,editorialNote:bookEditorialNoteTranslations,
-  genres:bookGenres,links:bookLinks
+  genres:bookGenres,links:bookLinks.optional()
 }).strict();
 const bookMetadataPatch=z.object({
   popularTitle:z.string().trim().min(1).max(TITLE_MAX_LENGTH).optional(),popularLanguage:z.string().min(2).max(35).optional(),
@@ -72,7 +72,7 @@ function makeServer(db,publicBaseUrl) {
   }));
   server.registerTool("create_book",{
     title:"Crear libro",
-    description:"Add a new public book to the shared Reedleaves catalog. The user must clearly ask to create/add the book. Supply a stable lowercase-hyphenated bookId, its author, popular title and language, Spanish and English descriptions/editorial notes, genres, and verified supported Amazon /dp and Goodreads book-page links. The popular title language is independent from the preferred title translations. The book becomes visible to catalog readers.",
+    description:"Add a new public book to the shared Reedleaves catalog. The user must clearly ask to create/add the book. Supply a stable lowercase-hyphenated bookId, its author, popular title and language, Spanish and English descriptions/editorial notes, and genres. Amazon /dp and Goodreads book-page links are optional; any supplied links must be verified. The popular title language is independent from the preferred title translations. The book becomes visible to catalog readers.",
     inputSchema:{bookId:z.string().trim().min(1).max(240).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),author:z.string().trim().min(1).max(BOOK_AUTHOR_MAX_LENGTH),metadata:newBookMetadata},
     annotations:{readOnlyHint:false,destructiveHint:false,openWorldHint:false}
   },safeTool(async(input)=>toolText({...await createCatalogBook(db,input),url:`${publicBaseUrl.replace(/\/+$/ ,"")}/app/#book/${encodeURIComponent(input.bookId)}`})));

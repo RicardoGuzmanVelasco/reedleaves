@@ -42,6 +42,30 @@ async function fixture(t,dialect) {
 }
 
 for (const dialect of ["sqlite","postgres"]) {
+test(`${dialect}: MCP accepts zero or one verified book link and rejects invalid links`,async t=>{
+  const {db,client,base}=await fixture(t,dialect);
+  const metadata={popularTitle:"Optional links book",popularLanguage:"en",title:{},
+    description:{es:"Descripción.",en:"Description."},editorialNote:{es:"Nota.",en:"Note."},genres:["software"]};
+  const cases=[{id:"no-links",links:undefined},{id:"amazon-only",links:{amazon:"https://www.amazon.es/dp/B012345678"}},
+    {id:"goodreads-only",links:{goodreads:"https://www.goodreads.com/book/show/123456"}}];
+  for(const item of cases){
+    const input={bookId:item.id,author:"Author",metadata:{...metadata,popularTitle:`Optional links ${item.id}`,...(item.links?{links:item.links}:{})}};
+    const result=await client.callTool({name:"create_book",arguments:input});
+    assert.equal(result.isError,undefined);
+    assert.deepEqual((await db.prepare("SELECT platform,url FROM book_links WHERE book_id=? ORDER BY platform").all(item.id)).map(row=>[row.platform,row.url]),Object.entries(item.links||{}));
+    const retry=await client.callTool({name:"create_book",arguments:input});
+    assert.equal(JSON.parse(retry.content[0].text).idempotent,true);
+  }
+  const edit=await client.callTool({name:"edit_book",arguments:{bookId:"amazon-only",metadata:{links:{goodreads:"https://www.goodreads.com/book/show/123456"}}}});
+  assert.equal(edit.isError,undefined);
+  assert.deepEqual((await db.prepare("SELECT platform FROM book_links WHERE book_id=?").all("amazon-only")).map(row=>row.platform),["goodreads"]);
+  const invalid=await client.callTool({name:"create_book",arguments:{bookId:"bad-link",author:"Author",metadata:{...metadata,popularTitle:"Invalid link book",links:{amazon:"https://evil.test"}}}});
+  assert.equal(invalid.isError,true);
+  assert.equal(await db.prepare("SELECT id FROM books WHERE id=?").get("bad-link"),undefined);
+  const response=await fetch(`${base}/api/catalog`);assert.equal(response.status,200);
+  const catalog=await response.json();assert.deepEqual(catalog.books.find(book=>book.id==="no-links").links,{});
+});
+
 test(`${dialect}: admin MCP edits interests on owned books with incomplete metadata`,async t=>{
   const {db,client}=await fixture(t,dialect);
   await db.prepare("INSERT INTO users(id,display_name) VALUES (?,?)").run("mcp-book-owner","Autora");

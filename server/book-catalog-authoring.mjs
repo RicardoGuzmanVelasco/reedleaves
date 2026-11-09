@@ -31,7 +31,7 @@ function catalogMetadata(input,{partial=false}={}) {
   catch { throw new ApiError(400,"invalidRequest"); }
   if(metadata.popularTitle) requiredText(metadata.popularTitle,TITLE_MAX_LENGTH);
   if(metadata.popularLanguage&&!isCanonicalLocale(metadata.popularLanguage)) throw new ApiError(400,"invalidRequest");
-  try { validateBookLinks(metadata.links,{required:true}); }
+  try { validateBookLinks(metadata.links); }
   catch { throw new ApiError(400,"invalidRequest"); }
   return metadata;
 }
@@ -100,7 +100,7 @@ export async function editCatalogBook(db,input) {
       if(error) throw new ApiError(400,error);
     }
     if(Object.keys(proposal.links).length) {
-      try { validateBookLinks(proposal.links,{required:true}); }
+      try { validateBookLinks(proposal.links); }
       catch { throw new ApiError(400,"invalidRequest"); }
     }
   }
@@ -123,7 +123,7 @@ export async function editCatalogBook(db,input) {
     if(!next.metadata.popularTitle||!next.metadata.popularLanguage) throw new ApiError(400,"invalidRequest");
     if(current.creatorUserId===null) for(const language of LANGUAGES) if(!next.metadata.description[language]||!next.metadata.editorialNote[language]) throw new ApiError(400,"invalidRequest");
     if(current.creatorUserId===null||Object.hasOwn(input.metadata||{},"genres")) await validateBookInterests(db,next.metadata.genres,{existingIds:current.metadata.genres});
-    try { validateBookLinks(next.metadata.links,{required:current.creatorUserId===null}); }
+    try { validateBookLinks(next.metadata.links); }
     catch { throw new ApiError(400,"invalidRequest"); }
 
     if(Object.hasOwn(input.metadata||{},"popularTitle")||Object.hasOwn(input.metadata||{},"title")) {

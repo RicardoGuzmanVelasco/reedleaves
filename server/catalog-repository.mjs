@@ -40,7 +40,7 @@ export async function readCatalog(db, userId) {
       if(t.title.trim() && t.title.trim()!==book.popularTitle.trim()) book.title[t.language]=t.title;
       book.description[t.language]=t.description; book.editorialNote[t.language]=t.editorial_note;
     }
-    validateBookLinks(book.links,{required:!book.creatorUserId}); books.push(validateBook(book,LANGUAGES,{requirePopular:true}));
+    validateBookLinks(book.links); books.push(validateBook(book,LANGUAGES,{requirePopular:true}));
   }
   const cards = [];
   const cardRows = await db.prepare(`SELECT c.*,deck.language AS deck_language,creator.display_name AS creator_name,

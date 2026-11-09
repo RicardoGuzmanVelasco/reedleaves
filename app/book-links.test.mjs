@@ -54,11 +54,16 @@ test("Missing, duplicate, orphaned and invalid seed links fail without changing 
   await assert.rejects(checkCatalog(db), /book link/);
 });
 
-test("API consumers reject missing or untrusted links; changing interface language does not swap editions", async t => {
-  const db = await fixture(t);
-  for (const mutate of [p => delete p.books[0].links.amazon, p => p.books[0].links.goodreads = "https://evil.test"]) {
-    const payload = await readCatalog(db); mutate(payload); assert.throws(() => prepareCatalog(payload), /book link/);
-  }
+test("Catalog accepts missing links and rejects untrusted links", async t => {
+  const db = await fixture(t), payload = await readCatalog(db);
+  delete payload.books[0].links.amazon;
+  assert.ok(prepareCatalog(payload).booksById.has(payload.books[0].id));
+  delete payload.books[0].links.goodreads;
+  assert.ok(prepareCatalog(payload).booksById.has(payload.books[0].id));
+  payload.books[0].links.goodreads = "https://evil.test";
+  assert.throws(() => prepareCatalog(payload), /book link/);
+  await db.prepare("DELETE FROM book_links WHERE book_id = ?").run(payload.books[0].id);
+  await checkCatalog(db);
 });
 
 test("Each book modal offers labelled external anchors and platform icons in ES/EN; previews remain simple", async t => {
