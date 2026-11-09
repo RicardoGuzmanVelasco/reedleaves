@@ -7,6 +7,7 @@ import {selectPracticeCards} from "../app/practice-progress.mjs";
 import {accruePetalWallet} from "./petal-wallet-repository.mjs";
 import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
 import {lockReaderAccount} from "./reader-account-lock.mjs";
+import {grantReaderXpInside} from "./reader-xp-repository.mjs";
 import {effectiveCardLanguage,normalizeLanguageList} from "../app/core.mjs";
 import {readerLanguagePreferencesInside} from "./reader-language-preferences.mjs";
 import {canReviewDeck,reviewableDeckIds} from "./review-card-access.mjs";
@@ -21,6 +22,7 @@ export const PRACTICE_TOPICS=PRACTICE_ENABLED_TOPICS;
 export const PRACTICE_BASE_COST=3;
 export const PRACTICE_DISCOUNT_COST=2;
 export const PRACTICE_SESSION_SIZE=5;
+const COMPLETED_PRACTICE_XP=25;
 
 const timestampText=value=>value instanceof Date?value.toISOString():String(value||"");
 export function practiceDiscountTopic(userId,seedTimestamp) {
@@ -224,6 +226,9 @@ export async function answerPracticeSession(db,session,input,now=new Date()) {
       .run(session.user_id,input.cardId,input.answer,answeredAt);
     await db.prepare("UPDATE practice_sessions SET card_index=?,completed_at=?,completed_local_day=? WHERE id=? AND user_id=?")
       .run(nextIndex,completedAt,completedLocalDay,input.sessionId,session.user_id);
-    return {session:{...current,index:nextIndex,completedAt}};
+    const reward=completedAt ? await grantReaderXpInside(db,session.user_id,{
+      eventKey:`practice_session:${input.sessionId}`,rewardType:"practice_session",amount:COMPLETED_PRACTICE_XP
+    }) : null;
+    return {session:{...current,index:nextIndex,completedAt},...(reward?.awarded?{xpReward:{amount:reward.awarded,balance:reward.balance}}:{})};
   });
 }
