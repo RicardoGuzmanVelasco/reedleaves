@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 50));
-INSERT INTO reed_schema VALUES (50);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 51));
+INSERT INTO reed_schema VALUES (51);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '');

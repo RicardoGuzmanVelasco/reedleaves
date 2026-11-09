@@ -40,7 +40,7 @@ Rutas principales a contrastar al ejecutar: `app/interests.mjs`, `app/book-metad
 | --- | --- | --- |
 | personal-growth | Crecimiento personal | 🌱 |
 | finance | Finanzas | 💰 |
-| productivity | Productividad | 🎯 |
+| productivity | Productividad | 🔥 |
 | society | Sociedad | 🌍 |
 | software | Software | 💻 |
 | mindfulness | Mindfulness | 🧘 |

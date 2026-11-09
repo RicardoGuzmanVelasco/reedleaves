@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {createReaderXpTracker,readerXpMessage} from "./reader-xp-feedback.mjs";
+import {createReaderXpTracker,readerXpMessage,syncReaderProgressionState} from "./reader-xp-feedback.mjs";
+import {readerProgressionForXp} from "./reader-progression.mjs";
 
 test("Receipts and owner snapshots announce each confirmed gain once, even out of order",()=>{
   const observe=createReaderXpTracker();
@@ -28,6 +29,31 @@ test("First snapshots, logout, account switches and reloads never replay histori
   const withoutSnapshot=createReaderXpTracker();
   assert.deepEqual(withoutSnapshot("reader",undefined,{amount:15,balance:415}),{from:400,to:415});
   assert.equal(withoutSnapshot("reader",undefined,{amount:50,balance:20}),null);
+});
+
+test("Confirmed XP updates the signed-in snapshot and a cached own profile without regressing either",()=>{
+  const initial=readerProgressionForXp(0),earned=readerProgressionForXp(25);
+  const snapshot={user:{id:"reader"},readerProgression:initial};
+  const profile={profile:{id:"reader",name:"Reader",readerProgression:initial},bookshelf:[]};
+  const result=syncReaderProgressionState(snapshot,profile,"reader",25,{amount:25,balance:25},earned);
+  assert.equal(result.snapshot.readerProgression.xp,25);
+  assert.equal(result.profileData.profile.readerProgression.xp,25);
+  assert.equal(result.profileData.profile.name,"Reader");
+
+  const newer=syncReaderProgressionState(result.snapshot,result.profileData,"reader",25,{amount:25,balance:25},earned);
+  assert.equal(newer.snapshot.readerProgression.xp,25);
+  const stale=syncReaderProgressionState({...snapshot,readerProgression:readerProgressionForXp(40)},profile,"reader",25,{amount:25,balance:25},earned);
+  assert.equal(stale.snapshot.readerProgression.xp,40);
+  assert.equal(stale.profileData.profile.readerProgression.xp,40);
+});
+
+test("A confirmed response from a different account cannot change the active progression or profile",()=>{
+  const progression=readerProgressionForXp(0),snapshot={user:{id:"current"},readerProgression:progression};
+  const profile={profile:{id:"current",readerProgression:progression}};
+  const result=syncReaderProgressionState(snapshot,profile,"previous",25,{amount:25,balance:25},readerProgressionForXp(25));
+  assert.equal(result.snapshot,snapshot);
+  assert.equal(result.profileData,profile);
+  assert.equal(result.xp,null);
 });
 
 test("XP messages distinguish progress, a title change, and evolution of the reader's mascot",()=>{

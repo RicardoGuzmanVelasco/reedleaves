@@ -45,7 +45,7 @@ import {mountNewInterests} from "./new-interests-ui.mjs";
 import {mountInitialInterests} from "./initial-interests-ui.mjs";
 import {createCurrencyReceiptPresentation,pulseCurrencyWallet} from "./currency-receipt.mjs";
 import {createInitialInterestCompletion} from "./initial-interest-completion.mjs";
-import {createReaderXpTracker,mountReaderXpFeedback} from "./reader-xp-feedback.mjs";
+import {createReaderXpTracker,mountReaderXpFeedback,syncReaderProgressionState} from "./reader-xp-feedback.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -74,7 +74,9 @@ export function startReader({createCardFeatures} = {}) {
   let pendingGrowthFeedback=[];
   const observeXp=createReaderXpTracker();
   const xpFeedback=mountReaderXpFeedback(document,()=>language);
-  function syncReaderXp(userId,xp,reward) {
+  function syncReaderXp(userId,xp,reward,progression) {
+    const synced=syncReaderProgressionState(snapshot,profileData,userId,xp,reward,progression);
+    snapshot=synced.snapshot;profileData=synced.profileData;
     const gain=observeXp(userId,xp,reward);
     if(gain)xpFeedback.present(gain);
   }
@@ -221,7 +223,7 @@ export function startReader({createCardFeatures} = {}) {
     if(!state.user)pendingGrowthFeedback=[];
     if (state.inviteRequired !== undefined) inviteRequired = state.inviteRequired;
     if (state.user) { language = restoreLanguage(state.language); store.save(keys.language,language); }
-    syncReaderXp(state.user?.id,state.readerProgression?.xp,xpReward);
+    syncReaderXp(state.user?.id,state.readerProgression?.xp,xpReward,state.readerProgression);
     refreshState();
     currencyReceipt.sync();
   }
@@ -936,6 +938,10 @@ export function startReader({createCardFeatures} = {}) {
     let result;
     try {
       result=await api.request("/api/reader/practice/answer",{sessionId:session.id,cardId,index:session.index,answer});
+      if(snapshot.user?.id===userId&&result.state?.user?.id===userId) {
+        syncReaderXp(userId,result.state.readerProgression?.xp,result.xpReward,result.state.readerProgression);
+        if(mode==="profile"&&profileId===userId)render();
+      }
       if(!canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration})||practiceSession!==session) {
         if(snapshot.user?.id===userId&&practiceSession===session&&mode==="practice") {
           await departure;

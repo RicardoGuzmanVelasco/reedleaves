@@ -5,6 +5,22 @@ import {words} from "./i18n.mjs?v=evergreen-2";
 
 const validXp=value=>Number.isSafeInteger(value)&&value>=0;
 
+export function syncReaderProgressionState(snapshot,profileData,userId,xp,reward,progression) {
+  if(!userId||snapshot.user?.id!==userId)return {snapshot,profileData,xp:null};
+  const candidates=[xp,reward?.balance,progression?.xp].filter(validXp);
+  if(!candidates.length)return {snapshot,profileData,xp:null};
+  const currentXp=validXp(snapshot.readerProgression?.xp)?snapshot.readerProgression.xp:0;
+  const confirmedXp=Math.max(currentXp,...candidates);
+  const current=snapshot.readerProgression;
+  const next=currentXp===confirmedXp&&current?current:
+    progression?.xp===confirmedXp?progression:readerProgressionForXp(confirmedXp);
+  const nextSnapshot=next===current?snapshot:{...snapshot,readerProgression:next};
+  const nextProfile=profileData?.profile?.id===userId
+    ? {...profileData,profile:{...profileData.profile,readerProgression:next}}
+    : profileData;
+  return {snapshot:nextSnapshot,profileData:nextProfile,xp:confirmedXp};
+}
+
 // Receipts and snapshots can arrive in either order. They use the same
 // cumulative balance, so only the part above this session's watermark is new.
 export function createReaderXpTracker() {
