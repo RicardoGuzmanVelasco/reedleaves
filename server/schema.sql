@@ -66,6 +66,24 @@ CREATE TABLE accounts (
   language TEXT NOT NULL CHECK(language IN ('es','en','fr'))
 ) STRICT;
 
+CREATE TABLE reader_xp_balances (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  xp INTEGER NOT NULL DEFAULT 0 CHECK(xp BETWEEN 0 AND 9007199254740991)
+) STRICT;
+CREATE TABLE reader_xp_events (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  event_key TEXT NOT NULL CHECK(length(trim(event_key)) BETWEEN 1 AND 200),
+  reward_type TEXT NOT NULL CHECK(length(trim(reward_type)) BETWEEN 1 AND 80),
+  amount INTEGER NOT NULL CHECK(amount > 0),
+  balance_after INTEGER NOT NULL CHECK(balance_after >= amount AND balance_after <= 9007199254740991),
+  granted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(user_id,event_key)
+) STRICT;
+CREATE TRIGGER reader_xp_balance_on_account
+AFTER INSERT ON accounts BEGIN
+  INSERT INTO reader_xp_balances(user_id) VALUES (NEW.user_id);
+END;
+
 CREATE TABLE book_merge_operations (
   source_book_id TEXT NOT NULL,
   target_book_id TEXT NOT NULL,
@@ -383,4 +401,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 55;
+PRAGMA user_version = 56;

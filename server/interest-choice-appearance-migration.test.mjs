@@ -9,7 +9,9 @@ import {saveInitialReaderInterestPreferences} from "./reader-interest-preference
 async function snapshot(db,dialect){
   const tables=await db.prepare(dialect==="sqlite"?"SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name":"SELECT table_name AS name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name").all();
   const rows={};
-  for(const {name} of tables){if(name==="reed_schema")continue;rows[name]=(await db.prepare(`SELECT ${name==="genres"?"id":"*"} FROM "${name}"`).all()).map(row=>({...row})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));}
+  // The XP tables are introduced by a later additive migration and are not
+  // part of this migration's data-preservation contract.
+  for(const {name} of tables){if(["reed_schema","reader_xp_balances","reader_xp_events"].includes(name))continue;rows[name]=(await db.prepare(`SELECT ${name==="genres"?"id":"*"} FROM "${name}"`).all()).map(row=>({...row})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));}
   return rows;
 }
 for(const [dialect,version] of [["sqlite",54],["postgres",46]])test(`${dialect}: approved chip appearance preserves every existing catalog and private row`,async t=>{

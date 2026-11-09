@@ -16,8 +16,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 55;
-export const POSTGRES_SCHEMA_VERSION = 47;
+export const SQLITE_SCHEMA_VERSION = 56;
+export const POSTGRES_SCHEMA_VERSION = 48;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -104,6 +104,31 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 55) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE reader_xp_balances (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  xp INTEGER NOT NULL DEFAULT 0 CHECK(xp BETWEEN 0 AND 9007199254740991)
+) STRICT;
+CREATE TABLE reader_xp_events (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  event_key TEXT NOT NULL CHECK(length(trim(event_key)) BETWEEN 1 AND 200),
+  reward_type TEXT NOT NULL CHECK(length(trim(reward_type)) BETWEEN 1 AND 80),
+  amount INTEGER NOT NULL CHECK(amount > 0),
+  balance_after INTEGER NOT NULL CHECK(balance_after >= amount AND balance_after <= 9007199254740991),
+  granted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(user_id,event_key)
+) STRICT;
+CREATE TRIGGER reader_xp_balance_on_account
+AFTER INSERT ON accounts BEGIN
+  INSERT INTO reader_xp_balances(user_id) VALUES (NEW.user_id);
+END;
+INSERT INTO reader_xp_balances(user_id) SELECT user_id FROM accounts;
+      PRAGMA user_version=56; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 54) {
     db.exec("BEGIN IMMEDIATE");
     try {db.exec(INTEREST_CHOICE_APPEARANCE_SQL);db.exec("PRAGMA user_version=55; COMMIT;");}
@@ -901,6 +926,43 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 47) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,accounts IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 48) return;
+          await db.exec(`CREATE TABLE reader_xp_balances (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  xp BIGINT NOT NULL DEFAULT 0 CHECK(xp BETWEEN 0 AND 9007199254740991)
+);
+CREATE TABLE reader_xp_events (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  event_key TEXT NOT NULL CHECK(length(btrim(event_key)) BETWEEN 1 AND 200),
+  reward_type TEXT NOT NULL CHECK(length(btrim(reward_type)) BETWEEN 1 AND 80),
+  amount BIGINT NOT NULL CHECK(amount > 0),
+  balance_after BIGINT NOT NULL CHECK(balance_after >= amount AND balance_after <= 9007199254740991),
+  granted_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(user_id,event_key)
+);
+ALTER TABLE reader_xp_balances ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reader_xp_events ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_xp_balances,reader_xp_events FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_xp_balances,reader_xp_events FROM authenticated; END IF;
+END $$;
+CREATE FUNCTION reader_xp_balance_on_account() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  INSERT INTO reader_xp_balances(user_id) VALUES (NEW.user_id);
+  RETURN NEW;
+END $$;
+CREATE TRIGGER reader_xp_balance_on_account
+AFTER INSERT ON accounts FOR EACH ROW EXECUTE FUNCTION reader_xp_balance_on_account();
+INSERT INTO reader_xp_balances(user_id) SELECT user_id FROM accounts;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=48;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=48);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 46) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,genres IN ACCESS EXCLUSIVE MODE;");

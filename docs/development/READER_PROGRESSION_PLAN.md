@@ -1,6 +1,6 @@
 # Progresión lectora · Plan de implementación
 
-Estado: especificación funcional acordada. Implementación pendiente. Cada incremento se entrega de forma autocontenida y puede publicarse por separado.
+Estado: implementación en curso. Incremento 1 completado; incremento 2 verificado localmente. Cada incremento se entrega de forma autocontenida y puede publicarse por separado.
 
 ## Objetivo
 

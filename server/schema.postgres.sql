@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 47));
-INSERT INTO reed_schema VALUES (47);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 48));
+INSERT INTO reed_schema VALUES (48);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '');
@@ -50,6 +50,33 @@ CREATE TABLE accounts(
   user_id TEXT PRIMARY KEY REFERENCES users(id), username TEXT NOT NULL UNIQUE CHECK(length(username) BETWEEN __USERNAME_MIN_LENGTH__ AND __USERNAME_MAX_LENGTH__),
   password_hash TEXT NOT NULL, time_zone TEXT NOT NULL, language TEXT NOT NULL CHECK(language IN ('es','en','fr'))
 );
+CREATE TABLE reader_xp_balances (
+  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
+  xp BIGINT NOT NULL DEFAULT 0 CHECK(xp BETWEEN 0 AND 9007199254740991)
+);
+CREATE TABLE reader_xp_events (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  event_key TEXT NOT NULL CHECK(length(btrim(event_key)) BETWEEN 1 AND 200),
+  reward_type TEXT NOT NULL CHECK(length(btrim(reward_type)) BETWEEN 1 AND 80),
+  amount BIGINT NOT NULL CHECK(amount > 0),
+  balance_after BIGINT NOT NULL CHECK(balance_after >= amount AND balance_after <= 9007199254740991),
+  granted_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(user_id,event_key)
+);
+ALTER TABLE reader_xp_balances ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reader_xp_events ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reader_xp_balances,reader_xp_events FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reader_xp_balances,reader_xp_events FROM authenticated; END IF;
+END $$;
+CREATE FUNCTION reader_xp_balance_on_account() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  INSERT INTO reader_xp_balances(user_id) VALUES (NEW.user_id);
+  RETURN NEW;
+END $$;
+CREATE TRIGGER reader_xp_balance_on_account
+AFTER INSERT ON accounts FOR EACH ROW EXECUTE FUNCTION reader_xp_balance_on_account();
+
 CREATE TABLE reader_display_preferences (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
   show_original_titles INTEGER NOT NULL CHECK(show_original_titles IN (0,1))

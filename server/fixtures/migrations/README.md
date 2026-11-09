@@ -43,3 +43,5 @@ PostgreSQL, el validador actual del seed necesita temporalmente
 Los datos de lectura se insertan con SQL compatible con el esquema antiguo.
 Los repositorios actuales solo se invocan después de migrar. Las pruebas
 comparan datos anteriores y posteriores y ejecutan la inicialización dos veces.
+
+Fixtures v55/v47: extraídos de `163480b`, con las constantes de aplicación resueltas.
