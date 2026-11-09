@@ -115,8 +115,11 @@ export async function editCatalogBook(db,input) {
       if(Object.hasOwn(input.metadata,"genres")) next.metadata.genres=proposal.genres;
       if(Object.hasOwn(input.metadata,"links")) next.metadata.links=proposal.links;
     }
-    try { next.metadata=normalizeBookMetadata(next.metadata,{canonicalTitles:true}); }
-    catch { throw new ApiError(400,"invalidRequest"); }
+    // Validate supplied fields only; legacy catalog text may exceed current authoring limits.
+    for(const language of Object.keys(proposal?.title||{})) if(next.metadata.title[language]===next.metadata.popularTitle) next.metadata.title[language]="";
+    const translationFields={title:"title",description:"description",editorialNote:"editorial_note"};
+    const translationLanguages=new Set(Object.keys(translationFields).flatMap(field=>Object.keys(proposal?.[field]||{})));
+    for(const language of translationLanguages) if(!next.metadata.description[language]||!next.metadata.editorialNote[language]) throw new ApiError(400,"invalidRequest");
     if(!next.metadata.popularTitle||!next.metadata.popularLanguage) throw new ApiError(400,"invalidRequest");
     if(current.creatorUserId===null) for(const language of LANGUAGES) if(!next.metadata.description[language]||!next.metadata.editorialNote[language]) throw new ApiError(400,"invalidRequest");
     if(current.creatorUserId===null||Object.hasOwn(input.metadata||{},"genres")) await validateBookInterests(db,next.metadata.genres,{existingIds:current.metadata.genres});
@@ -129,8 +132,6 @@ export async function editCatalogBook(db,input) {
     }
     await db.prepare("UPDATE books SET author=?,popular_title=?,popular_language=?,updated_at=CURRENT_TIMESTAMP WHERE id=?")
       .run(next.author,next.metadata.popularTitle,next.metadata.popularLanguage,id);
-    const translationFields={title:"title",description:"description",editorialNote:"editorial_note"};
-    const translationLanguages=new Set(Object.keys(translationFields).flatMap(field=>Object.keys(proposal?.[field]||{})));
     for(const language of translationLanguages) {
       if(!Object.hasOwn(current.metadata.description,language)) {
         await db.prepare(`INSERT INTO book_translations(book_id,language,title,description,editorial_note)

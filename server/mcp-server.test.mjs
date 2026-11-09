@@ -50,6 +50,8 @@ test(`${dialect}: admin MCP edits interests on owned books with incomplete metad
     await db.prepare("DELETE FROM book_links WHERE book_id=?").run(id);
   }
   await db.prepare("DELETE FROM book_translations WHERE book_id=? AND language<>?").run("atomic-habits","es");
+  await db.prepare("INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)")
+    .run("atomic-habits","fr","Titre historique","x".repeat(241),"Nota histórica");
   await db.prepare("DELETE FROM book_translations WHERE book_id=?").run("seven-habits");
   const translations=await db.prepare("SELECT language,title,description,editorial_note FROM book_translations WHERE book_id=? ORDER BY language").all("atomic-habits");
   for(const id of ["atomic-habits","seven-habits"]) {
