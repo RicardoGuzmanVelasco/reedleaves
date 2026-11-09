@@ -8,13 +8,13 @@
 .mascot-art img{display:block;width:100%;height:100%;margin:0;object-fit:contain;user-select:none}
 /* Artwork calibration, shared by every surface. Body placement and shadow dimensions are stage-specific. */
 .mascot-art[data-mascot="pot"]{--mascot-y:5%;--mascot-scale:.88;--mascot-shadow-width:68.5%}
-.mascot-art[data-mascot="soil"]{--mascot-y:2%;--mascot-scale:1.03;--mascot-shadow-width:96%;--mascot-shadow-height:13.5516098484848%}
+.mascot-art[data-mascot="soil"]{--mascot-y:2%;--mascot-scale:1.1;--mascot-shadow-width:96%;--mascot-shadow-height:20.6448685223451%}
 .mascot-art[data-mascot="seed"]{--mascot-scale:.8;--mascot-shadow-width:39%}
 .mascot-art[data-mascot="root"]{--mascot-x:3.5%;--mascot-y:-6.5%;--mascot-scale:.88}
 .mascot-art[data-mascot="seedling"]{--mascot-y:-13%;--mascot-scale:.9;--mascot-shadow-width:34%}
 .mascot-art[data-mascot="sprout"]{--mascot-y:-8%;--mascot-shadow-width:65%}
 .mascot-art[data-mascot="stem"]{--mascot-x:.5%;--mascot-y:-6%;--mascot-scale:1.05;--mascot-shadow-width:39.5%;--mascot-shadow-height:7.71085322836256%}
-.mascot-art[data-mascot="rosebud"]{--mascot-shadow-width:49%;--mascot-shadow-height:8%}
+.mascot-art[data-mascot="bud"]{--mascot-y:-6%;--mascot-scale:.9;--mascot-shadow-width:37%;--mascot-shadow-height:13.0271463879097%}
 .mascot-art[data-mascot="flower"]{--mascot-y:-3%;--mascot-scale:.86;--mascot-shadow-width:60%;--mascot-shadow-height:8%}
 .mascot-art[data-mascot="mystery"]{--mascot-shadow-width:36.5%}
 .mascot-art[data-idle="float"]{--mascot-idle-duration:2800ms}

@@ -7,7 +7,7 @@ export const mascotStages = Object.freeze([
   {id:"seedling",name:"mascotNameSeedling",days:4},
   {id:"sprout",name:"mascotNameSprout",days:5},
   {id:"stem",name:"mascotNameStem",days:10},
-  {id:"rosebud",name:"mascotNameRosebud",days:12},
+  {id:"bud",name:"mascotNameBud",days:12},
   {id:"flower",name:"mascotNameFlower",days:15},
   {id:"fruit",name:"mascotNameFruit"},
   {id:"infinity",name:"mascotNameInfinity"}

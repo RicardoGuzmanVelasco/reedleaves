@@ -16,14 +16,14 @@ test("growth feedback reports only changed current stages across books",()=>{
 
 test("growth feedback identifies each book and stage in both interface languages",()=>{
   const catalog={booksById:new Map([["a",{popularTitle:"Book A",popularLanguage:"en",title:{es:"Libro A"}}],["b",{popularTitle:"Book B",popularLanguage:"en",title:{}}]])};
-  const changes=[{bookId:"a",previous:"soil",stage:"seed"},{bookId:"b",previous:"stem",stage:"rosebud"}];
+  const changes=[{bookId:"a",previous:"soil",stage:"seed"},{bookId:"b",previous:"stem",stage:"bud"}];
   const es=growthFeedbackMarkup(changes,catalog,"es"),en=growthFeedbackMarkup(changes,catalog,"en");
   assert.match(es,/¡Tus mascotas han crecido!/);
   assert.match(es,/Libro A/);assert.match(es,/Tierra/);assert.match(es,/Book B/);assert.match(es,/Capullo/);
-  assert.match(es,/growth-feedback-art-old/);assert.match(es,/data-idle="none"/);assert.match(es,/data-idle="hop"/);
+  assert.match(es,/growth-feedback-art-old/);assert.match(es,/data-idle="none"/);assert.match(es,/data-idle="float"/);
   assert.match(es,/class="growth-feedback-art-new" hidden/);assert.match(es,/class="growth-feedback-stage-new" hidden/);
   assert.doesNotMatch(es,/growth-feedback-eyebrow|growth-feedback-arrow|growth-feedback-halo/);
-  assert.match(en,/Your mascots have grown/);assert.match(en,/Soil/);assert.match(en,/Rosebud/);
+  assert.match(en,/Your mascots have grown/);assert.match(en,/Soil/);assert.match(en,/Bud/);
   assert.match(growthFeedbackMarkup(changes.slice(0,1),catalog,"es"),/¡Tu mascota ha crecido!/);
 });
 

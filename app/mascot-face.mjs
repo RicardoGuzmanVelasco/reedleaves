@@ -10,7 +10,7 @@ export const mascotFacePlacement = Object.freeze(Object.fromEntries(Object.entri
   seedling: {x:80,y:101,rotation:0,scale:1},
   sprout: {x:79,y:104,rotation:0,scale:1},
   stem: {x:81,y:54,rotation:.5,scale:.74,eyeOffsets:{left:{x:-5,y:-4},right:{x:0,y:-7}}},
-  rosebud: {x:80,y:89,rotation:0,scale:.92},
+  bud: {x:80,y:89,rotation:0,scale:1,eyeOffsets:{left:{x:6.5,y:0},right:{x:-8.5,y:0}}},
   flower: {x:80,y:82.5,rotation:0,scale:.7,eyeOffsets:{left:{x:8,y:0},right:{x:-8,y:0}}}
 }).map(([stage,placement]) => [stage,Object.freeze({...placement,
   ...(placement.eyeOffsets ? {eyeOffsets:Object.freeze(Object.fromEntries(Object.entries(placement.eyeOffsets).map(([side,offset])=>[side,Object.freeze(offset)])))} : {})
@@ -34,7 +34,7 @@ export function mascotFaceGeometry(stage, override) {
 
 // Width is a multiplier of the canonical 8-unit mouth. An absent override inherits.
 // Approved widths: common 4.5×, with a few character-specific exceptions.
-export const mascotMouthConfig = Object.freeze({width:4.5,overrides:Object.freeze({pot:5.5,soil:4.75,rosebud:3.25,root:3.75,sprout:2,seedling:5,stem:3.75,flower:2.5})});
+export const mascotMouthConfig = Object.freeze({width:4.5,overrides:Object.freeze({pot:5.5,soil:4.75,bud:1.5,root:3.75,sprout:2,seedling:5,stem:3.75,flower:2.5})});
 const validMouthWidth = width => typeof width === "number" && Number.isFinite(width) && width > 0 && width <= 6;
 export function mascotMouthWidth(stage, config = mascotMouthConfig) {
   const general = validMouthWidth(config?.width) ? config.width : mascotMouthConfig.width;

@@ -25,4 +25,4 @@ Tallo (`stem`) está disponible como A · Carnoso, elegida por el usuario el 14 
 
 Flor (`flower`) usa A · Flor sin tallo: cinco pétalos rosas y centro amarillo. Está disponible con sus catorce controles, cara SVG, sombra independiente y modo de icono sin cara ni sombra. Sigue a Capullo a los quince días distintos de gasto por libro; las demás flores permanecen guardadas como exploraciones.
 
-Tierra (`soil`) y Capullo (`rosebud`) usan los mismos controles. Sus cuerpos SVG no incluyen la cara ni la sombra.
+Tierra (`soil`) y Capullo (`bud`) usan los mismos controles. Sus cuerpos SVG no incluyen la cara ni la sombra.

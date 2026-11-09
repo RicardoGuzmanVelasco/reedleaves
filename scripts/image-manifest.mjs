@@ -9,7 +9,7 @@ export const imagePaths = [
   ...["covers","shelf","stack"].map(name=>`/brand/icons/book-layout/${name}.svg`),
   ...["cards","cards-filled","cards-pen","cards-read","reading-guide"].map(name=>`/brand/icons/note-capture/${name}.svg`),
   ...["amazon","goodreads"].map(name=>`/brand/platforms/${name}.svg`),
-  ...["pot-a-body.png","pot-a-left-eye.png","pot-a-right-eye.png","pot-a-mouth.png","soil.svg","seed.svg","root.png","seedling.svg","sprout.svg","stem-flat.svg","rosebud.svg","flower.png"].map(name=>`/brand/reed/growth/bodies/${name}`),
+  ...["pot-a-body.png","pot-a-left-eye.png","pot-a-right-eye.png","pot-a-mouth.png","soil.svg","seed.svg","root.png","seedling.svg","sprout.svg","stem-flat.svg","bud.svg","flower.png"].map(name=>`/brand/reed/growth/bodies/${name}`),
   ...["mystery","plant","infinity"].map(name=>`/brand/reed/growth/${name}.svg`),
   ...["petal-token.svg","leaf-token.svg","streak-flame.svg","vein-pattern.svg","card-back.svg","app-icon.svg","app-icon-192-v4.png","app-icon-512-v4.png","share-card.png","favicon.ico","apple-touch-icon.png"].map(name=>`/brand/reed/${name}`),
   "/brand/icons/navigation/home.svg"

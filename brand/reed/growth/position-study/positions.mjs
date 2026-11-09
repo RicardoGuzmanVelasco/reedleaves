@@ -1,8 +1,8 @@
-import {mascotArt,mascotAssets,restartMascotIdle} from "/app/mascot-art.mjs?v=soil-rosebud-3";
-import {playMascotExpression} from "/app/mascot-face.mjs?v=soil-rosebud-3";
-import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=soil-rosebud-3";
+import {mascotArt,mascotAssets,restartMascotIdle} from "/app/mascot-art.mjs?v=soil-bud-3";
+import {playMascotExpression} from "/app/mascot-face.mjs?v=soil-bud-3";
+import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=soil-bud-3";
 const storageKey="reedleaves:mascot-calibration:v1";
-const names={pot:"Maceta",soil:"Tierra",seed:"Semilla",root:"Raíz",seedling:"Germen",sprout:"Brote",stem:"Tallo",rosebud:"Capullo",flower:"Flor"};
+const names={pot:"Maceta",soil:"Tierra",seed:"Semilla",root:"Raíz",seedling:"Germen",sprout:"Brote",stem:"Tallo",bud:"Capullo",flower:"Flor"};
 const groups={body:"Personaje",shadow:"Sombra",face:"Cara y boca",leftEye:"Ojo izquierdo",rightEye:"Ojo derecho"};
 const stages=calibrationStages.filter(stage=>Object.hasOwn(mascotAssets,stage));
 const select=document.getElementById("mascot-select"),gallery=document.getElementById("preview-gallery");

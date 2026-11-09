@@ -67,7 +67,7 @@ test("Profile counts one current pet per book rather than all unlocked stages, i
   assert.equal(p.counts.booksRead,1);assert.equal(p.counts.booksReading,2);
   assert.equal("decksCompleted" in p.counts,false);assert.equal("decksInProgress" in p.counts,false);
   assert.equal("leavesSpent" in p.counts,false);assert.equal("cardsReviewed" in p.counts,false);
-  assert.deepEqual(p.mascots,{pot:3,soil:0,seed:0,root:0,seedling:0,sprout:1,sapling:0,stem:0,plant:0,rosebud:0,flower:0,fruit:0,infinity:0});
+  assert.deepEqual(p.mascots,{pot:3,soil:0,seed:0,root:0,seedling:0,sprout:1,sapling:0,stem:0,plant:0,bud:0,flower:0,fruit:0,infinity:0});
 });
 
 test("Nonconsecutive review days across decks earn Tallo at ten and Flor at fifteen",async t=>{
@@ -87,7 +87,7 @@ test("Nonconsecutive review days across decks earn Tallo at ten and Flor at fift
     const profile=(await readProfile(db,a.user_id,a.user_id)).profile;
     if(n===8) {assert.equal(profile.mascots.sprout,1);assert.equal(profile.mascots.stem,0);}
     if(n===0) assert.equal(profile.mascots.soil,1);
-    if(n===11 || n===13) {assert.equal(profile.mascots.rosebud,1);assert.equal(profile.mascots.stem,0);}
+    if(n===11 || n===13) {assert.equal(profile.mascots.bud,1);assert.equal(profile.mascots.stem,0);}
     if(n===9) {assert.equal(profile.mascots.stem,1);assert.equal(profile.mascots.flower,0);}
   }
   // Another completed session on an existing local date adds no growth day.

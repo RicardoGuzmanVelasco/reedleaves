@@ -121,10 +121,10 @@ test("Flor is the next milestone after Capullo and becomes current on day fiftee
     const state={catalog,language,bookId,growth:{[bookId]:{added:true,reviewDays:14}}};
     const before=mascotsView(state);
     assert.doesNotMatch(before,/growth\/bodies\/flower\.png/);
-    assert.match(before,/aria-current="step"[^>]*>[\s\S]*?data-mascot="rosebud"/);
+    assert.match(before,/aria-current="step"[^>]*>[\s\S]*?data-mascot="bud"/);
     const after=mascotsView({...state,growth:{[bookId]:{added:true,reviewDays:15}}});
     const rows=after.match(/<li class="mascot-stage[^\"]*"[^>]*>[\s\S]*?<\/li>/g);
-    assert.ok(rows[7].includes(`<h2>${words[language].mascotNameRosebud}</h2>`));
+    assert.ok(rows[7].includes(`<h2>${words[language].mascotNameBud}</h2>`));
     assert.ok(rows[8].includes(`<h2>${words[language].mascotNameFlower}</h2>`));
     assert.match(rows[8],/is-earned is-known is-current/);
     assert.match(rows[8],/growth\/bodies\/flower\.png/);

@@ -11,10 +11,10 @@ The active Spanish sequence is **Maceta → Tierra → Semilla → Raíz → Ger
 | Seedling / Germen | 4 days | `bodies/seedling.svg` |
 | Sprout / Brote | 5 days | `bodies/sprout.svg` |
 | Stem / Tallo | 10 days | `bodies/stem-flat.svg` |
-| Rosebud / Capullo | 12 days | `bodies/rosebud.svg` |
+| Bud / Capullo | 12 days | `bodies/bud.svg` |
 | Flower / Flor | 15 days | `bodies/flower.png` |
 
-Soil is a low mound with the two Sprout leaves joined by a short stalk. Rosebud shows only the closed pink petals, without stem, leaves or sepals. Both use the shared animated face and ground shadow. Fruit and Evergreen remain reserved after Flower; Sapling and Plant are outside the sequence.
+Soil is a low mound with the two Sprout leaves joined by a short stalk. Bud shows only the closed pink petals, without stem, leaves or sepals. Both use the shared animated face and ground shadow. Fruit and Evergreen remain reserved after Flower; Sapling and Plant are outside the sequence.
 
 ## Flower · selected on 15 October 2026
 
