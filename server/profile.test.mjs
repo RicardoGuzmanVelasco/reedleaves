@@ -67,10 +67,10 @@ test("Profile counts one current pet per book rather than all unlocked stages, i
   assert.equal(p.counts.booksRead,1);assert.equal(p.counts.booksReading,2);
   assert.equal("decksCompleted" in p.counts,false);assert.equal("decksInProgress" in p.counts,false);
   assert.equal("leavesSpent" in p.counts,false);assert.equal("cardsReviewed" in p.counts,false);
-  assert.deepEqual(p.mascots,{pot:3,soil:0,seed:0,root:0,seedling:0,sprout:1,sapling:0,stem:0,plant:0,bud:0,flower:0,fruit:0,infinity:0});
+  assert.deepEqual(p.mascots,{pot:3,soil:0,seed:0,root:0,seedling:0,sprout:1,sapling:0,stem:0,plant:0,bud:0,flower:0,evergreen:0});
 });
 
-test("Nonconsecutive review days across decks earn Tallo at ten and Flor at fifteen",async t=>{
+test("Nonconsecutive review days across decks earn Bud, Flower and Evergreen at their milestones",async t=>{
   const {db,a}=await fixture(t),bookId="seven-habits";
   await changeReading(db,a,bookId,"reading",day(1));
   const decks=[];
@@ -80,22 +80,24 @@ test("Nonconsecutive review days across decks earn Tallo at ten and Flor at fift
     for(let i=0;i<8;i++) cards.push((await addCard(db,a,{requestId:randomUUID(),deckId,title:`Card ${i}`,body:"Test content",parentId:null,isQuote:false})).cardId);
     decks.push({deckId,cards});
   }
-  for(let n=0;n<15;n++) {
+  for(let n=0;n<30;n++) {
     const deck=decks[n%2];
-    await selectDeck(db,a,deck.deckId,day(1+n*2));
-    await recordCompletedPractice(db,a,bookId,day(1+n*2),deck.deckId);
+    await selectDeck(db,a,deck.deckId,day(1+n));
+    await recordCompletedPractice(db,a,bookId,day(1+n),deck.deckId);
     const profile=(await readProfile(db,a.user_id,a.user_id)).profile;
     if(n===8) {assert.equal(profile.mascots.sprout,1);assert.equal(profile.mascots.stem,0);}
     if(n===0) assert.equal(profile.mascots.soil,1);
-    if(n===11 || n===13) {assert.equal(profile.mascots.bud,1);assert.equal(profile.mascots.stem,0);}
+    if(n===14) {assert.equal(profile.mascots.bud,1);assert.equal(profile.mascots.flower,0);}
+    if(n===20) {assert.equal(profile.mascots.flower,1);assert.equal(profile.mascots.evergreen,0);}
+    if(n===29) {assert.equal(profile.mascots.evergreen,1);assert.equal(profile.mascots.flower,0);}
     if(n===9) {assert.equal(profile.mascots.stem,1);assert.equal(profile.mascots.flower,0);}
   }
   // Another completed session on an existing local date adds no growth day.
-  await selectDeck(db,a,decks[1].deckId,day(29));
-  await recordCompletedPractice(db,a,bookId,day(29),decks[1].deckId);
-  assert.equal((await readReaderState(db,a,day(29))).growth[bookId].reviewDays,15);
+  await selectDeck(db,a,decks[1].deckId,day(30));
+  await recordCompletedPractice(db,a,bookId,day(30),decks[1].deckId);
+  assert.equal((await readReaderState(db,a,day(30))).growth[bookId].reviewDays,30);
   const {mascots}=(await readProfile(db,a.user_id,a.user_id)).profile;
-  assert.equal(mascots.flower,1);assert.equal(mascots.stem,0);assert.equal(mascots.sprout,0);
+  assert.equal(mascots.evergreen,1);assert.equal(mascots.flower,0);assert.equal(mascots.bud,0);assert.equal(mascots.stem,0);assert.equal(mascots.sprout,0);
 });
 
 test("Author stats include quotes as a subset; shared libraries expose content but not account data or author permissions",async t=>{

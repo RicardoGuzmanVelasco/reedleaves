@@ -7,10 +7,9 @@ export const mascotStages = Object.freeze([
   {id:"seedling",name:"mascotNameSeedling",days:4},
   {id:"sprout",name:"mascotNameSprout",days:5},
   {id:"stem",name:"mascotNameStem",days:10},
-  {id:"bud",name:"mascotNameBud",days:12},
-  {id:"flower",name:"mascotNameFlower",days:15},
-  {id:"fruit",name:"mascotNameFruit"},
-  {id:"infinity",name:"mascotNameInfinity"}
+  {id:"bud",name:"mascotNameBud",days:15},
+  {id:"flower",name:"mascotNameFlower",days:21},
+  {id:"evergreen",name:"mascotNameEvergreen",days:30}
 ].map(Object.freeze));
 
 export function mascotStageEarned(stage,{added=false,reviewDays=0}={}) {

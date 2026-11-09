@@ -23,6 +23,7 @@ La página se mantiene en `brand/` como herramienta interna. No desbloquea propu
 
 Tallo (`stem`) está disponible como A · Carnoso, elegida por el usuario el 14 de octubre de 2026. Usa un cuerpo PNG transparente sin cara ni sombra, con la cara SVG, la sombra y el movimiento del componente compartido. Su calibración inicial se puede ajustar con los mismos catorce controles. Desde el 15 de octubre la regla de producto elegida es diez días distintos de gasto por libro; el editor no modifica ese progreso.
 
-Flor (`flower`) usa A · Flor sin tallo: cinco pétalos rosas y centro amarillo. Está disponible con sus catorce controles, cara SVG, sombra independiente y modo de icono sin cara ni sombra. Sigue a Capullo a los quince días distintos de gasto por libro; las demás flores permanecen guardadas como exploraciones.
+Flor (`flower`) usa A · Flor sin tallo: cinco pétalos rosas y centro amarillo. Está disponible con sus catorce controles, cara SVG, sombra independiente y modo de icono sin cara ni sombra. Sigue a Capullo a los veintiún días distintos de práctica por libro; las demás flores permanecen guardadas como exploraciones.
 
 Tierra (`soil`) y Capullo (`bud`) usan los mismos controles. Sus cuerpos SVG no incluyen la cara ni la sombra.
+Siempreverde (`evergreen`) está disponible en el editor para calibrar cuerpo, cara, boca y sombra antes de preparar su incorporación a producción. Su cuerpo conserva las hojas del símbolo Bucle vivo con un pequeño tallo conector.

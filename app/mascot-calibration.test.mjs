@@ -16,6 +16,20 @@ test("Flor is available in the shared calibration editor with a separate editabl
   assert.deepEqual(restoreCalibration({baseline:JSON.stringify(baseline),values:edited},baseline),edited);
 });
 
+test("Siempreverde is available after Flor with a faceless body and editable calibration",()=>{
+  assert.ok(calibrationStages.indexOf("evergreen")>calibrationStages.indexOf("flower"));
+  const baseline=currentCalibration("evergreen",{x:0,y:-2,scale:1},{width:70,height:10});
+  assert.equal(Object.keys(baseline).length,14);
+  const edited=normalizeCalibration({...baseline,faceY:80,faceScale:1.05,bodyScale:1.1,mouthWidth:3},baseline);
+  const config=calibrationConfiguration("evergreen",edited);
+  const html=mascotArt("evergreen","",{face:config.face,mouth:config.mouth});
+  assert.match(html,/growth\/bodies\/evergreen\.svg/);
+  assert.match(html,/mascot-face-placement/);
+  assert.match(html,/translate\(80 80\)/);
+  assert.deepEqual(config.shadow,{width:70,height:10});
+  assert.deepEqual(restoreCalibration({baseline:JSON.stringify(baseline),values:edited},baseline),edited);
+});
+
 test("Tallo exports all fourteen controls and renders its adjusted face independently",()=>{
   assert.ok(calibrationStages.includes("stem"));
   const baseline=currentCalibration("stem");

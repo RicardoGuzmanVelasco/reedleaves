@@ -6,7 +6,7 @@ import {imageUrl} from "./image-url.mjs";
 import {mascotArt,mascotAssets,mascotIcon} from "./mascot-art.mjs";
 
 test("Decorative mascot artwork reserves separate placement and motion layers",()=>{
-  for (const stage of ["pot","soil","seed","root","seedling","sprout","stem","bud","flower","mystery"]) {
+  for (const stage of ["pot","soil","seed","root","seedling","sprout","stem","bud","flower","evergreen","mystery"]) {
     const html=mascotArt(stage,"mascot-stage-art");
     assert.match(html,/aria-hidden="true"/);
     assert.match(html,/mascot-art-placement"><span class="mascot-art-motion"><img/);
@@ -26,7 +26,7 @@ test("Unavailable stages have neutral artwork and attribute values are escaped",
 
 test("Full mascots select their idle pattern; mystery floats and future artwork hops by default",()=>{
   for (const stage of Object.keys(mascotAssets)) {
-    const idle=["seed","seedling","sprout","bud","mystery"].includes(stage)?"float":"hop";
+    const idle=["seed","seedling","sprout","bud","evergreen","mystery"].includes(stage)?"float":"hop";
     assert.ok(mascotArt(stage).includes(`data-idle="${idle}"`));
     assert.doesNotMatch(mascotIcon(stage),/data-idle|mascot-art-motion/);
   }
@@ -58,7 +58,7 @@ test("Root uses an alpha PNG and the static loading fallback matches the shared 
 
 
 test("Active mascots share a face inside body motion; unknown stages stay faceless",()=>{
-  for (const stage of ["pot","soil","seed","root","seedling","sprout","stem","bud","flower"]) {
+  for (const stage of ["pot","soil","seed","root","seedling","sprout","stem","bud","flower","evergreen"]) {
     const html=mascotArt(stage);
     assert.match(html,/mascot-art-motion"><img[^>]*><svg class="mascot-face"/);
     const body=readFileSync(new URL(`..${imageUrl(mascotAssets[stage])}`,import.meta.url));
@@ -111,7 +111,7 @@ test("Invalid mouth widths fall back without injecting SVG attributes",()=>{
 
 
 test("Mascot icons are direct images without character placement, motion or face",()=>{
-  for(const stage of ["pot","soil","seed","root","seedling","sprout","stem","bud","flower","mystery"]) {
+  for(const stage of ["pot","soil","seed","root","seedling","sprout","stem","bud","flower","evergreen","mystery"]) {
     const icon=mascotIcon(stage,"study-book-mark");
     assert.match(icon,/^<img class="mascot-icon study-book-mark"/);
     assert.doesNotMatch(icon,/<span|<svg|mascot-art|mascot-face|mascot-mouth|mascot-eye|style=|data-mascot/);

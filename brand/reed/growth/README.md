@@ -1,6 +1,6 @@
 # Growth mascot study
 
-The active Spanish sequence is **Maceta → Tierra → Semilla → Raíz → Germen → Brote → Tallo → Capullo → Flor**. Each book contributes one current mascot to the profile. Its stage is derived from the existing count of distinct local practice days, using the same [milestones](../../../app/mascot-progress.mjs) in the app and server. Days need not be consecutive.
+The active Spanish sequence is **Maceta → Tierra → Semilla → Raíz → Germen → Brote → Tallo → Capullo → Flor → Siempreverde**. Each book contributes one current mascot to the profile. Its stage is derived from the count of distinct local practice days, using the same [milestones](../../../app/mascot-progress.mjs) in the app and server. Days need not be consecutive.
 
 | Stage | Unlock | Active body |
 | --- | --- | --- |
@@ -11,14 +11,15 @@ The active Spanish sequence is **Maceta → Tierra → Semilla → Raíz → Ger
 | Seedling / Germen | 4 days | `bodies/seedling.svg` |
 | Sprout / Brote | 5 days | `bodies/sprout.svg` |
 | Stem / Tallo | 10 days | `bodies/stem-flat.svg` |
-| Bud / Capullo | 12 days | `bodies/bud.svg` |
-| Flower / Flor | 15 days | `bodies/flower.png` |
+| Bud / Capullo | 15 days | `bodies/bud.svg` |
+| Flower / Flor | 21 days | `bodies/flower.png` |
+| Evergreen / Siempreverde | 30 days | `bodies/evergreen.svg` |
 
-Soil is a low mound with the two Sprout leaves joined by a short stalk. Bud shows only the closed pink petals, without stem, leaves or sepals. Both use the shared animated face and ground shadow. Fruit and Evergreen remain reserved after Flower; Sapling and Plant are outside the sequence.
+Soil is a low mound with the two Sprout leaves joined by a short stalk. Bud shows only the closed pink petals, without stem, leaves or sepals. Evergreen reuses the green living-loop leaves with a short connecting stem. All three use the shared animated face and ground shadow. Fruit is outside the sequence for now. Sapling and Plant remain reserved.
 
 ## Flower · selected on 15 October 2026
 
-The user selected **A · Flor** from [the flower-only exploration](flower-only-variations/README.md), at **fifteen accumulated distinct spend days per book**, without requiring consecutive days. The same shared stage calculation serves book growth and profile counts. Existing books with at least fifteen days qualify automatically; no migration is needed.
+The user selected **A · Flor** from [the flower-only exploration](flower-only-variations/README.md), at **twenty-one accumulated distinct practice days per book**, without requiring consecutive days. The same shared stage calculation serves book growth and profile counts. Existing books with at least twenty-one days qualify automatically; no migration is needed.
 
 Only the flower is shown: five pink petals and a yellow center, with no stem or leaves. `bodies/flower.png` is the transparent body without a face. Its two SVG eyes, smile, ground shadow and motion use the existing shared component. Flor is also available in the calibration editor. No motto was added.
 
@@ -36,7 +37,7 @@ The reusable `app/mascot-art.mjs` and `app/mascot-art.css` component composes fu
 
 Every full mascot runs its selected idle pattern in an infinite loop by default. Growth timeline rows opt out with `{idle:false}`, keeping both body and ground static; the current mascot in the header stays animated and shares the deck header's size (160 px desktop, 112 px mobile). Flowerpot and Root hop by default: the former greeting is a 600 ms hop (left/right rotation and one 8% upward arc without rebound, plus subtle squash and stretch) followed by a 1200 ms rest. Seed, Sprout (`seedling`), Seedling (`sprout`) and Mystery float smoothly through a 10% upward arc in 2800 ms. `mascotIdlePatterns` selects exceptions; future stages inherit the hop. Ground width shrinks to 78% during a hop and 70% during a float, then returns, with the same duration, keyframe timing and easing as the vertical motion. Independent CSS `translate`, `rotate` and `scale` preserve hover transforms. Reduced motion disables body, shadow and eye animation. Icons remain static body images.
 
-Ground shadows have been removed from Pot, Seed, Mystery, Stem, Plant and Flower SVGs. Embedded darker parts of the characters are retained. Plant, Fruit and Evergreen remain unavailable in the app.
+Ground shadows have been removed from Pot, Seed, Mystery, Stem, Plant and Flower SVGs. Embedded darker parts of the characters are retained. Plant and Fruit remain unavailable in the app. Siempreverde uses the body-only `bodies/evergreen.svg` artwork, adapted from the existing living-loop leaves.
 
 The shared browser component also installs automatic blinking: both eyes close and reopen in 160 ms, with a new independent random wait of 3–7 seconds for each mascot. It only animates eye-expression layers, preserving body/shadow loops and giving manual gestures priority. Timeline rows (`idle:false`), icons and faceless artwork do not blink. The controller follows inserted/removed markup, clears timers on navigation, and pauses for hidden tabs or reduced motion.
 
@@ -60,11 +61,11 @@ The shared browser component also installs automatic blinking: both eyes close a
 - `seed-variations-exploration.png`: three alternate seed silhouettes (round, almond-like, kidney-bean), following the Root exploration format and the current five-mascot family. Proposals only; the approved Seed and app remain unchanged. References and generation prompt are recorded in `seed-variations-exploration.md`.
 - `seed-variations-exploration-v2.png`: four more Seed proposals: two flattened pointed shapes and two coffee-bean shapes with a vertical central groove. References and prompt are recorded in `seed-variations-exploration-v2.md`. Not integrated in the app.
 - `seed-variations-future.png`: consolidated future-only sheet of A, C, D, F and G. D is narrower with softer tips; F and G have subtler central grooves. Decisions and prompt: `seed-variations-future.md`. B is the active app Seed; E is discarded.
-- `seedling.svg` reuses the original green seed artwork. `infinity.svg` restores the original **Bucle vivo / Living loop** mascot as the **Siempreverde / Evergreen** stage. Its face coordinates come from `faceMarkup` in `brand/sprout/spike.js`: eyes `(23,76)` and `(137,76)`, mouth centered at `(80,96)`. The spike contains the animated expressions.
+- `seedling.svg` reuses the original green seed artwork. `infinity.svg` remains the original full mascot artwork; `bodies/evergreen.svg` contains only its leaves and connecting stem so the app can add the shared face and shadow.
 
 Open `index.html` to review the art. Progress is aggregated across decks for the same book.
 
-The app shows only mascot names and unlock information. The former motto table was removed; Git history retains it. **Germen / Seedling** follows Root and **Brote / Sprout** follows Germen, retaining the historical `seedling` and `sprout` IDs and artwork. **Tallo / Stem** follows Brote; **Siempreverde / Evergreen** keeps the existing `infinity.svg` artwork and internal `infinity` ID. Sapling is no longer in the sequence. Stem unlocks on the tenth distinct local spend day, accumulated across decks of the same book; consecutive days are not required.
+The app shows only mascot names and unlock information. The former motto table was removed; Git history retains it. Germen follows Raíz and Brote follows Germen, retaining the historical `seedling` and `sprout` IDs. The sequence continues through Tallo (10), Capullo (15), Flor (21) and Siempreverde (30). Fruit is removed from the active sequence for now. Sapling is outside the sequence.
 
 ## Root cutout prompt
 

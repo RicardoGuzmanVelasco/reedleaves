@@ -1,8 +1,8 @@
-import {mascotArt,mascotAssets,restartMascotIdle} from "/app/mascot-art.mjs?v=soil-bud-3";
-import {playMascotExpression} from "/app/mascot-face.mjs?v=soil-bud-3";
-import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=soil-bud-3";
+import {mascotArt,mascotAssets,restartMascotIdle} from "/app/mascot-art.mjs?v=evergreen-1";
+import {playMascotExpression} from "/app/mascot-face.mjs?v=evergreen-1";
+import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "./calibration-model.mjs?v=evergreen-1";
 const storageKey="reedleaves:mascot-calibration:v1";
-const names={pot:"Maceta",soil:"Tierra",seed:"Semilla",root:"Raíz",seedling:"Germen",sprout:"Brote",stem:"Tallo",bud:"Capullo",flower:"Flor"};
+const names={pot:"Maceta",soil:"Tierra",seed:"Semilla",root:"Raíz",seedling:"Germen",sprout:"Brote",stem:"Tallo",bud:"Capullo",flower:"Flor",evergreen:"Siempreverde"};
 const groups={body:"Personaje",shadow:"Sombra",face:"Cara y boca",leftEye:"Ojo izquierdo",rightEye:"Ojo derecho"};
 const stages=calibrationStages.filter(stage=>Object.hasOwn(mascotAssets,stage));
 const select=document.getElementById("mascot-select"),gallery=document.getElementById("preview-gallery");
@@ -12,7 +12,8 @@ try {
   const saved=JSON.parse(localStorage.getItem(storageKey));
   if(saved && typeof saved==="object" && saved.drafts && typeof saved.drafts==="object" && !Array.isArray(saved.drafts)) storage=saved;
 } catch {storageAvailable=false;}
-let stage=stages.includes(storage.selected)?storage.selected:stages.includes("root")?"root":stages[0];
+const requestedStage=new URLSearchParams(location.search).get("stage");
+let stage=stages.includes(requestedStage)?requestedStage:stages.includes(storage.selected)?storage.selected:stages.includes("root")?"root":stages[0];
 let baseline,values;
 select.innerHTML=stages.map(id=>`<option value="${id}">${names[id] || id}</option>`).join("");
 select.value=stage;
