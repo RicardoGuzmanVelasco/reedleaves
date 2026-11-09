@@ -1,5 +1,6 @@
 import {transaction} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
+import {lockedInteractionCard,grantCardInteractionXpInside} from "./card-interaction-xp.mjs";
 
 async function accessibleCard(db,session,cardId) {
   if (typeof cardId !== "string" || !cardId.trim() || cardId.length > 240) throw new ApiError(400,"invalidRequest");
@@ -22,11 +23,14 @@ export async function readCardVotes(db,session,cardId) {
 export async function setCardVote(db,session,{cardId,value} = {}) {
   if (![ -1,0,1 ].includes(value)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
-    const card=await accessibleCard(db,session,cardId);
+    if (typeof cardId !== "string" || !cardId.trim() || cardId.length > 240) throw new ApiError(400,"invalidRequest");
+    const card=await lockedInteractionCard(db,session.user_id,cardId);
     if (card.creator_user_id === session.user_id) throw new ApiError(409,"ownCardVote");
+    const previous=await db.prepare("SELECT value FROM card_votes WHERE user_id=? AND card_id=?").get(session.user_id,card.id);
     if (value === 0) await db.prepare("DELETE FROM card_votes WHERE user_id=? AND card_id=?").run(session.user_id,card.id);
     else await db.prepare(`INSERT INTO card_votes(user_id,card_id,value) VALUES (?,?,?)
       ON CONFLICT(user_id,card_id) DO UPDATE SET value=excluded.value,updated_at=CURRENT_TIMESTAMP`).run(session.user_id,card.id,value);
+    if (value===1 && previous?.value!==1) await grantCardInteractionXpInside(db,{actorId:session.user_id,card,action:"like_received"});
     return cardVoteState(db,session,card);
   });
 }
