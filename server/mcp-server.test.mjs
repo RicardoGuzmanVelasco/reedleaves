@@ -42,6 +42,28 @@ async function fixture(t,dialect) {
 }
 
 for (const dialect of ["sqlite","postgres"]) {
+test(`${dialect}: admin MCP edits interests on owned books with incomplete metadata`,async t=>{
+  const {db,client}=await fixture(t,dialect);
+  await db.prepare("INSERT INTO users(id,display_name) VALUES (?,?)").run("mcp-book-owner","Autora");
+  for(const id of ["atomic-habits","seven-habits"]) {
+    await db.prepare("UPDATE books SET creator_user_id=? WHERE id=?").run("mcp-book-owner",id);
+    await db.prepare("DELETE FROM book_links WHERE book_id=?").run(id);
+  }
+  await db.prepare("DELETE FROM book_translations WHERE book_id=? AND language<>?").run("atomic-habits","es");
+  await db.prepare("DELETE FROM book_translations WHERE book_id=?").run("seven-habits");
+  const translations=await db.prepare("SELECT language,title,description,editorial_note FROM book_translations WHERE book_id=? ORDER BY language").all("atomic-habits");
+  for(const id of ["atomic-habits","seven-habits"]) {
+    const result=await client.callTool({name:"edit_book",arguments:{bookId:id,metadata:{genres:["productivity"]}}});
+    assert.equal(result.isError,undefined);
+    assert.equal(JSON.parse(result.content[0].text).bookId,id);
+    assert.equal((await db.prepare("SELECT creator_user_id FROM books WHERE id=?").get(id)).creator_user_id,"mcp-book-owner");
+    assert.deepEqual((await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY position").all(id)).map(row=>row.genre_id),["productivity"]);
+    assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM book_links WHERE book_id=?").get(id)).n,0);
+  }
+  assert.deepEqual(await db.prepare("SELECT language,title,description,editorial_note FROM book_translations WHERE book_id=? ORDER BY language").all("atomic-habits"),translations);
+  assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM book_translations WHERE book_id=?").get("seven-habits")).n,0);
+});
+
 test(`${dialect}: MCP creates finished team decks atomically and retries safely`,async t=>{
   const {db,client,base}=await fixture(t,dialect);
   const unauthenticated=await fetch(`${base}/mcp`,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
