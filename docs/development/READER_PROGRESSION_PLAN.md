@@ -1,6 +1,6 @@
 # Progresión lectora · Plan de implementación
 
-Estado: incrementos 1–11 completados. El incremento 8 ya permite revisar cada guía individualmente con comandos administrativos; los roles de Archivista y la cola dentro de la app siguen fuera de alcance. Pendiente el cierre del incremento 12. Cada incremento se entrega de forma autocontenida y puede publicarse por separado.
+Estado: incrementos 1–12 completados en `Staging`. El cierre local del incremento 12 pasó `npm test` en el SHA `06e803a` (683 pruebas, 0 fallos). No se ha consultado el estado de CI ni la promoción a producción. El incremento 8 permite revisar cada guía individualmente con comandos administrativos; los roles de Archivista y la cola dentro de la app siguen fuera de alcance. Cada incremento se entrega de forma autocontenida y puede publicarse por separado.
 
 ## Objetivo
 
@@ -114,6 +114,8 @@ Añadir el toast inferior de ganancia de XP con avance actualizado y el anuncio 
 ### 12. Revisión de integración y saldo inaugural
 
 Comprobar deduplicación bajo repetición y concurrencia, permisos de perfil propio y ajeno, flujos existentes de repaso/notas/votación/guardado y estados de revisión de guía. Confirmar explícitamente que las cuentas anteriores empiezan con 0 XP, sin reconstrucción del historial. El cierre técnico de cada incremento cumple las reglas vigentes de pruebas y migraciones.
+
+Verificado localmente en ambos motores: la migración deja en 0 el saldo de cuentas existentes, las recompensas se deduplican y la XP exacta queda privada al perfil propio. Los flujos existentes y la revisión individual de guías pasan en la suite completa del SHA `06e803a`.
 
 ## Entrega por incremento
 
