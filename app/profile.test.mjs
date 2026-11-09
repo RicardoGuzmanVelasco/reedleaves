@@ -9,6 +9,8 @@ import {profileView,bookshelfView,dailyView} from "./views.mjs";
 import {words} from "./i18n.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {toggleProfileInterest} from "./profile-interests.mjs";
+import {readerLevel} from "./reader-progression.mjs";
+import {readerLevelName} from "./reader-level-name.mjs";
 
 async function fixture() {
   const db=openDatabase(":memory:");initializeDatabase(db);await seedCatalog(db);
@@ -30,6 +32,40 @@ test("Profiles show book, card-view and contribution counts without old per-card
     assert.doesNotMatch(profileView({language,profileData,userId:"test-user"}),/href="#bookshelf(?:\/|")/);
     assert.match(profileView({language,profileError:"profileUnavailable"}),new RegExp(words[language].profileUnavailable.replace('.','\\.')));
   }
+});
+
+test("Reader profiles show their XP mascot and localized title; only the owner sees exact progress",async()=>{
+  const catalog=await fixture(),privateProgression={...readerLevel(3),xp:125,xpIntoLevel:15,xpForNextLevel:75,nextLevelXp:185};
+  const withProgression=progression=>({...profileData,profile:{...profileData.profile,readerProgression:progression}});
+  for(const [language,title,total,remaining,nextLevel,fraction] of [
+    ["es","Tierra Virgen","125 XP totales","60 XP para el nivel 4","Nivel 4","15 de 75 XP"],
+    ["en","Untouched Soil","125 total XP","60 XP to level 4","Level 4","15 of 75 XP"]
+  ]) {
+    const render=(id,progression)=>profileView(readerState(catalog,{language,userId:id,profileData:withProgression(progression)}));
+    const own=render("test-user",privateProgression);
+    const header=own.slice(0,own.indexOf("</header>"));
+    assert.match(header,/data-mascot="soil"/);
+    for(const label of [title,words[language].readerLevelLabel(3),total,remaining]) assert.ok(header.includes(label),label);
+    const meter=header.match(/<progress\b[^>]*>/)?.[0];
+    for(const attribute of ['value="15"','max="75"',`aria-label="${nextLevel}"`,`aria-valuetext="${fraction}"`]) assert.ok(meter?.includes(attribute),attribute);
+    assert.ok(own.includes(words[language].currentMascots));
+    for(const progression of [{level:3,stage:"soil",fullName:"Tierra Virgen"},privateProgression]) {
+      const foreign=render("other",progression);
+      assert.match(foreign,/data-mascot="soil"/);assert.ok(foreign.includes(title));
+      assert.doesNotMatch(foreign,/<progress\b|\bXP\b|aria-valuetext=/);
+    }
+    const team=render("other",undefined);assert.doesNotMatch(team,/<progress\b|\bXP\b|profile-level/);
+  }
+});
+
+test("English reader titles translate every stage and preserve numbered variants",()=>{
+  for(let level=1;level<=61;level++){
+    const entry=readerLevel(level);
+    assert.equal(readerLevelName(entry,"es"),entry.fullName);
+    assert.notEqual(readerLevelName(entry,"en"),entry.fullName,`level ${level}`);
+  }
+  assert.equal(readerLevelName(readerLevel(16),"en"),"Deep Root II");
+  assert.equal(readerLevelName(readerLevel(61),"en"),"Evergreen II");
 });
 
 test("Profile back injection is a labelled chevron with a full touch target",()=>{
