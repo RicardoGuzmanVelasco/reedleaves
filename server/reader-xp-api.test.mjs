@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {historicalDatabase,historicalReader} from "../test-support/historical-database.mjs";
 import {initializeDatabase} from "./database.mjs";
 import {readProfile} from "./profile-repository.mjs";
-import {readReaderState} from "./reader-repository.mjs";
+import {readReaderBalances,readReaderState} from "./reader-repository.mjs";
 
 for(const [dialect,version] of [["sqlite",55],["postgres",47]]) test(`${dialect}: XP level is derived for own state and exact XP stays private in profiles`,async t=>{
   const db=await historicalDatabase(t,dialect,version);
@@ -19,6 +19,9 @@ for(const [dialect,version] of [["sqlite",55],["postgres",47]]) test(`${dialect}
   assert.equal(state.readerProgression.icon,"mountain");
   assert.equal(state.readerProgression.xpIntoLevel,0);
   assert.ok(state.readerProgression.nextLevelXp>state.readerProgression.xp);
+  const balances=await readReaderBalances(db,reader,new Date("2026-11-09T12:00:00Z"));
+  assert.deepEqual(balances.readerProgression,state.readerProgression);
+  assert.equal((await readReaderBalances(db,visitor)).readerProgression.xp,0);
 
   const own=(await readProfile(db,reader.user_id,reader.user_id)).profile.readerProgression;
   assert.equal(own.xp,110);

@@ -44,6 +44,12 @@ export function readerLevel(level) {
   return Object.freeze({level,xp:readerLevelXp(level),stage:stage.id,stageName:stage.name,surname,fullName:`${stage.name} ${surname}`,icon:stage.icon});
 }
 
+export function readerProgressionForXp(xp) {
+  const level=readerLevel(readerLevelForXp(xp));
+  const nextLevelXp=readerLevelXp(level.level+1);
+  return {...level,xp,xpIntoLevel:xp-level.xp,xpForNextLevel:nextLevelXp-level.xp,nextLevelXp};
+}
+
 function toRoman(value) {
   const pairs=[[1000,"M"],[900,"CM"],[500,"D"],[400,"CD"],[100,"C"],[90,"XC"],[50,"L"],[40,"XL"],[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]];
   let remaining=value,result="";

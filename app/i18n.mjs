@@ -3,6 +3,7 @@ import {USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_
 export const words = {
   es: {
     readerLevelLabel:n=>`Nivel ${n}`,readerTotalXp:n=>`${n} XP totales`,readerXpRemaining:(xp,level)=>`${xp} XP para el nivel ${level}`,readerXpFraction:(value,max)=>`${value} de ${max} XP`,
+    readerLevelUp:"¡Nuevo nivel!",readerPetEvolved:"¡Tu mascota ha evolucionado!",readerDismissXp:"Cerrar aviso de experiencia",
     navigation:"Secciones",navHome:"Inicio",navLibrary:"Librería",navBookcase:"Biblioteca",navProfile:"Perfil",navDaily:"Idea del día",backToPrevious:"← Volver",
     deckViews:"Vista de la baraja",viewDeckPreview:"Ver preview",viewDeckTree:"Ver árbol",deckPreview:"Preview de la baraja",previewColumns:"Columnas",previewColumnCount:n=>`${n} ${n===1 ? "columna" : "columnas"}`,shareDeck:"Compartir",sharedCardUnavailable:"Esta tarjeta ya no está disponible.",cardLinkCopied:"Texto y enlace copiados.",cardShareText:(type,book)=>`¡Mira esta ${type === "idea" ? "idea" : type === "quote" ? "cita" : "tarjeta"} del libro «${book}» en Reedleaves!`,deckShareText:(book,deck)=>`¡Repasa conmigo «${book}» usando las notas de la baraja «${deck}»!`,deckLinkCopied:"Texto y enlace copiados.",deckShareError:"No se pudo compartir el enlace. Vuelve a intentarlo.",
     cardActions:"Acciones de tarjeta",saveCard:"Guardar tarjeta",unsaveCard:"Quitar de guardadas",savedCards:"Guardadas",noSavedCards:"No tienes tarjetas guardadas de este libro.",
@@ -66,6 +67,7 @@ profile:"Perfil",myProfile:"Mi perfil",goProfile:"Ir a mi perfil",profileBack:"�
   },
   en: {
     readerLevelLabel:n=>`Level ${n}`,readerTotalXp:n=>`${n} total XP`,readerXpRemaining:(xp,level)=>`${xp} XP to level ${level}`,readerXpFraction:(value,max)=>`${value} of ${max} XP`,
+    readerLevelUp:"Level up!",readerPetEvolved:"Your pet evolved!",readerDismissXp:"Dismiss experience update",
     navigation:"Sections",navHome:"Home",navLibrary:"Library",navBookcase:"Bookcase",navProfile:"Profile",navDaily:"Daily idea",backToPrevious:"← Back",
     deckViews:"Deck view",viewDeckPreview:"View preview",viewDeckTree:"View tree",deckPreview:"Deck preview",previewColumns:"Columns",previewColumnCount:n=>`${n} ${n===1 ? "column" : "columns"}`,shareDeck:"Share",sharedCardUnavailable:"This card is no longer available.",cardLinkCopied:"Text and link copied.",cardShareText:(type,book)=>`Check out this ${type === "idea" ? "idea" : type === "quote" ? "quote" : "card"} from "${book}" on Reedleaves!`,deckShareText:(book,deck)=>`Review "${book}" with me using the notes in the "${deck}" deck!`,deckLinkCopied:"Text and link copied.",deckShareError:"The link could not be shared. Try again.",
     cardActions:"Card actions",saveCard:"Save card",unsaveCard:"Remove from saved cards",savedCards:"Saved cards",noSavedCards:"You have no saved cards from this book.",

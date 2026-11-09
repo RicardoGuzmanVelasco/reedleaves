@@ -41,7 +41,7 @@ export async function readReaderBalances(db,session,now=new Date()) {
     const cycleDay=dailyCycleDay(session.time_zone,now,DAILY_CYCLE_STARTS.currencyRefill);
     const wallet=await accrueLeafWallet(db,session.user_id,cycleDay);
     const petals=await accruePetalWallet(db,session.user_id,cycleDay);
-    return {wallet,petals:petals.balance,petalMaximum:MAX_PETALS};
+    return {wallet,petals:petals.balance,petalMaximum:MAX_PETALS,readerProgression:await readReaderProgression(db,session.user_id)};
   });
 }
 export async function readReaderHomeBooks(db,session) {

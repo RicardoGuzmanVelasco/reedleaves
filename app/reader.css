@@ -1078,3 +1078,52 @@ html,body{overflow-x:clip}
 
 .card-attribution-row .cards-icon{width:17px;height:17px;background-color:rgb(0 0 0 / 30%)}
 .cards-icon--filled{-webkit-mask-image:url("../brand/icons/note-capture/cards-filled.svg");mask-image:url("../brand/icons/note-capture/cards-filled.svg")}
+
+.xp-feedback-panel {
+  position:fixed;
+  z-index:22;
+  inset-inline:0;
+  bottom:calc(14px + env(safe-area-inset-bottom));
+  width:min(430px,calc(100% - 24px));
+  margin-inline:auto;
+  display:grid;
+  grid-template-columns:58px minmax(0,1fr) 44px;
+  gap:10px;
+  align-items:center;
+  padding:11px 8px 11px 12px;
+  color:var(--ink);
+  background:linear-gradient(110deg,#e3edc9,var(--paper) 47%,#fffdf6);
+  border:2px solid var(--sage);
+  border-radius:23px;
+  box-shadow:0 4px 0 #b7c69d,0 9px 23px rgb(23 61 44 / 14%);
+}
+.xp-feedback-panel[hidden] { display:none; }
+.has-bottom-navigation:not(.is-practicing):not(.is-presenting) .xp-feedback-panel { bottom:calc(100px + env(safe-area-inset-bottom)); }
+.has-bottom-navigation .exclusive-card-modal .xp-feedback-panel { bottom:calc(12px + env(safe-area-inset-bottom)); }
+.xp-feedback-art { position:relative; display:grid; place-items:center; isolation:isolate; aspect-ratio:1; border-radius:50%; background:#d9edb6; }
+.xp-feedback-art .mascot-art { width:100%; height:100%; }
+.xp-feedback-copy { min-width:0; overflow-wrap:anywhere; }
+.xp-feedback-line,.xp-feedback-track { display:flex; align-items:center; flex-wrap:wrap; gap:3px 7px; }
+.xp-feedback-gain { color:var(--shadow); font-size:20px; line-height:1.1; font-variant-numeric:tabular-nums; }
+.xp-feedback-label { color:var(--muted); font-weight:750; font-size:12px; }
+.xp-feedback-detail { margin-top:3px; font-weight:800; font-size:14px; line-height:1.3; }
+.xp-feedback-track { margin-top:5px; }
+.xp-feedback-track progress { flex:1 1 42px; min-width:0; height:8px; appearance:none; border:1px solid var(--sage); border-radius:8px; background:#e3edc9; overflow:hidden; }
+.xp-feedback-track progress::-webkit-progress-bar { background:#e3edc9; }
+.xp-feedback-track progress::-webkit-progress-value { background:var(--green); border-radius:6px; }
+.xp-feedback-track progress::-moz-progress-bar { background:var(--green); border-radius:6px; }
+.xp-feedback-fraction { font-size:11px; color:var(--muted); font-weight:700; }
+.xp-feedback-close { display:grid; place-items:center; width:44px; height:44px; padding:0; border:0; background:transparent; }
+.xp-feedback-close span { display:grid; place-items:center; width:30px; height:30px; border:1px solid var(--sage); border-radius:50%; background:var(--paper); box-shadow:0 2px 0 #b7c69d; font-size:21px; line-height:1; }
+.xp-feedback-panel:is([data-kind="level"],[data-kind="stage"]) { border-color:var(--shadow); box-shadow:0 4px 0 var(--shadow),0 9px 23px rgb(23 61 44 / 17%); }
+.xp-feedback-panel:is([data-kind="level"],[data-kind="stage"]) .xp-feedback-art::before { content:""; position:absolute; z-index:-1; inset:-4px; border-radius:50%; background:repeating-conic-gradient(from 10deg,#b7de76 0deg 15deg,transparent 15deg 45deg); }
+.xp-feedback-panel[data-kind="stage"] .xp-feedback-art::after { content:"✦"; position:absolute; top:-5px; right:0; color:var(--shadow); text-shadow:0 1px var(--paper); }
+@media(prefers-reduced-motion:no-preference) {
+  .xp-feedback-panel { animation:xp-toast-arrive .48s cubic-bezier(.16,1.3,.35,1) both; }
+  .xp-feedback-panel:is([data-kind="level"],[data-kind="stage"]) .xp-feedback-art::before { animation:xp-rays .85s ease-out both; }
+  .xp-feedback-panel[data-kind="stage"] .xp-feedback-art { animation:xp-pet-reveal .8s ease-out both; }
+  @keyframes xp-toast-arrive { from{transform:translateY(26px);opacity:0} to{transform:translateY(0);opacity:1} }
+  @keyframes xp-rays { from{transform:rotate(-50deg) scale(.45)} to{transform:rotate(0) scale(1)} }
+  @keyframes xp-pet-reveal { 0%{transform:scale(.68) rotate(-10deg)} 48%{transform:scale(1.14) rotate(5deg)} 75%{transform:scale(.96) rotate(-2deg)} 100%{transform:none} }
+}
+@media(forced-colors:active) { .xp-feedback-track progress { appearance:auto; } }

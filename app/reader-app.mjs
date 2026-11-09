@@ -45,6 +45,7 @@ import {mountNewInterests} from "./new-interests-ui.mjs";
 import {mountInitialInterests} from "./initial-interests-ui.mjs";
 import {createCurrencyReceiptPresentation,pulseCurrencyWallet} from "./currency-receipt.mjs";
 import {createInitialInterestCompletion} from "./initial-interest-completion.mjs";
+import {createReaderXpTracker,mountReaderXpFeedback} from "./reader-xp-feedback.mjs";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
@@ -71,6 +72,12 @@ export function startReader({createCardFeatures} = {}) {
   let libraryVisitId=null,libraryNewBookIds=[];
   let practiceStage="choose",practiceSession=null,practiceUnavailable=null,practiceRecoveryRequest=null,practiceRecoveryGeneration=0,authoritativeStateGeneration=0,practiceIntroSession=null,practiceStartRequest=null,practiceAnswerRequest=null;
   let pendingGrowthFeedback=[];
+  const observeXp=createReaderXpTracker();
+  const xpFeedback=mountReaderXpFeedback(document,()=>language);
+  function syncReaderXp(userId,xp,reward) {
+    const gain=observeXp(userId,xp,reward);
+    if(gain)xpFeedback.present(gain);
+  }
   let authorForm = null, quotesOnly = false, deckPreview = false, previewColumns = 2, previewDeckId = null;
   let noteDestination=null,deckCompletion=null,notesCompletion=null,bookStatusError=null,bookInterestPrompt=null,bookInterestFlow=null,bookInterestCardControls=null,noteNudgeBookId=null,readingGuidePromptBookId=null,guidePreviewReturn=null,readingGuideError=null,readingGuideDraft=null;
   let deckLanguageError=null,deckTitleEdit=null,deckContributorError=null,deckContributorInput="";
@@ -88,8 +95,8 @@ export function startReader({createCardFeatures} = {}) {
   let libraryOrigin = "home", appliedAuthorRoute = null;
   let libraryQuery = "", authMode = "login", authReturn = "#home", accountLearningNotice=false,accountInterestSortNotice=false, pendingDeck = null, pendingIntent = null, pendingCardAction=null, pendingNavigation = null, busy = false, syncError = null, syncGeneration = 0;
   const setModalPageLock=createModalPageLock({document,window,getComputedStyle});
-  function syncModalPageLock(){setModalPageLock(!!document.querySelector("dialog[open]"));}
-  function showAppModal(dialog){if(!dialog.open)dialog.showModal();setModalPageLock(true);dialog.addEventListener("close",syncModalPageLock,{once:true});}
+  function syncModalPageLock(){setModalPageLock(!!document.querySelector("dialog[open]"));xpFeedback.sync();}
+  function showAppModal(dialog){if(!dialog.open)dialog.showModal();syncModalPageLock();dialog.addEventListener("close",syncModalPageLock,{once:true});}
   const initialInterestHost=document.createElement("div");initialInterestHost.id="initial-interest-host";document.body.append(initialInterestHost);
   let displayedCurrency=null;
   const currencyReceipt=createCurrencyReceiptPresentation({
@@ -175,9 +182,10 @@ export function startReader({createCardFeatures} = {}) {
     cardFeatures?.update({userId:snapshot.user?.id,catalog,language,bookId:catalog?.cardsById.get(cardId)?.bookId||bookId,mode,quotesOnly,cardId,
       cardSaves:snapshot.cardSaves||[],revision:syncGeneration,actionSlots,actionSlot:main.querySelector("[data-card-actions]"),entrySlot:main.querySelector("[data-saved-cards-entry]"),listSlot:main.querySelector("[data-saved-cards-list]")});
   }
-  function applyState(state,{captureGrowth=false}={}) {
+  function applyState(state,{captureGrowth=false,xpReward}={}) {
     if(snapshot.user?.id!==state.user?.id){catalog=null;catalogIsFull=false;homeBooksUserId=null;homeBooksData=[];}
     if(snapshot.user?.id!==state.user?.id) {
+      xpFeedback.clear();
       discoverAvailability.invalidate();
       bookSortPreferenceWriter.invalidate();
       syncGeneration++;
@@ -213,6 +221,7 @@ export function startReader({createCardFeatures} = {}) {
     if(!state.user)pendingGrowthFeedback=[];
     if (state.inviteRequired !== undefined) inviteRequired = state.inviteRequired;
     if (state.user) { language = restoreLanguage(state.language); store.save(keys.language,language); }
+    syncReaderXp(state.user?.id,state.readerProgression?.xp,xpReward);
     refreshState();
     currencyReceipt.sync();
   }
@@ -238,6 +247,7 @@ export function startReader({createCardFeatures} = {}) {
       loadHomeBooks()
     ]).then(([balances,home])=>{
       if(snapshot.user?.id!==userId)return;
+      syncReaderXp(userId,balances.readerProgression?.xp);
       catalog=null;catalogIsFull=false;homeBooksUserId=userId;homeBooksData=home.books;
       const homeStatuses=Object.fromEntries(home.books.map(book=>[book.id,book.status||"unread"]));
       const homeGrowth=Object.fromEntries(home.books.map(book=>[book.id,book.growth||{added:true,reviewDays:0}]));
@@ -790,6 +800,7 @@ export function startReader({createCardFeatures} = {}) {
     api.request("/api/reader/view",{cardId,context,...(context === "daily" ? {day:selectedDailyDay || day} : {})}).then(result=>{
       if(snapshot.user?.id!==userId)return;
       recordedViews.add(key);
+      if(result.xpReward)syncReaderXp(userId,undefined,result.xpReward);
       if(context === "daily" && result.seenCurrentDay) {
         dailySeenDays.add(day);dailyHistory=dailyHistory.map(row=>row.day===day?{...row,seenInDay:true}:row);snapshot={...snapshot,dailyHistory};
         if(dailyStatus?.day===day) dailyStatus={...dailyStatus,unseen:false};
@@ -933,7 +944,7 @@ export function startReader({createCardFeatures} = {}) {
         return;
       }
       syncGeneration++;
-      applyState(result.state,{captureGrowth:true});
+      applyState(result.state,{captureGrowth:true,xpReward:result.xpReward});
       if(result.practiceRecovery) practicePresentation.dispose();
     } catch(error) {
       if(!canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration})) {
@@ -1362,14 +1373,18 @@ export function startReader({createCardFeatures} = {}) {
     if ((authorForm.bookId && !authorForm.hasProposal) || authorForm.draftDestinationUnavailable) return;
     const fields = Object.fromEntries([...new FormData(form)].filter(([key])=>!key.startsWith("metadata."))); Object.assign(authorForm,fields);
     persistNoteDraft();
-    const savedForm = authorForm;
+    const savedForm = authorForm,userId=snapshot.user?.id;
     const deckInput=savedForm.kind==="deck"?(({contributionMode,...deckFields})=>({...deckFields,kind:contributionMode==="owner"?"standard":"collective",contributionPolicy:contributionMode||"owner"}))(fields):null;
     const input = savedForm.bookId ? {bookId:savedForm.bookId,metadata:savedForm.metadata} : savedForm.kind === "book" ? {title:savedForm.title,author:savedForm.author,language:savedForm.language,metadata:savedForm.metadata,requestId:savedForm.requestId} : savedForm.kind === "deck" ? {...deckInput,requestId:savedForm.requestId,bookId:savedForm.noteBookId || bookId} : savedForm.createNoteDeck ? {...fields,requestId:savedForm.requestId,bookId:savedForm.noteBookId,language:savedForm.noteLanguage,isQuote:savedForm.kind === "quote"} : {...fields,requestId:savedForm.requestId,deckId:savedForm.noteDeckId || deckId,parentId:fields.parentId || null,isQuote:savedForm.kind === "quote"};
     busy = true; syncGeneration++; savedForm.error = null; savedForm.errorReference = null; lockControls();
     try {
       const result = await api.request(savedForm.bookId ? "/api/author/books/complete" : savedForm.kind === "book" ? "/api/author/books" : savedForm.kind === "deck" ? "/api/author/decks" : savedForm.createNoteDeck ? "/api/author/notes" : "/api/author/cards",input);
+      if(snapshot.user?.id!==userId)return;
+      if(result.xpReward&&result.state.user?.id===userId)syncReaderXp(userId,result.state.readerProgression?.xp,result.xpReward);
       if (["card","quote"].includes(savedForm.kind)) noteDrafts.remove(savedForm);
-      catalog = await loadCatalog(); applyState(result.state,{captureGrowth:true}); authorForm = null; live.textContent = words[language].saved;
+      const updatedCatalog=await loadCatalog();
+      if(snapshot.user?.id!==userId)return;
+      catalog=updatedCatalog;applyState(result.state,{captureGrowth:true});authorForm=null;live.textContent=words[language].saved;
       if (savedForm.noteReturn?.bookId) noteNudgeBookId=null;
       busy = false;
       if (savedForm.bookId) {
