@@ -15,7 +15,7 @@ async function retainedData(db,dialect) {
   const result={};
   for (const {name} of rows) {
     if (["sources","reed_schema","reader_filters","reader_interests","review_unlocks","reviews","review_cards","review_positions","practices","practice_cards","practice_positions","petal_wallets","practice_answers","practice_sessions","practice_session_cards","daily_idea_views"].includes(name)) continue;
-    const additiveGenre=name === "genres" ? " WHERE id NOT IN ('society','software','mindfulness')" : name === "genre_translations" ? " WHERE genre_id NOT IN ('society','software','mindfulness')" : "";
+    const additiveGenre=name === "genres" ? " WHERE id NOT IN ('society','software','mindfulness','psychology','leadership')" : name === "genre_translations" ? " WHERE genre_id NOT IN ('society','software','mindfulness','psychology','leadership')" : "";
     result[name]=(await db.prepare(`SELECT * FROM "${name}"${additiveGenre}`).all()).map(row=>{
       const value={...row};if (name === "cards") delete value.source_id;
       if (name === "genres") { delete value.emoji; delete value.color; }

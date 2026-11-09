@@ -98,7 +98,7 @@ export async function migrationData(db) {
   const columns={genres:"id",book_genres:"book_id,genre_id",books:popular ? "id,author,position,editorial_status,popular_title AS original_title,popular_language AS original_language,updated_at" : "id,author,position,editorial_status,original_title,original_language,updated_at",
     decks:"id,book_id,creator_user_id,language,is_recommended,created_at"};
   for (const table of tables) {
-    const additiveGenre=table === "genres" ? " WHERE id NOT IN ('society','software','mindfulness')" : table === "genre_translations" ? " WHERE genre_id NOT IN ('society','software','mindfulness')" : "";
+    const additiveGenre=table === "genres" ? " WHERE id NOT IN ('society','software','mindfulness','psychology','leadership')" : table === "genre_translations" ? " WHERE genre_id NOT IN ('society','software','mindfulness','psychology','leadership')" : "";
     result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${table}${additiveGenre} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();
     if (table === "book_translations") result[table]=result[table].map(({short_title,...translation})=>{
       // The approved GTD title cleanup is the only editorial change in these

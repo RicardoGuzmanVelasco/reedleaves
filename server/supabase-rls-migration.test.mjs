@@ -14,6 +14,7 @@ const readerInterestMigration=await readFile(new URL("../supabase/migrations/202
 const readerInterestRewardMigration=await readFile(new URL("../supabase/migrations/20261029010000_reader_interest_reward_claims.sql",import.meta.url),"utf8");
 const readerLanguageMigration=await readFile(new URL("../supabase/migrations/20261029000000_secure_reader_language_preferences.sql",import.meta.url),"utf8");
 const readerInterestKnowledgeMigration=await readFile(new URL("../supabase/migrations/20261029020000_reader_interest_knowledge.sql",import.meta.url),"utf8");
+const guideReviewMigration=await readFile(new URL("../supabase/migrations/20261109090000_reader_guide_reviews.sql",import.meta.url),"utf8");
 const cleanPostgresSchema=(await readFile(new URL("./schema.postgres.sql",import.meta.url),"utf8"))
   .replaceAll("__USERNAME_MIN_LENGTH__",String(USERNAME_MIN_LENGTH))
   .replaceAll("__USERNAME_MAX_LENGTH__",String(USERNAME_MAX_LENGTH))
@@ -29,7 +30,7 @@ test("Fresh PostgreSQL schema revokes default Data API grants for private reader
       has_table_privilege('anon',c.oid,'SELECT') AS anon_select,
       has_table_privilege('authenticated',c.oid,'UPDATE') AS authenticated_update
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-    WHERE n.nspname='public' AND c.relname IN ('reader_book_sort_preferences','reader_interest_preferences','reader_interest_settings','reader_interest_reward_claims','reader_language_preferences','reader_known_interests','reader_interest_knowledge_visits')
+    WHERE n.nspname='public' AND c.relname IN ('reader_book_sort_preferences','reader_interest_preferences','reader_interest_settings','reader_interest_reward_claims','reader_language_preferences','reader_known_interests','reader_interest_knowledge_visits','reading_guide_reviews')
     ORDER BY c.relname`);
   assert.deepEqual(state.rows,[
     {relname:"reader_book_sort_preferences",rls:true,anon_select:false,authenticated_update:false},
@@ -38,7 +39,8 @@ test("Fresh PostgreSQL schema revokes default Data API grants for private reader
     {relname:"reader_interest_reward_claims",rls:true,anon_select:false,authenticated_update:false},
     {relname:"reader_interest_settings",rls:true,anon_select:false,authenticated_update:false},
     {relname:"reader_known_interests",rls:true,anon_select:false,authenticated_update:false},
-    {relname:"reader_language_preferences",rls:true,anon_select:false,authenticated_update:false}
+    {relname:"reader_language_preferences",rls:true,anon_select:false,authenticated_update:false},
+    {relname:"reading_guide_reviews",rls:true,anon_select:false,authenticated_update:false}
   ]);
 });
 
@@ -79,12 +81,13 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
   await db.exec(readerInterestRewardMigration);
   await db.exec(readerLanguageMigration);
   await db.exec(readerInterestKnowledgeMigration);
+  await db.exec(guideReviewMigration);
 
   const tableState = await db.query(`SELECT count(*)::int AS total,
       count(*) FILTER (WHERE NOT c.relrowsecurity)::int AS without_rls
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
     WHERE n.nspname='public' AND c.relkind IN ('r','p')`);
-  assert.deepEqual(tableState.rows,[{total:41,without_rls:0}]);
+  assert.deepEqual(tableState.rows,[{total:42,without_rls:0}]);
 
   const directAccess = await db.query(`SELECT
       has_table_privilege('anon','public.accounts','SELECT') AS anon_select,
@@ -100,8 +103,10 @@ test("Supabase migration blocks Data API roles while preserving privileged app a
       has_table_privilege('anon','public.reader_language_preferences','SELECT') AS anon_language_select,
       has_table_privilege('authenticated','public.reader_language_preferences','UPDATE') AS authenticated_language_update,
       has_table_privilege('anon','public.reader_known_interests','SELECT') AS anon_known_interests_select,
-      has_table_privilege('authenticated','public.reader_interest_knowledge_visits','UPDATE') AS authenticated_interest_visits_update`);
-  assert.deepEqual(directAccess.rows,[{anon_select:false,authenticated_update:false,anon_delete:false,anon_practice_select:false,anon_sort_select:false,authenticated_sort_update:false,anon_interest_select:false,authenticated_interest_update:false,anon_interest_rewards_select:false,authenticated_interest_rewards_update:false,anon_language_select:false,authenticated_language_update:false,anon_known_interests_select:false,authenticated_interest_visits_update:false}]);
+      has_table_privilege('authenticated','public.reader_interest_knowledge_visits','UPDATE') AS authenticated_interest_visits_update,
+      has_table_privilege('anon','public.reading_guide_reviews','SELECT') AS anon_guide_reviews_select,
+      has_table_privilege('authenticated','public.reading_guide_reviews','UPDATE') AS authenticated_guide_reviews_update`);
+  assert.deepEqual(directAccess.rows,[{anon_select:false,authenticated_update:false,anon_delete:false,anon_practice_select:false,anon_sort_select:false,authenticated_sort_update:false,anon_interest_select:false,authenticated_interest_update:false,anon_interest_rewards_select:false,authenticated_interest_rewards_update:false,anon_language_select:false,authenticated_language_update:false,anon_known_interests_select:false,authenticated_interest_visits_update:false,anon_guide_reviews_select:false,authenticated_guide_reviews_update:false}]);
 
   const functionAccess = await db.query(`SELECT count(*)::int AS functions,
       count(*) FILTER (WHERE p.prorettype='trigger'::regtype AND EXISTS (

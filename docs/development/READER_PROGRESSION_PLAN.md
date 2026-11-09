@@ -1,6 +1,6 @@
 # Progresión lectora · Plan de implementación
 
-Estado: implementación en curso. Incrementos 1–7 y 9 completados; el incremento 10 está entregado; los incrementos 8 y 11 están en preparación. Cada incremento se entrega de forma autocontenida y puede publicarse por separado.
+Estado: incrementos 1–11 completados. El incremento 8 ya permite revisar cada guía individualmente con comandos administrativos; los roles de Archivista y la cola dentro de la app siguen fuera de alcance. Pendiente el cierre del incremento 12. Cada incremento se entrega de forma autocontenida y puede publicarse por separado.
 
 ## Objetivo
 
@@ -96,6 +96,8 @@ Conceder 5 XP por «me gusta» recibido y 10 XP por guardado recibido. La clave 
 ### 8. Guía pendiente y aprobación editorial
 
 Registrar el estado de revisión por guía, con decisiones individuales de aprobar o rechazar. Mantener las guías visibles desde el envío y mostrar que siguen pendientes de aprobación, en un patrón parecido al borrador de una baraja. El autor ve 30 XP fantasma por guía pendiente, fuera del saldo y del nivel. La aprobación convierte una sola vez el pendiente en XP real; el rechazo lo retira e informa al autor. No añadir aquí roles ni una cola de Archivistas.
+
+La revisión manual se opera con `npm run db:guide-reviews` y `npm run db:guide-review -- <cardId> approve|reject <reason>`. La decisión queda registrada por guía; solo el autor ve el motivo del rechazo y los XP pendientes nunca entran en el saldo confirmado.
 
 ### 9. Mascota global por nivel
 

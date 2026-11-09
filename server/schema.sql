@@ -232,6 +232,17 @@ CREATE INDEX cards_by_deck ON cards(deck_id,parent_id,position);
 CREATE INDEX cards_by_note_date ON cards(deck_id,created_at DESC) WHERE created_at IS NOT NULL;
 CREATE INDEX cards_by_creator ON cards(creator_user_id,deck_id);
 CREATE UNIQUE INDEX one_reading_guide_per_contributor ON cards(deck_id,creator_user_id) WHERE is_reading_guide=1;
+CREATE TABLE reading_guide_reviews (
+  card_id TEXT PRIMARY KEY REFERENCES cards(id) ON DELETE CASCADE,
+  status TEXT NOT NULL CHECK(status IN ('pending','approved','rejected')),
+  submitted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  reviewed_at TEXT,
+  rejection_reason TEXT CHECK(rejection_reason IS NULL OR length(trim(rejection_reason)) BETWEEN 1 AND 1000),
+  CHECK((status='pending' AND reviewed_at IS NULL AND rejection_reason IS NULL) OR
+        (status='approved' AND reviewed_at IS NOT NULL AND rejection_reason IS NULL) OR
+        (status='rejected' AND reviewed_at IS NOT NULL AND rejection_reason IS NOT NULL))
+) STRICT;
+CREATE INDEX reading_guide_reviews_by_status ON reading_guide_reviews(status,submitted_at,card_id);
 
 CREATE TABLE deck_contributors (
   deck_id TEXT NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
@@ -401,4 +412,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 56;
+PRAGMA user_version = 58;

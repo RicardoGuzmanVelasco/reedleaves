@@ -19,6 +19,9 @@ export async function readCatalog(db, userId) {
     ? await db.prepare("SELECT column_name AS name FROM information_schema.columns WHERE table_schema='public' AND table_name='books'").all()
     : await db.prepare("PRAGMA table_info(books)").all();
   const supportsIncorporation=bookColumns.some(column=>column.name==="incorporated_at");
+  const supportsGuideReviews=isPostgres(db)
+    ? !!await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='reading_guide_reviews'").get()
+    : !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='reading_guide_reviews'").get();
   const {genres}=await readInterests(db);
   const books = [];
   for (const row of await db.prepare(`SELECT b.id,b.author,b.popular_title,b.popular_language,b.editorial_status,b.creator_user_id,
@@ -40,13 +43,19 @@ export async function readCatalog(db, userId) {
     validateBookLinks(book.links,{required:!book.creatorUserId}); books.push(validateBook(book,LANGUAGES,{requirePopular:true}));
   }
   const cards = [];
-  const cardRows = await db.prepare(`SELECT c.*,deck.language AS deck_language,creator.display_name AS creator_name FROM cards c
-    JOIN decks deck ON deck.id=c.deck_id JOIN books b ON b.id=c.book_id LEFT JOIN users creator ON creator.id=c.creator_user_id
+  const cardRows = await db.prepare(`SELECT c.*,deck.language AS deck_language,creator.display_name AS creator_name,
+    ${supportsGuideReviews?"guide_review.status":"NULL"} AS reading_guide_review_status,
+    ${supportsGuideReviews?"guide_review.rejection_reason":"NULL"} AS reading_guide_rejection_reason
+    FROM cards c JOIN decks deck ON deck.id=c.deck_id JOIN books b ON b.id=c.book_id
+    LEFT JOIN users creator ON creator.id=c.creator_user_id ${supportsGuideReviews?"LEFT JOIN reading_guide_reviews guide_review ON guide_review.card_id=c.id":""}
     ORDER BY b.position,c.deck_id,c.position,c.id`).all();
   for (const row of cardRows) {
     const card = {id:row.id,bookId:row.book_id,deckId:row.deck_id,deckLanguage:row.deck_language,
       language:row.language || row.deck_language,creatorUserId:row.creator_user_id || null,creatorName:row.creator_name || null,
-      isQuote:!!row.is_quote,isReadingGuide:!!row.is_reading_guide,parentId:row.parent_id,order:row.position,title:{},body:{}};
+      isQuote:!!row.is_quote,isReadingGuide:!!row.is_reading_guide,
+      ...(row.is_reading_guide?{reviewStatus:row.reading_guide_review_status||"legacy"}:{}),
+      ...(row.is_reading_guide&&row.creator_user_id===userId&&row.reading_guide_rejection_reason?{reviewRejectionReason:row.reading_guide_rejection_reason}:{}),
+      parentId:row.parent_id,order:row.position,title:{},body:{}};
     for (const t of await db.prepare("SELECT language,title,body FROM card_translations WHERE card_id = ?").all(row.id)) {
       card.title[t.language]=t.title; card.body[t.language]=t.body;
     }

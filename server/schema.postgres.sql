@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 48));
-INSERT INTO reed_schema VALUES (48);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 50));
+INSERT INTO reed_schema VALUES (50);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '');
@@ -233,6 +233,22 @@ CREATE INDEX cards_by_deck ON cards(deck_id,parent_id,position);
 CREATE INDEX cards_by_note_date ON cards(deck_id,created_at DESC) WHERE created_at IS NOT NULL;
 CREATE INDEX cards_by_creator ON cards(creator_user_id,deck_id);
 CREATE UNIQUE INDEX one_reading_guide_per_contributor ON cards(deck_id,creator_user_id) WHERE is_reading_guide=1;
+CREATE TABLE reading_guide_reviews(
+  card_id TEXT PRIMARY KEY REFERENCES cards(id) ON DELETE CASCADE,
+  status TEXT NOT NULL CHECK(status IN ('pending','approved','rejected')),
+  submitted_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  reviewed_at TIMESTAMPTZ,
+  rejection_reason TEXT CHECK(rejection_reason IS NULL OR length(btrim(rejection_reason)) BETWEEN 1 AND 1000),
+  CHECK((status='pending' AND reviewed_at IS NULL AND rejection_reason IS NULL) OR
+        (status='approved' AND reviewed_at IS NOT NULL AND rejection_reason IS NULL) OR
+        (status='rejected' AND reviewed_at IS NOT NULL AND rejection_reason IS NOT NULL))
+);
+CREATE INDEX reading_guide_reviews_by_status ON reading_guide_reviews(status,submitted_at,card_id);
+ALTER TABLE reading_guide_reviews ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reading_guide_reviews FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reading_guide_reviews FROM authenticated; END IF;
+END $$;
 CREATE TABLE deck_contributors(
   deck_id TEXT NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

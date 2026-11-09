@@ -125,6 +125,7 @@ export function validateCards(cards, bookId, {allowEmpty = false} = {}) {
     if (!card || typeof card.id !== "string" || !card.id.trim() || byId.has(card.id)) throw new Error("Invalid or duplicate ID");
     if (card.isQuote !== undefined && typeof card.isQuote !== "boolean") throw new Error("Invalid quote tag");
     if (card.isReadingGuide !== undefined && typeof card.isReadingGuide !== "boolean") throw new Error("Invalid reading guide tag");
+    if (card.reviewStatus !== undefined && (!card.isReadingGuide || !["legacy","pending","approved","rejected"].includes(card.reviewStatus))) throw new Error("Invalid reading guide review status");
     if (card.bookId !== bookId) throw new Error("Wrong book");
     if (card.parentId !== null && (typeof card.parentId !== "string" || !card.parentId)) throw new Error("Invalid parent");
     if (!Number.isInteger(card.order) || card.order < 1) throw new Error("Invalid order");

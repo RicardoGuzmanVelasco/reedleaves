@@ -16,8 +16,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 56;
-export const POSTGRES_SCHEMA_VERSION = 48;
+export const SQLITE_SCHEMA_VERSION = 58;
+export const POSTGRES_SCHEMA_VERSION = 50;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -104,6 +104,38 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 57) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`INSERT INTO genres(id,emoji,color) VALUES ('psychology','🧠','#F09FCB'),('leadership','🚀','#7D95C1')
+        ON CONFLICT(id) DO UPDATE SET emoji=excluded.emoji,color=excluded.color;
+UPDATE genres SET color='#F7DDE7' WHERE id='mindfulness';
+INSERT INTO genre_translations(genre_id,language,name) VALUES
+  ('psychology','es','Psicología'),('psychology','en','Psychology'),
+  ('leadership','es','Liderazgo'),('leadership','en','Leadership')
+  ON CONFLICT(genre_id,language) DO NOTHING;
+PRAGMA user_version=58; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
+  if (version === 56) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE reading_guide_reviews (
+  card_id TEXT PRIMARY KEY REFERENCES cards(id) ON DELETE CASCADE,
+  status TEXT NOT NULL CHECK(status IN ('pending','approved','rejected')),
+  submitted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  reviewed_at TEXT,
+  rejection_reason TEXT CHECK(rejection_reason IS NULL OR length(trim(rejection_reason)) BETWEEN 1 AND 1000),
+  CHECK((status='pending' AND reviewed_at IS NULL AND rejection_reason IS NULL) OR
+        (status='approved' AND reviewed_at IS NOT NULL AND rejection_reason IS NULL) OR
+        (status='rejected' AND reviewed_at IS NOT NULL AND rejection_reason IS NOT NULL))
+) STRICT;
+CREATE INDEX reading_guide_reviews_by_status ON reading_guide_reviews(status,submitted_at,card_id);
+PRAGMA user_version=57; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 55) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -926,6 +958,49 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 49) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,genres,genre_translations IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 50) return;
+          await db.exec(`INSERT INTO genres(id,emoji,color) VALUES ('psychology','🧠','#F09FCB'),('leadership','🚀','#7D95C1')
+            ON CONFLICT(id) DO UPDATE SET emoji=EXCLUDED.emoji,color=EXCLUDED.color;
+UPDATE genres SET color='#F7DDE7' WHERE id='mindfulness';
+INSERT INTO genre_translations(genre_id,language,name) VALUES
+  ('psychology','es','Psicología'),('psychology','en','Psychology'),
+  ('leadership','es','Liderazgo'),('leadership','en','Leadership')
+  ON CONFLICT(genre_id,language) DO NOTHING;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=50;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=50);`);
+        });
+        return initializePostgresDatabase(db);
+      }
+      if (version?.version === 48) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,cards IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 49) return;
+          await db.exec(`CREATE TABLE reading_guide_reviews(
+  card_id TEXT PRIMARY KEY REFERENCES cards(id) ON DELETE CASCADE,
+  status TEXT NOT NULL CHECK(status IN ('pending','approved','rejected')),
+  submitted_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  reviewed_at TIMESTAMPTZ,
+  rejection_reason TEXT CHECK(rejection_reason IS NULL OR length(btrim(rejection_reason)) BETWEEN 1 AND 1000),
+  CHECK((status='pending' AND reviewed_at IS NULL AND rejection_reason IS NULL) OR
+        (status='approved' AND reviewed_at IS NOT NULL AND rejection_reason IS NULL) OR
+        (status='rejected' AND reviewed_at IS NOT NULL AND rejection_reason IS NOT NULL))
+);
+CREATE INDEX reading_guide_reviews_by_status ON reading_guide_reviews(status,submitted_at,card_id);
+ALTER TABLE reading_guide_reviews ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE reading_guide_reviews FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE reading_guide_reviews FROM authenticated; END IF;
+END $$;
+            ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+            UPDATE reed_schema SET version=49;
+            ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=49);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 47) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,accounts IN ACCESS EXCLUSIVE MODE;");
