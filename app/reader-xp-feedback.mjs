@@ -50,6 +50,9 @@ export function readerXpMessage({from,to},language) {
   return {kind,gain,label,detail,fraction,before,after};
 }
 
+const levelUpFraction=({xpIntoLevel,xpForNextLevel},language)=>
+  `${xpIntoLevel.toLocaleString(language)} / ${xpForNextLevel.toLocaleString(language)} XP`;
+
 export function levelUpMarkup({before,after,gain,fraction,kind},language) {
   const c=words[language],level=c.readerLevelLabel(after.level.toLocaleString(language)),name=readerLevelName(after,language);
   return `<form method="dialog" class="exclusive-card-shell level-up-scene">
@@ -60,14 +63,14 @@ export function levelUpMarkup({before,after,gain,fraction,kind},language) {
     <span class="level-up-medal" id="level-up-title" role="img" aria-label="${level}">${after.level.toLocaleString(language)}</span>
     <h1 id="level-up-name" aria-label="${name}">${name}</h1>
     <div class="level-up-progress" id="level-up-progress">
-      <strong>${gain}</strong><span class="level-up-fraction" aria-hidden="true">${fraction}</span>
+      <strong>${gain}</strong><span class="level-up-fraction" aria-hidden="true">${levelUpFraction(after,language)}</span>
       <div class="level-up-meter" role="progressbar" aria-label="${level}" aria-valuenow="${after.xpIntoLevel}" aria-valuemin="0" aria-valuemax="${after.xpForNextLevel}" aria-valuetext="${fraction}"><span style="transform:scaleX(${after.xpIntoLevel/after.xpForNextLevel})"></span></div>
     </div>
     <button class="primary level-up-continue" autofocus>${c.bookInterestContinue}</button>
   </form>`;
 }
 
-async function playLevelUp(dialog,{before,after,kind,fraction},language) {
+async function playLevelUp(dialog,{before,after,kind},language) {
   if (dialog.ownerDocument.defaultView.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const scene=dialog.querySelector(".level-up-scene"),medal=scene.querySelector(".level-up-medal");
   const name=scene.querySelector("h1"),counter=scene.querySelector(".level-up-fraction"),fill=scene.querySelector(".level-up-meter span");
@@ -75,16 +78,20 @@ async function playLevelUp(dialog,{before,after,kind,fraction},language) {
   scene.classList.add("is-filling");
   medal.textContent=before.level.toLocaleString(language);
   name.textContent=readerLevelName(before,language);
-  counter.textContent=words[language].readerXpFraction(before.xpIntoLevel.toLocaleString(language),before.xpForNextLevel.toLocaleString(language));
+  counter.textContent=levelUpFraction(before,language);
   await fill.animate([{transform:`scaleX(${current})`},{transform:"scaleX(1)"}],{duration:850,easing:"ease-in-out"}).finished;
   if(!dialog.open || !scene.isConnected)return;
   medal.textContent=after.level.toLocaleString(language);
   name.textContent=readerLevelName(after,language);
-  counter.textContent=fraction;
+  counter.textContent=levelUpFraction(after,language);
   if(kind==="stage"){
     scene.querySelector(".level-up-before .mascot-face").outerHTML=mascotFace(before.stage,"effort");
     const landing=scene.querySelector(".level-up-after .mascot-art-placement");
-    landing.addEventListener("animationend",()=>scene.classList.remove("is-changing"),{once:true});
+    landing.querySelector(".mascot-face").outerHTML=mascotFace(after.stage,"effort");
+    landing.addEventListener("animationend",()=>{
+      landing.querySelector(".mascot-face").outerHTML=mascotFace(after.stage,"happy");
+      scene.classList.remove("is-changing");
+    },{once:true});
   }
   scene.classList.replace("is-filling","is-changing");
   fill.animate([{transform:"scaleX(0)"},{transform:fill.style.transform}],{duration:550,delay:120,easing:"ease-out",fill:"backwards"});
