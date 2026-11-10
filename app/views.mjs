@@ -314,7 +314,6 @@ export function homeView(s) {
   const c=words[s.language],books=s.catalog?homeBooks(s.catalog,s.statuses,s.noteActivity,s.userId):(s.homeBooks||[]).filter(book=>s.statuses?.[book.id]==="reading"||(book.noteDeckCount||0)>0);
   return `<section class="home-screen"><h1 class="sr-only" tabindex="-1">${c.home}</h1>
     <button class="practice-launch" type="button" data-action="practice" aria-label="${esc(c.practiceLaunch)}"><span class="practice-launch-mascot">${mascotArt("sprout","practice-launch-art")}</span><span class="practice-launch-label" aria-hidden="true">${practiceLaunchLabel(c.practiceLaunch)}</span></button>
-    ${s.user?.roles?.includes("archivist")?`<button class="guide-review-launch" type="button" data-action="open-guide-reviews">${esc(c.guideReviewLaunch(s.guideReviewPendingCount||0))}</button>`:""}
     ${books.length ? s.catalog?bookListPresentation(s,books,"home",{note:true,selector:false,view:"covers"}):bookListMarkup({books,view:"covers",label:c.books,cover:book=>homeBookMarkup(s,book)}) : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
     ${s.noteDestination ? noteDestinationMarkup(s) : ""}
     ${s.catalog?.booksById.has(s.openBookId) ? bookDetailsMarkup(s,s.catalog.booksById.get(s.openBookId)) : ""}

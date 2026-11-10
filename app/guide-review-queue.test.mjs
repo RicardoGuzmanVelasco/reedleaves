@@ -1,14 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {homeView,guideReviewQueueView} from "./views.mjs";
-
-test("Archivist entry appears only for assigned readers",()=>{
-  for(const language of ["es","en"]) {
-    const base={language,homeBooks:[],statuses:{},user:{roles:["archivist"]},guideReviewPendingCount:0};
-    assert.match(homeView(base),/data-action="open-guide-reviews"/);
-    assert.doesNotMatch(homeView({...base,user:{roles:[]}}),/data-action="open-guide-reviews"/);
-  }
-});
+import {guideReviewQueueView} from "./views.mjs";
 
 test("review queue keeps guide language, escapes its text and validates rejection",()=>{
   for(const language of ["es","en"]) {

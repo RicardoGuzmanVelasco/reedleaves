@@ -315,7 +315,7 @@ export function startReader({createCardFeatures} = {}) {
     if(!document.getElementById("guide-review-inbox")){
       const inbox=document.createElement("button");inbox.className="icon-button guide-review-inbox";inbox.id="guide-review-inbox";inbox.type="button";
       inbox.innerHTML='<span class="reading-guide-icon guide-review-inbox-icon" aria-hidden="true"></span><span class="guide-review-inbox-count" id="guide-review-inbox-count" aria-hidden="true" hidden></span>';
-      inbox.addEventListener("click",()=>navigate("#guide-reviews"));
+      inbox.addEventListener("click",()=>{guideReviewLoaded=false;navigate("#guide-reviews");});
       const actions=document.querySelector(".header-actions"),settingsButton=document.getElementById("open-settings");
       if(actions&&settingsButton)actions.insertBefore(inbox,settingsButton);
     }
@@ -2000,7 +2000,6 @@ export function startReader({createCardFeatures} = {}) {
     }
     const b = e.target.closest("[data-action]"); if (!b || b.disabled || busy || !ready && b.dataset.action !== "retry") return;
     switch(b.dataset.action) {
-      case "open-guide-reviews": guideReviewLoaded=false;navigate("#guide-reviews");break;
       case "guide-review-back": navigate("#home");break;
       case "toggle-guide-review": guideReviewExpandedId=guideReviewExpandedId===b.dataset.cardId?null:b.dataset.cardId;guideReviewRejectingId=null;guideReviewReason="";render();main.querySelector(`[data-action="toggle-guide-review"][data-card-id="${CSS.escape(b.dataset.cardId)}"]`)?.focus({preventScroll:true});break;
       case "approve-guide-review": void decideGuideReview(b,"approve");break;
