@@ -48,7 +48,7 @@ export function mascotMouthPath(stage, config = mascotMouthConfig) {
   return `M${82-width/2} 119q${width/2} 6 ${width} 0`;
 }
 
-const expressions = new Set(["neutral","wink-left","wink-right","blink","sleep","sad"]);
+const expressions = new Set(["neutral","wink-left","wink-right","blink","sleep","sad","effort","happy"]);
 
 // Lossless face crops from reserved A. Together with pot-a-body.png these
 // restore the source artwork, while retaining separate eye-expression layers.
@@ -80,6 +80,17 @@ export function mascotFace(stage, expression = "neutral", mouth = mascotMouthCon
   if (!placement) return "";
   const {x,y,rotation,scale,eyeOffsets} = placement;
   const state = expressions.has(expression) ? expression : "neutral";
+  if (state === "effort" || state === "happy") {
+    const happy=state==="happy";
+    const eyes=["left","right"].map(side=>{
+      const cx=(side==="left"?53:111)+eyeOffsets[side].x,cy=104+eyeOffsets[side].y;
+      const curve=happy?"M-6 1q6 -10 12 0":side==="left"?"M-5 -4l8 5 -8 3":"M5 -4l-8 5 8 3";
+      return `<path transform="translate(${cx} ${cy})" d="${curve}" fill="none" stroke="#173D2C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }).join("");
+    const width=4*mascotMouthWidth(stage,mouth);
+    const mouthShape=happy?`<path d="M${82-width} 118q${width} 3 ${2*width} 0q-${width} 23 -${2*width} 0" fill="#173D2C"/>`:'<ellipse cx="82" cy="119" rx="4" ry="3" fill="#173D2C"/>';
+    return `<svg class="mascot-face" viewBox="0 0 160 160" aria-hidden="true" focusable="false" data-expression="${state}"><g class="mascot-face-placement" transform="translate(${x} ${y}) rotate(${rotation}) scale(${scale}) translate(-82 -104)">${eyes}${mouthShape}</g></svg>`;
+  }
   if (state === "sleep") {
     const closedEye = side => {
       const center = side === "left" ? 53 : 111;

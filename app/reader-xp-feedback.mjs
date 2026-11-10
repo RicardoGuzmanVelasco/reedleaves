@@ -1,6 +1,7 @@
 import {readerProgressionForXp} from "./reader-progression.mjs";
 import {readerLevelName} from "./reader-level-name.mjs";
 import {mascotArt} from "./mascot-art.mjs?v=evergreen-2";
+import {mascotFace} from "./mascot-face.mjs?v=evergreen-2";
 import {words} from "./i18n.mjs?v=evergreen-2";
 
 const validXp=value=>Number.isSafeInteger(value)&&value>=0;
@@ -49,25 +50,40 @@ export function readerXpMessage({from,to},language) {
   return {kind,gain,label,detail,fraction,before,after};
 }
 
-export function levelUpMarkup({before,after,gain,fraction,kind,label},language) {
-  const c=words[language],level=c.readerLevelLabel(after.level.toLocaleString(language));
+export function levelUpMarkup({before,after,gain,fraction,kind},language) {
+  const c=words[language],level=c.readerLevelLabel(after.level.toLocaleString(language)),name=readerLevelName(after,language);
   return `<form method="dialog" class="exclusive-card-shell level-up-scene">
     <button class="dialog-close level-up-close" aria-label="${c.readerDismissXp}">×</button>
-    <p id="level-up-title">${label}</p>
-    <div class="level-up-art" aria-hidden="true">
-      ${mascotArt(after.stage)}
-      <div class="level-up-curtain">
-        ${kind==="stage"?mascotArt(before.stage,"level-up-before",{idle:false}):""}
-        <span class="level-up-threshold" style="--from:${before.xpIntoLevel/before.xpForNextLevel}"></span>
-      </div>
+    <div class="level-up-art" aria-hidden="true" data-evolves="${kind==="stage"}">
+      ${kind==="stage"?mascotArt(before.stage,"level-up-before")+mascotArt(after.stage,"level-up-after",{expression:"happy"}):mascotArt(after.stage)}
     </div>
-    <h1 id="level-up-name"><small>${level}</small> ${readerLevelName(after,language)}</h1>
-    <div class="xp-feedback-track level-up-progress" id="level-up-progress">
-      <strong>${gain}</strong><span>${fraction}</span>
-      <progress aria-label="${fraction}" max="${after.xpForNextLevel}" value="${after.xpIntoLevel}"></progress>
+    <span class="level-up-medal" id="level-up-title" role="img" aria-label="${level}">${after.level.toLocaleString(language)}</span>
+    <h1 id="level-up-name" aria-label="${name}">${name}</h1>
+    <div class="level-up-progress" id="level-up-progress">
+      <strong>${gain}</strong><span class="level-up-fraction" aria-hidden="true">${fraction}</span>
+      <div class="level-up-meter" role="progressbar" aria-label="${level}" aria-valuenow="${after.xpIntoLevel}" aria-valuemin="0" aria-valuemax="${after.xpForNextLevel}" aria-valuetext="${fraction}"><span style="transform:scaleX(${after.xpIntoLevel/after.xpForNextLevel})"></span></div>
     </div>
     <button class="primary level-up-continue" autofocus>${c.bookInterestContinue}</button>
   </form>`;
+}
+
+async function playLevelUp(dialog,{before,after,kind,fraction},language) {
+  if (dialog.ownerDocument.defaultView.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const scene=dialog.querySelector(".level-up-scene"),medal=scene.querySelector(".level-up-medal");
+  const name=scene.querySelector("h1"),counter=scene.querySelector(".level-up-fraction"),fill=scene.querySelector(".level-up-meter span");
+  const current=before.xpIntoLevel/before.xpForNextLevel;
+  scene.classList.add("is-filling");
+  medal.textContent=before.level.toLocaleString(language);
+  name.textContent=readerLevelName(before,language);
+  counter.textContent=words[language].readerXpFraction(before.xpIntoLevel.toLocaleString(language),before.xpForNextLevel.toLocaleString(language));
+  await fill.animate([{transform:`scaleX(${current})`},{transform:"scaleX(1)"}],{duration:850,easing:"ease-in-out"}).finished;
+  if(!dialog.open || !scene.isConnected)return;
+  medal.textContent=after.level.toLocaleString(language);
+  name.textContent=readerLevelName(after,language);
+  counter.textContent=fraction;
+  if(kind==="stage")scene.querySelector(".level-up-before .mascot-face").outerHTML=mascotFace(before.stage,"effort");
+  scene.classList.replace("is-filling","is-changing");
+  fill.animate([{transform:"scaleX(0)"},{transform:fill.style.transform}],{duration:550,delay:120,easing:"ease-out",fill:"backwards"});
 }
 
 export function mountReaderXpFeedback(doc,readLanguage,showModal) {
@@ -110,6 +126,7 @@ export function mountReaderXpFeedback(doc,readLanguage,showModal) {
       clear();
       celebration.innerHTML=levelUpMarkup(msg,language);
       showModal(celebration);
+      void playLevelUp(celebration,msg,language);
       return;
     }
     const destination=reading||doc.body;

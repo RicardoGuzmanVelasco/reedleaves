@@ -78,8 +78,8 @@ test("Reading feedback has a separate polite announcement and an accessible dism
   const css=readFileSync(new URL("./reader.css",import.meta.url),"utf8");
   const media=css.match(/@media\(prefers-reduced-motion:no-preference\) \{\s+\.xp-feedback-panel [\s\S]+?\n\}/)?.[0];
   assert.ok(media);
-  assert.match(media,/animation:xp-pet-reveal/);
-  assert.doesNotMatch(css.replace(media,""),/animation:xp-/);
+  assert.match(media,/animation:level-takeoff/);
+  assert.doesNotMatch(css.replace(media,""),/animation:(?:xp-|level-)/);
 });
 
 test("One celebration shows the final reader level and remaining progress after crossing multiple levels",()=>{
@@ -87,7 +87,17 @@ test("One celebration shows the final reader level and remaining progress after 
     const html=levelUpMarkup(readerXpMessage({from:100,to:675},language),language);
     assert.match(html,new RegExp(title));
     assert.match(html,/\+575 XP/);
-    assert.match(html,/<progress [^>]*max="110" value="15"/);
+    assert.match(html,/role="progressbar"[^>]*aria-valuenow="15"[^>]*aria-valuemax="110"/);
     assert.ok(html.includes(`autofocus>${action}</button>`));
   }
+});
+
+test("Only the reader's change of stage shows two mascots and the happy landing face",()=>{
+  const ordinary=levelUpMarkup(readerXpMessage({from:160,to:185},"es"),"es");
+  assert.equal((ordinary.match(/data-mascot=/g)||[]).length,1);
+  assert.match(ordinary,/data-mascot="soil" data-idle="hop"/);
+  const evolving=levelUpMarkup(readerXpMessage({from:635,to:660},"es"),"es");
+  assert.match(evolving,/data-mascot="soil" data-idle="hop"/);
+  assert.match(evolving,/data-mascot="seed" data-idle="float"/);
+  assert.match(evolving,/data-expression="happy"/);
 });
