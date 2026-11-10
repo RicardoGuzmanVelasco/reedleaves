@@ -1147,7 +1147,8 @@ html,body{overflow-x:clip}
 #level-up-name { max-width:18ch; font-size:clamp(32px,6.8vmin,64px); line-height:1.04; text-wrap:balance; }
 .level-up-progress { display:grid; grid-template-columns:auto auto; justify-content:stretch; align-items:baseline; gap:5px; width:min(300px,100%); text-align:start; }
 .level-up-progress strong { font-size:22px; color:var(--shadow); }
-.level-up-fraction { text-align:end; font-weight:700; color:var(--muted); }
+.level-up-fraction { grid-column:2; text-align:end; font-weight:700; color:var(--muted); font-variant-numeric:tabular-nums; }
+.level-up-required { display:inline-block; }
 .level-up-meter { grid-column:1/-1; height:12px; overflow:hidden; border:1px solid var(--sage); border-radius:9px; background:#e3edc9; }
 .level-up-meter span { display:block; height:100%; border-radius:inherit; background:var(--green); transform-origin:left; }
 .level-up-continue { min-width:min(215px,100%); min-height:48px; }
@@ -1156,13 +1157,15 @@ html,body{overflow-x:clip}
   .is-filling .level-up-before,.is-changing .level-up-before { display:block; }
   .is-filling .level-up-after,.is-filling .level-up-art::before { visibility:hidden; }
   .is-changing .level-up-medal { animation:level-medal-pop .6s ease-out; }
+  .is-changing .level-up-required { animation:level-required-pulse .55s ease-out; }
   .level-up-art[data-evolves="true"] { --takeoff:1.5s; --landing:1.12s; }
   .is-changing :is(.level-up-before,.level-up-after) .mascot-art-motion { animation:none; }
   .is-changing .level-up-before .mascot-art-placement { animation:level-takeoff var(--takeoff) ease-in-out both; }
   .is-changing .level-up-before::before { animation:level-shadow-out var(--takeoff) ease-in-out both; }
   .is-changing .level-up-after .mascot-art-placement { animation:level-landing var(--landing) var(--takeoff) both; }
   .is-changing .level-up-after::before { animation:level-shadow-in var(--landing) var(--takeoff) both; }
-  :is(.is-changing,.has-landed) .level-up-art[data-evolves="true"]::before { animation:level-rays 2.1s calc(var(--takeoff) + .08s) linear both; }
+  .is-changing .level-up-art[data-evolves="true"]::before { visibility:hidden; }
+  .has-landed .level-up-art::before { animation:level-ray-turn 12s linear infinite,level-ray-pulse 1.9s ease-in-out infinite alternate; }
   .is-changing .level-up-art[data-evolves="true"]::after {
     content:""; position:absolute; z-index:-1; inset:-15% 4% 25%; border-radius:50%; pointer-events:none;
     background:radial-gradient(circle,#fff9d9 8%,#edca73 28%,transparent 67%); animation:level-flash .26s var(--takeoff) both;
@@ -1192,11 +1195,9 @@ html,body{overflow-x:clip}
     65% { scale:1.24 .82; } 83% { scale:.92 .97; } 100% { scale:1; }
   }
   @keyframes level-flash { 0%,100%{scale:0} 42%{scale:1.13} }
-  @keyframes level-rays {
-    0% { transform:rotate(-200deg) scale(0); }
-    32% { transform:rotate(-136deg) scale(1.16); }
-    100% { transform:rotate(0) scale(1.38); }
-  }
+  @keyframes level-required-pulse { 45% { scale:1.27; color:var(--ink); } }
+  @keyframes level-ray-turn { to { rotate:360deg; } }
+  @keyframes level-ray-pulse { from { scale:1; } to { scale:1.38; } }
   @keyframes xp-toast-arrive { from{transform:translateY(26px);opacity:0} to{transform:translateY(0);opacity:1} }
 }
 @media(forced-colors:active) { .xp-feedback-track progress { appearance:auto; } }
