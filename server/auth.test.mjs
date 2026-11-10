@@ -7,6 +7,7 @@ import {createCatalogServer} from "./http.mjs";
 import {readSession,sessionCookie,SESSION_SECONDS,requireProductionInviteCode} from "./auth.mjs";
 import {INVITE_CODE_MIN_LENGTH} from "../app/core.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
+import {assignRole} from "./reader-roles.mjs";
 import {setCardSave} from "./card-saves.mjs";
 import {startPracticeSession} from "./practice-economy.mjs";
 test("Production invitation configuration accepts the minimum length and rejects missing or shorter codes",()=>{
@@ -45,6 +46,24 @@ test("Configured invitation gates account creation while catalog reads remain pu
   setClock(new Date(Date.parse("2026-10-06T12:00:00Z")+SESSION_SECONDS*1000));
   assert.equal((await call("/api/catalog",undefined,headers)).status,200);
   assert.equal((await call("/api/reader/state",undefined,headers)).status,401);
+});
+
+test("Only Archivists can list and decide guides in the app",async t=>{
+  const {db,call,register}=await fixture(t);
+  const {headers,result}=await register("guide.archivist");
+  const userId=result.body.user.id;
+  await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read')").run(userId,"atomic-habits");
+  const guide=await submitReadingGuide(db,{user_id:userId},{bookId:"atomic-habits",body:"Read this chapter slowly.",language:"en"});
+  assert.equal((await call("/api/reader/guide-reviews",undefined,headers)).status,403);
+  await assignRole(db,"guide.archivist","archivist","grant");
+  const queue=await call("/api/reader/guide-reviews",undefined,headers);
+  assert.equal(queue.status,200);assert.equal(queue.body.guides[0].cardId,guide.cardId);assert.match(queue.body.guides[0].contentVersion,/^[a-f0-9]{64}$/);
+  assert.deepEqual((await call("/api/reader/guide-reviews/count",undefined,headers)).body,{count:1});
+  assert.equal((await call("/api/reader/guide-reviews/decision",{cardId:guide.cardId,decision:"approve"},headers)).status,400);
+  const decision=await call("/api/reader/guide-reviews/decision",{cardId:guide.cardId,decision:"approve",contentVersion:queue.body.guides[0].contentVersion},headers);
+  assert.equal(decision.status,200);assert.equal(decision.body.awarded,30);
+  assert.deepEqual((await call("/api/reader/guide-reviews/count",undefined,headers)).body,{count:0});
+  assert.equal((await db.prepare("SELECT xp FROM reader_xp_balances WHERE user_id=?").get(userId)).xp,30);
 });
 test("Real registration, two sessions, spending, reconnecting and logout persist one server state",async t=>{
   const f = await fixture(t), {db,call,register,setClock} = f;

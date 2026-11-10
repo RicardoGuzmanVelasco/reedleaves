@@ -17,8 +17,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 59;
-export const POSTGRES_SCHEMA_VERSION = 51;
+export const SQLITE_SCHEMA_VERSION = 60;
+export const POSTGRES_SCHEMA_VERSION = 52;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -105,6 +105,28 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 59) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE app_roles (
+  id TEXT PRIMARY KEY CHECK(length(trim(id)) BETWEEN 1 AND 80),
+  name_es TEXT NOT NULL CHECK(length(trim(name_es)) > 0),
+  name_en TEXT NOT NULL CHECK(length(trim(name_en)) > 0)
+) STRICT;
+CREATE TABLE user_roles (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  role_id TEXT NOT NULL REFERENCES app_roles(id) ON DELETE RESTRICT,
+  granted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  granted_by TEXT REFERENCES accounts(user_id) ON DELETE SET NULL,
+  PRIMARY KEY(user_id,role_id)
+) STRICT;
+CREATE INDEX user_roles_by_role ON user_roles(role_id,user_id);
+INSERT INTO app_roles(id,name_es,name_en) VALUES ('archivist','Archivista','Archivist');
+INSERT INTO user_roles(user_id,role_id) SELECT user_id,'archivist' FROM accounts WHERE lower(username)='ricardo' ON CONFLICT(user_id,role_id) DO NOTHING;
+PRAGMA user_version=60; COMMIT;`);
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 58) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -966,6 +988,37 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 51) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,accounts IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 52) return;
+          await db.exec(`CREATE TABLE app_roles (
+  id TEXT PRIMARY KEY CHECK(length(btrim(id)) BETWEEN 1 AND 80),
+  name_es TEXT NOT NULL CHECK(length(btrim(name_es)) > 0),
+  name_en TEXT NOT NULL CHECK(length(btrim(name_en)) > 0)
+);
+CREATE TABLE user_roles (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  role_id TEXT NOT NULL REFERENCES app_roles(id) ON DELETE RESTRICT,
+  granted_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  granted_by TEXT REFERENCES accounts(user_id) ON DELETE SET NULL,
+  PRIMARY KEY(user_id,role_id)
+);
+CREATE INDEX user_roles_by_role ON user_roles(role_id,user_id);
+INSERT INTO app_roles(id,name_es,name_en) VALUES ('archivist','Archivista','Archivist');
+INSERT INTO user_roles(user_id,role_id) SELECT user_id,'archivist' FROM accounts WHERE lower(username)='ricardo' ON CONFLICT(user_id,role_id) DO NOTHING;
+ALTER TABLE app_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE app_roles,user_roles FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE app_roles,user_roles FROM authenticated; END IF;
+END $$;
+ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
+UPDATE reed_schema SET version=52;
+ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=52);`);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 50) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,genres IN ACCESS EXCLUSIVE MODE;");

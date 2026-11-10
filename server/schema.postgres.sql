@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 51));
-INSERT INTO reed_schema VALUES (51);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 52));
+INSERT INTO reed_schema VALUES (52);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '');
@@ -50,6 +50,27 @@ CREATE TABLE accounts(
   user_id TEXT PRIMARY KEY REFERENCES users(id), username TEXT NOT NULL UNIQUE CHECK(length(username) BETWEEN __USERNAME_MIN_LENGTH__ AND __USERNAME_MAX_LENGTH__),
   password_hash TEXT NOT NULL, time_zone TEXT NOT NULL, language TEXT NOT NULL CHECK(language IN ('es','en','fr'))
 );
+CREATE TABLE app_roles (
+  id TEXT PRIMARY KEY CHECK(length(btrim(id)) BETWEEN 1 AND 80),
+  name_es TEXT NOT NULL CHECK(length(btrim(name_es)) > 0),
+  name_en TEXT NOT NULL CHECK(length(btrim(name_en)) > 0)
+);
+CREATE TABLE user_roles (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  role_id TEXT NOT NULL REFERENCES app_roles(id) ON DELETE RESTRICT,
+  granted_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  granted_by TEXT REFERENCES accounts(user_id) ON DELETE SET NULL,
+  PRIMARY KEY(user_id,role_id)
+);
+CREATE INDEX user_roles_by_role ON user_roles(role_id,user_id);
+INSERT INTO app_roles(id,name_es,name_en) VALUES ('archivist','Archivista','Archivist');
+INSERT INTO user_roles(user_id,role_id) SELECT user_id,'archivist' FROM accounts WHERE lower(username)='ricardo' ON CONFLICT(user_id,role_id) DO NOTHING;
+ALTER TABLE app_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL PRIVILEGES ON TABLE app_roles,user_roles FROM anon; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL PRIVILEGES ON TABLE app_roles,user_roles FROM authenticated; END IF;
+END $$;
 CREATE TABLE reader_xp_balances (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
   xp BIGINT NOT NULL DEFAULT 0 CHECK(xp BETWEEN 0 AND 9007199254740991)

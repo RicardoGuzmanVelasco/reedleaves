@@ -66,6 +66,22 @@ CREATE TABLE accounts (
   language TEXT NOT NULL CHECK(language IN ('es','en','fr'))
 ) STRICT;
 
+CREATE TABLE app_roles (
+  id TEXT PRIMARY KEY CHECK(length(trim(id)) BETWEEN 1 AND 80),
+  name_es TEXT NOT NULL CHECK(length(trim(name_es)) > 0),
+  name_en TEXT NOT NULL CHECK(length(trim(name_en)) > 0)
+) STRICT;
+CREATE TABLE user_roles (
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  role_id TEXT NOT NULL REFERENCES app_roles(id) ON DELETE RESTRICT,
+  granted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  granted_by TEXT REFERENCES accounts(user_id) ON DELETE SET NULL,
+  PRIMARY KEY(user_id,role_id)
+) STRICT;
+CREATE INDEX user_roles_by_role ON user_roles(role_id,user_id);
+INSERT INTO app_roles(id,name_es,name_en) VALUES ('archivist','Archivista','Archivist');
+INSERT INTO user_roles(user_id,role_id) SELECT user_id,'archivist' FROM accounts WHERE lower(username)='ricardo' ON CONFLICT(user_id,role_id) DO NOTHING;
+
 CREATE TABLE reader_xp_balances (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
   xp INTEGER NOT NULL DEFAULT 0 CHECK(xp BETWEEN 0 AND 9007199254740991)
@@ -412,4 +428,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 59;
+PRAGMA user_version = 60;

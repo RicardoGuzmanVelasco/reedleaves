@@ -18,6 +18,8 @@
     "db:leaves": "node server/manage.mjs leaves",
     "db:guide-reviews": "node server/manage.mjs guide-reviews",
     "db:guide-review": "node server/manage.mjs guide-review",
+    "db:role-grant": "node server/manage.mjs role-grant",
+    "db:role-revoke": "node server/manage.mjs role-revoke",
     "db:backup": "node server/manage.mjs backup",
     "test": "node scripts/test-postgres.mjs"
   },

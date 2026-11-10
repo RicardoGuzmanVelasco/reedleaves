@@ -11,7 +11,7 @@ async function snapshot(db,dialect){
   const rows={};
   // The XP tables are introduced by a later additive migration and are not
   // part of this migration's data-preservation contract.
-  for(const {name} of tables){if(["reed_schema","reader_xp_balances","reader_xp_events","reading_guide_reviews"].includes(name))continue;rows[name]=(await db.prepare(`SELECT ${name==="genres"?"id":"*"} FROM "${name}"`).all()).map(row=>({...row})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));}
+  for(const {name} of tables){if(["reed_schema","reader_xp_balances","reader_xp_events","reading_guide_reviews","app_roles","user_roles"].includes(name))continue;rows[name]=(await db.prepare(`SELECT ${name==="genres"?"id":"*"} FROM "${name}"`).all()).map(row=>({...row})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));}
   return rows;
 }
 for(const [dialect,version] of [["sqlite",54],["postgres",46]])test(`${dialect}: approved chip appearance preserves every existing catalog and private row`,async t=>{

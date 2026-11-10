@@ -3,6 +3,7 @@ import {transaction,isPostgres} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
 import {LANGUAGES,READING_GUIDE_MAX_LENGTH} from "../app/core.mjs";
 import {grantReaderXpInside} from "./reader-xp-repository.mjs";
+import {contentVersion} from "./reader-roles.mjs";
 
 const deckIdFor=bookId=>`reading-guides:${bookId}`;
 
@@ -25,7 +26,7 @@ export async function submitReadingGuide(db,session,input={}) {
     if(owned) {
       if(input.cardId!==owned.id) throw new ApiError(409,"readingGuideAlreadyAdded");
       if(owned.language!==language) throw new ApiError(409,"readingGuideLanguageLocked");
-      const review=await db.prepare("SELECT status FROM reading_guide_reviews WHERE card_id=?").get(owned.id);
+      const review=await db.prepare(`SELECT status FROM reading_guide_reviews WHERE card_id=?${isPostgres(db)?" FOR UPDATE":""}`).get(owned.id);
       if(review?.status==="approved") throw new ApiError(409,"readingGuideApprovedLocked");
       await db.prepare("UPDATE card_translations SET title=?,body=? WHERE card_id=? AND language=?")
         .run(body.slice(0,72),body,owned.id,language);
@@ -54,19 +55,22 @@ export async function submitReadingGuide(db,session,input={}) {
   });
 }
 
-export async function decideReadingGuide(db,cardId,decision,{reason,now=new Date()}={}) {
+export async function decideReadingGuide(db,cardId,decision,{reason,expectedContentVersion,now=new Date()}={}) {
   const rejectionReason=typeof reason==="string"?reason.trim():"";
   if(typeof cardId!=="string"||!cardId.trim()||!['approve','reject'].includes(decision)||
+    expectedContentVersion!==undefined&&(typeof expectedContentVersion!=="string"||!/^[a-f0-9]{64}$/.test(expectedContentVersion))||
     decision==="reject"&&(!rejectionReason||rejectionReason.length>1000)||decision==="approve"&&reason!==undefined) {
     throw new ApiError(400,"invalidRequest");
   }
   return transaction(db,async()=>{
-    const card=await db.prepare("SELECT creator_user_id FROM cards WHERE id=? AND is_reading_guide=1").get(cardId);
+    const review=await db.prepare(`SELECT status FROM reading_guide_reviews WHERE card_id=?${isPostgres(db)?" FOR UPDATE":""}`).get(cardId);
+    if(!review) throw new ApiError(409,"readingGuideNotPending");
+    const card=await db.prepare(`SELECT c.creator_user_id,t.body FROM cards c JOIN card_translations t ON t.card_id=c.id AND t.language=c.language
+      WHERE c.id=? AND c.is_reading_guide=1`).get(cardId);
     if(!card?.creator_user_id) throw new ApiError(404,"readingGuideUnavailable");
     const lock=await db.prepare(`SELECT user_id FROM accounts WHERE user_id=?${isPostgres(db)?" FOR UPDATE":""}`).get(card.creator_user_id);
     if(!lock) throw new ApiError(404,"readingGuideUnavailable");
-    const review=await db.prepare(`SELECT status FROM reading_guide_reviews WHERE card_id=?${isPostgres(db)?" FOR UPDATE":""}`).get(cardId);
-    if(!review) throw new ApiError(409,"readingGuideNotPending");
+    if(expectedContentVersion!==undefined&&contentVersion(card.body)!==expectedContentVersion)throw new ApiError(409,"readingGuideChanged");
     const target=decision==="approve"?"approved":"rejected";
     if(review.status===target) return {cardId,status:target,awarded:0};
     if(review.status!=="pending") throw new ApiError(409,"readingGuideNotPending");

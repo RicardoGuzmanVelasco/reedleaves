@@ -95,9 +95,11 @@ Conceder 5 XP por «me gusta» recibido y 10 XP por guardado recibido. La clave 
 
 ### 8. Guía pendiente y aprobación editorial
 
-Registrar el estado de revisión por guía, con decisiones individuales de aprobar o rechazar. Mantener las guías visibles desde el envío y mostrar que siguen pendientes de aprobación, en un patrón parecido al borrador de una baraja. El autor ve 30 XP fantasma por guía pendiente, fuera del saldo y del nivel. La aprobación convierte una sola vez el pendiente en XP real; el rechazo lo retira e informa al autor. No añadir aquí roles ni una cola de Archivistas.
+Registrar el estado de revisión por guía, con decisiones individuales de aprobar o rechazar. Mantener las guías visibles desde el envío y mostrar que siguen pendientes de aprobación, en un patrón parecido al borrador de una baraja. El autor ve 30 XP fantasma por guía pendiente, fuera del saldo y del nivel. La aprobación convierte una sola vez el pendiente en XP real; el rechazo lo retira e informa al autor.
 
-La revisión manual se opera con `npm run db:guide-reviews` y `npm run db:guide-review -- <cardId> approve|reject <reason>`. La decisión queda registrada por guía; solo el autor ve el motivo del rechazo y los XP pendientes nunca entran en el saldo confirmado.
+La primera versión de la revisión se operó por CLI. El incremento de Archivista añade roles persistentes y la bandeja interna en la app. Solo el servidor concede acceso; la migración asigna el rol a la cuenta `ricardo` si ya existe. Las demás asignaciones requieren una operación administrativa, nunca una acción del cliente. El detalle completo y el motivo de rechazo son visibles solo para Archivistas y el autor correspondiente. Una decisión verifica una huella del contenido leído para impedir aprobar una versión editada en paralelo. Aprobar confirma los 30 XP del autor; el Archivista no gana XP por moderar.
+
+Los comandos administrativos de roles son `npm run db:role-grant -- <usuario> archivist` y `npm run db:role-revoke -- <usuario> archivist`.
 
 ### 9. Mascota global por nivel
 
@@ -137,8 +139,8 @@ Verificado localmente en ambos motores: la migración deja en 0 el saldo de cuen
 ## Fuera de alcance por ahora
 
 - Insignias de nivel.
-- Sistema de roles y permisos de Archivista.
-- Cola o interfaz interna para revisar guías.
+- Gestión de roles distinta del rol inicial Archivista.
+- Gestión de Archivistas desde la propia interfaz; la asignación inicial usa la vía administrativa.
 - XP retroactiva.
 - Retirar XP ya concedida cuando se invalida el evento.
 - Las reglas de XP posteriores al nivel 60 distintas de la fórmula acordada.

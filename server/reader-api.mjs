@@ -12,6 +12,8 @@ import {readCardVotes,setCardVote} from "./card-votes.mjs";
 import {readCardActions,readSavedCards,setCardSave} from "./card-saves.mjs";
 import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH} from "../app/core.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
+import {isArchivist,readerRoles,readGuideReviewQueue,readGuideReviewCount} from "./reader-roles.mjs";
+import {decideReadingGuide} from "./reading-guides.mjs";
 import {readReaderInterestPreferences,readPublicReaderInterestPreferences,saveReaderInterestPreferences,saveInitialReaderInterestPreferences} from "./reader-interest-preferences.mjs";
 import {captureReaderInterestSnapshot,saveAndRecognizeReaderInterestSnapshot} from "./reader-interest-knowledge.mjs";
 import {BOOK_INTEREST_CONFIRMATION_ENABLED} from "./book-interest-confirmation.mjs";
@@ -52,6 +54,9 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       ["/api/reader/interests/knowledge/snapshot",["POST"]],["/api/reader/interests/knowledge/recognize",["POST"]],
       ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
     routes.set("/api/reader/guides",["POST"]);
+    routes.set("/api/reader/guide-reviews",["GET","HEAD"]);
+    routes.set("/api/reader/guide-reviews/count",["GET","HEAD"]);
+    routes.set("/api/reader/guide-reviews/decision",["POST"]);
     routes.set("/api/feedback",["POST"]);
     routes.set("/api/author/decks/finish-notes",["POST"]);
     routes.set("/api/author/decks/contributors",["POST"]);
@@ -78,7 +83,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       }
       const time = now(), session = await readSession(db,request,time);
       if (path === "/api/session") {
-        const state = session ? {user:{id:session.user_id,username:session.username,timeZone:session.time_zone},csrfToken:session.csrf_token,language:session.language} : {user:null};
+        const state = session ? {user:{id:session.user_id,username:session.username,timeZone:session.time_zone,roles:await readerRoles(db,session.user_id)},csrfToken:session.csrf_token,language:session.language} : {user:null};
         send(200,inviteCode === undefined ? state : {...state,inviteRequired:true}); return true;
       }
       if(path==="/api/interests"){send(200,await readInterests(db));return true;}
@@ -116,6 +121,11 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         response.setHeader("Set-Cookie",sessionCookie("",secureCookies,true)); send(200,inviteCode === undefined ? {user:null} : {user:null,inviteRequired:true}); return true;
       }
       if (path === "/api/reader/state") { send(200,await readReaderState(db,session,time)); return true; }
+      if (path === "/api/reader/guide-reviews") {
+        if(!await isArchivist(db,session.user_id))throw new ApiError(403,"archivistRequired");
+        send(200,{guides:await readGuideReviewQueue(db,session.user_id)}); return true;
+      }
+      if (path === "/api/reader/guide-reviews/count") { send(200,{count:await readGuideReviewCount(db,session.user_id)}); return true; }
       const input = await readBody(request,path === "/api/reader/book-knowledge/visit" ? MAX_BOOK_KNOWLEDGE_REQUEST_BYTES : path === "/api/feedback" ? 24576 : path.startsWith("/api/author/books") ? 65536 : path.startsWith("/api/author/") ? 32768 : 8192);
       // Re-check after awaiting the body: a concurrent logout/expiry must revoke writes.
       const active = await readSession(db,request,now());
@@ -123,6 +133,12 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       checkCsrf(active,request.headers["x-csrf-token"]);
       const currentTime = now();
       if(path === "/api/reader/book-knowledge/visit") { send(200,await recognizeLibraryBookSnapshot(db,active,input)); return true; }
+      if(path === "/api/reader/guide-reviews/decision") {
+        if(!await isArchivist(db,active.user_id))throw new ApiError(403,"archivistRequired");
+        if(typeof input.cardId!=="string"||typeof input.decision!=="string"||typeof input.contentVersion!=="string"||!/^[a-f0-9]{64}$/.test(input.contentVersion))throw new ApiError(400,"invalidRequest");
+        const result=await decideReadingGuide(db,input.cardId,input.decision,{...(Object.hasOwn(input,"reason")?{reason:input.reason}:{}),expectedContentVersion:input.contentVersion,now:currentTime});
+        send(200,result); return true;
+      }
       if(path === "/api/reader/interests/knowledge/snapshot") { send(200,await captureReaderInterestSnapshot(db,active,input)); return true; }
       if(path === "/api/reader/interests/knowledge/recognize") { send(200,await saveAndRecognizeReaderInterestSnapshot(db,active,input)); return true; }
       if (path === "/api/reader/practice-answer") { send(200,await savePracticeAnswer(db,active,input,currentTime)); return true; }

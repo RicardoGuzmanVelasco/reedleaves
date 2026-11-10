@@ -5,6 +5,7 @@ import {openDatabase,PostgresDatabase,initializeDatabase} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
 import {decideReadingGuide,listPendingReadingGuides,submitReadingGuide} from "./reading-guides.mjs";
+import {contentVersion} from "./reader-roles.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
 import {selectDeck,changeReading} from "./reader-repository.mjs";
@@ -92,4 +93,17 @@ for(const dialect of ["sqlite","postgres"]) test(`${dialect}: reading guides are
     cardId:first.cardId,bookId:"atomic-habits",bookTitle:"Atomic Habits",authorId:a.user_id,
     authorName:"guides.reader",language:"en",body:"Revised with the requested reference.",submittedAt:(await db.prepare('SELECT submitted_at AS "submittedAt" FROM reading_guide_reviews WHERE card_id=?').get(first.cardId)).submittedAt
   }]);
+});
+
+for(const dialect of ["sqlite","postgres"])test(`${dialect}: Archivist decisions reject guide text changed after it was read`,async t=>{
+  const {db,a}=await fixture(t,dialect);
+  await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read')").run(a.user_id,"atomic-habits");
+  const guide=await submitReadingGuide(db,a,{bookId:"atomic-habits",body:"Original text.",language:"en"});
+  const original=await db.prepare("SELECT body FROM card_translations WHERE card_id=? AND language='en'").get(guide.cardId);
+  await db.prepare("UPDATE card_translations SET body=? WHERE card_id=? AND language='en'").run("Edited while the review was open.",guide.cardId);
+  await assert.rejects(decideReadingGuide(db,guide.cardId,"approve",{expectedContentVersion:contentVersion(original.body),now}),{code:"readingGuideChanged"});
+  assert.equal((await db.prepare("SELECT status FROM reading_guide_reviews WHERE card_id=?").get(guide.cardId)).status,"pending");
+  const edited=await db.prepare("SELECT body FROM card_translations WHERE card_id=? AND language='en'").get(guide.cardId);
+  const approved=await decideReadingGuide(db,guide.cardId,"approve",{expectedContentVersion:contentVersion(edited.body),now});
+  assert.equal(approved.awarded,30);
 });
