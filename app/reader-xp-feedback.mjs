@@ -81,7 +81,11 @@ async function playLevelUp(dialog,{before,after,kind,fraction},language) {
   medal.textContent=after.level.toLocaleString(language);
   name.textContent=readerLevelName(after,language);
   counter.textContent=fraction;
-  if(kind==="stage")scene.querySelector(".level-up-before .mascot-face").outerHTML=mascotFace(before.stage,"effort");
+  if(kind==="stage"){
+    scene.querySelector(".level-up-before .mascot-face").outerHTML=mascotFace(before.stage,"effort");
+    const landing=scene.querySelector(".level-up-after .mascot-art-placement");
+    landing.addEventListener("animationend",()=>scene.classList.remove("is-changing"),{once:true});
+  }
   scene.classList.replace("is-filling","is-changing");
   fill.animate([{transform:"scaleX(0)"},{transform:fill.style.transform}],{duration:550,delay:120,easing:"ease-out",fill:"backwards"});
 }

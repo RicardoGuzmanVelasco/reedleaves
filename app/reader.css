@@ -1155,19 +1155,42 @@ html,body{overflow-x:clip}
   .is-filling .level-up-before,.is-changing .level-up-before { display:block; }
   .is-filling .level-up-after { visibility:hidden; }
   .is-changing .level-up-medal { animation:level-medal-pop .6s ease-out; }
-  .is-changing .level-up-before .mascot-art-motion { animation:level-takeoff .52s ease-in-out forwards; }
-  .is-changing .level-up-before::before { animation:level-shadow-out .52s forwards; }
-  .is-changing .level-up-after .mascot-art-placement { animation:level-landing .68s .49s both; }
-  .is-changing .level-up-after .mascot-art-motion,.is-changing .level-up-after::before { animation-delay:1.17s; }
+  .is-changing .level-up-art[data-evolves="true"] { --takeoff:1.5s; --landing:1.12s; }
+  .is-changing :is(.level-up-before,.level-up-after) .mascot-art-motion { animation:none; }
+  .is-changing .level-up-before .mascot-art-placement { animation:level-takeoff var(--takeoff) ease-in-out both; }
+  .is-changing .level-up-before::before { animation:level-shadow-out var(--takeoff) ease-in-out both; }
+  .is-changing .level-up-after .mascot-art-placement { animation:level-landing var(--landing) var(--takeoff) both; }
+  .is-changing .level-up-after::before { animation:level-shadow-in var(--landing) var(--takeoff) both; }
   .is-changing .level-up-art[data-evolves="true"]::after {
     content:""; position:absolute; z-index:-1; inset:-15% 4% 25%; border-radius:50%; pointer-events:none;
-    background:radial-gradient(circle,#fff9d9 8%,#edca73 28%,transparent 67%); animation:level-flash .38s .31s both;
+    background:radial-gradient(circle,#fff9d9 8%,#edca73 28%,transparent 67%); animation:level-flash .42s calc(var(--takeoff) - .16s) both;
   }
   @keyframes level-medal-pop { 0%{transform:scale(.72) rotate(-14deg)} 48%{transform:scale(1.2) rotate(6deg)} 77%{transform:scale(.96) rotate(-2deg)} }
-  @keyframes level-takeoff { 0%{transform:none} 30%{transform:scale(1.12,.84)} 72%{transform:translateY(-31%) scale(.96,1.08)} 100%{transform:translateY(-34%) scale(.06);opacity:0} }
-  @keyframes level-landing { 0%{translate:0 -34%;scale:.06;opacity:0} 17%{translate:0 -34%;scale:1.04;opacity:1} 58%{translate:0 3%;scale:1.12 .86} 77%{translate:0 -4%;scale:.98 1.03} 100%{translate:0 0;scale:1} }
-  @keyframes level-shadow-out { to{opacity:0;transform:scaleX(.5)} }
-  @keyframes level-flash { 0%,100%{opacity:0} 35%{opacity:1;transform:scale(1.16)} }
+  @keyframes level-takeoff {
+    0% { translate:0 0; scale:1; }
+    25%,34% { translate:0 5%; scale:1.14 .82; }
+    53% { translate:0 -25%; scale:.93 1.17; }
+    68%,74% { translate:0 -36%; scale:1; }
+    90% { translate:0 -36%; scale:.35; }
+    100% { translate:0 -36%; scale:0; }
+  }
+  @keyframes level-shadow-out {
+    0% { scale:1; } 25%,34% { scale:1.12 .88; }
+    68%,74% { scale:.62 .73; } 90% { scale:.28 .35; } 100% { scale:0; }
+  }
+  @keyframes level-landing {
+    0% { translate:0 -36%; scale:0; }
+    14% { translate:0 -36%; scale:.46; }
+    30% { translate:0 -36%; scale:1.22; animation-timing-function:ease-in; }
+    65% { translate:0 5%; scale:1.17 .82; }
+    83% { translate:0 -4%; scale:.98 1.05; }
+    100% { translate:0 0; scale:1; }
+  }
+  @keyframes level-shadow-in {
+    0% { scale:0; } 30% { scale:.65 .75; animation-timing-function:ease-in; }
+    65% { scale:1.24 .82; } 83% { scale:.92 .97; } 100% { scale:1; }
+  }
+  @keyframes level-flash { 0%,100%{scale:0} 42%{scale:1.13} }
   @keyframes xp-toast-arrive { from{transform:translateY(26px);opacity:0} to{transform:translateY(0);opacity:1} }
 }
 @media(forced-colors:active) { .xp-feedback-track progress { appearance:auto; } }
