@@ -39,16 +39,29 @@ export function restartMascotIdle(art) {
   art.classList.remove("is-idle-reset");
 }
 
-// Move the body above its ground shadow while its own idle animation keeps running.
-export function playMascotJump(art) {
-  if(art.ownerDocument.defaultView.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
-  const timing={duration:550,easing:"ease-in-out"};
-  art.querySelector(".mascot-art-placement").animate([
-    {translate:"0 0",scale:"1"}, {offset:.2,translate:"0 3%",scale:"1.06 .92"},
-    {offset:.5,translate:"0 -17%",scale:".97 1.07"}, {offset:.8,translate:"0 2%",scale:"1.06 .94"},
-    {translate:"0 0",scale:"1"}
-  ],timing);
-  art.animate([{scale:"1"},{offset:.2,scale:"1.06 .94"},{offset:.5,scale:".69 .83"},{offset:.8,scale:"1.09 .94"},{scale:"1"}],{...timing,pseudoElement:"::before"});
+// Contact and recovery are separate animations so callers can react to the landing frame.
+export function playMascotJump(art,{onLand}={}) {
+  if(art.ownerDocument.defaultView.matchMedia("(prefers-reduced-motion: reduce)").matches){
+    onLand?.();
+    return;
+  }
+  const body=art.querySelector(".mascot-art-placement");
+  let landed=false;
+  function phaseEnded(event) {
+    if(event.target!==body || !event.animationName.startsWith("mascot-jump-"))return;
+    if(!landed && (event.animationName==="mascot-jump-flight" || event.type==="animationcancel")){
+      landed=true;
+      onLand?.();
+    }
+    if(event.animationName==="mascot-jump-settle" || event.type==="animationcancel"){
+      body.removeEventListener("animationend",phaseEnded);
+      body.removeEventListener("animationcancel",phaseEnded);
+      art.classList.remove("is-jumping");
+    }
+  }
+  body.addEventListener("animationend",phaseEnded);
+  body.addEventListener("animationcancel",phaseEnded);
+  art.classList.add("is-jumping");
 }
 
 // Icons display the body image directly; character calibration belongs to mascotArt.

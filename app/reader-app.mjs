@@ -45,7 +45,7 @@ import {mountNewInterests} from "./new-interests-ui.mjs";
 import {mountInitialInterests} from "./initial-interests-ui.mjs";
 import {createCurrencyReceiptPresentation,pulseCurrencyWallet} from "./currency-receipt.mjs";
 import {createInitialInterestCompletion} from "./initial-interest-completion.mjs";
-import {createReaderXpTracker,mountReaderXpFeedback,syncReaderProgressionState} from "./reader-xp-feedback.mjs";
+import {createReaderXpTracker,mountReaderXpFeedback,syncReaderProgressionState} from "./reader-xp-feedback.mjs?v=level-up-polish-2";
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();

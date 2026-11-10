@@ -4,6 +4,34 @@
 .mascot-art::before{content:"";position:absolute;z-index:0;left:calc((100% - var(--mascot-shadow-width)) / 2);top:calc(87.5% - var(--mascot-shadow-height) / 2);width:var(--mascot-shadow-width);height:var(--mascot-shadow-height);border-radius:50%;background:rgb(30 76 46 / 16%);transform-origin:center;animation:mascot-shadow-hop var(--mascot-idle-duration) var(--mascot-idle-easing) infinite}
 .mascot-art-placement,.mascot-art-motion{position:absolute;inset:0;display:block}
 .mascot-art-placement{z-index:1;transform:translate(var(--mascot-x),var(--mascot-y)) scale(var(--mascot-scale));transform-origin:50% 50%}
+.mascot-art.is-jumping { --jump-flight:780ms; --jump-settle:270ms; }
+.mascot-art.is-jumping .mascot-art-placement {
+  animation:mascot-jump-flight var(--jump-flight) ease-in-out forwards,
+    mascot-jump-settle var(--jump-settle) ease-out var(--jump-flight) forwards;
+}
+.mascot-art.is-jumping[data-idle]::before {
+  animation:mascot-jump-shadow var(--jump-flight) ease-in-out forwards,
+    mascot-jump-shadow-settle var(--jump-settle) ease-out var(--jump-flight) forwards;
+}
+@keyframes mascot-jump-flight {
+  0% { translate:0 0; scale:1; }
+  28% { translate:0 3%; scale:1.05 .94; animation-timing-function:cubic-bezier(.18,.7,.32,1); }
+  62% { translate:0 -25%; scale:.98 1.035; animation-timing-function:cubic-bezier(.45,0,.8,.46); }
+  100% { translate:0 0; scale:1; }
+}
+@keyframes mascot-jump-settle {
+  0%,100% { translate:0 0; scale:1; }
+  35% { translate:0 2.5%; scale:1.045 .95; }
+}
+@keyframes mascot-jump-shadow {
+  0%,100% { scale:1; }
+  28% { scale:1.04 .98; }
+  62% { scale:.66 .80; }
+}
+@keyframes mascot-jump-shadow-settle {
+  0%,100% { scale:1; }
+  35% { scale:1.05 .98; }
+}
 .mascot-art-motion{transform-origin:50% 88%;transition:transform .15s ease;animation:mascot-art-hop var(--mascot-idle-duration) var(--mascot-idle-easing) infinite}
 .mascot-art img{display:block;width:100%;height:100%;margin:0;object-fit:contain;user-select:none}
 /* Artwork calibration, shared by every surface. Body placement and shadow dimensions are stage-specific. */

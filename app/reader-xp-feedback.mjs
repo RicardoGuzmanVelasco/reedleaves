@@ -1,6 +1,6 @@
 import {readerProgressionForXp} from "./reader-progression.mjs";
 import {readerLevelName} from "./reader-level-name.mjs";
-import {mascotArt,playMascotJump} from "./mascot-art.mjs?v=evergreen-3";
+import {mascotArt,playMascotJump} from "./mascot-art.mjs?v=level-up-polish-2";
 import {mascotFace} from "./mascot-face.mjs?v=evergreen-2";
 import {words} from "./i18n.mjs?v=evergreen-2";
 
@@ -55,7 +55,7 @@ export function levelUpMarkup({before,after,gain,fraction,kind},language) {
   return `<form method="dialog" class="exclusive-card-shell level-up-scene">
     <button class="dialog-close level-up-close" aria-label="${c.readerDismissXp}">×</button>
     <div class="level-up-art" aria-hidden="true" data-evolves="${kind==="stage"}">
-      ${kind==="stage"?mascotArt(before.stage,"level-up-before"):""}${mascotArt(after.stage,kind==="stage"?"level-up-after":"",{expression:"happy"})}
+      ${kind==="stage"?mascotArt(before.stage,"level-up-before")+mascotArt(after.stage,"level-up-after",{expression:"happy"}):mascotArt(after.stage)}
     </div>
     <div class="level-up-award"><span class="level-up-medal" id="level-up-title" role="img" aria-label="${level}"><span class="level-up-number">${after.level.toLocaleString(language)}</span></span></div>
     <h1 id="level-up-name" aria-label="${name}">${name}</h1>
@@ -69,8 +69,11 @@ export function levelUpMarkup({before,after,gain,fraction,kind},language) {
 }
 
 async function playLevelUp(dialog,{before,after,kind},language) {
-  if (dialog.ownerDocument.defaultView.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const scene=dialog.querySelector(".level-up-scene"),number=scene.querySelector(".level-up-number");
+  if (dialog.ownerDocument.defaultView.matchMedia("(prefers-reduced-motion: reduce)").matches){
+    scene.querySelector(".level-up-art .mascot-art:last-child .mascot-face").outerHTML=mascotFace(after.stage,"happy");
+    return;
+  }
   const name=scene.querySelector("h1"),meter=scene.querySelector(".level-up-meter");
   const current=scene.querySelector(".level-up-current"),required=scene.querySelector(".level-up-required"),gain=scene.querySelector(".level-up-gain");
   const format=new Intl.NumberFormat(language).format;
@@ -94,7 +97,6 @@ async function playLevelUp(dialog,{before,after,kind},language) {
       draw(start);
     });
   }
-  if(kind==="level")scene.querySelector(".mascot-face").outerHTML=mascotFace(before.stage);
   scene.classList.add("is-filling");
   number.textContent=before.level.toLocaleString(language);
   name.textContent=readerLevelName(before,language);
@@ -102,20 +104,26 @@ async function playLevelUp(dialog,{before,after,kind},language) {
   if(!dialog.open || !scene.isConnected)return;
   number.textContent=after.level.toLocaleString(language);
   name.textContent=readerLevelName(after,language);
+  scene.classList.replace("is-filling","is-changing");
   if(kind==="stage"){
     scene.querySelector(".level-up-before .mascot-face").outerHTML=mascotFace(before.stage,"effort");
     const landing=scene.querySelector(".level-up-after .mascot-art-placement");
     landing.querySelector(".mascot-face").outerHTML=mascotFace(after.stage,"effort");
-    landing.addEventListener("animationend",()=>{
+    function stageLanded(event) {
+      if(event.target!==landing || event.animationName!=="level-landing")return;
+      landing.removeEventListener("animationend",stageLanded);
       landing.querySelector(".mascot-face").outerHTML=mascotFace(after.stage,"happy");
       scene.classList.replace("is-changing","has-landed");
-    },{once:true});
+    }
+    landing.addEventListener("animationend",stageLanded);
   }else{
     const mascot=scene.querySelector(".mascot-art");
-    mascot.querySelector(".mascot-face").outerHTML=mascotFace(after.stage,"happy");
-    playMascotJump(mascot);
+    mascot.querySelector(".mascot-face").outerHTML=mascotFace(after.stage,"effort");
+    playMascotJump(mascot,{onLand(){
+      mascot.querySelector(".mascot-face").outerHTML=mascotFace(after.stage,"happy");
+      scene.classList.replace("is-changing","has-landed");
+    }});
   }
-  scene.classList.replace("is-filling","is-changing");
   await transferXp(0,after.xpIntoLevel,after.xpForNextLevel,after.xpIntoLevel,550);
 }
 
