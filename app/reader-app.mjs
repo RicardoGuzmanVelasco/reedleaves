@@ -313,7 +313,7 @@ export function startReader({createCardFeatures} = {}) {
     document.getElementById("nav-daily-label").textContent=c.navDaily;
     if(!document.getElementById("guide-review-inbox")){
       const inbox=document.createElement("button");inbox.className="icon-button guide-review-inbox";inbox.id="guide-review-inbox";inbox.type="button";
-      inbox.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v11h-4l-2 4h-4l-2-4H4z"/><path d="M4 12h4l2 3h4l2-3h4"/></svg><span class="guide-review-inbox-count" id="guide-review-inbox-count" aria-hidden="true" hidden></span>';
+      inbox.innerHTML='<span class="reading-guide-icon guide-review-inbox-icon" aria-hidden="true"></span><span class="guide-review-inbox-count" id="guide-review-inbox-count" aria-hidden="true" hidden></span>';
       inbox.addEventListener("click",()=>navigate("#guide-reviews"));
       const actions=document.querySelector(".header-actions"),settingsButton=document.getElementById("open-settings");
       if(actions&&settingsButton)actions.insertBefore(inbox,settingsButton);
