@@ -87,7 +87,7 @@ test("One celebration shows the final reader level and remaining progress after 
     const html=levelUpMarkup(readerXpMessage({from:100,to:675},language),language);
     assert.match(html,new RegExp(title));
     assert.match(html,/\+575 XP/);
-    assert.match(html,/role="progressbar"[^>]*aria-valuenow="15"[^>]*aria-valuemax="110"/);
+    assert.match(html,/<progress\b[^>]*max="110" value="15"/);
     assert.ok(html.includes(`autofocus>${action}</button>`));
   }
 });

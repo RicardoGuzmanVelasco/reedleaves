@@ -1,6 +1,6 @@
 import {readerProgressionForXp} from "./reader-progression.mjs";
 import {readerLevelName} from "./reader-level-name.mjs";
-import {mascotArt} from "./mascot-art.mjs?v=evergreen-2";
+import {mascotArt,playMascotJump} from "./mascot-art.mjs?v=evergreen-3";
 import {mascotFace} from "./mascot-face.mjs?v=evergreen-2";
 import {words} from "./i18n.mjs?v=evergreen-2";
 
@@ -57,12 +57,12 @@ export function levelUpMarkup({before,after,gain,fraction,kind},language) {
     <div class="level-up-art" aria-hidden="true" data-evolves="${kind==="stage"}">
       ${kind==="stage"?mascotArt(before.stage,"level-up-before"):""}${mascotArt(after.stage,kind==="stage"?"level-up-after":"",{expression:"happy"})}
     </div>
-    <span class="level-up-medal" id="level-up-title" role="img" aria-label="${level}">${after.level.toLocaleString(language)}</span>
+    <div class="level-up-award"><span class="level-up-medal" id="level-up-title" role="img" aria-label="${level}"><span class="level-up-number">${after.level.toLocaleString(language)}</span></span></div>
     <h1 id="level-up-name" aria-label="${name}">${name}</h1>
     <div class="level-up-progress" id="level-up-progress">
-      <span class="sr-only">${gain}</span><strong class="level-up-gain" aria-hidden="true" hidden></strong>
+      <span class="sr-only">${gain}</span><strong class="level-up-gain" aria-hidden="true"></strong>
       <span class="level-up-fraction" aria-hidden="true"><span class="level-up-current">${after.xpIntoLevel.toLocaleString(language)}</span> / <span class="level-up-required">${after.xpForNextLevel.toLocaleString(language)}</span> XP</span>
-      <div class="level-up-meter" role="progressbar" aria-label="${level}" aria-valuenow="${after.xpIntoLevel}" aria-valuemin="0" aria-valuemax="${after.xpForNextLevel}" aria-valuetext="${fraction}"><span style="transform:scaleX(${after.xpIntoLevel/after.xpForNextLevel})"></span></div>
+      <progress class="xp-meter level-up-meter" max="${after.xpForNextLevel}" value="${after.xpIntoLevel}" aria-label="${level}" aria-valuetext="${fraction}"></progress>
     </div>
     <button class="primary level-up-continue" autofocus>${c.bookInterestContinue}</button>
   </form>`;
@@ -70,12 +70,13 @@ export function levelUpMarkup({before,after,gain,fraction,kind},language) {
 
 async function playLevelUp(dialog,{before,after,kind},language) {
   if (dialog.ownerDocument.defaultView.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const scene=dialog.querySelector(".level-up-scene"),medal=scene.querySelector(".level-up-medal");
-  const name=scene.querySelector("h1"),fill=scene.querySelector(".level-up-meter span");
+  const scene=dialog.querySelector(".level-up-scene"),number=scene.querySelector(".level-up-number");
+  const name=scene.querySelector("h1"),meter=scene.querySelector(".level-up-meter");
   const current=scene.querySelector(".level-up-current"),required=scene.querySelector(".level-up-required"),gain=scene.querySelector(".level-up-gain");
   const format=new Intl.NumberFormat(language).format;
   function transferXp(from,to,limit,available,duration) {
     required.textContent=format(limit);
+    meter.max=limit;
     const start=performance.now();
     return new Promise(resolve=>{
       function draw(now) {
@@ -83,10 +84,11 @@ async function playLevelUp(dialog,{before,after,kind},language) {
         const t=Math.min(1,(now-start)/duration);
         const added=(to-from)*t*t*(3-2*t);
         const remaining=available-Math.round(added);
-        fill.style.transform=`scaleX(${(from+added)/limit})`;
+        meter.value=from+added;
         current.textContent=format(from+Math.round(added));
-        gain.textContent=`+${format(remaining)} XP`;
-        gain.hidden=remaining===0;
+        gain.textContent=remaining?`+${format(remaining)} XP`:"";
+        gain.classList.toggle("is-empty",remaining===0);
+        meter.setAttribute("aria-valuetext",`${format(Math.round(from+added))} / ${format(limit)} XP`);
         if(t<1)requestAnimationFrame(draw); else requestAnimationFrame(resolve);
       }
       draw(start);
@@ -94,11 +96,11 @@ async function playLevelUp(dialog,{before,after,kind},language) {
   }
   if(kind==="level")scene.querySelector(".mascot-face").outerHTML=mascotFace(before.stage);
   scene.classList.add("is-filling");
-  medal.textContent=before.level.toLocaleString(language);
+  number.textContent=before.level.toLocaleString(language);
   name.textContent=readerLevelName(before,language);
   await transferXp(before.xpIntoLevel,before.xpForNextLevel,before.xpForNextLevel,after.xp-before.xp,850);
   if(!dialog.open || !scene.isConnected)return;
-  medal.textContent=after.level.toLocaleString(language);
+  number.textContent=after.level.toLocaleString(language);
   name.textContent=readerLevelName(after,language);
   if(kind==="stage"){
     scene.querySelector(".level-up-before .mascot-face").outerHTML=mascotFace(before.stage,"effort");
@@ -108,7 +110,11 @@ async function playLevelUp(dialog,{before,after,kind},language) {
       landing.querySelector(".mascot-face").outerHTML=mascotFace(after.stage,"happy");
       scene.classList.replace("is-changing","has-landed");
     },{once:true});
-  }else scene.querySelector(".mascot-face").outerHTML=mascotFace(after.stage,"happy");
+  }else{
+    const mascot=scene.querySelector(".mascot-art");
+    mascot.querySelector(".mascot-face").outerHTML=mascotFace(after.stage,"happy");
+    playMascotJump(mascot);
+  }
   scene.classList.replace("is-filling","is-changing");
   await transferXp(0,after.xpIntoLevel,after.xpForNextLevel,after.xpIntoLevel,550);
 }

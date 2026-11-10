@@ -39,6 +39,18 @@ export function restartMascotIdle(art) {
   art.classList.remove("is-idle-reset");
 }
 
+// Move the body above its ground shadow while its own idle animation keeps running.
+export function playMascotJump(art) {
+  if(art.ownerDocument.defaultView.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  const timing={duration:550,easing:"ease-in-out"};
+  art.querySelector(".mascot-art-placement").animate([
+    {translate:"0 0",scale:"1"}, {offset:.2,translate:"0 3%",scale:"1.06 .92"},
+    {offset:.5,translate:"0 -17%",scale:".97 1.07"}, {offset:.8,translate:"0 2%",scale:"1.06 .94"},
+    {translate:"0 0",scale:"1"}
+  ],timing);
+  art.animate([{scale:"1"},{offset:.2,scale:"1.06 .94"},{offset:.5,scale:".69 .83"},{offset:.8,scale:"1.09 .94"},{scale:"1"}],{...timing,pseudoElement:"::before"});
+}
+
 // Icons display the body image directly; character calibration belongs to mascotArt.
 export function mascotIcon(stage, className = "") {
   const id = Object.hasOwn(mascotAssets, stage) ? stage : "mystery";
