@@ -1156,13 +1156,13 @@ html,body{overflow-x:clip}
   .is-filling .level-up-before,.is-changing .level-up-before { display:block; }
   .is-filling .level-up-after,.is-filling .level-up-art::before { visibility:hidden; }
   .is-changing .level-up-medal { animation:level-medal-pop .6s ease-out; }
-  .is-changing .level-up-art[data-evolves="true"] { --takeoff:1.5s; --landing:1.12s; }
+  .level-up-art[data-evolves="true"] { --takeoff:1.5s; --landing:1.12s; }
   .is-changing :is(.level-up-before,.level-up-after) .mascot-art-motion { animation:none; }
   .is-changing .level-up-before .mascot-art-placement { animation:level-takeoff var(--takeoff) ease-in-out both; }
   .is-changing .level-up-before::before { animation:level-shadow-out var(--takeoff) ease-in-out both; }
   .is-changing .level-up-after .mascot-art-placement { animation:level-landing var(--landing) var(--takeoff) both; }
   .is-changing .level-up-after::before { animation:level-shadow-in var(--landing) var(--takeoff) both; }
-  .is-changing .level-up-art[data-evolves="true"]::before { animation:level-rays .9s calc(var(--takeoff) + .08s) ease-out both; }
+  :is(.is-changing,.has-landed) .level-up-art[data-evolves="true"]::before { animation:level-rays 2.1s calc(var(--takeoff) + .08s) linear both; }
   .is-changing .level-up-art[data-evolves="true"]::after {
     content:""; position:absolute; z-index:-1; inset:-15% 4% 25%; border-radius:50%; pointer-events:none;
     background:radial-gradient(circle,#fff9d9 8%,#edca73 28%,transparent 67%); animation:level-flash .26s var(--takeoff) both;
@@ -1192,7 +1192,11 @@ html,body{overflow-x:clip}
     65% { scale:1.24 .82; } 83% { scale:.92 .97; } 100% { scale:1; }
   }
   @keyframes level-flash { 0%,100%{scale:0} 42%{scale:1.13} }
-  @keyframes level-rays { from{transform:rotate(-50deg) scale(0)} to{transform:rotate(0) scale(1)} }
+  @keyframes level-rays {
+    0% { transform:rotate(-200deg) scale(0); }
+    32% { transform:rotate(-136deg) scale(1.16); }
+    100% { transform:rotate(0) scale(1.38); }
+  }
   @keyframes xp-toast-arrive { from{transform:translateY(26px);opacity:0} to{transform:translateY(0);opacity:1} }
 }
 @media(forced-colors:active) { .xp-feedback-track progress { appearance:auto; } }

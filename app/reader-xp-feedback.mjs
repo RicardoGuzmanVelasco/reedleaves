@@ -58,7 +58,7 @@ export function levelUpMarkup({before,after,gain,fraction,kind},language) {
   return `<form method="dialog" class="exclusive-card-shell level-up-scene">
     <button class="dialog-close level-up-close" aria-label="${c.readerDismissXp}">×</button>
     <div class="level-up-art" aria-hidden="true" data-evolves="${kind==="stage"}">
-      ${kind==="stage"?mascotArt(before.stage,"level-up-before")+mascotArt(after.stage,"level-up-after",{expression:"happy"}):mascotArt(after.stage)}
+      ${kind==="stage"?mascotArt(before.stage,"level-up-before"):""}${mascotArt(after.stage,kind==="stage"?"level-up-after":"",{expression:"happy"})}
     </div>
     <span class="level-up-medal" id="level-up-title" role="img" aria-label="${level}">${after.level.toLocaleString(language)}</span>
     <h1 id="level-up-name" aria-label="${name}">${name}</h1>
@@ -75,6 +75,7 @@ async function playLevelUp(dialog,{before,after,kind},language) {
   const scene=dialog.querySelector(".level-up-scene"),medal=scene.querySelector(".level-up-medal");
   const name=scene.querySelector("h1"),counter=scene.querySelector(".level-up-fraction"),fill=scene.querySelector(".level-up-meter span");
   const current=before.xpIntoLevel/before.xpForNextLevel;
+  if(kind==="level")scene.querySelector(".mascot-face").outerHTML=mascotFace(before.stage);
   scene.classList.add("is-filling");
   medal.textContent=before.level.toLocaleString(language);
   name.textContent=readerLevelName(before,language);
@@ -90,9 +91,9 @@ async function playLevelUp(dialog,{before,after,kind},language) {
     landing.querySelector(".mascot-face").outerHTML=mascotFace(after.stage,"effort");
     landing.addEventListener("animationend",()=>{
       landing.querySelector(".mascot-face").outerHTML=mascotFace(after.stage,"happy");
-      scene.classList.remove("is-changing");
+      scene.classList.replace("is-changing","has-landed");
     },{once:true});
-  }
+  }else scene.querySelector(".mascot-face").outerHTML=mascotFace(after.stage,"happy");
   scene.classList.replace("is-filling","is-changing");
   fill.animate([{transform:"scaleX(0)"},{transform:fill.style.transform}],{duration:550,delay:120,easing:"ease-out",fill:"backwards"});
 }
