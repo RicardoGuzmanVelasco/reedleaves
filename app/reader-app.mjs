@@ -74,7 +74,8 @@ export function startReader({createCardFeatures} = {}) {
   let pendingGrowthFeedback=[];
   let guideReviewQueue=[],guideReviewPendingCount=null,guideReviewCountLoading=false,guideReviewLoading=false,guideReviewLoaded=false,guideReviewError=null,guideReviewRejectingId=null,guideReviewExpandedId=null,guideReviewReason="",guideReviewNotice="";
   const observeXp=createReaderXpTracker();
-  const xpFeedback=mountReaderXpFeedback(document,()=>language);
+  const xpFeedback=mountReaderXpFeedback(document,()=>language,showAppModal);
+  document.getElementById("level-up").addEventListener("close",()=>{if(pendingGrowthFeedback.length)render();});
   function syncReaderXp(userId,xp,reward,progression) {
     const synced=syncReaderProgressionState(snapshot,profileData,userId,xp,reward,progression);
     snapshot=synced.snapshot;profileData=synced.profileData;

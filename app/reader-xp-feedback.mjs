@@ -46,11 +46,33 @@ export function readerXpMessage({from,to},language) {
   const label=kind==="stage"?c.readerPetEvolved:kind==="level"?c.readerLevelUp:c.readerLevelLabel(n.format(after.level));
   const detail=kind==="gain"?title:`${c.readerLevelLabel(n.format(after.level))} · ${title}`;
   const fraction=c.readerXpFraction(n.format(after.xpIntoLevel),n.format(after.xpForNextLevel));
-  return {kind,gain,label,detail,fraction,after};
+  return {kind,gain,label,detail,fraction,before,after};
 }
 
-export function mountReaderXpFeedback(doc,readLanguage) {
+export function levelUpMarkup({before,after,gain,fraction,kind,label},language) {
+  const c=words[language],level=c.readerLevelLabel(after.level.toLocaleString(language));
+  return `<form method="dialog" class="exclusive-card-shell level-up-scene">
+    <button class="dialog-close level-up-close" aria-label="${c.readerDismissXp}">×</button>
+    <p id="level-up-title">${label}</p>
+    <div class="level-up-art" aria-hidden="true">
+      ${mascotArt(after.stage)}
+      <div class="level-up-curtain">
+        ${kind==="stage"?mascotArt(before.stage,"level-up-before",{idle:false}):""}
+        <span class="level-up-threshold" style="--from:${before.xpIntoLevel/before.xpForNextLevel}"></span>
+      </div>
+    </div>
+    <h1 id="level-up-name"><small>${level}</small> ${readerLevelName(after,language)}</h1>
+    <div class="xp-feedback-track level-up-progress" id="level-up-progress">
+      <strong>${gain}</strong><span>${fraction}</span>
+      <progress aria-label="${fraction}" max="${after.xpForNextLevel}" value="${after.xpIntoLevel}"></progress>
+    </div>
+    <button class="primary level-up-continue" autofocus>${c.bookInterestContinue}</button>
+  </form>`;
+}
+
+export function mountReaderXpFeedback(doc,readLanguage,showModal) {
   const host=doc.getElementById("reader-xp-feedback");
+  const celebration=doc.getElementById("level-up");
   const panel=host.querySelector(".xp-feedback-panel"),art=panel.querySelector(".xp-feedback-art");
   const gain=panel.querySelector(".xp-feedback-gain"),label=panel.querySelector(".xp-feedback-label"),detail=panel.querySelector(".xp-feedback-detail");
   const fraction=panel.querySelector(".xp-feedback-fraction"),meter=panel.querySelector("progress"),close=panel.querySelector("button");
@@ -61,6 +83,7 @@ export function mountReaderXpFeedback(doc,readLanguage) {
     clearTimeout(timer);
     const restore=doc.activeElement===close;
     pending=painted=null;
+    if(celebration.open)celebration.close();
     hover=false;
     panel.hidden=true;
     live.textContent="";
@@ -69,23 +92,29 @@ export function mountReaderXpFeedback(doc,readLanguage) {
   }
   function schedule() {
     clearTimeout(timer);
-    if(!panel.hidden&&!hover&&doc.activeElement!==close)timer=setTimeout(clear,panel.dataset.kind==="gain"?6500:9000);
+    if(!panel.hidden&&!hover&&doc.activeElement!==close)timer=setTimeout(clear,6500);
   }
   function sync() {
     if(!pending)return;
+    const language=readLanguage();
+    const msg=readerXpMessage(pending,language);
     const dialogs=[...doc.querySelectorAll("dialog[open]")];
     const reading=dialogs.find(dialog=>dialog.matches(".exclusive-card-modal"));
-    if(doc.hidden||dialogs.some(dialog=>dialog!==reading)){
+    if(doc.hidden||dialogs.some(dialog=>msg.kind!=="gain"||dialog!==reading)){
       clearTimeout(timer);
       panel.hidden=true;
       hover=false;
       return;
     }
+    if(msg.kind!=="gain"){
+      clear();
+      celebration.innerHTML=levelUpMarkup(msg,language);
+      showModal(celebration);
+      return;
+    }
     const destination=reading||doc.body;
     if(host.parentNode!==destination)destination.append(host);
-    const language=readLanguage();
     if(painted===pending&&paintedLanguage===language&&!panel.hidden)return;
-    const msg=readerXpMessage(pending,language);
     const stage=msg.after.stage;
     if(art.dataset.stage!==stage){
       art.innerHTML=mascotArt(stage);
@@ -98,7 +127,6 @@ export function mountReaderXpFeedback(doc,readLanguage) {
     meter.max=msg.after.xpForNextLevel;
     meter.value=msg.after.xpIntoLevel;
     close.setAttribute("aria-label",words[language].readerDismissXp);
-    panel.dataset.kind=msg.kind;
     painted=pending;
     paintedLanguage=language;
     panel.hidden=false;

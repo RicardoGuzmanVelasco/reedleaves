@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {createReaderXpTracker,readerXpMessage,syncReaderProgressionState} from "./reader-xp-feedback.mjs";
+import {createReaderXpTracker,levelUpMarkup,readerXpMessage,syncReaderProgressionState} from "./reader-xp-feedback.mjs";
 import {readerProgressionForXp} from "./reader-progression.mjs";
 
 test("Receipts and owner snapshots announce each confirmed gain once, even out of order",()=>{
@@ -80,4 +80,14 @@ test("Reading feedback has a separate polite announcement and an accessible dism
   assert.ok(media);
   assert.match(media,/animation:xp-pet-reveal/);
   assert.doesNotMatch(css.replace(media,""),/animation:xp-/);
+});
+
+test("One celebration shows the final reader level and remaining progress after crossing multiple levels",()=>{
+  for(const [language,title,action] of [["es","Semilla Dormida","Continuar"],["en","Sleeping Seed","Continue"]]){
+    const html=levelUpMarkup(readerXpMessage({from:100,to:675},language),language);
+    assert.match(html,new RegExp(title));
+    assert.match(html,/\+575 XP/);
+    assert.match(html,/<progress [^>]*max="110" value="15"/);
+    assert.ok(html.includes(`autofocus>${action}</button>`));
+  }
 });
