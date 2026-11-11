@@ -21,3 +21,26 @@ Cada `*-body` es un cuerpo autónomo en su marco SVG, sin cara ni sombra de suel
 | `brote-directions-5-tupe.svg` | [`brote/brote-tupe-alternativo-body.svg`](brote/brote-tupe-alternativo-body.svg) | [`brote/brote-tupe-alternativo-raw.svg`](brote/brote-tupe-alternativo-raw.svg) |
 
 Se conservaron 13 cuerpos distintos. `brote-directions-2-gancho` y `brote-directions-2-tupe` son idénticos a las copias de `brote-variations`; `brote-variations-casquito` coincide con `brote-directions-4-cascaron`. Esas tres rutas se documentan como duplicados y no generan más ficheros.
+
+## Personajes históricos vectoriales
+
+Los cinco diseños históricos mantienen su encuadre original. La versión de Maceta usa el cuerpo ya separado en `brand/reed/growth/bodies/pot.svg`; los otros cuatro omiten únicamente los elementos faciales SVG. Los SVG raw son copias exactas de `brand/reed/growth/{pot,seed,stem,plant,flower}.svg`.
+
+| Variante | Cuerpo | Raw |
+| --- | --- | --- |
+| `pot.svg` | [`historical/maceta-vector-body.svg`](historical/maceta-vector-body.svg) | [`historical/maceta-vector-raw.svg`](historical/maceta-vector-raw.svg) |
+| `seed.svg` | [`historical/semilla-vector-body.svg`](historical/semilla-vector-body.svg) | [`historical/semilla-vector-raw.svg`](historical/semilla-vector-raw.svg) |
+| `stem.svg` | [`historical/tallo-vector-body.svg`](historical/tallo-vector-body.svg) | [`historical/tallo-vector-raw.svg`](historical/tallo-vector-raw.svg) |
+| `plant.svg` | [`historical/planta-vector-body.svg`](historical/planta-vector-body.svg) | [`historical/planta-vector-raw.svg`](historical/planta-vector-raw.svg) |
+| `flower.svg` | [`historical/flor-con-tallo-vector-body.svg`](historical/flor-con-tallo-vector-body.svg) | [`historical/flor-con-tallo-vector-raw.svg`](historical/flor-con-tallo-vector-raw.svg) |
+
+## Cuatro pruebas de logo con mascota
+
+Los cuerpos sin cara copian el SVG base de cada propuesta en `brand/reed/v1/`; sus raw copian el SVG `*-mascot.svg` de la misma propuesta. Son estudios de identidad, no etapas del juego.
+
+| Propuesta | Cuerpo | Raw |
+| --- | --- | --- |
+| `a-abrazo` | [`logos/a-abrazo-body.svg`](logos/a-abrazo-body.svg) | [`logos/a-abrazo-raw.svg`](logos/a-abrazo-raw.svg) |
+| `b-papel` | [`logos/b-papel-body.svg`](logos/b-papel-body.svg) | [`logos/b-papel-raw.svg`](logos/b-papel-raw.svg) |
+| `c-trazo` | [`logos/c-trazo-body.svg`](logos/c-trazo-body.svg) | [`logos/c-trazo-raw.svg`](logos/c-trazo-raw.svg) |
+| `d-compacto` | [`logos/d-compacto-body.svg`](logos/d-compacto-body.svg) | [`logos/d-compacto-raw.svg`](logos/d-compacto-raw.svg) |

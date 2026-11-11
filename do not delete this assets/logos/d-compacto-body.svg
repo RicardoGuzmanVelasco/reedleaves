@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Reed: prueba D, Compacto" data-axis-x="128">
+<g id="book"><path d="M10 72Q74 51 128 98Q182 51 246 72V188Q180 172 128 209Q76 172 10 188Z" fill="#369247"/>
+<path d="M15 64Q74 45 128 91Q182 45 241 64V175Q180 161 128 195Q76 161 15 175Z" fill="#FFF9ED" stroke="#173D2C" stroke-width="7" stroke-linejoin="round"/></g>
+<g id="spine"><path d="M128 91V195" fill="none" stroke="#173D2C" stroke-width="3" stroke-linecap="round"/></g>
+<g id="leaf" transform="translate(60.8 52) scale(0.84)"><path d="M79 137C29 139 15 119 20 69c33-1 58 23 59 68Z" fill="#369247"/>
+<path d="M81 137c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#83BD4D"/>
+<path d="M79 131C29 133 15 113 20 63c33-1 58 23 59 68Z" fill="#58BE59"/>
+<path d="M81 131c-3-62 16-99 60-107 15 50-7 102-60 107Z" fill="#B9E877"/></g>
+</svg>
