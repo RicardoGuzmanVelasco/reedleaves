@@ -261,8 +261,8 @@ Aparte del feedback, hay que revisar la animación de espera. Se aborda después
 | 14 | Sin cambios (descartado) | 2026-11-11 | Falso positivo de la auditoría. |
 | 15 | Sin cambios (descartado) | 2026-11-11 | Home ya espera con el Brote; el tinte tardío es decorativo. |
 | 16 | Sin cambios (ya resuelto) | 2026-11-11 | Falso positivo de la auditoría. |
-| 17 | | | |
-| 18 | | | |
+| 17 | Sin cambios (descartado) | 2026-11-11 | Opcional; fallo silencioso aceptado. |
+| 18 | Sin cambios (descartado) | 2026-11-11 | Mismo criterio que el 17. |
 | 19 | | | |
 | 20 | | | |
 | 21 | | | |
