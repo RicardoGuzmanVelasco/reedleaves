@@ -263,7 +263,7 @@ Aparte del feedback, hay que revisar la animación de espera. Se aborda después
 | 16 | Sin cambios (ya resuelto) | 2026-11-11 | Falso positivo de la auditoría. |
 | 17 | Sin cambios (descartado) | 2026-11-11 | Opcional; fallo silencioso aceptado. |
 | 18 | Sin cambios (descartado) | 2026-11-11 | Mismo criterio que el 17. |
-| 19 | | | |
+| 19 | Sin cambios (descartado) | 2026-11-11 | Login ya lo cubre el Brote (punto 6); el guardado avisa si falla. |
 | 20 | | | |
 | 21 | | | |
 | 22 | | | |
