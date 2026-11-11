@@ -5,6 +5,7 @@ import {startBottomNavigationBehavior} from "./bottom-navigation-behavior.mjs";
 import {mountDeckPresentation} from "./deck-presentation.mjs";
 import {deckPageHash,deckReadingHash,deckShareUrl,cardShareUrl} from "./deck-navigation.mjs";
 import {coverTintMode,mountBookCoverTints} from "./book-cover-tint.mjs";
+import {xpMeterStyle,mountXpMeterArt} from "./xp-meter-art.mjs";
 import {mountInterests,syncBookInterestSelector} from "./interests.mjs";
 import {bookInterestError,selectBookInterest} from "./book-interests.mjs";
 import {callout} from "./callout.mjs";
@@ -76,6 +77,8 @@ export function startReader({createCardFeatures} = {}) {
   let guideReviewQueue=[],guideReviewPendingCount=null,guideReviewCountLoading=false,guideReviewLoading=false,guideReviewLoaded=false,guideReviewError=null,guideReviewRejectingId=null,guideReviewExpandedId=null,guideReviewReason="",guideReviewNotice="";
   const observeXp=createReaderXpTracker();
   const xpFeedback=mountReaderXpFeedback(document,()=>language,showAppModal);
+  let meterStyle=xpMeterStyle(store.read(keys.xpMeterStyle));
+  const xpMeterArt=mountXpMeterArt(document,meterStyle);
   document.getElementById("level-up").addEventListener("close",()=>{if(pendingGrowthFeedback.length)render();});
   function syncReaderXp(userId,xp,reward,progression) {
     const synced=syncReaderProgressionState(snapshot,profileData,userId,xp,reward,progression);
@@ -330,6 +333,8 @@ export function startReader({createCardFeatures} = {}) {
     document.querySelector(".skip-link").textContent = c.skip;
     for (const [id,text] of [["settings-title",c.settings],["language-label",c.language]]) document.getElementById(id).textContent = text;
     for(const [id,text] of [["cover-tint-label",c.coverTint],["cover-tint-off",c.coverTintOff],["cover-tint-mono",c.coverTintMono],["cover-tint-poly",c.coverTintPoly]]) document.getElementById(id).textContent=text;
+    for(const [id,text] of [["xp-meter-style-label",c.xpMeterStyle],["xp-meter-style-classic",c.xpMeterStyleClassic],["xp-meter-style-junco",c.xpMeterStyleJunco],["xp-meter-style-liston",c.xpMeterStyleListon]]) document.getElementById(id).textContent=text;
+    settings.querySelectorAll('[name="xp-meter-style"]').forEach(input=>{input.checked=input.value===meterStyle;});
     settings.querySelectorAll('[name="cover-tint"]').forEach(input=>{input.checked=input.value===tintMode;input.setAttribute("aria-describedby","cover-tint-hint");});
     document.getElementById("cover-tint-hint").textContent=c[{off:"coverTintHintOff",mono:"coverTintHintMono",poly:"coverTintHintPoly"}[tintMode]];
     document.getElementById("open-settings").setAttribute("aria-label",c.settings); document.getElementById("close-settings").setAttribute("aria-label",c.closeSettings);
@@ -1804,6 +1809,7 @@ export function startReader({createCardFeatures} = {}) {
     navigate(target);
   }
   settings.addEventListener("change",event=>{
+    if(event.target.name==="xp-meter-style"){meterStyle=xpMeterStyle(event.target.value);store.save(keys.xpMeterStyle,meterStyle);xpMeterArt.setStyle(meterStyle);return;}
     if(event.target.name!=="cover-tint")return;
     tintMode=coverTintMode(event.target.value);store.save(keys.coverTint,tintMode);
     mountBookCoverTints(main,[...(catalog?.books||[]),...homeBooksData],catalog?.genres||homeCoverInterests,tintMode);

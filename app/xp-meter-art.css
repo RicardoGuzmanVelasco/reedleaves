@@ -1,0 +1,40 @@
+/* Prueba local de la barra de XP: Junco y Listón. El <progress> sigue en el DOM, oculto a la vista. */
+:root:is([data-xp-meter-style="junco"],[data-xp-meter-style="liston"]) progress.xp-meter{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.xp-meter-art{--p:0;position:relative;display:block;width:100%;min-width:0;font-size:16px;line-height:1}
+.xp-meter-art svg{display:block;width:100%;height:100%;overflow:visible}
+
+/* Contextos */
+.xp-feedback-track .xp-meter-art{order:2;flex:1 1 100%;font-size:11px;margin-top:2px}
+.level-up-progress:has(.xp-meter-art){grid-template-rows:var(--xp-row-height) auto}
+@media(max-width:380px){.profile-xp .xp-meter-art{font-size:14px}}
+
+/* Junco */
+.xp-meter-art--junco{height:3.125em}
+.xp-junco-track{position:absolute;inset:0 2.5em 0 .375em;container-type:inline-size}
+.xp-junco-ground{position:absolute;left:0;right:-.5em;top:50%;border-top:3px dotted #a8bf8d;transform:translateY(-50%)}
+.xp-junco-stem{position:absolute;left:0;top:50%;height:.625em;min-width:.625em;width:calc(var(--p)*100%);transform:translateY(-50%);border:2px solid var(--ink);border-radius:.3125em;
+  background:repeating-linear-gradient(90deg,transparent 0 calc(10cqw - 2px),rgb(23 61 44 / 60%) calc(10cqw - 2px) 10cqw),linear-gradient(180deg,#8fd97c,#58be59 45%,#4ba955);background-origin:border-box}
+.xp-junco-leaf{position:absolute;left:calc(var(--t)*100% - .19em);width:1.19em;height:1.19em;scale:clamp(0,calc((var(--p) - var(--t))*16),1)}
+.xp-junco-leaf::before{content:"";position:absolute;inset:0;background:url("../brand/reed/leaf-token.svg") center/contain no-repeat}
+.xp-junco-leaf.is-up{bottom:calc(50% + .19em);transform-origin:0 100%}
+.xp-junco-leaf.is-down{top:calc(50% + .19em);transform-origin:0 0}
+.xp-junco-leaf.is-down::before{transform:rotate(90deg)}
+.xp-junco-tip{position:absolute;left:calc(var(--p)*100%);top:50%;width:1.625em;height:1.625em;translate:-.44em -50%;rotate:90deg}
+.xp-junco-goal{--bloom:clamp(0,calc((var(--p) - .97)*40),1);position:absolute;right:0;top:50%;width:2.25em;height:2.25em;translate:0 -50%;opacity:calc(.4 + .6*var(--bloom));scale:calc(.85 + .15*var(--bloom))}
+
+/* Listón */
+.xp-meter-art--liston{display:flex;align-items:center;gap:.56em;padding-bottom:5px}
+.xp-liston-disc{flex:none;display:none;place-items:center;width:2.3em;height:2.3em;font-size:.94em;border:2px solid #3f8850;border-radius:50%;background:#c5dd9c;color:#1d542e;font-weight:900;font-variant-numeric:tabular-nums;box-shadow:0 3px 0 #8ca868}
+.xp-meter-art--liston.has-level .xp-liston-disc{display:grid}
+.xp-liston-disc.is-next{border-color:var(--wood-edge);background:var(--wood);color:#684700;box-shadow:0 3px 0 var(--wood-edge)}
+.xp-liston-plank{position:relative;flex:1;min-width:0;height:1.5em;border:2px solid var(--wood-edge);border-radius:.44em;overflow:hidden;rotate:-.6deg;box-shadow:0 4px 0 var(--wood-edge);
+  background:repeating-linear-gradient(177deg,transparent 0 5px,rgb(188 160 109 / 38%) 5px 6px),linear-gradient(180deg,#f1dfb6,var(--wood))}
+.xp-liston-paint{position:absolute;inset:0 auto 0 0;width:calc(var(--p)*100% + 6px*var(--p));
+  background:linear-gradient(180deg,rgb(255 255 225 / 55%) 0 3px,transparent 3px calc(100% - 4px),rgb(30 76 46 / 24%) calc(100% - 4px)),repeating-linear-gradient(177deg,transparent 0 5px,rgb(23 61 44 / 12%) 5px 6px),linear-gradient(90deg,#4ba955,var(--green) 60%,#8fd97c);
+  clip-path:polygon(0 0,100% 0,calc(100% - 5px) 18%,calc(100% - 1px) 36%,calc(100% - 7px) 55%,calc(100% - 2px) 74%,calc(100% - 6px) 100%,0 100%)}
+.xp-liston-ticks{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),rgb(104 71 0 / 45%) calc(10% - 2px) 10%) 0 0/100% .44em no-repeat,linear-gradient(rgb(104 71 0 / 45%),rgb(104 71 0 / 45%)) calc(50% - 1px) 0/2px .75em no-repeat}
+
+@media(prefers-reduced-motion:no-preference){
+  .xp-junco-tip svg{transform-origin:50% 85%;animation:xp-junco-sway 2.8s ease-in-out infinite}
+}
+@keyframes xp-junco-sway{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}

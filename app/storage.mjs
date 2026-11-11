@@ -1,6 +1,7 @@
 export const storageKeys = {
   language: "leaf-reader:language:v1",
   coverTint: "leaf-reader:cover-tint:v1",
+  xpMeterStyle: "leaf-reader:xp-meter-style:v1",
   visitorBookSort: "leaf-reader:book-sort:visitor:v1",
   newInterests: userId => `leaf-reader:new-interests:v1:${encodeURIComponent(userId)}`,
   editInterests: userId => `leaf-reader:edit-interests:v1:${encodeURIComponent(userId)}`,

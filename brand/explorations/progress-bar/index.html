@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Barra de progreso · propuestas</title>
+<style>
+@property --p{syntax:"<number>";inherits:true;initial-value:.62}
+:root{--ink:#173d2c;--muted:#51654c;--paper:#fff9ed;--green:#58be59;--light:#b9e877;--shadow:#1e4c2e;--line:#dadcc9;--sage:#779a72;--wood:#e8d3a4;--wood-edge:#bca06d;
+  font-family:"Avenir Next Rounded","Arial Rounded MT Bold","Avenir Next",system-ui,sans-serif;color:var(--ink);background:var(--paper);font-synthesis:none}
+*{box-sizing:border-box}
+body{margin:0;--p:.62;transition:--p .9s cubic-bezier(.2,.9,.3,1)}
+body.is-dragging{transition:none}
+h1,h2,p{margin:0}h1,h2{letter-spacing:-.04em}
+.page{width:min(980px,calc(100% - 32px));margin:auto;padding:26px 0 60px}
+.page>header{display:grid;gap:6px;margin-bottom:14px}
+.page>header h1{font-size:30px}
+.page>header p{color:var(--muted);font-size:14px;line-height:1.5}
+.controls{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;padding:12px 0;background:linear-gradient(var(--paper) 80%,transparent)}
+.controls input{flex:1;min-width:0;accent-color:var(--green)}
+.controls output{width:4ch;font-weight:800;font-variant-numeric:tabular-nums;text-align:end}
+.controls button{min-height:44px;padding:8px 18px;border:2px solid var(--shadow);border-radius:15px;background:var(--green);color:#fffdf6;font:inherit;font-weight:800;box-shadow:0 4px 0 var(--shadow);cursor:pointer}
+.controls button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--shadow)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:22px}
+.card{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-content:start;padding:22px 22px 24px;border:2px solid var(--sage);border-radius:24px;background:#fffdf6;box-shadow:0 5px 0 #ccd8b9;min-width:0}
+.card h2{font-size:21px}
+.card>p{color:var(--muted);font-size:13px;line-height:1.5}
+.card--current{border-style:dashed;box-shadow:none;background:transparent}
+.ctx-labels{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:3px 12px;margin-bottom:9px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ctx-labels strong{color:var(--ink);font-size:14px}
+.ctx-small{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:6px 9px;width:min(300px,100%);padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:var(--paper)}
+.ctx-small strong{font-size:17px;color:var(--shadow);white-space:nowrap;font-variant-numeric:tabular-nums}
+.ctx-small .bar{grid-column:1/-1;grid-row:2;min-width:0;zoom:.7}
+.ctx-small span{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.tag{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.bar{position:relative;display:block;width:100%}
+
+/* Actual (copia de .xp-meter) */
+.xp-meter{--meter-track:linear-gradient(180deg,#b3c69c 0%,#d9e4bd 35%,#eff3df 82%);
+  --meter-fill:linear-gradient(180deg,rgb(255 255 235 / 55%),transparent 29%,transparent 70%,rgb(30 76 46 / 22%)),repeating-linear-gradient(118deg,transparent 0 9px,rgb(23 61 44 / 18%) 9px 10px,rgb(255 255 225 / 34%) 10px 12px,transparent 12px 16px),linear-gradient(90deg,#4ba955,var(--green) 55%,var(--light));
+  --meter-edge:inset 0 0 0 1px rgb(30 76 46 / 36%),inset 0 2px 0 rgb(255 255 222 / 60%);
+  appearance:none;display:block;inline-size:100%;block-size:18px;padding:2px;border:1px solid var(--sage);border-radius:999px;overflow:hidden;background:var(--meter-track);box-shadow:inset 0 2px 3px rgb(23 61 44 / 22%),0 1px 0 var(--paper)}
+.xp-meter::-webkit-progress-bar{border-radius:inherit;background:transparent}
+.xp-meter::-webkit-progress-value{border-radius:999px;background:var(--meter-fill);box-shadow:var(--meter-edge)}
+.xp-meter::-moz-progress-bar{border-radius:999px;background:var(--meter-fill);box-shadow:var(--meter-edge)}
+
+/* A · Junco */
+.junco{height:50px}
+.junco-track{position:absolute;inset:0 40px 0 6px;container-type:inline-size}
+.junco-ground{position:absolute;left:0;right:-8px;top:50%;border-top:3px dotted #a8bf8d;transform:translateY(-50%)}
+.junco-stem{position:absolute;left:0;top:50%;height:10px;min-width:10px;width:calc(var(--p)*100%);transform:translateY(-50%);border:2px solid var(--ink);border-radius:5px;
+  background:repeating-linear-gradient(90deg,transparent 0 calc(10cqw - 2px),rgb(23 61 44 / 60%) calc(10cqw - 2px) 10cqw),linear-gradient(180deg,#8fd97c,#58be59 45%,#4ba955);background-origin:border-box}
+.junco-leaf{position:absolute;left:calc(var(--t)*100% - 3px);width:19px;height:19px;scale:clamp(0,calc((var(--p) - var(--t))*16),1)}
+.junco-leaf::before{content:"";position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M4%2028C1%2013%2010%205%2028%202c2%2016-6%2025-24%2026Z%22%20fill%3D%22%2358BE59%22/%3E%3Cpath%20d%3D%22M4%2028C12%2021%2021%2010%2028%202c2%2016-6%2025-24%2026Z%22%20fill%3D%22%23B7DE76%22/%3E%3Cpath%20d%3D%22M4%2028C1%2013%2010%205%2028%202c2%2016-6%2025-24%2026Z%22%20stroke%3D%22%23173D2C%22%20stroke-width%3D%221.8%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E") center/contain no-repeat}
+.junco-leaf.up{bottom:calc(50% + 3px);transform-origin:0 100%}
+.junco-leaf.down{top:calc(50% + 3px);transform-origin:0 0}
+.junco-leaf.down::before{transform:rotate(90deg)}
+.junco-tip{position:absolute;left:calc(var(--p)*100%);top:50%;width:26px;height:26px;translate:-7px -50%;rotate:90deg}
+.junco-goal{position:absolute;right:0;top:50%;width:36px;height:36px;translate:0 -50%;opacity:calc(.4 + .6*clamp(0,calc((var(--p) - .97)*40),1));scale:calc(.85 + .15*clamp(0,calc((var(--p) - .97)*40),1))}
+
+/* B · Listón */
+.liston{display:flex;align-items:center;gap:9px;padding-bottom:5px}
+.liston-disc{flex:none;display:grid;place-items:center;width:32px;height:32px;border:2px solid #3f8850;border-radius:50%;background:#c5dd9c;color:#1d542e;font-size:15px;font-weight:900;box-shadow:0 3px 0 #8ca868}
+.liston-disc.next{border-color:var(--wood-edge);background:var(--wood);color:#684700;box-shadow:0 3px 0 var(--wood-edge)}
+.liston-plank{position:relative;flex:1;min-width:0;height:24px;border:2px solid var(--wood-edge);border-radius:7px;overflow:hidden;rotate:-.6deg;box-shadow:0 4px 0 var(--wood-edge);
+  background:repeating-linear-gradient(177deg,transparent 0 5px,rgb(188 160 109 / 38%) 5px 6px),linear-gradient(180deg,#f1dfb6,var(--wood))}
+.liston-paint{position:absolute;inset:0 auto 0 0;width:calc(var(--p)*100% + 6px*var(--p));
+  background:linear-gradient(180deg,rgb(255 255 225 / 55%) 0 3px,transparent 3px calc(100% - 4px),rgb(30 76 46 / 24%) calc(100% - 4px)),repeating-linear-gradient(177deg,transparent 0 5px,rgb(23 61 44 / 12%) 5px 6px),linear-gradient(90deg,#4ba955,var(--green) 60%,#8fd97c);
+  clip-path:polygon(0 0,100% 0,calc(100% - 5px) 18%,calc(100% - 1px) 36%,calc(100% - 7px) 55%,calc(100% - 2px) 74%,calc(100% - 6px) 100%,0 100%)}
+.liston-ticks{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),rgb(104 71 0 / 45%) calc(10% - 2px) 10%) 0 0/100% 7px no-repeat,linear-gradient(rgb(104 71 0 / 45%),rgb(104 71 0 / 45%)) calc(50% - 1px) 0/2px 12px no-repeat}
+
+@media(prefers-reduced-motion:no-preference){
+  .junco-tip svg{animation:sway 2.8s ease-in-out infinite;transform-origin:50% 85%}
+}
+@keyframes sway{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+@media(prefers-reduced-motion:reduce){body{transition:none}}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Barra de progreso · propuestas</h1>
+    <p>Exploración, no decisión. Rama, Libro y Sendero están descartadas. Cada propuesta se muestra en el perfil (tamaño completo) y en el aviso de XP (compacto).</p>
+  </header>
+  <div class="controls">
+    <input id="range" type="range" min="0" max="100" value="62" aria-label="Progreso">
+    <output id="out">62%</output>
+    <button id="play" type="button">Animar</button>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+
+<script>
+const leaves=n=>Array.from({length:n},(_,i)=>i);
+const bars={
+  actual:()=>`<progress class="xp-meter bar" max="100" value="62"></progress>`,
+  junco:()=>`<div class="bar junco"><div class="junco-track"><div class="junco-ground"></div>${leaves(9).map(i=>`<i class="junco-leaf ${i%2?"down":"up"}" style="--t:${(i+1)/10}"></i>`).join("")}<div class="junco-stem"></div>
+    <div class="junco-tip"><svg viewBox="0 0 26 26" fill="none"><path d="M13 23C13 15 8 8 2 7c0 8 4 15 11 16Z" fill="#58BE59" stroke="#173D2C" stroke-width="1.8" stroke-linejoin="round"/><path d="M13 23c0-8 5-15 11-16 0 8-4 15-11 16Z" fill="#B9E877" stroke="#173D2C" stroke-width="1.8" stroke-linejoin="round"/></svg></div></div>
+    <div class="junco-goal"><svg viewBox="0 0 36 36" fill="none">${leaves(5).map(i=>`<ellipse cx="18" cy="9" rx="6" ry="7.5" fill="#F4A6A0" stroke="#173D2C" stroke-width="1.6" transform="rotate(${i*72} 18 18)"/>`).join("")}<circle cx="18" cy="18" r="5" fill="#F2C24B" stroke="#173D2C" stroke-width="1.6"/></svg></div></div>`,
+  liston:()=>`<div class="bar liston"><span class="liston-disc">7</span><div class="liston-plank"><div class="liston-paint"></div><div class="liston-ticks"></div></div><span class="liston-disc next">8</span></div>`
+
+};
+const items=[
+  ["actual","Actual","Cápsula con rayas. Referencia para comparar.",true],
+  ["junco","A · Junco","Un tallo con nudos que crece. Brota una hoja en cada décima y la flor espera al final."],
+  ["liston","B · Listón","Regla de madera de la barra inferior, pintada de verde a brochazos. Niveles en los extremos."]
+];
+document.getElementById("grid").innerHTML=items.map(([id,name,text,current])=>`<section class="card${current?" card--current":""}">
+  <h2>${name}</h2><p>${text}</p>
+  <div><div class="ctx-labels"><strong>1.<span data-xp></span> XP</strong><span>Faltan <span data-left></span> XP para el nivel 8</span></div>${bars[id]()}</div>
+  <div class="ctx-small"><strong>+12 XP</strong><span><span data-into></span>/200</span>${bars[id]()}</div>
+</section>`).join("");
+
+const range=document.getElementById("range"),out=document.getElementById("out");
+function set(v){
+  const into=Math.round(v*2);
+  document.body.style.setProperty("--p",v/100);
+  out.textContent=`${v}%`;
+  document.querySelectorAll("progress").forEach(el=>el.value=v);
+  document.querySelectorAll("[data-xp]").forEach(el=>el.textContent=String(200+into).padStart(3,"0"));
+  document.querySelectorAll("[data-left]").forEach(el=>el.textContent=200-into);
+  document.querySelectorAll("[data-into]").forEach(el=>el.textContent=into);
+}
+range.addEventListener("input",()=>{document.body.classList.add("is-dragging");set(+range.value)});
+range.addEventListener("change",()=>document.body.classList.remove("is-dragging"));
+document.getElementById("play").addEventListener("click",()=>{
+  const target=+range.value||62;
+  document.body.classList.add("is-dragging");set(0);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{document.body.classList.remove("is-dragging");set(target)}));
+});
+set(62);
+</script>
+</body>
+</html>

@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="mascot-art.css?v=level-up-polish-2">
   <link rel="stylesheet" href="book-list.css?v=adaptive-shelf-spines-2">
   <link rel="stylesheet" href="reader.css?v=level-up-polish-2">
+  <link rel="stylesheet" href="xp-meter-art.css?v=xp-meter-art-1">
   <link rel="stylesheet" href="interest-choice.css?v=profile-choice-1">
 
   <link rel="stylesheet" href="card-themes.css?v=reading-guides-2">
@@ -90,6 +91,13 @@
             <label><input type="radio" name="cover-tint" value="mono"><span id="cover-tint-mono">Monocromático</span></label>
             <label><input type="radio" name="cover-tint" value="poly"><span id="cover-tint-poly">Policromático</span></label>
           </div><p id="cover-tint-hint" aria-live="polite"></p>
+        </fieldset>
+        <fieldset class="cover-tint-setting"><legend id="xp-meter-style-label">Barra de progreso</legend>
+          <div class="segmented-selector cover-tint-options">
+            <label><input type="radio" name="xp-meter-style" value="classic"><span id="xp-meter-style-classic">Clásica</span></label>
+            <label><input type="radio" name="xp-meter-style" value="junco"><span id="xp-meter-style-junco">Junco</span></label>
+            <label><input type="radio" name="xp-meter-style" value="liston"><span id="xp-meter-style-liston">Listón</span></label>
+          </div>
         </fieldset>
         <p id="settings-error" class="settings-error" role="alert" hidden></p>
         <button type="button" class="primary" id="open-feedback" aria-haspopup="dialog">Enviar comentarios</button>

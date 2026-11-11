@@ -62,7 +62,7 @@ export function levelUpMarkup({before,after,gain,fraction,kind},language) {
     <div class="level-up-progress" id="level-up-progress">
       <span class="sr-only">${gain}</span><strong class="level-up-gain" aria-hidden="true"></strong>
       <span class="level-up-fraction" aria-hidden="true"><span class="level-up-current">${after.xpIntoLevel.toLocaleString(language)}</span> / <span class="level-up-required">${after.xpForNextLevel.toLocaleString(language)}</span> XP</span>
-      <progress class="xp-meter level-up-meter" max="${after.xpForNextLevel}" value="${after.xpIntoLevel}" aria-label="${level}" aria-valuetext="${fraction}"></progress>
+      <progress class="xp-meter level-up-meter" data-level="${after.level}" max="${after.xpForNextLevel}" value="${after.xpIntoLevel}" aria-label="${level}" aria-valuetext="${fraction}"></progress>
     </div>
     <button class="primary level-up-continue" autofocus>${c.bookInterestContinue}</button>
   </form>`;
@@ -99,10 +99,12 @@ async function playLevelUp(dialog,{before,after,kind},language) {
   }
   scene.classList.add("is-filling");
   number.textContent=before.level.toLocaleString(language);
+  meter.dataset.level=before.level;
   name.textContent=readerLevelName(before,language);
   await transferXp(before.xpIntoLevel,before.xpForNextLevel,before.xpForNextLevel,after.xp-before.xp,850);
   if(!dialog.open || !scene.isConnected)return;
   number.textContent=after.level.toLocaleString(language);
+  meter.dataset.level=after.level;
   name.textContent=readerLevelName(after,language);
   scene.classList.replace("is-filling","is-changing");
   if(kind==="stage"){
@@ -184,6 +186,7 @@ export function mountReaderXpFeedback(doc,readLanguage,showModal) {
     fraction.textContent=msg.fraction;
     meter.max=msg.after.xpForNextLevel;
     meter.value=msg.after.xpIntoLevel;
+    meter.dataset.level=msg.after.level;
     close.setAttribute("aria-label",words[language].readerDismissXp);
     painted=pending;
     paintedLanguage=language;
