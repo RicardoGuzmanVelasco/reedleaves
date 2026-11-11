@@ -28,7 +28,12 @@ function translations(row, fields) {
 }
 
 export function readSeed(directory = new URL("../content/catalog/", import.meta.url)) {
-  return Object.fromEntries(["users", "genres", "books", "decks", "cards", "links"].map(name => [name, parseCsv(readFileSync(new URL(name + ".csv", directory), "utf8"))]));
+  const seed=Object.fromEntries(["users", "genres", "books", "decks", "cards", "links"].map(name => [name, parseCsv(readFileSync(new URL(name + ".csv", directory), "utf8"))]));
+  // The released importer still writes columns that the current catalog no longer has.
+  for (const user of seed.users) user.can_create_decks="1";
+  for (const book of seed.books) book.editorial_status="draft";
+  for (const deck of seed.decks) deck.editorial_status="draft";
+  return seed;
 }
 
 export function validateSeed(seed) {

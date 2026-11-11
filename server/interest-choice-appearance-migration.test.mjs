@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {historicalDatabase,historicalReader} from "../test-support/historical-database.mjs";
+import {historicalDatabase,historicalReader,normalizeRetiredRow} from "../test-support/historical-database.mjs";
 import {initializeDatabase} from "./database.mjs";
 import {checkCatalog,readCatalog} from "./catalog-repository.mjs";
 import {readSeed} from "./seed.mjs";
@@ -11,7 +11,7 @@ async function snapshot(db,dialect){
   const rows={};
   // The XP tables are introduced by a later additive migration and are not
   // part of this migration's data-preservation contract.
-  for(const {name} of tables){if(["reed_schema","reader_xp_balances","reader_xp_events","reading_guide_reviews","app_roles","user_roles"].includes(name))continue;rows[name]=(await db.prepare(`SELECT ${name==="genres"?"id":"*"} FROM "${name}"`).all()).map(row=>({...row})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));}
+  for(const {name} of tables){if(["reed_schema","reader_xp_balances","reader_xp_events","reading_guide_reviews","app_roles","user_roles","reader_display_preferences"].includes(name))continue;rows[name]=(await db.prepare(`SELECT ${name==="genres"?"id":"*"} FROM "${name}"`).all()).map(row=>normalizeRetiredRow(name,row)).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));}
   return rows;
 }
 for(const [dialect,version] of [["sqlite",54],["postgres",46]])test(`${dialect}: approved chip appearance preserves every existing catalog and private row`,async t=>{

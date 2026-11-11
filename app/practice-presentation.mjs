@@ -122,7 +122,7 @@ export function createPracticePresentation({window: win = window, document: doc 
       releasePointer();
       if (!accepted) { resetGesture(); return; }
       root.dataset.swipeDirection = side;
-      onSwipe(side === "left" ? "soon" : "remembered", dx, width, rotation);
+      onSwipe(side === "left" ? "see_less" : "see_more", dx, width, rotation);
     };
     const onPointerCancel = event => { if (event.pointerId === gesture.pointerId) resetGesture(); };
     scene.front.addEventListener("pointerdown", onPointerDown);
@@ -237,7 +237,7 @@ export function createPracticePresentation({window: win = window, document: doc 
     if (!scene || !scene.settled || scene.cancelled) return;
     scene.buttons.forEach(button => {
       button.disabled = true;
-      button.classList.toggle("is-selected",button.dataset.answer === (direction === "left" ? "soon" : "remembered"));
+      button.classList.toggle("is-selected",button.dataset.answer === (direction === "left" ? "see_less" : "see_more"));
     });
     // Finish any remaining typewriting without remounting the card.
     presentReading(scene.main, {arrival:false});

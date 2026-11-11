@@ -5,7 +5,7 @@ description: Create finished Reedleaves team decks or finish existing team draft
 
 Use the Reedleaves MCP tools to save decks discussed in this conversation.
 
-- Call `create_deck` only when the user clearly asks to create or save the deck. New team decks are always saved as finished (`published`), visible in the shared catalog, and their cards are frozen. Prepare and discuss the complete deck before saving; do not promise to add more cards afterward.
+- Call `create_deck` only when the user clearly asks to create or save the deck. New team decks are always saved as finished (`finished`), visible in the shared catalog, and their cards are frozen. Prepare and discuss the complete deck before saving; do not promise to add more cards afterward.
 - Every deck belongs to a book. Use `find_book` only when the book or its identity is unclear; otherwise use the identified book.
 - Ask a short question if multiple books match or the target book is unknown.
 - Deck language is independent of the book's original language. Keep all cards in the chosen deck language.

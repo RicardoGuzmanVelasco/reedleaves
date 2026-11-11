@@ -9,7 +9,7 @@ const cardsWithAnswers=[
   {id:"unanswered"},
   {id:"more"}
 ];
-const answers={less:"soon",more:"remembered"};
+const answers={less:"see_less",more:"see_more"};
 
 test("Practice maps the current response labels to per-card weights",()=>{
   const cases=[
@@ -33,13 +33,13 @@ test("Practice response values still match the visible less and more labels",()=
   };
   const card={id:"card",bookId:"book",deckId:"deck",title:{es:"Tarjeta"},body:{es:"Contenido"}};
   for(const [language,labels] of Object.entries({
-    es:{soon:"Ver menos a menudo",remembered:"Ver más a menudo"},
-    en:{soon:"See less often",remembered:"See more often"}
+    es:{see_less:"Ver menos a menudo",see_more:"Ver más a menudo"},
+    en:{see_less:"See less often",see_more:"See more often"}
   })) {
     const html=practiceView(readerState(catalog,{language,practiceStage:"session"}),{cards:[card],index:0,advancing:false});
     assert.match(html,/class="card-actions-host" data-card-actions="card"/);
-    assert.equal(buttonText(html,"soon"),labels.soon);
-    assert.equal(buttonText(html,"remembered"),labels.remembered);
+    assert.equal(buttonText(html,"see_less"),labels.see_less);
+    assert.equal(buttonText(html,"see_more"),labels.see_more);
   }
 });
 
@@ -86,7 +86,7 @@ test("Practice falls back to distinct decks when a reader has only one available
 
 test("Practice weights each card, not its response group",()=>{
   const cards=[...Array.from({length:8},(_,index)=>({id:`unanswered-${index}`})),{id:"less"}];
-  const result=selectPracticeCards(cards,{less:"soon"},1,()=>0.1);
+  const result=selectPracticeCards(cards,{less:"see_less"},1,()=>0.1);
   assert.equal(result[0].id,"unanswered-0");
 });
 

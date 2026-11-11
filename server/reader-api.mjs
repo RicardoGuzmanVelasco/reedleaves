@@ -5,7 +5,7 @@ import {ApiError} from "./errors.mjs";
 import {readReaderState,readReaderBalances,readReaderHomeBooks,selectDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 
-import {createBook,createDeck,addDeckContributors,changeDeckLanguage,changeDeckTitle,addCard,takeFirstNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
+import {createBook,createDeck,addDeckContributors,changeDeckLanguage,changeDeckTitle,takeNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
 import {createBookAutofill} from "./book-autofill.mjs";
 import {MAX_BOOK_INTERESTS} from "../app/book-interests.mjs";
 import {readCardVotes,setCardVote} from "./card-votes.mjs";
@@ -52,7 +52,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       ["/api/auth/logout",["POST"]],["/api/interests",["GET","HEAD"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/balances",["GET","HEAD"]],["/api/reader/home-books",["GET","HEAD"]],["/api/reader/practice/discover-availability",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/cardcase/add",["POST"]],["/api/reader/cardcase/remove",["POST"]],
       ["/api/reader/book-knowledge/visit",["POST"]],
       ["/api/reader/interests/knowledge/snapshot",["POST"]],["/api/reader/interests/knowledge/recognize",["POST"]],
-      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
+      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]]]);
     routes.set("/api/reader/guides",["POST"]);
     routes.set("/api/reader/guide-reviews",["GET","HEAD"]);
     routes.set("/api/reader/guide-reviews/count",["GET","HEAD"]);
@@ -142,7 +142,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       if(path === "/api/reader/interests/knowledge/snapshot") { send(200,await captureReaderInterestSnapshot(db,active,input)); return true; }
       if(path === "/api/reader/interests/knowledge/recognize") { send(200,await saveAndRecognizeReaderInterestSnapshot(db,active,input)); return true; }
       if (path === "/api/reader/practice/start") {
-        const result=await startPracticeSession(db,active,input.topic,currentTime,Object.hasOwn(input,"sessionId")?input.sessionId:undefined,input.expectedCost);
+        const result=await startPracticeSession(db,active,input.practiceMode,currentTime,Object.hasOwn(input,"sessionId")?input.sessionId:undefined,input.expectedCost);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
       if (path === "/api/reader/practice/answer") {
@@ -210,7 +210,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
           const result=await (path.endsWith("title") ? changeDeckTitle : changeDeckLanguage)(db,active,input);
           send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
         }
-        const result = path === "/api/author/notes" ? await takeFirstNote(db,active,input) : path === "/api/author/decks/finish-notes" ? await finishNoteDecks(db,active,input) : path === "/api/author/decks/contributors" ? await addDeckContributors(db,active,input) : path === "/api/author/decks/finish" ? await finishDeck(db,active,input) : path.endsWith("complete") ? await completeBook(db,active,input) : path.endsWith("books") ? await createBook(db,active,input) : path.endsWith("decks") ? await createDeck(db,active,input) : await addCard(db,active,input);
+        const result = path === "/api/author/notes" ? await takeNote(db,active,input) : path === "/api/author/decks/finish-notes" ? await finishNoteDecks(db,active,input) : path === "/api/author/decks/contributors" ? await addDeckContributors(db,active,input) : path === "/api/author/decks/finish" ? await finishDeck(db,active,input) : path.endsWith("complete") ? await completeBook(db,active,input) : path.endsWith("books") ? await createBook(db,active,input) : await createDeck(db,active,input);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
       const result = path === "/api/reader/cardcase/add" ? await addDeckToCardcase(db,active,input.deckId,currentTime,{confirmation:input.confirmation,confirmationEnabled:bookInterestConfirmationEnabled}) :

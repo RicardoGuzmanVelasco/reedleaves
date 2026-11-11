@@ -1,4 +1,4 @@
-import {PRACTICE_ENABLED_TOPICS} from "./practice-modes.mjs";
+import {PRACTICE_ENABLED_MODES} from "./practice-modes.mjs";
 import {prepareOpeningFlight} from "./opening-flight.mjs";
 import {createDiscoverAvailability} from "./discover-availability.mjs";
 import {startBottomNavigationBehavior} from "./bottom-navigation-behavior.mjs";
@@ -175,9 +175,9 @@ export function startReader({createCardFeatures} = {}) {
     read:()=>api.request("/api/reader/practice/discover-availability"),
     onChange:()=>{
       if(mode!=="practice"||practiceStage!=="choose"||snapshot.activePracticeSession||main.querySelector(".practice-help-modal[open]"))return;
-      const focused=document.activeElement,topic=focused?.dataset.action==="practice-topic"?focused.dataset.topic:null;
+      const focused=document.activeElement,practiceMode=focused?.dataset.action==="practice-mode"?focused.dataset.practiceMode:null;
       render();
-      if(topic)main.querySelector(`[data-topic="${topic}"]`)?.focus({preventScroll:true});
+      if(practiceMode)main.querySelector(`[data-practice-mode="${practiceMode}"]`)?.focus({preventScroll:true});
     }
   });
   const busyDisabledState=new WeakMap();
@@ -448,7 +448,7 @@ export function startReader({createCardFeatures} = {}) {
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
     const selectedDaily=dailyHistory.find(item=>item.day===selectedDailyDay)||daily;
     if(mode==="practice"&&practiceStage==="choose"&&!snapshot.activePracticeSession&&snapshot.user&&discoverAvailability.state.status==="idle")void discoverAvailability.load();
-    const state = {discoverAvailability:discoverAvailability.state,practiceStarting:practiceStartRequest?.topic||null,presentationLayout,presentationIndex,bookViews,userId:snapshot.user?.id,user:snapshot.user,guideReviewPendingCount,guideReviewQueue,guideReviewLoading,guideReviewError,guideReviewRejectingId,guideReviewExpandedId,guideReviewReason,guideReviewNotice,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,deckContributorError,deckContributorInput,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,homeBooks:homeBooksData,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily:selectedDaily,dailyToday:daily,dailyHistory,dailyStatus,dailyLoading,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountTopic:snapshot.practiceDiscountTopic,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
+    const state = {discoverAvailability:discoverAvailability.state,practiceStarting:practiceStartRequest?.practiceMode||null,presentationLayout,presentationIndex,bookViews,userId:snapshot.user?.id,user:snapshot.user,guideReviewPendingCount,guideReviewQueue,guideReviewLoading,guideReviewError,guideReviewRejectingId,guideReviewExpandedId,guideReviewReason,guideReviewNotice,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,deckContributorError,deckContributorInput,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,homeBooks:homeBooksData,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily:selectedDaily,dailyToday:daily,dailyHistory,dailyStatus,dailyLoading,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountMode:snapshot.practiceDiscountMode,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
       sharedContentLanguage:mode === "shared-card" ? sharedContentLanguage : null,deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,readingGuidePromptBookId,readingGuideError,readingGuideDraft,libraryQuery,libraryFilters,libraryFiltersOpen,libraryFilterDraft,librarySortDraft,bookSortOrder,librarySortOrder,interestPreferences,libraryInterestSortPending,libraryInterestSortError,bookcaseTab,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
       profileData,profileError,profileInterests,profileLanguages,homeInterestPreferences,bookInterestPrompt,readOnly:mode === "public-bookcase",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,accountLearningNotice,accountInterestSortNotice,libraryNewBookIds,injectHeaderLeading:setHeaderLeading,profileReturnHash,showProfileBack:snapshot.user&&usefulProfileReturnHash(profileReturnHash)};
     presentationState=state;
@@ -456,7 +456,7 @@ export function startReader({createCardFeatures} = {}) {
       (mode === "shared-card" ? sharedCardView(state) : mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "guide-reviews" ? guideReviewQueueView(state) : mode === "library" ? libraryView(state) : mode === "bookcase" ? bookcaseView(state) : mode === "public-bookcase" ? (profileData ? bookcaseView(state) : profilePendingView(state))+(profileData&&profileTransition==="wake"?profileWakeOverlayView():"") : mode === "profile-loading-preview" ? profilePendingView(state) : mode === "profile" ? profileView(state)+(profileTransition==="wake"?profileWakeOverlayView():"") : mode === "daily" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "guides" ? readingGuidesView(state) : mode === "guide-preview" ? readingGuideDeckPreviewView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : reviewView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "") + bookInterestWarningView(state);
     mountInterests(main);
     mountBookCoverTints(main,[...(catalog?.books||[]),...homeBooksData],catalog?.genres||homeCoverInterests,tintMode);
-    for(const option of main.querySelectorAll('[data-action="practice-topic"]')) {
+    for(const option of main.querySelectorAll('[data-action="practice-mode"]')) {
       const release=()=>option.classList.remove("is-pressed");
       option.addEventListener("pointerdown",event=>{if(event.button===0&&!option.disabled)option.classList.add("is-pressed");});
       for(const event of ["pointerup","pointercancel","pointerleave","blur"])option.addEventListener(event,release);
@@ -639,7 +639,7 @@ export function startReader({createCardFeatures} = {}) {
     else if (view === "author" && catalog.decksById.has(first) && (catalog.decksById.get(first)?.creator?.userId === snapshot.user?.id || catalog.decksById.get(first)?.canContribute) && catalog.decksById.get(first).status === "draft") {
       if (deckId !== first) quotesOnly = false; deckId = first; bookId = catalog.decksById.get(first).bookId; requestedId = catalog.deckModels.get(first).byId.has(second) ? second : null; openDeckId = null; mode = "author";
     }
-    else if (view === "author" && catalog.decksById.get(first)?.status === "published") {
+    else if (view === "author" && catalog.decksById.get(first)?.status === "finished") {
       history.replaceState(history.state,"","#review/"+first+(second ? "/"+second : ""));route(focus);return;
     }
     else if (["review","read"].includes(view)) {
@@ -657,7 +657,7 @@ export function startReader({createCardFeatures} = {}) {
         practiceSession=restorePracticeSession(snapshot.activePracticeSession);
         if(practiceSession) { practiceStage="session";practiceUnavailable=null; }
         else if(snapshot.practiceRecovery?.status==="cancelled") {
-          practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",topic:snapshot.practiceRecovery.topic};
+          practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",practiceMode:snapshot.practiceRecovery.practiceMode};
           history.replaceState(history.state,"","#practice");
         } else {
           practiceStage="choose";practiceUnavailable=null;
@@ -909,7 +909,7 @@ export function startReader({createCardFeatures} = {}) {
     const request=Promise.all([loadCatalog(),api.request("/api/reader/state")]).then(([updatedCatalog,state])=>{
       if(!canApplyPracticeRecovery({userId,generation,stateRevision},{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration}))return null;
       syncGeneration++;
-      const previousPracticeTopic=snapshot.activePracticeSession?.topic;
+      const previousPracticeMode=snapshot.activePracticeSession?.practiceMode;
       catalog=updatedCatalog;
       applyState(state);
       const restored=restorePracticeSession(state.activePracticeSession);
@@ -918,12 +918,12 @@ export function startReader({createCardFeatures} = {}) {
       } else if(!state.activePracticeSession) {
         practiceSession=null;
         if(state.practiceRecovery?.status==="cancelled") {
-          practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",topic:state.practiceRecovery.topic||previousPracticeTopic};
+          practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",practiceMode:state.practiceRecovery.practiceMode||previousPracticeMode};
           if(hash==="#practice/session")history.replaceState(history.state,"","#practice");
         } else { practiceStage="choose";practiceUnavailable=null; }
       } else {
         practiceSession=null;practiceStage="empty";
-        practiceUnavailable={reason:"connectionError",topic:state.activePracticeSession.topic};
+        practiceUnavailable={reason:"connectionError",practiceMode:state.activePracticeSession.practiceMode};
       }
       if(mode==="practice"&&(location.hash===hash||state.practiceRecovery?.status==="cancelled"&&location.hash==="#practice")) {
         if(restored&&hash!=="#practice/session")history.replaceState(history.state,"","#practice/session");
@@ -934,25 +934,25 @@ export function startReader({createCardFeatures} = {}) {
     }).catch(()=>{
       if(canApplyPracticeRecovery({userId,generation,stateRevision},{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration})&&mode==="practice"&&location.hash===hash) {
         practiceSession=null;practiceStage="empty";
-        practiceUnavailable={reason:"connectionError",topic:snapshot.activePracticeSession?.topic};render({focus:true});
+        practiceUnavailable={reason:"connectionError",practiceMode:snapshot.activePracticeSession?.practiceMode};render({focus:true});
       }
       return null;
     }).finally(()=>{if(practiceRecoveryRequest?.promise===request)practiceRecoveryRequest=null;});
     practiceRecoveryRequest={generation,userId,stateRevision,promise:request};
     return request;
   }
-  async function startPractice(topic) {
-    if(!snapshot.user || practiceStartRequest || !PRACTICE_ENABLED_TOPICS.includes(topic))return;
-    if(topic==="discover"&&!snapshot.activePracticeSession&&(discoverAvailability.state.status!=="ready"||discoverAvailability.state.available<discoverAvailability.state.required))return;
+  async function startPractice(practiceMode) {
+    if(!snapshot.user || practiceStartRequest || !PRACTICE_ENABLED_MODES.includes(practiceMode))return;
+    if(practiceMode==="discover"&&!snapshot.activePracticeSession&&(discoverAvailability.state.status!=="ready"||discoverAvailability.state.available<discoverAvailability.state.required))return;
     invalidatePracticeRecovery();
     syncGeneration++;
     practiceIntroSession=null;
     const userId=snapshot.user.id,generation=practiceRecoveryGeneration,stateRevision=authoritativeStateGeneration;
-    const requestTicket={userId,generation,stateRevision,topic};
+    const requestTicket={userId,generation,stateRevision,practiceMode};
     practiceStartRequest=requestTicket;
     render();
     try {
-      const result=await api.request("/api/reader/practice/start",{topic,sessionId:snapshot.activePracticeSession?.id||null,expectedCost:topic===snapshot.practiceDiscountTopic?2:3});
+      const result=await api.request("/api/reader/practice/start",{practiceMode,sessionId:snapshot.activePracticeSession?.id||null,expectedCost:practiceMode===snapshot.practiceDiscountMode?2:3});
       if(!canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration})) {
         if(snapshot.user?.id===userId)void recoverPracticeSession();
         return;
@@ -961,15 +961,15 @@ export function startReader({createCardFeatures} = {}) {
       applyState(result.state);
       const active=result.state.activePracticeSession;
       if(result.practiceRecovery?.status==="cancelled") {
-        practiceSession=null;practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",topic};
+        practiceSession=null;practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",practiceMode};
         history.replaceState(history.state,"","#practice");render({focus:true});return;
       }
       if(result.reason==="practicePriceChanged") {
-        practiceSession=null;practiceStage="choose";practiceUnavailable={reason:"practicePriceChanged",topic};
+        practiceSession=null;practiceStage="choose";practiceUnavailable={reason:"practicePriceChanged",practiceMode};
         history.replaceState(history.state,"","#practice");render({focus:true});return;
       }
       if(result.practiceRecovery?.status==="stale") {
-        practiceSession=null;practiceStage="choose";practiceUnavailable={reason:"practiceSessionUnavailable",topic};
+        practiceSession=null;practiceStage="choose";practiceUnavailable={reason:"practiceSessionUnavailable",practiceMode};
         history.replaceState(history.state,"","#practice");render({focus:true});return;
       }
       practiceIntroSession=active?{id:active.id,cardIds:[...active.cardIds],index:active.index}:null;
@@ -983,7 +983,7 @@ export function startReader({createCardFeatures} = {}) {
     } catch(error) {
       if(!canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration}))return;
       syncError=error.code||"connectionError";
-      practiceUnavailable={reason:error.code||"connectionError",topic,cost:topic===snapshot.practiceDiscountTopic?2:3,balance:snapshot.petals||0};practiceStage="empty";navigate("#practice/empty");
+      practiceUnavailable={reason:error.code||"connectionError",practiceMode,cost:practiceMode===snapshot.practiceDiscountMode?2:3,balance:snapshot.petals||0};practiceStage="empty";navigate("#practice/empty");
     } finally {if(practiceStartRequest===requestTicket){practiceStartRequest=null;if(mode==="practice"&&practiceStage==="choose")render();}}
   }
   async function answerPractice(answer,{swipeX=0,cardWidth=1,rotation=0}={}) {
@@ -995,7 +995,7 @@ export function startReader({createCardFeatures} = {}) {
     practiceAnswerRequest=requestTicket;
     syncGeneration++;
     session.advancing=true;session.answer=answer;
-    const departure=practicePresentation.leave(answer === "soon" ? "left" : "right",{
+    const departure=practicePresentation.leave(answer === "see_less" ? "left" : "right",{
       fromXPercent:swipeX/cardWidth*100,fromRotation:rotation
     });
     try {
@@ -1043,7 +1043,7 @@ export function startReader({createCardFeatures} = {}) {
     } else if(activePracticeSession) {
       practiceSession=null;practiceStage="choose";practiceUnavailable=null;history.replaceState(history.state,"","#practice");render({focus:true});void recoverPracticeSession();return;
     } else if(result.practiceRecovery?.status==="cancelled") {
-      practiceSession=null;practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",topic:session.topic};
+      practiceSession=null;practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",practiceMode:session.practiceMode};
       history.replaceState(history.state,"","#practice");render({focus:true});return;
     } else {
       practiceSession=null;practiceStage="choose";practiceUnavailable=null;
@@ -1246,7 +1246,7 @@ export function startReader({createCardFeatures} = {}) {
       const result=await api.request("/api/author/decks/finish-notes",{bookId:completion.bookId,decks:completion.decks});
       for (const entry of result.decks) {
         const deck=catalog.decksById.get(entry.deckId);
-        if (deck) deck.status=entry.status;
+        if (deck && entry.status === "finished") deck.status=entry.status;
       }
       applyState(result.state);notesCompletion=null;
       try {catalog=await loadCatalog();} catch {syncError="connectionError";}
@@ -1449,7 +1449,7 @@ export function startReader({createCardFeatures} = {}) {
     const input = savedForm.bookId ? {bookId:savedForm.bookId,metadata:savedForm.metadata} : savedForm.kind === "book" ? {title:savedForm.title,author:savedForm.author,language:savedForm.language,metadata:savedForm.metadata,requestId:savedForm.requestId} : savedForm.kind === "deck" ? {...deckInput,requestId:savedForm.requestId,bookId:savedForm.noteBookId || bookId} : savedForm.createNoteDeck ? {...fields,requestId:savedForm.requestId,bookId:savedForm.noteBookId,language:savedForm.noteLanguage,isQuote:savedForm.kind === "quote"} : {...fields,requestId:savedForm.requestId,deckId:savedForm.noteDeckId || deckId,parentId:fields.parentId || null,isQuote:savedForm.kind === "quote"};
     busy = true; syncGeneration++; savedForm.error = null; savedForm.errorReference = null; lockControls();
     try {
-      const result = await api.request(savedForm.bookId ? "/api/author/books/complete" : savedForm.kind === "book" ? "/api/author/books" : savedForm.kind === "deck" ? "/api/author/decks" : savedForm.createNoteDeck ? "/api/author/notes" : "/api/author/cards",input);
+      const result = await api.request(savedForm.bookId ? "/api/author/books/complete" : savedForm.kind === "book" ? "/api/author/books" : savedForm.kind === "deck" ? "/api/author/decks" : "/api/author/notes",input);
       if(snapshot.user?.id!==userId)return;
       if(result.xpReward&&result.state.user?.id===userId)syncReaderXp(userId,result.state.readerProgression?.xp,result.xpReward);
       if (["idea","quote"].includes(savedForm.kind)) noteDrafts.remove(savedForm);
@@ -2059,7 +2059,7 @@ export function startReader({createCardFeatures} = {}) {
         break;
       }
       case "close-practice-help": main.querySelector(".practice-help-modal")?.close(); break;
-      case "practice-topic": startPractice(b.dataset.topic); break;
+      case "practice-mode": startPractice(b.dataset.practiceMode); break;
       case "retry-discover": discoverAvailability.invalidate();void discoverAvailability.load();render();break;
       case "practice-answer": answerPractice(b.dataset.answer); break;
       case "practice-resume": resumePractice(); break;

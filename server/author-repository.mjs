@@ -124,7 +124,6 @@ async function writeDeck(db,session,input) {
       kind === "standard" && (contributionPolicy !== "owner" || maxCardsPerContributor !== null) ||
       kind === "collective" && contributionPolicy === "owner") throw new ApiError(400,"invalidRequest");
   if (!await db.prepare("SELECT 1 FROM books WHERE id=?").get(input.bookId)) throw new ApiError(404,"bookUnavailable");
-  await db.prepare("UPDATE users SET can_create_decks=1 WHERE id=?").run(session.user_id);
   const previous=await db.prepare("SELECT * FROM decks WHERE id=?").get(id);
   if (previous) {
     if (previous.creator_user_id !== session.user_id || previous.book_id !== input.bookId || previous.language !== language || previous.kind !== kind || previous.contribution_policy !== contributionPolicy || previous.max_cards_per_contributor !== maxCardsPerContributor) throw new ApiError(409,"invalidRequest");
@@ -204,7 +203,9 @@ export async function changeDeckLanguage(db,session,input) {
     return {deckId:deck.id};
   });
 }
-export async function addCard(db,session,input) {
+export async function takeNote(db,session,input) {
+  // Without a destination deck, the note creates the reader's default notes deck.
+  if (input.deckId === undefined || input.deckId === null) return takeNoteInNewDeck(db,session,input);
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
     return writeCard(db,session,input);
@@ -246,7 +247,7 @@ async function writeCard(db,session,input) {
   return {deckId:deck.id,cardId:id,...(reward?.awarded?{xpReward:{amount:reward.awarded,balance:reward.balance}}:{})};
 }
 
-export async function takeFirstNote(db,session,input) {
+async function takeNoteInNewDeck(db,session,input) {
   const id=requestId(input.requestId),body=text(input.body,CARD_BODY_MAX_LENGTH),language=input.language;
   if (!LANGUAGES.includes(language) || typeof input.bookId !== "string" || typeof input.isQuote !== "boolean") throw new ApiError(400,"invalidRequest");
   const title=input.isQuote ? quoteExcerpt(body) : text(input.title,TITLE_MAX_LENGTH);
@@ -269,22 +270,22 @@ export async function takeFirstNote(db,session,input) {
 export async function finishDeck(db,session,input) {
   if (typeof input.deckId !== "string" || !input.deckId || input.deckId.length > 256) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
-    // Shares addCard's deck lock: adding a note and finishing cannot race.
+    // Shares takeNote's deck lock: adding a note and finishing cannot race.
     const deck=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db) ? " FOR UPDATE OF d" : ""}`).get(input.deckId);
     if (!deck || deck.creator_user_id !== session.user_id) throw new ApiError(404,"deckUnavailable");
-    if (deck.status === "published") return {deckId:deck.id,status:"published"};
+    if (deck.status === "finished") return {deckId:deck.id,status:"finished"};
     if (deck.status !== "draft") throw new ApiError(409,"deckReadOnly");
     const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(deck.id);
     if (!total) throw new ApiError(409,"emptyDeckCannotFinish");
-    await db.prepare("UPDATE decks SET status='published' WHERE id=? AND status='draft'").run(deck.id);
-    return {deckId:deck.id,status:"published"};
+    await db.prepare("UPDATE decks SET status='finished' WHERE id=? AND status='draft'").run(deck.id);
+    return {deckId:deck.id,status:"finished"};
   });
 }
 
 // MCP always acts as the team; the caller cannot choose another owner.
 export async function finishTeamDeck(db,input) {
-  const team=await db.prepare("SELECT id,can_create_decks FROM users WHERE id='reed-team'").get();
-  if (!team || !team.can_create_decks) throw new ApiError(500,"teamAuthorUnavailable");
+  const team=await db.prepare("SELECT id FROM users WHERE id='reed-team'").get();
+  if (!team) throw new ApiError(500,"teamAuthorUnavailable");
   return finishDeck(db,{user_id:"reed-team"},input);
 }
 
@@ -300,7 +301,7 @@ export async function readTeamDeckDrafts(db,{bookId}={}) {
     title:row.title,language:row.language,cardCount:row.card_count}))};
 }
 
-// Only the private MCP integration can transfer a published team deck to an
+// Only the private MCP integration can transfer a finished team deck to an
 // account that is explicitly enabled to create decks.
 export async function reassignTeamDeckCreator(db,{deckId,username}) {
   if (typeof deckId!=="string" || !deckId.trim() || deckId.length>256 ||
@@ -309,20 +310,25 @@ export async function reassignTeamDeckCreator(db,{deckId,username}) {
   return transaction(db,async()=>{
     const deck=await db.prepare(`SELECT id,creator_user_id,status FROM decks WHERE id=?${isPostgres(db) ? " FOR UPDATE" : ""}`).get(deckId.trim());
     if (!deck) throw new ApiError(404,"deckUnavailable");
-    const creator=await db.prepare(`SELECT u.id,u.display_name,a.username,u.can_create_decks FROM accounts a
+    const creator=await db.prepare(`SELECT u.id,u.display_name,a.username FROM accounts a
       JOIN users u ON u.id=a.user_id WHERE a.username=?${isPostgres(db) ? " FOR SHARE OF u" : ""}`).get(normalizedUsername);
     if (!creator) throw new ApiError(404,"creatorUnavailable");
-    if (!creator.can_create_decks) throw new ApiError(409,"creatorCannotCreateDecks");
     if (deck.creator_user_id===creator.id) return {deckId:deck.id,creatorUserId:creator.id,creatorUsername:creator.username,creatorName:creator.display_name,idempotent:true};
     if (deck.creator_user_id!=="reed-team") throw new ApiError(404,"deckUnavailable");
-    if (deck.status!=="published") throw new ApiError(409,"deckNotPublished");
-    const changed=await db.prepare("UPDATE decks SET creator_user_id=? WHERE id=? AND creator_user_id='reed-team' AND status='published'").run(creator.id,deck.id);
+    if (deck.status!=="finished") throw new ApiError(409,"deckNotFinished");
+    const changed=await db.prepare("UPDATE decks SET creator_user_id=? WHERE id=? AND creator_user_id='reed-team' AND status='finished'").run(creator.id,deck.id);
     if (changed.changes!==1) throw new ApiError(409,"deckUnavailable");
     return {deckId:deck.id,creatorUserId:creator.id,creatorUsername:creator.username,creatorName:creator.display_name};
   });
 }
 
-// Close exactly the decks and card counts shown in the confirmation dialog.
+// Empty drafts have no content to keep, so finishing deletes them with their own references.
+async function deleteEmptyDraftDeck(db,deckId) {
+  for (const table of ["deck_translations","deck_contributors","deck_votes","deck_selections","studies"]) await db.prepare(`DELETE FROM ${table} WHERE deck_id=?`).run(deckId);
+  await db.prepare("DELETE FROM decks WHERE id=? AND status='draft'").run(deckId);
+}
+
+// Finish exactly the decks and card counts shown in the confirmation dialog.
 export async function finishNoteDecks(db,session,input) {
   const {bookId,decks}=input;
   if (typeof bookId !== "string" || !bookId || bookId.length > 256 || !Array.isArray(decks) || !decks.length || decks.length > 200 ||
@@ -330,21 +336,24 @@ export async function finishNoteDecks(db,session,input) {
     new Set(decks.map(row=>row.deckId)).size !== decks.length) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     const changes=[];
-    // Stable lock order also serializes against addCard and individual finishing.
+    // Stable lock order also serializes against takeNote and individual finishing.
     for (const entry of [...decks].sort((a,b)=>a.deckId.localeCompare(b.deckId))) {
       const deck=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db) ? " FOR UPDATE OF d" : ""}`).get(entry.deckId);
       if (!deck || deck.creator_user_id !== session.user_id || deck.book_id !== bookId) throw new ApiError(404,"deckUnavailable");
       const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(deck.id);
-      const status=entry.cardCount ? "published" : "archived";
-      if (total !== entry.cardCount || !["draft",status].includes(deck.status)) throw new ApiError(409,"noteDecksChanged");
+      const status=entry.cardCount ? "finished" : "deleted";
+      if (total !== entry.cardCount || !(deck.status === "draft" || entry.cardCount > 0 && deck.status === "finished")) throw new ApiError(409,"noteDecksChanged");
       changes.push({deckId:deck.id,status});
     }
-    for (const change of changes) await db.prepare("UPDATE decks SET status=? WHERE id=? AND status='draft'").run(change.status,change.deckId);
+    for (const change of changes) {
+      if (change.status === "finished") await db.prepare("UPDATE decks SET status='finished' WHERE id=? AND status='draft'").run(change.deckId);
+      else await deleteEmptyDraftDeck(db,change.deckId);
+    }
     return {bookId,decks:changes};
   });
 }
 
-// Conversation-created team decks are published atomically with their cards.
+// Conversation-created team decks are finished atomically with their cards.
 // The caller must be an authenticated MCP
 // integration; never accept the owner ID from tool input.
 export async function createTeamDeck(db,input) {
@@ -370,8 +379,8 @@ export async function createTeamDeck(db,input) {
   }
   try { validateCards(normalizedCards,input.bookId); } catch { throw new ApiError(400,"invalidRequest"); }
   return transaction(db,async()=>{
-    const team=await db.prepare("SELECT id,display_name,can_create_decks FROM users WHERE id='reed-team'").get();
-    if (!team || !team.can_create_decks) throw new ApiError(500,"teamAuthorUnavailable");
+    const team=await db.prepare("SELECT id,display_name FROM users WHERE id='reed-team'").get();
+    if (!team) throw new ApiError(500,"teamAuthorUnavailable");
     const book=await db.prepare("SELECT 1 FROM books WHERE id=?").get(input.bookId);
     if (!book) throw new ApiError(404,"bookUnavailable");
     const previous=await db.prepare("SELECT * FROM decks WHERE id=?").get(id);
@@ -379,13 +388,13 @@ export async function createTeamDeck(db,input) {
       if (previous.creator_user_id!=="reed-team" || previous.book_id!==input.bookId || previous.language!==language) throw new ApiError(409,"invalidRequest");
       const deck=await db.prepare(`SELECT * FROM decks WHERE id=?${isPostgres(db) ? " FOR UPDATE" : ""}`).get(id);
       const metadata=await db.prepare("SELECT title,description,editorial_note FROM deck_translations WHERE deck_id=? AND language=?").get(id,language);
-      if (!deck || !["draft","published"].includes(deck.status) || deck.quote_source_url!==quoteSourceUrl || !metadata || metadata.title!==title || metadata.description!==(description||title) || metadata.editorial_note!==editorialNote) throw new ApiError(409,"invalidRequest");
+      if (!deck || !["draft","finished"].includes(deck.status) || deck.quote_source_url!==quoteSourceUrl || !metadata || metadata.title!==title || metadata.description!==(description||title) || metadata.editorial_note!==editorialNote) throw new ApiError(409,"invalidRequest");
       const rows=await db.prepare(`SELECT c.id,c.parent_id,c.position,c.is_quote,t.title,t.body FROM cards c JOIN card_translations t ON t.card_id=c.id AND t.language=? WHERE c.deck_id=? ORDER BY c.position,c.id`).all(language,id);
       const actual=rows.map(row=>({id:row.id,parentId:row.parent_id,order:row.position,isQuote:!!row.is_quote,title:row.title,body:row.body})).sort((a,b)=>a.id.localeCompare(b.id));
       const expected=normalizedCards.map(card=>({id:card.id,parentId:card.parentId,order:card.order,isQuote:card.isQuote,title:card.title[language],body:card.body[language]})).sort((a,b)=>a.id.localeCompare(b.id));
       if (!isDeepStrictEqual(actual,expected)) throw new ApiError(409,"invalidRequest");
-      if (deck.status==="draft") await db.prepare("UPDATE decks SET status='published' WHERE id=? AND status='draft'").run(deck.id);
-      return {deckId:id,status:"published",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:true};
+      if (deck.status==="draft") await db.prepare("UPDATE decks SET status='finished' WHERE id=? AND status='draft'").run(deck.id);
+      return {deckId:id,status:"finished",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:true};
     }
     await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language,status,quote_source_url) VALUES (?,?, 'reed-team',?,'draft',?)").run(id,input.bookId,language,quoteSourceUrl);
     await db.prepare("INSERT INTO deck_translations(deck_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,title,description||title,editorialNote);
@@ -397,16 +406,16 @@ export async function createTeamDeck(db,input) {
       await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)")
         .run(card.id,language,card.title[language],card.body[language]);
     }
-    await db.prepare("UPDATE decks SET status='published' WHERE id=? AND status='draft'").run(id);
-    return {deckId:id,status:"published",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:false};
+    await db.prepare("UPDATE decks SET status='finished' WHERE id=? AND status='draft'").run(id);
+    return {deckId:id,status:"finished",cardCount:normalizedCards.length,creatorName:team.display_name,idempotent:false};
   });
 }
 
 export async function appendTeamDeckCards(db,input) {
   const request=requestId(input.requestId),deckId=text(input.deckId,280),cards=input.cards;
   if (!Array.isArray(cards)||!cards.length||cards.length>MAX_CARDS_PER_DECK) throw new ApiError(400,"invalidRequest");
-  const team=await db.prepare("SELECT id,can_create_decks FROM users WHERE id='reed-team'").get();
-  if (!team||!team.can_create_decks) throw new ApiError(500,"teamAuthorUnavailable");
+  const team=await db.prepare("SELECT id FROM users WHERE id='reed-team'").get();
+  if (!team) throw new ApiError(500,"teamAuthorUnavailable");
   return transaction(db,async()=>{
     const deck=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db)?" FOR UPDATE OF d":""}`).get(deckId);
     if (!deck||deck.creator_user_id!=="reed-team") throw new ApiError(404,"deckUnavailable");

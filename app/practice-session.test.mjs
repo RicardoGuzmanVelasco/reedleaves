@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,practiceSessionAfterAnimation,restorePracticeSession,samePracticeRecoveryTicket} from "./practice-session.mjs";
 
-const session={id:"session",topic:"reading",cardIds:["a","b","c","d","e"],index:2,cost:2,startedAt:"2026-10-06T10:00:00Z"};
+const session={id:"session",practiceMode:"reading",cardIds:["a","b","c","d","e"],index:2,cost:2,startedAt:"2026-10-06T10:00:00Z"};
 const cardsById=new Map(session.cardIds.map(id=>[id,{id}]));
 
 test("restores the exact server card order and cursor",()=>{

@@ -13,27 +13,27 @@ import {readerLanguagePreferencesInside} from "./reader-language-preferences.mjs
 import {canReviewDeck,reviewableDeckIds} from "./review-card-access.mjs";
 import {discoverPracticeCandidateContext,selectDiscoverPracticeForReader} from "./discover-practice.mjs";
 
-import {PRACTICE_ENABLED_TOPICS} from "../app/practice-modes.mjs";
+import {PRACTICE_ENABLED_MODES} from "../app/practice-modes.mjs";
 
-export const PRACTICE_SCHEMA_TOPICS=["reading","read","saved","mixed","discover"];
-export {PRACTICE_ENABLED_TOPICS} from "../app/practice-modes.mjs";
+export const PRACTICE_SCHEMA_MODES=["reading","read","saved","mixed","discover"];
+export {PRACTICE_ENABLED_MODES} from "../app/practice-modes.mjs";
 // Keep the existing name for discount selection and callers that enumerate active modes.
-export const PRACTICE_TOPICS=PRACTICE_ENABLED_TOPICS;
+export const PRACTICE_MODES=PRACTICE_ENABLED_MODES;
 export const PRACTICE_BASE_COST=3;
 export const PRACTICE_DISCOUNT_COST=2;
 export const PRACTICE_SESSION_SIZE=5;
 const COMPLETED_PRACTICE_XP=25;
 
 const timestampText=value=>value instanceof Date?value.toISOString():String(value||"");
-export function practiceDiscountTopic(userId,seedTimestamp) {
+export function practiceDiscountMode(userId,seedTimestamp) {
   const hash=createHash("sha256").update(`${userId}\0${timestampText(seedTimestamp)}`).digest();
-  return PRACTICE_TOPICS[hash.readUInt32BE(0)%PRACTICE_TOPICS.length];
+  return PRACTICE_MODES[hash.readUInt32BE(0)%PRACTICE_MODES.length];
 }
 
 async function currentDiscount(db,userId) {
   const row=await db.prepare(`SELECT COALESCE((SELECT MAX(completed_at) FROM practice_sessions WHERE user_id=?),u.created_at) AS seed
     FROM users u WHERE u.id=?`).get(userId,userId);
-  return practiceDiscountTopic(userId,row?.seed);
+  return practiceDiscountMode(userId,row?.seed);
 }
 
 function sessionFromRow(row) {
@@ -41,12 +41,12 @@ function sessionFromRow(row) {
   try { const parsed=JSON.parse(row.card_ids);if(Array.isArray(parsed))cardIds=parsed; } catch {}
   let languageSnapshot=null;
   try { const parsed=JSON.parse(row.language_snapshot);if(Array.isArray(parsed)){const normalized=normalizeLanguageList(parsed,[]);if(normalized.length)languageSnapshot=normalized;} } catch {}
-  return {id:row.id,topic:row.topic,cardIds,index:Number(row.card_index),cost:Number(row.cost),
+  return {id:row.id,practiceMode:row.practice_mode,cardIds,index:Number(row.card_index),cost:Number(row.cost),
     languageSnapshot,startedAt:timestampText(row.started_at),completedAt:row.completed_at?timestampText(row.completed_at):null};
 }
 
-async function availableCards(db,userId,topic,languages=null) {
-  if(topic==="discover") return (await discoverPracticeCandidateContext(db,userId,languages)).cards;
+async function availableCards(db,userId,practiceMode,languages=null) {
+  if(practiceMode==="discover") return (await discoverPracticeCandidateContext(db,userId,languages)).cards;
   const catalog=prepareCatalog(await readCatalog(db,userId));
   const statuses=new Map((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(row=>[row.book_id,row.status]));
   const enrolled=new Set((await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(row=>row.deck_id));
@@ -56,7 +56,7 @@ async function availableCards(db,userId,topic,languages=null) {
     if(card.isReadingGuide||!access.has(card.deckId)||languages&&!languages.includes(effectiveCardLanguage(card))) return false;
     const status=statuses.get(card.bookId)||"unread",isSaved=saved.has(card.id);
     const inCollection=enrolled.has(card.deckId),isReadingBook=inCollection&&status==="reading",isReadBook=inCollection&&status==="read";
-    return topic==="reading"?isReadingBook:topic==="read"?isReadBook:topic==="saved"?isSaved:isReadingBook||isReadBook||isSaved;
+    return practiceMode==="reading"?isReadingBook:practiceMode==="read"?isReadBook:practiceMode==="saved"?isSaved:isReadingBook||isReadBook||isSaved;
   });
 }
 
@@ -92,7 +92,7 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
       const cancelled=await db.prepare("UPDATE practice_sessions SET cancelled_at=? WHERE id=? AND cancelled_at IS NULL").run(now.toISOString(),active.id);
       if(cancelled.changes!==1) throw new Error("Practice session cancellation lost its lock");
       await refundCancelledSession(db,userId,Number(active.cost),now);
-      return {session:null,recovery:"cancelled",sessionId:active.id,topic:active.topic};
+      return {session:null,recovery:"cancelled",sessionId:active.id,practiceMode:active.practice_mode};
     }
     session.languageSnapshot=snapshot;
     await db.prepare("UPDATE practice_sessions SET language_snapshot=? WHERE id=? AND language_snapshot IS NULL").run(JSON.stringify(snapshot),active.id);
@@ -104,7 +104,7 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
     const cancelled=await db.prepare("UPDATE practice_sessions SET cancelled_at=? WHERE id=? AND cancelled_at IS NULL").run(now.toISOString(),active.id);
     if(cancelled.changes!==1) throw new Error("Practice session cancellation lost its lock");
     await refundCancelledSession(db,userId,Number(active.cost),now);
-    return {session:null,recovery:"cancelled",sessionId:active.id,topic:active.topic};
+    return {session:null,recovery:"cancelled",sessionId:active.id,practiceMode:active.practice_mode};
   }
 
   const seen=new Set(prefix),pending=new Array(PRACTICE_SESSION_SIZE-session.index).fill(null);
@@ -115,7 +115,7 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
     // selected-draft invitation still removes access to the pending card.
     const hasAccess=canReviewDeck({status:row?.deck_status,kind:row?.deck_kind,
       contributionPolicy:row?.contribution_policy,creatorUserId:row?.creator_user_id,
-      invited:row?.invited_user_id===userId,hasReadingGuide:false},userId,{preserveArchivedSession:true});
+      invited:row?.invited_user_id===userId,hasReadingGuide:false},userId);
     const valid=row?.card_id===id&&row.existing_card_id===id&&row.existing_deck_id&&!row.is_reading_guide&&hasAccess&&!seen.has(id);
     if(valid) { pending[position-session.index]=id;seen.add(id); }
     else changed=true;
@@ -123,12 +123,12 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   if(!changed) return {session,recovery:null};
 
   let replacementIds;
-  if(session.topic==="discover") {
+  if(session.practiceMode==="discover") {
     const answers=Object.fromEntries((await db.prepare("SELECT card_id,answer FROM practice_answers WHERE user_id=?").all(userId)).map(row=>[row.card_id,row.answer]));
     const missing=pending.filter(id=>id===null).length;
     replacementIds=(await selectDiscoverPracticeForReader(db,userId,{languages:session.languageSnapshot,answers,count:missing,excludeCardIds:[...seen]})).selected.map(card=>card.id);
   } else {
-    const candidates=await availableCards(db,userId,session.topic,session.languageSnapshot);
+    const candidates=await availableCards(db,userId,session.practiceMode,session.languageSnapshot);
     replacementIds=candidates.map(card=>card.id).filter(id=>!seen.has(id));
   }
   let replacementIndex=0;
@@ -142,7 +142,7 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
     const cancelled=await db.prepare("UPDATE practice_sessions SET cancelled_at=? WHERE id=? AND cancelled_at IS NULL").run(now.toISOString(),active.id);
     if(cancelled.changes!==1) throw new Error("Practice session cancellation lost its lock");
     await refundCancelledSession(db,userId,Number(active.cost),now);
-    return {session:null,recovery:"cancelled",sessionId:active.id,topic:active.topic};
+    return {session:null,recovery:"cancelled",sessionId:active.id,practiceMode:active.practice_mode};
   }
 
   const repairedIds=[...prefix,...pending];
@@ -154,48 +154,48 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   return {session:{...session,cardIds:repairedIds},recovery:"repaired",sessionId:active.id};
 }
 
-export async function startPracticeSession(db,session,topic,now=new Date(),expectedSessionId,expectedCost) {
-  if(!PRACTICE_SCHEMA_TOPICS.includes(topic)||(expectedSessionId!==undefined&&expectedSessionId!==null&&(typeof expectedSessionId!=="string"||!expectedSessionId))) throw new ApiError(400,"invalidRequest");
+export async function startPracticeSession(db,session,practiceMode,now=new Date(),expectedSessionId,expectedCost) {
+  if(!PRACTICE_SCHEMA_MODES.includes(practiceMode)||(expectedSessionId!==undefined&&expectedSessionId!==null&&(typeof expectedSessionId!=="string"||!expectedSessionId))) throw new ApiError(400,"invalidRequest");
   if(expectedCost!==undefined&&![PRACTICE_BASE_COST,PRACTICE_DISCOUNT_COST].includes(expectedCost)) throw new ApiError(400,"invalidRequest");
-  if(!PRACTICE_ENABLED_TOPICS.includes(topic)) throw new ApiError(400,"invalidRequest");
+  if(!PRACTICE_ENABLED_MODES.includes(practiceMode)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     const userId=session.user_id;
     await lockReaderAccount(db,userId);
     const recovery=await reconcilePracticeSessionInside(db,userId,now);
-    if(recovery.recovery==="cancelled") return {reason:"practiceSessionCancelled",practiceRecovery:{status:"cancelled",topic:recovery.topic}};
+    if(recovery.recovery==="cancelled") return {reason:"practiceSessionCancelled",practiceRecovery:{status:"cancelled",practiceMode:recovery.practiceMode}};
     if(!recovery.session&&expectedSessionId) {
-      const expected=await db.prepare("SELECT topic,cancelled_at FROM practice_sessions WHERE id=? AND user_id=?").get(expectedSessionId,userId);
-      if(expected?.cancelled_at) return {reason:"practiceSessionCancelled",practiceRecovery:{status:"cancelled",topic:expected.topic}};
-      return {reason:"practiceSessionUnavailable",practiceRecovery:{status:"stale",topic:expected?.topic||topic}};
+      const expected=await db.prepare("SELECT practice_mode,cancelled_at FROM practice_sessions WHERE id=? AND user_id=?").get(expectedSessionId,userId);
+      if(expected?.cancelled_at) return {reason:"practiceSessionCancelled",practiceRecovery:{status:"cancelled",practiceMode:expected.practice_mode}};
+      return {reason:"practiceSessionUnavailable",practiceRecovery:{status:"stale",practiceMode:expected?.practice_mode||practiceMode}};
     }
     if(!recovery.session&&expectedSessionId===undefined) {
-      const latest=await db.prepare("SELECT topic,cancelled_at FROM practice_sessions WHERE user_id=? ORDER BY started_at DESC,id DESC LIMIT 1").get(userId);
-      if(latest?.cancelled_at) return {reason:"practiceSessionCancelled",practiceRecovery:{status:"cancelled",topic:latest.topic}};
+      const latest=await db.prepare("SELECT practice_mode,cancelled_at FROM practice_sessions WHERE user_id=? ORDER BY started_at DESC,id DESC LIMIT 1").get(userId);
+      if(latest?.cancelled_at) return {reason:"practiceSessionCancelled",practiceRecovery:{status:"cancelled",practiceMode:latest.practice_mode}};
     }
     const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(userId);
     if(!account) throw new ApiError(401,"signInRequired");
     const cycleDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.currencyRefill),wallet=await accruePetalWallet(db,userId,cycleDay);
-    if(recovery.session) return {session:recovery.session,resumed:true,...(recovery.recovery?{practiceRecovery:{status:recovery.recovery,topic:recovery.session.topic}}:{}),discountTopic:await currentDiscount(db,userId),balance:wallet.balance};
+    if(recovery.session) return {session:recovery.session,resumed:true,...(recovery.recovery?{practiceRecovery:{status:recovery.recovery,practiceMode:recovery.session.practiceMode}}:{}),discountMode:await currentDiscount(db,userId),balance:wallet.balance};
 
     const preferences=await readerLanguagePreferencesInside(db,userId),languages=preferences.languages;
     const answers=Object.fromEntries((await db.prepare("SELECT card_id,answer FROM practice_answers WHERE user_id=?").all(userId)).map(row=>[row.card_id,row.answer]));
-    const discovery=topic==="discover"?await selectDiscoverPracticeForReader(db,userId,{languages,answers,count:PRACTICE_SESSION_SIZE}):null;
-    const cards=discovery?[]:await availableCards(db,userId,topic,languages),available=discovery?discovery.available:cards.length;
-    if(available<PRACTICE_SESSION_SIZE) return {reason:"notEnoughCards",topic,available,required:PRACTICE_SESSION_SIZE,balance:wallet.balance};
-    const discountTopic=await currentDiscount(db,userId),cost=topic===discountTopic?PRACTICE_DISCOUNT_COST:PRACTICE_BASE_COST;
-    if(expectedCost!==undefined&&expectedCost!==cost) return {reason:"practicePriceChanged",topic,cost,discountTopic,balance:wallet.balance};
-    if(wallet.balance<cost) return {reason:"insufficientPetals",topic,cost,balance:wallet.balance};
+    const discovery=practiceMode==="discover"?await selectDiscoverPracticeForReader(db,userId,{languages,answers,count:PRACTICE_SESSION_SIZE}):null;
+    const cards=discovery?[]:await availableCards(db,userId,practiceMode,languages),available=discovery?discovery.available:cards.length;
+    if(available<PRACTICE_SESSION_SIZE) return {reason:"notEnoughCards",practiceMode,available,required:PRACTICE_SESSION_SIZE,balance:wallet.balance};
+    const discountMode=await currentDiscount(db,userId),cost=practiceMode===discountMode?PRACTICE_DISCOUNT_COST:PRACTICE_BASE_COST;
+    if(expectedCost!==undefined&&expectedCost!==cost) return {reason:"practicePriceChanged",practiceMode,cost,discountMode,balance:wallet.balance};
+    if(wallet.balance<cost) return {reason:"insufficientPetals",practiceMode,cost,balance:wallet.balance};
     const selected=discovery?discovery.selected:selectPracticeCards(cards,answers,PRACTICE_SESSION_SIZE);
     const spent=await db.prepare("UPDATE petal_wallets SET balance=balance-? WHERE user_id=? AND balance>=?").run(cost,userId,cost);
     if(spent.changes!==1) throw new ApiError(409,"insufficientPetals");
     const id=randomUUID(),startedAt=now.toISOString(),cardIds=selected.map(card=>card.id);
-    await db.prepare("INSERT INTO practice_sessions(id,user_id,topic,card_ids,card_index,cost,started_at,language_snapshot) VALUES (?,?,?,?,0,?,?,?)")
-      .run(id,userId,topic,JSON.stringify(cardIds),cost,startedAt,JSON.stringify(languages));
+    await db.prepare("INSERT INTO practice_sessions(id,user_id,practice_mode,card_ids,card_index,cost,started_at,language_snapshot) VALUES (?,?,?,?,0,?,?,?)")
+      .run(id,userId,practiceMode,JSON.stringify(cardIds),cost,startedAt,JSON.stringify(languages));
     for (const [position,cardId] of cardIds.entries()) {
       await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)")
         .run(id,cardId,position);
     }
-    return {session:{id,topic,cardIds,index:0,cost,startedAt,completedAt:null,languageSnapshot:languages},discountTopic,balance:wallet.balance-cost};
+    return {session:{id,practiceMode,cardIds,index:0,cost,startedAt,completedAt:null,languageSnapshot:languages},discountMode,balance:wallet.balance-cost};
   });
 }
 
@@ -204,19 +204,19 @@ export async function answerPracticeSession(db,session,input,now=new Date()) {
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
     const recovery=await reconcilePracticeSessionInside(db,session.user_id,now);
-    if(recovery.recovery==="cancelled") return {session:null,practiceRecovery:{status:"cancelled",topic:recovery.topic},sessionId:recovery.sessionId};
+    if(recovery.recovery==="cancelled") return {session:null,practiceRecovery:{status:"cancelled",practiceMode:recovery.practiceMode},sessionId:recovery.sessionId};
     if(recovery.session&&recovery.session.id!==input.sessionId) throw new ApiError(409,"practiceSessionUnavailable");
-    if(recovery.recovery==="repaired") return {session:recovery.session,practiceRecovery:{status:"repaired",topic:recovery.session.topic},sessionId:recovery.sessionId};
+    if(recovery.recovery==="repaired") return {session:recovery.session,practiceRecovery:{status:"repaired",practiceMode:recovery.session.practiceMode},sessionId:recovery.sessionId};
     const query=`SELECT * FROM practice_sessions WHERE id=? AND user_id=?${isPostgres(db)?" FOR UPDATE":""}`;
     const row=await db.prepare(query).get(input.sessionId,session.user_id);
     if(!row) throw new ApiError(404,"practiceSessionUnavailable");
     const current=sessionFromRow(row);
-    if(row.cancelled_at) return {session:null,practiceRecovery:{status:"cancelled",topic:row.topic},sessionId:row.id};
-    if(typeof input.cardId!=="string"||!input.cardId||!Number.isSafeInteger(input.index)||input.index<0||!['soon','remembered'].includes(input.answer)) throw new ApiError(400,"invalidRequest");
+    if(row.cancelled_at) return {session:null,practiceRecovery:{status:"cancelled",practiceMode:row.practice_mode},sessionId:row.id};
+    if(typeof input.cardId!=="string"||!input.cardId||!Number.isSafeInteger(input.index)||input.index<0||!['see_less','see_more'].includes(input.answer)) throw new ApiError(400,"invalidRequest");
     if(input.index<current.index) return {session:current,idempotent:true};
     if(row.completed_at) throw new ApiError(409,"invalidRequest");
     if(input.index!==current.index||current.cardIds[current.index]!==input.cardId) return {
-      session:current,practiceRecovery:{status:"repaired",topic:current.topic},sessionId:current.id
+      session:current,practiceRecovery:{status:"repaired",practiceMode:current.practiceMode},sessionId:current.id
     };
     const answeredAt=now.toISOString(),nextIndex=current.index+1,completedAt=nextIndex===PRACTICE_SESSION_SIZE?answeredAt:null;
     const account=completedAt ? await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id) : null;

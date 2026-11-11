@@ -91,7 +91,7 @@ postgresTest("real PostgreSQL serializes recovery, refunds once, and preserves r
   const [readRace,startRace,answerRace]=await Promise.all([
     readReaderState(db,reader.session,now),
     startPracticeSession(db,reader.session,"saved",now,started.session.id),
-    answerPracticeSession(db,reader.session,{sessionId:started.session.id,index:0,cardId:guide.cardId,answer:"remembered"},now)
+    answerPracticeSession(db,reader.session,{sessionId:started.session.id,index:0,cardId:guide.cardId,answer:"see_more"},now)
   ]);
   const recovered=await readReaderState(db,reader.session,now);
   assert.equal(recovered.activePracticeSession.id,started.session.id);
@@ -107,7 +107,6 @@ postgresTest("real PostgreSQL serializes recovery, refunds once, and preserves r
   for(const id of savedCards) await setCardSave(db,cancelReader.session,{cardId:id,saved:true},now);
   const archivedSaved=(await db.prepare("SELECT id FROM cards WHERE deck_id=? AND is_reading_guide=0 ORDER BY position LIMIT 1").get("seven-habits-inside-out")).id;
   await setCardSave(db,cancelReader.session,{cardId:archivedSaved,saved:true},now);
-  await db.prepare("UPDATE decks SET status='archived' WHERE id=?").run("seven-habits-inside-out");
   const cancelledStart=await startPracticeSession(db,cancelReader.session,"saved",now);
   assert.ok(cancelledStart.session);
   await swapSessionCard(db,cancelledStart,2,cancelGuide.cardId);
@@ -124,7 +123,7 @@ postgresTest("real PostgreSQL serializes recovery, refunds once, and preserves r
   const [cancelRead,cancelStart,cancelAnswer]=await Promise.all([
     readReaderState(db,cancelReader.session,now),
     startPracticeSession(db,cancelReader.session,"mixed",now,cancelledStart.session.id),
-    answerPracticeSession(db,cancelReader.session,{sessionId:cancelledStart.session.id,index:2,cardId:cancelGuide.cardId,answer:"soon"},now)
+    answerPracticeSession(db,cancelReader.session,{sessionId:cancelledStart.session.id,index:2,cardId:cancelGuide.cardId,answer:"see_less"},now)
   ]);
   const afterCancel=await readReaderState(db,cancelReader.session,now);
   assert.equal(afterCancel.activePracticeSession,null);
@@ -133,7 +132,7 @@ postgresTest("real PostgreSQL serializes recovery, refunds once, and preserves r
   assert.ok(cancelRead.practiceRecovery?.status==="cancelled"||cancelStart.practiceRecovery?.status==="cancelled"||cancelAnswer.practiceRecovery?.status==="cancelled");
   const cancelledRow=await db.prepare("SELECT completed_at,completed_local_day,cancelled_at FROM practice_sessions WHERE id=?").get(cancelledStart.session.id);
   assert.equal(cancelledRow.completed_at,null);assert.equal(cancelledRow.completed_local_day,null);assert.ok(cancelledRow.cancelled_at);
-  assert.equal(afterCancel.practiceDiscountTopic,(await readReaderState(db,cancelReader.session,now)).practiceDiscountTopic);
+  assert.equal(afterCancel.practiceDiscountMode,(await readReaderState(db,cancelReader.session,now)).practiceDiscountMode);
 
   const lockReader=await createReader(db,"lock-order");
   // This deck remains available throughout the test; the saved/refund scenario

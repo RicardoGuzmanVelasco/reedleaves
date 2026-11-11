@@ -255,7 +255,7 @@ test("Draft deck owner can edit its name and language from management",async()=>
     assert.match(editing,/name="title" value="Nombre &lt;nuevo&gt;"/);
     assert.match(editing,/data-deck-title-form/);
     assert.doesNotMatch(authorView({...state,userId:"other"}),/data-action="edit-deck-title"|data-deck-language/);
-    deck.status="published";
+    deck.status="finished";
     assert.doesNotMatch(authorView(state),/data-action="edit-deck-title"|data-deck-language/);
     deck.status="draft";
   }
@@ -290,11 +290,11 @@ test("Practice exposes only the active card, enables writing and keeps the pile 
   assert.equal(ids.length,new Set(ids).size);
   const next=practiceView(state,{cards,index:1,advancing:false,leaving:null});
   assert.deepEqual([...next.matchAll(/data-reading-card="([^"]+)"/g)].map(match=>match[1]),[cards[1].id]);
-  assert.ok(html.indexOf('data-answer="soon"')<html.indexOf('data-answer="remembered"'));
+  assert.ok(html.indexOf('data-answer="see_less"')<html.indexOf('data-answer="see_more"'));
 });
 
-test("Practice prices show one discounted topic, the wallet cap, and useful empty-session paths",async()=>{
-  const catalog=await fixture(),state=readerState(catalog,{practiceStage:"choose",practiceDiscountTopic:"saved",petals:10,petalMaximum:15});
+test("Practice prices show one discounted practiceMode, the wallet cap, and useful empty-session paths",async()=>{
+  const catalog=await fixture(),state=readerState(catalog,{practiceStage:"choose",practiceDiscountMode:"saved",petals:10,petalMaximum:15});
   const choice=practiceView(state,null);
   assert.match(choice,/data-action="open-practice-help"[^>]*aria-haspopup="dialog"/);
   assert.match(choice,/class="practice-help-modal" aria-labelledby="practice-help-title"/);
@@ -315,16 +315,16 @@ test("Practice prices show one discounted topic, the wallet cap, and useful empt
   assert.match(choice,/<span class="pricetag-previous">3<svg class="pricetag-cross"/);
   assert.match(choice,/<strong>2<\/strong>/);
   assert.match(choice,/class="pricetag-offer-icon"/);
-  assert.doesNotMatch(choice,/practice-topic-cost/);
-  const recovered=practiceView({...state,practiceUnavailable:{reason:"practiceSessionCancelled",topic:"reading"}},null);
+  assert.doesNotMatch(choice,/practice-mode-cost/);
+  const recovered=practiceView({...state,practiceUnavailable:{reason:"practiceSessionCancelled",practiceMode:"reading"}},null);
   assert.match(recovered,/role="status">El repaso se canceló y se devolvió su coste\.<\/p>/);
-  assert.equal((recovered.match(/data-action="practice-topic"/g)||[]).length,5);
-  const recoveredEnglish=practiceView({...state,language:"en",practiceUnavailable:{reason:"practiceSessionCancelled",topic:"saved"}},null);
+  assert.equal((recovered.match(/data-action="practice-mode"/g)||[]).length,5);
+  const recoveredEnglish=practiceView({...state,language:"en",practiceUnavailable:{reason:"practiceSessionCancelled",practiceMode:"saved"}},null);
   assert.match(recoveredEnglish,/The session was cancelled and its cost was refunded\./);
-  const insufficient=practiceView({...state,practiceStage:"empty",practiceUnavailable:{reason:"notEnoughCards",topic:"mixed",available:4,required:5}},null);
+  const insufficient=practiceView({...state,practiceStage:"empty",practiceUnavailable:{reason:"notEnoughCards",practiceMode:"mixed",available:4,required:5}},null);
   assert.match(insufficient,/Necesitas 5 para empezar/);
   assert.match(insufficient,/#bookcase\/cardcase/);assert.match(insufficient,/#library/);
-  const resume=practiceView({...state,practiceStage:"choose",activePracticeSession:{topic:"reading",index:2,cardIds:["a","b","c","d","e"]}},null);
+  const resume=practiceView({...state,practiceStage:"choose",activePracticeSession:{practiceMode:"reading",index:2,cardIds:["a","b","c","d","e"]}},null);
   assert.match(resume,/data-action="practice-resume"/);assert.match(resume,/2\/5/);
 });
 
@@ -346,7 +346,7 @@ test("Draft creation status stays distinct from practice sessions across deck su
       assert.ok(reviewView(state).includes(`data-action="share-deck"`));
       assert.doesNotMatch(reviewView(state),/Repaso completo|Practice complete/);
     }
-    deck.status="published";
+    deck.status="finished";
     const html=reviewView({...base,userId:deck.creator.userId});
     assert.ok(html.includes(`data-action="share-deck"`));
     assert.ok(reviewView({...base,userId:"another-reader"}).includes(`data-action="share-deck"`));
@@ -396,21 +396,21 @@ test('Book and collection deck lists prioritize the current viewer’s contribut
 test("Discover explains availability, retry, discount and resume in both interface languages",async()=>{
   const catalog=await fixture();
   for(const language of ["es","en"]) {
-    const c=words[language],state=readerState(catalog,{language,practiceStage:"choose",practiceDiscountTopic:"discover"});
+    const c=words[language],state=readerState(catalog,{language,practiceStage:"choose",practiceDiscountMode:"discover"});
     for(const availability of [{status:"loading"},{status:"error"},{status:"ready",available:4,required:5},{status:"ready",available:5,required:5}]) {
       const html=practiceView({...state,discoverAvailability:availability},null);
-      const button=html.match(/<button[^>]*data-topic="discover"[^>]*>/)[0];
+      const button=html.match(/<button[^>]*data-practice-mode="discover"[^>]*>/)[0];
       assert.equal(button.includes(" disabled"),availability.status!=="ready"||availability.available<5);
-      assert.ok(html.includes(c.practiceTopic_discover));assert.ok(html.includes(c.practiceHelpDiscover));
+      assert.ok(html.includes(c.practiceMode_discover));assert.ok(html.includes(c.practiceHelpDiscover));
       assert.match(html,/pricetag--discounted[^>]*aria-label="2 /);
       assert.equal(html.includes('data-action="retry-discover"'),availability.status==="error");
       if(button.includes(" disabled"))assert.match(button,/aria-describedby="discover-status"/);
     }
-    const resume=practiceView({...state,activePracticeSession:{topic:"discover",index:2,cardIds:["a","b","c","d","e"]}},null);
-    assert.ok(resume.includes(c.practiceTopic_discover));assert.match(resume,/data-action="practice-resume"/);assert.doesNotMatch(resume,/pricetag/);
+    const resume=practiceView({...state,activePracticeSession:{practiceMode:"discover",index:2,cardIds:["a","b","c","d","e"]}},null);
+    assert.ok(resume.includes(c.practiceMode_discover));assert.match(resume,/data-action="practice-resume"/);assert.doesNotMatch(resume,/pricetag/);
     const changed=practiceView({...state,practiceUnavailable:{reason:"practicePriceChanged"}},null);
     assert.ok(changed.includes(c.practicePriceChanged));
     const pending=practiceView({...state,practiceStarting:"discover",discoverAvailability:{status:"ready",available:5,required:5}},null);
-    assert.match(pending,/data-topic="discover" disabled aria-busy="true"/);assert.ok(pending.includes(c.practiceStarting));
+    assert.match(pending,/data-practice-mode="discover" disabled aria-busy="true"/);assert.ok(pending.includes(c.practiceStarting));
   }
 });

@@ -75,7 +75,6 @@ test("Real registration, two sessions, spending, reconnecting and logout persist
   assert.equal(result.body.petals,10); assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(result.body.user.id).balance,10);
   const credentials = db.prepare("SELECT password_hash FROM accounts").get().password_hash;
   assert.match(credentials,/^scrypt\$131072\$8\$1\$/); assert.ok(!credentials.includes(password));
-  assert.equal(db.prepare("SELECT can_create_decks FROM users WHERE id = ?").get(result.body.user.id).can_create_decks,0);
   const token = a.Cookie.split("=")[1]; assert.notEqual(db.prepare("SELECT token_hash FROM sessions").get().token_hash,token);
   const login = await call("/api/auth/login",{username:"READER.ONE",password}); assert.equal(login.status,200);
   const b = {Cookie:login.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":login.body.csrfToken};
@@ -119,17 +118,17 @@ test("Practice start distinguishes legacy retry, canceled identity, and an expli
   for(const id of normal) await setCardSave(db,session,{cardId:id,saved:false},now);
   const start=(input)=>call("/api/reader/practice/start",input,headers);
 
-  const legacy=await start({topic:"reading"});
+  const legacy=await start({practiceMode:"reading"});
   assert.equal(legacy.status,200);assert.equal(legacy.body.practiceRecovery.status,"cancelled");
   assert.equal(legacy.body.state.activePracticeSession,null);
   assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,10);
-  const legacyRetry=await start({topic:"reading"});
+  const legacyRetry=await start({practiceMode:"reading"});
   assert.equal(legacyRetry.body.practiceRecovery.status,"cancelled");
-  const canceledIdentity=await start({topic:"reading",sessionId:started.session.id});
+  const canceledIdentity=await start({practiceMode:"reading",sessionId:started.session.id});
   assert.equal(canceledIdentity.body.practiceRecovery.status,"cancelled");
   assert.equal(db.prepare("SELECT count(*) AS n FROM practice_sessions WHERE user_id=?").get(userId).n,1);
 
-  const explicit=await start({topic:"reading",sessionId:null});
+  const explicit=await start({practiceMode:"reading",sessionId:null});
   assert.equal(explicit.status,200);assert.ok(explicit.body.session);
   assert.equal(db.prepare("SELECT count(*) AS n FROM practice_sessions WHERE user_id=?").get(userId).n,2);
   assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,10-explicit.body.session.cost);

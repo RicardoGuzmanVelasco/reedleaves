@@ -17,7 +17,7 @@ test("Home includes reading and owned draft notes independently of practice and 
   assert.deepEqual(ids(editableNoteDecks(s.catalog,"writing",s.userId)),["own"]);
   assert.deepEqual(editableNoteDecks(s.catalog,"finished",s.userId),[]);
   assert.deepEqual(ids(homeBooks(s.catalog,s.statuses,{},undefined)),["reading"]);
-  s.catalog.decks[0].status="published";
+  s.catalog.decks[0].status="finished";
   assert.deepEqual(ids(homeBooks(s.catalog,s.statuses,{},s.userId)),["reading"]);
   s.catalog.decks[0].status="archived";
   assert.deepEqual(ids(homeBooks(s.catalog,s.statuses,{},s.userId)),["reading"]);

@@ -5,7 +5,7 @@ import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase,initializeDatabase} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
-import {createDeck,addCard,addDeckContributors,finishDeck} from "./author-repository.mjs";
+import {createDeck,takeNote,addDeckContributors,finishDeck} from "./author-repository.mjs";
 import {selectDeck} from "./reader-repository.mjs";
 
 async function fixture(t,dialect) {
@@ -31,8 +31,8 @@ for(const dialect of ["sqlite","postgres"]) test(`${dialect}: selected contribut
   assert.equal((await db.prepare("SELECT kind,contribution_policy,max_cards_per_contributor FROM decks WHERE id=?").get(deck.deckId)).kind,"collective");
 
   await addDeckContributors(db,owner,{deckId:deck.deckId,userIds:[member.user_id]});
-  await assert.rejects(addCard(db,outsider,{requestId:randomUUID(),deckId:deck.deckId,title:"Outside",body:"Not invited",parentId:null,isQuote:false}),{code:"deckUnavailable"});
-  const add=(session,body)=>addCard(db,session,{requestId:randomUUID(),deckId:deck.deckId,title:"Shared idea",body,parentId:null,isQuote:false});
+  await assert.rejects(takeNote(db,outsider,{requestId:randomUUID(),deckId:deck.deckId,title:"Outside",body:"Not invited",parentId:null,isQuote:false}),{code:"deckUnavailable"});
+  const add=(session,body)=>takeNote(db,session,{requestId:randomUUID(),deckId:deck.deckId,title:"Shared idea",body,parentId:null,isQuote:false});
   const first=await add(member,"From an invited contributor.");
   const second=await add(member,"A second contribution.");
   assert.equal((await db.prepare("SELECT creator_user_id FROM cards WHERE id=?").get(first.cardId)).creator_user_id,member.user_id);
@@ -49,6 +49,6 @@ for(const dialect of ["sqlite","postgres"]) test(`${dialect}: selected contribut
   assert.equal((await selectDeck(db,outsider,deck.deckId)).user.id,outsider.user_id,"Published collective decks can be read by everyone");
 
   const unlimited=await createDeck(db,owner,{requestId:randomUUID(),bookId:"atomic-habits",title:"Long collective",language:"en",kind:"collective",contributionPolicy:"selected"});
-  for(let index=0;index<26;index++) await addCard(db,owner,{requestId:randomUUID(),deckId:unlimited.deckId,title:`Idea ${index+1}`,body:"A collective deck has no standard-deck size cap.",parentId:null,isQuote:false});
+  for(let index=0;index<26;index++) await takeNote(db,owner,{requestId:randomUUID(),deckId:unlimited.deckId,title:`Idea ${index+1}`,body:"A collective deck has no standard-deck size cap.",parentId:null,isQuote:false});
   assert.equal((await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(unlimited.deckId)).total,26);
 });

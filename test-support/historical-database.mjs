@@ -5,7 +5,7 @@ import {openDatabase,PostgresDatabase} from "../server/database.mjs";
 import {seedCatalog} from "./historical-seed.mjs";
 import {readSeed as readCurrentSeed,seedCatalog as seedPreAppearanceCatalog} from "./pre-interest-appearance-seed.mjs";
 import {seedCatalog as seedPrePopularCatalog} from "./pre-popular-title-seed.mjs";
-import {seedCatalog as seedLatestCatalog} from "../server/seed.mjs";
+import {seedCatalog as seedLatestCatalog} from "./pre-finished-vocabulary-seed.mjs";
 
 // Load a real released schema, never a current schema with its version lowered.
 export async function historicalDatabase(t,dialect,version) {
@@ -46,9 +46,22 @@ export async function historicalDatabase(t,dialect,version) {
   return db;
 }
 
+// Rows from before the finished-vocabulary migration, shaped like current rows.
+export function normalizeRetiredRow(table,row) {
+  const value={...row};
+  delete value.editorial_status;delete value.can_create_decks;
+  if (table === "decks" && value.status === "published") value.status="finished";
+  if (Object.hasOwn(value,"topic")) { value.practice_mode=value.topic;delete value.topic; }
+  return value;
+}
 export const migrationNow=new Date("2026-10-10T12:00:00Z");
 export async function historicalReader(db,id="legacy-reader") {
-  await db.prepare("INSERT INTO users(id,display_name,can_create_decks) VALUES (?,?,1)").run(id,id);
+  // Current schemas no longer have the retired permission column.
+  const retiredPermission=db.dialect === "postgres"
+    ? await db.prepare("SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='can_create_decks'").get()
+    : db.prepare("SELECT 1 FROM pragma_table_info('users') WHERE name='can_create_decks'").get();
+  if (retiredPermission) await db.prepare("INSERT INTO users(id,display_name,can_create_decks) VALUES (?,?,1)").run(id,id);
+  else await db.prepare("INSERT INTO users(id,display_name) VALUES (?,?)").run(id,id);
   await db.prepare("INSERT INTO accounts(user_id,username,password_hash,time_zone,language) VALUES (?,?,?,'Europe/Madrid','es')").run(id,id,"migration fixture; no login");
   if (db.dialect === "postgres" ? await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_name='reader_filters'").get() : db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='reader_filters'").get()) {
     await db.prepare("INSERT INTO reader_filters VALUES (?,'all')").run(id);
@@ -95,8 +108,9 @@ export async function migrationData(db) {
     ? await db.prepare("SELECT column_name AS name FROM information_schema.columns WHERE table_schema='public' AND table_name='books'").all()
     : db.prepare("PRAGMA table_info(books)").all();
   const popular=bookColumns.some(column=>column.name === "popular_title");
-  const columns={genres:"id",book_genres:"book_id,genre_id",books:popular ? "id,author,position,editorial_status,popular_title AS original_title,popular_language AS original_language,updated_at" : "id,author,position,editorial_status,original_title,original_language,updated_at",
-    decks:"id,book_id,creator_user_id,language,is_recommended,created_at"};
+  const columns={genres:"id",book_genres:"book_id,genre_id",books:popular ? "id,author,position,popular_title AS original_title,popular_language AS original_language,updated_at" : "id,author,position,original_title,original_language,updated_at",
+    decks:"id,book_id,creator_user_id,language,is_recommended,created_at",
+    users:"id,display_name,created_at"};
   for (const table of tables) {
     const additiveGenre=table === "genres" ? " WHERE id NOT IN ('society','software','mindfulness','psychology','leadership')" : table === "genre_translations" ? " WHERE genre_id NOT IN ('society','software','mindfulness','psychology','leadership')" : "";
     result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${table}${additiveGenre} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();
@@ -110,8 +124,8 @@ export async function migrationData(db) {
   }
   const flattened=await has("deck_versions");
   result.deckStatus=flattened
-    ? await db.prepare("SELECT deck_id,status,editorial_status FROM deck_versions ORDER BY deck_id").all()
-    : await db.prepare("SELECT id AS deck_id,status,editorial_status FROM decks ORDER BY id").all();
+    ? await db.prepare("SELECT deck_id,CASE status WHEN 'published' THEN 'finished' ELSE status END AS status FROM deck_versions ORDER BY deck_id").all()
+    : await db.prepare("SELECT id AS deck_id,CASE status WHEN 'published' THEN 'finished' ELSE status END AS status FROM decks ORDER BY id").all();
   result.deckTranslations=flattened
     ? await db.prepare(`SELECT v.deck_id,t.language,t.title,t.description,t.editorial_note FROM deck_version_translations t
         JOIN deck_versions v ON v.id=t.version_id ORDER BY v.deck_id,t.language`).all()

@@ -53,7 +53,7 @@ test("Frequency weights affect only the lottery inside a level",()=>{
     {id:"more",bookId:"outside-liked"},
     cards[1]
   ];
-  const answers={less:"soon",more:"remembered"};
+  const answers={less:"see_less",more:"see_more"};
   const result=selectDiscoverPracticeCards(sameLevel,books,preferences,[],answers,1,()=>0.4);
   assert.deepEqual(result.selected.map(card=>card.id),["more"]);
 });

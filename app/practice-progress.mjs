@@ -1,11 +1,10 @@
-const weightForSavedAnswer = answer => answer === "soon" ? 0.5 : answer === "remembered" ? 2 : 1;
+const weightForSavedAnswer = answer => answer === "see_less" ? 0.5 : answer === "see_more" ? 2 : 1;
 const unitRandom = random => {
   const value=random();
   return Number.isFinite(value) ? Math.min(1-Number.EPSILON,Math.max(0,value)) : 0;
 };
 
-// The stored answer names are legacy values. Keep their UI meaning and weight
-// translation here so selection operates on cards, not response groups.
+// A card's answer decides its weight, so selection operates on cards, not response groups.
 export function selectPracticeCards(cards,answers={},count=5,random=Math.random) {
   const targetCount=Math.min(cards.length,Math.max(0,Math.floor(count)));
   const remaining=cards.map(card=>({card,weight:weightForSavedAnswer(answers[card.id])}));

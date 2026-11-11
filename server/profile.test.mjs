@@ -7,7 +7,7 @@ import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {openCard,changeReading,selectDeck,readReaderState} from "./reader-repository.mjs";
-import {createBook,createDeck,addCard} from "./author-repository.mjs";
+import {createBook,createDeck,takeNote} from "./author-repository.mjs";
 import {serverDay} from "./auth.mjs";
 
 async function fixture(t) {
@@ -21,7 +21,7 @@ async function recordCompletedPractice(db,session,bookId,now,deckId=null) {
     WHERE d.book_id=? AND (? IS NULL OR d.id=?) ORDER BY c.id LIMIT 5`).all(bookId,deckId,deckId);
   assert.equal(cards.length,5);
   const id=randomUUID(),cardIds=cards.map(card=>card.id),completedAt=now.toISOString();
-  await db.prepare(`INSERT INTO practice_sessions(id,user_id,topic,card_ids,card_index,cost,started_at,completed_at,completed_local_day)
+  await db.prepare(`INSERT INTO practice_sessions(id,user_id,practice_mode,card_ids,card_index,cost,started_at,completed_at,completed_local_day)
     VALUES (?,?,'reading',?,5,2,?,?,?)`).run(id,session.user_id,JSON.stringify(cardIds),completedAt,completedAt,serverDay("Europe/Madrid",now));
   for(const [position,cardId] of cardIds.entries()) await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)").run(id,cardId,position);
 }
@@ -78,7 +78,7 @@ test("Nonconsecutive review days across decks earn Bud, Flower and Evergreen at 
   for(let n=0;n<2;n++) {
     const {deckId}=await createDeck(db,a,{requestId:randomUUID(),bookId,title:`Stem test ${n}`,language:"es"});
     const cards=[];
-    for(let i=0;i<8;i++) cards.push((await addCard(db,a,{requestId:randomUUID(),deckId,title:`Card ${i}`,body:"Test content",parentId:null,isQuote:false})).cardId);
+    for(let i=0;i<8;i++) cards.push((await takeNote(db,a,{requestId:randomUUID(),deckId,title:`Card ${i}`,body:"Test content",parentId:null,isQuote:false})).cardId);
     decks.push({deckId,cards});
   }
   for(let n=0;n<30;n++) {
@@ -105,8 +105,8 @@ test("Author stats include quotes as a subset; shared libraries expose content b
   const {db,a,b}=await fixture(t);
   const {bookId}=await createBook(db,a,{requestId:randomUUID(),title:"Shared book",author:"Book author",language:"es",metadata:{genres:["society"]}});
   const {deckId}=await createDeck(db,a,{requestId:randomUUID(),bookId,title:"Shared deck",language:"es"});
-  const {cardId}=await addCard(db,a,{requestId:randomUUID(),deckId,title:"Personal card",body:"Personal text",parentId:null,isQuote:false});
-  await addCard(db,a,{requestId:randomUUID(),deckId,body:"A personal quote",parentId:null,isQuote:true});
+  const {cardId}=await takeNote(db,a,{requestId:randomUUID(),deckId,title:"Personal card",body:"Personal text",parentId:null,isQuote:false});
+  await takeNote(db,a,{requestId:randomUUID(),deckId,body:"A personal quote",parentId:null,isQuote:true});
   await recordCardView(db,a,{cardId,context:"author"},day(10));
   await createDeck(db,a,{requestId:randomUUID(),bookId:"atomic-habits",title:"Shared draft",language:"es"});
   const own=await readProfile(db,a.user_id,a.user_id),foreign=await readProfile(db,a.user_id,b.user_id);

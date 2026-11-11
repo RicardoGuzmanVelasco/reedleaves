@@ -29,7 +29,7 @@ function fixture({reduced=false,hidden=false}={}) {
   const controller=createPracticePresentation({window:{matchMedia:()=>motion},document:doc,presentReading:(...args)=>readingCalls.push(args)});
   function mount(remaining=5) {
     const root=element({practiceRemaining:String(remaining)}),front=element(),flight=element();
-    const buttons=[element({answer:"soon"}),element({answer:"remembered"})],backs=Array.from({length:9},()=>element());
+    const buttons=[element({answer:"see_less"}),element({answer:"see_more"})],backs=Array.from({length:9},()=>element());
     root.querySelector=selector=>selector===".practice-card-flight"?flight:front;
     root.querySelectorAll=selector=>selector.includes("practice-pile")?backs:buttons;
     const main={querySelector:()=>root};
@@ -113,12 +113,12 @@ test("A horizontal swipe follows the finger, cues its side and selects the match
   assert.equal(f.root.dataset.swipeDirection,"left");
   assert.match(f.flight.style.transform,/translateX\(-75px\)/);
   f.front.dispatch("pointerup",{pointerId:4,clientX:100,clientY:103,timeStamp:40});
-  assert.deepEqual(selected,["soon",-100,300,-3]);
+  assert.deepEqual(selected,["see_less",-100,300,-3]);
   f.front.dispatch("pointerdown",{pointerId:5,isPrimary:true,button:0,clientX:100,clientY:100,timeStamp:100});
   f.front.dispatch("pointermove",{pointerId:5,clientX:175,clientY:102,timeStamp:120});
   assert.equal(f.root.dataset.swipeDirection,"right");
   f.front.dispatch("pointerup",{pointerId:5,clientX:200,clientY:102,timeStamp:140});
-  assert.deepEqual(selected,["remembered",100,300,3]);
+  assert.deepEqual(selected,["see_more",100,300,3]);
 });
 
 test("A short swipe springs back without answering",async()=>{

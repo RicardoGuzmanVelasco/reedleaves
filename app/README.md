@@ -38,7 +38,7 @@ Lectura original y repaso son independientes. Una tarjeta aleatoria no registra 
 
 ## Datos y código
 
-`draft` se presenta como «Baraja en borrador / Draft deck» y `published` como «Terminada». El endpoint `/api/author/decks/finish` verifica sesión, CSRF, propiedad y contenido, serializa contra añadir tarjetas y admite reintentos. El estado y el contenido viven en la propia baraja; no hay entidades de versión.
+`draft` se presenta como «Baraja en borrador / Draft deck» y `finished` como «Terminada». El endpoint `/api/author/decks/finish` verifica sesión, CSRF, propiedad y contenido, serializa contra añadir tarjetas y admite reintentos. El estado y el contenido viven en la propia baraja; no hay entidades de versión.
 
 Crear libro ofrece «Rellenar con IA»: título (autor e idioma original opcionales para la búsqueda), indicador de carga y vista previa. La IA consulta la web y propone título original, autor, idioma original, títulos completos/cortos, descripciones y notas en español e inglés, intereses del catálogo y enlaces verificados disponibles. La ficha permite consultar traducciones; «Editar» conserva el borrador y ofrece los metadatos en controles plegados. Repetir la búsqueda con IA completa huecos sin sustituir valores ya escritos. Solo «Crear libro» persiste la propuesta; cancelar la descarta. La creación manual continúa disponible.
 
@@ -72,13 +72,13 @@ La cuenta nueva empieza limpia. El progreso de la antigua prueba anónima se con
 
 La app está desplegada en producción. Recuperación de contraseña y revisión editorial siguen siendo cuestiones independientes del estado de creación de las barajas. Producción exige HTTPS y `REED_ORIGIN`. Ver ../docs/architecture/ACCOUNTS.md y ../docs/DEPLOYMENT.md.
 
-Tarjetas editoriales propias y breves con fuentes de autores/editoriales; sin texto completo ni portadas comerciales. El campo `editorial_status` identifica la revisión editorial pendiente; no controla la visibilidad ni equivale al estado de creación `status`. Finanzas resume ideas de los autores, no ofrece asesoramiento.
+Tarjetas editoriales propias y breves con fuentes de autores/editoriales; sin texto completo ni portadas comerciales. Finanzas resume ideas de los autores, no ofrece asesoramiento.
 
 Arquitectura, despliegue y limitaciones del controlador: ../docs/architecture/CATALOG.md. Contenido y próximos libros propuestos: ../content/catalog/README.md.
 
 ### Cerrar las notas de un libro leído
 
-Al marcar un libro Leído, si quedan barajas propias en borrador se ofrece un diálogo con nombres y cantidades. Confirmar termina las no vacías y descarta las vacías (`archived`); Mantener en borrador conserva las barajas y el estado Leído. Barajas en borrador, junto al selector de lectura, permite recuperar el diálogo. Los borradores locales deben resolverse antes y pueden retomarse desde su fila. El cierre vuelve a la lista de origen sin entrar en repaso.
+Al marcar un libro Leído, si quedan barajas propias en borrador se ofrece un diálogo con nombres y cantidades. Confirmar termina las no vacías y borra las vacías; Mantener en borrador conserva las barajas y el estado Leído. Barajas en borrador, junto al selector de lectura, permite recuperar el diálogo. Los borradores locales deben resolverse antes y pueden retomarse desde su fila. El cierre vuelve a la lista de origen sin entrar en repaso.
 
 `POST /api/author/decks/finish-notes` valida el listado mostrado, propiedad, libro y recuentos bajo los mismos bloqueos de baraja que añadir notas. Es transaccional e idempotente; un conflicto exige revisar la lista actualizada.
 

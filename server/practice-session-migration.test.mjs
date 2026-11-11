@@ -36,30 +36,28 @@ for (const [dialect,version] of [["sqlite",41],["postgres",33]]) {
     }
     await db.prepare("INSERT INTO practice_answers(user_id,card_id,answer,answered_at) VALUES (?,?,?,?)")
       .run(session.user_id,"habit-1","soon","2026-10-06T11:00:00.000Z");
-    const before=(await db.prepare(`SELECT id,user_id,topic,card_ids,card_index,cost,started_at,completed_at,completed_local_day
+    const before=(await db.prepare(`SELECT id,user_id,topic AS practice_mode,card_ids,card_index,cost,started_at,completed_at,completed_local_day
       FROM practice_sessions ORDER BY id`).all()).map(row=>({...row}));
 
     await initializeDatabase(db);await initializeDatabase(db);
 
-    const after=await db.prepare(`SELECT id,user_id,topic,card_ids,card_index,cost,started_at,completed_at,completed_local_day,cancelled_at
+    const after=await db.prepare(`SELECT id,user_id,practice_mode,card_ids,card_index,cost,started_at,completed_at,completed_local_day,cancelled_at
       FROM practice_sessions ORDER BY id`).all();
     assert.deepEqual(after.map(({cancelled_at,...row})=>({...row})),before);
     assert.equal(after.every(row=>row.cancelled_at===null),true);
-    const savedAnswer=await db.prepare("SELECT user_id,card_id,answer,answered_at FROM practice_answers WHERE user_id=?").get(session.user_id);
-    assert.deepEqual({...savedAnswer,answered_at:savedAnswer.answered_at instanceof Date?savedAnswer.answered_at.toISOString():savedAnswer.answered_at},
-      {user_id:session.user_id,card_id:"habit-1",answer:"soon",answered_at:"2026-10-06T11:00:00.000Z"});
+    assert.equal(await db.prepare("SELECT user_id FROM practice_answers WHERE user_id=?").get(session.user_id),undefined,"answers with retired values are discarded");
     assert.equal((await db.prepare("SELECT count(*) AS n FROM practice_session_cards WHERE session_id='active-before'").get()).n,5);
 
-    await db.prepare(`INSERT INTO practice_sessions(id,user_id,topic,card_ids,card_index,cost,started_at,cancelled_at)
+    await db.prepare(`INSERT INTO practice_sessions(id,user_id,practice_mode,card_ids,card_index,cost,started_at,cancelled_at)
       VALUES ('cancelled-test',?,'reading',?,0,2,?,'2026-10-07T10:00:00.000Z')`).run(session.user_id,JSON.stringify(cardIds),startedAt);
-    await assert.rejects(answerPracticeSession(db,session,{sessionId:"cancelled-test",index:0,cardId:"habit-1",answer:"soon"},migrationNow),
+    await assert.rejects(answerPracticeSession(db,session,{sessionId:"cancelled-test",index:0,cardId:"habit-1",answer:"see_less"},migrationNow),
       error=>error.status===409&&error.code==="practiceSessionUnavailable");
-    const insertSecondActive=()=>db.prepare(`INSERT INTO practice_sessions(id,user_id,topic,card_ids,card_index,cost,started_at)
+    const insertSecondActive=()=>db.prepare(`INSERT INTO practice_sessions(id,user_id,practice_mode,card_ids,card_index,cost,started_at)
       VALUES ('second-active',?,'reading',?,0,2,?)`).run(session.user_id,JSON.stringify(cardIds),startedAt);
     if(dialect==="sqlite") assert.throws(insertSecondActive,/UNIQUE constraint/);
     else await assert.rejects(insertSecondActive(),/one_active_practice_session/);
     await db.prepare("UPDATE practice_sessions SET cancelled_at=? WHERE id='active-before'").run("2026-10-07T10:01:00.000Z");
-    await db.prepare(`INSERT INTO practice_sessions(id,user_id,topic,card_ids,card_index,cost,started_at)
+    await db.prepare(`INSERT INTO practice_sessions(id,user_id,practice_mode,card_ids,card_index,cost,started_at)
       VALUES ('replacement-active',?,'reading',?,0,2,?)`).run(session.user_id,JSON.stringify(cardIds),startedAt);
     for(const [position,cardId] of cardIds.entries()) {
       await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES ('replacement-active',?,?)").run(cardId,position);

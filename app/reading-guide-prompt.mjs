@@ -1,12 +1,12 @@
 import {isReadingGuideDeck} from "./decks.mjs";
 
 export function hasAccessibleReadingGuide(catalog,bookId) {
-  return catalog.decks.some(deck=>deck.bookId===bookId && deck.status!=="archived" &&
+  return catalog.decks.some(deck=>deck.bookId===bookId &&
     isReadingGuideDeck(catalog,deck) && (catalog.deckModels.get(deck.id)?.cards||[]).some(card=>card.isReadingGuide));
 }
 
 export function hasOwnReadingGuide(catalog,bookId,userId) {
-  return !!userId && catalog.decks.some(deck=>deck.bookId===bookId && deck.status!=="archived" &&
+  return !!userId && catalog.decks.some(deck=>deck.bookId===bookId &&
     isReadingGuideDeck(catalog,deck) && (catalog.deckModels.get(deck.id)?.cards||[]).some(card=>card.isReadingGuide&&card.creatorUserId===userId));
 }
 

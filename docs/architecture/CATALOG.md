@@ -96,7 +96,7 @@ Las métricas SQL se incrementan con actividad real de cuentas: primera carta y 
 
 La idea aleatoria sigue siendo independiente: no altera el repaso ni los monederos.
 Se sortea entre las cartas principales de la baraja elegida para cada libro; cambiar elección no sustituye la idea ya asignada hoy.
-Las respuestas registradas ordenan la selección de tarjetas de práctica. El detalle de baraja no mantiene posición ni progreso propio. La lectura del libro sigue siendo independiente de `status=draft/published/archived`.
+Las respuestas registradas ordenan la selección de tarjetas de práctica. El detalle de baraja no mantiene posición ni progreso propio. La lectura del libro sigue siendo independiente de `status=draft/finished`.
 
 El contrato 4 del catálogo entrega cada baraja con su estado y metadatos; las tarjetas referencian directamente el ID estable de la baraja.
 Las barajas y tarjetas creadas por cuentas se incluyen en el catálogo compartido aunque la baraja siga como borrador. Compartir el contenido no concede permisos de edición: solo el creador puede modificar sus tarjetas y textos. El estado publicado o archivado no crea copias de una baraja.
@@ -107,4 +107,4 @@ Las tarjetas son borradores editoriales propios. Revisar traducciones, contenido
 
 ## Vocabulario vigente de estado
 
-`decks.status=draft` es Borrador / Draft: el creador puede añadir y corregir tarjetas, y el catálogo ya comparte su contenido. `published` es Terminada / Finished; ya no impide correcciones de contenido. `editorial_status=draft/reviewed` en libros y barajas representa revisión editorial, no creación ni privacidad. Los registros de pruebas internas anteriores son contexto histórico.
+`decks.status=draft` es Borrador / Draft: el creador puede añadir y corregir tarjetas, y el catálogo ya comparte su contenido. `finished` es Terminada / Finished; ya no impide correcciones de contenido. Ya no existe `editorial_status`. Los registros de pruebas internas anteriores son contexto histórico.

@@ -24,12 +24,12 @@ export async function readCatalog(db, userId) {
     : !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='reading_guide_reviews'").get();
   const {genres}=await readInterests(db);
   const books = [];
-  for (const row of await db.prepare(`SELECT b.id,b.author,b.popular_title,b.popular_language,b.editorial_status,b.creator_user_id,
+  for (const row of await db.prepare(`SELECT b.id,b.author,b.popular_title,b.popular_language,b.creator_user_id,
     ${supportsIncorporation?"b.incorporated_at,b.incorporation_order":"NULL AS incorporated_at,NULL AS incorporation_order"},
     COALESCE(u.display_name,(SELECT display_name FROM users WHERE id='reed-team'),'Equipo Reedleaves') AS creator_name,
     COALESCE(u.id,(SELECT id FROM users WHERE id='reed-team')) AS creator_profile_user_id
     FROM books b LEFT JOIN users u ON u.id=b.creator_user_id ORDER BY b.position`).all()) {
-    const book = {schemaVersion:1,id:row.id,author:row.author,editorialStatus:row.editorial_status,
+    const book = {schemaVersion:1,id:row.id,author:row.author,
       creatorUserId:row.creator_user_id,creatorName:row.creator_name || null,creatorProfileUserId:row.creator_profile_user_id || null,
       popularTitle:row.popular_title,popularLanguage:row.popular_language,
       incorporatedAt:row.incorporated_at instanceof Date?row.incorporated_at.toISOString():row.incorporated_at,
@@ -81,12 +81,12 @@ export async function readCatalog(db, userId) {
     }
   }
   for (const row of await db.prepare("SELECT * FROM decks ORDER BY book_id,id").all()) {
-    const model = validateCards(cards.filter(c=>c.deckId===row.id),row.book_id,{allowEmpty:["draft","archived"].includes(row.status)});
+    const model = validateCards(cards.filter(c=>c.deckId===row.id),row.book_id,{allowEmpty:row.status==="draft"});
     let depth=0;
     for (const card of model.cards) { let level=1,parent=card.parentId; while(parent!==null){level++;parent=model.byId.get(parent).parentId;} depth=Math.max(depth,level); }
     const deck = decks.find(item=>item.id===row.id);
     Object.assign(deck,{status:row.status,
-      editorialStatus:row.editorial_status,language:row.language,cardCount:model.cards.length,depth,title:{},description:{},editorialNote:{}});
+      language:row.language,cardCount:model.cards.length,depth,title:{},description:{},editorialNote:{}});
     if(row.quote_source_url) deck.quoteSourceUrl=row.quote_source_url;
     for (const t of await db.prepare("SELECT * FROM deck_translations WHERE deck_id = ?").all(row.id)) {
       deck.title[t.language]=t.title; deck.description[t.language]=t.description; deck.editorialNote[t.language]=t.editorial_note;

@@ -5,7 +5,7 @@ import {PGlite} from "@electric-sql/pglite";
 import {PostgresDatabase,openDatabase,initializeDatabase} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
-import {createDeck,addCard} from "./author-repository.mjs";
+import {createDeck,takeNote} from "./author-repository.mjs";
 import {setCardVote} from "./card-votes.mjs";
 import {setCardSave} from "./card-saves.mjs";
 
@@ -28,7 +28,7 @@ async function fixture(t,dialect) {
   }
   const [owner,actor,other]=sessions;
   const deck=await createDeck(db,owner,{requestId:randomUUID(),bookId:"seven-habits",title:"Personal notes",language:"es"});
-  const card=await addCard(db,owner,{requestId:randomUUID(),deckId:deck.deckId,title:"Idea",body:"Text",isQuote:false,parentId:null});
+  const card=await takeNote(db,owner,{requestId:randomUUID(),deckId:deck.deckId,title:"Idea",body:"Text",isQuote:false,parentId:null});
   assert.deepEqual(card.xpReward,{amount:15,balance:15});
   return {db,owner,actor,other,cardId:card.cardId};
 }
@@ -87,7 +87,7 @@ for(const dialect of ["sqlite","postgres"]) {
   test(`${dialect}: reciprocal interactions credit only the other card's creator`,async t=>{
     const {db,owner,actor,cardId}=await fixture(t,dialect);
     const deck=await createDeck(db,actor,{requestId:randomUUID(),bookId:"seven-habits",title:"Other notes",language:"es"});
-    const actorCard=await addCard(db,actor,{requestId:randomUUID(),deckId:deck.deckId,title:"Second idea",body:"Other text",isQuote:false,parentId:null});
+    const actorCard=await takeNote(db,actor,{requestId:randomUUID(),deckId:deck.deckId,title:"Second idea",body:"Other text",isQuote:false,parentId:null});
     assert.equal(await xp(db,owner.user_id),15);assert.equal(await xp(db,actor.user_id),15);
     await setCardVote(db,actor,{cardId,value:1});
     await setCardSave(db,owner,{cardId:actorCard.cardId,saved:true},now);

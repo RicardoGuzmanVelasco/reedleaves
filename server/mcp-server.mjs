@@ -84,7 +84,7 @@ function makeServer(db,publicBaseUrl) {
   },safeTool(async(input)=>toolText(await editCatalogBook(db,input))));
   server.registerTool("create_deck",{
     title:"Crear baraja",
-    description:"Save a complete finished deck (published) to the shared Reedleaves catalog, attributed to Equipo Reedleaves. Prepare all cards first: creating freezes the deck and prevents further additions. An optional quoteSourceUrl links to the supplied or verified source page for quotes in the deck. The user must have clearly asked to save/create it; saving makes it visible to other catalog users.",
+    description:"Save a complete finished deck to the shared Reedleaves catalog, attributed to Equipo Reedleaves. Prepare all cards first: creating freezes the deck and prevents further additions. An optional quoteSourceUrl links to the supplied or verified source page for quotes in the deck. The user must have clearly asked to save/create it; saving makes it visible to other catalog users.",
     inputSchema:{
       requestId:z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i).describe("Stable UUID for this creation attempt; reuse it if retrying after a timeout."),
       bookId:z.string().min(1).max(240),title:z.string().trim().min(1).max(TITLE_MAX_LENGTH),
@@ -110,7 +110,7 @@ function makeServer(db,publicBaseUrl) {
   },safeTool(async(input)=>toolText(await appendTeamDeckCards(db,input))));
   server.registerTool("finish_deck",{
     title:"Marcar baraja como terminada",
-    description:"Mark a nonempty draft created by Equipo Reedleaves as finished (published). Call only when the user explicitly asks to finish that deck. Finishing freezes its cards and prevents further additions. Decks owned by other users or without an owner are rejected. Repeating this call for an already finished team deck is safe.",
+    description:"Mark a nonempty draft created by Equipo Reedleaves as finished. Call only when the user explicitly asks to finish that deck. Finishing freezes its cards and prevents further additions. Decks owned by other users or without an owner are rejected. Repeating this call for an already finished team deck is safe.",
     inputSchema:{deckId:z.string().trim().min(1).max(256).describe("Deck ID of the team deck to finish, as returned by create_deck.")},
     annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:false}
   },safeTool(async(input)=>toolText(await finishTeamDeck(db,input))));
@@ -122,8 +122,8 @@ function makeServer(db,publicBaseUrl) {
   },safeTool(async(input)=>toolText(await readTeamDeckDrafts(db,input))));
   server.registerTool("reassign_deck_creator",{
     title:"Cambiar creador de baraja del equipo",
-    description:"Reassign a published deck owned by Equipo Reedleaves to an existing author account by username. This changes visible attribution. Only use when the user explicitly asks for this specific change. It cannot transfer decks already owned by another account.",
-    inputSchema:{deckId:z.string().trim().min(1).max(256).describe("ID of the published team deck to reassign."),
+    description:"Reassign a finished deck owned by Equipo Reedleaves to an existing author account by username. This changes visible attribution. Only use when the user explicitly asks for this specific change. It cannot transfer decks already owned by another account.",
+    inputSchema:{deckId:z.string().trim().min(1).max(256).describe("ID of the finished team deck to reassign."),
       username:z.string().trim().min(1).max(64).describe("Existing Reedleaves username to show as the deck creator.")},
     annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:false}
   },safeTool(async(input)=>toolText(await reassignTeamDeckCreator(db,input))));

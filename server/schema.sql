@@ -17,7 +17,6 @@ CREATE TABLE books (
   popular_title TEXT NOT NULL CHECK(length(trim(popular_title)) > 0),
   popular_language TEXT NOT NULL CHECK(length(popular_language) BETWEEN 2 AND 35),
   position INTEGER NOT NULL UNIQUE CHECK(position > 0),
-  editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft', 'reviewed')),
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   incorporated_at TEXT,
   incorporation_order INTEGER
@@ -52,7 +51,6 @@ CREATE INDEX book_genres_by_genre ON book_genres(genre_id, book_id);
 CREATE TABLE users (
   id TEXT PRIMARY KEY,
   display_name TEXT NOT NULL CHECK(length(trim(display_name)) > 0),
-  can_create_decks INTEGER NOT NULL DEFAULT 0 CHECK(can_create_decks IN (0,1)),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) STRICT;
 
@@ -105,10 +103,6 @@ CREATE TABLE book_merge_operations (
   target_book_id TEXT NOT NULL,
   PRIMARY KEY(source_book_id,target_book_id),
   CHECK(source_book_id <> target_book_id)
-) STRICT;
-CREATE TABLE reader_display_preferences (
-  user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
-  show_original_titles INTEGER NOT NULL CHECK(show_original_titles IN (0,1))
 ) STRICT;
 CREATE TABLE reader_book_sort_preferences (
   user_id TEXT PRIMARY KEY REFERENCES accounts(user_id) ON DELETE CASCADE,
@@ -184,8 +178,7 @@ CREATE TABLE decks (
   creator_user_id TEXT NOT NULL REFERENCES users(id),
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
   is_recommended INTEGER NOT NULL DEFAULT 0 CHECK(is_recommended IN (0,1)),
-  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived')),
-  editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK(editorial_status IN ('draft','reviewed')),
+  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','finished')),
   quote_source_url TEXT CHECK(quote_source_url IS NULL OR (quote_source_url LIKE 'https://%' AND length(trim(quote_source_url)) BETWEEN 9 AND 2048)),
   kind TEXT NOT NULL DEFAULT 'standard' CHECK(kind IN ('standard','collective')),
   contribution_policy TEXT NOT NULL DEFAULT 'owner' CHECK(contribution_policy IN ('owner','open','selected')),
@@ -198,8 +191,6 @@ CREATE TABLE decks (
 CREATE INDEX decks_by_book ON decks(book_id);
 CREATE UNIQUE INDEX one_recommendation_per_book ON decks(book_id) WHERE is_recommended = 1;
 
-CREATE TRIGGER check_deck_author_insert BEFORE INSERT ON decks WHEN COALESCE((SELECT can_create_decks FROM users WHERE id = NEW.creator_user_id),0) <> 1
-BEGIN SELECT RAISE(ABORT,'Deck creation permission required'); END;
 CREATE TRIGGER team_only_deck_quote_source BEFORE INSERT ON decks
 WHEN NEW.quote_source_url IS NOT NULL AND NEW.creator_user_id <> 'reed-team'
 BEGIN SELECT RAISE(ABORT,'Only team decks can have a quote source'); END;
@@ -208,14 +199,13 @@ WHEN NEW.quote_source_url IS NOT OLD.quote_source_url
 BEGIN SELECT RAISE(ABORT,'Deck quote source is immutable'); END;
 CREATE TRIGGER keep_deck_owner BEFORE UPDATE OF creator_user_id,book_id,language ON decks
 WHEN (NEW.creator_user_id IS NOT OLD.creator_user_id AND NOT (
-  OLD.creator_user_id='reed-team' AND OLD.status='published' AND
-  COALESCE((SELECT can_create_decks FROM users WHERE id=NEW.creator_user_id),0)=1
+  OLD.creator_user_id='reed-team' AND OLD.status='finished'
 )) OR (NEW.book_id <> OLD.book_id AND NOT EXISTS (
   SELECT 1 FROM book_merge_operations m WHERE m.source_book_id=OLD.book_id AND m.target_book_id=NEW.book_id
 )) OR (NEW.language <> OLD.language AND OLD.status <> 'draft')
 BEGIN SELECT RAISE(ABORT,'Deck ownership is immutable'); END;
-CREATE TRIGGER keep_published_deck BEFORE DELETE ON decks WHEN OLD.status <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published deck cannot be deleted'); END;
+CREATE TRIGGER keep_finished_deck BEFORE DELETE ON decks WHEN OLD.status <> 'draft'
+BEGIN SELECT RAISE(ABORT,'Finished deck cannot be deleted'); END;
 
 CREATE TABLE deck_translations (
   deck_id TEXT NOT NULL REFERENCES decks(id),
@@ -270,13 +260,13 @@ CREATE INDEX deck_contributors_by_user ON deck_contributors(user_id,deck_id);
 
 CREATE TRIGGER freeze_collective_contributors_insert BEFORE INSERT ON deck_contributors
 WHEN (SELECT status FROM decks WHERE id=NEW.deck_id) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published contributor list is immutable'); END;
+BEGIN SELECT RAISE(ABORT,'Finished contributor list is immutable'); END;
 CREATE TRIGGER freeze_collective_contributors_update BEFORE UPDATE ON deck_contributors
 WHEN (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published contributor list is immutable'); END;
+BEGIN SELECT RAISE(ABORT,'Finished contributor list is immutable'); END;
 CREATE TRIGGER freeze_collective_contributors_delete BEFORE DELETE ON deck_contributors
 WHEN (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published contributor list is immutable'); END;
+BEGIN SELECT RAISE(ABORT,'Finished contributor list is immutable'); END;
 CREATE TABLE card_translations (
   card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
@@ -304,13 +294,13 @@ END;
 
 CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards
 WHEN (SELECT status FROM decks WHERE id = OLD.deck_id) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published content is immutable; cards cannot be deleted'); END;
+BEGIN SELECT RAISE(ABORT,'Finished content is immutable; cards cannot be deleted'); END;
 CREATE TRIGGER freeze_card_translations_delete BEFORE DELETE ON card_translations
 WHEN (SELECT status FROM decks WHERE id = (SELECT deck_id FROM cards WHERE id = OLD.card_id)) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published content is immutable; card translations cannot be deleted'); END;
+BEGIN SELECT RAISE(ABORT,'Finished content is immutable; card translations cannot be deleted'); END;
 CREATE TRIGGER freeze_deck_translations_delete BEFORE DELETE ON deck_translations
 WHEN (SELECT status FROM decks WHERE id = OLD.deck_id) <> 'draft'
-BEGIN SELECT RAISE(ABORT,'Published content is immutable; deck translations cannot be deleted'); END;
+BEGIN SELECT RAISE(ABORT,'Finished content is immutable; deck translations cannot be deleted'); END;
 
 CREATE TABLE deck_votes (
   user_id TEXT NOT NULL REFERENCES users(id),
@@ -360,14 +350,14 @@ CREATE TABLE petal_wallets (
 CREATE TABLE practice_answers (
   user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
   card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
-  answer TEXT NOT NULL CHECK(answer IN ('soon','remembered')),
+  answer TEXT NOT NULL CHECK(answer IN ('see_less','see_more')),
   answered_at TEXT NOT NULL,
   PRIMARY KEY(user_id,card_id)
 ) STRICT;
 CREATE TABLE practice_sessions (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
-  topic TEXT NOT NULL CHECK(topic IN ('reading','read','saved','mixed','discover')),
+  practice_mode TEXT NOT NULL CHECK(practice_mode IN ('reading','read','saved','mixed','discover')),
   card_ids TEXT NOT NULL,
   card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
   cost INTEGER NOT NULL CHECK(cost IN (2,3)),
@@ -428,4 +418,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 60;
+PRAGMA user_version = 61;

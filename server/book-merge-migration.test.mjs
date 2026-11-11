@@ -14,7 +14,7 @@ for(const [dialect,version] of [["sqlite",37],["postgres",29]]){
     const sourceBookId="seven-habits",targetBookId="atomic-habits";
     const deck=await db.prepare("SELECT id FROM decks WHERE book_id=? ORDER BY id LIMIT 1").get(sourceBookId);
     assert.ok(deck);
-    await db.prepare("UPDATE decks SET status='published' WHERE id=?").run(deck.id);
+    await db.prepare("UPDATE decks SET status='finished' WHERE id=?").run(deck.id);
     const cards=await db.prepare("SELECT id,deck_id,book_id,parent_id,position FROM cards WHERE deck_id=? ORDER BY position,id").all(deck.id);
     assert.ok(cards.length);
     const cardId=cards[0].id;
@@ -27,7 +27,7 @@ for(const [dialect,version] of [["sqlite",37],["postgres",29]]){
     assert.equal(result.targetBookId,targetBookId);
     assert.equal(await db.prepare("SELECT id FROM books WHERE id=?").get(sourceBookId),undefined);
     assert.equal((await db.prepare("SELECT id,book_id,status FROM decks WHERE id=?").get(deck.id)).book_id,targetBookId);
-    assert.equal((await db.prepare("SELECT status FROM decks WHERE id=?").get(deck.id)).status,"published");
+    assert.equal((await db.prepare("SELECT status FROM decks WHERE id=?").get(deck.id)).status,"finished");
     assert.deepEqual((await db.prepare("SELECT id,deck_id,book_id,parent_id,position FROM cards WHERE deck_id=? ORDER BY position,id").all(deck.id))
       .map(row=>Object.fromEntries(Object.entries(row))),
       cards.map(card=>({...card,book_id:targetBookId})));

@@ -6,7 +6,7 @@ import {openDatabase,initializeDatabase,PostgresDatabase,SQLITE_SCHEMA_VERSION} 
 import {PGlite} from "@electric-sql/pglite";
 import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
-import {createBook,createDeck,addCard,addDeckContributors,completeBook,ownedBookInformation,takeFirstNote,finishDeck,finishNoteDecks} from "./author-repository.mjs";
+import {createBook,createDeck,takeNote,addDeckContributors,completeBook,ownedBookInformation,finishDeck,finishNoteDecks} from "./author-repository.mjs";
 import {readCatalog,checkCatalog} from "./catalog-repository.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {readReaderState as readReaderStateAtDate,selectDeck,openCard,dailyIdea,changeReading} from "./reader-repository.mjs";
@@ -37,9 +37,9 @@ for (const dialect of ["sqlite","postgres"]) {
     const {db,session,other}=await fixture(t,dialect);
     const before=await readReaderState(db,session),counts=await checkCatalog(db);
     const input={requestId:randomUUID(),bookId:"seven-habits",language:"es",isQuote:false,title:"Una idea",body:"Mi primera nota"};
-    const saved=await takeFirstNote(db,session,input);
+    const saved=await takeNote(db,session,input);
     assert.deepEqual(saved.xpReward,{amount:15,balance:15});
-    assert.deepEqual(await takeFirstNote(db,session,input),{deckId:saved.deckId,cardId:saved.cardId});
+    assert.deepEqual(await takeNote(db,session,input),{deckId:saved.deckId,cardId:saved.cardId});
     const catalog=await readCatalog(db),deck=catalog.decks.find(deck=>deck.id===input.requestId);
     const deckInfo=catalog.decks.find(deck=>deck.id===saved.deckId),card=catalog.cards.find(card=>card.id===saved.cardId);
     assert.equal(catalog.decks.length,counts.decks+1);assert.equal(catalog.cards.length,counts.cards+1);
@@ -49,22 +49,22 @@ for (const dialect of ["sqlite","postgres"]) {
     const after=await readReaderState(db,session);
     assert.deepEqual(after.wallet,before.wallet);
     assert.equal(after.statuses[input.bookId],"unread");assert.ok(after.noteActivity[input.bookId]);
-    await assert.rejects(takeFirstNote(db,other,input),{code:"invalidRequest"});
-    await assert.rejects(takeFirstNote(db,session,{...input,body:"Otro texto"}),{code:"invalidRequest"});
+    await assert.rejects(takeNote(db,other,input),{code:"invalidRequest"});
+    await assert.rejects(takeNote(db,session,{...input,body:"Otro texto"}),{code:"invalidRequest"});
     // Fail the final write, after the deck and card have been inserted.
     const prepare=db.prepare.bind(db);
     db.prepare=sql=>sql.startsWith("INSERT INTO card_translations") ? {run:async()=>{throw new Error("simulated storage failure");}} : prepare(sql);
-    try { await assert.rejects(takeFirstNote(db,session,{...input,requestId:randomUUID()}),/simulated storage failure/); }
+    try { await assert.rejects(takeNote(db,session,{...input,requestId:randomUUID()}),/simulated storage failure/); }
     finally { db.prepare=prepare; }
     assert.deepEqual(await checkCatalog(db),{...counts,decks:counts.decks+1,cards:counts.cards+1});
   });
 
-  test(`${dialect}: notes closure validates the whole batch, preserves ownership and archives empty drafts`,async t=>{
+  test(`${dialect}: notes closure validates the whole batch, preserves ownership and deletes empty drafts`,async t=>{
     const {db,session,other}=await fixture(t,dialect),bookId="seven-habits";
     const create=(owner,bookId)=>createDeck(db,owner,{requestId:randomUUID(),bookId,title:"Notas",language:"es"});
     const full=await create(session,bookId),empty=await create(session,bookId),foreign=await create(other,bookId),differentBook=await create(session,"atomic-habits");
     const note={requestId:randomUUID(),deckId:full.deckId,title:"Idea",body:"Texto conservado",isQuote:false,parentId:null};
-    await addCard(db,session,note);
+    await takeNote(db,session,note);
     const before=await readReaderState(db,session),drafts=await db.prepare("SELECT id,status FROM decks ORDER BY id").all();
     const decks=[{deckId:full.deckId,cardCount:1},{deckId:empty.deckId,cardCount:0}];
     for (const [rows,code] of [
@@ -77,14 +77,16 @@ for (const dialect of ["sqlite","postgres"]) {
       assert.deepEqual(await db.prepare("SELECT id,status FROM decks ORDER BY id").all(),drafts);
     }
     const finished=await finishNoteDecks(db,session,{bookId,decks});
-    assert.deepEqual(await finishNoteDecks(db,session,{bookId,decks}),finished);
+    assert.deepEqual(finished.decks.map(({status})=>status).sort(),["deleted","finished"]);
+    assert.deepEqual(await finishNoteDecks(db,session,{bookId,decks:[decks[0]]}),{bookId,decks:[{deckId:full.deckId,status:"finished"}]});
+    await assert.rejects(finishNoteDecks(db,session,{bookId,decks}),{code:"deckUnavailable"});
     const catalog=prepareCatalog(await readCatalog(db));
-    assert.equal(catalog.decksById.get(full.deckId).status,"published");
-    assert.equal(catalog.decksById.get(empty.deckId).status,"archived");
+    assert.equal(catalog.decksById.get(full.deckId).status,"finished");
+    assert.equal(catalog.decksById.has(empty.deckId),false);
     assert.equal(catalog.decksById.get(foreign.deckId).status,"draft");
     assert.equal(catalog.cardsById.get(note.requestId).body.es,note.body);
     assert.ok(!featuredDecks(catalog,bookId).some(choice=>choice.deck.id===empty.deckId));
-    await assert.rejects(addCard(db,session,{...note,requestId:randomUUID()}),{code:"deckReadOnly"});
+    await assert.rejects(takeNote(db,session,{...note,requestId:randomUUID()}),{code:"deckReadOnly"});
     const after=await readReaderState(db,session);
     assert.deepEqual(after.wallet,before.wallet);assert.deepEqual(after.statuses,before.statuses);
   });
@@ -93,7 +95,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const {db,session,other}=await fixture(t,dialect);
     const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:bookMetadata.popularTitle,author:"Autor ya escrito",language:"en",metadata:{genres:bookMetadata.genres}});
     const {deckId}=await createDeck(db,session,{requestId:randomUUID(),bookId,title:"Mi baraja",language:"es"});
-    const {cardId}=await addCard(db,session,{requestId:randomUUID(),deckId,title:"Idea",body:"Texto propio",parentId:null,isQuote:false});
+    const {cardId}=await takeNote(db,session,{requestId:randomUUID(),deckId,title:"Idea",body:"Texto propio",parentId:null,isQuote:false});
     await openCard(db,session,deckId,cardId,new Date("2026-10-10T12:00:00Z"));
     const beforeState=await readReaderState(db,session),bookCount=(await db.prepare("SELECT count(*) AS n FROM books").get()).n;
     const request={bookId,metadata:structuredClone(bookMetadata),author:"Sobrescribir",title:"Otro título",language:"fr"};
@@ -233,7 +235,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal((await readProfile(db,other.user_id,other.user_id)).bookshelf.some(b=>b.bookId===bookId),false);
     const deckInput={requestId:randomUUID(),bookId,title:"Mis notas",language:"es"};
     const foreignDeck=await createDeck(db,other,{...deckInput,requestId:randomUUID()});
-    const foreignCard=await addCard(db,other,{requestId:randomUUID(),deckId:foreignDeck.deckId,title:"Mi idea",body:"Mi texto",parentId:null,isQuote:false});
+    const foreignCard=await takeNote(db,other,{requestId:randomUUID(),deckId:foreignDeck.deckId,title:"Mi idea",body:"Mi texto",parentId:null,isQuote:false});
     assert.equal((await changeReading(db,other,bookId,"read",new Date("2026-10-10T12:00:00Z"))).statuses[bookId],"read");
     assert.equal((await readReaderState(db,session)).statuses[bookId],"reading");
     assert.equal((await readProfile(db,other.user_id,session.user_id)).bookshelf.some(b=>b.bookId===bookId),true);
@@ -249,7 +251,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.match(deckView(ui),/Create deck/);
     assert.match(authorFormView({...ui,authorForm:{kind:"book",language:"fr"}}),/name="author"/);
     const {deckId}=await createDeck(db,session,deckInput);
-    const {cardId}=await addCard(db,session,{requestId:randomUUID(),deckId,isQuote:true,parentId:null,body:"Aujourd’hui, maman est morte."});
+    const {cardId}=await takeNote(db,session,{requestId:randomUUID(),deckId,isQuote:true,parentId:null,body:"Aujourd’hui, maman est morte."});
     catalog=prepareCatalog(await readCatalog(db,session.user_id));
     assert.equal(Object.hasOwn(catalog.cardsById.get(cardId),"sourceUrl"),false);
     const html=authorView({...ui,catalog,deckId,requestedId:cardId,mode:"author"});
@@ -267,11 +269,11 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal(firstOpen.state.wallet.balance,5);
     assert.equal("practices" in await readReaderState(db,session),false);
     await assert.rejects(recordCardView(db,other,{cardId,context:"author"}),e=>e.code==="notAllowed");
-    await assert.rejects(addCard(db,other,{requestId:randomUUID(),deckId,isQuote:true,parentId:null,body:"Ajena"}),e=>e.status===404);
+    await assert.rejects(takeNote(db,other,{requestId:randomUUID(),deckId,isQuote:true,parentId:null,body:"Ajena"}),e=>e.status===404);
     const idea=await dailyIdea(db,other,new Date("2026-10-10T12:00:00Z"));
     assert.ok(prepareCatalog(await readCatalog(db,other.user_id)).cardsById.has(idea.daily.id));
     // Changing editorial status does not transfer ownership or block card views.
-    await db.prepare("UPDATE decks SET status='published' WHERE id=?").run(deckId.replace(/$/,""));
+    await db.prepare("UPDATE decks SET status='finished' WHERE id=?").run(deckId.replace(/$/,""));
     assert.equal(prepareCatalog(await readCatalog(db)).cardsById.has(cardId),true);
     await selectDeck(db,other,deckId,new Date("2026-10-10T12:00:00Z"));
     const opened=await openCard(db,other,deckId,cardId,new Date("2026-10-10T12:00:00Z"));
@@ -289,17 +291,17 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal(catalog.decksById.get(deckId).cardCount,0);
     assert.equal((await readReaderState(db,session,new Date("2026-10-10T12:00:00Z"))).enrolledIds.includes(deckId),true);
     await selectDeck(db,other,deckId,new Date("2026-10-10T12:00:00Z"));
-    await assert.rejects(addCard(db,other,{requestId:randomUUID(),deckId,title:"x",body:"x",parentId:null,isQuote:false}),e=>e.status===404);
+    await assert.rejects(takeNote(db,other,{requestId:randomUUID(),deckId,title:"x",body:"x",parentId:null,isQuote:false}),e=>e.status===404);
     const add=(title,parentId=null,isQuote=false)=>({requestId:randomUUID(),deckId,title,body:"Texte à mémoriser\nDeuxième ligne",parentId,isQuote});
-    const root=await addCard(db,session,add("Principe"));
-    const quoteInput=add("",null,true),quote=await addCard(db,session,quoteInput);
-    assert.equal((await addCard(db,session,quoteInput)).cardId,quote.cardId);
+    const root=await takeNote(db,session,add("Principe"));
+    const quoteInput=add("",null,true),quote=await takeNote(db,session,quoteInput);
+    assert.equal((await takeNote(db,session,quoteInput)).cardId,quote.cardId);
     await db.prepare("UPDATE card_translations SET title=? WHERE card_id=?").run("Legacy quote heading",quote.cardId);
-    assert.equal((await addCard(db,session,quoteInput)).cardId,quote.cardId);
-    const secondRoot=await addCard(db,session,add("Autre principe"));
-    const childQuote=await addCard(db,session,add("Citation liée",root.cardId,true));
-    await assert.rejects(addCard(db,session,add("x","habit-1")),e=>e.code==="invalidParent");
-    await assert.rejects(addCard(db,session,{...add("x"),body:" "}),e=>e.status===400);
+    assert.equal((await takeNote(db,session,quoteInput)).cardId,quote.cardId);
+    const secondRoot=await takeNote(db,session,add("Autre principe"));
+    const childQuote=await takeNote(db,session,add("Citation liée",root.cardId,true));
+    await assert.rejects(takeNote(db,session,add("x","habit-1")),e=>e.code==="invalidParent");
+    await assert.rejects(takeNote(db,session,{...add("x"),body:" "}),e=>e.status===400);
     catalog=prepareCatalog(await readCatalog(db,session.user_id));
     const model=catalog.deckModels.get(deckId);
     assert.equal(model.cards.length,4); assert.equal(model.cards.some(c=>c.id==="virtual-quotes"),false);
@@ -311,11 +313,11 @@ for (const dialect of ["sqlite","postgres"]) {
     await openCard(db,session,deckId,secondRoot.cardId,new Date("2026-10-15T12:00:00Z"));
     await openCard(db,session,deckId,childQuote.cardId,new Date("2026-10-15T12:00:00Z"));
     assert.equal("practices" in await readReaderState(db,session),false);
-    await addCard(db,session,add("Plus tard"));
+    await takeNote(db,session,add("Plus tard"));
     const otherDaily=await dailyIdea(db,other,now);
     assert.ok(prepareCatalog(await readCatalog(db,other.user_id)).cardsById.has(otherDaily.daily.id));
     assert.equal("practices" in await readReaderState(db,other,now),false);
-    await assert.rejects(addCard(db,session,{...add("x"),deckId:"seven-habits-editorial"}),e=>e.status===404);
+    await assert.rejects(takeNote(db,session,{...add("x"),deckId:"seven-habits-editorial"}),e=>e.status===404);
     const ui={catalog,deckId,bookId:"seven-habits",language:"es",userId:session.user_id,mode:"author",requestedId:quote.cardId,budget:state.wallet,today:state.today,storageAvailable:true};
     assert.match(authorView({...ui,requestedId:null}),/Citas sin clasificar/); assert.match(authorView(ui),/<blockquote/);
     assert.match(authorView(ui),/quote-card/); assert.match(authorView({...ui,quotesOnly:true}),/Texte à mémoriser/);
@@ -372,7 +374,7 @@ for (const dialect of ["sqlite","postgres"]) {
     await db.prepare("UPDATE card_translations SET body='Citation conservée' WHERE card_id=? AND language='fr'").run(cardId);
     const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:"Après migration",author:"Auteur",language:"fr",metadata:{genres:["society"]}});
     const next=await createDeck(db,session,{requestId:randomUUID(),bookId,title:"Notes",language:"fr"});
-    await addCard(db,session,{requestId:randomUUID(),deckId:next.deckId,isQuote:true,parentId:null,body:"Sans URL"});
+    await takeNote(db,session,{requestId:randomUUID(),deckId:next.deckId,isQuote:true,parentId:null,body:"Sans URL"});
     const own=prepareCatalog(await readCatalog(db,session.user_id));
     assert.equal(own.deckModels.get(next.deckId).cards.length,1);
     if (dialect === "sqlite") {

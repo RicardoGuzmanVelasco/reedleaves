@@ -45,3 +45,5 @@ Los repositorios actuales solo se invocan después de migrar. Las pruebas
 comparan datos anteriores y posteriores y ejecutan la inicialización dos veces.
 
 Fixtures v55/v47: extraídos de `163480b`, con las constantes de aplicación resueltas.
+
+Fixtures v60 (SQLite) y v52 (PostgreSQL): esquemas anteriores a la migración del vocabulario terminado (`finished`), copiados del esquema vigente antes de cambiarlo, con las constantes de aplicación resueltas.

@@ -14,7 +14,7 @@ import {insertCardView} from "./profile-repository.mjs";
 import {cardSavesInside} from "./card-saves.mjs";
 import {distinguishedBookIds,ensureBookToRead} from "./book-reading.mjs";
 import {accruePetalWallet,MAX_PETALS} from "./petal-wallet-repository.mjs";
-import {practiceDiscountTopic,reconcilePracticeSessionInside} from "./practice-economy.mjs";
+import {practiceDiscountMode,reconcilePracticeSessionInside} from "./practice-economy.mjs";
 import {lockReaderAccount} from "./reader-account-lock.mjs";
 import {validBookSortOrder} from "../app/book-sort.mjs";
 import {requireBookInterestConfirmation,BOOK_INTEREST_CONFIRMATION_ENABLED} from "./book-interest-confirmation.mjs";
@@ -25,13 +25,13 @@ export async function readReaderState(db,session,now=new Date()) {
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
     const recovery=await reconcilePracticeSessionInside(db,session.user_id,now),state=await stateInside(db,session,now);
-    if(recovery.recovery) state.practiceRecovery={status:recovery.recovery,topic:recovery.topic||recovery.session?.topic||null};
+    if(recovery.recovery) state.practiceRecovery={status:recovery.recovery,practiceMode:recovery.practiceMode||recovery.session?.practiceMode||null};
     else if(!state.activePracticeSession) {
-      const latest=await db.prepare(`SELECT topic,cancelled_at,completed_at FROM practice_sessions WHERE user_id=?
+      const latest=await db.prepare(`SELECT practice_mode,cancelled_at,completed_at FROM practice_sessions WHERE user_id=?
         ORDER BY CASE WHEN cancelled_at IS NOT NULL THEN cancelled_at WHEN completed_at IS NOT NULL THEN completed_at ELSE started_at END DESC,
         CASE WHEN completed_at IS NOT NULL THEN 1 WHEN cancelled_at IS NOT NULL THEN 0 ELSE -1 END DESC,
         started_at DESC,id DESC LIMIT 1`).get(session.user_id);
-      if(latest?.cancelled_at&&!latest.completed_at) state.practiceRecovery={status:"cancelled",topic:latest.topic};
+      if(latest?.cancelled_at&&!latest.completed_at) state.practiceRecovery={status:"cancelled",practiceMode:latest.practice_mode};
     }
     return state;
   });
@@ -90,7 +90,7 @@ async function stateInside(db,session,now) {
   const account=await db.prepare("SELECT * FROM accounts WHERE user_id = ?").get(session.user_id);
   if(!account) throw new ApiError(401,"signInRequired");
   const userId=account.user_id,today=serverDay(account.time_zone,now),cycleDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.currencyRefill),ideaDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea);
-  const activePracticeRow=await db.prepare(`SELECT id,topic,card_ids,card_index,cost,started_at FROM practice_sessions
+  const activePracticeRow=await db.prepare(`SELECT id,practice_mode,card_ids,card_index,cost,started_at FROM practice_sessions
     WHERE user_id=? AND completed_at IS NULL AND cancelled_at IS NULL${isPostgres(db)?" FOR UPDATE":""}`).get(userId);
   const wallet=await accrueLeafWallet(db,userId,cycleDay);
   const petalWallet=await accruePetalWallet(db,userId,cycleDay);
@@ -98,9 +98,9 @@ async function stateInside(db,session,now) {
     .map(row=>[row.card_id,row.answer]));
   const lastPractice=await db.prepare(`SELECT COALESCE((SELECT MAX(completed_at) FROM practice_sessions WHERE user_id=?),u.created_at) AS seed
     FROM users u WHERE u.id=?`).get(userId,userId);
-  const discountTopic=practiceDiscountTopic(userId,lastPractice?.seed);
+  const discountMode=practiceDiscountMode(userId,lastPractice?.seed);
   const activePracticeSession=activePracticeRow?{
-    id:activePracticeRow.id,topic:activePracticeRow.topic,cardIds:JSON.parse(activePracticeRow.card_ids),
+    id:activePracticeRow.id,practiceMode:activePracticeRow.practice_mode,cardIds:JSON.parse(activePracticeRow.card_ids),
     index:Number(activePracticeRow.card_index),cost:Number(activePracticeRow.cost),startedAt:activePracticeRow.started_at instanceof Date?activePracticeRow.started_at.toISOString():activePracticeRow.started_at
   }:null;
   const bookSort=await db.prepare("SELECT sort_order FROM reader_book_sort_preferences WHERE user_id = ?").get(userId);
@@ -131,7 +131,7 @@ async function stateInside(db,session,now) {
     noteDeckActivity[row.deck_id]=date;
     if (!noteActivity[row.book_id] || date > noteActivity[row.book_id]) noteActivity[row.book_id]=date;
   }
-  return {user:{id:userId,username:account.username,timeZone:account.time_zone,roles:await readerRoles(db,userId)},csrfToken:session.csrf_token,language:account.language,bookSortOrder:validBookSortOrder(bookSort?.sort_order)?bookSort.sort_order:"recent",today,wallet,petals:petalWallet.balance,petalMaximum:MAX_PETALS,practiceDiscountTopic:discountTopic,activePracticeSession,practiceAnswers,growth,readerProgression:await readReaderProgression(db,userId),cardSaves:await cardSavesInside(db,userId),
+  return {user:{id:userId,username:account.username,timeZone:account.time_zone,roles:await readerRoles(db,userId)},csrfToken:session.csrf_token,language:account.language,bookSortOrder:validBookSortOrder(bookSort?.sort_order)?bookSort.sort_order:"recent",today,wallet,petals:petalWallet.balance,petalMaximum:MAX_PETALS,practiceDiscountMode:discountMode,activePracticeSession,practiceAnswers,growth,readerProgression:await readReaderProgression(db,userId),cardSaves:await cardSavesInside(db,userId),
     noteActivity,noteDeckActivity,shelfBookIds:[...addedBooks],pendingNewBookCount:await pendingNewBookCount(db,userId),
     statuses:Object.fromEntries([...distinguished.map(id=>[id,"unread"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])]),
     enrolledIds:(await db.prepare("SELECT deck_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.deck_id),
@@ -141,11 +141,10 @@ async function stateInside(db,session,now) {
 async function knownDeck(db,deckId,userId) {
   if(typeof deckId!=="string") throw new ApiError(400,"invalidRequest");
   const deck=await db.prepare("SELECT * FROM decks WHERE id = ?").get(deckId);
-  const enrolled=await db.prepare("SELECT 1 FROM studies WHERE user_id = ? AND deck_id = ?").get(userId,deckId);
   const readingGuide=deck&&!!await db.prepare("SELECT 1 FROM cards WHERE deck_id=? AND is_reading_guide=1").get(deckId);
   const owner=deck?.creator_user_id===userId;
   const invited=deck&&deck.contribution_policy==="selected"&&!!await db.prepare("SELECT 1 FROM deck_contributors WHERE deck_id=? AND user_id=?").get(deckId,userId);
-  if(!deck||(deck.status==="archived"&&!enrolled)||readingGuide||
+  if(!deck||readingGuide||
       deck.kind==="collective"&&deck.status==="draft"&&!owner&&deck.contribution_policy!=="open"&&!invited) throw new ApiError(404,"deckUnavailable");
   return deck;
 }

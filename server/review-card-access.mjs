@@ -1,9 +1,8 @@
 // Keep review-card visibility aligned across the Repasar selector and the
 // available card-language list. Draft collective access follows the same
 // owner, open, and selected-invitation rules as deck reading.
-export function canReviewDeck(deck,userId,{preserveArchivedSession=false}={}) {
+export function canReviewDeck(deck,userId) {
   if(!deck||deck.hasReadingGuide) return false;
-  if(deck.status==="archived"&&!deck.enrolled&&!preserveArchivedSession) return false;
   const owner=deck.creatorUserId===userId;
   const invited=deck.kind==="collective"&&deck.contributionPolicy==="selected"&&deck.invited;
   const open=deck.kind==="collective"&&deck.contributionPolicy==="open";

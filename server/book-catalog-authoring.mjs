@@ -63,8 +63,8 @@ export async function createCatalogBook(db,input) {
     rejectTitleDuplicates({popularTitle:metadata.popularTitle,title:metadata.title},existing.books);
     const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM books").get();
     const {incorporation_order:incorporationOrder}=await db.prepare("SELECT COALESCE(MAX(incorporation_order),0)+1 AS incorporation_order FROM books").get();
-    await db.prepare(`INSERT INTO books(id,author,popular_title,popular_language,position,editorial_status,updated_at,incorporated_at,incorporation_order)
-      VALUES (?,?,?,?,?,'draft',CURRENT_TIMESTAMP,?,?)`)
+    await db.prepare(`INSERT INTO books(id,author,popular_title,popular_language,position,updated_at,incorporated_at,incorporation_order)
+      VALUES (?,?,?,?,?,CURRENT_TIMESTAMP,?,?)`)
       .run(id,author,metadata.popularTitle,metadata.popularLanguage,position,catalogBookIncorporationTimestamp(),incorporationOrder);
     for(const language of Object.keys(metadata.description)) await db.prepare(`INSERT INTO book_translations(book_id,language,title,description,editorial_note)
       VALUES (?,?,?,?,?)`).run(id,language,metadata.title[language]||"",metadata.description[language],metadata.editorialNote[language]);

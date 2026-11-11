@@ -12,7 +12,7 @@ test("SQLite v35 adds an immutable quote source only for team decks",async t=>{
   assert.deepEqual(db.prepare("SELECT id FROM decks ORDER BY id").all(),deckIdsBefore);
   assert.equal(db.prepare("SELECT count(*) AS count FROM decks WHERE quote_source_url IS NOT NULL").get().count,0);
   assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
-  db.prepare("INSERT INTO users(id,display_name,can_create_decks) VALUES ('reader','Reader',0)").run();
+  db.prepare("INSERT INTO users(id,display_name) VALUES ('reader','Reader')").run();
   assert.throws(()=>db.prepare(`INSERT INTO decks(id,book_id,creator_user_id,language,quote_source_url)
     VALUES ('reader-quotes','atomic-habits','reader','en','https://example.com/quotes')`).run(),/Only team decks/);
 

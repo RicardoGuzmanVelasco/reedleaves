@@ -17,14 +17,14 @@ function handlerWith(name,nextName,context) {
 }
 
 function withGuide(state,bookId) {
-  const deck={id:"guide-deck",bookId,status:"published"};
+  const deck={id:"guide-deck",bookId,status:"finished"};
   const card={id:"guide-card",deckId:deck.id,bookId,isReadingGuide:true};
   state.catalog.decks.push(deck);state.catalog.deckModels.set(deck.id,{cards:[card],byId:new Map([[card.id,card]])});
   return state;
 }
 
 test("Only a saved transition into reading with accessible guide cards qualifies",()=>{
-  const guideCatalog={decks:[{id:"guide",bookId:"b",status:"published"},{id:"empty",bookId:"b",status:"published"},{id:"archived",bookId:"b",status:"archived"}],deckModels:new Map([
+  const guideCatalog={decks:[{id:"guide",bookId:"b",status:"finished"},{id:"empty",bookId:"b",status:"finished"},{id:"archived",bookId:"b",status:"archived"}],deckModels:new Map([
     ["guide",{cards:[{isReadingGuide:true}]}],["empty",{cards:[]}],["archived",{cards:[{isReadingGuide:true}]}]
   ])};
   assert.equal(hasAccessibleReadingGuide(guideCatalog,"b"),true);
@@ -38,7 +38,7 @@ test("Only a saved transition into reading with accessible guide cards qualifies
 });
 
 test("A saved transition into read offers a guide only when the reader has not written one",()=>{
-  const catalog={decks:[{id:"guide",bookId:"b",status:"published"}],deckModels:new Map([
+  const catalog={decks:[{id:"guide",bookId:"b",status:"finished"}],deckModels:new Map([
     ["guide",{cards:[{isReadingGuide:true,creatorUserId:"reader"}]}]
   ])};
   assert.equal(hasOwnReadingGuide(catalog,"b","reader"),true);
@@ -141,7 +141,7 @@ test("A reading transition from the personal Shelf gets the guide prompt; public
   const {prepareCatalog}=await import("./catalog.mjs");
   const db=dbState.openDatabase(":memory:");let catalog;
   try{dbState.initializeDatabase(db);await seedCatalog(db);catalog=prepareCatalog(await readCatalog(db));}finally{await db.close();}
-  const bookId="seven-habits",deck={id:"shelf-guide",bookId,status:"published",creator:{userId:"guide-author"}},card={id:"shelf-guide-card",bookId,deckId:deck.id,isReadingGuide:true};
+  const bookId="seven-habits",deck={id:"shelf-guide",bookId,status:"finished",creator:{userId:"guide-author"}},card={id:"shelf-guide-card",bookId,deckId:deck.id,isReadingGuide:true};
   catalog.decks.push(deck);catalog.deckModels.set(deck.id,{cards:[card],byId:new Map([[card.id,card]])});
   const own={catalog,language:"es",statuses:{[bookId]:"reading"},openBookId:bookId,mode:"bookcase",bookcaseTab:"shelf",shelfBookIds:[bookId],userId:"reader",storageAvailable:true,readingGuidePromptBookId:bookId};
   const html=bookcaseView(own);

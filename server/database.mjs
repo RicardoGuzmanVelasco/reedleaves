@@ -7,6 +7,7 @@ import { Pool, types } from "pg";
 import {FEEDBACK_MESSAGE_MAX_LENGTH,FEEDBACK_PAGE_MAX_LENGTH,USERNAME_MIN_LENGTH,USERNAME_MAX_LENGTH,defaultCardLanguages} from "../app/core.mjs";
 import {INTEREST_MIGRATION_SQL,SOFTWARE_BOOK_IDENTITY,SOFTWARE_RECLASSIFICATION_QUERIES} from "./interest-migration.mjs";
 
+import {migrateSqliteToFinishedVocabulary,FINISHED_VOCABULARY_POSTGRES_SQL} from "./finished-vocabulary-migration.mjs";
 import {INTEREST_CHOICE_APPEARANCE_SQL} from "./interest-choice-appearance-migration.mjs";
 import {INTEREST_APPEARANCE_SQL} from "./interest-appearance-migration.mjs";
 import {PRODUCTIVITY_INTEREST_APPEARANCE_SQL} from "./productivity-interest-appearance-migration.mjs";
@@ -17,8 +18,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 60;
-export const POSTGRES_SCHEMA_VERSION = 52;
+export const SQLITE_SCHEMA_VERSION = 61;
+export const POSTGRES_SCHEMA_VERSION = 53;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -105,6 +106,10 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 60) {
+    migrateSqliteToFinishedVocabulary(db);
+    return initializeDatabase(db);
+  }
   if (version === 59) {
     db.exec("BEGIN IMMEDIATE");
     try {
@@ -988,6 +993,14 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 52) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,users,books,decks,cards,deck_translations,card_translations,deck_contributors,deck_votes,deck_selections,studies,practice_answers,practice_sessions IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 53) return;
+          await db.exec(FINISHED_VOCABULARY_POSTGRES_SQL);
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 51) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,accounts IN ACCESS EXCLUSIVE MODE;");

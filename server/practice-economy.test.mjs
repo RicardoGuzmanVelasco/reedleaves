@@ -4,14 +4,14 @@ import {randomUUID} from "node:crypto";
 import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase,initializeDatabase} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
-import {startPracticeSession,answerPracticeSession,practiceDiscountTopic,PRACTICE_SESSION_SIZE} from "./practice-economy.mjs";
+import {startPracticeSession,answerPracticeSession,practiceDiscountMode,PRACTICE_SESSION_SIZE} from "./practice-economy.mjs";
 import {readReaderState,dailyIdea} from "./reader-repository.mjs";
 import {accruePetalWallet} from "./petal-wallet-repository.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
 import {setCardSave} from "./card-saves.mjs";
 import {readReaderLanguagePreferences,saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
 import {reviewableDeckIds} from "./review-card-access.mjs";
-import {createDeck,addCard,addDeckContributors} from "./author-repository.mjs";
+import {createDeck,takeNote,addDeckContributors} from "./author-repository.mjs";
 
 async function fixture(t,dialect="sqlite") {
   let db;
@@ -33,50 +33,42 @@ async function fixture(t,dialect="sqlite") {
 
 // Discount membership can change when a new mode activates; arrange content for
 // the selected mode instead of assuming a particular hash result.
-async function prepareTopic(db,session,topic) {
-  if(["reading","read"].includes(topic)) await db.prepare("UPDATE book_reading SET status=? WHERE user_id=? AND book_id='seven-habits'").run(topic,session.user_id);
-  if(topic==="saved") {
+async function preparePracticeMode(db,session,practiceMode) {
+  if(["reading","read"].includes(practiceMode)) await db.prepare("UPDATE book_reading SET status=? WHERE user_id=? AND book_id='seven-habits'").run(practiceMode,session.user_id);
+  if(practiceMode==="saved") {
     const cards=await db.prepare("SELECT id FROM cards WHERE deck_id='seven-habits-editorial' AND is_reading_guide=0 LIMIT 5").all();
     for(const card of cards)await db.prepare("INSERT INTO card_saves(user_id,card_id,saved_at) VALUES (?,?,?) ON CONFLICT(user_id,card_id) DO NOTHING").run(session.user_id,card.id,"2026-10-06T12:00:00.000Z");
   }
 }
 
 for(const dialect of ["sqlite","postgres"]) {
-  test(`${dialect}: reviewable decks preserve owner, invitation, open collective, and archive access rules`,async t=>{
+  test(`${dialect}: reviewable decks preserve owner, invitation, and open collective access rules`,async t=>{
     const {db,session}=await fixture(t,dialect);
     const cases=[
       ["seven-habits-editorial","selected","draft"],
       ["seven-habits-inside-out","selected","draft"],
       ["atomic-habits-editorial","open","draft"],
-      ["rich-dad-poor-dad-editorial","selected","draft"],
-      ["getting-things-done-editorial","selected","archived"],
-      ["same-as-ever-editorial","selected","archived"]
+      ["rich-dad-poor-dad-editorial","selected","draft"]
     ];
     for(const [deckId,policy,status] of cases) {
       await db.prepare(`UPDATE decks SET kind='collective',contribution_policy=?,
         max_cards_per_contributor=1,status=? WHERE id=?`).run(policy,status,deckId);
     }
     await db.prepare("INSERT INTO deck_contributors(deck_id,user_id) VALUES (?,?)").run("seven-habits-inside-out",session.user_id);
-    await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,"getting-things-done-editorial");
     const ownerIds=await reviewableDeckIds(db,"reed-team"),memberIds=await reviewableDeckIds(db,session.user_id);
     assert.equal(ownerIds.has("seven-habits-editorial"),true,"an owner retains access to their draft");
     assert.equal(memberIds.has("seven-habits-inside-out"),true,"an invited reader can access a selected draft");
     assert.equal(memberIds.has("atomic-habits-editorial"),true,"an open collective draft is available to readers");
     assert.equal(memberIds.has("rich-dad-poor-dad-editorial"),false,"a selected draft stays private without an invitation");
-    assert.equal(memberIds.has("getting-things-done-editorial"),true,"an enrolled reader retains access to an archived deck");
-    assert.equal(memberIds.has("same-as-ever-editorial"),false,"an archived deck is unavailable without enrollment");
-    assert.equal(ownerIds.has("same-as-ever-editorial"),false,"ownership does not bypass archive enrollment requirements");
   });
 
-  test(`${dialect}: language options and selected cards share all six review-access cases`,async t=>{
+  test(`${dialect}: language options and selected cards share all four review-access cases`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     const cases=[
       {policy:"selected",status:"draft",language:"it",userId:"reed-team",expected:true,label:"owner"},
       {policy:"selected",status:"draft",language:"fr-CA",userId:session.user_id,expected:true,label:"invited"},
       {policy:"open",status:"draft",language:"de",userId:session.user_id,expected:true,label:"open"},
-      {policy:"selected",status:"draft",language:"ja",userId:session.user_id,expected:false,label:"selected-closed"},
-      {policy:"selected",status:"archived",language:"pt",userId:session.user_id,expected:true,label:"archived-enrolled"},
-      {policy:"selected",status:"archived",language:"nl",userId:session.user_id,expected:false,label:"archived-unenrolled"}
+      {policy:"selected",status:"draft",language:"ja",userId:session.user_id,expected:false,label:"selected-closed"}
     ];
     await db.prepare("INSERT INTO accounts(user_id,username,password_hash,time_zone,language) VALUES (?,?,?,?,?)")
       .run("reed-team","team.access","hash","Europe/Madrid","es");
@@ -89,14 +81,12 @@ for(const dialect of ["sqlite","postgres"]) {
       await db.prepare("DELETE FROM studies WHERE user_id=? AND deck_id=?").run(ownerSession.user_id,item.deckId);
       item.cardIds=[];
       for(let index=0;index<5;index++) {
-        const card=await addCard(db,ownerSession,{requestId:randomUUID(),deckId:item.deckId,
+        const card=await takeNote(db,ownerSession,{requestId:randomUUID(),deckId:item.deckId,
           title:`${item.label} ${index+1}`,body:`Card ${index+1} for ${item.label}.`,parentId:null,isQuote:false});
         item.cardIds.push(card.cardId);
       }
     }
     await addDeckContributors(db,ownerSession,{deckId:cases[1].deckId,userIds:[session.user_id]});
-    for(const item of cases.filter(item=>item.status==="archived")) await db.prepare("UPDATE decks SET status='archived' WHERE id=?").run(item.deckId);
-    await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,cases[4].deckId);
 
     const readerOptions=(await readReaderLanguagePreferences(db,session)).options,ownerOptions=(await readReaderLanguagePreferences(db,ownerSession)).options;
     assert.equal(ownerOptions.includes("it"),true,"the owner sees their draft's card language");
@@ -136,8 +126,8 @@ for(const dialect of ["sqlite","postgres"]) {
 
   test(`${dialect}: paid sessions cost two or three, resume, persist answers and seed the next discount from completion time`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
-    const initial=await readReaderState(db,session,now),discount=initial.practiceDiscountTopic;
-    await prepareTopic(db,session,discount);
+    const initial=await readReaderState(db,session,now),discount=initial.practiceDiscountMode;
+    await preparePracticeMode(db,session,discount);
     const first=await startPracticeSession(db,session,discount,now);
     assert.equal(first.session.cardIds.length,PRACTICE_SESSION_SIZE);assert.equal(first.session.cost,2);
     assert.equal((await readReaderState(db,session,now)).petals,8);
@@ -145,15 +135,15 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal(resumed.resumed,true);assert.equal(resumed.session.id,first.session.id);
     assert.equal((await readReaderState(db,session,now)).petals,8);
     let result;
-    for(let index=0;index<PRACTICE_SESSION_SIZE;index++) result=await answerPracticeSession(db,session,{sessionId:first.session.id,index,cardId:first.session.cardIds[index],answer:index===0?"soon":"remembered"},new Date(now.getTime()+1000*(index+1)));
+    for(let index=0;index<PRACTICE_SESSION_SIZE;index++) result=await answerPracticeSession(db,session,{sessionId:first.session.id,index,cardId:first.session.cardIds[index],answer:index===0?"see_less":"see_more"},new Date(now.getTime()+1000*(index+1)));
     assert.equal(result.session.index,PRACTICE_SESSION_SIZE);assert.ok(result.session.completedAt);
-    const after=await readReaderState(db,session,now),expected=practiceDiscountTopic("reader",result.session.completedAt);
-    assert.equal(after.practiceDiscountTopic,expected);assert.equal(after.activePracticeSession,null);
+    const after=await readReaderState(db,session,now),expected=practiceDiscountMode("reader",result.session.completedAt);
+    assert.equal(after.practiceDiscountMode,expected);assert.equal(after.activePracticeSession,null);
     assert.equal(after.growth["seven-habits"].reviewDays,1);
     assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM practice_session_cards WHERE session_id=?").get(first.session.id)).n,5);
     assert.equal((await db.prepare("SELECT completed_local_day FROM practice_sessions WHERE id=?").get(first.session.id)).completed_local_day,"2026-10-06");
     assert.equal(Object.keys(after.practiceAnswers).length,PRACTICE_SESSION_SIZE);
-    await prepareTopic(db,session,expected);
+    await preparePracticeMode(db,session,expected);
     const next=await startPracticeSession(db,session,expected,new Date(now.getTime()+7000));
     assert.equal(next.session.cost,2);
   });
@@ -188,14 +178,14 @@ for(const dialect of ["sqlite","postgres"]) {
     await db.prepare("UPDATE practice_sessions SET card_index=5,completed_at=?,completed_local_day='2026-10-06' WHERE id=?").run(now.toISOString(),started.session.id);
     const spanish=(await db.prepare("SELECT id FROM cards WHERE language='es' AND is_reading_guide=0").all()).map(row=>row.id);
     for(const cardId of spanish.slice(0,8)) await setCardSave(db,session,{cardId,saved:true},now);
-    for(const topic of ["reading","read","saved","mixed"]) {
-      if(topic==="read") await db.prepare("UPDATE book_reading SET status='read' WHERE user_id=? AND book_id=?").run(session.user_id,"seven-habits");
+    for(const practiceMode of ["reading","read","saved","mixed"]) {
+      if(practiceMode==="read") await db.prepare("UPDATE book_reading SET status='read' WHERE user_id=? AND book_id=?").run(session.user_id,"seven-habits");
       await db.prepare("UPDATE petal_wallets SET balance=15 WHERE user_id=?").run(session.user_id);
-      const result=await startPracticeSession(db,session,topic,now);
-      assert.ok(result.session,`${topic} has enough Spanish cards`);
+      const result=await startPracticeSession(db,session,practiceMode,now);
+      assert.ok(result.session,`${practiceMode} has enough Spanish cards`);
       assert.deepEqual(result.session.languageSnapshot,["es"]);
       const picked=await db.prepare(`SELECT DISTINCT language FROM cards WHERE id IN (${result.session.cardIds.map(()=>"?").join(",")})`).all(...result.session.cardIds);
-      assert.deepEqual(picked.map(row=>row.language),["es"],`${topic} contains only Spanish cards`);
+      assert.deepEqual(picked.map(row=>row.language),["es"],`${practiceMode} contains only Spanish cards`);
       await db.prepare("UPDATE practice_sessions SET card_index=5,completed_at=?,completed_local_day='2026-10-06' WHERE id=?").run(now.toISOString(),result.session.id);
     }
   });
@@ -216,7 +206,7 @@ for(const dialect of ["sqlite","postgres"]) {
     await db.prepare("UPDATE practice_sessions SET card_ids=? WHERE id=?").run(JSON.stringify(ids),started.session.id);
     const current=await readReaderLanguagePreferences(db,session);
     await saveReaderLanguagePreferences(db,session,{languages:["es"],revision:current.revision});
-    const repaired=await answerPracticeSession(db,session,{sessionId:started.session.id,index:2,cardId:guide.cardId,answer:"remembered"},now);
+    const repaired=await answerPracticeSession(db,session,{sessionId:started.session.id,index:2,cardId:guide.cardId,answer:"see_more"},now);
     assert.equal(repaired.practiceRecovery.status,"repaired");
     const replacement=await db.prepare("SELECT language,is_reading_guide FROM cards WHERE id=?").get(repaired.session.cardIds[2]);
     assert.equal(replacement.language,"en");assert.equal(replacement.is_reading_guide,0);
@@ -253,20 +243,17 @@ for(const dialect of ["sqlite","postgres"]) {
     await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read') ON CONFLICT(user_id,book_id) DO UPDATE SET status=excluded.status").run(session.user_id,"atomic-habits");
     const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",body:"A useful reading guide.",language:"en"});
     const regular=(await db.prepare("SELECT c.id FROM cards c JOIN decks d ON d.id=c.deck_id WHERE d.id=? AND c.is_reading_guide=0 ORDER BY c.position LIMIT 5").all("seven-habits-editorial")).map(row=>row.id);
-    const archivedSaved=(await db.prepare("SELECT id FROM cards WHERE deck_id=? AND is_reading_guide=0 ORDER BY position LIMIT 1").get("seven-habits-inside-out")).id;
     for(const id of regular) await setCardSave(db,session,{cardId:id,saved:true},now);
-    await setCardSave(db,session,{cardId:archivedSaved,saved:true},now);
-    await db.prepare("UPDATE decks SET status='archived' WHERE id=?").run("seven-habits-inside-out");
     await setCardSave(db,session,{cardId:guide.cardId,saved:true},now);
 
-    for(const topic of ["reading","read","saved","mixed"]) {
-      const status=topic==="read"?"read":"reading";
+    for(const practiceMode of ["reading","read","saved","mixed"]) {
+      const status=practiceMode==="read"?"read":"reading";
       await db.prepare("UPDATE book_reading SET status=? WHERE user_id=? AND book_id=?").run(status,session.user_id,"seven-habits");
       await db.prepare("UPDATE petal_wallets SET balance=15 WHERE user_id=?").run(session.user_id);
-      const started=await startPracticeSession(db,session,topic,now);
-      assert.ok(started.session,`${topic} session starts`);
+      const started=await startPracticeSession(db,session,practiceMode,now);
+      assert.ok(started.session,`${practiceMode} session starts`);
       const cards=await db.prepare(`SELECT c.is_reading_guide FROM cards c WHERE c.id IN (${started.session.cardIds.map(()=>"?").join(",")})`).all(...started.session.cardIds);
-      assert.ok(cards.every(card=>card.is_reading_guide===0),`${topic} excludes guides`);
+      assert.ok(cards.every(card=>card.is_reading_guide===0),`${practiceMode} excludes guides`);
       await db.prepare("UPDATE practice_sessions SET card_index=5,completed_at=?,completed_local_day='2026-10-06' WHERE id=?")
         .run(now.toISOString(),started.session.id);
     }
@@ -276,13 +263,13 @@ for(const dialect of ["sqlite","postgres"]) {
     await db.prepare("DELETE FROM practice_session_cards WHERE session_id=? AND position=2").run(started.session.id);
     await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,2)").run(started.session.id,guide.cardId);
     await db.prepare("UPDATE practice_sessions SET card_ids=? WHERE id=?").run(JSON.stringify(cardIds),started.session.id);
-    const answered=await answerPracticeSession(db,session,{sessionId:started.session.id,index:2,cardId:guide.cardId,answer:"remembered"},now);
+    const answered=await answerPracticeSession(db,session,{sessionId:started.session.id,index:2,cardId:guide.cardId,answer:"see_more"},now);
     assert.equal(answered.practiceRecovery.status,"repaired");
     assert.equal(answered.session.cardIds[0],oldIds[0]);
     assert.equal(new Set(answered.session.cardIds).size,5);
     assert.notEqual(answered.session.cardIds[2],guide.cardId);
     assert.deepEqual(answered.session.cardIds.map((id,index)=>index===2?null:id),oldIds.map((id,index)=>index===2?null:id),"valid pending cards keep their positions");
-    const staleRetry=await answerPracticeSession(db,session,{sessionId:started.session.id,index:2,cardId:guide.cardId,answer:"remembered"},now);
+    const staleRetry=await answerPracticeSession(db,session,{sessionId:started.session.id,index:2,cardId:guide.cardId,answer:"see_more"},now);
     assert.equal(staleRetry.practiceRecovery.status,"repaired");
     assert.equal(await db.prepare("SELECT 1 FROM practice_answers WHERE user_id=? AND card_id=?").get(session.user_id,guide.cardId),undefined);
     assert.equal((await readReaderState(db,session,now)).activePracticeSession.cardIds[2],answered.session.cardIds[2]);
@@ -296,7 +283,7 @@ for(const dialect of ["sqlite","postgres"]) {
     await db.prepare("DELETE FROM practice_session_cards WHERE session_id=? AND position=0").run(started.session.id);
     await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,0)").run(started.session.id,guide.cardId);
     await db.prepare("UPDATE practice_sessions SET card_index=1,card_ids=? WHERE id=?").run(JSON.stringify(ids),started.session.id);
-    await db.prepare("INSERT INTO practice_answers(user_id,card_id,answer,answered_at) VALUES (?,?,?,?)").run(session.user_id,guide.cardId,"remembered",now.toISOString());
+    await db.prepare("INSERT INTO practice_answers(user_id,card_id,answer,answered_at) VALUES (?,?,?,?)").run(session.user_id,guide.cardId,"see_more",now.toISOString());
     const state=await readReaderState(db,session,now);
     assert.equal(state.activePracticeSession.cardIds[0],guide.cardId);
     assert.deepEqual(state.activePracticeSession.cardIds.slice(1),started.session.cardIds.slice(1));
@@ -322,13 +309,13 @@ for(const dialect of ["sqlite","postgres"]) {
     await db.prepare("UPDATE practice_sessions SET card_index=1,card_ids=? WHERE id=?").run(JSON.stringify(ids),started.session.id);
     await db.prepare("DELETE FROM practice_session_cards WHERE session_id=? AND position=?").run(started.session.id,guidePosition);
     await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)").run(started.session.id,guide.cardId,guidePosition);
-    await db.prepare("INSERT INTO practice_answers(user_id,card_id,answer,answered_at) VALUES (?,?,?,?)").run(session.user_id,ids[0],"remembered",now.toISOString());
+    await db.prepare("INSERT INTO practice_answers(user_id,card_id,answer,answered_at) VALUES (?,?,?,?)").run(session.user_id,ids[0],"see_more",now.toISOString());
     for(const id of regular) await setCardSave(db,session,{cardId:id,saved:false},now);
     const cancelled=await readReaderState(db,session,now);
     assert.equal(cancelled.practiceRecovery.status,"cancelled");
     assert.equal(cancelled.activePracticeSession,null);
     assert.equal(cancelled.petals,initial.petals);
-    assert.equal(cancelled.practiceDiscountTopic,initial.practiceDiscountTopic);
+    assert.equal(cancelled.practiceDiscountMode,initial.practiceDiscountMode);
     const row=await db.prepare("SELECT completed_at,completed_local_day,cancelled_at,cost FROM practice_sessions WHERE id=?").get(started.session.id);
     assert.equal(row.completed_at,null);assert.equal(row.completed_local_day,null);assert.ok(row.cancelled_at);
     assert.equal((await db.prepare("SELECT count(*) AS n FROM practice_answers WHERE user_id=?").get(session.user_id)).n,1);
@@ -351,11 +338,10 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal(unknownIdentity.reason,"practiceSessionUnavailable");
   });
 
-  test(`${dialect}: purchased cards survive collection removal and archive`,async t=>{
+  test(`${dialect}: purchased cards survive collection removal`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     const started=await startPracticeSession(db,session,"reading",now);
     await db.prepare("DELETE FROM studies WHERE user_id=? AND deck_id=?").run(session.user_id,"seven-habits-editorial");
-    await db.prepare("UPDATE decks SET status='archived' WHERE id=?").run("seven-habits-editorial");
     const preserved=await readReaderState(db,session,now);
     assert.equal(preserved.activePracticeSession.id,started.session.id);
     assert.deepEqual(preserved.activePracticeSession.cardIds,started.session.cardIds);
@@ -368,7 +354,7 @@ for(const dialect of ["sqlite","postgres"]) {
     const initial=await readReaderState(db,session,now),started=await startPracticeSession(db,session,"reading",now);
     assert.ok(started.session);
     await db.prepare("DELETE FROM deck_contributors WHERE deck_id=? AND user_id=?").run("seven-habits-editorial",session.user_id);
-    const staleAnswer=await answerPracticeSession(db,session,{sessionId:started.session.id,index:0,cardId:started.session.cardIds[0],answer:"remembered"},now);
+    const staleAnswer=await answerPracticeSession(db,session,{sessionId:started.session.id,index:0,cardId:started.session.cardIds[0],answer:"see_more"},now);
     assert.equal(staleAnswer.practiceRecovery.status,"cancelled","answering revalidates the pending card after revocation");
     assert.equal(await db.prepare("SELECT 1 FROM practice_answers WHERE user_id=? AND card_id=?").get(session.user_id,started.session.cardIds[0]),undefined,
       "a revoked pending card is not recorded as answered");
@@ -384,11 +370,11 @@ for(const dialect of ["sqlite","postgres"]) {
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     const previous=await startPracticeSession(db,session,"reading",now);
     for(let index=0;index<PRACTICE_SESSION_SIZE;index++) await answerPracticeSession(db,session,{
-      sessionId:previous.session.id,index,cardId:previous.session.cardIds[index],answer:"remembered"
+      sessionId:previous.session.id,index,cardId:previous.session.cardIds[index],answer:"see_more"
     },new Date(now.getTime()+index+1));
     const active=await startPracticeSession(db,session,"reading",now);
     await assert.rejects(answerPracticeSession(db,session,{
-      sessionId:previous.session.id,index:0,cardId:previous.session.cardIds[0],answer:"soon"
+      sessionId:previous.session.id,index:0,cardId:previous.session.cardIds[0],answer:"see_less"
     },now),{code:"practiceSessionUnavailable"});
     assert.equal((await readReaderState(db,session,now)).activePracticeSession.id,active.session.id);
   });
@@ -403,19 +389,19 @@ test("sessions without five eligible cards stay free and do not create a partial
 });
 
 test("session keeps its charge while unfinished and repeated answer submissions are idempotent",async t=>{
-  const {db,session}=await fixture(t),now=new Date("2026-10-06T12:00:00.000Z"),topic=(await readReaderState(db,session,now)).practiceDiscountTopic;
-  await prepareTopic(db,session,topic);
-  const started=await startPracticeSession(db,session,topic,now),first=started.session.cardIds[0];
-  const firstAnswer=await answerPracticeSession(db,session,{sessionId:started.session.id,index:0,cardId:first,answer:"soon"},now);
-  const retry=await answerPracticeSession(db,session,{sessionId:started.session.id,index:0,cardId:first,answer:"soon"},now);
+  const {db,session}=await fixture(t),now=new Date("2026-10-06T12:00:00.000Z"),practiceMode=(await readReaderState(db,session,now)).practiceDiscountMode;
+  await preparePracticeMode(db,session,practiceMode);
+  const started=await startPracticeSession(db,session,practiceMode,now),first=started.session.cardIds[0];
+  const firstAnswer=await answerPracticeSession(db,session,{sessionId:started.session.id,index:0,cardId:first,answer:"see_less"},now);
+  const retry=await answerPracticeSession(db,session,{sessionId:started.session.id,index:0,cardId:first,answer:"see_less"},now);
   assert.equal(firstAnswer.session.index,1);assert.equal(retry.idempotent,true);assert.equal(retry.session.index,1);
   assert.equal((await readReaderState(db,session,now)).petals,8);
   assert.equal((await readReaderState(db,session,now)).activePracticeSession.index,1);
 });
 
-test("a session costs three petals when its topic is not discounted",async t=>{
-  const {db,session}=await fixture(t),now=new Date("2026-10-06T12:00:00.000Z"),discount=(await readReaderState(db,session,now)).practiceDiscountTopic;
-  const topic=discount==="reading"?"mixed":"reading",started=await startPracticeSession(db,session,topic,now);
+test("a session costs three petals when its practiceMode is not discounted",async t=>{
+  const {db,session}=await fixture(t),now=new Date("2026-10-06T12:00:00.000Z"),discount=(await readReaderState(db,session,now)).practiceDiscountMode;
+  const practiceMode=discount==="reading"?"mixed":"reading",started=await startPracticeSession(db,session,practiceMode,now);
   assert.equal(started.session.cost,3);assert.equal((await readReaderState(db,session,now)).petals,7);
 });
 
@@ -434,7 +420,7 @@ test("mascot growth starts a new local day at midnight",async t=>{
     const started=await startPracticeSession(db,session,"reading",now);
     let result;
     for(let index=0;index<started.session.cardIds.length;index++) result=await answerPracticeSession(db,session,{
-      sessionId:started.session.id,index,cardId:started.session.cardIds[index],answer:"remembered"
+      sessionId:started.session.id,index,cardId:started.session.cardIds[index],answer:"see_more"
     },new Date(now.getTime()+index+1));
     return result;
   };

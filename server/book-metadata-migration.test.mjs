@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {randomUUID} from "node:crypto";
 import {historicalDatabase,historicalReader,historicalUnlock} from "../test-support/historical-database.mjs";
 import {initializeDatabase,SQLITE_SCHEMA_VERSION,POSTGRES_SCHEMA_VERSION} from "./database.mjs";
-import {createBook,completeBook,createDeck,addCard,finishDeck} from "./author-repository.mjs";
+import {createBook,completeBook,createDeck,takeNote,finishDeck} from "./author-repository.mjs";
 import {readCatalog,checkCatalog} from "./catalog-repository.mjs";
 import {seedCatalog,readSeed} from "./seed.mjs";
 import {bookMetadata} from "./fixtures/book-autofill.mjs";
@@ -35,12 +35,11 @@ for (const dialect of ["sqlite","postgres"]) {
     await initializeDatabase(db);
     const book=await createBook(db,session,{requestId:randomUUID(),author:"Daniel Kahneman",metadata:bookMetadata});
     const deck=await createDeck(db,session,{requestId:randomUUID(),bookId:book.bookId,title:"Notas",language:"es"});
-    const card=await addCard(db,session,{requestId:randomUUID(),deckId:deck.deckId,title:"Idea",body:"Texto conservado",isQuote:false,parentId:null});
+    const card=await takeNote(db,session,{requestId:randomUUID(),deckId:deck.deckId,title:"Idea",body:"Texto conservado",isQuote:false,parentId:null});
     await finishDeck(db,session,{deckId:deck.deckId});
     await db.prepare("INSERT INTO card_votes(user_id,card_id,value) VALUES (?,?,1)").run(session.user_id,"habit-1");
     await db.prepare("INSERT INTO card_saves(user_id,card_id,saved_at) VALUES (?,?,?)").run(session.user_id,"habit-1","2026-10-17T12:00:00Z");
-    await db.prepare("INSERT INTO reader_display_preferences VALUES (?,1)").run(session.user_id);
-    await db.exec("UPDATE decks SET status='published' WHERE id='seven-habits-editorial';");
+    await db.exec("UPDATE decks SET status='finished' WHERE id='seven-habits-editorial';");
     const before=await retainedData(db,dialect);
     await initializeDatabase(db);await initializeDatabase(db);
     assert.deepEqual(await retainedData(db,dialect),before);
@@ -65,7 +64,7 @@ for (const dialect of ["sqlite","postgres"]) {
       title:{...bookMetadata.title,es:"Notas sobre Pensar rápido, pensar despacio",en:"Notes on Thinking, Fast and Slow"}};
     const added=await createBook(db,session,{requestId:randomUUID(),author:"Daniel Kahneman",metadata:distinctMetadata});
     assert.ok(added.bookId);
-    const seed=readSeed();seed.decks.find(value=>value.id === "seven-habits-editorial").status="published";
+    const seed=readSeed();seed.decks.find(value=>value.id === "seven-habits-editorial").status="finished";
     await seedCatalog(db,seed);await seedCatalog(db,seed);
     assert.equal((await checkCatalog(db)).cards,43);
     const version=dialect === "sqlite" ? db.prepare("PRAGMA user_version").get().user_version

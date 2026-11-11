@@ -25,7 +25,6 @@ test("Real SQLite schema: five books, six authored decks and 42 single-language 
   assert.equal(catalog.books.find(b => b.id === "seven-habits").genres.includes("productivity"), true);
   assert.deepEqual(catalog.books.find(b => b.id === "rich-dad-poor-dad").genres, ["finance"]);
   assert.deepEqual(catalog.books.find(b => b.id === "getting-things-done").genres, ["productivity"]);
-  assert.equal(catalog.books.every(b => b.editorialStatus === "draft"), true);
   assert.equal(catalog.schemaVersion,7);
   assert.equal(catalog.books.every(book=>book.incorporatedAt&&Number.isSafeInteger(book.incorporationOrder)),true);
   const columns = db.prepare("SELECT type FROM pragma_table_info('cards')").all();
@@ -111,15 +110,14 @@ test("Multiple decks per book, nested cards, calculated counts and depth", async
   assert.throws(() => db.prepare("UPDATE cards SET parent_id = 'practical-grandchild' WHERE id = 'practical-root'").run(), /cycle/);
   assert.throws(() => db.prepare("UPDATE cards SET parent_id = 'habit-1' WHERE id = 'practical-root'").run(), /FOREIGN KEY/);
 });
-test("Creation permissions, one optional vote and independent book reading / deck enrolment", async t => {
+test("One optional vote and independent book reading / deck enrolment", async t => {
   const db = await fixture(t);
-  db.prepare("INSERT INTO users(id,display_name,can_create_decks) VALUES ('test-reader','Reader',0),('test-author','Author',1)").run();
-  assert.throws(() => db.prepare("INSERT INTO decks(id,book_id,creator_user_id) VALUES ('denied','seven-habits','test-reader')").run(),/permission/);
+  db.prepare("INSERT INTO users(id,display_name) VALUES ('test-reader','Reader'),('test-author','Author')").run();
   db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language) VALUES ('allowed','seven-habits','test-author','fr')").run();
   assert.equal(db.prepare("SELECT language FROM decks WHERE id = 'allowed'").get().language,"fr");
   db.prepare("UPDATE decks SET language = 'en' WHERE id = 'allowed'").run();
   assert.equal(db.prepare("SELECT language FROM decks WHERE id = 'allowed'").get().language,"en");
-  db.prepare("UPDATE decks SET status = 'published' WHERE id = 'allowed'").run();
+  db.prepare("UPDATE decks SET status = 'finished' WHERE id = 'allowed'").run();
   assert.throws(() => db.prepare("UPDATE decks SET language = 'fr' WHERE id = 'allowed'").run(),/immutable/);
   db.prepare("UPDATE decks SET status = 'draft' WHERE id = 'allowed'").run();
   db.prepare("DELETE FROM decks WHERE id = 'allowed'").run();
@@ -134,9 +132,9 @@ test("Creation permissions, one optional vote and independent book reading / dec
   db.prepare("DELETE FROM deck_votes").run();
   assert.equal((await stats()).dislikes,0);
 });
-test("Published decks accept in-place content corrections while preserving card identities", async t => {
+test("Finished decks accept in-place content corrections while preserving card identities", async t => {
   const db = await fixture(t), seed = readSeed();
-  seed.decks[0].status = "published"; await seedCatalog(db,seed); await seedCatalog(db,seed);
+  seed.decks[0].status="finished"; await seedCatalog(db,seed); await seedCatalog(db,seed);
   const corrected=readSeed();
   corrected.decks[0].title_es="Ideas corregidas";
   corrected.cards.find(card=>card.id==="habit-1").body_es="Texto corregido en la misma tarjeta.";
@@ -145,7 +143,7 @@ test("Published decks accept in-place content corrections while preserving card 
     corrected.cards.filter(card=>card.deck_id===corrected.decks[0].id&&(card.parent_id||"")===parentId)
       .sort((a,b)=>Number(a.position)-Number(b.position)).forEach((card,index)=>card.position=String(index+1));
   }
-  corrected.decks[0].status="published";
+  corrected.decks[0].status="finished";
   await seedCatalog(db,corrected);
   const catalog=await readCatalog(db);
   assert.equal(catalog.decks.find(version=>version.id==="seven-habits-editorial").title.es,"Ideas corregidas");

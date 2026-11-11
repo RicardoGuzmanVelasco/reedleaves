@@ -42,7 +42,7 @@ export function validateSeed(seed) {
     if (ids.some(id => !slug(id))) throw new Error("Invalid " + key + " ID");
   }
   const users = new Set(seed.users.map(u => u.id));
-  for (const u of seed.users) if (!text(u.display_name) || !["0","1"].includes(u.can_create_decks)) throw new Error("Invalid author");
+  for (const u of seed.users) if (!text(u.display_name)) throw new Error("Invalid author");
   const genres = new Set(seed.genres.map(g => g.id)), books = new Set(seed.books.map(b => b.id));
   for (const g of seed.genres) {
     if (LANGUAGES.some(language => !text(g["name_" + language]))) throw new Error("Missing genre text");
@@ -55,7 +55,6 @@ export function validateSeed(seed) {
     positions.add(Number(b.position));
     const bookGenres=b.genres?.split("|");
     if (bookInterestError(bookGenres,genres)) throw new Error("Invalid book interests: choose one to three distinct known interests");
-    if (!["draft", "reviewed"].includes(b.editorial_status)) throw new Error("Invalid editorial status");
     for (const language of LANGUAGES) for (const field of ["description", "editorial_note"]) {
       if (!text(b[field + "_" + language])) throw new Error("Missing book text");
     }
@@ -74,7 +73,7 @@ export function validateSeed(seed) {
   const decks = new Map(), recommended = new Map();
   for (const d of seed.decks) {
     if (!slug(d.id) || !books.has(d.book_id) ||
-        !["draft", "published", "archived"].includes(d.status) || !["draft", "reviewed"].includes(d.editorial_status) ||
+        !["draft", "finished"].includes(d.status) ||
         !["0","1"].includes(d.is_recommended) || !locale(d.language) ||
         !users.has(d.creator_user_id)) throw new Error("Invalid deck");
     if (d.is_recommended === "1") {
@@ -116,8 +115,8 @@ export async function seedCatalog(db, seed = readSeed()) {
     const hasCatalogIncorporation=bookColumns.some(column=>(column.column_name || column.name)==="incorporation_order");
     const hasLegacyShortTitle=translationColumns.some(column=>(column.column_name || column.name)==="short_title");
     const seedIncorporatedAt=hasCatalogIncorporation?catalogBookIncorporationTimestamp():null;
-    for (const u of seed.users) await db.prepare(`INSERT INTO users(id,display_name,can_create_decks) VALUES (?,?,?)
-      ON CONFLICT(id) DO UPDATE SET display_name = excluded.display_name, can_create_decks = excluded.can_create_decks`).run(u.id,u.display_name,Number(u.can_create_decks));
+    for (const u of seed.users) await db.prepare(`INSERT INTO users(id,display_name) VALUES (?,?)
+      ON CONFLICT(id) DO UPDATE SET display_name = excluded.display_name`).run(u.id,u.display_name);
     for (const g of seed.genres) {
       await db.prepare(`INSERT INTO genres(id,emoji,color) VALUES (?,?,?)
         ON CONFLICT(id) DO UPDATE SET emoji=excluded.emoji,color=excluded.color`).run(g.id,g.emoji,g.color);
@@ -126,10 +125,10 @@ export async function seedCatalog(db, seed = readSeed()) {
     }
     for (const b of seed.books) {
       const incorporationOrder=hasCatalogIncorporation?(await db.prepare("SELECT COALESCE(MAX(incorporation_order),0)+1 AS n FROM books").get()).n:null;
-      await db.prepare(`INSERT INTO books(id, author, position, editorial_status, popular_title, popular_language${hasCatalogIncorporation?",incorporated_at,incorporation_order":""}) VALUES (?, ?, ?, ?, ?, ?${hasCatalogIncorporation?",?,?":""})
+      await db.prepare(`INSERT INTO books(id, author, position, popular_title, popular_language${hasCatalogIncorporation?",incorporated_at,incorporation_order":""}) VALUES (?, ?, ?, ?, ?${hasCatalogIncorporation?",?,?":""})
         ON CONFLICT(id) DO UPDATE SET author = excluded.author, position = excluded.position,
         popular_title = excluded.popular_title, popular_language = excluded.popular_language,
-        editorial_status = excluded.editorial_status, updated_at = CURRENT_TIMESTAMP`).run(...[b.id,b.author,Number(b.position),b.editorial_status,b.popular_title,b.popular_language,...(hasCatalogIncorporation?[seedIncorporatedAt,incorporationOrder]:[])]);
+        updated_at = CURRENT_TIMESTAMP`).run(...[b.id,b.author,Number(b.position),b.popular_title,b.popular_language,...(hasCatalogIncorporation?[seedIncorporatedAt,incorporationOrder]:[])]);
       for (const language of LANGUAGES) await db.prepare(hasLegacyShortTitle ? `INSERT INTO book_translations(book_id,language,title,short_title,description,editorial_note) VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(book_id, language) DO UPDATE SET title = excluded.title, short_title = excluded.short_title,
         description = excluded.description, editorial_note = excluded.editorial_note` : `INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?, ?, ?, ?, ?)
@@ -145,8 +144,8 @@ export async function seedCatalog(db, seed = readSeed()) {
     for (const d of seed.decks) {
       const owner = await db.prepare("SELECT * FROM decks WHERE id = ?").get(d.id);
       if (owner && (owner.book_id !== d.book_id || owner.creator_user_id !== d.creator_user_id || owner.language !== d.language)) throw new Error("Deck owner and language are immutable");
-      await db.prepare(`INSERT INTO decks(id,book_id,creator_user_id,language,is_recommended,status,editorial_status) VALUES (?,?,?,?,?,?,?)
-        ON CONFLICT(id) DO UPDATE SET is_recommended = excluded.is_recommended`).run(d.id,d.book_id,d.creator_user_id,d.language,Number(d.is_recommended),d.status,d.editorial_status);
+      await db.prepare(`INSERT INTO decks(id,book_id,creator_user_id,language,is_recommended,status) VALUES (?,?,?,?,?,?)
+        ON CONFLICT(id) DO UPDATE SET is_recommended = excluded.is_recommended`).run(d.id,d.book_id,d.creator_user_id,d.language,Number(d.is_recommended),d.status);
       for (const [lang,translation] of translations(d,["title","description","editorial_note"])) {
         const values = ["title","description","editorial_note"].map(f => translation[f]);
         await db.prepare(`INSERT INTO deck_translations VALUES (?,?,?,?,?)
@@ -186,8 +185,8 @@ export async function seedCatalog(db, seed = readSeed()) {
       }
     }
     for (const d of seed.decks) {
-      const row = await db.prepare("SELECT status,editorial_status FROM decks WHERE id = ?").get(d.id);
-      if (row.status !== d.status || row.editorial_status !== d.editorial_status) await db.prepare("UPDATE decks SET status = ?, editorial_status = ? WHERE id = ?").run(d.status,d.editorial_status,d.id);
+      const row = await db.prepare("SELECT status FROM decks WHERE id = ?").get(d.id);
+      if (row.status !== d.status) await db.prepare("UPDATE decks SET status = ? WHERE id = ?").run(d.status,d.id);
     }
     return checkCatalog(db);
   });

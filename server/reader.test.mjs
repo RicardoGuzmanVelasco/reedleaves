@@ -96,7 +96,7 @@ test("Mascot growth counts distinct days with completed paid practices, not card
     const started=await startPracticeSession(db,a,"reading",now); assert.ok(started.session);
     let result;
     for(let index=0;index<started.session.cardIds.length;index++) result=await answerPracticeSession(db,a,{
-      sessionId:started.session.id,index,cardId:started.session.cardIds[index],answer:"remembered"
+      sessionId:started.session.id,index,cardId:started.session.cardIds[index],answer:"see_more"
     },new Date(now.getTime()+index+1));
     return result;
   };

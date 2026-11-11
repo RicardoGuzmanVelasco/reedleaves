@@ -4,7 +4,7 @@ import {historicalDatabase} from "../test-support/historical-database.mjs";
 import {initializeDatabase,SQLITE_SCHEMA_VERSION,POSTGRES_SCHEMA_VERSION} from "./database.mjs";
 
 for (const [dialect,version] of [["sqlite",37],["postgres",29]]) {
-  test(`${dialect}: collective deck migration preserves card authorship and freezes published contributor lists`,async t=>{
+  test(`${dialect}: collective deck migration preserves card authorship and freezes finished contributor lists`,async t=>{
     const db=await historicalDatabase(t,dialect,version);
     const original=await db.prepare(`SELECT c.id,d.creator_user_id,d.language FROM cards c JOIN decks d ON d.id=c.deck_id ORDER BY c.id`).all();
     await initializeDatabase(db);
@@ -18,11 +18,11 @@ for (const [dialect,version] of [["sqlite",37],["postgres",29]]) {
     const migrated=await db.prepare("SELECT id,creator_user_id,language FROM cards ORDER BY id").all();
     assert.deepEqual(migrated.map(row=>({id:row.id,creator_user_id:row.creator_user_id,language:row.language})),original.map(row=>({id:row.id,creator_user_id:row.creator_user_id,language:row.language})));
 
-    await db.prepare("INSERT INTO users(id,display_name,can_create_decks) VALUES ('collective-owner','Owner',1),('collective-member','Member',0)").run();
+    await db.prepare("INSERT INTO users(id,display_name) VALUES ('collective-owner','Owner'),('collective-member','Member')").run();
     await db.prepare(`INSERT INTO decks(id,book_id,creator_user_id,language,kind,contribution_policy,max_cards_per_contributor)
       VALUES ('collective-test','atomic-habits','collective-owner','en','collective','selected',2)`).run();
     await db.prepare("INSERT INTO deck_contributors(deck_id,user_id) VALUES ('collective-test','collective-member')").run();
-    await db.prepare("UPDATE decks SET status='published' WHERE id='collective-test'").run();
+    await db.prepare("UPDATE decks SET status='finished' WHERE id='collective-test'").run();
     const rejects=async operation=>dialect==="sqlite"?assert.throws(operation,/immutable/):assert.rejects(operation,/immutable/);
     await rejects(()=>db.prepare("INSERT INTO deck_contributors(deck_id,user_id) VALUES ('collective-test','collective-owner')").run());
     await rejects(()=>db.prepare("DELETE FROM deck_contributors WHERE deck_id='collective-test'").run());

@@ -29,7 +29,7 @@ async function fixture(t,dialect) {
 async function xp(db) {return Number((await db.prepare("SELECT xp FROM reader_xp_balances WHERE user_id='practice-xp-reader'").get()).xp);}
 async function events(db) {return (await db.prepare("SELECT event_key,reward_type,amount,balance_after FROM reader_xp_events WHERE user_id='practice-xp-reader' ORDER BY event_key").all()).map(row=>({...row}));}
 async function answer(db,reader,started,index) {
-  return answerPracticeSession(db,reader,{sessionId:started.session.id,index,cardId:started.session.cardIds[index],answer:"remembered"},new Date(now.getTime()+1000*(index+1)));
+  return answerPracticeSession(db,reader,{sessionId:started.session.id,index,cardId:started.session.cardIds[index],answer:"see_more"},new Date(now.getTime()+1000*(index+1)));
 }
 
 for(const dialect of ["sqlite","postgres"]) {

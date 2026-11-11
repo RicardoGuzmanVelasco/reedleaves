@@ -138,7 +138,7 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 | Barajas de la colección personal | Tarjetero | Cardcase |
 | Conjunto de repaso | Baraja | Deck |
 | Creación abierta (`status=draft`) | Borrador / Baraja en borrador | Draft / Draft deck |
-| Creación cerrada (`status=published`) | Sin etiqueta de estado | No status label |
+| Creación cerrada (`status=finished`) | Sin etiqueta de estado | No status label |
 | Contenido pendiente del editor | Nota sin guardar | Unsaved note |
 | Aprendizaje activo | Barajas en repaso | Decks being practiced |
 | Tipo de selección de tarjetas de una sesión de repaso (`practiceMode`: leyendo, leídos, guardadas, mezcla, Descubrir) | Modo de repaso | Practice mode |
