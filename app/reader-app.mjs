@@ -71,7 +71,7 @@ export function startReader({createCardFeatures} = {}) {
   let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, openingOverlay = null, inviteRequired = false, renderVersion = 0, scrollToCard = false;
   let libraryVisitId=null,libraryNewBookIds=[];
   let practiceStage="choose",practiceSession=null,practiceUnavailable=null,practiceRecoveryRequest=null,practiceRecoveryGeneration=0,authoritativeStateGeneration=0,practiceIntroSession=null,practiceStartRequest=null,practiceAnswerRequest=null;
-  let pendingGrowthFeedback=[];
+  let pendingGrowthFeedback=[],pendingNavigationMode=null;
   let guideReviewQueue=[],guideReviewPendingCount=null,guideReviewCountLoading=false,guideReviewLoading=false,guideReviewLoaded=false,guideReviewError=null,guideReviewRejectingId=null,guideReviewExpandedId=null,guideReviewReason="",guideReviewNotice="";
   const observeXp=createReaderXpTracker();
   const xpFeedback=mountReaderXpFeedback(document,()=>language,showAppModal);
@@ -321,10 +321,11 @@ export function startReader({createCardFeatures} = {}) {
     }
     navigation.querySelectorAll(".bottom-navigation-link").forEach(link=>{link.title=link.querySelector(".bottom-navigation-label").textContent;});
     document.getElementById("nav-profile").href=signedIn?`#profile/${encodeURIComponent(snapshot.user.id)}`:"#profile";
-    const activeNavigation=mode==="home"||["book","guides","guide-preview","preview","review"].includes(mode)&&bookOrigin==="home"?"home":mode==="library"||["book","guides","guide-preview","preview"].includes(mode)&&bookOrigin==="library"?"library":mode==="bookshelf"||["book","guides","guide-preview","preview"].includes(mode)&&bookOrigin==="bookshelf"?"bookshelf":mode==="profile"||mode==="public-bookshelf"||mode==="account"?"profile":mode==="daily"||["review","preview"].includes(mode)&&bookOrigin==="daily"?"daily":null;
+    const navMode=pendingNavigationMode||mode;
+    const activeNavigation=navMode==="home"||["book","guides","guide-preview","preview","review"].includes(navMode)&&bookOrigin==="home"?"home":navMode==="library"||["book","guides","guide-preview","preview"].includes(navMode)&&bookOrigin==="library"?"library":navMode==="bookshelf"||["book","guides","guide-preview","preview"].includes(navMode)&&bookOrigin==="bookshelf"?"bookshelf":navMode==="profile"||navMode==="public-bookshelf"||navMode==="account"?"profile":navMode==="daily"||["review","preview"].includes(navMode)&&bookOrigin==="daily"?"daily":null;
     navigation.querySelectorAll("[data-nav]").forEach(link=>{if(link.dataset.nav===activeNavigation)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current")});
     updateBadges();
-    document.title = pageTitle(["card","quote"].includes(authorForm?.kind) ? c.takeNote : mode === "home" ? c.home : mode === "guide-reviews" ? c.guideReviewTitle : mode === "account" ? c.account : mode === "library" ? c.books : mode === "bookshelf" ? c.bookcase : mode === "public-bookshelf" ? c.shelf : mode === "profile" ? c.profile : mode === "daily" ? c.daily : mode === "practice" ? c.practice : mode === "saved" ? c.savedCards : ["guides","guide-preview"].includes(mode) ? c.readingGuides : mode === "book" ? c.chooseDeck : mode === "preview" ? c.deckPeekPage : mode === "shared-card" ? c.exclusiveCard : mode === "review" ? c.viewDeck : mode === "mascots" ? c.mascots : mode === "author" ? c.manageDeck : c.review);
+    document.title = pageTitle(["card","quote"].includes(authorForm?.kind) ? c.takeNote : navMode === "home" ? c.home : navMode === "guide-reviews" ? c.guideReviewTitle : navMode === "account" ? c.account : navMode === "library" ? c.books : navMode === "bookshelf" ? c.bookcase : navMode === "public-bookshelf" ? c.shelf : navMode === "profile" ? c.profile : navMode === "daily" ? c.daily : navMode === "practice" ? c.practice : navMode === "saved" ? c.savedCards : ["guides","guide-preview"].includes(navMode) ? c.readingGuides : navMode === "book" ? c.chooseDeck : navMode === "preview" ? c.deckPeekPage : navMode === "shared-card" ? c.exclusiveCard : navMode === "review" ? c.viewDeck : navMode === "mascots" ? c.mascots : navMode === "author" ? c.manageDeck : c.review);
     document.querySelector(".skip-link").textContent = c.skip;
     for (const [id,text] of [["settings-title",c.settings],["language-label",c.language]]) document.getElementById(id).textContent = text;
     for(const [id,text] of [["cover-tint-label",c.coverTint],["cover-tint-off",c.coverTintOff],["cover-tint-mono",c.coverTintMono],["cover-tint-poly",c.coverTintPoly]]) document.getElementById(id).textContent=text;
@@ -552,6 +553,7 @@ export function startReader({createCardFeatures} = {}) {
     scrollToCard = false;
   }
   function showNavigationPending() {
+    pendingNavigationMode={"":"home",home:"home",library:"library",bookshelf:"bookshelf",daily:"daily",profile:"profile"}[location.hash.slice(1).split("/")[0]]||null;header();
     disposeBookLists();disposeDeckPresentation();practicePresentation.dispose();
     for(const name of ["is-presenting","is-practicing","is-practice-choosing"])document.body.classList.remove(name);
     main.innerHTML=navigationPendingView(language);
@@ -564,17 +566,18 @@ export function startReader({createCardFeatures} = {}) {
   }
   function hidePendingOverlay() {pendingOverlay?.remove();pendingOverlay=null;}
   function route(focus = true) {
+    pendingNavigationMode=null;
     const requestedHome=!location.hash||location.hash==="#home";
     if(ready&&snapshot.user&&!catalogIsFull&&(requestedHome?homeBooksUserId!==snapshot.user.id: true)){
       const request=requestedHome?ensureHomeData():ensureFullCatalog();
       showNavigationPending();
-      void request.then(()=>route(focus)).catch(error=>{syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
+      void request.then(()=>route(focus)).catch(error=>{pendingNavigationMode=null;syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
       return;
     }
     if(ready&&!snapshot.user&&!catalogIsFull&&!requestedHome&&!location.hash.startsWith("#account")){
       const request=ensureFullCatalog();
       showNavigationPending();
-      void request.then(()=>route(focus)).catch(error=>{syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
+      void request.then(()=>route(focus)).catch(error=>{pendingNavigationMode=null;syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
       return;
     }
     const previousMode=mode;
