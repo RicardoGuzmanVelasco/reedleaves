@@ -66,6 +66,8 @@ Combinaciones frecuentes: **A + G** para acciones puntuales, **F + C** para nave
   2. Dejarlo así si el arranque es corto en producción (medir antes).
   3. Añadir un estado «sin conexión» propio, distinto del error genérico.
 - **Notas:** medir el tiempo real de arranque en producción antes de decidir.
+- **Decidido:** opción 1, sin cambios. El Brote del arranque ya es el feedback.
+- **Futuro:** opción 3 (estado «sin conexión» propio) con el Brote triste o «haciendo pucheros». Requiere esa animación y copy aprobado.
 
 ---
 
@@ -251,10 +253,10 @@ Aparte del feedback, hay que revisar la animación de espera. Se aborda después
 | 1 | F + C (Brote dormido) | 2026-11-11 | Implementado en `route()`. |
 | 2 | F + C (Brote dormido) | 2026-11-11 | Implementado en `route()`. |
 | 3 | F + C (capa sobre pantalla actual) | 2026-11-11 | Implementado en `withFullCatalogForBook`. |
-| 4 | | | |
+| 4 | Sin cambios (opción 1) | 2026-11-11 | Futuro: «sin conexión» (opción 3) con Brote triste/pucheros. |
 | 5–11 (T1/T2/T3) | Aplazada | 2026-11-11 | Decidir tras ver otras soluciones. |
-| 6 | | | |
-| 12 | | | |
+| 6 | Brote dormido de «Entrar» al destino | 2026-11-11 | Implementado en el submit de cuenta. |
+| 12 | Brote dormido en la lista | 2026-11-11 | Implementado en `SavedCards`. |
 | 13 | Sin cambios (descartado) | 2026-11-11 | Comportamiento actual aceptado. |
 | 14 | Sin cambios (descartado) | 2026-11-11 | Falso positivo de la auditoría. |
 | 15 | | | |
