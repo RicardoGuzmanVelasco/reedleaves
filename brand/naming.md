@@ -8,7 +8,7 @@ La shortlist de abajo queda como historial de exploración.
 
 La idea de marca Sprout está bien recibida; necesitamos otro nombre. La línea española **De hoja a hoja** se conserva. La línea inglesa explora lectura, plantas y rima.
 
-Shortlist anterior: **Seedo, Reed, Glo y Bloom**. Historial en `brand/sprout/index.html`; razonamiento en `docs/frontend/SPROUT_SPIKE.md`. No son propuestas activas.
+Shortlist anterior: **Seedo, Reed, Glo y Bloom**. Historial en `brand/sprout/index.html`. No son propuestas activas.
 
 Los nombres de abajo pertenecen a la primera ronda de ideas.
 

@@ -3,33 +3,10 @@
 - [2026-11-11 — Limpieza de vocabulario del dominio](2026-11-11.md)
 - [2026-11-10 — Roles de Archivista y revisión de guías](2026-11-10.md)
 
-Read the newest dated entry when recent progress, deployment state, or project handoff context is needed. Older entries provide history only; confirm current behavior in source code, configuration, and the hosting dashboard.
+Read the newest dated entry when recent progress, deployment state, or project handoff context is needed. Entries older than 30 days are deleted; confirm current behavior in source code, configuration, and the hosting dashboard.
 
-- [2026-10-31 — Flujo SDLC con Staging](2026-10-31.md)
-- [2026-10-30 — Selector de intereses: corrección de CI y chips de libro](2026-10-30.md)
-- [2026-10-29 — Descubrir, soporte interno e interfaz local (24b–24c)](2026-10-29.md)
-- [2026-10-28 — Intereses y descubrimiento, inicio de ejecución](2026-10-28.md)
 - [Plan de intereses, descubrimiento y novedades](INTERESTS_PLAN.md)
-
-- [2026-10-25 — Barajas colectivas y guías de lectura](2026-10-25.md)
-
-- [2026-10-24 — Título popular e intereses (local)](2026-10-24.md)
-- [2026-10-21 — Compartir barajas](2026-10-21.md)
-- [2026-10-20 — Lectura pública de barajas](2026-10-20.md)
-
+- [Repasar](PRACTICE_PLAN.md): diseño en curso, botonera inicial, posiciones aprobadas e incrementos futuros con swipe y cuatro respuestas.
 - [Ajustar hojas manualmente](LEAVES.md): SQL para Supabase y comando administrativo.
 - [Crear barajas desde Codex mediante MCP](MCP_DECKS.md): herramientas, atribución y conexión privada.
 - [Decisiones de arquitectura y producto](../adr/README.md): acuerdos vigentes y cuestiones pospuestas.
-- [Repasar](PRACTICE_PLAN.md): diseño en curso, botonera inicial, posiciones aprobadas e incrementos futuros con swipe y cuatro respuestas.
-
-- [2026-10-20 — Preparación animada del repaso, paso local](2026-10-20.md)
-- [2026-10-19 — Edición de barajas en borrador](2026-10-19.md)
-- [2026-10-18 — Repaso, títulos, guardado y acceso libre a tarjetas](2026-10-18.md)
-- [2026-10-17 — Barajas en borrador y selector calmado](2026-10-17.md)
-- [2026-10-16 — Reparar la suite y prevenir fallos](2026-10-16.md)
-- [2026-10-15 — Libros, notas y crecimiento](2026-10-15.md)
-- [2026-10-14 — Mascotas y controles de baraja](2026-10-14.md)
-- [2026-10-13 — Maceta clásica activa](2026-10-13.md)
-- [2026-10-12 — Selector segmentado reutilizable](2026-10-12.md)
-- [2026-10-11 — Perfiles, Biblioteca, IA y dominio propio](2026-10-11.md)
-- [2026-10-10 — Deployment, account password and per-book mascot progress](2026-10-10.md)
