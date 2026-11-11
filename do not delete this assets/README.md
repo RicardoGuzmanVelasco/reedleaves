@@ -60,3 +60,17 @@ A · Flor es el cuerpo activo `brand/reed/growth/bodies/flower.png`, por lo que 
 ## Encuadre para el componente del juego
 
 `mascotArt` muestra la imagen en un marco cuadrado con `object-fit: contain`; las caras y sombras son capas independientes. Los cuerpos SVG de Brote conservan el `viewBox="0 0 160 160"` de sus fuentes preparadas, igual que el cuerpo activo `brand/reed/growth/bodies/sprout.svg`. Los PNG de Flores sin tallo conservan el lienzo transparente cuadrado de 1254 × 1254 de sus raw, igual que la Flor activa. Sus siluetas principales quedan centradas aproximadamente en el lienzo; mantienen un margen transparente por los cuatro lados para rotación y movimiento sin recortes. El tamaño final en interfaz se ajustará mediante las calibraciones del componente al activar una variante.
+
+## Macetas — lámina futura
+
+La lámina [`macetas/lamina-raw.png`](macetas/lamina-raw.png) es copia binaria de `brand/reed/growth/pot-variations-future.png`. Los `*-raw.png` B–F son recortes exactos de sus teselas de 512 × 512 píxeles: conservan cara, sombra, fondo y etiqueta. A · Clásica ya tiene cuerpo activo en `brand/reed/growth/bodies/pot-a-body.png`.
+
+Cada `*-body.png` B–F fue extraído con ImageGen integrado (`background-extraction` y `precise-object-edit`): se retiraron ojos, boca, sombra de suelo, fondo y etiqueta. La terracota bajo la cara es una reconstrucción aproximada; la forma y paleta se basan en el raw. Los cuerpos se prepararon en el mismo marco transparente de **340 × 340** que la Maceta activa. El eje más largo mide unos 300 px, y su centro de silueta está en torno a **(170, 164)**, con margen en los cuatro lados. El escalado conserva la proporción original; la Maceta activa ocupa unos 300 × 296 px en ese marco. Se retiraron islas alfa desconectadas de hasta 30 000 px en la generación grande y, tras el recuadre, cualquier isla de hasta 4096 px. También se retiraron los píxeles rojos espurios (`R>180`, `G<95`, `B<95`) que no existen en el cuerpo activo. Los raw no recibieron esa limpieza.
+
+| Fuente en lámina B–F | Cuerpo listo | Raw individual |
+| --- | --- | --- |
+| `cuenco` | [`macetas/cuenco-body.png`](macetas/cuenco-body.png) | [`macetas/cuenco-raw.png`](macetas/cuenco-raw.png) |
+| `abombada` | [`macetas/abombada-body.png`](macetas/abombada-body.png) | [`macetas/abombada-raw.png`](macetas/abombada-raw.png) |
+| `alta` | [`macetas/alta-body.png`](macetas/alta-body.png) | [`macetas/alta-raw.png`](macetas/alta-raw.png) |
+| `cuadrada` | [`macetas/cuadrada-body.png`](macetas/cuadrada-body.png) | [`macetas/cuadrada-raw.png`](macetas/cuadrada-raw.png) |
+| `jardinera` | [`macetas/jardinera-body.png`](macetas/jardinera-body.png) | [`macetas/jardinera-raw.png`](macetas/jardinera-raw.png) |
