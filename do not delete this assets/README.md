@@ -128,3 +128,19 @@ Los cuatro cuerpos se aislaron con ImageGen integrado (`precise-object-edit`), q
 | `brote-variations-a-tierra-v2.png` | [`brotes-raster/tierra-v2-body.png`](brotes-raster/tierra-v2-body.png) | [`brotes-raster/tierra-v2-raw.png`](brotes-raster/tierra-v2-raw.png) |
 | `brote-variations-a-tierra-v3.png` | [`brotes-raster/tierra-v3-body.png`](brotes-raster/tierra-v3-body.png) | [`brotes-raster/tierra-v3-raw.png`](brotes-raster/tierra-v3-raw.png) |
 | `brote-variations-b-cotiledones.png` | [`brotes-raster/cotiledones-body.png`](brotes-raster/cotiledones-body.png) | [`brotes-raster/cotiledones-raw.png`](brotes-raster/cotiledones-raw.png) |
+
+## Flores con tallo
+
+Estas composiciones de `brand/reed/growth/flower-variations/` incluyen flor, tallo y dos hojas. La Flor activa `brand/reed/growth/bodies/flower.png` muestra solo la cabeza y no duplica estos personajes completos. Cada `*-raw.png` es copia binaria del PNG original transparente, con su cara. `e-amapola-v2.png` mueve la cara del centro a un pétalo y tiene un render propio con diferencias de alfa, color y geometría respecto de `e-amapola.png`; se conservan los dos cuerpos y raw por separado.
+
+Los siete `*-body.png` se derivaron con ImageGen integrado (`precise-object-edit`) retirando únicamente los ojos y la boca, reconstruyendo el color bajo la cara. Esos píxeles reconstruidos son aproximados; la cabeza floral, tallo, hojas y brillos siguen el raw. El lienzo de salida es transparente de 340 × 340 px, eje mayor de unos 305 px y centro de silueta (170, 165), proporción similar a la cabeza floral activa de 1254 × 1254 px. Se descartaron residuos con alfa inferior a 16/255 y se puso RGB a cero en la transparencia para evitar halos al reducir. Los raw no se editaron.
+
+| Fuente | Cuerpo listo | Raw |
+| --- | --- | --- |
+| `a-flor-default.png` | [`flores-con-tallo/flor-default-body.png`](flores-con-tallo/flor-default-body.png) | [`flores-con-tallo/flor-default-raw.png`](flores-con-tallo/flor-default-raw.png) |
+| `b-margarita.png` | [`flores-con-tallo/margarita-body.png`](flores-con-tallo/margarita-body.png) | [`flores-con-tallo/margarita-raw.png`](flores-con-tallo/margarita-raw.png) |
+| `c-girasol.png` | [`flores-con-tallo/girasol-body.png`](flores-con-tallo/girasol-body.png) | [`flores-con-tallo/girasol-raw.png`](flores-con-tallo/girasol-raw.png) |
+| `d-tulipan.png` | [`flores-con-tallo/tulipan-body.png`](flores-con-tallo/tulipan-body.png) | [`flores-con-tallo/tulipan-raw.png`](flores-con-tallo/tulipan-raw.png) |
+| `e-amapola.png` | [`flores-con-tallo/amapola-body.png`](flores-con-tallo/amapola-body.png) | [`flores-con-tallo/amapola-raw.png`](flores-con-tallo/amapola-raw.png) |
+| `e-amapola-v2.png` | [`flores-con-tallo/amapola-v2-body.png`](flores-con-tallo/amapola-v2-body.png) | [`flores-con-tallo/amapola-v2-raw.png`](flores-con-tallo/amapola-v2-raw.png) |
+| `f-rosa.png` | [`flores-con-tallo/rosa-body.png`](flores-con-tallo/rosa-body.png) | [`flores-con-tallo/rosa-raw.png`](flores-con-tallo/rosa-raw.png) |
