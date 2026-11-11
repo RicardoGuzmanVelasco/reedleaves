@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import {createPortal} from 'react-dom';
 import {contentText,contentLocale,quoteExcerpt} from './core.mjs';
 import {words} from './i18n.mjs';
+import {mascotArt} from './mascot-art.mjs';
 import {cardActionRecord,savedReferences,optimisticCardAction,createCardActionTransport,createCardSaveConfirmationFlow,createCardSaveNotificationGate} from './card-interactions.mjs';
 
 function useRibbonPath(saved){
@@ -67,10 +68,10 @@ function GuestFeatures({context,api,callbacks}){
 }
 
 export function SavedCardsEntry({count,c,onClick}){const hasSavedCards=count>0;return <button type="button" className="primary saved-cards-entry" onClick={onClick} aria-label={hasSavedCards?`${c.savedCards}, ${c.noteCardsCount(count)}`:c.savedCards}><Bookmark/><span>{c.savedCards}</span>{hasSavedCards&&<span aria-hidden="true">{count}</span>}</button>}
-function SavedCards({rows,catalog,c,language,onOpen,error,onRetry,onReady}){
+function SavedCards({rows,catalog,c,language,onOpen,error,onRetry,onReady,loading}){
   useLayoutEffect(()=>{onReady()},[rows,onReady]);
   return <>{error&&<div className="sync-note" role="status"><span>{c[error]||c.connectionError}</span><button type="button" className="text-button" onClick={onRetry}>{c.retry}</button></div>}
-    {!rows.length?<p className="empty-state">{c.noSavedCards}</p>:<ul className="saved-cards-list">{rows.map(row=>{
+    {loading?<div className="navigation-pending" role="status"><span className="sr-only">{c.loading}</span><span dangerouslySetInnerHTML={{__html:mascotArt('sprout','navigation-pending-mascot',{animation:'sleep'})}}/></div>:!rows.length?<p className="empty-state">{c.noSavedCards}</p>:<ul className="saved-cards-list">{rows.map(row=>{
       const card=catalog.cardsById.get(row.cardId),deck=catalog.decksById.get(card.deckId);
       const cardLanguage=card.language||card.deckLanguage,isGuide=card.isReadingGuide;
       const title=isGuide?contentText(card.body,language,cardLanguage):card.isQuote?quoteExcerpt(contentText(card.body,language,cardLanguage)):contentText(card.title,language,cardLanguage);
@@ -87,7 +88,7 @@ function Features({context,api,callbacks}){
   const [confirmed,setConfirmed]=useState(()=>({records:{},saves:savedReferences(context.cardSaves)}));
   const [optimistic,dispatch]=useOptimistic(confirmed,optimisticCardAction);
   const optimisticRef=useRef(optimistic);optimisticRef.current=optimistic;
-  const [errors,setErrors]=useState({}),[collectionError,setCollectionError]=useState(null);
+  const [errors,setErrors]=useState({}),[collectionError,setCollectionError]=useState(null),[loadedBookId,setLoadedBookId]=useState(null);
   const generations=useRef({}),latest=useRef({}),intent=useRef({}),saveFlow=useRef(null),savedNotifyGate=useRef(null);
   savedNotifyGate.current ||= createCardSaveNotificationGate();
   const transport=useRef(null);transport.current ||= createCardActionTransport(api,value=>callbacks.onPending(context.userId,value));
@@ -114,8 +115,8 @@ function Features({context,api,callbacks}){
       const result=await api.request(`/api/reader/saved/${encodeURIComponent(bookId)}`,undefined,{queueKey:`saved-read:${userId}:${bookId}`});
       if(!current(userId)||generations.current.collection!==deck)return;
       callbacks.onCollectionConfirm(result,userId);
-      setConfirmed(state=>({...state,saves:{...Object.fromEntries(Object.entries(state.saves).filter(([,row])=>row.bookId!==bookId)),...savedReferences(result.cards)}}));setCollectionError(null);
-    }catch(error){if(current(userId)&&generations.current.collection===deck)setCollectionError(error.code||'connectionError')}
+      setConfirmed(state=>({...state,saves:{...Object.fromEntries(Object.entries(state.saves).filter(([,row])=>row.bookId!==bookId)),...savedReferences(result.cards)}}));setCollectionError(null);setLoadedBookId(bookId);
+    }catch(error){if(current(userId)&&generations.current.collection===deck){setCollectionError(error.code||'connectionError');setLoadedBookId(bookId)}}
   }
   useEffect(()=>{if(context.mode==='saved'&&!transport.current.pending)loadCollection()},[context.mode,context.bookId,context.revision]);
 
@@ -200,7 +201,7 @@ function Features({context,api,callbacks}){
   return <>
     {context.actionSlot&&card&&createPortal(<CardActions record={record} saved={!!optimistic.saves[card.id]} c={c} onVote={vote} onSave={save} error={error} onRetry={()=>error?.action?.kind==='save'?save(error.action):error?.action?mutate(error.action):load(context.cardId)}/>,context.actionSlot)}
     {context.entrySlot&&createPortal(<SavedCardsEntry count={rows.length} c={c} onClick={()=>callbacks.onGoToSavedBook(context.bookId)}/>,context.entrySlot)}
-    {context.listSlot&&createPortal(<SavedCards rows={context.quotesOnly?rows.filter(row=>context.catalog.cardsById.get(row.cardId).isQuote):rows} catalog={context.catalog} c={c} language={context.language} onOpen={callbacks.onOpenSavedCard} error={collectionError} onRetry={loadCollection} onReady={callbacks.onSavedListReady}/>,context.listSlot)}
+    {context.listSlot&&createPortal(<SavedCards loading={loadedBookId!==context.bookId&&!rows.length} rows={context.quotesOnly?rows.filter(row=>context.catalog.cardsById.get(row.cardId).isQuote):rows} catalog={context.catalog} c={c} language={context.language} onOpen={callbacks.onOpenSavedCard} error={collectionError} onRetry={loadCollection} onReady={callbacks.onSavedListReady}/>,context.listSlot)}
   </>;
 }
 

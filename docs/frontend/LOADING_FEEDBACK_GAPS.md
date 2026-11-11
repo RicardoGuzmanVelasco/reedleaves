@@ -150,9 +150,8 @@ La base es `lockControls` (~373): `busy` solo pone `aria-busy` y deshabilita con
 - **Opciones:** **C** en la fila de libros; las portadas pueden aparecer sin tinte y teñirse con transición suave. Sin aviso de fallo si el tinte es solo decorativo.
 
 ### 16. Saldos de la cabecera
-- **Dónde:** `currencyWallets` (`aria-busy` ~357).
-- **Qué pasa:** `aria-busy` pero sin indicador visual si `balanceReady` es falso.
-- **Opciones:** **D**: guion o contador atenuado hasta que lleguen los saldos.
+- **Estado:** resuelto, sin trabajo. Descartado tras revisión (2026-11-11).
+- **Por qué:** `bootstrap` espera `ensureHomeData` (saldos incluidos) antes de salir de la pantalla de carga, y login devuelve el estado completo. Además, `header()` muestra «—» y `aria-busy` mientras `balanceReady` es falso (`reader-app.mjs:~353–359`). La auditoría inicial se equivocó al decir que no había indicador.
 
 ---
 
@@ -259,7 +258,7 @@ Aparte del feedback, hay que revisar la animación de espera. Se aborda después
 | 13 | | | |
 | 14 | | | |
 | 15 | | | |
-| 16 | | | |
+| 16 | Sin cambios (ya resuelto) | 2026-11-11 | Falso positivo de la auditoría. |
 | 17 | | | |
 | 18 | | | |
 | 19 | | | |
