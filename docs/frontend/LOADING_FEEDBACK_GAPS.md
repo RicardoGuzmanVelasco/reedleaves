@@ -227,6 +227,8 @@ La base es `lockControls` (~373): `busy` solo pone `aria-busy` y deshabilita con
 
 ## Decisiones tomadas
 
+- **Un solo placeholder de carga.** `app/loading-placeholder.mjs` exporta `loadingPlaceholder(label)` y es lo único que renderiza el Brote dormido de espera (navegación, capa de libro/nota, Idea del día, perfil, lista de guardadas). Cambiar el aspecto (spinner, etiqueta, puntos, animación de despertar) se hace solo ahí. CSS: `.loading-placeholder`.
+
 - **Puntos 1–3: F + C.** Se pinta de inmediato un placeholder con Brote dormido (la misma animación del perfil) y se rellena al llegar el catálogo. Siempre se muestra, sin umbral.
   - Puntos 1 y 2 (`route()`): el placeholder sustituye el contenido de `main` (`navigationPendingView`).
   - Punto 3 (`withFullCatalogForBook`): el placeholder va como capa sobre la pantalla actual, para no perder el contexto.

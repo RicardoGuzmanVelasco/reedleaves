@@ -11,6 +11,7 @@ import {callout} from "./callout.mjs";
 import {mountBookLists,BOOK_VIEWS} from "./book-list.mjs?v=adaptive-shelf-spines-2";
 import {updateNavigationBadges} from "./navigation-badges.mjs";
 import {loadCatalog,loadHomeBooks,loadInterests} from "./catalog.mjs";
+import {loadingPlaceholder} from "./loading-placeholder.mjs";
 import {createBookKnowledgeVisitId,visitVisitorBooks,pendingVisitorBookCount,inLibraryVisit} from "./book-knowledge.mjs";
 import {localDay, restoreLanguage, bookTitle, FEEDBACK_MESSAGE_MAX_LENGTH, LANGUAGES} from "./core.mjs";
 import {featuredDecks,isReadingGuideDeck} from "./decks.mjs";
@@ -18,7 +19,7 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=evergreen-2";
-import {sharedCardView,homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,guideReviewQueueView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,navigationPendingView,profileWakeOverlayView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=evergreen-2";
+import {sharedCardView,homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,guideReviewQueueView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,profileWakeOverlayView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=evergreen-2";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -441,7 +442,7 @@ export function startReader({createCardFeatures} = {}) {
       else main.querySelector(".opening-loading").setAttribute("aria-label",words[language].loading);
       syncModalPageLock();presentReading(main);updateCardFeatures();return;
     }
-    if(navigationPending){main.innerHTML=navigationPendingView(language);syncModalPageLock();updateCardFeatures();return;}
+    if(navigationPending){main.innerHTML=loadingPlaceholder(words[language].loading);syncModalPageLock();updateCardFeatures();return;}
     refreshState(); header();
     if (["review","author"].includes(mode) && previewDeckId !== deckId) { deckPreview=false;previewColumns=2;previewDeckId=deckId; }
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
@@ -558,7 +559,7 @@ export function startReader({createCardFeatures} = {}) {
   function showPendingOverlay() {
     if(pendingOverlay)return;
     pendingOverlay=document.createElement("div");pendingOverlay.className="pending-overlay";
-    pendingOverlay.innerHTML=navigationPendingView(language);document.body.append(pendingOverlay);
+    pendingOverlay.innerHTML=loadingPlaceholder(words[language].loading);document.body.append(pendingOverlay);
   }
   function hidePendingOverlay() {pendingOverlay?.remove();pendingOverlay=null;}
   function route(focus = true) {

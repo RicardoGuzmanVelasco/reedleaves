@@ -3,7 +3,7 @@ import {createRoot} from 'react-dom/client';
 import {createPortal} from 'react-dom';
 import {contentText,contentLocale,quoteExcerpt} from './core.mjs';
 import {words} from './i18n.mjs';
-import {mascotArt} from './mascot-art.mjs';
+import {loadingPlaceholder} from './loading-placeholder.mjs';
 import {cardActionRecord,savedReferences,optimisticCardAction,createCardActionTransport,createCardSaveConfirmationFlow,createCardSaveNotificationGate} from './card-interactions.mjs';
 
 function useRibbonPath(saved){
@@ -71,7 +71,7 @@ export function SavedCardsEntry({count,c,onClick}){const hasSavedCards=count>0;r
 function SavedCards({rows,catalog,c,language,onOpen,error,onRetry,onReady,loading}){
   useLayoutEffect(()=>{onReady()},[rows,onReady]);
   return <>{error&&<div className="sync-note" role="status"><span>{c[error]||c.connectionError}</span><button type="button" className="text-button" onClick={onRetry}>{c.retry}</button></div>}
-    {loading?<div className="navigation-pending" role="status"><span className="sr-only">{c.loading}</span><span dangerouslySetInnerHTML={{__html:mascotArt('sprout','navigation-pending-mascot',{animation:'sleep'})}}/></div>:!rows.length?<p className="empty-state">{c.noSavedCards}</p>:<ul className="saved-cards-list">{rows.map(row=>{
+    {loading?<div dangerouslySetInnerHTML={{__html:loadingPlaceholder(c.loading)}}/>:!rows.length?<p className="empty-state">{c.noSavedCards}</p>:<ul className="saved-cards-list">{rows.map(row=>{
       const card=catalog.cardsById.get(row.cardId),deck=catalog.decksById.get(card.deckId);
       const cardLanguage=card.language||card.deckLanguage,isGuide=card.isReadingGuide;
       const title=isGuide?contentText(card.body,language,cardLanguage):card.isQuote?quoteExcerpt(contentText(card.body,language,cardLanguage)):contentText(card.title,language,cardLanguage);

@@ -14,6 +14,7 @@ import { filterLibrary, libraryDefaults } from "./book-search.mjs";
 import {bookshelfBooks} from "./bookshelf.mjs";
 import {mascotStages,mascotStageEarned,currentMascotStage} from "./mascot-progress.mjs?v=evergreen-2";
 import {mascotArt,mascotIcon} from "./mascot-art.mjs?v=evergreen-2";
+import {loadingPlaceholder} from "./loading-placeholder.mjs";
 import {readerLevelName} from "./reader-level-name.mjs";
 import {missingBookInformation,TRANSLATION_FIELDS} from "./book-metadata.mjs";
 import {defaultNoteDeckTitle} from "./note-defaults.mjs";
@@ -480,7 +481,7 @@ export function sharedCardView(s) {
 export function dailyView(s) {
   const c=words[s.language], item=s.daily, card=item&&s.catalog.cardsById.get(item.id);
   injectPageHeaderTitle(s,calendarIconMarkup(),c.daily);
-  if(s.dailyLoading&&!card)return navigationPendingView(s.language);
+  if(s.dailyLoading&&!card)return loadingPlaceholder(words[s.language].loading);
   const month=s.calendarMonth||s.dailyToday?.day?.slice(0,7)||new Date().toISOString().slice(0,7);
   const [year,monthNumber]=month.split("-").map(Number),first=new Date(Date.UTC(year,monthNumber-1,1,12));
   const offset=(first.getUTCDay()+6)%7,daysInMonth=new Date(Date.UTC(year,monthNumber,0,12)).getUTCDate();
@@ -889,16 +890,11 @@ export function profileView(s) {
 export function profileWakeOverlayView() {
   return `<div class="profile-wake-overlay" aria-hidden="true">${mascotArt("sprout","profile-wake-mascot",{animation:"wake"})}</div>`;
 }
-export function navigationPendingView(language) {
-  const c=words[language];
-  return `<section class="navigation-pending" role="status"><span class="sr-only">${esc(c.loading)}</span>${mascotArt("sprout","navigation-pending-mascot",{animation:"sleep"})}</section>`;
-}
-
 export function profilePendingView(s) {
   const c=words[s.language];
   const pending=s.profileError
     ? `<div class="profile-error-state">${mascotArt("sprout","profile-error-mascot",{expression:"sad",idle:false})}${callout({variant:"error",role:"alert",className:"profile-error-callout",width:"content",main:s.profileError==="connectionError"?c.profileLoadErrorMain:c[s.profileError]||c.connectionError,suggestion:s.profileError==="connectionError"?c.profileLoadErrorSuggestion:"",action:{label:c.retry,dataAction:"retry-profile"}})}</div>`
-    : `<div class="profile-loading-state" role="status"><span class="sr-only">${esc(c.loading)}</span>${mascotArt("sprout","profile-loading-mascot",{animation:"sleep"})}</div>`;
+    : loadingPlaceholder(c.loading);
   return `<section class="profile-screen"><h1 tabindex="-1" class="profile-pending-title">${c.profile}</h1>${pending}</section>`;
 }
 
