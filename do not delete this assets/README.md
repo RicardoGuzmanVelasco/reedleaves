@@ -115,3 +115,16 @@ Los cuatro cuerpos fueron aislados con ImageGen integrado (`precise-object-edit`
 | Lámina C · Nudos | [`tallos/nudos-body.png`](tallos/nudos-body.png) | [`tallos/nudos-raw.png`](tallos/nudos-raw.png) |
 | `stem-variant-junco.png` | [`tallos/junco-body.png`](tallos/junco-body.png) | [`tallos/junco-raw.png`](tallos/junco-raw.png) |
 | `stem-variant-bambu.png` | [`tallos/bambu-body.png`](tallos/bambu-body.png) | [`tallos/bambu-raw.png`](tallos/bambu-raw.png) |
+
+## Brotes raster — Tierra y Cotiledones
+
+`brand/reed/growth/brote-variations-a-tierra.png`, `-v2.png` y `-v3.png` son tres revisiones de A · Tierra: comparten idea y silueta general, pero cambian hojas y sombreado. Por eso cada una conserva su raw binario y su body propio. B · Cotiledones tiene base de semilla redonda y hojas de otra forma. El cuerpo activo `brand/reed/growth/bodies/sprout.svg` muestra solo dos hojas y es distinto de estas variantes con base marrón.
+
+Los cuatro cuerpos se aislaron con ImageGen integrado (`precise-object-edit`), quitando ojos, boca, sombra de suelo y fondo. La superficie bajo la cara es una reconstrucción aproximada. Están en marco transparente de 340 × 340 px, eje mayor de 260 px y centro aproximado (170, 171), siguiendo la ocupación de `sprout.svg` en su `viewBox` de 160 × 160. Se descartaron píxeles alfa inferiores a 16/255 y residuos rojo/amarillo de segmentación (`R>170, G<105, B<105` o `R>180, G>180, B<95`), y se puso RGB a cero donde alfa es cero. Los raw no se editaron.
+
+| Fuente | Cuerpo listo | Raw |
+| --- | --- | --- |
+| `brote-variations-a-tierra.png` | [`brotes-raster/tierra-v1-body.png`](brotes-raster/tierra-v1-body.png) | [`brotes-raster/tierra-v1-raw.png`](brotes-raster/tierra-v1-raw.png) |
+| `brote-variations-a-tierra-v2.png` | [`brotes-raster/tierra-v2-body.png`](brotes-raster/tierra-v2-body.png) | [`brotes-raster/tierra-v2-raw.png`](brotes-raster/tierra-v2-raw.png) |
+| `brote-variations-a-tierra-v3.png` | [`brotes-raster/tierra-v3-body.png`](brotes-raster/tierra-v3-body.png) | [`brotes-raster/tierra-v3-raw.png`](brotes-raster/tierra-v3-raw.png) |
+| `brote-variations-b-cotiledones.png` | [`brotes-raster/cotiledones-body.png`](brotes-raster/cotiledones-body.png) | [`brotes-raster/cotiledones-raw.png`](brotes-raster/cotiledones-raw.png) |
