@@ -344,6 +344,10 @@ test("Profiles require a session and view writes require origin, CSRF and a vali
   assert.equal(profile.status,200);assert.equal(profile.headers.get("cache-control"),"no-store");
   const data=await profile.json();assert.equal(data.profile.name,"Equipo Reedleaves");
   assert.doesNotMatch(JSON.stringify(data),/password|csrf|token|timeZone/);
+  assert.equal(data.bookshelf,undefined);
+  const shelf=await fetch(base+"/api/profiles/reed-team/bookshelf",{headers:{Cookie:cookie}});
+  assert.equal(shelf.status,200);assert.ok(Array.isArray((await shelf.json()).bookshelf));
+  assert.equal((await fetch(base+"/api/profiles/missing/bookshelf",{headers:{Cookie:cookie}})).status,404);
   assert.equal((await fetch(base+"/api/profiles/missing",{headers:{Cookie:cookie}})).status,404);
   assert.equal((await fetch(base+"/api/profiles/reed-team",{method:"POST",headers})).status,405);
   assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"practice"},{Cookie:cookie})).status,403);

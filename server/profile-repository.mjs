@@ -54,19 +54,39 @@ export async function recordCardView(db,session,{cardId,context,day:requestedDay
   });
 }
 
-export async function readProfile(db,userId,viewerId) {
+async function readStatuses(db,userId) {
+  const distinguished=await distinguishedBookIds(db,userId);
+  return Object.fromEntries([...distinguished.map(id=>[id,"unread"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(r=>[r.book_id,r.status])]);
+}
+
+async function profileBookshelf(db,userId,viewerId,statuses) {
+  // Library entries are computed only from content visible to this viewer.
+  const catalog=prepareCatalog(await readCatalog(db,viewerId));
+  const enrolledIds=(await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(r=>r.deck_id+"-v1");
+  const entries=bookshelfBooks({catalog,statuses,shelfBookIds:Object.keys(statuses),enrolledIds,userId});
+  return entries.map(({book,reading,group})=>({bookId:book.id,reading,...(group==="to-read"?{group}:{})}));
+}
+
+function assertProfileId(userId) {
   if (typeof userId !== "string" || !userId.trim() || userId.length>240) throw new ApiError(400,"invalidRequest");
+}
+
+// Another reader's bookshelf is a separate request: the profile page never needs it.
+export async function readProfileBookshelf(db,userId,viewerId) {
+  assertProfileId(userId);
+  return transaction(db,async()=>{
+    if (!await db.prepare("SELECT 1 FROM users WHERE id=?").get(userId)) throw new ApiError(404,"profileUnavailable");
+    return {bookshelf:await profileBookshelf(db,userId,viewerId,await readStatuses(db,userId))};
+  });
+}
+
+export async function readProfile(db,userId,viewerId,{bookshelf=true}={}) {
+  assertProfileId(userId);
   return transaction(db,async()=>{
     const user=await db.prepare("SELECT u.id,u.display_name,u.created_at,a.username FROM users u LEFT JOIN accounts a ON a.user_id=u.id WHERE u.id=?").get(userId);
     if (!user) throw new ApiError(404,"profileUnavailable");
-    // Library entries are computed only from content visible to this viewer.
     // Creation totals are independent of the reader's practice counts.
-    const catalog=prepareCatalog(await readCatalog(db,viewerId));
-    const distinguished=await distinguishedBookIds(db,userId);
-    const statuses=Object.fromEntries([...distinguished.map(id=>[id,"unread"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(r=>[r.book_id,r.status])]);
-    const enrolledIds=(await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(r=>r.deck_id+"-v1");
-    const shelfBookIds=Object.keys(statuses);
-    const entries=bookshelfBooks({catalog,statuses,shelfBookIds,enrolledIds,userId});
+    const statuses=await readStatuses(db,userId);
     const days=new Map((await db.prepare(`SELECT v.book_id,COUNT(DISTINCT ps.completed_local_day) AS n
       FROM practice_sessions ps JOIN practice_session_cards psc ON psc.session_id=ps.id
       JOIN cards c ON c.id=psc.card_id JOIN decks v ON v.id=c.deck_id
@@ -86,11 +106,10 @@ export async function readProfile(db,userId,viewerId) {
       cardsCreated:await count("SELECT COUNT(*) AS n FROM cards c WHERE c.creator_user_id=?",userId),
       quotesCreated:await count("SELECT COUNT(*) AS n FROM cards c WHERE c.creator_user_id=? AND c.is_quote=1",userId)
     };
-    const bookshelf=entries.map(({book,reading,group})=>({bookId:book.id,reading,...(group==="to-read"?{group}:{})}));
     const progression=await readReaderProgression(db,userId,{allowMissing:true});
     const readerProgression=progression&&(userId===viewerId
       ? progression
       : {level:progression.level,fullName:progression.fullName,stage:progression.stage});
-    return {profile:{id:user.id,name:user.display_name,username:user.username||null,createdAt:user.created_at,counts,mascots,...(readerProgression?{readerProgression}:{})},bookshelf};
+    return {profile:{id:user.id,name:user.display_name,username:user.username||null,createdAt:user.created_at,counts,mascots,...(readerProgression?{readerProgression}:{})},...(bookshelf?{bookshelf:await profileBookshelf(db,userId,viewerId,statuses)}:{})};
   });
 }

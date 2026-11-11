@@ -1,6 +1,6 @@
 import {randomUUID} from "node:crypto";
 import {authenticate, readSession, revokeSession, checkCsrf, sessionCookie} from "./auth.mjs";
-import {readProfile,recordCardView} from "./profile-repository.mjs";
+import {readProfile,readProfileBookshelf,recordCardView} from "./profile-repository.mjs";
 import {ApiError} from "./errors.mjs";
 import {readReaderState,readReaderBalances,readReaderHomeBooks,selectDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
@@ -64,12 +64,14 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
     routes.set("/api/author/decks/title",["POST"]);
     routes.set("/api/author/notes",["POST"]);
     const profileMatch=path.match(/^\/api\/profiles\/([^/]+)$/);
+    const profileBookshelfMatch=path.match(/^\/api\/profiles\/([^/]+)\/bookshelf$/);
     const profileInterestsMatch=path.match(/^\/api\/profiles\/([^/]+)\/interests$/);
     const cardVotesMatch=path.match(/^\/api\/cards\/([^/]+)\/votes$/);
     const cardActionsMatch=path.match(/^\/api\/cards\/([^/]+)\/actions$/);
     const savedCardsMatch=path.match(/^\/api\/reader\/saved\/([^/]+)$/);
     if (profileMatch) routes.set(path,["GET","HEAD"]);
     if (profileInterestsMatch) routes.set(path,["GET","HEAD"]);
+    if (profileBookshelfMatch) routes.set(path,["GET","HEAD"]);
     if (cardVotesMatch) routes.set(path,["GET","HEAD"]);
     if (cardActionsMatch || savedCardsMatch) routes.set(path,["GET","HEAD"]);
     routes.set("/api/cards/vote",["POST"]);
@@ -100,7 +102,8 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       if (!session) throw new ApiError(401,"signInRequired");
       if (path === "/api/reader/balances") { send(200,await readReaderBalances(db,session,time)); return true; }
       if (path === "/api/reader/home-books") { send(200,await readReaderHomeBooks(db,session)); return true; }
-      if (profileMatch) { send(200,await readProfile(db,profileMatch[1],session.user_id)); return true; }
+      if (profileMatch) { send(200,await readProfile(db,profileMatch[1],session.user_id,{bookshelf:false})); return true; }
+      if (profileBookshelfMatch) { send(200,await readProfileBookshelf(db,profileBookshelfMatch[1],session.user_id)); return true; }
       if (profileInterestsMatch) { send(200,await readPublicReaderInterestPreferences(db,profileInterestsMatch[1])); return true; }
       if (path === "/api/reader/interests/preferences" && ["GET","HEAD"].includes(request.method)) {
         send(200,await readReaderInterestPreferences(db,session)); return true;

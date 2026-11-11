@@ -753,6 +753,11 @@ export function startReader({createCardFeatures} = {}) {
       guideReviewReason=main.querySelector("#guide-review-reason")?.value||guideReviewReason;
     } finally {busy=false;lockControls();render();(main.querySelector(".guide-review-item [data-action='toggle-guide-review']")||main.querySelector(".guide-review-empty")||main.querySelector(".guide-deck-page-screen h1"))?.focus({preventScroll:true});}
   }
+  // Another reader's bookshelf is requested only when their bookshelf is shown.
+  async function loadProfileData(id) {
+    const [data,shelf]=await Promise.all([api.request("/api/profiles/"+encodeURIComponent(id)),mode==="public-bookshelf"?api.request("/api/profiles/"+encodeURIComponent(id)+"/bookshelf"):null]);
+    return shelf?{...data,bookshelf:shelf.bookshelf}:data;
+  }
   async function loadProfile(force=false) {
     if (!profileId || !snapshot.user || profileRequest && !force) return;
     const id=profileId,viewer=snapshot.user.id,generation=++profileGeneration;
@@ -760,7 +765,7 @@ export function startReader({createCardFeatures} = {}) {
     profileTransition=null;profileLoadingWasShown=true;
     const own=id===viewer;
     if(own){profileInterests={loading:true};profileLanguages={loading:true};}
-    const request=Promise.allSettled([api.request("/api/profiles/"+encodeURIComponent(id)),api.request(own?"/api/reader/interests/preferences":"/api/profiles/"+encodeURIComponent(id)+"/interests"),...(own?[api.request("/api/reader/language-preferences")]:[])]); profileRequest=request;
+    const request=Promise.allSettled([loadProfileData(id),api.request(own?"/api/reader/interests/preferences":"/api/profiles/"+encodeURIComponent(id)+"/interests"),...(own?[api.request("/api/reader/language-preferences")]:[])]); profileRequest=request;
     try {
       const [profileResult,interestResult,languageResult]=await request;
       if (generation!==profileGeneration || id!==profileId || viewer!==snapshot.user?.id) return;
