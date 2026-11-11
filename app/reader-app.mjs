@@ -755,7 +755,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   // Another reader's bookshelf is requested only when their bookshelf is shown.
   async function loadProfileData(id) {
-    const [data,shelf]=await Promise.all([api.request("/api/profiles/"+encodeURIComponent(id)),mode==="public-bookshelf"?api.request("/api/profiles/"+encodeURIComponent(id)+"/bookshelf"):null]);
+    const [data,shelf]=await Promise.all([api.request("/api/profiles/"+encodeURIComponent(id)),mode==="public-bookcase"?api.request("/api/profiles/"+encodeURIComponent(id)+"/bookshelf"):null]);
     return shelf?{...data,bookshelf:shelf.bookshelf}:data;
   }
   async function loadProfile(force=false) {
