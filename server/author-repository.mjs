@@ -205,7 +205,7 @@ export async function changeDeckLanguage(db,session,input) {
 }
 export async function takeNote(db,session,input) {
   // Without a destination deck, the note creates the reader's default notes deck.
-  if (input.deckId === undefined || input.deckId === null) return takeNoteInNewDeck(db,session,input);
+  if (input.deckId === undefined) return takeNoteInNewDeck(db,session,input);
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
     return writeCard(db,session,input);
@@ -339,15 +339,19 @@ export async function finishNoteDecks(db,session,input) {
     // Stable lock order also serializes against takeNote and individual finishing.
     for (const entry of [...decks].sort((a,b)=>a.deckId.localeCompare(b.deckId))) {
       const deck=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db) ? " FOR UPDATE OF d" : ""}`).get(entry.deckId);
+      // An empty deck that an earlier identical request already deleted stays a success, so retries are safe.
+      if (!deck && entry.cardCount === 0) { changes.push({deckId:entry.deckId,status:"deleted"}); continue; }
       if (!deck || deck.creator_user_id !== session.user_id || deck.book_id !== bookId) throw new ApiError(404,"deckUnavailable");
       const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(deck.id);
-      const status=entry.cardCount ? "finished" : "deleted";
+      // Other readers may have added an empty collective draft to their cardcase: keep it for them.
+      const sharedWithOthers=entry.cardCount === 0 && !!await db.prepare("SELECT 1 FROM studies WHERE deck_id=? AND user_id<>?").get(deck.id,session.user_id);
+      const status=entry.cardCount ? "finished" : sharedWithOthers ? "draft" : "deleted";
       if (total !== entry.cardCount || !(deck.status === "draft" || entry.cardCount > 0 && deck.status === "finished")) throw new ApiError(409,"noteDecksChanged");
       changes.push({deckId:deck.id,status});
     }
     for (const change of changes) {
       if (change.status === "finished") await db.prepare("UPDATE decks SET status='finished' WHERE id=? AND status='draft'").run(change.deckId);
-      else await deleteEmptyDraftDeck(db,change.deckId);
+      else if (change.status === "deleted") await deleteEmptyDraftDeck(db,change.deckId);
     }
     return {bookId,decks:changes};
   });

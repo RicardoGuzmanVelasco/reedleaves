@@ -79,7 +79,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const finished=await finishNoteDecks(db,session,{bookId,decks});
     assert.deepEqual(finished.decks.map(({status})=>status).sort(),["deleted","finished"]);
     assert.deepEqual(await finishNoteDecks(db,session,{bookId,decks:[decks[0]]}),{bookId,decks:[{deckId:full.deckId,status:"finished"}]});
-    await assert.rejects(finishNoteDecks(db,session,{bookId,decks}),{code:"deckUnavailable"});
+    assert.deepEqual(await finishNoteDecks(db,session,{bookId,decks}),finished,"a retry after deleting empty decks succeeds again");
     const catalog=prepareCatalog(await readCatalog(db));
     assert.equal(catalog.decksById.get(full.deckId).status,"finished");
     assert.equal(catalog.decksById.has(empty.deckId),false);
@@ -89,6 +89,15 @@ for (const dialect of ["sqlite","postgres"]) {
     await assert.rejects(takeNote(db,session,{...note,requestId:randomUUID()}),{code:"deckReadOnly"});
     const after=await readReaderState(db,session);
     assert.deepEqual(after.wallet,before.wallet);assert.deepEqual(after.statuses,before.statuses);
+  });
+
+  test(`${dialect}: empty collective drafts that other readers added are kept, and a null deck is rejected`,async t=>{
+    const {db,session,other}=await fixture(t,dialect),bookId="seven-habits";
+    const shared=await createDeck(db,session,{requestId:randomUUID(),bookId,title:"Compartida",language:"es",kind:"collective",contributionPolicy:"open"});
+    await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(other.user_id,shared.deckId);
+    assert.deepEqual(await finishNoteDecks(db,session,{bookId,decks:[{deckId:shared.deckId,cardCount:0}]}),{bookId,decks:[{deckId:shared.deckId,status:"draft"}]});
+    assert.equal((await db.prepare("SELECT status FROM decks WHERE id=?").get(shared.deckId)).status,"draft");
+    await assert.rejects(takeNote(db,session,{requestId:randomUUID(),deckId:null,bookId,language:"es",title:"x",body:"y",isQuote:false,parentId:null}),{code:"invalidRequest"});
   });
 
   test(`${dialect}: complete an existing book without duplicates, identity changes or loss of decks`,async t=>{

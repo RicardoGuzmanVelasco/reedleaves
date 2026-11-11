@@ -18,7 +18,6 @@ import {PRACTICE_ENABLED_MODES} from "../app/practice-modes.mjs";
 export const PRACTICE_SCHEMA_MODES=["reading","read","saved","mixed","discover"];
 export {PRACTICE_ENABLED_MODES} from "../app/practice-modes.mjs";
 // Keep the existing name for discount selection and callers that enumerate active modes.
-export const PRACTICE_MODES=PRACTICE_ENABLED_MODES;
 export const PRACTICE_BASE_COST=3;
 export const PRACTICE_DISCOUNT_COST=2;
 export const PRACTICE_SESSION_SIZE=5;
@@ -27,7 +26,7 @@ const COMPLETED_PRACTICE_XP=25;
 const timestampText=value=>value instanceof Date?value.toISOString():String(value||"");
 export function practiceDiscountMode(userId,seedTimestamp) {
   const hash=createHash("sha256").update(`${userId}\0${timestampText(seedTimestamp)}`).digest();
-  return PRACTICE_MODES[hash.readUInt32BE(0)%PRACTICE_MODES.length];
+  return PRACTICE_ENABLED_MODES[hash.readUInt32BE(0)%PRACTICE_ENABLED_MODES.length];
 }
 
 async function currentDiscount(db,userId) {

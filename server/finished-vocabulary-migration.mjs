@@ -77,6 +77,15 @@ export function migrateSqliteToFinishedVocabulary(db) {
 
 // PostgreSQL: the caller holds ACCESS EXCLUSIVE locks and has checked reed_schema.
 export const FINISHED_VOCABULARY_POSTGRES_SQL=`
+CREATE FUNCTION reed_drop_checks(target TEXT,column_name TEXT) RETURNS void LANGUAGE plpgsql AS $$
+DECLARE found RECORD;
+BEGIN
+  -- Constraint names depend on how the table was reached (renames in older migrations).
+  FOR found IN SELECT conname FROM pg_constraint WHERE conrelid=target::regclass AND contype='c'
+    AND pg_get_constraintdef(oid) ~ ('\\m'||column_name||'\\M') LOOP
+    EXECUTE format('ALTER TABLE %I DROP CONSTRAINT %I',target,found.conname);
+  END LOOP;
+END $$;
 DROP TRIGGER IF EXISTS check_deck_author_insert ON decks;
 DROP TRIGGER IF EXISTS keep_deck_owner ON decks;
 DROP TRIGGER IF EXISTS keep_published_deck ON decks;
@@ -98,7 +107,7 @@ DELETE FROM deck_votes WHERE deck_id IN (SELECT id FROM discarded_decks);
 DELETE FROM deck_selections WHERE deck_id IN (SELECT id FROM discarded_decks);
 DELETE FROM studies WHERE deck_id IN (SELECT id FROM discarded_decks);
 DELETE FROM decks WHERE id IN (SELECT id FROM discarded_decks);
-ALTER TABLE decks DROP CONSTRAINT decks_status_check;
+SELECT reed_drop_checks('decks','status');
 UPDATE decks SET status='finished' WHERE status IN ('published','archived');
 ALTER TABLE decks ADD CONSTRAINT decks_status_check CHECK(status IN ('draft','finished'));
 ALTER TABLE decks DROP COLUMN editorial_status;
@@ -106,10 +115,15 @@ ALTER TABLE books DROP COLUMN editorial_status;
 ALTER TABLE users DROP COLUMN can_create_decks;
 DROP TABLE reader_display_preferences;
 DELETE FROM practice_answers;
-ALTER TABLE practice_answers DROP CONSTRAINT practice_answers_answer_check;
+SELECT reed_drop_checks('practice_answers','answer');
 ALTER TABLE practice_answers ADD CONSTRAINT practice_answers_answer_check CHECK(answer IN ('see_less','see_more'));
 ALTER TABLE practice_sessions RENAME COLUMN topic TO practice_mode;
-ALTER TABLE practice_sessions RENAME CONSTRAINT practice_sessions_topic_check TO practice_sessions_practice_mode_check;
+DO $$ DECLARE found RECORD; BEGIN
+  FOR found IN SELECT conname FROM pg_constraint WHERE conrelid='practice_sessions'::regclass AND contype='c'
+    AND pg_get_constraintdef(oid) ~ '\\mpractice_mode\\M' AND conname<>'practice_sessions_practice_mode_check' LOOP
+    EXECUTE format('ALTER TABLE practice_sessions RENAME CONSTRAINT %I TO practice_sessions_practice_mode_check',found.conname);
+  END LOOP;
+END $$;
 CREATE FUNCTION reed_keep_deck_owner() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF (NEW.creator_user_id IS DISTINCT FROM OLD.creator_user_id AND NOT (
@@ -158,6 +172,7 @@ BEGIN
 END $$;
 CREATE TRIGGER freeze_collective_contributors BEFORE INSERT OR UPDATE OR DELETE ON deck_contributors
 FOR EACH ROW EXECUTE FUNCTION reed_freeze_collective_contributors();
+DROP FUNCTION reed_drop_checks(TEXT,TEXT);
 ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check;
 UPDATE reed_schema SET version=53;
 ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=53);`;
