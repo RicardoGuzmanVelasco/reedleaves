@@ -77,6 +77,8 @@ Corrección de borde: ImageGen había dejado RGB rojo/rosa en píxeles completam
 | `cuadrada` | [`macetas/cuadrada-body.png`](macetas/cuadrada-body.png) | [`macetas/cuadrada-raw.png`](macetas/cuadrada-raw.png) |
 | `jardinera` | [`macetas/jardinera-body.png`](macetas/jardinera-body.png) | [`macetas/jardinera-raw.png`](macetas/jardinera-raw.png) |
 
+La revisión histórica [`macetas/lamina-asimetrica-raw.png`](macetas/lamina-asimetrica-raw.png) conserva la lámina de `pot-variations-exploration.png`; `macetas/asimetrica-raw.png` es el recorte exacto de F · Asimétrica, incluida su cara, sombra y fondo. Es una variante retirada que no aparece en la lámina futura, así que tiene cuerpo propio en [`macetas/asimetrica-body.png`](macetas/asimetrica-body.png). Se quitó la cara, la sombra y el fondo; el marco es 340 × 340 px, con silueta de unos 294 × 300 px centrada en (170, 164), como la Maceta activa. La parte bajo la cara está reconstruida aproximadamente.
+
 ## Semillas — lámina futura
 
 La lámina [`semillas/lamina-raw.png`](semillas/lamina-raw.png) es copia binaria de `brand/reed/growth/seed-variations-future.png`. Los cinco `*-raw.png` son recortes exactos de 512 × 512 px que conservan cara, sombra, fondo y etiqueta. Las dos teselas inferiores se recortaron desde `y=480` para evitar fragmentos de etiquetas de la fila superior. La semilla almendrada activa de `brand/reed/growth/bodies/seed.svg` ya existe y no se duplica.
@@ -90,6 +92,8 @@ Los cinco `*-body.png` se obtuvieron mediante ImageGen integrado (`precise-objec
 | `D · Achatada` | [`semillas/achatada-body.png`](semillas/achatada-body.png) | [`semillas/achatada-raw.png`](semillas/achatada-raw.png) |
 | `F · Café vertical` | [`semillas/cafe-vertical-body.png`](semillas/cafe-vertical-body.png) | [`semillas/cafe-vertical-raw.png`](semillas/cafe-vertical-raw.png) |
 | `G · Café ondulado` | [`semillas/cafe-ondulado-body.png`](semillas/cafe-ondulado-body.png) | [`semillas/cafe-ondulado-raw.png`](semillas/cafe-ondulado-raw.png) |
+
+La segunda lámina histórica también conserva una opción retirada: `semillas/lamina-v2-raw.png` copia `seed-variations-exploration-v2.png` y [`semillas/picos-curvos-raw.png`](semillas/picos-curvos-raw.png) es el recorte de E · Picos curvos con cara, sombra y fondo. Su cuerpo aislado está en [`semillas/picos-curvos-body.png`](semillas/picos-curvos-body.png): marco transparente 340 × 340 px, eje mayor de 238 px, centro de silueta (170, 138), como las demás semillas. La superficie bajo la cara se reconstruyó aproximadamente. El raw y la lámina se mantienen sin modificar.
 
 ## Raíces — tres direcciones exploratorias
 
