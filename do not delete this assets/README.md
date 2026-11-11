@@ -47,7 +47,7 @@ Los cuerpos sin cara copian el SVG base de cada propuesta en `brand/reed/v1/`; s
 
 ## Flores sin tallo
 
-A · Flor es el cuerpo activo `brand/reed/growth/bodies/flower.png`, por lo que no se duplica. B–F conservan su PNG raw original intacto y un PNG transparente sin ojos ni boca. Las versiones `*-body.png` se obtuvieron con ImageGen integrado (edición `precise-object-edit`); reconstruyen la superficie bajo la cara y pueden diferir en esos píxeles de la referencia raw. Las fuentes ya contienen pequeñas motas de borde que pueden seguir presentes al verlas al tamaño original.
+A · Flor es el cuerpo activo `brand/reed/growth/bodies/flower.png`, por lo que no se duplica. B–F conservan su PNG raw original intacto y un PNG transparente sin ojos ni boca. Las versiones `*-body.png` se obtuvieron con ImageGen integrado (edición `precise-object-edit`); reconstruyen la superficie bajo la cara y pueden diferir en esos píxeles de la referencia raw. Las salidas generadas se limpiaron de componentes alfa desconectados de hasta 4096 píxeles (0,26 % del lienzo de 1254 × 1254), conservando byte a byte los píxeles conectados a la silueta principal. La referencia raw permanece intacta.
 
 | Fuente en `brand/reed/growth/flower-only-variations/` | Cuerpo | Raw |
 | --- | --- | --- |
@@ -56,3 +56,7 @@ A · Flor es el cuerpo activo `brand/reed/growth/bodies/flower.png`, por lo que 
 | `d-tulipan.png` | [`flores-sin-tallo/tulipan-body.png`](flores-sin-tallo/tulipan-body.png) | [`flores-sin-tallo/tulipan-raw.png`](flores-sin-tallo/tulipan-raw.png) |
 | `e-amapola.png` | [`flores-sin-tallo/amapola-body.png`](flores-sin-tallo/amapola-body.png) | [`flores-sin-tallo/amapola-raw.png`](flores-sin-tallo/amapola-raw.png) |
 | `f-rosa.png` | [`flores-sin-tallo/rosa-body.png`](flores-sin-tallo/rosa-body.png) | [`flores-sin-tallo/rosa-raw.png`](flores-sin-tallo/rosa-raw.png) |
+
+## Encuadre para el componente del juego
+
+`mascotArt` muestra la imagen en un marco cuadrado con `object-fit: contain`; las caras y sombras son capas independientes. Los cuerpos SVG de Brote conservan el `viewBox="0 0 160 160"` de sus fuentes preparadas, igual que el cuerpo activo `brand/reed/growth/bodies/sprout.svg`. Los PNG de Flores sin tallo conservan el lienzo transparente cuadrado de 1254 × 1254 de sus raw, igual que la Flor activa. Sus siluetas principales quedan centradas aproximadamente en el lienzo; mantienen un margen transparente por los cuatro lados para rotación y movimiento sin recortes. El tamaño final en interfaz se ajustará mediante las calibraciones del componente al activar una variante.
