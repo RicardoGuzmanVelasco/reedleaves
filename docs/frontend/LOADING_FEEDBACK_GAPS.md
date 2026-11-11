@@ -6,7 +6,7 @@ Estado de cada punto: **Pendiente** hasta que el usuario elija una opción. Los 
 
 ## Reglas para resolverlos
 
-- Copy: usar solo textos ya existentes (`loading`, `aiLoading`, `dailyLoading`, `interestSortLoading`) o aprobados por el usuario. No inventar textos nuevos.
+- Copy: usar solo textos ya existentes (`loading`, `aiLoading`, `interestSortLoading`) o aprobados por el usuario. No inventar textos nuevos.
 - Movimiento reducido: todo spinner o animación debe quedar estático con `prefers-reduced-motion`.
 - Accesibilidad: cada espera visible necesita su equivalente en `role="status"` o en `#live`.
 - Tiempo: si se añade un umbral («tarda más de lo normal», retardo antes de mostrar el indicador), centralizarlo en una constante única; no repetir números en vistas ni pruebas.
