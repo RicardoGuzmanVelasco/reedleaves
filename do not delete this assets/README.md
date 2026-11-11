@@ -44,3 +44,15 @@ Los cuerpos sin cara copian el SVG base de cada propuesta en `brand/reed/v1/`; s
 | `b-papel` | [`logos/b-papel-body.svg`](logos/b-papel-body.svg) | [`logos/b-papel-raw.svg`](logos/b-papel-raw.svg) |
 | `c-trazo` | [`logos/c-trazo-body.svg`](logos/c-trazo-body.svg) | [`logos/c-trazo-raw.svg`](logos/c-trazo-raw.svg) |
 | `d-compacto` | [`logos/d-compacto-body.svg`](logos/d-compacto-body.svg) | [`logos/d-compacto-raw.svg`](logos/d-compacto-raw.svg) |
+
+## Flores sin tallo
+
+A · Flor es el cuerpo activo `brand/reed/growth/bodies/flower.png`, por lo que no se duplica. B–F conservan su PNG raw original intacto y un PNG transparente sin ojos ni boca. Las versiones `*-body.png` se obtuvieron con ImageGen integrado (edición `precise-object-edit`); reconstruyen la superficie bajo la cara y pueden diferir en esos píxeles de la referencia raw. Las fuentes ya contienen pequeñas motas de borde que pueden seguir presentes al verlas al tamaño original.
+
+| Fuente en `brand/reed/growth/flower-only-variations/` | Cuerpo | Raw |
+| --- | --- | --- |
+| `b-margarita.png` | [`flores-sin-tallo/margarita-body.png`](flores-sin-tallo/margarita-body.png) | [`flores-sin-tallo/margarita-raw.png`](flores-sin-tallo/margarita-raw.png) |
+| `c-girasol.png` | [`flores-sin-tallo/girasol-body.png`](flores-sin-tallo/girasol-body.png) | [`flores-sin-tallo/girasol-raw.png`](flores-sin-tallo/girasol-raw.png) |
+| `d-tulipan.png` | [`flores-sin-tallo/tulipan-body.png`](flores-sin-tallo/tulipan-body.png) | [`flores-sin-tallo/tulipan-raw.png`](flores-sin-tallo/tulipan-raw.png) |
+| `e-amapola.png` | [`flores-sin-tallo/amapola-body.png`](flores-sin-tallo/amapola-body.png) | [`flores-sin-tallo/amapola-raw.png`](flores-sin-tallo/amapola-raw.png) |
+| `f-rosa.png` | [`flores-sin-tallo/rosa-body.png`](flores-sin-tallo/rosa-body.png) | [`flores-sin-tallo/rosa-raw.png`](flores-sin-tallo/rosa-raw.png) |
