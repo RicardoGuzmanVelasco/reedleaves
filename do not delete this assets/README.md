@@ -102,3 +102,16 @@ Los tres cuerpos se extrajeron con ImageGen integrado (`precise-object-edit`), q
 | Izquierda, vertical | [`raices/vertical-body.png`](raices/vertical-body.png) | [`raices/vertical-raw.png`](raices/vertical-raw.png) |
 | Centro, extendida | [`raices/extendida-body.png`](raices/extendida-body.png) | [`raices/extendida-raw.png`](raices/extendida-raw.png) |
 | Derecha, ramificada | [`raices/ramificada-body.png`](raices/ramificada-body.png) | [`raices/ramificada-raw.png`](raices/ramificada-raw.png) |
+
+## Tallos alternativos
+
+La lámina [`tallos/lamina-raw.png`](tallos/lamina-raw.png) es copia binaria de `brand/reed/growth/stem-directions-exploration.png`. Flexible y Nudos tienen raw recortado exactamente de las columnas B y C de 512 × 1024 px, con cara, sombra, fondo y etiqueta. Junco y Bambú tienen raw binario idéntico a sus PNG individuales en `brand/reed/growth/`. A · Carnoso ya existe como `brand/reed/growth/bodies/stem.png` y no se duplica; la composición publicada usa `brand/reed/growth/bodies/stem-flat.svg`.
+
+Los cuatro cuerpos fueron aislados con ImageGen integrado (`precise-object-edit`), eliminando ojos, boca, sombra de suelo, fondo y etiquetas. La superficie bajo la cara es aproximada; hojas, brillos, nudos y silueta siguen la referencia. Cada cuerpo quedó en 340 × 340 px, con eje mayor de 265 px y centro de silueta (168, 181), equivalente al encuadre de `stem-flat.svg` publicado (silueta aproximada `x=20–137, y=23–147` en `viewBox` de 160). Se descartaron píxeles alfa inferiores a 16/255 y se puso RGB a cero en la transparencia para evitar halo. Los raw no recibieron limpieza ni recuadre.
+
+| Fuente | Cuerpo listo | Raw individual |
+| --- | --- | --- |
+| Lámina B · Flexible | [`tallos/flexible-body.png`](tallos/flexible-body.png) | [`tallos/flexible-raw.png`](tallos/flexible-raw.png) |
+| Lámina C · Nudos | [`tallos/nudos-body.png`](tallos/nudos-body.png) | [`tallos/nudos-raw.png`](tallos/nudos-raw.png) |
+| `stem-variant-junco.png` | [`tallos/junco-body.png`](tallos/junco-body.png) | [`tallos/junco-raw.png`](tallos/junco-raw.png) |
+| `stem-variant-bambu.png` | [`tallos/bambu-body.png`](tallos/bambu-body.png) | [`tallos/bambu-raw.png`](tallos/bambu-raw.png) |
