@@ -40,7 +40,7 @@ test("Official name stays Reedleaves on every screen and in every interface lang
 });
 
 test("Renaming the team changes only its public label, not creator identity or progress keys", () => {
-  assert.deepEqual(readSeed().users,[{id:"reed-team",display_name:"Equipo Reedleaves",can_create_decks:"1"}]);
+  assert.deepEqual(readSeed().users,[{id:"reed-team",display_name:"Equipo Reedleaves"}]);
   const packageInfo = JSON.parse(readFileSync(new URL("../package.json",import.meta.url),"utf8"));
   assert.equal(packageInfo.name,"reedleaves");
   assert.equal(storageKeys.language,"leaf-reader:language:v1");

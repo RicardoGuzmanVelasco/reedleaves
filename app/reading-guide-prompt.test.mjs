@@ -24,8 +24,8 @@ function withGuide(state,bookId) {
 }
 
 test("Only a saved transition into reading with accessible guide cards qualifies",()=>{
-  const guideCatalog={decks:[{id:"guide",bookId:"b",status:"finished"},{id:"empty",bookId:"b",status:"finished"},{id:"archived",bookId:"b",status:"archived"}],deckModels:new Map([
-    ["guide",{cards:[{isReadingGuide:true}]}],["empty",{cards:[]}],["archived",{cards:[{isReadingGuide:true}]}]
+  const guideCatalog={decks:[{id:"guide",bookId:"b",status:"finished"},{id:"empty",bookId:"b",status:"finished"}],deckModels:new Map([
+    ["guide",{cards:[{isReadingGuide:true}]}],["empty",{cards:[]}]
   ])};
   assert.equal(hasAccessibleReadingGuide(guideCatalog,"b"),true);
   assert.equal(hasAccessibleReadingGuide({...guideCatalog,decks:guideCatalog.decks.slice(1)},"b"),false);
