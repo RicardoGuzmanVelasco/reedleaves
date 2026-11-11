@@ -480,6 +480,7 @@ export function sharedCardView(s) {
 export function dailyView(s) {
   const c=words[s.language], item=s.daily, card=item&&s.catalog.cardsById.get(item.id);
   injectPageHeaderTitle(s,calendarIconMarkup(),c.daily);
+  if(s.dailyLoading&&!card)return navigationPendingView(s.language);
   const month=s.calendarMonth||s.dailyToday?.day?.slice(0,7)||new Date().toISOString().slice(0,7);
   const [year,monthNumber]=month.split("-").map(Number),first=new Date(Date.UTC(year,monthNumber-1,1,12));
   const offset=(first.getUTCDay()+6)%7,daysInMonth=new Date(Date.UTC(year,monthNumber,0,12)).getUTCDate();
@@ -505,7 +506,7 @@ export function dailyView(s) {
   const streakStatus=streak.seenToday?c.dailyStreakToday:streak.days?c.dailyStreakContinue:c.dailyStreakStart;
   const streakMarkup=`<div class="daily-streak" role="status"><img src="${imageUrl("/brand/reed/streak-flame.svg")}" alt="" width="42" height="42"><div><strong>${esc(c.dailyStreakDays(streak.days))}</strong><span>${esc(streakStatus)}</span></div></div>`;
   return `<section class="daily-screen"><h1 class="sr-only" tabindex="-1">${calendarIconMarkup()}<span>${c.daily}</span></h1>
-    ${calendar}${card ? `${streakMarkup}${exclusive}` : `<div class="empty-state"${s.dailyLoading?' role="status" aria-live="polite"':''}><p>${s.dailyLoading?c.dailyLoading:s.storageAvailable ? c.empty : c.storage}</p></div>`}
+    ${calendar}${card ? `${streakMarkup}${exclusive}` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p></div>`}
     </section>`;
 }
 

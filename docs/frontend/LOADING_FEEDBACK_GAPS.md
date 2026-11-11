@@ -140,9 +140,8 @@ La base es `lockControls` (~373): `busy` solo pone `aria-busy` y deshabilita con
 - **Notas:** decidir si votar antes de cargar debe permitirse; hoy no está claro.
 
 ### 14. Contador de tarjetas guardadas
-- **Dónde:** `SavedCardsEntry` con `count`.
-- **Qué pasa:** aparece como 0 hasta que cargan las guardadas.
-- **Opciones:** **D**: ocultar el contador hasta que haya dato, o usar el conteo de `snapshot.cardSaves`.
+- **Estado:** descartado, sin trabajo (2026-11-11).
+- **Por qué:** es el número del botón «Guardadas» en la cabecera de la baraja. Sale de `snapshot.cardSaves`, que ya llega en el estado completo antes de pintar la baraja. Sin dato no muestra número, no un 0 falso. Solo habría un hueco justo tras login.
 
 ### 15. Home mientras llegan balances, libros y portadas tintadas
 - **Dónde:** `ensureHomeData`; `loadInterests().then(...).catch(()=>{})`.
@@ -256,7 +255,7 @@ Aparte del feedback, hay que revisar la animación de espera. Se aborda después
 | 6 | | | |
 | 12 | | | |
 | 13 | | | |
-| 14 | | | |
+| 14 | Sin cambios (descartado) | 2026-11-11 | Falso positivo de la auditoría. |
 | 15 | | | |
 | 16 | Sin cambios (ya resuelto) | 2026-11-11 | Falso positivo de la auditoría. |
 | 17 | | | |

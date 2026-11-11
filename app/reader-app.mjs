@@ -71,7 +71,7 @@ export function startReader({createCardFeatures} = {}) {
   let mode = "home", openDeckId = null, openBookId = null, bookOrigin = "home", mascotReturnHash = null, mascotReturnBookId = null, sourcesOpen = false, failed = false, ready = false, openingOverlay = null, inviteRequired = false, renderVersion = 0, scrollToCard = false;
   let libraryVisitId=null,libraryNewBookIds=[];
   let practiceStage="choose",practiceSession=null,practiceUnavailable=null,practiceRecoveryRequest=null,practiceRecoveryGeneration=0,authoritativeStateGeneration=0,practiceIntroSession=null,practiceStartRequest=null,practiceAnswerRequest=null;
-  let pendingGrowthFeedback=[],pendingNavigationMode=null;
+  let pendingGrowthFeedback=[],navigationPending=false;
   let guideReviewQueue=[],guideReviewPendingCount=null,guideReviewCountLoading=false,guideReviewLoading=false,guideReviewLoaded=false,guideReviewError=null,guideReviewRejectingId=null,guideReviewExpandedId=null,guideReviewReason="",guideReviewNotice="";
   const observeXp=createReaderXpTracker();
   const xpFeedback=mountReaderXpFeedback(document,()=>language,showAppModal);
@@ -321,7 +321,7 @@ export function startReader({createCardFeatures} = {}) {
     }
     navigation.querySelectorAll(".bottom-navigation-link").forEach(link=>{link.title=link.querySelector(".bottom-navigation-label").textContent;});
     document.getElementById("nav-profile").href=signedIn?`#profile/${encodeURIComponent(snapshot.user.id)}`:"#profile";
-    const navMode=pendingNavigationMode||mode;
+    const navMode=navigationPending?({"":"home",home:"home",library:"library",bookshelf:"bookshelf",daily:"daily",profile:"profile"}[location.hash.slice(1).split("/")[0]]||mode):mode;
     const activeNavigation=navMode==="home"||["book","guides","guide-preview","preview","review"].includes(navMode)&&bookOrigin==="home"?"home":navMode==="library"||["book","guides","guide-preview","preview"].includes(navMode)&&bookOrigin==="library"?"library":navMode==="bookshelf"||["book","guides","guide-preview","preview"].includes(navMode)&&bookOrigin==="bookshelf"?"bookshelf":navMode==="profile"||navMode==="public-bookshelf"||navMode==="account"?"profile":navMode==="daily"||["review","preview"].includes(navMode)&&bookOrigin==="daily"?"daily":null;
     navigation.querySelectorAll("[data-nav]").forEach(link=>{if(link.dataset.nav===activeNavigation)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current")});
     updateBadges();
@@ -434,13 +434,14 @@ export function startReader({createCardFeatures} = {}) {
         departure.finished.then(finish,finish);
       });
     }
-    ++renderVersion; document.body.classList.toggle("is-opening",!ready&&!failed); document.body.classList.toggle("is-presenting",ready&&(mode === "preview"||mode === "guide-preview")); document.body.classList.toggle("is-practicing",ready&&mode === "practice"); document.body.classList.toggle("is-practice-choosing",ready&&mode === "practice" && practiceStage === "choose"); setHeaderLeading(""); header();
+    ++renderVersion; document.body.classList.toggle("is-opening",!ready&&!failed); document.body.classList.toggle("is-presenting",ready&&!navigationPending&&(mode === "preview"||mode === "guide-preview")); document.body.classList.toggle("is-practicing",ready&&!navigationPending&&mode === "practice"); document.body.classList.toggle("is-practice-choosing",ready&&!navigationPending&&mode === "practice" && practiceStage === "choose"); setHeaderLeading(""); header();
     if (!ready) {
       // Keep the first-paint flight running when the application module arrives.
       if(failed||!main.querySelector(".opening-loading"))main.innerHTML=loadingView(language,failed);
       else main.querySelector(".opening-loading").setAttribute("aria-label",words[language].loading);
       syncModalPageLock();presentReading(main);updateCardFeatures();return;
     }
+    if(navigationPending){main.innerHTML=navigationPendingView(language);syncModalPageLock();updateCardFeatures();return;}
     refreshState(); header();
     if (["review","author"].includes(mode) && previewDeckId !== deckId) { deckPreview=false;previewColumns=2;previewDeckId=deckId; }
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
@@ -552,12 +553,7 @@ export function startReader({createCardFeatures} = {}) {
     }
     scrollToCard = false;
   }
-  function showNavigationPending() {
-    pendingNavigationMode={"":"home",home:"home",library:"library",bookshelf:"bookshelf",daily:"daily",profile:"profile"}[location.hash.slice(1).split("/")[0]]||null;header();
-    disposeBookLists();disposeDeckPresentation();practicePresentation.dispose();
-    for(const name of ["is-presenting","is-practicing","is-practice-choosing"])document.body.classList.remove(name);
-    main.innerHTML=navigationPendingView(language);
-  }
+  function showNavigationPending() {navigationPending=true;render();}
   let pendingOverlay=null;
   function showPendingOverlay() {
     if(pendingOverlay)return;
@@ -566,18 +562,18 @@ export function startReader({createCardFeatures} = {}) {
   }
   function hidePendingOverlay() {pendingOverlay?.remove();pendingOverlay=null;}
   function route(focus = true) {
-    pendingNavigationMode=null;
+    navigationPending=false;
     const requestedHome=!location.hash||location.hash==="#home";
     if(ready&&snapshot.user&&!catalogIsFull&&(requestedHome?homeBooksUserId!==snapshot.user.id: true)){
       const request=requestedHome?ensureHomeData():ensureFullCatalog();
       showNavigationPending();
-      void request.then(()=>route(focus)).catch(error=>{pendingNavigationMode=null;syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
+      void request.then(()=>route(focus)).catch(error=>{navigationPending=false;syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
       return;
     }
     if(ready&&!snapshot.user&&!catalogIsFull&&!requestedHome&&!location.hash.startsWith("#account")){
       const request=ensureFullCatalog();
       showNavigationPending();
-      void request.then(()=>route(focus)).catch(error=>{pendingNavigationMode=null;syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
+      void request.then(()=>route(focus)).catch(error=>{navigationPending=false;syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
       return;
     }
     const previousMode=mode;
@@ -1735,7 +1731,7 @@ export function startReader({createCardFeatures} = {}) {
     finally { dailyLoading=false;if(mode==="daily")render(); }
   }
   async function sync(force = false) {
-    if (!ready || busy || hasPendingPracticeOperation({startRequest:practiceStartRequest,answerRequest:practiceAnswerRequest,recoveryRequest:practiceRecoveryRequest}) || cardFeatures?.pending || !force && (main.querySelector("[data-account-form]") || document.activeElement?.id === "book-search" || document.activeElement?.matches("[data-library-filter]") || main.querySelector(".deck-modal") || mode === "author" || settings.open)) return;
+    if (!ready || busy || navigationPending || hasPendingPracticeOperation({startRequest:practiceStartRequest,answerRequest:practiceAnswerRequest,recoveryRequest:practiceRecoveryRequest}) || cardFeatures?.pending || !force && (main.querySelector("[data-account-form]") || document.activeElement?.id === "book-search" || document.activeElement?.matches("[data-library-filter]") || main.querySelector(".deck-modal") || mode === "author" || settings.open)) return;
     const generation = ++syncGeneration;
     if(!catalogIsFull&&mode==="home"){
       try{await ensureHomeData(true);if(generation!==syncGeneration)return;syncError=null;updateBadges();if(mode==="home")render();}
