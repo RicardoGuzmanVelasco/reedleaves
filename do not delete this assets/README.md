@@ -24,7 +24,7 @@ Se conservaron 13 cuerpos distintos. `brote-directions-2-gancho` y `brote-direct
 
 ## Personajes históricos vectoriales
 
-Los cinco diseños históricos mantienen su encuadre original. La versión de Maceta usa el cuerpo ya separado en `brand/reed/growth/bodies/pot.svg`; los otros cuatro omiten únicamente los elementos faciales SVG. Los SVG raw son copias exactas de `brand/reed/growth/{pot,seed,stem,plant,flower}.svg`.
+Los cinco diseños históricos de la tabla mantienen su encuadre original. La versión de Maceta usa el cuerpo ya separado en `brand/reed/growth/bodies/pot.svg`; los otros cuatro omiten únicamente los elementos faciales SVG. Los SVG raw son copias exactas de `brand/reed/growth/{pot,seed,stem,plant,flower}.svg`.
 
 | Variante | Cuerpo | Raw |
 | --- | --- | --- |
@@ -33,6 +33,8 @@ Los cinco diseños históricos mantienen su encuadre original. La versión de Ma
 | `stem.svg` | [`historical/tallo-vector-body.svg`](historical/tallo-vector-body.svg) | [`historical/tallo-vector-raw.svg`](historical/tallo-vector-raw.svg) |
 | `plant.svg` | [`historical/planta-vector-body.svg`](historical/planta-vector-body.svg) | [`historical/planta-vector-raw.svg`](historical/planta-vector-raw.svg) |
 | `flower.svg` | [`historical/flor-con-tallo-vector-body.svg`](historical/flor-con-tallo-vector-body.svg) | [`historical/flor-con-tallo-vector-raw.svg`](historical/flor-con-tallo-vector-raw.svg) |
+
+La Maceta clásica vectorial posterior (`brand/reed/growth/bodies/pot-classic.svg`) ya estaba separada, sin cara ni sombra. Se incluye una copia del cuerpo en [`macetas/pot-classic-body.svg`](macetas/pot-classic-body.svg), y la tesela original A · Clásica, con cara y sombra, en [`macetas/clasica-inicial-raw.png`](macetas/clasica-inicial-raw.png). La lámina completa permanece en [`macetas/lamina-inicial-raw.png`](macetas/lamina-inicial-raw.png). Esta silueta es distinta de `pot.svg` y de la Maceta A actual en PNG.
 
 ## Cuatro pruebas de logo con mascota
 
@@ -148,3 +150,7 @@ Los siete `*-body.png` se derivaron con ImageGen integrado (`precise-object-edit
 | `e-amapola.png` | [`flores-con-tallo/amapola-body.png`](flores-con-tallo/amapola-body.png) | [`flores-con-tallo/amapola-raw.png`](flores-con-tallo/amapola-raw.png) |
 | `e-amapola-v2.png` | [`flores-con-tallo/amapola-v2-body.png`](flores-con-tallo/amapola-v2-body.png) | [`flores-con-tallo/amapola-v2-raw.png`](flores-con-tallo/amapola-v2-raw.png) |
 | `f-rosa.png` | [`flores-con-tallo/rosa-body.png`](flores-con-tallo/rosa-body.png) | [`flores-con-tallo/rosa-raw.png`](flores-con-tallo/rosa-raw.png) |
+
+## Cuerpos ya disponibles en el juego
+
+No se duplican en este archivo las siluetas que la app ya consume directamente desde `brand/reed/growth/`: Maceta A (`bodies/pot-a-body.png`), Semilla (`bodies/seed.svg`), Raíz (`bodies/root.png`), Brote (`bodies/seedling.svg`), Plántula (`bodies/sprout.svg`), Tierra (`bodies/soil.svg`), Tallo (`bodies/stem-flat.svg`), Planta (`plant.svg`), Flor (`bodies/flower.png`), Capullo (`bodies/bud.svg`) y Siempreverde (`bodies/evergreen.svg`). Sus fuentes existentes siguen disponibles allí; la carpeta nueva se centra en alternativas o versiones históricas que no están ya representadas como cuerpo de juego.
