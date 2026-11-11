@@ -2,7 +2,7 @@ import {randomUUID} from "node:crypto";
 import {authenticate, readSession, revokeSession, checkCsrf, sessionCookie} from "./auth.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {ApiError} from "./errors.mjs";
-import {readReaderState,readReaderBalances,readReaderHomeBooks,selectDeck,addDeckToCollection,removeDeckFromCollection,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus,savePracticeAnswer} from "./reader-repository.mjs";
+import {readReaderState,readReaderBalances,readReaderHomeBooks,selectDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 
 import {createBook,createDeck,addDeckContributors,changeDeckLanguage,changeDeckTitle,addCard,takeFirstNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
@@ -52,7 +52,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       ["/api/auth/logout",["POST"]],["/api/interests",["GET","HEAD"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/balances",["GET","HEAD"]],["/api/reader/home-books",["GET","HEAD"]],["/api/reader/practice/discover-availability",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/collect",["POST"]],["/api/reader/remove",["POST"]],
       ["/api/reader/book-knowledge/visit",["POST"]],
       ["/api/reader/interests/knowledge/snapshot",["POST"]],["/api/reader/interests/knowledge/recognize",["POST"]],
-      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice-answer",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
+      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]],["/api/author/cards",["POST"]]]);
     routes.set("/api/reader/guides",["POST"]);
     routes.set("/api/reader/guide-reviews",["GET","HEAD"]);
     routes.set("/api/reader/guide-reviews/count",["GET","HEAD"]);
@@ -141,7 +141,6 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       }
       if(path === "/api/reader/interests/knowledge/snapshot") { send(200,await captureReaderInterestSnapshot(db,active,input)); return true; }
       if(path === "/api/reader/interests/knowledge/recognize") { send(200,await saveAndRecognizeReaderInterestSnapshot(db,active,input)); return true; }
-      if (path === "/api/reader/practice-answer") { send(200,await savePracticeAnswer(db,active,input,currentTime)); return true; }
       if (path === "/api/reader/practice/start") {
         const result=await startPracticeSession(db,active,input.topic,currentTime,Object.hasOwn(input,"sessionId")?input.sessionId:undefined,input.expectedCost);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
@@ -214,10 +213,10 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         const result = path === "/api/author/notes" ? await takeFirstNote(db,active,input) : path === "/api/author/decks/finish-notes" ? await finishNoteDecks(db,active,input) : path === "/api/author/decks/contributors" ? await addDeckContributors(db,active,input) : path === "/api/author/decks/finish" ? await finishDeck(db,active,input) : path.endsWith("complete") ? await completeBook(db,active,input) : path.endsWith("books") ? await createBook(db,active,input) : path.endsWith("decks") ? await createDeck(db,active,input) : await addCard(db,active,input);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
-      const result = path === "/api/reader/collect" ? await addDeckToCollection(db,active,input.deckId,currentTime,{confirmation:input.confirmation,confirmationEnabled:bookInterestConfirmationEnabled}) :
-        path === "/api/reader/remove" ? await removeDeckFromCollection(db,active,input.deckId,currentTime) :
-        path === "/api/reader/select" ? await selectDeck(db,active,input.deckId,currentTime,{requireCollection:true}) :
-        path === "/api/reader/open" ? await openCard(db,active,input.deckId,input.cardId,currentTime,{requireCollection:true}) :
+      const result = path === "/api/reader/collect" ? await addDeckToCardcase(db,active,input.deckId,currentTime,{confirmation:input.confirmation,confirmationEnabled:bookInterestConfirmationEnabled}) :
+        path === "/api/reader/remove" ? await removeDeckFromCardcase(db,active,input.deckId,currentTime) :
+        path === "/api/reader/select" ? await selectDeck(db,active,input.deckId,currentTime,{requireCardcase:true}) :
+        path === "/api/reader/open" ? await openCard(db,active,input.deckId,input.cardId,currentTime,{requireCardcase:true}) :
         path === "/api/reader/reading" ? await changeReading(db,active,input.bookId,input.status,currentTime,{confirmation:input.confirmation,confirmationEnabled:bookInterestConfirmationEnabled}) :
         path === "/api/reader/preferences" ? await changePreferences(db,active,input,currentTime) : await dailyIdea(db,active,currentTime);
       send(200,result);

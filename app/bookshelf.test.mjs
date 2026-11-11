@@ -92,7 +92,7 @@ test("Collection groups, empty states, book details and origin navigation transl
   for (const language of ["es","en"]) {
     const state={...s,language}; const c=words[language];
     const html=bookshelfView(state);
-    assert.ok(html.includes(c.bookcase)); assert.ok(html.includes(c.shelf)); assert.ok(html.includes(c.deckCollection));
+    assert.ok(html.includes(c.bookcase)); assert.ok(html.includes(c.shelf)); assert.ok(html.includes(c.cardcase));
     assert.match(html,/aria-label="(?:Biblioteca|Bookcase)"/); assert.match(html,/href="#bookshelf" aria-current="page"/); assert.match(html,/href="#bookshelf\/decks"/);
     assert.doesNotMatch(html,/open-bookshelf-filters|bookshelf-filter-reading|reset-bookshelf-filters/);
     assert.match(html,/id="bookshelf-group-read"/);
@@ -109,7 +109,7 @@ test("Collection groups, empty states, book details and origin navigation transl
   }
 });
 
-test("Decks tab groups owned and enrolled decks by their book's reading status",async()=>{
+test("Cardcase tab groups owned and enrolled decks by their book's reading status",async()=>{
   const s=await fixture(),ownDeck=s.catalog.decksById.get("atomic-habits-editorial");
   ownDeck.creator.userId=s.userId;
   s.catalog.decksById.get("atomic-habits-editorial").status="draft";
@@ -136,7 +136,7 @@ test("Decks tab groups owned and enrolled decks by their book's reading status",
   assert.match(bookshelfView({...empty,bookshelfTab:"decks"}),/Todavía no has añadido barajas a tu tarjetero/);
 });
 
-test("Deck details distinguish adding to Decks from starting practice",async()=>{
+test("Deck details distinguish adding to the cardcase from starting practice",async()=>{
   const s=await fixture(),deck=featuredDecks(s.catalog,"atomic-habits")[0];
   const state={...s,bookId:"atomic-habits",deckChoices:[deck],deckId:deck.deck.id};
   const notAdded=reviewView(state);
@@ -146,7 +146,7 @@ test("Deck details distinguish adding to Decks from starting practice",async()=>
   const added=reviewView({...state,enrolledIds:[deck.deck.id]});
   assert.doesNotMatch(added,/data-action="add-deck-to-collection"/);
   assert.match(added,/data-action="remove-collection-deck"/);
-  assert.ok(added.includes(words.es.removeDeckFromCollection));
+  assert.ok(added.includes(words.es.removeDeckFromCardcase));
 });
 
 test("Own empty drafts remain pending, while completed books stay out of simplified Home",async()=>{

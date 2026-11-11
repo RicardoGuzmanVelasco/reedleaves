@@ -44,7 +44,7 @@ test("Preferred titles apply across reading views while the popular title stays 
   book.popularTitle="Titre populaire"; book.popularLanguage="fr";
   for (const language of ["es","en"]) {
     book.title[language]="Preferred book title";
-    const localized={...s,language,showOriginalTitles:true,dailyExclusiveCardId:"habit-1"};
+    const localized={...s,language,dailyExclusiveCardId:"habit-1"};
     for (const html of [libraryView({...localized,openBookId:s.bookId}),libraryResultsMarkup({...localized,libraryQuery:"Titre populaire"}),
       homeView(localized),deckView(localized),reviewView(localized),reviewView({...localized,requestedId:"habit-1"}),dailyView(localized)]) {
       assert.match(html,new RegExp(`lang="${language}" dir="auto"[^>]*>Preferred book title`));

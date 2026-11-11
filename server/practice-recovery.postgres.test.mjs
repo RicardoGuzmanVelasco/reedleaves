@@ -4,7 +4,7 @@ import {randomUUID} from "node:crypto";
 import {PostgresDatabase,initializeDatabase} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {startPracticeSession,answerPracticeSession,PRACTICE_SESSION_SIZE} from "./practice-economy.mjs";
-import {readReaderState,addDeckToCollection,selectDeck,changePreferences} from "./reader-repository.mjs";
+import {readReaderState,addDeckToCardcase,selectDeck,changePreferences} from "./reader-repository.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
 import {setCardSave} from "./card-saves.mjs";
 import {saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
@@ -141,7 +141,7 @@ postgresTest("real PostgreSQL serializes recovery, refunds once, and preserves r
   const targetDeck="atomic-habits-editorial";
   await Promise.all([
     selectDeck(db,lockReader.session,targetDeck,now),
-    addDeckToCollection(db,lockReader.session,targetDeck,now),
+    addDeckToCardcase(db,lockReader.session,targetDeck,now),
     changePreferences(db,lockReader.session,{language:"es"},now),
     readReaderState(db,lockReader.session,now)
   ]);

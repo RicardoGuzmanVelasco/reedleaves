@@ -340,9 +340,6 @@ test("Profiles require a session and view writes require origin, CSRF and a vali
   const state=await response.json(),cookie=response.headers.get("set-cookie").split(";")[0];
   const headers={Cookie:cookie,"X-CSRF-Token":state.csrfToken};
   assert.deepEqual(state.practiceAnswers,{});
-  assert.equal((await post("/api/reader/practice-answer",{cardId:"habit-1",answer:"soon"},headers)).status,200);
-  assert.equal((await post("/api/reader/practice-answer",{cardId:"habit-1",answer:"later"},headers)).status,400);
-  assert.equal((await fetch(base+"/api/reader/state",{headers:{Cookie:cookie}}).then(r=>r.json())).practiceAnswers["habit-1"],"soon");
   const profile=await fetch(base+"/api/profiles/reed-team",{headers:{Cookie:cookie}});
   assert.equal(profile.status,200);assert.equal(profile.headers.get("cache-control"),"no-store");
   const data=await profile.json();assert.equal(data.profile.name,"Equipo Reedleaves");

@@ -32,13 +32,6 @@ export function mascotArt(stage, className = "", {expression = "neutral", mouth,
   return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}" data-idle="${pattern}" aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${imageUrl(mascotAssets[id])}" width="160" height="160" alt="" draggable="false">${mascotFace(id,sleeping ? "sleep" : expression,mouth,face)}</span></span>${sleepSymbols}</span>`;
 }
 
-// Restart body and ground together in the preview tools without touching eye gestures.
-export function restartMascotIdle(art) {
-  art.classList.add("is-idle-reset");
-  void art.offsetWidth;
-  art.classList.remove("is-idle-reset");
-}
-
 // Contact and recovery are separate animations so callers can react to the landing frame.
 export function playMascotJump(art,{onLand}={}) {
   if(art.ownerDocument.defaultView.matchMedia("(prefers-reduced-motion: reduce)").matches){

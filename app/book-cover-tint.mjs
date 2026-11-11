@@ -24,7 +24,7 @@ export function coverTintGradients(book,interests,mode){
 
 export function mountBookCoverTints(root,books,interests,mode){
   const byId=new Map((books||[]).map(book=>[book.id,book]));
-  for(const element of root.querySelectorAll('.study-book[data-book], .book-spine[data-book]')){
+  for(const element of root.querySelectorAll('.book-tile[data-book], .book-spine[data-book]')){
     const tint=coverTintGradients(byId.get(element.dataset.book),interests,mode);
     if(tint){element.style.setProperty('--tinted-cover',tint.cover);element.style.setProperty('--tinted-spine',tint.dark);element.style.setProperty('--tinted-horizontal',tint.horizontal);element.style.setProperty('--tinted-horizontal-dark',tint.horizontalDark);element.dataset.tintedCover='true';}
     else {element.style.removeProperty('--tinted-cover');element.style.removeProperty('--tinted-spine');element.style.removeProperty('--tinted-horizontal');element.style.removeProperty('--tinted-horizontal-dark');delete element.dataset.tintedCover;}

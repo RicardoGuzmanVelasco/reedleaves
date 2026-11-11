@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {openDatabase,initializeDatabase} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
-import {addDeckToCollection,changeReading} from "./reader-repository.mjs";
+import {addDeckToCardcase,changeReading} from "./reader-repository.mjs";
 import {setCardSave} from "./card-saves.mjs";
 
 const now=new Date("2026-10-28T12:00:00.000Z");
@@ -22,7 +22,7 @@ test("all three incorporation operations return a structured confirmation withou
   const {db,session}=await fixture(t);
   const beforeWallet=await db.prepare("SELECT balance FROM leaf_wallets WHERE user_id=?").get(session.user_id);
   const reading=await changeReading(db,session,"seven-habits","reading",now,enabled);
-  const collect=await addDeckToCollection(db,session,"seven-habits-editorial",now,enabled);
+  const collect=await addDeckToCardcase(db,session,"seven-habits-editorial",now,enabled);
   const save=await setCardSave(db,session,{cardId:"habit-1",saved:true},now,enabled);
   for(const result of [reading,collect,save]) {
     assert.equal(result.confirmationRequired,true);
@@ -41,7 +41,7 @@ test("all three incorporation operations return a structured confirmation withou
 test("a confirmation applies only to its operation, resource, parameters, and current reason",async t=>{
   const {db,session}=await fixture(t);
   const initial=await changeReading(db,session,"seven-habits","reading",now,enabled);
-  const wrongOperation=await addDeckToCollection(db,session,"seven-habits-editorial",now,{...enabled,confirmation:initial.confirmation});
+  const wrongOperation=await addDeckToCardcase(db,session,"seven-habits-editorial",now,{...enabled,confirmation:initial.confirmation});
   assert.equal(wrongOperation.confirmationRequired,true);
   const wrongStatus=await changeReading(db,session,"seven-habits","read",now,{...enabled,confirmation:initial.confirmation});
   assert.equal(wrongStatus.confirmationRequired,true);
@@ -68,10 +68,10 @@ test("membership appearing between request and confirmation prevents a repeated 
 
 test("confirmed collection and save retries do not repeat charges or saved records",async t=>{
   const {db,session}=await fixture(t);
-  const collectPrompt=await addDeckToCollection(db,session,"seven-habits-editorial",now,enabled);
-  const added=await addDeckToCollection(db,session,"seven-habits-editorial",now,{...enabled,confirmation:collectPrompt.confirmation});
+  const collectPrompt=await addDeckToCardcase(db,session,"seven-habits-editorial",now,enabled);
+  const added=await addDeckToCardcase(db,session,"seven-habits-editorial",now,{...enabled,confirmation:collectPrompt.confirmation});
   const balance=added.state.wallet.balance;
-  const retried=await addDeckToCollection(db,session,"seven-habits-editorial",now,{...enabled,confirmation:collectPrompt.confirmation});
+  const retried=await addDeckToCardcase(db,session,"seven-habits-editorial",now,{...enabled,confirmation:collectPrompt.confirmation});
   assert.equal(retried.state.wallet.balance,balance);
   assert.equal((await db.prepare("SELECT count(*) AS count FROM studies WHERE user_id=? AND deck_id=?").get(session.user_id,"seven-habits-editorial")).count,1);
 
@@ -89,7 +89,7 @@ test("the combined policy is enabled after all three confirmation entry points a
   const {db,session}=await fixture(t);
   const results=[
     await changeReading(db,session,"seven-habits","reading",now),
-    await addDeckToCollection(db,session,"seven-habits-editorial",now),
+    await addDeckToCardcase(db,session,"seven-habits-editorial",now),
     await setCardSave(db,session,{cardId:"habit-1",saved:true},now)
   ];
   assert.ok(results.every(result=>result.confirmationRequired));

@@ -103,7 +103,6 @@ async function stateInside(db,session,now) {
     id:activePracticeRow.id,topic:activePracticeRow.topic,cardIds:JSON.parse(activePracticeRow.card_ids),
     index:Number(activePracticeRow.card_index),cost:Number(activePracticeRow.cost),startedAt:activePracticeRow.started_at instanceof Date?activePracticeRow.started_at.toISOString():activePracticeRow.started_at
   }:null;
-  const display=await db.prepare("SELECT show_original_titles FROM reader_display_preferences WHERE user_id = ?").get(userId);
   const bookSort=await db.prepare("SELECT sort_order FROM reader_book_sort_preferences WHERE user_id = ?").get(userId);
   const distinguished=await distinguishedBookIds(db,userId);
   const addedBooks=new Set([
@@ -132,21 +131,12 @@ async function stateInside(db,session,now) {
     noteDeckActivity[row.deck_id]=date;
     if (!noteActivity[row.book_id] || date > noteActivity[row.book_id]) noteActivity[row.book_id]=date;
   }
-  return {user:{id:userId,username:account.username,timeZone:account.time_zone,roles:await readerRoles(db,userId)},csrfToken:session.csrf_token,language:account.language,showOriginalTitles:display?.show_original_titles === 1,bookSortOrder:validBookSortOrder(bookSort?.sort_order)?bookSort.sort_order:"recent",today,wallet,petals:petalWallet.balance,petalMaximum:MAX_PETALS,practiceDiscountTopic:discountTopic,activePracticeSession,practiceAnswers,growth,readerProgression:await readReaderProgression(db,userId),cardSaves:await cardSavesInside(db,userId),
+  return {user:{id:userId,username:account.username,timeZone:account.time_zone,roles:await readerRoles(db,userId)},csrfToken:session.csrf_token,language:account.language,bookSortOrder:validBookSortOrder(bookSort?.sort_order)?bookSort.sort_order:"recent",today,wallet,petals:petalWallet.balance,petalMaximum:MAX_PETALS,practiceDiscountTopic:discountTopic,activePracticeSession,practiceAnswers,growth,readerProgression:await readReaderProgression(db,userId),cardSaves:await cardSavesInside(db,userId),
     noteActivity,noteDeckActivity,shelfBookIds:[...addedBooks],pendingNewBookCount:await pendingNewBookCount(db,userId),
     statuses:Object.fromEntries([...distinguished.map(id=>[id,"unread"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])]),
     enrolledIds:(await db.prepare("SELECT deck_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.deck_id),
     selections:Object.fromEntries((await db.prepare("SELECT book_id,deck_id FROM deck_selections WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.deck_id])),
     daily:idea,dailyHistory};
-}
-export async function savePracticeAnswer(db,session,input,now=new Date()) {
-  if(typeof input.cardId!=="string"||!input.cardId.trim()||!['soon','remembered'].includes(input.answer)) throw new ApiError(400,"invalidRequest");
-  const card=await db.prepare("SELECT id FROM cards WHERE id=?").get(input.cardId);
-  if(!card) throw new ApiError(404,"cardUnavailable");
-  await db.prepare(`INSERT INTO practice_answers(user_id,card_id,answer,answered_at) VALUES (?,?,?,?)
-    ON CONFLICT(user_id,card_id) DO UPDATE SET answer=excluded.answer,answered_at=excluded.answered_at`)
-    .run(session.user_id,input.cardId,input.answer,now.toISOString());
-  return {saved:true};
 }
 async function knownDeck(db,deckId,userId) {
   if(typeof deckId!=="string") throw new ApiError(400,"invalidRequest");
@@ -159,7 +149,7 @@ async function knownDeck(db,deckId,userId) {
       deck.kind==="collective"&&deck.status==="draft"&&!owner&&deck.contribution_policy!=="open"&&!invited) throw new ApiError(404,"deckUnavailable");
   return deck;
 }
-async function enrol(db,userId,deck) {
+async function addToCardcase(db,userId,deck) {
   await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?) ON CONFLICT DO NOTHING").run(userId,deck.id);
   await db.prepare("INSERT INTO deck_selections VALUES (?,?,?) ON CONFLICT(user_id,book_id) DO UPDATE SET deck_id=excluded.deck_id")
     .run(userId,deck.book_id,deck.id);
@@ -168,13 +158,13 @@ async function enrol(db,userId,deck) {
 async function deckIsOwned(db,userId,deck) {
   return !!await db.prepare("SELECT 1 FROM decks WHERE id=? AND creator_user_id=?").get(deck.id,userId);
 }
-async function requireDeckInCollection(db,userId,deck) {
+async function requireDeckInCardcase(db,userId,deck) {
   const added=await db.prepare("SELECT 1 FROM studies WHERE user_id=? AND deck_id=?").get(userId,deck.id);
   const owned=await deckIsOwned(db,userId,deck);
-  if(!added&&!owned) throw new ApiError(409,"deckNotInCollection");
-  if(!added) await enrol(db,userId,deck);
+  if(!added&&!owned) throw new ApiError(409,"deckNotInCardcase");
+  if(!added) await addToCardcase(db,userId,deck);
 }
-export async function addDeckToCollection(db,session,deckId,now=new Date(),{confirmation,confirmationEnabled=BOOK_INTEREST_CONFIRMATION_ENABLED}={}) {
+export async function addDeckToCardcase(db,session,deckId,now=new Date(),{confirmation,confirmationEnabled=BOOK_INTEREST_CONFIRMATION_ENABLED}={}) {
   return transaction(db,async()=>{
     const userId=session.user_id;
     await lockReaderAccount(db,userId);
@@ -184,21 +174,21 @@ export async function addDeckToCollection(db,session,deckId,now=new Date(),{conf
     if(required) return required;
     const existing=await db.prepare("SELECT 1 FROM studies WHERE user_id=? AND deck_id=?").get(userId,deck.id);
     if(existing) {
-      await enrol(db,userId,deck);
+      await addToCardcase(db,userId,deck);
       return {state:await stateInside(db,session,now)};
     }
     if(await deckIsOwned(db,userId,deck)) {
-      await enrol(db,userId,deck);
+      await addToCardcase(db,userId,deck);
       return {state:await stateInside(db,session,now)};
     }
     await stateInside(db,session,now);
     const spent=await db.prepare("UPDATE leaf_wallets SET balance=balance-? WHERE user_id=? AND balance>=?").run(DECK_ADD_COST,userId,DECK_ADD_COST);
     if(spent.changes!==1) throw new ApiError(409,"insufficientLeaves");
-    await enrol(db,userId,deck);
+    await addToCardcase(db,userId,deck);
     return {state:await stateInside(db,session,now)};
   });
 }
-export async function removeDeckFromCollection(db,session,deckId,now=new Date()) {
+export async function removeDeckFromCardcase(db,session,deckId,now=new Date()) {
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
     const deck=await knownDeck(db,deckId,session.user_id);
@@ -207,24 +197,24 @@ export async function removeDeckFromCollection(db,session,deckId,now=new Date())
     return {state:await stateInside(db,session,now)};
   });
 }
-export async function selectDeck(db,session,deckId,now=new Date(),{requireCollection=false}={}) {
+export async function selectDeck(db,session,deckId,now=new Date(),{requireCardcase=false}={}) {
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
     const deck=await knownDeck(db,deckId,session.user_id);
-    if(requireCollection) await requireDeckInCollection(db,session.user_id,deck);
-    await enrol(db,session.user_id,deck);
+    if(requireCardcase) await requireDeckInCardcase(db,session.user_id,deck);
+    await addToCardcase(db,session.user_id,deck);
     return stateInside(db,session,now);
   });
 }
-export async function openCard(db,session,deckId,cardId,now=new Date(),{requireCollection=false}={}) {
+export async function openCard(db,session,deckId,cardId,now=new Date(),{requireCardcase=false}={}) {
   return transaction(db,async()=>{
     const userId=session.user_id;
     await lockReaderAccount(db,userId);
     const deck=await knownDeck(db,deckId,userId),catalog=prepareCatalog(await readCatalog(db,session.user_id)),model=catalog.deckModels.get(deck.id);
     if(typeof cardId!=="string"||!model.byId.has(cardId)) throw new ApiError(404,"cardUnavailable");
-    if(requireCollection) await requireDeckInCollection(db,userId,deck);
+    if(requireCardcase) await requireDeckInCardcase(db,userId,deck);
     const state=await stateInside(db,session,now);
-    await enrol(db,userId,deck);
+    await addToCardcase(db,userId,deck);
     await insertCardView(db,userId,cardId);
     return {state:await stateInside(db,session,now)};
   });
@@ -249,11 +239,6 @@ export async function changePreferences(db,session,input,now=new Date()) {
     if(input.language!==undefined){
       if(!LANGUAGES.includes(input.language)) throw new ApiError(400,"invalidRequest");
       await db.prepare("UPDATE accounts SET language = ? WHERE user_id = ?").run(input.language,session.user_id);
-    }
-    if(input.showOriginalTitles!==undefined){
-      if(typeof input.showOriginalTitles!=="boolean") throw new ApiError(400,"invalidRequest");
-      await db.prepare("INSERT INTO reader_display_preferences VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET show_original_titles=excluded.show_original_titles")
-        .run(session.user_id,input.showOriginalTitles ? 1 : 0);
     }
     if(input.bookSortOrder!==undefined){
       if(!validBookSortOrder(input.bookSortOrder))throw new ApiError(400,"invalidRequest");

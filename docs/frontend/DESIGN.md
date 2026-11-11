@@ -64,7 +64,7 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 ## Selectores de cápsula
 
 - Por defecto, ocupan el ancho necesario para sus opciones, sin estirarse para rellenar el contenedor. El selector de lectura de la ficha del libro se centra horizontalmente.
-- Las pestañas Estantería / Shelf y Tarjetero / Decks de Biblioteca / Bookcase mantienen por ahora su estilo propio. Posible unificación futura: revisar si conviene aplicarles el lenguaje visual del selector de cápsula.
+- Las pestañas Estantería / Shelf y Tarjetero / Cardcase de Biblioteca / Bookcase mantienen por ahora su estilo propio. Posible unificación futura: revisar si conviene aplicarles el lenguaje visual del selector de cápsula.
 - Los selectores de presentación de libros comparten los SVG aprobados de `brand/icons/book-layout/`: cuatro portadas en cuadrícula, dos lomos verticales y uno inclinado para Estantería, y tres libros horizontales para Apilados. Fondo e interiores transparentes, con trazo `currentColor` y máscaras CSS que heredan el color del control. Los iconos son negros en reposo y blancos en la opción activa, que conserva el fondo verde oscuro del selector compartido. Mantener las etiquetas accesibles en español e inglés.
 
 ## Cabecera compartida
@@ -97,7 +97,7 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 - Las barajas de guías de lectura muestran siempre el distintivo «Destacada / Featured», con medalla de dos cintas y el mismo papel dorado de la recomendación. Incluir «Destacada / Featured» en su nombre accesible.
 - Las distinciones de comunidad se conservan en datos y ordenación, pero siguen ocultas; el detalle no añade distintivos. No mostrar una etiqueta de relleno para barajas sin recomendación. Dar prioridad visual al título, con mayor tamaño que la autoría y todo el ancho disponible. Sus 26 px de margen superior dejan espacio al distintivo sin solapar el título.
 - El idioma se representa con un chip después del ojo y antes del estado de creación. Para español e inglés, usar las banderas suavizadas y redondeadas de `brand/icons/languages/`; no mostrar texto de código en esos chips. Para otros idiomas, usar el globo circular y mostrar el código. Conservar el nombre localizado del idioma en el nombre accesible y el tooltip de apertura. El selector de Ajustes usa esas mismas banderas junto a Español e English, centradas y sin etiqueta visible; conservar su nombre accesible.
-- Las barajas terminadas no muestran un indicador de estado en ninguna vista. Las barajas `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. En una baraja aún no añadida a Decks, indicar que puede previsualizarse y que hay que añadirla para repasarla. La fila de chips puede envolver en móvil estrecho.
+- Las barajas terminadas no muestran un indicador de estado en ninguna vista. Las barajas `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. En una baraja aún no añadida al Tarjetero / cardcase, indicar que puede previsualizarse y que hay que añadirla para repasarla. La fila de chips puede envolver en móvil estrecho.
 - Mostrar el número de tarjetas y el número de citas (incluso si es cero) en la vista previa y en la información de la baraja. Sustituir el dato de niveles por el de citas. Reutilizar el icono de tarjetas y el icono de cita existente. Si hay más citas que ideas normales, usar los tonos azules en las fichas de baraja del selector y del Tarjetero.
 
 ## Vista exclusiva de tarjetas
@@ -135,12 +135,15 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 | Catálogo global | Librería | Library |
 | Colección personal | Biblioteca | Bookcase |
 | Libros de la colección personal | Estantería | Shelf |
-| Barajas de la colección personal | Tarjetero | Decks |
+| Barajas de la colección personal | Tarjetero | Cardcase |
 | Conjunto de repaso | Baraja | Deck |
 | Creación abierta (`status=draft`) | Borrador / Baraja en borrador | Draft / Draft deck |
 | Creación cerrada (`status=published`) | Sin etiqueta de estado | No status label |
 | Contenido pendiente del editor | Nota sin guardar | Unsaved note |
 | Aprendizaje activo | Barajas en repaso | Decks being practiced |
+| Tipo de selección de tarjetas de una sesión de repaso (`practiceMode`: leyendo, leídos, guardadas, mezcla, Descubrir) | Modo de repaso | Practice mode |
+| Baraja que el equipo recomienda en un libro (una por libro) | Baraja recomendada | Recommended deck |
+| Divisa con la que se repasa | Pétalo | Petal |
 | Coste de añadir una baraja ajena | Una hoja | One leaf |
 | Unidad de contenido | Tarjeta | Card |
 | Texto citado | Cita | Quote |
@@ -151,7 +154,7 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 | Contenido creado por usuarios | Contribuciones | Contributions |
 | Progreso de una persona en un libro | Crecimiento | Growth |
 
-En castellano, llamar **tarjeta** a cada unidad de contenido; no usar **carta** como sinónimo. **Hoja** conserva el juego intencional entre página y hoja de planta. **Cita** se refiere a un texto citado dentro del contexto de tarjetas. Usar **Practice** para la actividad de aprendizaje en inglés. La Biblioteca / Bookcase personal contiene dos vistas: Estantería / Shelf para libros y Tarjetero / Decks para barajas. En los textos que llevan a la colección propia, decir «mi biblioteca / my Bookcase» para distinguirla de la Librería / Library, que es el catálogo. Las barajas creadas por la persona aparecen automáticamente en Decks. Añadir una baraja de otra persona a Decks cuesta una hoja; repasar sus tarjetas no gasta hojas.
+En castellano, llamar **tarjeta** a cada unidad de contenido; no usar **carta** como sinónimo. **Hoja** conserva el juego intencional entre página y hoja de planta. **Cita** se refiere a un texto citado dentro del contexto de tarjetas. Usar **Practice** para la actividad de aprendizaje en inglés. La Biblioteca / Bookcase personal contiene dos vistas: Estantería / Shelf para libros y Tarjetero / Cardcase para barajas. En los textos que llevan a la colección propia, decir «mi biblioteca / my Bookcase» para distinguirla de la Librería / Library, que es el catálogo. Las barajas creadas por la persona aparecen automáticamente en el Tarjetero / cardcase. Añadir una baraja de otra persona al Tarjetero / cardcase cuesta una hoja; repasar sus tarjetas no gasta hojas.
 
 Para iniciar la captura de una idea o cita, usar siempre **Tomar nota / Take a note**, incluidos botones, nombres accesibles, encabezados del editor y título de página. Reutilizar la clave de traducción `takeNote`. Evitar las variantes «Añadir contenido», «Añadir tarjeta» y «Añadir cita» para esta acción. Idea / Cita identifica el tipo dentro del editor; Tarjeta sigue nombrando la unidad de lectura y repaso.
 

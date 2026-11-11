@@ -9,7 +9,7 @@ import {openDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION} from "./database.
 import {seedCatalog} from "./seed.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {createDeck} from "./author-repository.mjs";
-import {readReaderState,selectDeck,addDeckToCollection,removeDeckFromCollection,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus,savePracticeAnswer} from "./reader-repository.mjs";
+import {readReaderState,selectDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 import {serverDay} from "./auth.mjs";
@@ -25,21 +25,21 @@ async function fixture(t,path = ":memory:") {
 }
 test("Adding a deck costs two leaves once; viewing it is free and users are isolated",async t=>{
   const {db,a,b} = await fixture(t), before = await readReaderState(db,a,today);
-  const added = await addDeckToCollection(db,a,version,today), state = added.state;
+  const added = await addDeckToCardcase(db,a,version,today), state = added.state;
   assert.deepEqual(state.enrolledIds,[version]); assert.equal(state.selections["seven-habits"],version);
   assert.equal(state.wallet.balance,before.wallet.balance-2); assert.equal("practices" in state,false);
   assert.deepEqual(state.growth["seven-habits"],{added:true,reviewDays:0});
   assert.equal((await selectDeck(db,a,version,today)).wallet.balance,state.wallet.balance);
-  assert.equal((await addDeckToCollection(db,a,version,today)).state.wallet.balance,state.wallet.balance);
+  assert.equal((await addDeckToCardcase(db,a,version,today)).state.wallet.balance,state.wallet.balance);
   await db.prepare("UPDATE leaf_wallets SET balance=1 WHERE user_id=?").run(a.user_id);
-  await assert.rejects(addDeckToCollection(db,a,other,today),{code:"insufficientLeaves"});
+  await assert.rejects(addDeckToCardcase(db,a,other,today),{code:"insufficientLeaves"});
   assert.equal((await readReaderState(db,a,today)).wallet.balance,1);
   assert.deepEqual((await readReaderState(db,b,today)).enrolledIds,[]);
 });
 test("Removing a collected deck clears its selection and keeps catalog content",async t=>{
   const {db,a,b}=await fixture(t);
-  const added=await addDeckToCollection(db,a,version,today);
-  const removed=await removeDeckFromCollection(db,a,version,today);
+  const added=await addDeckToCardcase(db,a,version,today);
+  const removed=await removeDeckFromCardcase(db,a,version,today);
   assert.deepEqual(removed.state.enrolledIds,[]);
   assert.equal(removed.state.selections["seven-habits"],undefined);
   assert.equal(removed.state.wallet.balance,added.state.wallet.balance);
@@ -50,10 +50,10 @@ test("Owners can remove their own deck and add it again for free",async t=>{
   const {db,a}=await fixture(t);
   const own=(await createDeck(db,a,{requestId:randomUUID(),bookId:"seven-habits",title:"Mis notas",language:"es"})).deckId;
   const added=await readReaderState(db,a,today);
-  const removed=await removeDeckFromCollection(db,a,own,today);
+  const removed=await removeDeckFromCardcase(db,a,own,today);
   assert.deepEqual(removed.state.enrolledIds,[]);
   assert.equal((await readCatalog(db,a.user_id)).decks.some(deck=>deck.id===own),true);
-  const restored=await addDeckToCollection(db,a,own,today);
+  const restored=await addDeckToCardcase(db,a,own,today);
   assert.deepEqual(restored.state.enrolledIds,[own]);
   assert.equal(restored.state.wallet.balance,added.wallet.balance);
 });
@@ -70,11 +70,11 @@ test("Adding an unread book persists explicit shelf membership without reading p
 });
 test("Deck connections become Por leer and preserve active reading states",async t=>{
   const {db,a}=await fixture(t);
-  const added=await addDeckToCollection(db,a,version,today);
+  const added=await addDeckToCardcase(db,a,version,today);
   assert.equal(added.state.statuses["seven-habits"],"unread");
   assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id='a' AND book_id='seven-habits'").get().status,"unread");
   await changeReading(db,a,"seven-habits","reading",today);
-  assert.equal((await addDeckToCollection(db,a,version,today)).state.statuses["seven-habits"],"reading");
+  assert.equal((await addDeckToCardcase(db,a,version,today)).state.statuses["seven-habits"],"reading");
   await changeReading(db,a,"seven-habits","read",today);
   assert.equal((await selectDeck(db,a,version,today)).statuses["seven-habits"],"read");
   await changeReading(db,a,"seven-habits","unread",today);
@@ -125,17 +125,6 @@ test("Invalid cards do not write views or collection changes",async t=>{
   for (const [v,c] of [[other,"atomic-1-wrong"],[version,"atomic-1"]]) await assert.rejects(openCard(db,a,v,c,today));
   assert.equal(db.prepare("SELECT count(*) AS n FROM card_views").get().n,0);
   assert.equal(db.prepare("SELECT count(*) AS n FROM studies").get().n,0);
-});
-test("Practice answers persist per account and overwrite the last answer",async t=>{
-  const {db,a,b}=await fixture(t),answeredAt=new Date("2026-10-06T13:45:00.000Z");
-  assert.deepEqual((await readReaderState(db,a,today)).practiceAnswers,{});
-  assert.deepEqual(await savePracticeAnswer(db,a,{cardId:"habit-1",answer:"soon"},answeredAt),{saved:true});
-  assert.equal((await readReaderState(db,a,today)).practiceAnswers["habit-1"],"soon");
-  await savePracticeAnswer(db,a,{cardId:"habit-1",answer:"remembered"},new Date("2026-10-06T14:00:00.000Z"));
-  assert.deepEqual((await readReaderState(db,a,today)).practiceAnswers,{"habit-1":"remembered"});
-  assert.deepEqual((await readReaderState(db,b,today)).practiceAnswers,{});
-  assert.equal(db.prepare("SELECT answered_at FROM practice_answers WHERE user_id='a' AND card_id='habit-1'").get().answered_at,"2026-10-06T14:00:00.000Z");
-  for(const input of [{cardId:"habit-1",answer:"later"},{cardId:"missing",answer:"soon"},{cardId:"",answer:"soon"}]) await assert.rejects(savePracticeAnswer(db,a,input));
 });
 test("Leaves accrue independently of card views",async t=>{
   const {db,a} = await fixture(t), v = "seven-habits-inside-out";
@@ -244,7 +233,7 @@ test("Older v11 schema migrates directly to the current model and preserves acco
   assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
   assert.deepEqual(await migrationData(db),before);
   const state=await readReaderState(db,a,migrationNow);
-  assert.equal(state.showOriginalTitles,false);assert.equal("practices" in state,false);
+  assert.equal("practices" in state,false);
   assert.equal((await readProfile(db,a.user_id,a.user_id)).profile.counts.cardsViewed,1);
-  assert.equal((await changePreferences(db,a,{showOriginalTitles:true},today)).showOriginalTitles,true);
+  assert.equal((await changePreferences(db,a,{language:"en"},today)).language,"en");
 });

@@ -32,13 +32,13 @@ test("Personal collection copy distinguishes Bookcase from Library and drops dup
   assert.equal(Object.hasOwn(words.es,"goLibrary"), false);
   assert.equal(Object.hasOwn(words.es,"viewBookshelf"), false);
   assert.equal(words.es.viewShelf, "Ver estantería");
-  assert.equal(words.es.deckInCollection, "En tu tarjetero");
+  assert.equal(words.es.deckInCardcase, "En tu tarjetero");
   assert.equal(Object.hasOwn(words.en,"goBookcase"), false);
   assert.equal(Object.hasOwn(words.en,"goLibrary"), false);
   assert.equal(Object.hasOwn(words.en,"viewBookshelf"), false);
   assert.equal(words.en.viewShelf, "View shelf");
   assert.equal(words.es.deckMayChangeUnadded, "Puedes previsualizar sus tarjetas. Añádela al tarjetero para guardarla en tu colección.");
-  assert.equal(words.es.deckAddedToCollection, "Baraja añadida al tarjetero.");
+  assert.equal(words.es.deckAddedToCardcase, "Baraja añadida al tarjetero.");
 });
 
 test("Spanish interface calls review items tarjetas, never cartas", () => {

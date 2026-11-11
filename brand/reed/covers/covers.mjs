@@ -37,11 +37,11 @@ function render() {
     growth:Object.fromEntries(catalog.books.map((book,index)=>[book.id,{added:true,spentDays:[0,1,2,3,5][index%5]}]))};
   const template=document.createElement("template");
   template.innerHTML=document.querySelector("#study-surface").value === "home" ? homeView(state) : libraryResultsMarkup(state);
-  const grid=template.content.querySelector(".study-books");
+  const grid=template.content.querySelector(".book-tiles");
   if (!grid) {preview.replaceChildren(template.content);return;}
   const surface=document.querySelector("#study-surface").value;
-  for (const book of grid.querySelectorAll(".study-book")) {
-    const entry=book.closest(".study-book-entry");
+  for (const book of grid.querySelectorAll(".book-tile")) {
+    const entry=book.closest(".book-tile-entry");
     if (entry) entry.classList.add("cover-sample");
     else {const sample=document.createElement("div");sample.className="cover-sample";book.before(sample);sample.append(book);}
   }
@@ -60,12 +60,12 @@ document.querySelectorAll("[data-design]").forEach(button=>{
 });
 document.querySelectorAll(".study-options input,.study-options select").forEach(control=>control.addEventListener("change",render));
 preview.addEventListener("click",event=>{
-  const button=event.target.closest(".study-book");
+  const button=event.target.closest(".book-tile");
   if (!button) return;
   const template=document.createElement("template");
   template.innerHTML=libraryView({...state,openBookId:button.dataset.book,readOnly:true});
   const dialog=template.content.querySelector(".book-modal");
-  dialog.id="study-book-dialog";
+  dialog.id="book-tile-dialog";
   // The study reads actual metadata without inventing the account's status.
   dialog.querySelector(".book-reading-controls")?.remove();
   const libraryLink=dialog.querySelector('a[href^="#library/book/"]');

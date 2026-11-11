@@ -82,13 +82,9 @@ test("PostgreSQL v3 upgrade preserves state and saves original title preferences
   await initializeDatabase(db); await initializeDatabase(db);
   assert.deepEqual(await migrationData(db),data);
   const before=await readReaderState(db,session,now);
-  assert.equal(before.showOriginalTitles,false);
   assert.equal("practices" in before,false);
-  await changePreferences(db,session,{showOriginalTitles:true},now);
-  assert.deepEqual(await readReaderState(db,{user_id,csrf_token:"second session"},now),{...before,csrfToken:"second session",showOriginalTitles:true});
-  await assert.rejects(changePreferences(db,session,{showOriginalTitles:"true"},now),e=>e.code==="invalidRequest");
-  assert.equal((await changePreferences(db,session,{language:"en"},now)).showOriginalTitles,true);
-  assert.equal((await changePreferences(db,session,{showOriginalTitles:false},now)).showOriginalTitles,false);
+  assert.deepEqual(await readReaderState(db,{user_id,csrf_token:"second session"},now),{...before,csrfToken:"second session"});
+  assert.equal((await changePreferences(db,session,{language:"en"},now)).language,"en");
 });
 
 test("PostgreSQL v18 migration removes deck progress but preserves paid practice sessions",async t=>{

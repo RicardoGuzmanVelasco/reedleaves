@@ -62,7 +62,7 @@ test('Library novelty groups work in every view, locale and order without mutati
       assert.equal(libraryResultsMarkup(state),html,'clearing a filter restores the same visit');
       assert.equal(state.libraryNewBookIds,snapshot);
       assert.deepEqual(snapshot,books.slice(0,2).map(book=>book.id));
-      assert.doesNotMatch(libraryResultsMarkup({...state,libraryNewBookIds:[]}),/library-book-group|study-book-new-badge/);
+      assert.doesNotMatch(libraryResultsMarkup({...state,libraryNewBookIds:[]}),/library-book-group|book-tile-new-badge/);
     }
     const tenBooks=Array.from({length:10},(_,index)=>({...books[index%books.length],id:'default-view-'+index}));
     const denseCatalog={...catalog,books:tenBooks,booksById:new Map(tenBooks.map(book=>[book.id,book]))};
@@ -97,7 +97,7 @@ test('Library choice remains independent of personal shelf groups',async()=>{
     const shelf=bookshelfView(state);assert.doesNotMatch(shelf,/data-action="set-book-view"/);
     assert.doesNotMatch(shelf,/data-book-spines=/);
     for(const book of catalog.books)assert.ok(shelf.includes(`data-book="${book.id}"`));
-    assert.match(libraryResultsMarkup({...state,bookViews:{library:'covers'}}),/study-books book-grid/);
+    assert.match(libraryResultsMarkup({...state,bookViews:{library:'covers'}}),/book-tiles book-grid/);
     const az=libraryResultsMarkup({...state,bookSortOrder:'alphabetical',language:'en'});
     assert.doesNotMatch(az,/data-book-sort|Sort by|Most recent/);
     const modal=libraryView({...state,language:'en',libraryFiltersOpen:true,librarySortDraft:'alphabetical'});
@@ -169,9 +169,9 @@ test('Personal shelf fixes Reading to covers; To read and Read have selectors',a
     const base=readerState(catalog,{userId:'reader',statuses,shelfBookIds:books.filter((_,index)=>index!==12).map(book=>book.id),cardSaves:[{bookId:books[12].id}],bookViews:{bookshelf:'stack'}});
     const group=(html,key)=>html.match(new RegExp(`<section class="bookshelf-group" aria-labelledby="bookshelf-group-${key}">([\\s\\S]*?)<\\/section>`))?.[1];
     const html=bookshelfView(base),reading=group(html,'reading');
-    assert.match(reading,/study-books book-grid/);
-    assert.match(reading,/class="mascot-icon study-book-mark"/);
-    assert.ok(reading.indexOf('study-book-mark')<reading.indexOf('id="home-book-state-'));
+    assert.match(reading,/book-tiles book-grid/);
+    assert.match(reading,/class="mascot-icon book-tile-mark"/);
+    assert.ok(reading.indexOf('book-tile-mark')<reading.indexOf('id="home-book-state-'));
     assert.match(reading,/<\/svg>Leyendo<\/span>/);
     for(const key of ['reading','to-read','read'])assert.match(html,new RegExp(`<h2 id="bookshelf-group-${key}"><svg class="reading-status-icon"`));
     assert.doesNotMatch(group(html,'reading'),/data-action="set-book-view"/);
@@ -183,12 +183,12 @@ test('Personal shelf fixes Reading to covers; To read and Read have selectors',a
     assert.equal((html.match(/data-action="set-book-view"/g)||[]).length,6);
     assert.match(group(bookshelfView({...base,bookViews:{'bookshelf-read':'stack'}}),'read'),/data-book-spines="stack"/);
     const toReadCovers=group(bookshelfView({...base,bookViews:{'bookshelf-to-read':'covers'}}),'to-read');
-    assert.match(toReadCovers,/study-books book-grid/);
+    assert.match(toReadCovers,/book-tiles book-grid/);
     assert.match(toReadCovers,/<\/svg>Para leer<\/span>/);
     const ten={...base,statuses:{...statuses,[books[11].id]:'unread'}};
     assert.match(group(bookshelfView(ten),'read'),/data-book-spines="shelf"/);
     const nine={...base,statuses:{...ten.statuses,[books[10].id]:'unread'}};
-    assert.match(group(bookshelfView(nine),'read'),/study-books book-grid/);
+    assert.match(group(bookshelfView(nine),'read'),/book-tiles book-grid/);
     const publicShelf=bookshelfView({...base,readOnly:true,profileData:{profile:{id:'another',name:'Reader'},bookshelf:[{bookId:books[13].id,reading:'unread',group:'to-read'}]}});
     assert.match(group(publicShelf,'to-read'),/data-book-spines="stack"/);
     assert.match(group(publicShelf,'to-read'),/data-scope="public-bookshelf-to-read"/);
@@ -212,7 +212,7 @@ test('Library shows ordered interest emoji only on covers',async()=>{
     const state=readerState(catalog,{libraryQuery:'',libraryFilters:{},userId:'reader',statuses:{[book.id]:'reading'},shelfBookIds:[book.id]});
     for(const view of ['covers','shelf','stack']){
       const html=libraryResultsMarkup({...state,bookViews:{library:view}});
-      assert.doesNotMatch(html,/study-book-mark/,`store library ${view} view`);
+      assert.doesNotMatch(html,/book-tile-mark/,`store library ${view} view`);
       if(view!=='covers'){assert.doesNotMatch(html,/library-book-interests/);continue;}
       const section=html.slice(html.indexOf(`data-book="${book.id}"`));
       const row=section.match(/<span class="library-book-interests" aria-hidden="true">([\s\S]*?)<\/span><\/span>/)?.[0];

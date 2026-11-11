@@ -14,7 +14,7 @@ export function bookViewSelector(view,scope,language='es',trailing=''){
   return `<div class="book-list-tools"><div class="segmented-selector book-view-selector" role="group" aria-label="${language==='es'?'Vista de libros':'Book view'}">${BOOK_VIEWS.map((value,index)=>`<button type="button" data-action="set-book-view" data-scope="${esc(scope)}" data-view="${value}" aria-pressed="${view===value}" aria-label="${labels[index]}" title="${labels[index]}"><span class="book-view-icon book-view-icon--${value}" aria-hidden="true"></span></button>`).join('')}</div>${trailing}</div>`;
 }
 export function bookListMarkup({books,view='covers',label='',cover}){
-  if(view==='covers')return `<div class="study-books book-grid" role="group" aria-label="${esc(label)}">${books.map(cover).join('')}</div>`;
+  if(view==='covers')return `<div class="book-tiles book-grid" role="group" aria-label="${esc(label)}">${books.map(cover).join('')}</div>`;
   const itemMarkup=book=>`<div class="book-spine-item" role="listitem"><a class="book-spine" href="${esc(book.href)}" ${book.action?`data-action="${esc(book.action)}" data-book="${esc(book.id)}" aria-haspopup="dialog"`:''} aria-label="${esc(book.title+', '+book.author)}"><span class="book-spine-title" lang="${esc(book.language)}" dir="auto">${esc(book.title)}</span></a>${book.accessory||''}</div>`;
   const content=view==='shelf'?Array.from({length:Math.ceil(books.length/10)},(_,index)=>`<div class="book-shelf-row" role="presentation">${books.slice(index*10,index*10+10).map(itemMarkup).join('')}</div>`).join(''):books.map(itemMarkup).join('');
   return `<div class="book-spines book-spines--${view}" data-book-spines="${view}" role="list" aria-label="${esc(label)}">${content}</div>`;

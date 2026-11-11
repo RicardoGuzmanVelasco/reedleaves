@@ -269,14 +269,14 @@ test("Home shows one closed book per active book, without exposing trees or spen
   assert.match(html,/data-action="practice" aria-label="¡Vamos a repasar!"/);
   assert.equal((html.match(/class="practice-launch-char"/g)||[]).length,[...words.es.practiceLaunch].length);
   assert.match(html,/class="practice-launch-label" aria-hidden="true"/);
-  assert.equal((html.match(/class="study-book"/g) || []).length,2);
+  assert.equal((html.match(/class="book-tile"/g) || []).length,2);
   assert.equal((html.match(/data-action="open-book-details"/g) || []).length,2);
   assert.match(html,/Los 7 hábitos/); assert.match(html,/Stephen R\. Covey/);
   assert.doesNotMatch(html,/Choose your response|Make room for what matters|tree-node|tree-map|open-card|idea-card|Una idea al día/);
   assert.equal(homeView({...state,budget:null}),html);
-  assert.equal((homeView({...state,enrolledIds:[second,"seven-habits-editorial"]}).match(/class="study-book"/g) || []).length,2);
+  assert.equal((homeView({...state,enrolledIds:[second,"seven-habits-editorial"]}).match(/class="book-tile"/g) || []).length,2);
   const empty = homeView({...state,statuses:{},enrolledIds:[]});
-  assert.ok(empty.includes(words.es.noReadingBooks)); assert.doesNotMatch(empty,/study-book"/);
+  assert.ok(empty.includes(words.es.noReadingBooks)); assert.doesNotMatch(empty,/book-tile"/);
   assert.doesNotMatch(homeView({...state,language:"en"}),/data-action="library"|Go to the library/);
 });
 
@@ -304,7 +304,7 @@ test("Practice prices show one discounted topic, the wallet cap, and useful empt
   assert.match(choice,/aunque su baraja no esté en tu tarjetero/);
   const englishChoice=practiceView({...state,language:"en"},null);
   assert.match(englishChoice,/What each mode includes/);
-  assert.match(englishChoice,/All cards from decks in your Decks whose books are marked “Reading”\./);
+  assert.match(englishChoice,/All cards from decks in your cardcase whose books are marked “Reading”\./);
   assert.match(englishChoice,/class="dialog-close practice-help-close" type="button" data-action="close-practice-help" aria-label="Close help"/);
   assert.equal(state.petalMaximum,15);
   assert.equal((choice.match(/class="pricetag(?: pricetag--discounted)?"/g)||[]).length,5);
