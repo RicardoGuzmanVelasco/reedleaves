@@ -62,7 +62,7 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal(memberIds.has("rich-dad-poor-dad-editorial"),false,"a selected draft stays private without an invitation");
   });
 
-  test(`${dialect}: language options and selected cards share all four review-access cases`,async t=>{
+  test(`${dialect}: language options stay fixed and selected cards follow all four review-access cases`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     const cases=[
       {policy:"selected",status:"draft",language:"it",userId:"reed-team",expected:true,label:"owner"},
@@ -88,12 +88,11 @@ for(const dialect of ["sqlite","postgres"]) {
     }
     await addDeckContributors(db,ownerSession,{deckId:cases[1].deckId,userIds:[session.user_id]});
 
-    const readerOptions=(await readReaderLanguagePreferences(db,session)).options,ownerOptions=(await readReaderLanguagePreferences(db,ownerSession)).options;
-    assert.equal(ownerOptions.includes("it"),true,"the owner sees their draft's card language");
-    for(const item of cases.filter(item=>item.userId===session.user_id)) {
-      assert.equal(readerOptions.includes(item.language),item.expected,`${item.deckId} language option follows review access`);
+    for(const activeSession of [session,ownerSession]) {
+      const options=(await readReaderLanguagePreferences(db,activeSession)).options;
+      assert.ok(options.includes("es")&&options.includes("en"),"the supported content languages are always offered");
+      for(const item of cases) assert.equal(options.includes(item.language),false,`${item.language} is not offered because a deck uses it`);
     }
-    assert.equal(readerOptions.includes("it"),false,"ownership does not grant another reader access to the owner's draft");
 
     for(const item of cases) {
       const activeSession=item.userId==="reed-team"?ownerSession:session;
