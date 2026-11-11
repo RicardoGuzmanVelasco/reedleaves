@@ -1925,10 +1925,10 @@ export function startReader({createCardFeatures} = {}) {
     if (e.target.matches("[data-author-form]")) { e.preventDefault(); await saveAuthorForm(e.target); return; }
     if (!e.target.matches("[data-account-form]")) return; e.preventDefault(); if (busy) return;
     const form = e.target, input = new FormData(form), username = input.get("username"), password = input.get("password");
-    busy = true; syncGeneration++; lockControls(); const errorNode = form.querySelector("#auth-error"); errorNode.hidden = true;
+    busy = true; syncGeneration++; const inviteCode = input.get("inviteCode"); showNavigationPending();
     try {
-      const state = await api.request("/api/auth/"+authMode,{username,password,inviteCode:authMode === "register" ? input.get("inviteCode") : undefined,language,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone});
-      applyState(state); form.reset(); syncError = null;
+      const state = await api.request("/api/auth/"+authMode,{username,password,inviteCode:authMode === "register" ? inviteCode : undefined,language,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone});
+      applyState(state); syncError = null;
       let postAuthNotice="";
       const interestSortReturn=interestSortLoginIntent.consume(state.user?.id);
       if(interestSortReturn){
@@ -1983,9 +1983,17 @@ export function startReader({createCardFeatures} = {}) {
       accountLearningNotice=false;accountInterestSortNotice=false;
       busy = false; navigate(authReturn);
       if(postAuthNotice) live.textContent=postAuthNotice;
-    } catch(error) { busy = false; main.setAttribute("aria-busy","false"); form.querySelectorAll("button,input").forEach(c=>c.disabled = false); main.querySelectorAll("[data-action]").forEach(c=>c.disabled = false); settings.querySelectorAll("button,input").forEach(c=>c.disabled = false);
+    } catch(error) { busy = false; navigationPending = false;
       if (snapshot.user) { syncError = error.code; pendingDeck = null;pendingIntent=null; navigate("#home"); return; }
-      errorNode.textContent = words[language][error.code] || words[language].connectionError; errorNode.hidden = false; form.querySelector("#account-password").value = ""; form.querySelector("#account-password").focus(); }
+      render();
+      const restored = main.querySelector("[data-account-form]");
+      if (restored) {
+        restored.querySelector("#account-username").value = username;
+        const invite = restored.querySelector("#account-invite"); if (invite && inviteCode) invite.value = inviteCode;
+        const errorNode = restored.querySelector("#auth-error");
+        errorNode.textContent = words[language][error.code] || words[language].connectionError; errorNode.hidden = false;
+        restored.querySelector("#account-password").focus();
+      } }
   });
   main.addEventListener("change",async e=>{
     const input = e.target;

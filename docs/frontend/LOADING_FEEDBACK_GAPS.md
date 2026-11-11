@@ -94,6 +94,7 @@ La base es `lockControls` (~373): `busy` solo pone `aria-busy` y deshabilita con
   2. **B** con Brote durante la fase posterior al login (las cargas encadenadas).
   3. Dividir el estado en dos fases: «identificando» (**A**) y «preparando» (**B**).
 - **Notas:** el servidor responde rápido; el tramo largo es el posterior.
+- **Resuelto:** Brote dormido a pantalla completa desde «Entrar» hasta llegar al destino (identificación, cadena posterior y navegación en una sola espera). Si fallan las credenciales, vuelve el formulario con el usuario y el error. Si falla algo posterior, se llega al destino con el aviso.
 
 ### 7. Guardar o crear libro, baraja, tarjeta o nota
 - **Dónde:** `saveAuthorForm` (~1434), recarga con `loadCatalog`.
