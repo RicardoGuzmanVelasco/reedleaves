@@ -108,6 +108,14 @@ test("Another reader's profile renders the public interest payload instead of a 
   assert.match(html,/profile-interest-mark--notInterested/);
 });
 
+test("Profile names interests from the interest list when the full catalog is not loaded",async()=>{
+  const catalog=await fixture(),profileInterests={interested:["mindfulness"],notInterested:["finance"]};
+  const html=profileView({language:"en",profileData,userId:"viewer",catalog:null,interests:catalog.genres,profileInterests});
+  assert.match(html,/Mindfulness/);
+  assert.match(html,/Finance/);
+  assert.doesNotMatch(html,/profile-interests-empty/);
+});
+
 test("Card language preferences are private to the owner and enforce one selected language in the editor",async()=>{
   const catalog=await fixture(),preferences={languages:["en","es"],options:["en","es","fr-CA"],configured:false,revision:0};
   for(const language of ["es","en"]) {

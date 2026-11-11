@@ -453,7 +453,7 @@ export function startReader({createCardFeatures} = {}) {
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
     const selectedDaily=dailyHistory.find(item=>item.day===selectedDailyDay)||daily;
     if(mode==="practice"&&practiceStage==="choose"&&!snapshot.activePracticeSession&&snapshot.user&&discoverAvailability.state.status==="idle")void discoverAvailability.load();
-    const state = {discoverAvailability:discoverAvailability.state,practiceStarting:practiceStartRequest?.practiceMode||null,presentationLayout,presentationIndex,bookViews,userId:snapshot.user?.id,user:snapshot.user,guideReviewPendingCount,guideReviewQueue,guideReviewLoading,guideReviewError,guideReviewRejectingId,guideReviewExpandedId,guideReviewReason,guideReviewNotice,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,deckContributorError,deckContributorInput,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,homeBooks:homeBooksData,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily:selectedDaily,dailyToday:daily,dailyHistory,dailyStatus,dailyLoading,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountMode:snapshot.practiceDiscountMode,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
+    const state = {discoverAvailability:discoverAvailability.state,practiceStarting:practiceStartRequest?.practiceMode||null,presentationLayout,presentationIndex,bookViews,userId:snapshot.user?.id,user:snapshot.user,guideReviewPendingCount,guideReviewQueue,guideReviewLoading,guideReviewError,guideReviewRejectingId,guideReviewExpandedId,guideReviewReason,guideReviewNotice,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,deckContributorError,deckContributorInput,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,interests:catalog?.genres||homeCoverInterests,homeBooks:homeBooksData,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},daily:selectedDaily,dailyToday:daily,dailyHistory,dailyStatus,dailyLoading,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountMode:snapshot.practiceDiscountMode,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
       sharedContentLanguage:mode === "shared-card" ? sharedContentLanguage : null,deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,readingGuidePromptBookId,readingGuideError,readingGuideDraft,libraryQuery,libraryFilters,libraryFiltersOpen,libraryFilterDraft,librarySortDraft,bookSortOrder,librarySortOrder,interestPreferences,libraryInterestSortPending,libraryInterestSortError,bookcaseTab,bookOrigin,libraryOrigin,sourcesOpen,enrolledIds,
       profileData,profileError,profileInterests,profileLanguages,homeInterestPreferences,bookInterestPrompt,readOnly:mode === "public-bookcase",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,accountLearningNotice,accountInterestSortNotice,libraryNewBookIds,injectHeaderLeading:setHeaderLeading,profileReturnHash,showProfileBack:snapshot.user&&usefulProfileReturnHash(profileReturnHash)};
     presentationState=state;
@@ -567,11 +567,14 @@ export function startReader({createCardFeatures} = {}) {
     pendingOverlay.innerHTML=loadingPlaceholder(words[language].loading);document.body.append(pendingOverlay);
   }
   function hidePendingOverlay() {pendingOverlay?.remove();pendingOverlay=null;}
+  // Profile, like Home, needs balances and interests but never the full catalog.
+  const opensWithoutFullCatalog=()=>!location.hash||location.hash==="#home"||location.hash.slice(1).split("/")[0]==="profile";
   function route(focus = true) {
     navigationPending=false;
     const requestedHome=!location.hash||location.hash==="#home";
-    if(ready&&snapshot.user&&!catalogIsFull&&(requestedHome?homeBooksUserId!==snapshot.user.id: true)){
-      const request=requestedHome?ensureHomeData():ensureFullCatalog();
+    const lightRoute=opensWithoutFullCatalog();
+    if(ready&&snapshot.user&&!catalogIsFull&&(lightRoute?homeBooksUserId!==snapshot.user.id: true)){
+      const request=lightRoute?ensureHomeData():ensureFullCatalog();
       showNavigationPending();
       void request.then(()=>route(focus)).catch(error=>{navigationPending=false;syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
       return;
@@ -760,7 +763,9 @@ export function startReader({createCardFeatures} = {}) {
   }
   // Another reader's bookshelf is requested only when their bookshelf is shown.
   async function loadProfileData(id) {
-    const [data,shelf]=await Promise.all([api.request("/api/profiles/"+encodeURIComponent(id)),mode==="public-bookcase"?api.request("/api/profiles/"+encodeURIComponent(id)+"/bookshelf"):null]);
+    const [data,shelf,interests]=await Promise.all([api.request("/api/profiles/"+encodeURIComponent(id)),mode==="public-bookcase"?api.request("/api/profiles/"+encodeURIComponent(id)+"/bookshelf"):null,
+      catalog||homeCoverInterests.length?null:loadInterests()]);
+    if(interests&&!catalog)homeCoverInterests=interests.genres;
     return shelf?{...data,bookshelf:shelf.bookshelf}:data;
   }
   async function loadProfile(force=false) {
@@ -1767,7 +1772,7 @@ export function startReader({createCardFeatures} = {}) {
       snapshot=session;language=restoreLanguage(session.language||language);
       if(session.user)store.save(keys.language,language);
       const homeRoute=!location.hash||location.hash==="#home";
-      if(session.user&&homeRoute)await ensureHomeData();
+      if(session.user&&opensWithoutFullCatalog())await ensureHomeData();
       else if(location.hash&&!homeRoute&&location.hash!=="#account")await ensureFullCatalog();
       const preview=new URLSearchParams(location.search).get("growthPreview");
       if(catalogIsFull&&["localhost","127.0.0.1"].includes(location.hostname) && ["one","many"].includes(preview)) {
@@ -2089,7 +2094,7 @@ export function startReader({createCardFeatures} = {}) {
       case "profile-back": navigate(profileReturnHash || "#home"); break;
       case "retry-profile": profileData=null; profileError=null; loadProfile(true); render(); break;
       case "edit-profile-interests":
-        if(profileInterests&&!profileInterests.loading&&!profileInterests.error&&snapshot.user?.id===profileId)profileInterestEditor.open({userId:profileId,catalog,preferences:profileInterests,mode:"edit"});
+        if(profileInterests&&!profileInterests.loading&&!profileInterests.error&&snapshot.user?.id===profileId)profileInterestEditor.open({userId:profileId,catalog:catalog||{genres:homeCoverInterests},preferences:profileInterests,mode:"edit"});
         break;
       case "edit-profile-languages":
         if(profileLanguages&&!profileLanguages.loading&&!profileLanguages.error){profileLanguages={...profileLanguages,editing:true,draft:[...profileLanguages.languages],feedback:null,error:null,conflict:false};render();main.querySelector('[data-profile-language]')?.focus({preventScroll:true});}
