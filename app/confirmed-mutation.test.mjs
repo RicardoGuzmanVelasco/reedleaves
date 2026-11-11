@@ -9,9 +9,9 @@ const prompt=(confirmation,interestId="personal-growth")=>({confirmationRequired
 test("cancelling a collection warning makes no retry or local result",async()=>{
   const requests=[];
   const result=await requestConfirmedMutation(async(...args)=>{requests.push(args);return prompt({interestId:"personal-growth"})},
-    "/api/reader/collect",{deckId:"seven-habits-editorial"},()=>false);
+    "/api/reader/cardcase/add",{deckId:"seven-habits-editorial"},()=>false);
   assert.equal(result,null);
-  assert.deepEqual(requests,[["/api/reader/collect",{deckId:"seven-habits-editorial"}]]);
+  assert.deepEqual(requests,[["/api/reader/cardcase/add",{deckId:"seven-habits-editorial"}]]);
 });
 
 test("confirmation retries the exact action and re-prompts if server reason changed",async()=>{
@@ -20,14 +20,14 @@ test("confirmation retries the exact action and re-prompts if server reason chan
   const result=await requestConfirmedMutation(async(path,input)=>{
     requests.push([path,input]);
     return requests.length===1?first:requests.length===2?updated:{state:{user:{id:"reader"},wallet:{balance:7}}};
-  },"/api/reader/collect",{deckId:"seven-habits-editorial"},warning=>{shown.push(warning);return true;});
+  },"/api/reader/cardcase/add",{deckId:"seven-habits-editorial"},warning=>{shown.push(warning);return true;});
   assert.equal(shown.length,2);
   assert.equal(shown[0].confirmation.interestId,"personal-growth");
   assert.equal(shown[1].confirmation.interestId,"productivity");
   assert.deepEqual(requests,[
-    ["/api/reader/collect",{deckId:"seven-habits-editorial"}],
-    ["/api/reader/collect",{deckId:"seven-habits-editorial",confirmation:first.confirmation}],
-    ["/api/reader/collect",{deckId:"seven-habits-editorial",confirmation:updated.confirmation}]
+    ["/api/reader/cardcase/add",{deckId:"seven-habits-editorial"}],
+    ["/api/reader/cardcase/add",{deckId:"seven-habits-editorial",confirmation:first.confirmation}],
+    ["/api/reader/cardcase/add",{deckId:"seven-habits-editorial",confirmation:updated.confirmation}]
   ]);
   assert.deepEqual(result,{state:{user:{id:"reader"},wallet:{balance:7}}});
 });
@@ -42,11 +42,11 @@ test("the confirmation copy identifies the book, interest, and leaf cost in both
 test("the post-login collection intent cannot bypass confirmation or charge after cancellation",async()=>{
   const requests=[],applied=[];
   const cancelled=await requestPendingDeckIntent(async(...args)=>{requests.push(args);return prompt({interestId:"personal-growth"})},
-    "seven-habits-editorial","collect",()=>false);
+    "seven-habits-editorial","addToCardcase",()=>false);
   if(cancelled) applied.push(cancelled);
   assert.equal(cancelled,null);
   assert.deepEqual(applied,[]);
-  assert.deepEqual(requests,[["/api/reader/collect",{deckId:"seven-habits-editorial"}]]);
+  assert.deepEqual(requests,[["/api/reader/cardcase/add",{deckId:"seven-habits-editorial"}]]);
 });
 
 test("post-login collection confirms the server's latest reason before applying state",async()=>{
@@ -56,13 +56,13 @@ test("post-login collection confirms the server's latest reason before applying 
   const result=await requestPendingDeckIntent(async(path,input)=>{
     requests.push([path,input]);
     return requests.length===1?initial:requests.length===2?updated:{state:{wallet:{balance:7}}};
-  },"seven-habits-editorial","collect",warning=>{shown.push(warning);return true;});
+  },"seven-habits-editorial","addToCardcase",warning=>{shown.push(warning);return true;});
   if(result)applied.push(result);
   assert.equal(shown.length,2);
   assert.deepEqual(applied,[{state:{wallet:{balance:7}}}]);
   assert.deepEqual(requests,[
-    ["/api/reader/collect",{deckId:"seven-habits-editorial"}],
-    ["/api/reader/collect",{deckId:"seven-habits-editorial",confirmation:initial.confirmation}],
-    ["/api/reader/collect",{deckId:"seven-habits-editorial",confirmation:updated.confirmation}]
+    ["/api/reader/cardcase/add",{deckId:"seven-habits-editorial"}],
+    ["/api/reader/cardcase/add",{deckId:"seven-habits-editorial",confirmation:initial.confirmation}],
+    ["/api/reader/cardcase/add",{deckId:"seven-habits-editorial",confirmation:updated.confirmation}]
   ]);
 });

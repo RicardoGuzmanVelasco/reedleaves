@@ -170,7 +170,7 @@ export async function addDeckToCardcase(db,session,deckId,now=new Date(),{confir
     await lockReaderAccount(db,userId);
     const deck=await knownDeck(db,deckId,userId);
     const required=await requireBookInterestConfirmation(db,userId,{enabled:confirmationEnabled,bookId:deck.book_id,
-      operation:"collectDeck",resourceId:deck.id,parameters:{},price:DECK_ADD_COST,confirmation});
+      operation:"addDeckToCardcase",resourceId:deck.id,parameters:{},price:DECK_ADD_COST,confirmation});
     if(required) return required;
     const existing=await db.prepare("SELECT 1 FROM studies WHERE user_id=? AND deck_id=?").get(userId,deck.id);
     if(existing) {

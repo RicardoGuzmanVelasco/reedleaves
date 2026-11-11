@@ -5,7 +5,7 @@ import {openDatabase,initializeDatabase} from "../server/database.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
 import {prepareCatalog} from "./catalog.mjs";
-import {profileView,bookshelfView,dailyView} from "./views.mjs";
+import {profileView,bookcaseView,dailyView} from "./views.mjs";
 import {words} from "./i18n.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {toggleProfileInterest} from "./profile-interests.mjs";
@@ -28,8 +28,8 @@ test("Profiles show book, card-view and contribution counts without old per-card
     assert.match(html,/<header class="profile-heading"><div class="profile-avatar"/);
     assert.doesNotMatch(html,/data-action="profile-back"|profile-topline/);
     for(const key of Object.keys(profileData.profile.counts)) assert.ok(html.includes(words[language][key]),key);
-    assert.match(html,/href="#bookshelf\/test-user"/);assert.match(html,/datetime="2026-10-10"/);
-    assert.doesNotMatch(profileView({language,profileData,userId:"test-user"}),/href="#bookshelf(?:\/|")/);
+    assert.match(html,/href="#bookcase\/test-user"/);assert.match(html,/datetime="2026-10-10"/);
+    assert.doesNotMatch(profileView({language,profileData,userId:"test-user"}),/href="#bookcase(?:\/|")/);
     assert.match(profileView({language,profileError:"profileUnavailable"}),new RegExp(words[language].profileUnavailable.replace('.','\\.')));
   }
 });
@@ -136,7 +136,7 @@ test("Profile interest selection appends in click order, moves between lists, an
 
 test("Foreign shelf shows target reading/review states without mutation controls or private metadata actions",async()=>{
   const catalog=await fixture(),s={catalog,language:"es",readOnly:true,profileData,userId:"other",openBookId:"seven-habits"};
-  const html=bookshelfView(s);
+  const html=bookcaseView(s);
   assert.match(html,/Solo lectura/);assert.match(html,/data-status="read" aria-pressed="true" disabled/);
     assert.doesNotMatch(html,/Repasando|Tarjetas repasadas|Continuar repaso/);assert.match(html,/href="#profile\/test-user"/);
   assert.match(html,/data-action="open-book" data-book="seven-habits"/);

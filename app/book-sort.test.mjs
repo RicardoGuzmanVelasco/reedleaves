@@ -37,7 +37,7 @@ test("interest ordering uses saved preference positions and keeps neutral ties s
 test("restored account interest sort reloads preferences only when Librería needs them",()=>{
   assert.equal(shouldLoadInterestPreferences({mode:"library",order:"interests",userId:"reader",preferences:null}),true);
   assert.equal(shouldLoadInterestPreferences({mode:"library",order:"interests",userId:"reader",preferences:{userId:"reader"}}),false);
-  assert.equal(shouldLoadInterestPreferences({mode:"bookshelf",order:"interests",userId:"reader",preferences:null}),false);
+  assert.equal(shouldLoadInterestPreferences({mode:"bookcase",order:"interests",userId:"reader",preferences:null}),false);
   assert.equal(shouldLoadInterestPreferences({mode:"library",order:"interests",userId:null,preferences:null}),false);
 });
 

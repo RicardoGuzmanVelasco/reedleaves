@@ -83,7 +83,7 @@ test("Real registration, two sessions, spending, reconnecting and logout persist
   const v = "seven-habits-editorial";
   assert.equal((await call("/api/reader/select",{deckId:v},a)).status,409);
   assert.equal((await call("/api/reader/open",{deckId:v,cardId:"habit-1"},a)).status,409);
-  assert.equal((await call("/api/reader/collect",{deckId:v},a)).status,200);
+  assert.equal((await call("/api/reader/cardcase/add",{deckId:v},a)).status,200);
   assert.equal((await call("/api/reader/select",{deckId:v},a)).status,200);
   const both = await Promise.all([call("/api/reader/open",{deckId:v,cardId:"habit-1",userId:"reed-team",today:"2099-01-01",balance:3},a),call("/api/reader/open",{deckId:v,cardId:"habit-1"},b)]);
   assert.deepEqual(both.map(r=>r.status),[200,200]); assert.ok(both.every(r=>!Object.hasOwn(r.body,"spent")));

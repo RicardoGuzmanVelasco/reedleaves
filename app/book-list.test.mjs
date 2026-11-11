@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {BOOK_SHELF_THRESHOLD,defaultBookView,bookListMarkup,bookViewSelector,leaningBookIndex,partitionLibraryBooks} from './book-list.mjs';
-import {libraryResultsMarkup,libraryView,bookshelfView,accountView} from './views.mjs';
+import {libraryResultsMarkup,libraryView,bookcaseView,accountView} from './views.mjs';
 import {readerState} from '../test-support/reader-state.mjs';
 import {openDatabase,initializeDatabase} from '../server/database.mjs';
 import {seedCatalog} from '../server/seed.mjs';
@@ -94,7 +94,7 @@ test('Library choice remains independent of personal shelf groups',async()=>{
     const catalog=prepareCatalog(await readCatalog(db));
     const state=readerState(catalog,{libraryQuery:'',libraryFilters:{},bookViews:{library:'stack',bookshelf:'shelf'},userId:'reader',statuses:Object.fromEntries(catalog.books.map(book=>[book.id,'reading']))});
     assert.match(libraryResultsMarkup(state),/data-book-spines="stack"/);
-    const shelf=bookshelfView(state);assert.doesNotMatch(shelf,/data-action="set-book-view"/);
+    const shelf=bookcaseView(state);assert.doesNotMatch(shelf,/data-action="set-book-view"/);
     assert.doesNotMatch(shelf,/data-book-spines=/);
     for(const book of catalog.books)assert.ok(shelf.includes(`data-book="${book.id}"`));
     assert.match(libraryResultsMarkup({...state,bookViews:{library:'covers'}}),/book-tiles book-grid/);
@@ -128,7 +128,7 @@ test('Library interest sort follows reader preferences across all three presenta
       assert.ok(positions.every(position=>position>=0));
       assert.deepEqual(positions,[...positions].sort((a,b)=>a-b),`${view} follows the selected interest order`);
     }
-    const bookcase=bookshelfView(state);
+    const bookcase=bookcaseView(state);
     assert.doesNotMatch(bookcase,/data-book-sort|value="interests"|Mis intereses/);
   }finally{await db.close();}
 });
@@ -168,7 +168,7 @@ test('Personal shelf fixes Reading to covers; To read and Read have selectors',a
     const statuses=Object.fromEntries(books.map((book,index)=>[book.id,index===0?'reading':index>=12?'unread':'read']));
     const base=readerState(catalog,{userId:'reader',statuses,shelfBookIds:books.filter((_,index)=>index!==12).map(book=>book.id),cardSaves:[{bookId:books[12].id}],bookViews:{bookshelf:'stack'}});
     const group=(html,key)=>html.match(new RegExp(`<section class="bookshelf-group" aria-labelledby="bookshelf-group-${key}">([\\s\\S]*?)<\\/section>`))?.[1];
-    const html=bookshelfView(base),reading=group(html,'reading');
+    const html=bookcaseView(base),reading=group(html,'reading');
     assert.match(reading,/book-tiles book-grid/);
     assert.match(reading,/class="mascot-icon book-tile-mark"/);
     assert.ok(reading.indexOf('book-tile-mark')<reading.indexOf('id="home-book-state-'));
@@ -181,15 +181,15 @@ test('Personal shelf fixes Reading to covers; To read and Read have selectors',a
     assert.match(group(html,'read'),/data-scope="bookshelf-read"/);
     assert.match(group(html,'read'),/data-book-spines="shelf"/);
     assert.equal((html.match(/data-action="set-book-view"/g)||[]).length,6);
-    assert.match(group(bookshelfView({...base,bookViews:{'bookshelf-read':'stack'}}),'read'),/data-book-spines="stack"/);
-    const toReadCovers=group(bookshelfView({...base,bookViews:{'bookshelf-to-read':'covers'}}),'to-read');
+    assert.match(group(bookcaseView({...base,bookViews:{'bookshelf-read':'stack'}}),'read'),/data-book-spines="stack"/);
+    const toReadCovers=group(bookcaseView({...base,bookViews:{'bookshelf-to-read':'covers'}}),'to-read');
     assert.match(toReadCovers,/book-tiles book-grid/);
     assert.match(toReadCovers,/<\/svg>Para leer<\/span>/);
     const ten={...base,statuses:{...statuses,[books[11].id]:'unread'}};
-    assert.match(group(bookshelfView(ten),'read'),/data-book-spines="shelf"/);
+    assert.match(group(bookcaseView(ten),'read'),/data-book-spines="shelf"/);
     const nine={...base,statuses:{...ten.statuses,[books[10].id]:'unread'}};
-    assert.match(group(bookshelfView(nine),'read'),/book-tiles book-grid/);
-    const publicShelf=bookshelfView({...base,readOnly:true,profileData:{profile:{id:'another',name:'Reader'},bookshelf:[{bookId:books[13].id,reading:'unread',group:'to-read'}]}});
+    assert.match(group(bookcaseView(nine),'read'),/book-tiles book-grid/);
+    const publicShelf=bookcaseView({...base,readOnly:true,profileData:{profile:{id:'another',name:'Reader'},bookshelf:[{bookId:books[13].id,reading:'unread',group:'to-read'}]}});
     assert.match(group(publicShelf,'to-read'),/data-book-spines="stack"/);
     assert.match(group(publicShelf,'to-read'),/data-scope="public-bookshelf-to-read"/);
   }finally{await db.close();}
@@ -222,6 +222,6 @@ test('Library shows ordered interest emoji only on covers',async()=>{
       assert.deepEqual(positions,[...positions].sort((a,b)=>a-b));
       assert.ok(section.includes(interests.map(interest=>interest.name.es).join(', '))||html.includes(interests.map(interest=>interest.name.es).join(', ')));
     }
-    assert.doesNotMatch(bookshelfView(state),/library-book-interests/);
+    assert.doesNotMatch(bookcaseView(state),/library-book-interests/);
   }finally{await db.close();}
 });

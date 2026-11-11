@@ -330,7 +330,7 @@ for (const dialect of ["sqlite","postgres"]) {
     }
     const quoteForm=authorFormView({...ui,authorForm:{kind:"quote",language:"fr"}});
     assert.doesNotMatch(quoteForm,/name="title"/);
-    assert.match(authorFormView({...ui,authorForm:{kind:"card",language:"fr"}}),/name="title"/);
+    assert.match(authorFormView({...ui,authorForm:{kind:"idea",language:"fr"}}),/name="title"/);
   });
 }
 

@@ -30,7 +30,7 @@ for(const {name,action,parentId,withinDialog} of [
   };
   const trigger={dataset:{action},closest:()=>withinDialog ? {scrollTop:28} : null};
   handlerWith("openDeckNote","restoreNoteContext",context)(deck.id,trigger,parentId);
-  assert.equal(opened?.kind,"card");
+  assert.equal(opened?.kind,"idea");
   assert.equal(opened.options.noteDeckId,deck.id);
   assert.equal(opened.options.parentId,parentId);
   assert.equal(opened.options.noteReturn.scrollY,64);
@@ -48,7 +48,7 @@ test("Tomar nota desde la ficha de libro abre el editor",()=>{
     openAuthorForm:(kind,options)=>{opened={kind,options};}
   };
   handlerWith("openBookNote","openBookNoteDeck",context)(bookId);
-  assert.equal(opened?.kind,"card");
+  assert.equal(opened?.kind,"idea");
   assert.equal(opened.options.noteBookId,bookId);
   assert.equal(opened.options.createNoteDeck,true);
   assert.equal(opened.options.noteReturn.scrollY,36);

@@ -6,7 +6,7 @@ import {readCatalog} from "../server/catalog-repository.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {featuredDecks} from "./decks.mjs";
 import {bookshelfBooks} from "./bookshelf.mjs";
-import {bookshelfView,homeView,libraryView,deckView,reviewView} from "./views.mjs";
+import {bookcaseView,homeView,libraryView,deckView,reviewView} from "./views.mjs";
 import {words} from "./i18n.mjs";
 
 async function fixture() {
@@ -49,8 +49,8 @@ test("Choosing Para leer saves a book and selects its chip in the catalog",async
   s.statuses={"atomic-habits":"unread"};s.shelfBookIds=["atomic-habits"];
   assert.deepEqual(ids(bookshelfBooks(s)),["atomic-habits"]);
   assert.equal(bookshelfBooks(s)[0].group,"to-read");
-  assert.match(bookshelfView(s),/bookshelf-group-to-read/);
-  assert.match(bookshelfView(s),/data-book-spines="stack"/);
+  assert.match(bookcaseView(s),/bookshelf-group-to-read/);
+  assert.match(bookcaseView(s),/data-book-spines="stack"/);
   assert.match(libraryView({...s,openBookId:"atomic-habits"}),/data-status="to-read" aria-pressed="true"/);
   assert.doesNotMatch(libraryView({...s,openBookId:"atomic-habits"}),/add-book-to-shelf|collection-object-state/);
 });
@@ -60,7 +60,7 @@ test("Default unread statuses for the whole catalog do not make every book a she
   s.statuses=Object.fromEntries(s.catalog.books.map(book=>[book.id,"unread"]));
   s.shelfBookIds=[];
   assert.deepEqual(bookshelfBooks(s),[]);
-  assert.ok(bookshelfView(s).includes(words.es.emptyBookshelf));
+  assert.ok(bookcaseView(s).includes(words.es.emptyBookshelf));
   assert.match(libraryView({...s,openBookId:"atomic-habits"}),/data-status="unread" aria-pressed="true"/);
 });
 
@@ -82,7 +82,7 @@ test("Deck membership keeps a book on the shelf without card progress groups",as
   s.enrolledIds=["seven-habits-inside-out"];
   const entries=bookshelfBooks({...s,shelfBookIds:["seven-habits"],toReadBookIds:[]});
   assert.equal(entries.length,1); assert.equal(entries[0].group,"to-read");
-  assert.equal((bookshelfView(s).match(/data-book="seven-habits"/g)||[]).length,1);
+  assert.equal((bookcaseView(s).match(/data-book="seven-habits"/g)||[]).length,1);
   s.enrolledIds=[];
   assert.deepEqual(bookshelfBooks(s),[]);
 });
@@ -91,21 +91,21 @@ test("Collection groups, empty states, book details and origin navigation transl
   const s=await fixture(); s.statuses={"atomic-habits":"read"};
   for (const language of ["es","en"]) {
     const state={...s,language}; const c=words[language];
-    const html=bookshelfView(state);
+    const html=bookcaseView(state);
     assert.ok(html.includes(c.bookcase)); assert.ok(html.includes(c.shelf)); assert.ok(html.includes(c.cardcase));
-    assert.match(html,/aria-label="(?:Biblioteca|Bookcase)"/); assert.match(html,/href="#bookshelf" aria-current="page"/); assert.match(html,/href="#bookshelf\/decks"/);
+    assert.match(html,/aria-label="(?:Biblioteca|Bookcase)"/); assert.match(html,/href="#bookcase" aria-current="page"/); assert.match(html,/href="#bookcase\/cardcase"/);
     assert.doesNotMatch(html,/open-bookshelf-filters|bookshelf-filter-reading|reset-bookshelf-filters/);
     assert.match(html,/id="bookshelf-group-read"/);
     assert.doesNotMatch(html,/data-action="home"|undefined|data-book="seven-habits"/);
-    assert.ok(bookshelfView({...state,statuses:{}}).includes(c.emptyBookshelf));
-    assert.match(bookshelfView({...state,openBookId:"atomic-habits"}),/<dialog class="deck-modal book-modal"/);
+    assert.ok(bookcaseView({...state,statuses:{}}).includes(c.emptyBookshelf));
+    assert.match(bookcaseView({...state,openBookId:"atomic-habits"}),/<dialog class="deck-modal book-modal"/);
     assert.ok(libraryView(state).includes(c.books)); assert.match(libraryView(state),/collections\/library\.svg/);
     assert.doesNotMatch(libraryView(state),/collection-entry|Ir a mi biblioteca|Go to my Bookcase/);
-    assert.ok(libraryView({...state,libraryOrigin:"bookshelf"}).includes(c.shelfBack));
-    assert.doesNotMatch(libraryView({...state,libraryOrigin:"home"}),/data-action="bookshelf"/);
+    assert.ok(libraryView({...state,libraryOrigin:"bookcase"}).includes(c.shelfBack));
+    assert.doesNotMatch(libraryView({...state,libraryOrigin:"home"}),/data-action="bookcase"/);
     assert.doesNotMatch(homeView(state),/class="home-actions"|data-action="profile"/);
     const deckState={...state,bookId:"atomic-habits",deckChoices:featuredDecks(s.catalog,"atomic-habits")};
-    for (const [bookOrigin,label] of [["bookshelf",c.shelfBack],["library",c.booksBack],["daily",c.back]]) assert.ok(deckView({...deckState,bookOrigin}).includes(label));
+    for (const [bookOrigin,label] of [["bookcase",c.shelfBack],["library",c.booksBack],["daily",c.back]]) assert.ok(deckView({...deckState,bookOrigin}).includes(label));
   }
 });
 
@@ -114,38 +114,38 @@ test("Cardcase tab groups owned and enrolled decks by their book's reading statu
   ownDeck.creator.userId=s.userId;
   s.catalog.decksById.get("atomic-habits-editorial").status="draft";
   const enrolled="seven-habits-editorial";
-  const render=(statuses,toReadBookIds=[])=>bookshelfView({...s,bookshelfTab:"decks",enrolledIds:[enrolled,ownDeck.id],statuses,toReadBookIds});
+  const render=(statuses,toReadBookIds=[])=>bookcaseView({...s,bookcaseTab:"cardcase",enrolledIds:[enrolled,ownDeck.id],statuses,toReadBookIds});
   for (const language of ["es","en"]) {
-    const html=bookshelfView({...s,language,bookshelfTab:"decks",enrolledIds:[enrolled,ownDeck.id],statuses:{"atomic-habits":"reading","seven-habits":"read"}});
+    const html=bookcaseView({...s,language,bookcaseTab:"cardcase",enrolledIds:[enrolled,ownDeck.id],statuses:{"atomic-habits":"reading","seven-habits":"read"}});
     const c=words[language];
-    assert.match(html,/href="#bookshelf\/decks" aria-current="page"/);
-    assert.ok(html.indexOf('id="collection-decks-reading"')<html.indexOf('id="collection-decks-read"'));
+    assert.match(html,/href="#bookcase\/cardcase" aria-current="page"/);
+    assert.ok(html.indexOf('id="cardcase-decks-reading"')<html.indexOf('id="cardcase-decks-read"'));
     assert.match(html,new RegExp(c.readingStatus));
     assert.match(html,new RegExp(c.readStatus));
-    assert.match(html,/data-action="review-collection-deck" data-deck="seven-habits-editorial"/);
-    assert.match(html,/data-action="review-collection-deck" data-deck="atomic-habits-editorial"/);
-    assert.doesNotMatch(html,/data-action="remove-collection-deck"/);
-    assert.match(html,/class="deck-grid collection-decks"/);
+    assert.match(html,/data-action="review-cardcase-deck" data-deck="seven-habits-editorial"/);
+    assert.match(html,/data-action="review-cardcase-deck" data-deck="atomic-habits-editorial"/);
+    assert.doesNotMatch(html,/data-action="remove-cardcase-deck"/);
+    assert.match(html,/class="deck-grid cardcase-decks"/);
     assert.equal((html.match(/class="deck-tile(?:\s|")/g)||[]).length,2);
     assert.doesNotMatch(html,/open-bookshelf-filters/);
   }
-  assert.match(render({},["seven-habits"]),/id="collection-decks-to-read"/);
-  assert.match(render({}),/id="collection-decks-to-read"/);
-  assert.doesNotMatch(render({}),/id="collection-decks-unread"/);
+  assert.match(render({},["seven-habits"]),/id="cardcase-decks-to-read"/);
+  assert.match(render({}),/id="cardcase-decks-to-read"/);
+  assert.doesNotMatch(render({}),/id="cardcase-decks-unread"/);
   const empty=await fixture();
-  assert.match(bookshelfView({...empty,bookshelfTab:"decks"}),/Todavía no has añadido barajas a tu tarjetero/);
+  assert.match(bookcaseView({...empty,bookcaseTab:"cardcase"}),/Todavía no has añadido barajas a tu tarjetero/);
 });
 
 test("Deck details distinguish adding to the cardcase from starting practice",async()=>{
   const s=await fixture(),deck=featuredDecks(s.catalog,"atomic-habits")[0];
   const state={...s,bookId:"atomic-habits",deckChoices:[deck],deckId:deck.deck.id};
   const notAdded=reviewView(state);
-  assert.match(notAdded,/data-action="add-deck-to-collection"/);
+  assert.match(notAdded,/data-action="add-deck-to-cardcase"/);
   assert.match(notAdded,/Costs 2 leaves|Cuesta 2 hojas/);
   assert.doesNotMatch(notAdded,/data-action="select-deck"/);
   const added=reviewView({...state,enrolledIds:[deck.deck.id]});
-  assert.doesNotMatch(added,/data-action="add-deck-to-collection"/);
-  assert.match(added,/data-action="remove-collection-deck"/);
+  assert.doesNotMatch(added,/data-action="add-deck-to-cardcase"/);
+  assert.match(added,/data-action="remove-cardcase-deck"/);
   assert.ok(added.includes(words.es.removeDeckFromCardcase));
 });
 

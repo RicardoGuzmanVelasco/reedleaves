@@ -3,7 +3,7 @@ import {LANGUAGES,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH} from "./core.mjs";
 
 const id=value=>typeof value === "string" && value.length>0 && value.length<=256;
 const valid=(draft,userId,bookId)=>draft && draft.noteUserId === userId && draft.noteBookId === bookId &&
-  ["card","quote"].includes(draft.kind) && id(draft.noteDeckId) &&
+  ["idea","quote"].includes(draft.kind) && id(draft.noteDeckId) &&
   (draft.createNoteDeck !== true || LANGUAGES.includes(draft.noteLanguage) && draft.noteDeckId === draft.requestId) &&
   typeof draft.requestId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(draft.requestId) &&
   typeof draft.title === "string" && draft.title.length<=TITLE_MAX_LENGTH && typeof draft.body === "string" && draft.body.length<=CARD_BODY_MAX_LENGTH &&

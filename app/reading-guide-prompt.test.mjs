@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {runInNewContext} from "node:vm";
 import {hasAccessibleReadingGuide,hasOwnReadingGuide,shouldOfferReadingGuideCreationPrompt,shouldShowReadingGuidePrompt} from "./reading-guide-prompt.mjs";
-import {libraryView,bookshelfView} from "./views.mjs";
+import {libraryView,bookcaseView} from "./views.mjs";
 import {words} from "./i18n.mjs";
 
 const source=readFileSync(new URL("./reader-app.mjs",import.meta.url),"utf8");
@@ -143,17 +143,17 @@ test("A reading transition from the personal Shelf gets the guide prompt; public
   try{dbState.initializeDatabase(db);await seedCatalog(db);catalog=prepareCatalog(await readCatalog(db));}finally{await db.close();}
   const bookId="seven-habits",deck={id:"shelf-guide",bookId,status:"published",creator:{userId:"guide-author"}},card={id:"shelf-guide-card",bookId,deckId:deck.id,isReadingGuide:true};
   catalog.decks.push(deck);catalog.deckModels.set(deck.id,{cards:[card],byId:new Map([[card.id,card]])});
-  const own={catalog,language:"es",statuses:{[bookId]:"reading"},openBookId:bookId,mode:"bookshelf",bookshelfTab:"shelf",shelfBookIds:[bookId],userId:"reader",storageAvailable:true,readingGuidePromptBookId:bookId};
-  const html=bookshelfView(own);
+  const own={catalog,language:"es",statuses:{[bookId]:"reading"},openBookId:bookId,mode:"bookcase",bookcaseTab:"shelf",shelfBookIds:[bookId],userId:"reader",storageAvailable:true,readingGuidePromptBookId:bookId};
+  const html=bookcaseView(own);
   assert.ok(html.includes(words.es.readingGuideReadingPrompt));
   assert.match(html,/data-action="view-reading-guides-after-reading"/);
-  const publicState={...own,mode:"public-bookshelf",readOnly:true,userId:null,profileData:{profile:{id:"reader",name:"Reader"},bookshelf:[{bookId,group:"reading"}]}};
-  assert.doesNotMatch(bookshelfView(publicState),/reading-guide-reading-prompt/);
+  const publicState={...own,mode:"public-bookcase",readOnly:true,userId:null,profileData:{profile:{id:"reader",name:"Reader"},bookshelf:[{bookId,group:"reading"}]}};
+  assert.doesNotMatch(bookcaseView(publicState),/reading-guide-reading-prompt/);
 });
 
 test("Guide action routes to the existing preview and dismiss restores status focus",()=>{
   const bookId="b",focused=[];let target=null,rendered=false;
-  const context={readingGuidePromptBookId:bookId,statuses:{[bookId]:"reading"},catalog:{},mode:"bookshelf",hasAccessibleReadingGuide:()=>true,
+  const context={readingGuidePromptBookId:bookId,statuses:{[bookId]:"reading"},catalog:{},mode:"bookcase",hasAccessibleReadingGuide:()=>true,
     location:{hash:"#library"},bookOrigin:"library",openBookId:bookId,window:{scrollY:28},main:{querySelector:()=>({scrollTop:9})},
     navigate:hash=>{target=hash;},render:()=>{rendered=true;},
     document:{},
@@ -162,7 +162,7 @@ test("Guide action routes to the existing preview and dismiss restores status fo
   open(bookId);
   assert.equal(target,"#guide-preview/b");
   assert.equal(context.guidePreviewReturn.hash,"#library");
-  assert.equal(context.guidePreviewReturn.origin,"bookshelf");
+  assert.equal(context.guidePreviewReturn.origin,"bookcase");
   const dismissContext={readingGuidePromptBookId:bookId,statuses:{[bookId]:"reading"},noteNudgeBookId:bookId,render:()=>{rendered=true;},
     main:{querySelectorAll:()=>[{dataset:{book:bookId,status:"reading"},focus:()=>focused.push(true)}]}};
   handlerWith("dismissReadingGuidePrompt","openReadingGuidePrompt",dismissContext)(bookId);
@@ -178,10 +178,10 @@ test("Guide action routes to the existing preview and dismiss restores status fo
 });
 
 test("Returning from guide preview restores its Library or Shelf context, scroll and reading focus",()=>{
-  for(const origin of ["library","bookshelf"]) {
+  for(const origin of ["library","bookcase"]) {
     const calls=[],bookId="b",button={dataset:{book:bookId,status:"reading"},focus:options=>calls.push({focus:true,options})};
     const dialog={scrollTop:0};
-    const context={guidePreviewReturn:{hash:origin==="library"?"#library":"#bookshelf",origin,openBookId:bookId,bookId,scrollY:87,dialogScrollTop:24},
+    const context={guidePreviewReturn:{hash:origin==="library"?"#library":"#bookcase",origin,openBookId:bookId,bookId,scrollY:87,dialogScrollTop:24},
       bookOrigin:"home",openBookId:null,window:{scrollTo:options=>calls.push({scroll:options})},main:{querySelector:()=>dialog,querySelectorAll:()=>[button]}};
     handlerWith("finishGuidePreviewReturn","enterDeck",context)(context.guidePreviewReturn);
     assert.equal(context.guidePreviewReturn,null);

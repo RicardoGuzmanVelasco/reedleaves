@@ -30,7 +30,7 @@ test("all three incorporation operations return a structured confirmation withou
     assert.equal(result.confirmation.interestId,"personal-growth");
   }
   assert.deepEqual(reading.operation,{type:"changeReading",resourceId:"seven-habits",parameters:{status:"reading"}});
-  assert.deepEqual(collect.operation,{type:"collectDeck",resourceId:"seven-habits-editorial",parameters:{}});
+  assert.deepEqual(collect.operation,{type:"addDeckToCardcase",resourceId:"seven-habits-editorial",parameters:{}});
   assert.deepEqual(save.operation,{type:"saveCard",resourceId:"habit-1",parameters:{saved:true}});
   assert.equal(await db.prepare("SELECT 1 FROM book_reading WHERE user_id='reader' AND book_id='seven-habits'").get(),undefined);
   assert.equal(await db.prepare("SELECT 1 FROM studies WHERE user_id='reader' AND deck_id='seven-habits-editorial'").get(),undefined);

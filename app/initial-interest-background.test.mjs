@@ -27,14 +27,14 @@ test("Navigation stays available while preferences load; the chooser appears on 
   await h.loadHomeInterestPreferences();
   assert.equal(requests,1);
   assert.equal(h.shown.length,0);
-  h.context.mode="bookshelf";
+  h.context.mode="bookcase";
   preferences.resolve({configured:false,initialOpportunityClosed:false});
   await new Promise(resolve=>setImmediate(resolve));
   catalog.resolve({genres:[{id:"finance"}]});
   await new Promise(resolve=>setImmediate(resolve));
   assert.equal(h.shown.length,0,"The opening animation finishes before the chooser is presented");
   opening.resolve();await loading;
-  assert.equal(h.context.mode,"bookshelf");
+  assert.equal(h.context.mode,"bookcase");
   assert.equal(h.shown.length,1);
   assert.equal(h.shown[0].userId,"reader");
 });

@@ -35,11 +35,11 @@ test('One deck page handles discovery, collection and ownership while clean read
       const state={...base,userId},page=reviewView(state);
       assert.ok(page.includes(c.readDeckCards));assert.match(page,/data-action="preview-deck"/);
       assert.match(page,/data-action="share-deck"/);assert.ok(page.includes(c.deckInformation));
-      assert.equal(page.includes('data-action="add-deck-to-collection"'),true);
+      assert.equal(page.includes('data-action="add-deck-to-cardcase"'),true);
       assert.equal(page.includes('data-action="take-deck-note"'),userId===deck.creator.userId&&deck.status==='draft');
     }
     const collected=reviewView({...base,userId:'visitor',enrolledIds:[deck.id]});
-    assert.doesNotMatch(collected,/data-action="add-deck-to-collection"/);assert.match(collected,/data-action="remove-collection-deck"/);assert.ok(collected.includes(c.removeDeckFromCardcase));
+    assert.doesNotMatch(collected,/data-action="add-deck-to-cardcase"/);assert.match(collected,/data-action="remove-cardcase-deck"/);assert.ok(collected.includes(c.removeDeckFromCardcase));
     const reading=deckPeekView(base);
     assert.ok(reading.includes(c.viewDeck));assert.match(reading,/data-action="back-from-deck-preview"/);
     assert.equal((reading.match(/<li>/g)||[]).length,model.cards.length);
@@ -51,8 +51,8 @@ test('One deck page handles discovery, collection and ownership while clean read
     assert.equal((carousel.match(/data-action="presentation-card"/g)||[]).length,model.cards.length);
     assert.match(carousel,/data-action="presentation-step"/);
     assert.ok(carousel.includes(c.closePresentation));
-    assert.doesNotMatch(carousel,/class="deck-facts"|data-action="share-deck"|data-action="add-deck-to-collection"/);
-    assert.doesNotMatch(reading,/class="deck-facts"|class="deck-description"|class="deck-creator"|data-action="add-deck-to-collection"|data-action="share-deck"/);
+    assert.doesNotMatch(carousel,/class="deck-facts"|data-action="share-deck"|data-action="add-deck-to-cardcase"/);
+    assert.doesNotMatch(reading,/class="deck-facts"|class="deck-description"|class="deck-creator"|data-action="add-deck-to-cardcase"|data-action="share-deck"/);
   }
 });
 

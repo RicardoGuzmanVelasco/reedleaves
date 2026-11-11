@@ -5,7 +5,7 @@ import {readCatalog} from "../server/catalog-repository.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {availableDecks,featuredDecks,treeLinks} from "./decks.mjs";
-import {deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,homeView,practiceView,authorView,authorFormView,bookshelfView,escapeHtml} from "./views.mjs";
+import {deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,reviewView,homeView,practiceView,authorView,authorFormView,bookcaseView,escapeHtml} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
 
@@ -176,8 +176,8 @@ test("Quote counts use the existing quote mark and quote dominant deck previews 
   assert.doesNotMatch(selector,/title="0 citas"/);
   assert.match(reviewView(state),/class="deck-facts"><span class="deck-card-count">\d+ tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span><\/span>/);
   assert.doesNotMatch(deckPeekView(state),/class="deck-facts"/);
-  const collection=bookshelfView({...state,bookshelfTab:"decks"});
-  assert.match(collection,/class="deck-tile deck-tile--quote-dominant deck-tile--collection"/);
+  const collection=bookcaseView({...state,bookcaseTab:"cardcase"});
+  assert.match(collection,/class="deck-tile deck-tile--quote-dominant deck-tile--cardcase"/);
   assert.match(collection,/class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="\d+ tarjetas"/);
   assert.match(collection,/class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="4 citas"/);
   assert.match(collection,/4 citas/);
@@ -221,7 +221,7 @@ test("Deck albums show cards without per-deck progress",async()=>{
       assert.equal((grid.match(/data-action="take-child-note"/g) || []).length,model.cards.length,"Every authored grid card has a child-note action");
       for(const card of model.cards) assert.match(grid,new RegExp(`data-action="take-child-note" data-card="${card.id}" data-deck="${deckId}"[^>]*aria-label="Tomar nota:`));
       const parent=model.roots[0];
-      const form=authorFormView({...state,authorForm:{kind:"card",requestId:"child-note",noteBookId:deck.bookId,noteDeckId:deck.id,parentId:parent.id,title:"",body:"",language:deck.language}});
+      const form=authorFormView({...state,authorForm:{kind:"idea",requestId:"child-note",noteBookId:deck.bookId,noteDeckId:deck.id,parentId:parent.id,title:"",body:"",language:deck.language}});
       assert.match(form,new RegExp(`<option value="${parent.id}" selected>`),"The parent selected from a card action is preselected in the note form");
     } else assert.doesNotMatch(album,/data-action="take-child-note"/);
     const detail=view({...state,requestedId:card.id});
@@ -323,7 +323,7 @@ test("Practice prices show one discounted topic, the wallet cap, and useful empt
   assert.match(recoveredEnglish,/The session was cancelled and its cost was refunded\./);
   const insufficient=practiceView({...state,practiceStage:"empty",practiceUnavailable:{reason:"notEnoughCards",topic:"mixed",available:4,required:5}},null);
   assert.match(insufficient,/Necesitas 5 para empezar/);
-  assert.match(insufficient,/#bookshelf\/decks/);assert.match(insufficient,/#library/);
+  assert.match(insufficient,/#bookcase\/cardcase/);assert.match(insufficient,/#library/);
   const resume=practiceView({...state,practiceStage:"choose",activePracticeSession:{topic:"reading",index:2,cardIds:["a","b","c","d","e"]}},null);
   assert.match(resume,/data-action="practice-resume"/);assert.match(resume,/2\/5/);
 });
@@ -385,8 +385,8 @@ test('Book and collection deck lists prioritize the current viewer’s contribut
     for(const card of catalog.deckModels.get(deck.id).cards)card.creatorUserId=deck.id===first.id?'first-reader':'second-reader';
   }
   for(const [userId,preferred,other] of [['second-reader',second,first],['first-reader',first,second]]){
-    const state=readerState(catalog,{userId,bookId:'seven-habits',deckChoices:availableDecks(catalog,'seven-habits'),enrolledIds:decks.map(deck=>deck.id),bookshelfTab:'decks'});
-    for(const html of [deckView(state),bookshelfView(state)]){
+    const state=readerState(catalog,{userId,bookId:'seven-habits',deckChoices:availableDecks(catalog,'seven-habits'),enrolledIds:decks.map(deck=>deck.id),bookcaseTab:'cardcase'});
+    for(const html of [deckView(state),bookcaseView(state)]){
       assert.ok(html.indexOf(`data-deck="${preferred.id}"`)<html.indexOf(`data-deck="${other.id}"`));
     }
   }

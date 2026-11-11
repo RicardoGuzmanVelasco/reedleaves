@@ -60,6 +60,6 @@ test("library visit spans its book details and ends at another main section",()=
     assert.equal(inLibraryVisit(mode,"library"),true);
     assert.equal(inLibraryVisit(mode,"home"),false);
   }
-  for(const mode of ["home","bookshelf","daily","profile","account","practice"])
+  for(const mode of ["home","bookcase","daily","profile","account","practice"])
     assert.equal(inLibraryVisit(mode,"library"),false);
 });

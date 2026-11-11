@@ -273,7 +273,7 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   assert.equal(shared.books.find(b=>b.id===bookId).creatorUserId,state.user.id);
   const otherHeaders={Cookie:otherCookie,"X-CSRF-Token":(await other.json()).csrfToken};
   assert.equal((await post("/api/author/decks/title",{deckId,title:"Otro nombre",previousTitle:"Reading"},otherHeaders)).status,404);
-  assert.equal((await post("/api/reader/collect",{deckId},otherHeaders)).status,200);
+  assert.equal((await post("/api/reader/cardcase/add",{deckId},otherHeaders)).status,200);
   assert.equal((await post("/api/reader/select",{deckId},otherHeaders)).status,200);
   assert.equal((await post("/api/author/cards",{...cardInput,requestId:randomUUID()},otherHeaders)).status,404);
   const otherOpen=await post("/api/reader/open",{deckId,cardId},otherHeaders);
@@ -348,7 +348,7 @@ test("Profiles require a session and view writes require origin, CSRF and a vali
   assert.equal((await fetch(base+"/api/profiles/reed-team",{method:"POST",headers})).status,405);
   assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"practice"},{Cookie:cookie})).status,403);
   assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"practice"},headers)).status,200);
-  await post("/api/reader/collect",{deckId:"seven-habits-editorial"},headers);
+  await post("/api/reader/cardcase/add",{deckId:"seven-habits-editorial"},headers);
   await post("/api/reader/open",{deckId:"seven-habits-editorial",cardId:"habit-1"},headers);
   assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"practice"},headers)).status,200);
 });
