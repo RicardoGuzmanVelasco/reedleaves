@@ -76,3 +76,17 @@ Corrección de borde: ImageGen había dejado RGB rojo/rosa en píxeles completam
 | `alta` | [`macetas/alta-body.png`](macetas/alta-body.png) | [`macetas/alta-raw.png`](macetas/alta-raw.png) |
 | `cuadrada` | [`macetas/cuadrada-body.png`](macetas/cuadrada-body.png) | [`macetas/cuadrada-raw.png`](macetas/cuadrada-raw.png) |
 | `jardinera` | [`macetas/jardinera-body.png`](macetas/jardinera-body.png) | [`macetas/jardinera-raw.png`](macetas/jardinera-raw.png) |
+
+## Semillas — lámina futura
+
+La lámina [`semillas/lamina-raw.png`](semillas/lamina-raw.png) es copia binaria de `brand/reed/growth/seed-variations-future.png`. Los cinco `*-raw.png` son recortes exactos de 512 × 512 px que conservan cara, sombra, fondo y etiqueta. Las dos teselas inferiores se recortaron desde `y=480` para evitar fragmentos de etiquetas de la fila superior. La semilla almendrada activa de `brand/reed/growth/bodies/seed.svg` ya existe y no se duplica.
+
+Los cinco `*-body.png` se obtuvieron mediante ImageGen integrado (`precise-object-edit`), reconstruyendo la superficie bajo los ojos y la boca. En Café vertical y Café ondulado se continuó la hendidura central donde la cruzaba la sonrisa; esos píxeles son aproximados respecto al raw. Se eliminaron fondo, etiqueta y sombra de suelo. Cada cuerpo ocupa un marco transparente de **340 × 340 px** con el eje mayor de unos **238 px** y centro de silueta **(168, 138)**, proporción y posición equivalentes a la semilla activa en su `viewBox` de 160 × 160. Se descartaron píxeles alfa inferiores a 16/255 y se puso RGB a cero en píxeles transparentes para evitar halo al reducir; no había componentes desconectados tras esa limpieza. Los raw no se modificaron.
+
+| Fuente en lámina | Cuerpo listo | Raw individual |
+| --- | --- | --- |
+| `A · Redonda` | [`semillas/redonda-body.png`](semillas/redonda-body.png) | [`semillas/redonda-raw.png`](semillas/redonda-raw.png) |
+| `C · Arriñonada` | [`semillas/arrinonada-body.png`](semillas/arrinonada-body.png) | [`semillas/arrinonada-raw.png`](semillas/arrinonada-raw.png) |
+| `D · Achatada` | [`semillas/achatada-body.png`](semillas/achatada-body.png) | [`semillas/achatada-raw.png`](semillas/achatada-raw.png) |
+| `F · Café vertical` | [`semillas/cafe-vertical-body.png`](semillas/cafe-vertical-body.png) | [`semillas/cafe-vertical-raw.png`](semillas/cafe-vertical-raw.png) |
+| `G · Café ondulado` | [`semillas/cafe-ondulado-body.png`](semillas/cafe-ondulado-body.png) | [`semillas/cafe-ondulado-raw.png`](semillas/cafe-ondulado-raw.png) |
