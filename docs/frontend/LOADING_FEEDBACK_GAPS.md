@@ -259,7 +259,7 @@ Aparte del feedback, hay que revisar la animación de espera. Se aborda después
 | 12 | Brote dormido en la lista | 2026-11-11 | Implementado en `SavedCards`. |
 | 13 | Sin cambios (descartado) | 2026-11-11 | Comportamiento actual aceptado. |
 | 14 | Sin cambios (descartado) | 2026-11-11 | Falso positivo de la auditoría. |
-| 15 | | | |
+| 15 | Sin cambios (descartado) | 2026-11-11 | Home ya espera con el Brote; el tinte tardío es decorativo. |
 | 16 | Sin cambios (ya resuelto) | 2026-11-11 | Falso positivo de la auditoría. |
 | 17 | | | |
 | 18 | | | |
