@@ -90,3 +90,15 @@ Los cinco `*-body.png` se obtuvieron mediante ImageGen integrado (`precise-objec
 | `D · Achatada` | [`semillas/achatada-body.png`](semillas/achatada-body.png) | [`semillas/achatada-raw.png`](semillas/achatada-raw.png) |
 | `F · Café vertical` | [`semillas/cafe-vertical-body.png`](semillas/cafe-vertical-body.png) | [`semillas/cafe-vertical-raw.png`](semillas/cafe-vertical-raw.png) |
 | `G · Café ondulado` | [`semillas/cafe-ondulado-body.png`](semillas/cafe-ondulado-body.png) | [`semillas/cafe-ondulado-raw.png`](semillas/cafe-ondulado-raw.png) |
+
+## Raíces — tres direcciones exploratorias
+
+La lámina [`raices/lamina-raw.png`](raices/lamina-raw.png) es copia binaria de `brand/reed/growth/root-variations-exploration.png`. Cada `*-raw.png` es un recorte exacto de una de sus tres columnas de 661 × 793 px; conserva la cara y el fondo. El cuerpo activo `brand/reed/growth/bodies/root.png` representa otra silueta y no se duplica.
+
+Los tres cuerpos se extrajeron con ImageGen integrado (`precise-object-edit`), quitando ojos, boca y fondo blanco sin suprimir el brote verde ni las franjas de la raíz. La superficie antes tapada por la cara es una reconstrucción aproximada. Cada salida se encuadró en 340 × 340 px, con el eje mayor de 318 px y centro (170, 170), siguiendo el tamaño relativo de la raíz activa. Se descartaron píxeles alfa inferiores a 16/255 y residuos rojo/amarillo de la segmentación (`R>170, G<105, B<105` o `R>180, G>180, B<95`); el RGB de píxeles transparentes se puso a cero. Los raw permanecen intactos.
+
+| Posición en lámina | Cuerpo listo | Raw individual |
+| --- | --- | --- |
+| Izquierda, vertical | [`raices/vertical-body.png`](raices/vertical-body.png) | [`raices/vertical-raw.png`](raices/vertical-raw.png) |
+| Centro, extendida | [`raices/extendida-body.png`](raices/extendida-body.png) | [`raices/extendida-raw.png`](raices/extendida-raw.png) |
+| Derecha, ramificada | [`raices/ramificada-body.png`](raices/ramificada-body.png) | [`raices/ramificada-raw.png`](raices/ramificada-raw.png) |
