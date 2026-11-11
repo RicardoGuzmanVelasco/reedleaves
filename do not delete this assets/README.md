@@ -67,6 +67,8 @@ La lámina [`macetas/lamina-raw.png`](macetas/lamina-raw.png) es copia binaria d
 
 Cada `*-body.png` B–F fue extraído con ImageGen integrado (`background-extraction` y `precise-object-edit`): se retiraron ojos, boca, sombra de suelo, fondo y etiqueta. La terracota bajo la cara es una reconstrucción aproximada; la forma y paleta se basan en el raw. Los cuerpos se prepararon en el mismo marco transparente de **340 × 340** que la Maceta activa. El eje más largo mide unos 300 px, y su centro de silueta está en torno a **(170, 164)**, con margen en los cuatro lados. El escalado conserva la proporción original; la Maceta activa ocupa unos 300 × 296 px en ese marco. Se retiraron islas alfa desconectadas de hasta 30 000 px en la generación grande y, tras el recuadre, cualquier isla de hasta 4096 px. También se retiraron los píxeles rojos espurios (`R>180`, `G<95`, `B<95`) que no existen en el cuerpo activo. Los raw no recibieron esa limpieza.
 
+Corrección de borde: ImageGen había dejado RGB rojo/rosa en píxeles completamente transparentes; algunos visores lo interpolaban como un halo al reducir la imagen. En los cinco cuerpos se puso RGB a cero donde alfa es cero, se descartaron residuos con alfa inferior a 16/255 y se ajustó suavemente la terracota al tono del cuerpo activo. Las siluetas y los raw no se recortaron ni modificaron. El contorno se revisó visualmente sobre fondo negro y blanco a 340 px; conviene una última revisión manual en el tamaño real de interfaz antes de activar cada variante.
+
 | Fuente en lámina B–F | Cuerpo listo | Raw individual |
 | --- | --- | --- |
 | `cuenco` | [`macetas/cuenco-body.png`](macetas/cuenco-body.png) | [`macetas/cuenco-raw.png`](macetas/cuenco-raw.png) |
