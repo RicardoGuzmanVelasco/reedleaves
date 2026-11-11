@@ -1,8 +1,7 @@
 import {transaction,isPostgres} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
-import {defaultCardLanguages,normalizeLanguageList} from "../app/core.mjs";
+import {CONTENT_LANGUAGES,defaultCardLanguages,normalizeLanguageList} from "../app/core.mjs";
 import {lockReaderAccount} from "./reader-account-lock.mjs";
-import {practiceDeckIds} from "./practice-card-access.mjs";
 
 function decode(row,accountLanguage) {
   let languages;
@@ -27,13 +26,11 @@ export async function readerLanguagePreferencesInside(db,userId) {
   return ensureRow(db,userId);
 }
 
-async function availableLanguages(db,userId) {
-  const deckIds=[...await practiceDeckIds(db,userId)];
-  if(!deckIds.length) return [];
-  const rows=await db.prepare(`SELECT DISTINCT COALESCE(NULLIF(c.language,''),d.language) AS language
-    FROM cards c JOIN decks d ON d.id=c.deck_id
-    WHERE c.is_reading_guide=0 AND c.deck_id IN (${deckIds.map(()=>"?").join(",")})`).all(...deckIds);
-  return normalizeLanguageList(rows.map(row=>row.language),[]);
+// Decision: card-language options are fixed to the supported content languages.
+// Deriving them from every practiceable deck and card scanned the whole catalog on each
+// own-profile load. Revisit if content in other locales is introduced.
+function availableLanguages() {
+  return CONTENT_LANGUAGES;
 }
 
 export async function readReaderLanguagePreferences(db,session) {
@@ -42,7 +39,7 @@ export async function readReaderLanguagePreferences(db,session) {
 }
 
 async function withOptions(db,userId,state) {
-  return {...state,options:normalizeLanguageList([...await availableLanguages(db,userId),...state.languages,...defaultCardLanguages(state.accountLanguage)],[])};
+  return {...state,options:normalizeLanguageList([...availableLanguages(),...state.languages,...defaultCardLanguages(state.accountLanguage)],[])};
 }
 
 export async function saveReaderLanguagePreferences(db,session,input) {
