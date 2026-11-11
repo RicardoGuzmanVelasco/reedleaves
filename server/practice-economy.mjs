@@ -10,7 +10,7 @@ import {lockReaderAccount} from "./reader-account-lock.mjs";
 import {grantReaderXpInside} from "./reader-xp-repository.mjs";
 import {effectiveCardLanguage,normalizeLanguageList} from "../app/core.mjs";
 import {readerLanguagePreferencesInside} from "./reader-language-preferences.mjs";
-import {canReviewDeck,reviewableDeckIds} from "./review-card-access.mjs";
+import {canPracticeDeck,practiceDeckIds} from "./practice-card-access.mjs";
 import {discoverPracticeCandidateContext,selectDiscoverPracticeForReader} from "./discover-practice.mjs";
 
 import {PRACTICE_ENABLED_MODES} from "../app/practice-modes.mjs";
@@ -50,7 +50,7 @@ async function availableCards(db,userId,practiceMode,languages=null) {
   const statuses=new Map((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(row=>[row.book_id,row.status]));
   const enrolled=new Set((await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(row=>row.deck_id));
   const saved=new Set((await db.prepare("SELECT card_id FROM card_saves WHERE user_id=?").all(userId)).map(row=>row.card_id));
-  const access=await reviewableDeckIds(db,userId);
+  const access=await practiceDeckIds(db,userId);
   return catalog.allCards.filter(card=>{
     if(card.isReadingGuide||!access.has(card.deckId)||languages&&!languages.includes(effectiveCardLanguage(card))) return false;
     const status=statuses.get(card.bookId)||"unread",isSaved=saved.has(card.id);
@@ -112,7 +112,7 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
     const id=cardIds[position],row=cardByPosition.get(position);
     // Purchased cards survive collection and archive changes. A revoked
     // selected-draft invitation still removes access to the pending card.
-    const hasAccess=canReviewDeck({status:row?.deck_status,kind:row?.deck_kind,
+    const hasAccess=canPracticeDeck({status:row?.deck_status,kind:row?.deck_kind,
       contributionPolicy:row?.contribution_policy,creatorUserId:row?.creator_user_id,
       invited:row?.invited_user_id===userId,hasReadingGuide:false},userId);
     const valid=row?.card_id===id&&row.existing_card_id===id&&row.existing_deck_id&&!row.is_reading_guide&&hasAccess&&!seen.has(id);

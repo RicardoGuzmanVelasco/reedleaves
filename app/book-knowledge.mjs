@@ -31,5 +31,5 @@ export function pendingVisitorBookCount(store,bookIds) {
 
 // Details belong to the same visit; only a different main section ends it.
 export function inLibraryVisit(mode,bookOrigin) {
-  return mode==="library" || bookOrigin==="library"&&["book","guides","guide-preview","preview","review","read","saved","mascots","author"].includes(mode);
+  return mode==="library" || bookOrigin==="library"&&["book","guides","guide-preview","preview","deck","saved","mascots","author"].includes(mode);
 }

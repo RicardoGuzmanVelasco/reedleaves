@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import {growthChanges,growthFeedbackChanges,growthFeedbackMarkup,playGrowthFeedback} from "./growth-feedback.mjs";
 
 test("growth feedback reports only changed current stages across books",()=>{
-  const before={a:{added:true,reviewDays:1},b:{added:true,reviewDays:4},c:{added:true,reviewDays:5},d:{added:true,reviewDays:4}};
-  const after={a:{added:true,reviewDays:2},b:{added:true,reviewDays:5},c:{added:true,reviewDays:5},d:{added:true,reviewDays:5}};
+  const before={a:{added:true,practiceDays:1},b:{added:true,practiceDays:4},c:{added:true,practiceDays:5},d:{added:true,practiceDays:4}};
+  const after={a:{added:true,practiceDays:2},b:{added:true,practiceDays:5},c:{added:true,practiceDays:5},d:{added:true,practiceDays:5}};
   assert.deepEqual(growthChanges(before,after),[{bookId:"a",previous:"soil",stage:"seed"},{bookId:"b",previous:"seedling",stage:"sprout"},{bookId:"d",previous:"seedling",stage:"sprout"}]);
   assert.deepEqual(growthFeedbackChanges(before,after),[
     {bookId:"a",previous:"soil",stage:"seed",previousCount:1,previousCountAfter:0,stageCount:0,stageCountAfter:1},

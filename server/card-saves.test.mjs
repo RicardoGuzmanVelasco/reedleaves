@@ -33,7 +33,7 @@ for(const dialect of ['sqlite','postgres']){
     assert.deepEqual(await setCardSave(db,a,{cardId:'habit-2',saved:true},new Date('2026-10-14T12:00:00Z')),first);
     await recordCardView(db,a,{cardId:'habit-2',context:'saved'},new Date('2026-10-14T12:00:00Z'));
     const after=await readReaderState(db,a,now);
-    assert.deepEqual(after.wallet,before.wallet);assert.deepEqual(after.growth["seven-habits"],{reviewDays:0,added:true});
+    assert.deepEqual(after.wallet,before.wallet);assert.deepEqual(after.growth["seven-habits"],{practiceDays:0,added:true});
     assert.equal(after.cardSaves[0].cardId,'habit-2');
     assert.equal((await readSavedCards(db,b,'seven-habits')).cards.length,0);
     assert.equal((await readCardActions(db,b,'habit-2')).saved,false);

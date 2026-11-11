@@ -6,7 +6,7 @@ import {readCatalog} from "../server/catalog-repository.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {featuredDecks} from "./decks.mjs";
 import {bookshelfBooks} from "./bookshelf.mjs";
-import {bookcaseView,homeView,libraryView,deckView,reviewView} from "./views.mjs";
+import {bookcaseView,homeView,libraryView,deckView,deckPageView} from "./views.mjs";
 import {words} from "./i18n.mjs";
 
 async function fixture() {
@@ -122,8 +122,8 @@ test("Cardcase tab groups owned and enrolled decks by their book's reading statu
     assert.ok(html.indexOf('id="cardcase-decks-reading"')<html.indexOf('id="cardcase-decks-read"'));
     assert.match(html,new RegExp(c.readingStatus));
     assert.match(html,new RegExp(c.readStatus));
-    assert.match(html,/data-action="review-cardcase-deck" data-deck="seven-habits-editorial"/);
-    assert.match(html,/data-action="review-cardcase-deck" data-deck="atomic-habits-editorial"/);
+    assert.match(html,/data-action="open-cardcase-deck" data-deck="seven-habits-editorial"/);
+    assert.match(html,/data-action="open-cardcase-deck" data-deck="atomic-habits-editorial"/);
     assert.doesNotMatch(html,/data-action="remove-cardcase-deck"/);
     assert.match(html,/class="deck-grid cardcase-decks"/);
     assert.equal((html.match(/class="deck-tile(?:\s|")/g)||[]).length,2);
@@ -139,11 +139,11 @@ test("Cardcase tab groups owned and enrolled decks by their book's reading statu
 test("Deck details distinguish adding to the cardcase from starting practice",async()=>{
   const s=await fixture(),deck=featuredDecks(s.catalog,"atomic-habits")[0];
   const state={...s,bookId:"atomic-habits",deckChoices:[deck],deckId:deck.deck.id};
-  const notAdded=reviewView(state);
+  const notAdded=deckPageView(state);
   assert.match(notAdded,/data-action="add-deck-to-cardcase"/);
   assert.match(notAdded,/Costs 2 leaves|Cuesta 2 hojas/);
   assert.doesNotMatch(notAdded,/data-action="select-deck"/);
-  const added=reviewView({...state,enrolledIds:[deck.deck.id]});
+  const added=deckPageView({...state,enrolledIds:[deck.deck.id]});
   assert.doesNotMatch(added,/data-action="add-deck-to-cardcase"/);
   assert.match(added,/data-action="remove-cardcase-deck"/);
   assert.ok(added.includes(words.es.removeDeckFromCardcase));

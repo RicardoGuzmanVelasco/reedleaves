@@ -151,7 +151,7 @@ test("Card attributions link to the book, author, deck and creator",async()=>{
   const s={catalog,language:"es",daily:{id:card.id,day:"2026-10-06"},dailyToday:{day:"2026-10-06"},dailyHistory:[{id:card.id,day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",storageAvailable:true};
   const html=dailyView({...s,dailyExclusiveCardId:card.id}),footer=html.slice(html.indexOf('<footer'),html.indexOf('</footer>'));
   assert.match(footer,/#library\/book\//);assert.match(footer,/#library\/author\//);
-  assert.ok(footer.includes(`#review/${encodeURIComponent(card.deckId)}`));
+  assert.ok(footer.includes(`#deck/${encodeURIComponent(card.deckId)}`));
   assert.match(footer,/#profile\/reed-team/);
   assert.doesNotMatch(footer,/ · /);
 });

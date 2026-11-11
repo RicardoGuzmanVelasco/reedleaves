@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {bookTitle,bookCoverTitle} from "./core.mjs";
-import {libraryView,libraryResultsMarkup,homeView,deckView,reviewView,dailyView} from "./views.mjs";
+import {libraryView,libraryResultsMarkup,homeView,deckView,deckPageView,dailyView} from "./views.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {featuredDecks} from "./decks.mjs";
 import {openDatabase,initializeDatabase} from "../server/database.mjs";
@@ -46,7 +46,7 @@ test("Preferred titles apply across reading views while the popular title stays 
     book.title[language]="Preferred book title";
     const localized={...s,language,dailyExclusiveCardId:"habit-1"};
     for (const html of [libraryView({...localized,openBookId:s.bookId}),libraryResultsMarkup({...localized,libraryQuery:"Titre populaire"}),
-      homeView(localized),deckView(localized),reviewView(localized),reviewView({...localized,requestedId:"habit-1"}),dailyView(localized)]) {
+      homeView(localized),deckView(localized),deckPageView(localized),deckPageView({...localized,requestedId:"habit-1"}),dailyView(localized)]) {
       assert.match(html,new RegExp(`lang="${language}" dir="auto"[^>]*>Preferred book title`));
     }
     const details=libraryView({...localized,openBookId:s.bookId});

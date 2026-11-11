@@ -96,7 +96,7 @@ test("Nonconsecutive review days across decks earn Bud, Flower and Evergreen at 
   // Another completed session on an existing local date adds no growth day.
   await selectDeck(db,a,decks[1].deckId,day(30));
   await recordCompletedPractice(db,a,bookId,day(30),decks[1].deckId);
-  assert.equal((await readReaderState(db,a,day(30))).growth[bookId].reviewDays,30);
+  assert.equal((await readReaderState(db,a,day(30))).growth[bookId].practiceDays,30);
   const {mascots}=(await readProfile(db,a.user_id,a.user_id)).profile;
   assert.equal(mascots.evergreen,1);assert.equal(mascots.flower,0);assert.equal(mascots.bud,0);assert.equal(mascots.stem,0);assert.equal(mascots.sprout,0);
 });

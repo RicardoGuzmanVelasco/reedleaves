@@ -12,9 +12,9 @@ export const mascotStages = Object.freeze([
   {id:"evergreen",name:"mascotNameEvergreen",days:30}
 ].map(Object.freeze));
 
-export function mascotStageEarned(stage,{added=false,reviewDays=0}={}) {
+export function mascotStageEarned(stage,{added=false,practiceDays=0}={}) {
   if (stage.days === undefined) return false;
-  return stage.days === 0 ? added : reviewDays >= stage.days;
+  return stage.days === 0 ? added : practiceDays >= stage.days;
 }
 
 // A book contributes only its current stage to the profile inventory.

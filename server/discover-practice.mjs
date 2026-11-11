@@ -8,14 +8,14 @@ import {ApiError} from "./errors.mjs";
 import {readerInterestPreferencesInside} from "./reader-interest-preferences.mjs";
 import {lockReaderAccount} from "./reader-account-lock.mjs";
 import {readerLanguagePreferencesInside} from "./reader-language-preferences.mjs";
-import {reviewableDeckIds} from "./review-card-access.mjs";
+import {practiceDeckIds} from "./practice-card-access.mjs";
 
 export const DISCOVER_PRACTICE_REQUIRED=5;
 
 export async function discoverPracticeCandidateContext(db,userId,languages) {
   const catalog=prepareCatalog(await readCatalog(db,userId));
   const [access,preferences,languagePreferences,distinguished,statusRows]=await Promise.all([
-    reviewableDeckIds(db,userId),
+    practiceDeckIds(db,userId),
     readerInterestPreferencesInside(db,userId),
     readerLanguagePreferencesInside(db,userId),
     distinguishedBookIds(db,userId),

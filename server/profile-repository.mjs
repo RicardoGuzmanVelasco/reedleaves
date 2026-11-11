@@ -74,7 +74,7 @@ export async function readProfile(db,userId,viewerId) {
     const mascots={...Object.fromEntries(mascotStages.map(stage=>[stage.id,0])),sapling:0,plant:0};
     const added=new Set([...Object.keys(statuses),...(await db.prepare("SELECT d.book_id FROM studies s JOIN decks d ON d.id=s.deck_id WHERE s.user_id=?").all(userId)).map(row=>row.book_id)]);
     for (const bookId of new Set([...added,...days.keys()])) {
-      const stage=currentMascotStage({reviewDays:days.get(bookId)||0,added:added.has(bookId)});
+      const stage=currentMascotStage({practiceDays:days.get(bookId)||0,added:added.has(bookId)});
       if (stage) mascots[stage]++;
     }
     const count=async(sql,...values)=>Number((await db.prepare(sql).get(...values)).n);

@@ -2,7 +2,7 @@ import {transaction,isPostgres} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
 import {defaultCardLanguages,normalizeLanguageList} from "../app/core.mjs";
 import {lockReaderAccount} from "./reader-account-lock.mjs";
-import {reviewableDeckIds} from "./review-card-access.mjs";
+import {practiceDeckIds} from "./practice-card-access.mjs";
 
 function decode(row,accountLanguage) {
   let languages;
@@ -28,7 +28,7 @@ export async function readerLanguagePreferencesInside(db,userId) {
 }
 
 async function availableLanguages(db,userId) {
-  const deckIds=[...await reviewableDeckIds(db,userId)];
+  const deckIds=[...await practiceDeckIds(db,userId)];
   if(!deckIds.length) return [];
   const rows=await db.prepare(`SELECT DISTINCT COALESCE(NULLIF(c.language,''),d.language) AS language
     FROM cards c JOIN decks d ON d.id=c.deck_id

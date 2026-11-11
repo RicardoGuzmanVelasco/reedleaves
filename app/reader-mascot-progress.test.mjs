@@ -16,9 +16,9 @@ test("the reader mascot advances at XP level stage boundaries",()=>{
 
 test("XP mascot and per-book mascot progress remain independent",()=>{
   assert.equal(readerMascotStageForXp(0),"pot");
-  assert.equal(currentMascotStage({added:true,reviewDays:5}),"sprout");
+  assert.equal(currentMascotStage({added:true,practiceDays:5}),"sprout");
   assert.equal(readerMascotStageForXp(110),"soil");
-  assert.equal(currentMascotStage({added:true,reviewDays:30}),"evergreen");
+  assert.equal(currentMascotStage({added:true,practiceDays:30}),"evergreen");
 });
 
 test("invalid XP is rejected",()=>{

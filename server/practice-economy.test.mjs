@@ -10,7 +10,7 @@ import {accruePetalWallet} from "./petal-wallet-repository.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
 import {setCardSave} from "./card-saves.mjs";
 import {readReaderLanguagePreferences,saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
-import {reviewableDeckIds} from "./review-card-access.mjs";
+import {practiceDeckIds} from "./practice-card-access.mjs";
 import {createDeck,takeNote,addDeckContributors} from "./author-repository.mjs";
 
 async function fixture(t,dialect="sqlite") {
@@ -55,7 +55,7 @@ for(const dialect of ["sqlite","postgres"]) {
         max_cards_per_contributor=1,status=? WHERE id=?`).run(policy,status,deckId);
     }
     await db.prepare("INSERT INTO deck_contributors(deck_id,user_id) VALUES (?,?)").run("seven-habits-inside-out",session.user_id);
-    const ownerIds=await reviewableDeckIds(db,"reed-team"),memberIds=await reviewableDeckIds(db,session.user_id);
+    const ownerIds=await practiceDeckIds(db,"reed-team"),memberIds=await practiceDeckIds(db,session.user_id);
     assert.equal(ownerIds.has("seven-habits-editorial"),true,"an owner retains access to their draft");
     assert.equal(memberIds.has("seven-habits-inside-out"),true,"an invited reader can access a selected draft");
     assert.equal(memberIds.has("atomic-habits-editorial"),true,"an open collective draft is available to readers");
@@ -139,7 +139,7 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal(result.session.index,PRACTICE_SESSION_SIZE);assert.ok(result.session.completedAt);
     const after=await readReaderState(db,session,now),expected=practiceDiscountMode("reader",result.session.completedAt);
     assert.equal(after.practiceDiscountMode,expected);assert.equal(after.activePracticeSession,null);
-    assert.equal(after.growth["seven-habits"].reviewDays,1);
+    assert.equal(after.growth["seven-habits"].practiceDays,1);
     assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM practice_session_cards WHERE session_id=?").get(first.session.id)).n,5);
     assert.equal((await db.prepare("SELECT completed_local_day FROM practice_sessions WHERE id=?").get(first.session.id)).completed_local_day,"2026-10-06");
     assert.equal(Object.keys(after.practiceAnswers).length,PRACTICE_SESSION_SIZE);
@@ -427,7 +427,7 @@ test("mascot growth starts a new local day at midnight",async t=>{
   await completePractice(new Date("2026-10-06T21:58:00Z"));
   await completePractice(new Date("2026-10-06T22:00:00Z"));
   const state=await readReaderState(db,session,new Date("2026-10-06T22:01:00Z"));
-  assert.equal(state.growth["seven-habits"].reviewDays,2);
+  assert.equal(state.growth["seven-habits"].practiceDays,2);
   const days=await db.prepare("SELECT completed_local_day FROM practice_sessions WHERE completed_at IS NOT NULL ORDER BY completed_local_day").all();
   assert.deepEqual(days.map(row=>row.completed_local_day),["2026-10-06","2026-10-07"]);
 });

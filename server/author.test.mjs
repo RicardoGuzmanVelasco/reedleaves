@@ -12,7 +12,7 @@ import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {readReaderState as readReaderStateAtDate,selectDeck,openCard,dailyIdea,changeReading} from "./reader-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
 import {featuredDecks} from "../app/decks.mjs";
-import {authorView,authorFormView,reviewView,dailyView,libraryView,deckView} from "../app/views.mjs";
+import {authorView,authorFormView,deckPageView,dailyView,libraryView,deckView} from "../app/views.mjs";
 import {bookMetadata} from "./fixtures/book-autofill.mjs";
 import {mergeBooks} from "./book-merge.mjs";
 
@@ -331,10 +331,10 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.match(authorView({...ui,requestedId:null}),/Citas sin clasificar/); assert.match(authorView(ui),/<blockquote/);
     assert.match(authorView(ui),/quote-card/); assert.match(authorView({...ui,quotesOnly:true}),/Texte à mémoriser/);
     assert.match(authorFormView({...ui,authorForm:{kind:"quote",language:"fr"}}),/Citas sin clasificar/);
-    assert.match(reviewView({...ui,mode:"review",requestedId:null}),/Citas sin clasificar/);
+    assert.match(deckPageView({...ui,mode:"deck",requestedId:null}),/Citas sin clasificar/);
     // Existing saved titles must not reappear in quote views or navigation.
     model.byId.get(quote.cardId).title.fr = "Ancien titre";
-    for (const html of [authorView(ui),reviewView({...ui,mode:"review"}),dailyView({...ui,daily:{id:quote.cardId,day:"2026-10-06"},dailyExclusiveCardId:quote.cardId})]) {
+    for (const html of [authorView(ui),deckPageView({...ui,mode:"deck"}),dailyView({...ui,daily:{id:quote.cardId,day:"2026-10-06"},dailyExclusiveCardId:quote.cardId})]) {
       const quoteMarkup=html.match(/<article class="idea-card quote-card">[\s\S]*?<\/article>/)?.[0];
       assert.ok(quoteMarkup); assert.doesNotMatch(quoteMarkup,/<h[1-6]\b/);
       assert.doesNotMatch(html,/Ancien titre/);

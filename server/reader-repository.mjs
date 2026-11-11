@@ -70,7 +70,7 @@ export async function readReaderHomeBooks(db,session) {
         SELECT book_id FROM book_reading WHERE user_id=? AND status='reading'
         UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='draft'
       ) active ON active.book_id=bg.book_id ORDER BY bg.position`).all(userId,userId);
-    const reviewDays=await db.prepare(`SELECT d.book_id,COUNT(DISTINCT ps.completed_local_day) AS review_days
+    const practiceDays=await db.prepare(`SELECT d.book_id,COUNT(DISTINCT ps.completed_local_day) AS review_days
       FROM practice_sessions ps JOIN practice_session_cards psc ON psc.session_id=ps.id
       JOIN cards c ON c.id=psc.card_id JOIN decks d ON d.id=c.deck_id
       WHERE ps.user_id=? AND ps.completed_at IS NOT NULL AND ps.completed_local_day IS NOT NULL
@@ -79,11 +79,11 @@ export async function readReaderHomeBooks(db,session) {
     const translationsByBook=new Map(),genresByBook=new Map(),growthByBook=new Map();
     for(const row of translations){const translated=translationsByBook.get(row.book_id)||{title:{},description:{}};if(row.title.trim()!==row.popular_title.trim())translated.title[row.language]=row.title;translated.description[row.language]=row.description;translationsByBook.set(row.book_id,translated);}
     for(const row of genres){const values=genresByBook.get(row.book_id)||[];values.push(row.genre_id);genresByBook.set(row.book_id,values);}
-    for(const row of reviewDays)growthByBook.set(row.book_id,Number(row.review_days));
+    for(const row of practiceDays)growthByBook.set(row.book_id,Number(row.review_days));
     return {pendingNewBookCount:await pendingNewBookCount(db,userId),books:books.map(row=>({id:row.id,author:row.author,popularTitle:row.popular_title,popularLanguage:row.popular_language,
       creatorUserId:row.creator_user_id,status:row.status,noteDeckCount:Number(row.note_deck_count),lastNoteAt:row.last_note_at,
       title:translationsByBook.get(row.id)?.title||{},description:translationsByBook.get(row.id)?.description||{},genres:genresByBook.get(row.id)||[],
-      growth:{added:true,reviewDays:growthByBook.get(row.id)||0}}))};
+      growth:{added:true,practiceDays:growthByBook.get(row.id)||0}}))};
   });
 }
 async function stateInside(db,session,now) {
@@ -114,8 +114,8 @@ async function stateInside(db,session,now) {
     FROM practice_sessions ps JOIN practice_session_cards psc ON psc.session_id=ps.id
     JOIN cards c ON c.id=psc.card_id JOIN decks v ON v.id=c.deck_id
     WHERE ps.user_id=? AND ps.completed_at IS NOT NULL AND ps.completed_local_day IS NOT NULL GROUP BY v.book_id`).all(userId))
-    .map(r=>[r.book_id,{reviewDays:Number(r.review_days)}]));
-  for(const bookId of addedBooks) growth[bookId]={reviewDays:growth[bookId]?.reviewDays||0,added:true};
+    .map(r=>[r.book_id,{practiceDays:Number(r.review_days)}]));
+  for(const bookId of addedBooks) growth[bookId]={practiceDays:growth[bookId]?.practiceDays||0,added:true};
   for(const value of Object.values(growth)) value.added=!!value.added;
   const dailyRows=await db.prepare(`SELECT d.day,c.id,c.book_id,v.user_id AS seen_by_user
     FROM daily_ideas d JOIN cards c ON c.id=d.card_id

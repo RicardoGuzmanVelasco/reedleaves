@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {deckPageHash,deckReadingHash,deckShareUrl,cardShareUrl} from './deck-navigation.mjs';
-import {reviewView,deckPeekView,deckView,sharedCardView} from './views.mjs';
+import {deckPageView,deckPeekView,deckView,sharedCardView} from './views.mjs';
 import {words} from './i18n.mjs';
 import {openDatabase,initializeDatabase} from '../server/database.mjs';
 import {seedCatalog} from '../server/seed.mjs';
@@ -10,9 +10,9 @@ import {prepareCatalog} from './catalog.mjs';
 import {readerState} from '../test-support/reader-state.mjs';
 
 test('Shared decks open clean reading without carrying the selected card',()=>{
-  const url=deckShareUrl('https://reedleaves.com/app/#review/old/card-2','a-deck');
+  const url=deckShareUrl('https://reedleaves.com/app/#deck/old/card-2','a-deck');
   assert.equal(url,'https://reedleaves.com/app/#preview/a-deck');
-  assert.equal(deckPageHash('a/deck'),'#review/a%2Fdeck');
+  assert.equal(deckPageHash('a/deck'),'#deck/a%2Fdeck');
   assert.equal(deckReadingHash('a/deck'),'#preview/a%2Fdeck');
   assert.equal(deckShareUrl('https://reedleaves.com/app/?sharedCard=old&cardLanguage=es#card/old/es','new'),'https://reedleaves.com/app/#preview/new');
   for(const language of ['es','en']) for(const type of ['idea','quote','card']) {
@@ -32,13 +32,13 @@ test('One deck page handles discovery, collection and ownership while clean read
     assert.equal(c.removeDeckFromCardcase,language==='es'?'Quitar del tarjetero':'Remove from cardcase');
     assert.doesNotMatch(deckView({...base,openDeckId:deck.id}),/<dialog/);
     for(const userId of [undefined,'visitor',deck.creator.userId]){
-      const state={...base,userId},page=reviewView(state);
+      const state={...base,userId},page=deckPageView(state);
       assert.ok(page.includes(c.readDeckCards));assert.match(page,/data-action="preview-deck"/);
       assert.match(page,/data-action="share-deck"/);assert.ok(page.includes(c.deckInformation));
       assert.equal(page.includes('data-action="add-deck-to-cardcase"'),true);
       assert.equal(page.includes('data-action="take-deck-note"'),userId===deck.creator.userId&&deck.status==='draft');
     }
-    const collected=reviewView({...base,userId:'visitor',enrolledIds:[deck.id]});
+    const collected=deckPageView({...base,userId:'visitor',enrolledIds:[deck.id]});
     assert.doesNotMatch(collected,/data-action="add-deck-to-cardcase"/);assert.match(collected,/data-action="remove-cardcase-deck"/);assert.ok(collected.includes(c.removeDeckFromCardcase));
     const reading=deckPeekView(base);
     assert.ok(reading.includes(c.viewDeck));assert.match(reading,/data-action="back-from-deck-preview"/);

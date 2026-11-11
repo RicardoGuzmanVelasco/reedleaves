@@ -28,7 +28,7 @@ test("Adding a deck costs two leaves once; viewing it is free and users are isol
   const added = await addDeckToCardcase(db,a,version,today), state = added.state;
   assert.deepEqual(state.enrolledIds,[version]); assert.equal(state.selections["seven-habits"],version);
   assert.equal(state.wallet.balance,before.wallet.balance-2); assert.equal("practices" in state,false);
-  assert.deepEqual(state.growth["seven-habits"],{added:true,reviewDays:0});
+  assert.deepEqual(state.growth["seven-habits"],{added:true,practiceDays:0});
   assert.equal((await selectDeck(db,a,version,today)).wallet.balance,state.wallet.balance);
   assert.equal((await addDeckToCardcase(db,a,version,today)).state.wallet.balance,state.wallet.balance);
   await db.prepare("UPDATE leaf_wallets SET balance=1 WHERE user_id=?").run(a.user_id);
@@ -101,13 +101,13 @@ test("Mascot growth counts distinct days with completed paid practices, not card
     return result;
   };
   await openCard(db,a,version,"habit-1",date("2026-10-07"));
-  assert.equal((await readReaderState(db,a,date("2026-10-07"))).growth["seven-habits"].reviewDays,0);
+  assert.equal((await readReaderState(db,a,date("2026-10-07"))).growth["seven-habits"].practiceDays,0);
   await practice(date("2026-10-07")); await practice(date("2026-10-07"));
-  assert.deepEqual((await readReaderState(db,a,date("2026-10-07"))).growth["seven-habits"],{added:true,reviewDays:1});
+  assert.deepEqual((await readReaderState(db,a,date("2026-10-07"))).growth["seven-habits"],{added:true,practiceDays:1});
   await practice(date("2026-10-08"));
   const threeDays=await practice(date("2026-10-09"));
   assert.equal(threeDays.session.index,5);
-  assert.equal((await readReaderState(db,a,date("2026-10-09"))).growth["seven-habits"].reviewDays,3);
+  assert.equal((await readReaderState(db,a,date("2026-10-09"))).growth["seven-habits"].practiceDays,3);
   assert.deepEqual((await readReaderState(db,b,today)).growth,{});
 });
 test("Any card opens freely and records a unique view without creating deck progress",async t=>{
