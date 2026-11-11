@@ -18,7 +18,7 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=evergreen-2";
-import {sharedCardView,homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,guideReviewQueueView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,profileWakeOverlayView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=evergreen-2";
+import {sharedCardView,homeView,libraryView,libraryResultsMarkup,bookshelfView,dailyView,practiceView,deckView,readingGuidesView,guideReviewQueueView,readingGuideDeckPreviewView,deckPeekView,reviewView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,navigationPendingView,profileWakeOverlayView,loadingView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=evergreen-2";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {filterLibrary,libraryDefaults} from "./book-search.mjs";
@@ -551,15 +551,30 @@ export function startReader({createCardFeatures} = {}) {
     }
     scrollToCard = false;
   }
+  function showNavigationPending() {
+    disposeBookLists();disposeDeckPresentation();practicePresentation.dispose();
+    for(const name of ["is-presenting","is-practicing","is-practice-choosing"])document.body.classList.remove(name);
+    main.innerHTML=navigationPendingView(language);
+  }
+  let pendingOverlay=null;
+  function showPendingOverlay() {
+    if(pendingOverlay)return;
+    pendingOverlay=document.createElement("div");pendingOverlay.className="pending-overlay";
+    pendingOverlay.innerHTML=navigationPendingView(language);document.body.append(pendingOverlay);
+  }
+  function hidePendingOverlay() {pendingOverlay?.remove();pendingOverlay=null;}
   function route(focus = true) {
     const requestedHome=!location.hash||location.hash==="#home";
     if(ready&&snapshot.user&&!catalogIsFull&&(requestedHome?homeBooksUserId!==snapshot.user.id: true)){
       const request=requestedHome?ensureHomeData():ensureFullCatalog();
+      showNavigationPending();
       void request.then(()=>route(focus)).catch(error=>{syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
       return;
     }
     if(ready&&!snapshot.user&&!catalogIsFull&&!requestedHome&&!location.hash.startsWith("#account")){
-      void ensureFullCatalog().then(()=>route(focus)).catch(error=>{syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
+      const request=ensureFullCatalog();
+      showNavigationPending();
+      void request.then(()=>route(focus)).catch(error=>{syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
       return;
     }
     const previousMode=mode;
@@ -1118,9 +1133,10 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function withFullCatalogForBook(id,action){
     try{
-      if(!catalogIsFull)await ensureFullCatalog();
+      if(!catalogIsFull){showPendingOverlay();await ensureFullCatalog();}
+      hidePendingOverlay();
       if(catalog?.booksById.has(id))action();
-    }catch(error){syncError=error.code||"connectionError";render();}
+    }catch(error){hidePendingOverlay();syncError=error.code||"connectionError";render();}
   }
   function openHomeNote(id) {
     if (!snapshot.user || mode !== "home" || !isHomeBook(catalog,statuses,id,snapshot.user.id)) return;

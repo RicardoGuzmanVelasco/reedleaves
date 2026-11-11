@@ -1225,3 +1225,5 @@ html,body{overflow-x:clip}
   @keyframes xp-toast-arrive { from{transform:translateY(26px);opacity:0} to{transform:translateY(0);opacity:1} }
 }
 @media(forced-colors:active) { .xp-meter { appearance:auto; } }
+.navigation-pending{min-height:60vh;display:grid;place-items:center}.navigation-pending-mascot{width:230px;height:230px}
+.pending-overlay{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(255,253,246,.72)}

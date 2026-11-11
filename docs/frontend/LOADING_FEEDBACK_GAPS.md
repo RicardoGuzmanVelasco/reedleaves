@@ -1,0 +1,271 @@
+# Huecos de feedback de carga y espera
+
+Auditoría del 2026-11-11 sobre el lector (`app/reader-app.mjs`, `app/views.mjs`, `app/card-features.jsx`, módulos de intereses). Se hizo leyendo el código; no se verificó en pantalla. Las líneas son aproximadas y pueden moverse.
+
+Estado de cada punto: **Pendiente** hasta que el usuario elija una opción. Los puntos 1–3 ya están resueltos (ver «Decisiones tomadas»). Este documento recoge opciones, no decisiones. Antes de implementar, leer `docs/frontend/DESIGN.md`.
+
+## Reglas para resolverlos
+
+- Copy: usar solo textos ya existentes (`loading`, `aiLoading`, `dailyLoading`, `interestSortLoading`) o aprobados por el usuario. No inventar textos nuevos.
+- Movimiento reducido: todo spinner o animación debe quedar estático con `prefers-reduced-motion`.
+- Accesibilidad: cada espera visible necesita su equivalente en `role="status"` o en `#live`.
+- Tiempo: si se añade un umbral («tarda más de lo normal», retardo antes de mostrar el indicador), centralizarlo en una constante única; no repetir números en vistas ni pruebas.
+- Pruebas: comprobar contratos accesibles (`aria-busy`, `role="status"`, botón deshabilitado), no marcado incidental.
+
+## Patrones disponibles
+
+Referencias para las opciones de cada punto.
+
+| Clave | Patrón | Ya existe en |
+| --- | --- | --- |
+| **A** | Botón en curso: spinner o puntos dentro del botón pulsado, `aria-busy="true"`, el resto de controles quedan deshabilitados. | `.ai-spinner` en el autorrelleno del libro. |
+| **B** | Capa de bloqueo suave: velo translúcido sobre `main` con Brote (mascota) y `role="status"`, solo si la espera supera el umbral. | Mascota dormida del perfil; `.opening-loading`. |
+| **C** | Placeholder en la zona que carga: esqueleto o mascota pequeña con el texto existente, en lugar del contenido vacío o falso. | `profilePendingView`, `dailyLoading`. |
+| **D** | Estado intermedio de dato: distinguir «cargando» de «vacío» o «cero» (guion, esqueleto o nada) hasta que llegue la respuesta. | `record.loaded` en `CardActions`. |
+| **E** | Aviso de lentitud + reintento: tras el umbral, mostrar texto y botón «Reintentar»; al fallar, estado de error con salida. | `loadingView(failed)`, `sync-note` con reintento. |
+| **F** | Navegación optimista: pintar ya la pantalla destino con su placeholder (C) y rellenar al llegar. | Ninguno. |
+| **G** | Anuncio en `#live` sin cambio visual. | Varias acciones ya anuncian al terminar. |
+
+Combinaciones frecuentes: **A + G** para acciones puntuales, **F + C** para navegación, **D** para datos pequeños.
+
+---
+
+## 1. Navegación y arranque
+
+### 1. Cambiar de pantalla mientras carga el catálogo completo
+- **Dónde:** `route()` (líneas ~556–563), `ensureFullCatalog`.
+- **Qué pasa:** si falta el catálogo completo, `route()` sale sin renderizar. Se pulsa Biblioteca, libro o enlace y se queda la pantalla anterior hasta que responde.
+- **Opciones:**
+  1. **F + C** (recomendada): pintar la pantalla destino al momento con placeholder y rellenar al llegar.
+  2. **B** con umbral: mantener la pantalla actual y mostrar el velo solo si tarda.
+  3. **A** sobre el elemento pulsado (enlace de navegación o botón), útil solo si el origen es un botón.
+- **Notas:** compartir solución con el 3. Añadir **E** si la carga falla (ya existe `syncError`).
+
+### 2. Entrar a Home tras login o logout
+- **Dónde:** `ensureHomeData`, `mutation` con `/api/auth/logout` (~1561).
+- **Qué pasa:** pide saldos y libros sin pantalla de carga; el logout recarga el catálogo sin señal.
+- **Opciones:**
+  1. **C** en Home: mascota o esqueleto de la fila de libros hasta que llegue `homeBooksData`.
+  2. **B** durante el logout, con el texto existente `loading`.
+  3. Reutilizar la pantalla de arranque (`loadingView`) en estas transiciones.
+- **Notas:** la opción 3 es la más simple; la 1 se siente más viva.
+
+### 3. Abrir un libro o nota que necesita el catálogo completo
+- **Dónde:** `withFullCatalogForBook` (~1118).
+- **Qué pasa:** el toque no produce nada hasta que responde; si falla, solo se refresca con `syncError`.
+- **Opciones:**
+  1. **A** en la tarjeta o botón pulsado + **G**.
+  2. **F + C**: abrir el modal del libro con placeholder.
+- **Notas:** compartir con el 1.
+
+### 4. Arranque con red lenta
+- **Dónde:** `bootstrap` (~1736), `loadingView`.
+- **Qué pasa:** solo hay mascota sin texto. Sin aviso de lentitud; el error solo llega al fallar del todo.
+- **Opciones:**
+  1. **E** con umbral: tras X segundos, texto existente de carga y reintento.
+  2. Dejarlo así si el arranque es corto en producción (medir antes).
+  3. Añadir un estado «sin conexión» propio, distinto del error genérico.
+- **Notas:** medir el tiempo real de arranque en producción antes de decidir.
+
+---
+
+## 2. Acciones que bloquean toda la pantalla
+
+La base es `lockControls` (~373): `busy` solo pone `aria-busy` y deshabilita controles; visualmente solo baja la opacidad al 40 %. Una solución común resuelve los puntos 5 a 11.
+
+### Decisión transversal (puntos 5–11)
+- **Opción T1 (recomendada):** que `lockControls` marque el botón activador con `aria-busy="true"` y muestre el patrón **A**. Los demás controles siguen apagados. Poco código, cubre todo `mutation`.
+- **Opción T2:** añadir **B** global a `main` con umbral para acciones largas.
+- **Opción T3:** T1 + T2: **A** inmediato y **B** si pasa el umbral.
+- Cada punto siguiente indica solo lo específico.
+
+### 5. Todo lo que usa `mutation()`
+- **Dónde:** `mutation` (~1556).
+- **Casos:** cambiar idioma, añadir o quitar baraja, elegir baraja, abrir tarjeta, cerrar sesión, estado de lectura de un libro.
+- **Qué pasa:** controles apagados sin señal; el idioma cambia solo al volver la respuesta.
+- **Opciones:** T1/T3; para el idioma, además cambiar el interruptor de forma optimista (**G**) y revertir si falla.
+- **Notas:** el estado de lectura (`syncBookReadingDialog`) ya actualiza `aria-pressed`; basta añadir **A** al botón elegido.
+
+### 6. Login y registro
+- **Dónde:** `main.addEventListener("submit")`, rama `[data-account-form]` (~1910).
+- **Qué pasa:** el botón sigue diciendo «Entrar»; luego encadena intereses, baraja pendiente, `ensureFullCatalog`, votos o guardados.
+- **Opciones:**
+  1. **A** en el botón de envío durante toda la cadena, sin cambiar el texto.
+  2. **B** con Brote durante la fase posterior al login (las cargas encadenadas).
+  3. Dividir el estado en dos fases: «identificando» (**A**) y «preparando» (**B**).
+- **Notas:** el servidor responde rápido; el tramo largo es el posterior.
+
+### 7. Guardar o crear libro, baraja, tarjeta o nota
+- **Dónde:** `saveAuthorForm` (~1434), recarga con `loadCatalog`.
+- **Qué pasa:** todo se deshabilita sin texto ni spinner; luego recarga el catálogo, otra espera.
+- **Opciones:** **A** en el botón de guardar durante guardado y recarga; **G** al terminar.
+- **Notas:** solo el autorrelleno IA tiene spinner hoy; reutilizar `.ai-spinner`.
+
+### 8. Editar título, idioma o colaboradores de una baraja; guardar guía de lectura
+- **Dónde:** `saveDeckTitle` (~1292), idioma (~1305), `addDeckContributor` (~1318), `saveReadingGuide` (~1052).
+- **Opciones:** T1 con **A** en el control activador; mantener el foco como ya hacen.
+- **Notas:** son formularios pequeños; no usar **B**.
+
+### 9. Terminar baraja y terminar notas
+- **Dónde:** `finishDeck` (~1345), `finishNotes` (~1225); `completion.saving`.
+- **Qué pasa:** bloquea sin indicador; después `loadCatalog`.
+- **Opciones:** **A** en el botón de confirmar dentro del diálogo; **B** si se quiere cubrir la recarga posterior a la navegación.
+
+### 10. Aviso de interés al marcar libro o guardar tarjeta
+- **Dónde:** `runBookInterestAction` (~1595), `bookInterestWarningView`.
+- **Opciones:** **A** en el botón de confirmar del aviso y en el botón de estado de lectura de origen; **G**.
+- **Notas:** `outcomeUnknown` ya deshabilita cancelar; mantener la regla.
+
+### 11. Enviar feedback
+- **Dónde:** `feedbackForm` submit (~1809).
+- **Qué pasa:** solo se deshabilita el botón; se cierra al terminar.
+- **Opciones:** **A** en el botón de envío; mantener el diálogo abierto hasta responder (ya ocurre).
+
+---
+
+## 3. Cargas que muestran un estado falso
+
+### 12. Lista de tarjetas guardadas
+- **Dónde:** `SavedCards`, `loadCollection` (`card-features.jsx`).
+- **Qué pasa:** mientras no responde, muestra «No hay tarjetas guardadas» como si estuviera vacía.
+- **Opciones:**
+  1. **D + C** (recomendada): no mostrar el vacío hasta que `loadCollection` termine; mostrar placeholder.
+  2. Mostrar primero las guardadas conocidas por `snapshot.cardSaves` y completar al llegar.
+- **Notas:** añadir un estado `collectionLoaded` en el puente; la opción 2 evita el parpadeo si ya hay datos.
+
+### 13. Votos y guardar de cada tarjeta
+- **Dónde:** `CardActions` (`record.loaded`).
+- **Qué pasa:** los contadores salen vacíos sin indicador mientras llega `record`.
+- **Opciones:** **D** (contador atenuado o guion hasta cargar), con los botones ya activos si la acción es optimista; **E** si `read` falla (ya hay `onRetry`).
+- **Notas:** decidir si votar antes de cargar debe permitirse; hoy no está claro.
+
+### 14. Contador de tarjetas guardadas
+- **Dónde:** `SavedCardsEntry` con `count`.
+- **Qué pasa:** aparece como 0 hasta que cargan las guardadas.
+- **Opciones:** **D**: ocultar el contador hasta que haya dato, o usar el conteo de `snapshot.cardSaves`.
+
+### 15. Home mientras llegan balances, libros y portadas tintadas
+- **Dónde:** `ensureHomeData`; `loadInterests().then(...).catch(()=>{})`.
+- **Qué pasa:** las portadas se tiñen en un segundo paso; el fallo es silencioso.
+- **Opciones:** **C** en la fila de libros; las portadas pueden aparecer sin tinte y teñirse con transición suave. Sin aviso de fallo si el tinte es solo decorativo.
+
+### 16. Saldos de la cabecera
+- **Dónde:** `currencyWallets` (`aria-busy` ~357).
+- **Qué pasa:** `aria-busy` pero sin indicador visual si `balanceReady` es falso.
+- **Opciones:** **D**: guion o contador atenuado hasta que lleguen los saldos.
+
+---
+
+## 4. Intereses y perfil
+
+### 17. Selector inicial de intereses
+- **Dónde:** `loadHomeInterestPreferences`, `openInitialInterestSetup` (~778–822).
+- **Qué pasa:** carga preferencias e intereses antes de abrirse; si falla, queda «reintentar en la siguiente navegación», sin aviso.
+- **Opciones:**
+  1. **E**: aviso discreto con reintento si falla.
+  2. Reintento automático con retardo, sin aviso, y aviso solo tras varios fallos.
+  3. Dejarlo silencioso por ser opcional (decisión de producto).
+
+### 18. Detección de nuevos intereses
+- **Dónde:** `new-interests.mjs` `load()` (dos peticiones antes de abrir el modal).
+- **Opciones:** mismas que el 17; el modal ya tiene estado `saving`, que podría mostrarse **A**-style cuando es visible.
+
+### 19. Guardar ordenación por intereses
+- **Dónde:** `bookSortPreferenceWriter`; login con intención de ordenar.
+- **Qué pasa:** Biblioteca tiene `interestSortLoading`; el resto de disparadores (tras login) no.
+- **Opciones:** llevar el mismo estado al punto de entrada post-login (**G** al terminar) y reutilizarlo en Perfil.
+
+### 20. Intereses e idiomas del perfil
+- **Dónde:** `profileView`, `profile-interests-loading`.
+- **Qué pasa:** solo texto «Cargando…» sin estilo.
+- **Opciones:** **C** con esqueleto de las fichas de interés; o mantener el texto si la carga es muy corta.
+
+---
+
+## 5. Práctica y diario
+
+### 21. Respuesta de práctica
+- **Dónde:** `answerPractice`, `recoverPracticeSession` (~985–1020).
+- **Qué pasa:** la tarjeta sale al instante; si la petición va lenta o falla, la recuperación ocurre sin que se vea.
+- **Opciones:** **E** si la recuperación tarda; la siguiente tarjeta no se presenta hasta tener respuesta, con **C** discreto.
+- **Notas:** el diseño es optimista a propósito; no bloquear la animación de salida.
+
+### 22. Iniciar práctica
+- **Dónde:** `startPractice` (~930), `practiceStarting`.
+- **Qué pasa:** solo el botón del tema lo refleja.
+- **Opciones:** **B** con Brote tras el umbral, **A** en el tema; **G** ya anuncia la preparación en Descubrir.
+
+### 23. Diario
+- **Dónde:** `dailyLoading`, `daily-status`, calendario.
+- **Qué pasa:** el texto existe, pero el estado y el calendario cargan en silencio.
+- **Opciones:** **C** en el calendario hasta que llegue `dailyStatus`; **D** para días aún no confirmados.
+
+---
+
+## 6. Segundo plano sin aviso
+
+### 24. `refreshState()` y sincronización periódica
+- **Dónde:** `refreshState` (~1719).
+- **Opciones:**
+  1. No mostrar nada si todo va bien y avisar solo de fallos repetidos (**E**).
+  2. Indicador mínimo en la cabecera mientras sincroniza (riesgo de ruido visual).
+- **Notas:** probablemente se deje así; documentar la decisión.
+
+### 25. Visita de libros y registro de vistas
+- **Dónde:** `/api/reader/book-knowledge/visit`, `/api/reader/view` (`catch {}`).
+- **Opciones:** no mostrar nada al usuario; añadir reintento silencioso con tope. Sin UI.
+
+### 26. Cola de revisión de guías (archivistas)
+- **Estado:** ya tiene carga, error y reintento propios. Sin cambios; sirve de referencia del patrón **E**.
+
+---
+
+## Orden sugerido
+
+1. **Estados falsos (12–14, 16):** barato y quita información errónea.
+2. **Decisión transversal T1/T3 (5–11):** una sola decisión resuelve la mayoría.
+3. **Navegación (1–3):** la espera más visible; elegir entre **F + C** y **B**.
+4. **Arranque y login (4, 6).**
+5. **Intereses, práctica y diario (17–23).**
+6. **Segundo plano (24–25):** solo si se decide mostrarlos.
+
+## Decisiones tomadas
+
+- **Puntos 1–3: F + C.** Se pinta de inmediato un placeholder con Brote dormido (la misma animación del perfil) y se rellena al llegar el catálogo. Siempre se muestra, sin umbral.
+  - Puntos 1 y 2 (`route()`): el placeholder sustituye el contenido de `main` (`navigationPendingView`).
+  - Punto 3 (`withFullCatalogForBook`): el placeholder va como capa sobre la pantalla actual, para no perder el contexto.
+  - Si la carga falla, se vuelve a la pantalla anterior con el aviso de sincronización existente.
+- **T1/T2/T3 (puntos 5–11): aplazada.** Se decidirá cuando se vea el resto de soluciones.
+
+## Incremento futuro: animación de Brote dormido
+
+Aparte del feedback, hay que revisar la animación de espera. Se aborda después de mejorar el feedback general, cuando se vea cómo queda en todos los sitios que la usan (perfil, navegación y los que se añadan).
+
+- La salida debe ser suave. Hoy el placeholder desaparece de golpe; el perfil solo tiene la transición `wake` propia.
+- La animación debe dar la sensación prevista de espera tranquila y mantenerse siempre en estas esperas.
+- Definir una sola gestión compartida (entrada, bucle, salida y movimiento reducido) en lugar de una por pantalla.
+
+## Registro de decisiones
+
+| Punto | Opción elegida | Fecha | Notas |
+| --- | --- | --- | --- |
+| 1 | F + C (Brote dormido) | 2026-11-11 | Implementado en `route()`. |
+| 2 | F + C (Brote dormido) | 2026-11-11 | Implementado en `route()`. |
+| 3 | F + C (capa sobre pantalla actual) | 2026-11-11 | Implementado en `withFullCatalogForBook`. |
+| 4 | | | |
+| 5–11 (T1/T2/T3) | Aplazada | 2026-11-11 | Decidir tras ver otras soluciones. |
+| 6 | | | |
+| 12 | | | |
+| 13 | | | |
+| 14 | | | |
+| 15 | | | |
+| 16 | | | |
+| 17 | | | |
+| 18 | | | |
+| 19 | | | |
+| 20 | | | |
+| 21 | | | |
+| 22 | | | |
+| 23 | | | |
+| 24 | | | |
+| 25 | | | |

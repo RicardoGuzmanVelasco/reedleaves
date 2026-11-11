@@ -888,6 +888,11 @@ export function profileView(s) {
 export function profileWakeOverlayView() {
   return `<div class="profile-wake-overlay" aria-hidden="true">${mascotArt("sprout","profile-wake-mascot",{animation:"wake"})}</div>`;
 }
+export function navigationPendingView(language) {
+  const c=words[language];
+  return `<section class="navigation-pending" role="status"><span class="sr-only">${esc(c.loading)}</span>${mascotArt("sprout","navigation-pending-mascot",{animation:"sleep"})}</section>`;
+}
+
 export function profilePendingView(s) {
   const c=words[s.language];
   const pending=s.profileError
