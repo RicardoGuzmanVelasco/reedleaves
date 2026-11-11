@@ -134,10 +134,8 @@ La base es `lockControls` (~373): `busy` solo pone `aria-busy` y deshabilita con
 - **Notas:** añadir un estado `collectionLoaded` en el puente; la opción 2 evita el parpadeo si ya hay datos.
 
 ### 13. Votos y guardar de cada tarjeta
-- **Dónde:** `CardActions` (`record.loaded`).
-- **Qué pasa:** los contadores salen vacíos sin indicador mientras llega `record`.
-- **Opciones:** **D** (contador atenuado o guion hasta cargar), con los botones ya activos si la acción es optimista; **E** si `read` falla (ya hay `onRetry`).
-- **Notas:** decidir si votar antes de cargar debe permitirse; hoy no está claro.
+- **Estado:** descartado, sin trabajo (2026-11-11).
+- **Por qué:** mientras `record.loaded` es falso, el contador sale vacío y aparece el número al llegar. Es la opción más simple y ya es el comportamiento actual; los botones funcionan desde el primer instante y, si la lectura falla, hay error con reintento.
 
 ### 14. Contador de tarjetas guardadas
 - **Estado:** descartado, sin trabajo (2026-11-11).
@@ -254,7 +252,7 @@ Aparte del feedback, hay que revisar la animación de espera. Se aborda después
 | 5–11 (T1/T2/T3) | Aplazada | 2026-11-11 | Decidir tras ver otras soluciones. |
 | 6 | | | |
 | 12 | | | |
-| 13 | | | |
+| 13 | Sin cambios (descartado) | 2026-11-11 | Comportamiento actual aceptado. |
 | 14 | Sin cambios (descartado) | 2026-11-11 | Falso positivo de la auditoría. |
 | 15 | | | |
 | 16 | Sin cambios (ya resuelto) | 2026-11-11 | Falso positivo de la auditoría. |
