@@ -45,14 +45,14 @@ test("AI can create a preview without provider citations or a stored bibliograph
   assert.equal(Object.hasOwn(JSON.parse(fake.calls[1].body.input),"sources"),false);
 });
 
-test("AI proposes one to three ordered interests, preserves manual order and rejects invalid lists without truncation",async()=>{
+test("AI defaults to one interest, allows clear secondary interests, preserves manual order and rejects invalid lists",async()=>{
   const known=["personal-growth","society","finance","software"].map(id=>({id,name:id}));
   const selected=["software","society","finance"];
   const fake=fakeProvider([researchResponse(),extractionResponse({genres:selected})]);
   const result=await createBookAutofill({apiKey:"key",...fake})("r",input,known);
   assert.deepEqual(result.metadata.genres,selected);
   const schema=fake.calls[1].body.text.format.schema.properties.genres;
-  assert.equal(schema.minItems,1);assert.equal(schema.maxItems,3);
+  assert.equal(schema.minItems,1);assert.equal(schema.maxItems,3);\n  assert.match(schema.description,/single strongest interest by default/);\n  assert.match(fake.calls[1].body.instructions,/usually contain exactly one id/);\n  assert.match(fake.calls[1].body.instructions,/If unsure, omit it/);
   const manual=["finance","software"];
   const edited=await createBookAutofill({apiKey:"key",...fakeProvider()})("r",{...input,metadata:{genres:manual}},known);
   assert.deepEqual(edited.metadata.genres,manual);

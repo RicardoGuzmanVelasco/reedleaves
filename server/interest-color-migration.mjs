@@ -3,13 +3,13 @@ export const INTEREST_COLOR_MIGRATION_SQLITE = `
   ALTER TABLE genres ADD COLUMN book_color TEXT NOT NULL DEFAULT '';
   UPDATE genres SET emoji='💬' WHERE id='communication' AND (emoji IS NULL OR emoji='');
   UPDATE genres SET chip_color=CASE id
-    WHEN 'finance' THEN '#EEC466' WHEN 'leadership' THEN '#9AB5EC'
+    WHEN 'finance' THEN '#EEC466' WHEN 'leadership' THEN '#9DC6FF'
     WHEN 'metaphysics' THEN '#D9AEFF' WHEN 'mindfulness' THEN '#FFC0D9'
     WHEN 'personal-growth' THEN '#81F265' WHEN 'productivity' THEN '#FF8040'
     WHEN 'psychology' THEN '#FF8DB3' WHEN 'society' THEN '#6B9CFF'
     WHEN 'software' THEN '#BFC1C8' WHEN 'communication' THEN '#59C8FF' ELSE color END,
     book_color=CASE id
-    WHEN 'finance' THEN '#EEC466' WHEN 'leadership' THEN '#8CA8DC'
+    WHEN 'finance' THEN '#EEC466' WHEN 'leadership' THEN '#B9CFFF'
     WHEN 'metaphysics' THEN '#B99AED' WHEN 'mindfulness' THEN '#FFC0D9'
     WHEN 'personal-growth' THEN '#AAD57B' WHEN 'productivity' THEN '#FE8957'
     WHEN 'psychology' THEN '#FF6E9E' WHEN 'society' THEN '#2D73FF'
@@ -22,13 +22,13 @@ export const INTEREST_COLOR_MIGRATION_POSTGRES = `
   UPDATE public.genres SET emoji='💬' WHERE id='communication' AND (emoji IS NULL OR emoji='');
   UPDATE public.genres SET
     chip_color=CASE id
-      WHEN 'finance' THEN '#EEC466' WHEN 'leadership' THEN '#9AB5EC'
+      WHEN 'finance' THEN '#EEC466' WHEN 'leadership' THEN '#9DC6FF'
       WHEN 'metaphysics' THEN '#D9AEFF' WHEN 'mindfulness' THEN '#FFC0D9'
       WHEN 'personal-growth' THEN '#81F265' WHEN 'productivity' THEN '#FF8040'
       WHEN 'psychology' THEN '#FF8DB3' WHEN 'society' THEN '#6B9CFF'
       WHEN 'software' THEN '#BFC1C8' WHEN 'communication' THEN '#59C8FF' ELSE color END,
     book_color=CASE id
-      WHEN 'finance' THEN '#EEC466' WHEN 'leadership' THEN '#8CA8DC'
+      WHEN 'finance' THEN '#EEC466' WHEN 'leadership' THEN '#B9CFFF'
       WHEN 'metaphysics' THEN '#B99AED' WHEN 'mindfulness' THEN '#FFC0D9'
       WHEN 'personal-growth' THEN '#AAD57B' WHEN 'productivity' THEN '#FE8957'
       WHEN 'psychology' THEN '#FF6E9E' WHEN 'society' THEN '#2D73FF'
