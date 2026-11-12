@@ -64,7 +64,7 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 ## Selectores de cápsula
 
 - Por defecto, ocupan el ancho necesario para sus opciones, sin estirarse para rellenar el contenedor. El selector de lectura de la ficha del libro se centra horizontalmente.
-- Las pestañas Estantería / Shelf y Tarjetero / Cardcase de Biblioteca / Bookcase mantienen por ahora su estilo propio. Posible unificación futura: revisar si conviene aplicarles el lenguaje visual del selector de cápsula.
+- Las pestañas Estantería / Shelf y Tarjetero / Cardcase de Biblioteca / Library mantienen por ahora su estilo propio. Posible unificación futura: revisar si conviene aplicarles el lenguaje visual del selector de cápsula.
 - Los selectores de presentación de libros comparten los SVG aprobados de `app/assets/icons/book-layout/`: cuatro portadas en cuadrícula, dos lomos verticales y uno inclinado para Estantería, y tres libros horizontales para Apilados. Fondo e interiores transparentes, con trazo `currentColor` y máscaras CSS que heredan el color del control. Los iconos son negros en reposo y blancos en la opción activa, que conserva el fondo verde oscuro del selector compartido. Mantener las etiquetas accesibles en español e inglés.
 
 ## Cabecera compartida
@@ -132,8 +132,8 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 
 | Concepto | Español | Inglés |
 | --- | --- | --- |
-| Catálogo global | Librería | Library |
-| Colección personal | Biblioteca | Bookcase |
+| Catálogo global | Librería | Bookstore |
+| Colección personal | Biblioteca | Library |
 | Libros de la colección personal | Estantería | Shelf |
 | Barajas de la colección personal | Tarjetero | Cardcase |
 | Conjunto de repaso | Baraja | Deck |
@@ -153,6 +153,8 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 | Recompensa diaria | Hoja | Leaf |
 | Contenido creado por usuarios | Contribuciones | Contributions |
 | Progreso de una persona en un libro | Crecimiento | Growth |
+
+**Vocabulario de secciones, aprobado y obligatorio.** Los cuatro destinos son Librería / Bookstore, Biblioteca / Library, Estantería / Shelf y Tarjetero / Cardcase. Usarlos siempre con ese significado en interfaz, documentación, conversaciones y mensajes entre agentes. En inglés, «Library» es la colección personal y nunca el catálogo; el catálogo es «Bookstore». Dentro de una frase en inglés, escribir «cardcase» en minúscula y los demás con mayúscula inicial («your Library», «the Bookstore»). El código aún usa `library` para Librería y `bookcase` para Biblioteca; está pendiente alinearlo (`bookstore` y `library`).
 
 En castellano, llamar **tarjeta** a cada unidad de contenido; no usar **carta** como sinónimo. **Hoja** conserva el juego intencional entre página y hoja de planta. **Cita** se refiere a un texto citado dentro del contexto de tarjetas. Usar **Practice** para la actividad de aprendizaje en inglés. La Biblioteca / Bookcase personal contiene dos vistas: Estantería / Shelf para libros y Tarjetero / Cardcase para barajas. En los textos que llevan a la colección propia, decir «mi biblioteca / my Bookcase» para distinguirla de la Librería / Library, que es el catálogo. Las barajas creadas por la persona aparecen automáticamente en el Tarjetero / cardcase. Añadir una baraja de otra persona al Tarjetero / cardcase cuesta una hoja; repasar sus tarjetas no gasta hojas.
 

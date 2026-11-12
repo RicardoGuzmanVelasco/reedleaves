@@ -18,18 +18,18 @@ test("both navigation badges share one noninteractive mark and localized accessi
     updateNavigationBadges(root,{language,libraryCount:1234,dailyUnseen:true});
     const library=links.get("library"),daily=links.get("daily");
     assert.match(library.attributes.get("aria-label"),/1234/);
-    assert.match(library.attributes.get("aria-label"),language==="es"?/Librería.*libros nuevos/:/Library.*new books/);
+    assert.match(library.attributes.get("aria-label"),language==="es"?/Librería.*libros nuevos/:/Bookstore.*new books/);
     assert.equal(daily.attributes.get("aria-label"),language==="es"?"Nueva idea del día":"New daily idea");
     assert.equal(library.children[0].className,daily.children[0].className);
     assert.equal(library.children[0]["aria-hidden"],"true");
     const mark=library.children[0];
     updateNavigationBadges(root,{language,libraryCount:1,dailyUnseen:false});
     assert.equal(library.children[0],mark,"rerender keeps the mark and does not restart its animation");
-    assert.equal(library.attributes.get("aria-label"),language==="es"?"Librería, 1 libro nuevo":"Library, 1 new book");
+    assert.equal(library.attributes.get("aria-label"),language==="es"?"Librería, 1 libro nuevo":"Bookstore, 1 new book");
     assert.equal(daily.children.length,0);
     assert.equal(daily.attributes.get("aria-label"),language==="es"?"Idea del día":"Daily idea");
     updateNavigationBadges(root,{language});
     assert.equal(library.children.length,0);
-    assert.equal(library.attributes.get("aria-label"),language==="es"?"Librería":"Library");
+    assert.equal(library.attributes.get("aria-label"),language==="es"?"Librería":"Bookstore");
   }
 });

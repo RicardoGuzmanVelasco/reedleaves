@@ -93,14 +93,14 @@ test("Collection groups, empty states, book details and origin navigation transl
     const state={...s,language}; const c=words[language];
     const html=bookcaseView(state);
     assert.ok(html.includes(c.bookcase)); assert.ok(html.includes(c.shelf)); assert.ok(html.includes(c.cardcase));
-    assert.match(html,/aria-label="(?:Biblioteca|Bookcase)"/); assert.match(html,/href="#bookcase" aria-current="page"/); assert.match(html,/href="#bookcase\/cardcase"/);
+    assert.match(html,/aria-label="(?:Biblioteca|Library)"/); assert.match(html,/href="#bookcase" aria-current="page"/); assert.match(html,/href="#bookcase\/cardcase"/);
     assert.doesNotMatch(html,/open-bookshelf-filters|bookshelf-filter-reading|reset-bookshelf-filters/);
     assert.match(html,/id="bookshelf-group-read"/);
     assert.doesNotMatch(html,/data-action="home"|undefined|data-book="seven-habits"/);
     assert.ok(bookcaseView({...state,statuses:{}}).includes(c.emptyBookshelf));
     assert.match(bookcaseView({...state,openBookId:"atomic-habits"}),/<dialog class="deck-modal book-modal"/);
     assert.ok(libraryView(state).includes(c.books)); assert.match(libraryView(state),/collections\/library\.svg/);
-    assert.doesNotMatch(libraryView(state),/collection-entry|Ir a mi biblioteca|Go to my Bookcase/);
+    assert.doesNotMatch(libraryView(state),/collection-entry|Ir a mi biblioteca|Go to my Library/);
     assert.ok(libraryView({...state,libraryOrigin:"bookcase"}).includes(c.shelfBack));
     assert.doesNotMatch(libraryView({...state,libraryOrigin:"home"}),/data-action="bookcase"/);
     assert.doesNotMatch(homeView(state),/class="home-actions"|data-action="profile"/);

@@ -103,7 +103,7 @@ test("The SQL catalog requires Spanish and English descriptions and notes, while
 test("Book details show a preferred title or fall back to the popular title", async () => {
   const s = {catalog:await catalog(), language:"en", statuses:{}, openBookId:"seven-habits", storageAvailable:true};
   const html = libraryView(s);
-  assert.match(html, /Library/);
+  assert.match(html, /Bookstore/);
   for (const book of s.catalog.books) assert.ok(html.includes(escapeHtml(bookTitle(book,"en").text)));
   assert.match(html, /<h2 id="book-dialog-title"[^>]*>The 7 Habits of Highly Effective People<\/h2>/);
   assert.match(html, /Personal growth/);

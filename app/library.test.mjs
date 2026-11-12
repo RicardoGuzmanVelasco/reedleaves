@@ -57,7 +57,7 @@ test("Book grid and modal translate, escape content and count current decks", as
   book.title.en = '<script>alert("title")</script>';
   book.author = '<img src=x onerror="bad">';
   const html = libraryView(s);
-  assert.match(html,/Library/); assert.match(html,/View decks/); assert.match(html,/2 decks/);
+  assert.match(html,/Bookstore/); assert.match(html,/View decks/); assert.match(html,/2 decks/);
   assert.doesNotMatch(html,/<script|<img src=x/);
   assert.match(html,/&lt;script&gt;/); assert.match(html,/&lt;img/);
   const modal = html.slice(html.indexOf('<dialog'));
