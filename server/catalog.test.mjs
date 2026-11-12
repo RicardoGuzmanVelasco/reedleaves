@@ -15,6 +15,26 @@ async function fixture(t) {
   initializeDatabase(db); await seedCatalog(db);
   return db;
 }
+test("Reading the catalog uses a fixed number of queries, however many cards it holds", async t => {
+  const db = await fixture(t), prepare = db.prepare.bind(db);
+  let queries = 0;
+  db.prepare = sql => { const statement = prepare(sql); return {
+    all:(...values) => { queries++; return statement.all(...values); },
+    get:(...values) => { queries++; return statement.get(...values); },
+    run:(...values) => statement.run(...values) }; };
+  const count = async userId => { queries = 0; await readCatalog(db,userId); return queries; };
+  const anonymous = await count(), signedIn = await count("reed-team");
+  const card = prepare("SELECT * FROM cards WHERE parent_id IS NULL ORDER BY deck_id,position DESC LIMIT 1").get();
+  for (let index = 1; index <= 30; index++) {
+    const id = `${card.id}-extra-${index}`;
+    prepare("INSERT INTO cards(id,book_id,deck_id,parent_id,position,language) VALUES (?,?,?,NULL,?,?)").run(id,card.book_id,card.deck_id,card.position+index,card.language);
+    for (const row of prepare("SELECT language,title,body FROM card_translations WHERE card_id=?").all(card.id)) prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)").run(id,row.language,row.title,row.body);
+  }
+  assert.equal(await count(),anonymous,"more cards do not add queries");
+  assert.equal(await count("reed-team"),signedIn,"more cards do not add queries for a signed-in reader");
+  assert.ok(anonymous <= 20 && signedIn <= 24,`catalog queries stay small: ${anonymous} anonymous, ${signedIn} signed in`);
+});
+
 test("Real SQLite schema: five books, six authored decks and 42 single-language sample cards", async t => {
   const db = await fixture(t), catalog = await readCatalog(db);
   assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, cards: 42, genres: 9 });

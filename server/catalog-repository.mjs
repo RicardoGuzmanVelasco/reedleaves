@@ -3,10 +3,21 @@ import { validateBookLinks } from "../app/book-links.mjs";
 import {validInterestAppearance} from "../app/interests.mjs";
 import { isPostgres } from "./database.mjs";
 
+// Related rows are read once per table and grouped in memory: one query per parent row
+// costs a network round trip each against PostgreSQL.
+async function rowsBy(db,sql,key,...values) {
+  const groups=new Map();
+  for(const row of await db.prepare(sql).all(...values)) {
+    if(!groups.has(row[key])) groups.set(row[key],[]);
+    groups.get(row[key]).push(row);
+  }
+  return {get:id=>groups.get(id)||[]};
+}
+
 export async function readInterests(db) {
-  const genres=[];
+  const genres=[],names=await rowsBy(db,"SELECT genre_id,language,name FROM genre_translations","genre_id");
   for(const {id,emoji,color} of await db.prepare("SELECT id,emoji,color FROM genres ORDER BY id").all()){
-    const translations=await db.prepare("SELECT language,name FROM genre_translations WHERE genre_id = ?").all(id);
+    const translations=names.get(id);
     const genre={id,emoji,color,name:Object.fromEntries(translations.map(row=>[row.language,row.name]))};
     if(!validInterestAppearance(genre)||LANGUAGES.some(language=>!genre.name[language]?.trim()))throw new Error("Invalid interest catalog");
     genres.push(genre);
@@ -24,6 +35,9 @@ export async function readCatalog(db, userId) {
     : !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='reading_guide_reviews'").get();
   const {genres}=await readInterests(db);
   const books = [];
+  const bookLinks=await rowsBy(db,"SELECT book_id,platform,url FROM book_links ORDER BY platform","book_id");
+  const bookGenres=await rowsBy(db,"SELECT book_id,genre_id FROM book_genres ORDER BY position","book_id");
+  const bookTranslations=await rowsBy(db,"SELECT * FROM book_translations","book_id");
   for (const row of await db.prepare(`SELECT b.id,b.author,b.popular_title,b.popular_language,b.creator_user_id,
     ${supportsIncorporation?"b.incorporated_at,b.incorporation_order":"NULL AS incorporated_at,NULL AS incorporation_order"},
     COALESCE(u.display_name,(SELECT display_name FROM users WHERE id='reed-team'),'Equipo Reedleaves') AS creator_name,
@@ -34,15 +48,16 @@ export async function readCatalog(db, userId) {
       popularTitle:row.popular_title,popularLanguage:row.popular_language,
       incorporatedAt:row.incorporated_at instanceof Date?row.incorporated_at.toISOString():row.incorporated_at,
       incorporationOrder:row.incorporation_order==null?null:Number(row.incorporation_order),title:{},description:{},editorialNote:{},
-      links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id = ? ORDER BY platform").all(row.id)).map(link=>[link.platform,link.url])),
-      genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id = ? ORDER BY position").all(row.id)).map(t=>t.genre_id)};
-    for (const t of await db.prepare("SELECT * FROM book_translations WHERE book_id = ?").all(row.id)) {
+      links:Object.fromEntries(bookLinks.get(row.id).map(link=>[link.platform,link.url])),
+      genres:bookGenres.get(row.id).map(t=>t.genre_id)};
+    for (const t of bookTranslations.get(row.id)) {
       if(t.title.trim() && t.title.trim()!==book.popularTitle.trim()) book.title[t.language]=t.title;
       book.description[t.language]=t.description; book.editorialNote[t.language]=t.editorial_note;
     }
     validateBookLinks(book.links); books.push(validateBook(book,LANGUAGES,{requirePopular:true}));
   }
   const cards = [];
+  const cardTranslations=await rowsBy(db,"SELECT card_id,language,title,body FROM card_translations","card_id");
   const cardRows = await db.prepare(`SELECT c.*,deck.language AS deck_language,creator.display_name AS creator_name,
     ${supportsGuideReviews?"guide_review.status":"NULL"} AS reading_guide_review_status,
     ${supportsGuideReviews?"guide_review.rejection_reason":"NULL"} AS reading_guide_rejection_reason
@@ -56,39 +71,45 @@ export async function readCatalog(db, userId) {
       ...(row.is_reading_guide?{reviewStatus:row.reading_guide_review_status||"legacy"}:{}),
       ...(row.is_reading_guide&&row.creator_user_id===userId&&row.reading_guide_rejection_reason?{reviewRejectionReason:row.reading_guide_rejection_reason}:{}),
       parentId:row.parent_id,order:row.position,title:{},body:{}};
-    for (const t of await db.prepare("SELECT language,title,body FROM card_translations WHERE card_id = ?").all(row.id)) {
+    for (const t of cardTranslations.get(row.id)) {
       card.title[t.language]=t.title; card.body[t.language]=t.body;
     }
     cards.push(card);
   }
   const decks = [];
+  const votes=new Map();
+  for(const row of await db.prepare("SELECT deck_id,value,count(*) AS n FROM deck_votes WHERE value IN (1,-1) GROUP BY deck_id,value").all()) votes.set(`${row.deck_id}:${row.value}`,Number(row.n));
+  const memberDeckIds=new Set(userId?(await db.prepare("SELECT deck_id FROM deck_contributors WHERE user_id=?").all(userId)).map(row=>row.deck_id):[]);
+  const myCardCounts=new Map(userId?(await db.prepare("SELECT deck_id,count(*) AS n FROM cards WHERE creator_user_id=? GROUP BY deck_id").all(userId)).map(row=>[row.deck_id,Number(row.n)]):[]);
   for (const row of await db.prepare(`SELECT d.*,u.display_name FROM decks d
     JOIN users u ON u.id=d.creator_user_id ORDER BY d.book_id,d.is_recommended DESC,d.id`).all()) {
-    const metric = async (sql,...values) => (await db.prepare(sql).get(...values)).n;
     decks.push({id:row.id,bookId:row.book_id,language:row.language,kind:row.kind || "standard",contributionPolicy:row.contribution_policy || "owner",maxCardsPerContributor:row.max_cards_per_contributor ?? null,isRecommended:!!row.is_recommended,
       creator:{kind:"user",userId:row.creator_user_id,name:row.display_name || null},metrics:{
-        likes:await metric("SELECT count(*) AS n FROM deck_votes WHERE deck_id = ? AND value = 1",row.id),
-        dislikes:await metric("SELECT count(*) AS n FROM deck_votes WHERE deck_id = ? AND value = -1",row.id)
+        likes:votes.get(`${row.id}:1`)||0,
+        dislikes:votes.get(`${row.id}:-1`)||0
       }});
     if (userId === row.creator_user_id && row.status === "draft" && row.kind === "collective" && row.contribution_policy === "selected") {
       decks.at(-1).contributors=await db.prepare(`SELECT c.user_id AS userId,a.username,u.display_name AS name FROM deck_contributors c
         JOIN accounts a ON a.user_id=c.user_id JOIN users u ON u.id=c.user_id WHERE c.deck_id=? ORDER BY a.username`).all(row.id);
     }
     if (userId) {
-      const member=!!await db.prepare("SELECT 1 FROM deck_contributors WHERE deck_id=? AND user_id=?").get(row.id,userId);
+      const member=memberDeckIds.has(row.id);
       decks.at(-1).canContribute=row.status==="draft"&&(row.creator_user_id===userId||row.kind==="collective"&&(row.contribution_policy==="open"||member));
-      decks.at(-1).myCardCount=await metric("SELECT count(*) AS n FROM cards WHERE deck_id=? AND creator_user_id=?",row.id,userId);
+      decks.at(-1).myCardCount=myCardCounts.get(row.id)||0;
     }
   }
+  const deckTranslations=await rowsBy(db,"SELECT * FROM deck_translations","deck_id");
+  const decksById=new Map(decks.map(deck=>[deck.id,deck])),cardsByDeck=new Map();
+  for(const card of cards) { if(!cardsByDeck.has(card.deckId)) cardsByDeck.set(card.deckId,[]); cardsByDeck.get(card.deckId).push(card); }
   for (const row of await db.prepare("SELECT * FROM decks ORDER BY book_id,id").all()) {
-    const model = validateCards(cards.filter(c=>c.deckId===row.id),row.book_id,{allowEmpty:row.status==="draft"});
+    const model = validateCards(cardsByDeck.get(row.id)||[],row.book_id,{allowEmpty:row.status==="draft"});
     let depth=0;
     for (const card of model.cards) { let level=1,parent=card.parentId; while(parent!==null){level++;parent=model.byId.get(parent).parentId;} depth=Math.max(depth,level); }
-    const deck = decks.find(item=>item.id===row.id);
+    const deck = decksById.get(row.id);
     Object.assign(deck,{status:row.status,
       language:row.language,cardCount:model.cards.length,depth,title:{},description:{},editorialNote:{}});
     if(row.quote_source_url) deck.quoteSourceUrl=row.quote_source_url;
-    for (const t of await db.prepare("SELECT * FROM deck_translations WHERE deck_id = ?").all(row.id)) {
+    for (const t of deckTranslations.get(row.id)) {
       deck.title[t.language]=t.title; deck.description[t.language]=t.description; deck.editorialNote[t.language]=t.editorial_note;
     }
     for (const key of ["title","description","editorialNote"]) if(!deck[key][deck.language]?.trim()) throw new Error("Missing deck-language metadata");
