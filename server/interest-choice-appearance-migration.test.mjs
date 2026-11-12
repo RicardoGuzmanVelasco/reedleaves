@@ -28,8 +28,8 @@ for(const [dialect,version] of [["sqlite",54],["postgres",46]])test(`${dialect}:
   await initializeDatabase(db);await initializeDatabase(db);
   assert.deepEqual(await snapshot(db,dialect),before);
   const catalog=await readCatalog(db),seed=readSeed();
-  for(const expected of seed.genres){const actual=catalog.genres.find(g=>g.id===expected.id);assert.equal(actual.color,expected.color);assert.equal(actual.emoji,expected.emoji);}
-  assert.equal(new Set(seed.genres.map(g=>g.color)).size,9);
+  for(const expected of seed.genres){const actual=catalog.genres.find(g=>g.id===expected.id);assert.equal(actual.color,expected.chip_color);assert.equal(actual.chipColor,expected.chip_color);assert.equal(actual.bookColor,expected.book_color);assert.equal(actual.emoji,expected.emoji);}
+  assert.equal(new Set(seed.genres.map(g=>g.chip_color)).size,10);
   assert.equal(catalog.genres.find(g=>g.id==="future-interest").color,"#123456");
   assert.equal(catalog.genres.find(g=>g.id==="mindfulness").emoji,"🧘‍♀️");
   await checkCatalog(db);
