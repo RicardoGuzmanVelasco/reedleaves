@@ -2,6 +2,7 @@ import {createNewInterestFlow} from "./new-interests.mjs";
 import {mountInterests,readerInterestSelector,syncReaderInterestSelector,interestIcon} from "./interests.mjs";
 import {mascotArt} from "./mascot-art.mjs";
 import {words} from "./i18n.mjs";
+import {nextLabel} from "./interest-choice.mjs";
 const contextShape=(state,kind)=>state.draft[kind].flatMap((id,index)=>state.ids.includes(id)?[]:[[id,index]]);
 const kindForStep=state=>state.draft.step===1?"interested":"notInterested";
 const esc=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -21,7 +22,7 @@ export function newInterestsView({flow,language}) {
     ${!flow.draft.interested.length?`<p class="account-error" role="alert">${c.profileInterestRequired}</p>`:""}${overflow?`<p class="account-error" role="alert">${c.profileInterestLimit}</p>`:""}<p class="initial-interest-feedback" role="status" aria-live="polite" data-new-feedback>${flow.feedback?c[flow.feedback]:""}</p>
     ${flow.storageAvailable===false?`<p class="account-error" role="status">${c.initialInterestStorageUnavailable}</p>`:""}${flow.error?`<p class="account-error" role="alert">${c[flow.error]||c.connectionError}</p>`:""}
     ${flow.conflict?`<div class="profile-interest-conflict" role="alert"><p>${c.profileInterestConflict}</p><button class="secondary" type="button" data-new-action="recover" ${flow.saving?"disabled":""}>${c.profileInterestRecover}</button></div>`:""}
-    ${flow.replacement?"":`<div class="initial-interest-actions">${second?`<button class="text-button" type="button" data-new-action="back" ${flow.saving?"disabled":""}><span class="back-arrow" aria-hidden="true">←</span> ${c.back}</button>`:""}<button class="primary" type="submit" data-new-action="${second?"save":"next"}" ${flow.saving||flow.conflict||overflow||!flow.draft.interested.length?"disabled":""}>${flow.saving?c.working:second?c.save:c.next}</button></div>`}`);
+    ${flow.replacement?"":`<div class="initial-interest-actions">${second?`<button class="text-button" type="button" data-new-action="back" ${flow.saving?"disabled":""}><span class="back-arrow" aria-hidden="true">←</span> ${c.back}</button>`:""}<button class="primary" type="submit" data-new-action="${second?"save":"next"}" ${flow.saving||flow.conflict||overflow||!flow.draft.interested.length?"disabled":""}>${flow.saving?c.working:second?c.save:nextLabel(c)}</button></div>`}`);
 }
 export function mountNewInterests({host,language="es",showModal=dialog=>dialog.showModal(),onUnmount=()=>{},...options}) {
   let previous=null,shape=null;

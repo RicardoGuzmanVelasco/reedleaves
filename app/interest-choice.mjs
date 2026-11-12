@@ -1,5 +1,8 @@
 // Presentation shared by initial setup and profile editing. Rewards belong only
 // to the initial endpoint; editing uses exactly the same selection controls.
+// The forward arrow is fixed; copy only names the action.
+export const nextLabel = c => `${c.next} →`;
+
 export function interestChoicePresentation(state,c) {
   const second=state.draft.step===2,count=state.draft[second?"notInterested":"interested"].length;
   return {
@@ -25,7 +28,7 @@ export function syncInterestChoice(host,state,c) {
     const position=input.closest("label").querySelector(".interest-order-description");
     input.setAttribute("aria-describedby",`${position.id}${view.advice?" interest-choice-advice":""}`);
   }
-  const label=state.saving?c.working:view.second?c.save:c.next;
+  const label=state.saving?c.working:view.second?c.save:nextLabel(c);
   const button=host.querySelector(`[data-initial-action="${view.second?"save":"next"}"]`);
   if(!button)return;
   const wasCelebrating=button.classList.contains("practice-launch");

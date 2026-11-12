@@ -88,8 +88,8 @@ test("Collective draft review UI lets invited contributors add cards without exp
 test("Deck grid links to one page; every card is visible and openable", async () => {
   const catalog = await fixture(),base = {catalog,language:"es",deckId,bookId:"seven-habits",requestedId:"inside-out-2",storageAvailable:true,userId:"reader",cardcaseDeckIds:[deckId]};
   const html = deckPageView(base);
-  assert.match(html,/data-action="previous-reading-card" aria-label="← Anterior"/);
-  assert.match(html,/data-action="next-reading-card" aria-label="Siguiente →"/);
+  assert.match(html,/data-action="previous-reading-card" aria-label="Anterior"/);
+  assert.match(html,/data-action="next-reading-card" aria-label="Siguiente"/);
   const controls=html.match(/<div class="exclusive-card-controls">([^]*?)<\/div>/)?.[1];
   assert.ok(controls);
   const previous=controls.indexOf('data-action="previous-reading-card"'),position=controls.indexOf("<span>2 de 7</span>"),next=controls.indexOf('data-action="next-reading-card"');

@@ -21,7 +21,7 @@ import {defaultNoteDeckTitle} from "./note-defaults.mjs";
 import {dailyIdeaStreak} from "./daily-streak.mjs";
 import {DECK_ADD_COST} from "./wallet.mjs";
 import {interestIcon,interestColor,readerInterestSelector} from "./interests.mjs";
-import {interestChoicePresentation} from "./interest-choice.mjs";
+import {interestChoicePresentation,nextLabel} from "./interest-choice.mjs";
 import {MAX_BOOK_INTERESTS} from "./book-interests.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {BOOKSTORE_SORT_ORDERS,BOOK_SORT_ORDERS} from "./book-sort.mjs";
@@ -922,6 +922,6 @@ export function initialInterestsView(s) {
     ${flow.storageAvailable===false?`<p class="account-error" role="status">${c.initialInterestStorageUnavailable}</p>`:""}
     ${flow.error?`<p class="account-error" role="alert">${esc(c[flow.error]||c.connectionError)}</p>`:""}
     ${flow.conflict?callout({variant:"error",role:"alert",className:"profile-interest-conflict",content:`<p>${c.profileInterestConflict}</p>`,actions:`<button class="secondary" type="button" data-initial-action="recover" ${flow.saving?"disabled":""}>${c.profileInterestRecover}</button>`}):""}
-    </div><div class="initial-interest-actions">${second?`<button class="text-button" type="button" data-initial-action="back" ${flow.saving?"disabled":""}>${backLabelMarkup(c.back)}</button>`:""}<button class="primary interest-choice-next" type="submit" data-initial-action="${second?"save":"next"}" aria-disabled="${!!flow.saving}" ${!draft.interested.length||flow.conflict?"disabled":""}>${flow.saving?c.working:second?c.save:c.next}</button></div>
+    </div><div class="initial-interest-actions">${second?`<button class="text-button" type="button" data-initial-action="back" ${flow.saving?"disabled":""}>${backLabelMarkup(c.back)}</button>`:""}<button class="primary interest-choice-next" type="submit" data-initial-action="${second?"save":"next"}" aria-disabled="${!!flow.saving}" ${!draft.interested.length||flow.conflict?"disabled":""}>${flow.saving?c.working:second?c.save:nextLabel(c)}</button></div>
   </form></dialog>`;
 }
