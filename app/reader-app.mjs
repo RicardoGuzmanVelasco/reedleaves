@@ -463,8 +463,7 @@ export function startReader({createCardFeatures} = {}) {
       }
     }
   }
-  let pendingMainWake=null, focusAfterWake=false;
-  function replaceMainContent(markup,focus) {
+  function replaceMainContent(markup) {
     const placeholder=main.querySelector(".loading-placeholder");
     if (placeholder) {
       // React owns this portal. Keep its mounted loader when the outer view renders again.
@@ -472,38 +471,21 @@ export function startReader({createCardFeatures} = {}) {
       if (slot && markup.includes("<div data-saved-cards-list>")) {
         main.innerHTML=markup;
         main.querySelector("[data-saved-cards-list]").replaceWith(slot);
-        return true;
+        return;
       }
       if (markup.includes('<section class="loading-placeholder"')) {
         // Keep the breathing frame across updates to the same pending view.
         const frame=placeholder.querySelector(".loading-mascot-frame");
         const breath=frame.querySelector(".mascot-art").getAnimations()[0]?.currentTime;
         main.innerHTML=markup;
-        if (!placeholder.classList.contains("is-waking")) {
-          main.querySelector(".loading-mascot-frame").replaceWith(frame);
-          const clock=frame.querySelector(".mascot-art").getAnimations()[0];
-          if (clock && breath!=null) clock.currentTime=breath;
-        }
-        return true;
+        main.querySelector(".loading-mascot-frame").replaceWith(frame);
+        const clock=frame.querySelector(".mascot-art").getAnimations()[0];
+        if (clock && breath!=null) clock.currentTime=breath;
+        return;
       }
-      if (placeholder.dataset.wakeFinished!=="true") {
-        focusAfterWake ||= focus;
-        if (pendingMainWake!==placeholder) {
-          pendingMainWake=placeholder;
-          void finishLoadingPlaceholder(placeholder).then(() => {
-            if (pendingMainWake!==placeholder) return;
-            pendingMainWake=null;
-            placeholder.dataset.wakeFinished="true";
-            const restoreFocus=focusAfterWake;
-            focusAfterWake=false;
-            render({focus:restoreFocus});
-          });
-        }
-        return false;
-      }
+      void finishLoadingPlaceholder(placeholder);
     }
     main.innerHTML=markup;
-    return true;
   }
   function render({focus = false} = {}) {
     if(!busy&&(busyOverlay||busyMarked||busyOverlayTimer))clearBusyFeedback();
@@ -560,7 +542,7 @@ export function startReader({createCardFeatures} = {}) {
       fitOneLineLabels();
       syncModalPageLock();presentReading(main);updateCardFeatures();return;
     }
-    if(waiting){replaceMainContent(loadingPlaceholder(words[language].loading),focus);fitOneLineLabels();syncModalPageLock();updateCardFeatures();return;}
+    if(waiting){replaceMainContent(loadingPlaceholder(words[language].loading));fitOneLineLabels();syncModalPageLock();updateCardFeatures();return;}
     refreshState(); header();
     if (["deck","author"].includes(mode) && previewDeckId !== deckId) { deckPreview=false;previewColumns=2;previewDeckId=deckId; }
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
@@ -573,7 +555,7 @@ export function startReader({createCardFeatures} = {}) {
     presentationState=state;
     const markup = (syncError ? callout({variant:"error",role:"alert",className:"sync-note",content:`<p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p>`,actions:`<button class="text-button" type="button" data-action="sync">${words[language].refresh}</button>`}) : "") +
       (mode === "shared-card" ? sharedCardView(state) : mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "not-found" ? notFoundView(state) : mode === "guide-reviews" ? guideReviewQueueView(state) : mode === "bookstore" ? bookstoreView(state) : mode === "library" ? libraryView(state) : mode === "public-library" ? (profileData ? libraryView(state) : profilePendingView(state))+(profileData&&profileTransition==="wake"?profileWakeOverlayView():"") : mode === "profile-loading-preview" ? profilePendingView(state) : mode === "profile" ? profileView(state)+(profileTransition==="wake"?profileWakeOverlayView():"") : mode === "daily-idea" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "guides" ? readingGuidesView(state) : mode === "guide-preview" ? readingGuideDeckPreviewView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : deckPageView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "") + bookInterestWarningView(state);
-    if (!replaceMainContent(markup,focus)) return;
+    replaceMainContent(markup);
     fitOneLineLabels();
     mountInterests(main);
     mountBookCoverTints(main,[...(catalog?.books||[]),...homeBooksData],catalog?.interests||homeCoverInterests,tintMode);
@@ -683,7 +665,9 @@ export function startReader({createCardFeatures} = {}) {
     pendingOverlay.innerHTML=loadingPlaceholder(words[language].loading);document.body.append(pendingOverlay);
   }
   function finishOverlay(overlay) {
-    if (overlay) void finishLoadingPlaceholder(overlay.querySelector(".loading-placeholder")).then(() => overlay.remove());
+    if (!overlay) return;
+    void finishLoadingPlaceholder(overlay.querySelector(".loading-placeholder"));
+    overlay.remove();
   }
   function hidePendingOverlay() {finishOverlay(pendingOverlay);pendingOverlay=null;}
   // Profile, like Home, needs balances and interests but never the full catalog.

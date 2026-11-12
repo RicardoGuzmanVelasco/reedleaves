@@ -75,11 +75,9 @@ function SavedCards({rows,catalog,c,language,onOpen,error,onRetry,onReady,loadin
   useLayoutEffect(()=>{
     if (loading) {setShowPlaceholder(true);return;}
     if (!showPlaceholder) return;
-    let current=true;
-    void finishLoadingPlaceholder(placeholderHost.current?.querySelector(".loading-placeholder")).then(()=>{
-      if (current) setShowPlaceholder(false);
-    });
-    return ()=>{current=false;};
+    // Capture the mounted frame, then commit the rows in the same paint.
+    void finishLoadingPlaceholder(placeholderHost.current?.querySelector(".loading-placeholder"));
+    setShowPlaceholder(false);
   },[loading,showPlaceholder]);
   useLayoutEffect(()=>{if (!loading && !showPlaceholder) onReady()},[loading,showPlaceholder,rows,onReady]);
   return <>{error&&<div className="sync-note" role="status"><span>{c[error]||c.connectionError}</span><button type="button" className="text-button" onClick={onRetry}>{c.retry}</button></div>}

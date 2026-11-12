@@ -18,24 +18,37 @@ export function loadingPlaceholder(label,{visible=false}={}) {
 
 const departures = new WeakMap();
 
-/** Signal completion once. Keep the placeholder mounted until the returned promise settles. */
+/** Release the loading UI now. Only the decorative frame stays until the wake finishes. */
 export function finishLoadingPlaceholder(placeholder) {
   if (!placeholder) return Promise.resolve();
   if (departures.has(placeholder)) return departures.get(placeholder);
-  const art = placeholder.querySelector(".loading-placeholder-mascot");
-  const view = placeholder.ownerDocument.defaultView;
-  let departure=art?.getAnimations().find(animation => animation.animationName === "mascot-wake-exit");
-  if (!departure && art?.isConnected && !placeholder.ownerDocument.hidden && !view.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    const breath = art.getAnimations().find(animation => animation.animationName === "mascot-breathe");
-    // A request can finish before the first visible frame. There is then nothing to wake.
-    if (breath?.currentTime > 0 && art.querySelector("img").naturalWidth) {
-      art.style.setProperty("--mascot-breath",view.getComputedStyle(art).getPropertyValue("--mascot-breath"));
-      art.dataset.idle = "waking";
-      placeholder.classList.add("is-waking");
-      departure = art.getAnimations().find(animation => animation.animationName === "mascot-wake-exit");
-    }
+  const doc=placeholder.ownerDocument, view=doc.defaultView;
+  const frame=placeholder.querySelector(".loading-mascot-frame");
+  const art=frame?.querySelector(".loading-placeholder-mascot");
+  if (!art?.isConnected || doc.hidden || view.matchMedia("(prefers-reduced-motion: reduce)").matches) return Promise.resolve();
+
+  const breath=art.getAnimations().find(animation => animation.animationName==="mascot-breathe");
+  const rect=frame.getBoundingClientRect();
+  // A fast request or an offscreen list can finish without ever showing the sprout.
+  if (!(breath?.currentTime>0) || !art.querySelector("img").naturalWidth || !rect.width || !rect.height ||
+      rect.bottom<=0 || rect.top>=view.innerHeight || rect.right<=0 || rect.left>=view.innerWidth) return Promise.resolve();
+
+  art.style.setProperty("--mascot-breath",view.getComputedStyle(art).getPropertyValue("--mascot-breath"));
+  // The status text and any backdrop belong to the caller. Keep just this frame at its last viewport position.
+  frame.classList.add("loading-mascot-departure");
+  frame.setAttribute("aria-hidden","true");
+  frame.inert=true;
+  Object.assign(frame.style,{left:`${rect.left}px`,top:`${rect.top}px`,width:`${rect.width}px`,height:`${rect.height}px`});
+  doc.body.append(frame);
+  if (frame.showPopover) {
+    frame.setAttribute("popover","manual");
+    try { frame.showPopover(); }
+    catch { frame.removeAttribute("popover"); } // The fixed layer also works outside the browser's top layer.
   }
-  const finished = Promise.resolve(departure?.finished).catch(() => {});
+  art.dataset.idle="waking";
+  const exit=art.getAnimations().find(animation => animation.animationName==="mascot-wake-exit");
+  const removeFrame=() => frame.remove();
+  const finished=Promise.resolve(exit?.finished).then(removeFrame,removeFrame);
   departures.set(placeholder,finished);
   return finished;
 }
