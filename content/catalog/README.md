@@ -13,7 +13,7 @@ La app carga los intereses desde la base de datos activa: PostgreSQL en producci
 
 `decks.csv` declara una etiqueta de idioma BCP 47 en `language`, por ejemplo `fr`, `pt-BR` o `zh-Hant`. Esa columna fija el idioma original de la baraja. Las columnas traducidas usan sufijos de idioma, por ejemplo `title_fr` y `body_fr`. Añade una columna y rellénala solo si quieres ofrecer esa traducción; cada tarjeta siempre debe tener título y texto en el idioma principal.
 
-Todo interés nuevo exige nombre en español e inglés, un emoji y dos colores: `chip_color` para chips legibles y `book_color` para portadas. El lomo se deriva de `book_color`. Estos campos se cargan desde el CSV a la base de datos y se exponen en `genres[]` como `chipColor` y `bookColor`; no cambian las asociaciones ni su orden.
+Todo interés nuevo exige nombre en español e inglés, un emoji y dos colores: `chip_color` para chips legibles y `book_color` para portadas. El lomo se deriva de `book_color`. Estos campos se cargan desde el CSV a la base de datos y se exponen en `interests[]` como `chipColor` y `bookColor`; no cambian las asociaciones ni su orden.
 
 El catálogo incluye Comunicación (`communication`) y Sociedad (`society`), ambos disponibles para asignar a libros.
 
