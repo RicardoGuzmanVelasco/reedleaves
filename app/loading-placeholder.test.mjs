@@ -8,3 +8,13 @@ test("Loading placeholder announces its label and shows it only when asked",()=>
   const shown=loadingPlaceholder("Guardando <ya>",{visible:true});
   assert.match(shown,/role="status"/);assert.match(shown,/Guardando &lt;ya&gt;/);assert.doesNotMatch(shown,/sr-only/);
 });
+
+import {loadingView} from "./views.mjs";
+import {words} from "./i18n.mjs";
+
+test("Startup failure without connection is its own sad state, distinct from the generic error",()=>{
+  const offline=loadingView("es","offline"),generic=loadingView("es",true);
+  assert.match(offline,/data-expression="sad"/);assert.ok(offline.includes(words.es.connectionError));
+  assert.match(offline,/data-action="retry"/);
+  assert.ok(generic.includes(words.es.error));assert.doesNotMatch(generic,/data-expression="sad"/);assert.ok(!generic.includes(words.es.connectionError));
+});

@@ -514,6 +514,8 @@ export function dailyView(s) {
 export function loadingView(language, failed) {
   const c = words[language];
   if (!failed) return `<section class="loading opening-loading" role="status" aria-live="polite" aria-label="${esc(c.loading)}"><span class="opening-sprout">${mascotArt("sprout","initial-mascot",{idle:false})}</span></section>`;
+  // No connection to the server: the sprout is sad and the existing connection message replaces the generic error.
+  if (failed === "offline") return `<section class="loading loading-error loading-offline" role="alert">${mascotArt("sprout","",{expression:"sad",idle:false})}<h1>${c.connectionError}</h1>${button(c.retry, "retry")}</section>`;
   return `<section class="loading loading-error">${mascotArt("sprout")}<h1>${c.error}</h1>${button(c.retry, "retry")}</section>`;
 }
 

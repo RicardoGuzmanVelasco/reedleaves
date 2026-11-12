@@ -1649,7 +1649,7 @@ export function startReader({createCardFeatures} = {}) {
       applyState(result.state || result,{captureGrowth:true});
       if (path === "/api/auth/logout") {
         catalog = null;
-        try { catalog = await loadCatalog(); } catch { ready = false; failed = true; }
+        try { catalog = await loadCatalog(); } catch(error) { ready = false; failed = error?.code==="connectionError" ? "offline" : true; }
       } else if (path === "/api/reader/open") {
         loadCatalog().then(updatedCatalog=>{catalog=updatedCatalog;if(!busy)render();}).catch(()=>{});
       }
@@ -1847,7 +1847,7 @@ export function startReader({createCardFeatures} = {}) {
       await Promise.all([flight.finished,previewFinished]);
       ready = true; route(false);
     }
-    catch { flight.skipIfWaiting(); failed = true; ready = false; render(); }
+    catch(error) { flight.skipIfWaiting(); failed = error?.code==="connectionError" ? "offline" : true; ready = false; render(); }
   }
   document.querySelector(".skip-link").addEventListener("click",e=>{ e.preventDefault(); main.focus(); });
   document.getElementById("main-navigation").addEventListener("click",event=>{
@@ -2257,5 +2257,5 @@ export function startReader({createCardFeatures} = {}) {
   }); document.addEventListener("visibilitychange",()=>{ if (document.hidden) persistNoteDraft(); else { updateCurrencyCountdown();recordDisplayedCard();sync();refreshDailyStatus();loadGuideReviewCount(true); } });
   window.addEventListener("pagehide",persistNoteDraft);
   window.addEventListener("resize",positionNoteDestination);window.addEventListener("scroll",positionNoteDestination,{passive:true});
-  window.addEventListener("focus",()=>{sync();refreshDailyStatus();loadGuideReviewCount(true)}); window.addEventListener("online",()=>{sync();refreshDailyStatus();loadGuideReviewCount(true)}); setInterval(()=>{ if (!document.hidden) {sync();refreshDailyStatus();loadGuideReviewCount(true)} },30000); setInterval(()=>{if(!document.hidden)updateCurrencyCountdown()},60000); load();
+  window.addEventListener("focus",()=>{sync();refreshDailyStatus();loadGuideReviewCount(true)}); window.addEventListener("online",()=>{if(failed==="offline"&&!ready){void load();return;}sync();refreshDailyStatus();loadGuideReviewCount(true)}); setInterval(()=>{ if (!document.hidden) {sync();refreshDailyStatus();loadGuideReviewCount(true)} },30000); setInterval(()=>{if(!document.hidden)updateCurrencyCountdown()},60000); load();
 }
