@@ -1228,3 +1228,11 @@ html,body{overflow-x:clip}
 @media(forced-colors:active) { .xp-meter { appearance:auto; } }
 .loading-placeholder{min-height:60vh;display:grid;place-items:center}.loading-placeholder-mascot{width:230px;height:230px}
 .pending-overlay{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(255,253,246,.72)}
+
+.loading-placeholder-label{margin:0;text-align:center;color:var(--muted)}
+.busy-overlay{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;z-index:70;display:grid;place-content:center;justify-items:center;background:rgba(255,253,246,.72)}
+.busy-overlay:not(:popover-open){display:none}
+.busy-overlay .loading-placeholder{min-height:0}
+.primary[data-busy-trigger]:disabled,.secondary[data-busy-trigger]:disabled,.text-button[data-busy-trigger]:disabled{opacity:1}
+.primary[data-busy-trigger]::after,.secondary[data-busy-trigger]::after,.text-button[data-busy-trigger]::after{content:"";display:inline-block;width:.9em;height:.9em;margin-left:.55em;vertical-align:-.12em;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:ai-spin .8s linear infinite}
+@media(prefers-reduced-motion:reduce){[data-busy-trigger]::after{animation:none}}

@@ -76,6 +76,7 @@ Combinaciones frecuentes: **A + G** para acciones puntuales, **F + C** para nave
 La base es `lockControls` (~373): `busy` solo pone `aria-busy` y deshabilita controles; visualmente solo baja la opacidad al 40 %. Una solución común resuelve los puntos 5 a 11.
 
 ### Decisión transversal (puntos 5–11)
+- **Decidido: T3 con etiquetas por acción.** Al pulsar, el botón activador muestra un spinner (**A**, atributo `data-busy-trigger`). Si la acción sigue tras 900 ms, un Brote dormido a pantalla completa (**B**, `popover` sobre diálogos) muestra una etiqueta visible según la acción: «Guardando…», «Terminando…» o «Un momento…» (por defecto). Implementado en `lockControls`; la etiqueta visible es una opción de `loadingPlaceholder(label,{visible:true})`. Enviar feedback usa solo **A** (su diálogo es modal).
 - **Opción T1 (recomendada):** que `lockControls` marque el botón activador con `aria-busy="true"` y muestre el patrón **A**. Los demás controles siguen apagados. Poco código, cubre todo `mutation`.
 - **Opción T2:** añadir **B** global a `main` con umbral para acciones largas.
 - **Opción T3:** T1 + T2: **A** inmediato y **B** si pasa el umbral.
@@ -258,7 +259,7 @@ Aparte del feedback, hay que revisar la animación de espera. Se aborda después
 | 2 | F + C (Brote dormido) | 2026-11-11 | Implementado en `route()`. |
 | 3 | F + C (capa sobre pantalla actual) | 2026-11-11 | Implementado en `withFullCatalogForBook`. |
 | 4 | Sin cambios (opción 1) | 2026-11-11 | Futuro: «sin conexión» (opción 3) con Brote triste/pucheros. |
-| 5–11 (T1/T2/T3) | Aplazada | 2026-11-11 | Decidir tras ver otras soluciones. |
+| 5–11 (T1/T2/T3) | T3 con etiquetas por acción | 2026-11-12 | Implementado en `lockControls`; 900 ms de umbral. |
 | 6 | Brote dormido de «Entrar» al destino | 2026-11-11 | Implementado en el submit de cuenta. |
 | 12 | Brote dormido en la lista | 2026-11-11 | Implementado en `SavedCards`. |
 | 13 | Sin cambios (descartado) | 2026-11-11 | Comportamiento actual aceptado. |

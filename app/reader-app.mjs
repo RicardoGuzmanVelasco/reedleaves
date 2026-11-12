@@ -401,8 +401,40 @@ export function startReader({createCardFeatures} = {}) {
     document.querySelectorAll("[data-language]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.language === language)));
     document.getElementById("account-controls").innerHTML = snapshot.user ? `<button type="button" class="text-button settings-sign-out" data-account-action="logout">${c.signOut}</button>` : `<button type="button" class="text-button" data-account-action="login">${c.signIn}</button>`;
   }
+  // A long action shows A (spinner on the pressed button) at once and B (sleeping sprout
+  // over the page, named by the action) only if it is still running after the delay.
+  const BUSY_OVERLAY_DELAY_MS=900,BUSY_TRIGGER_WINDOW_MS=1500;
+  let busyTrigger=null,busyTriggerAt=0,busyMarked=null,busyOverlay=null,busyOverlayTimer=null;
+  const rememberBusyTrigger=button=>{if(button){busyTrigger=button;busyTriggerAt=performance.now();}};
+  document.addEventListener("click",event=>rememberBusyTrigger(event.target.closest?.("button")),true);
+  document.addEventListener("submit",event=>rememberBusyTrigger(event.submitter),true);
+  function busyLabel(trigger) {
+    const c=words[language],action=trigger?.dataset.action||"";
+    if(/finish/.test(action))return c.finishingDeck;
+    if(trigger?.closest("[data-author-form]")||/^(save|confirm)/.test(action))return c.saving;
+    return c.working;
+  }
+  function showBusyFeedback() {
+    const trigger=busyTrigger&&document.contains(busyTrigger)&&performance.now()-busyTriggerAt<BUSY_TRIGGER_WINDOW_MS?busyTrigger:null;
+    if(trigger&&!busyMarked){busyMarked=trigger;trigger.setAttribute("data-busy-trigger","");}
+    if(busyOverlay||busyOverlayTimer||navigationPending)return;
+    const label=busyLabel(trigger);
+    busyOverlayTimer=setTimeout(()=>{
+      busyOverlayTimer=null;
+      if(!busy||busyOverlay)return;
+      busyOverlay=document.createElement("div");busyOverlay.className="busy-overlay";busyOverlay.setAttribute("popover","manual");
+      busyOverlay.innerHTML=loadingPlaceholder(label,{visible:true});document.body.append(busyOverlay);
+      try{busyOverlay.showPopover();}catch{/* Without popover support the fixed overlay still covers the page. */}
+    },BUSY_OVERLAY_DELAY_MS);
+  }
+  function clearBusyFeedback() {
+    clearTimeout(busyOverlayTimer);busyOverlayTimer=null;
+    busyOverlay?.remove();busyOverlay=null;
+    busyMarked?.removeAttribute("data-busy-trigger");busyMarked=null;
+  }
   function lockControls() {
     main.setAttribute("aria-busy",String(busy));
+    if(busy)showBusyFeedback();else clearBusyFeedback();
     for (const control of main.querySelectorAll("button,input,select,textarea")) {
       if (busy) {
         if (!busyDisabledState.has(control)) busyDisabledState.set(control,control.disabled);
@@ -421,6 +453,7 @@ export function startReader({createCardFeatures} = {}) {
     }
   }
   function render({focus = false} = {}) {
+    if(!busy&&(busyOverlay||busyMarked||busyOverlayTimer))clearBusyFeedback();
     disposeBookLists();
     disposeDeckPresentation();
     practicePresentation.dispose();
@@ -1871,14 +1904,14 @@ export function startReader({createCardFeatures} = {}) {
   feedback.addEventListener("click",event=>{if(event.target===feedback)feedback.close()});
   feedbackForm.addEventListener("submit",async event=>{
     event.preventDefault(); if(!snapshot.user || busy)return;
-    const submit=document.getElementById("feedback-submit");submit.disabled=true;feedbackError.hidden=true;
+    const submit=document.getElementById("feedback-submit");submit.disabled=true;submit.setAttribute("data-busy-trigger","");feedbackError.hidden=true;
     try {
       await api.request("/api/feedback",{message:feedbackForm.elements.message.value,page:location.pathname+location.hash,language});
       feedbackForm.reset();feedback.close();live.textContent=words[language].feedbackSent;
     } catch(error) {
       feedbackError.textContent=words[language][error.status===401?"signInRequired":error.code] || words[language].connectionError;
       feedbackError.hidden=false;
-    } finally {submit.disabled=false}
+    } finally {submit.disabled=false;submit.removeAttribute("data-busy-trigger")}
   });
   settings.addEventListener("click",async event=>{
     if (event.target === settings) settings.close(); const action = event.target.closest("[data-account-action]")?.dataset.accountAction;
