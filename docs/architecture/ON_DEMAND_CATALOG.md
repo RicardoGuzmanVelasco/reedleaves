@@ -26,6 +26,7 @@ Dónde se paga hoy:
   - `GET /api/cards/context?ids=`: lote (máx. 20), para retomar una sesión de práctica.
   - `practice/start` incluye `context` con las tarjetas de la sesión.
 - **Práctica sin catálogo completo (capa 2).** Empezar, responder y retomar tras recargar usan un catálogo parcial (`practiceCatalog`). `#practice/*` abre sin catálogo; al retomar pide `/api/reader/state` (Home no lo trae) y el lote de tarjetas. El selector de modos ya no precarga el catálogo.
+- **Comprobado en producción** (2026-11-12): tarjeta compartida sin sesión, seguir un enlace de la atribución, revalidación con 304 del catálogo y repaso completo (empezar, responder, retomar tras recargar). Dos lecciones: Cloudflare vuelve débil el ETag (`W/"…"`), así que `If-None-Match` se compara sin el prefijo `W/`; y las consultas de `readCardContexts` corren en PostgreSQL con columnas enteras (`is_reading_guide=1`, no un booleano), algo que las pruebas HTTP en SQLite no detectan. Pendiente: prueba de esas consultas contra PostgreSQL.
 - Feedback de espera unificado: navegar y esperar → Brote dormido; esperar con la pantalla ya lista → `lockControls(verb)`. Ver `docs/frontend/LOADING_FEEDBACK_GAPS.md`.
 
 ## Modelo propuesto
