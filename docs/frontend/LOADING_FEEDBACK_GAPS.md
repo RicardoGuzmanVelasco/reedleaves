@@ -34,7 +34,7 @@ Combinaciones frecuentes: **A + G** para acciones puntuales, **F + C** para nave
 
 ### 1. Cambiar de pantalla mientras carga el catálogo completo
 - **Dónde:** `route()` (líneas ~556–563), `ensureFullCatalog`.
-- **Qué pasa:** si falta el catálogo completo, `route()` sale sin renderizar. Se pulsa Biblioteca, libro o enlace y se queda la pantalla anterior hasta que responde.
+- **Qué pasa:** si falta el catálogo completo, `route()` sale sin renderizar. Se pulsa Librería, libro o enlace y se queda la pantalla anterior hasta que responde.
 - **Opciones:**
   1. **F + C** (recomendada): pintar la pantalla destino al momento con placeholder y rellenar al llegar.
   2. **B** con umbral: mantener la pantalla actual y mostrar el velo solo si tarda.
@@ -171,7 +171,7 @@ La base es `lockControls` (~373): `busy` solo pone `aria-busy` y deshabilita con
 
 ### 19. Guardar ordenación por intereses
 - **Dónde:** `bookSortPreferenceWriter`; login con intención de ordenar.
-- **Qué pasa:** Biblioteca tiene `interestSortLoading`; el resto de disparadores (tras login) no.
+- **Qué pasa:** Librería tiene `interestSortLoading`; el resto de disparadores (tras login) no.
 - **Opciones:** llevar el mismo estado al punto de entrada post-login (**G** al terminar) y reutilizarlo en Perfil.
 
 ### 20. Intereses e idiomas del perfil
