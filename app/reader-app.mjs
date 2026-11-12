@@ -12,7 +12,7 @@ import {callout} from "./callout.mjs";
 import {mountBookLists,BOOK_VIEWS} from "./book-list.mjs?v=adaptive-shelf-spines-2";
 import {updateNavigationBadges} from "./navigation-badges.mjs";
 import {loadCatalog,loadHomeBooks,loadInterests} from "./catalog.mjs";
-import {loadingPlaceholder} from "./loading-placeholder.mjs";
+import {finishLoadingPlaceholder,loadingPlaceholder} from "./loading-placeholder.mjs";
 import {createBookKnowledgeVisitId,visitVisitorBooks,pendingVisitorBookCount,inBookstoreVisit} from "./book-knowledge.mjs";
 import {localDay, restoreLanguage, bookTitle, FEEDBACK_MESSAGE_MAX_LENGTH, LANGUAGES} from "./core.mjs";
 import {featuredDecks,isReadingGuideDeck} from "./decks.mjs";
@@ -422,7 +422,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   function clearBusyFeedback() {
     clearTimeout(busyOverlayTimer);busyOverlayTimer=null;
-    busyOverlay?.remove();busyOverlay=null;
+    finishOverlay(busyOverlay);busyOverlay=null;
     busyMarked?.removeAttribute("data-busy-trigger");busyMarked=null;
   }
   function lockControls(verb) {
@@ -444,6 +444,48 @@ export function startReader({createCardFeatures} = {}) {
         control.disabled=busyDisabledState.get(control);busyDisabledState.delete(control);
       }
     }
+  }
+  let pendingMainWake=null, focusAfterWake=false;
+  function replaceMainContent(markup,focus) {
+    const placeholder=main.querySelector(".loading-placeholder");
+    if (placeholder) {
+      // React owns this portal. Keep its mounted loader when the outer view renders again.
+      const slot=placeholder.closest("[data-saved-cards-list]");
+      if (slot && markup.includes("<div data-saved-cards-list>")) {
+        main.innerHTML=markup;
+        main.querySelector("[data-saved-cards-list]").replaceWith(slot);
+        return true;
+      }
+      if (markup.includes('<section class="loading-placeholder"')) {
+        // Keep the breathing frame across updates to the same pending view.
+        const frame=placeholder.querySelector(".loading-mascot-frame");
+        const breath=frame.querySelector(".mascot-art").getAnimations()[0]?.currentTime;
+        main.innerHTML=markup;
+        if (!placeholder.classList.contains("is-waking")) {
+          main.querySelector(".loading-mascot-frame").replaceWith(frame);
+          const clock=frame.querySelector(".mascot-art").getAnimations()[0];
+          if (clock && breath!=null) clock.currentTime=breath;
+        }
+        return true;
+      }
+      if (placeholder.dataset.wakeFinished!=="true") {
+        focusAfterWake ||= focus;
+        if (pendingMainWake!==placeholder) {
+          pendingMainWake=placeholder;
+          void finishLoadingPlaceholder(placeholder).then(() => {
+            if (pendingMainWake!==placeholder) return;
+            pendingMainWake=null;
+            placeholder.dataset.wakeFinished="true";
+            const restoreFocus=focusAfterWake;
+            focusAfterWake=false;
+            render({focus:restoreFocus});
+          });
+        }
+        return false;
+      }
+    }
+    main.innerHTML=markup;
+    return true;
   }
   function render({focus = false} = {}) {
     if(!busy&&(busyOverlay||busyMarked||busyOverlayTimer))clearBusyFeedback();
@@ -500,7 +542,7 @@ export function startReader({createCardFeatures} = {}) {
       fitOneLineLabels();
       syncModalPageLock();presentReading(main);updateCardFeatures();return;
     }
-    if(waiting){main.innerHTML=loadingPlaceholder(words[language].loading);fitOneLineLabels();syncModalPageLock();updateCardFeatures();return;}
+    if(waiting){replaceMainContent(loadingPlaceholder(words[language].loading),focus);fitOneLineLabels();syncModalPageLock();updateCardFeatures();return;}
     refreshState(); header();
     if (["deck","author"].includes(mode) && previewDeckId !== deckId) { deckPreview=false;previewColumns=2;previewDeckId=deckId; }
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
@@ -510,8 +552,9 @@ export function startReader({createCardFeatures} = {}) {
       sharedContentLanguage:mode === "shared-card" ? sharedContentLanguage : null,deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,readingGuidePromptBookId,readingGuideError,readingGuideDraft,bookstoreQuery,bookstoreFilters,bookstoreFiltersOpen,bookstoreFilterDraft,bookstoreSortDraft,bookSortOrder,bookstoreSortOrder,interestPreferences,bookstoreInterestSortPending,bookstoreInterestSortError,libraryTab,bookOrigin,bookstoreOrigin,sourcesOpen,cardcaseDeckIds,
       profileData,profileError,profileInterests,profileLanguages,homeInterestPreferences,bookInterestPrompt,readOnly:mode === "public-library",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,accountLearningNotice,accountInterestSortNotice,bookstoreNewBookIds,injectHeaderLeading:setHeaderLeading,profileReturnHash,showProfileBack:snapshot.user&&usefulProfileReturnHash(profileReturnHash)};
     presentationState=state;
-    main.innerHTML = (syncError ? callout({variant:"error",role:"alert",className:"sync-note",content:`<p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p>`,actions:`<button class="text-button" type="button" data-action="sync">${words[language].refresh}</button>`}) : "") +
+    const markup = (syncError ? callout({variant:"error",role:"alert",className:"sync-note",content:`<p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p>`,actions:`<button class="text-button" type="button" data-action="sync">${words[language].refresh}</button>`}) : "") +
       (mode === "shared-card" ? sharedCardView(state) : mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "not-found" ? notFoundView(state) : mode === "guide-reviews" ? guideReviewQueueView(state) : mode === "bookstore" ? bookstoreView(state) : mode === "library" ? libraryView(state) : mode === "public-library" ? (profileData ? libraryView(state) : profilePendingView(state))+(profileData&&profileTransition==="wake"?profileWakeOverlayView():"") : mode === "profile-loading-preview" ? profilePendingView(state) : mode === "profile" ? profileView(state)+(profileTransition==="wake"?profileWakeOverlayView():"") : mode === "daily-idea" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "guides" ? readingGuidesView(state) : mode === "guide-preview" ? readingGuideDeckPreviewView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : deckPageView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "") + bookInterestWarningView(state);
+    if (!replaceMainContent(markup,focus)) return;
     fitOneLineLabels();
     mountInterests(main);
     mountBookCoverTints(main,[...(catalog?.books||[]),...homeBooksData],catalog?.interests||homeCoverInterests,tintMode);
@@ -620,7 +663,10 @@ export function startReader({createCardFeatures} = {}) {
     pendingOverlay=document.createElement("div");pendingOverlay.className="pending-overlay";
     pendingOverlay.innerHTML=loadingPlaceholder(words[language].loading);document.body.append(pendingOverlay);
   }
-  function hidePendingOverlay() {pendingOverlay?.remove();pendingOverlay=null;}
+  function finishOverlay(overlay) {
+    if (overlay) void finishLoadingPlaceholder(overlay.querySelector(".loading-placeholder")).then(() => overlay.remove());
+  }
+  function hidePendingOverlay() {finishOverlay(pendingOverlay);pendingOverlay=null;}
   // Profile, like Home, needs balances and interests but never the full catalog.
   // The practice mode chooser neither; its cards need the catalog only once a session starts.
   const opensWithoutFullCatalog=()=>!location.hash||location.hash==="#home"||location.hash==="#practice"||location.hash.slice(1).split("/")[0]==="profile";

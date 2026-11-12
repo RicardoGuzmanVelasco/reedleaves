@@ -49,13 +49,84 @@
 .mascot-art[data-idle="float"]{--mascot-idle-duration:2800ms}
 .mascot-art[data-idle="float"] .mascot-art-motion{animation-name:mascot-art-float}
 .mascot-art[data-idle="float"]::before{animation-name:mascot-shadow-float}
-.mascot-art[data-idle="sleep"] .mascot-art-motion{animation:mascot-art-sleep 3200ms ease-in-out infinite}
-.mascot-art[data-idle="sleep"]::before{animation:none}
+/* One breath drives every moving part. 0 is the raised pose, 1 the lowered pose. */
+@property --mascot-breath { syntax:"<number>"; inherits:true; initial-value:0; }
+@keyframes mascot-breathe { 0%,100% { --mascot-breath:0; } 50% { --mascot-breath:1; } }
+.mascot-art[data-idle="sleep"] { animation:mascot-breathe 3.2s ease-in-out infinite; }
+/* These five silhouettes use the opposite bubble phase in the approved sleep study. */
+.mascot-art:is([data-mascot="seedling"],[data-mascot="stem"],[data-mascot="evergreen"],[data-mascot="flower"],[data-mascot="bud"]) .mascot-sleep-bubble {
+  --bubble-phase:calc(1 - var(--mascot-breath));
+}
+.mascot-art:is([data-idle="sleep"],[data-idle="waking"]) .mascot-art-motion {
+  animation:none;
+  translate:0 calc(1.5% * var(--mascot-breath));
+  rotate:calc(-1deg + 2deg * var(--mascot-breath));
+  scale:calc(1 + .035 * var(--mascot-breath)) calc(1 - .03 * var(--mascot-breath));
+}
+.mascot-art:is([data-idle="sleep"],[data-idle="waking"])::before {
+  animation:none;
+  scale:calc(.82 + .18 * var(--mascot-breath)) 1;
+  opacity:calc(.8 + .2 * var(--mascot-breath));
+}
+.mascot-sleep-mouth {
+  transform-box:fill-box;
+  transform-origin:center;
+  scale:calc(1 + .12 * var(--mascot-breath)) calc(.82 + .36 * var(--mascot-breath));
+}
+.mascot-sleep-bubble {
+  --bubble-phase:var(--mascot-breath);
+  transform-box:view-box;
+  transform-origin:0 0;
+  transform:scale(calc(.68 + .5 * var(--bubble-phase)));
+  opacity:calc(.86 + .14 * var(--bubble-phase));
+}
+.mascot-sleep-lid,.mascot-waking-eye { transition:opacity 120ms ease; }
+.mascot-art[data-idle="waking"] .mascot-sleep-lid { opacity:0; }
+.mascot-art[data-idle="waking"] .mascot-waking-eye { opacity:1; }
+.mascot-art[data-idle="waking"] .mascot-sleep-bubble { animation:mascot-bubble-pop 180ms ease-out forwards; }
+@keyframes mascot-bubble-pop {
+  65% { scale:1.55; opacity:1; }
+  100% { scale:1.62; opacity:0; }
+}
+.mascot-art[data-idle="waking"] .mascot-bubble-drops {
+  transform-origin:0 0;
+  animation:mascot-bubble-splash 400ms 100ms ease-out both;
+}
+@keyframes mascot-bubble-splash {
+  0% { transform:scale(.18); opacity:0; }
+  18% { opacity:1; }
+  60% { opacity:.95; }
+  100% { transform:scale(1.4); opacity:0; }
+}
+.mascot-art[data-idle="waking"] {
+  transform-origin:50% 78%;
+  animation:mascot-wake-exit 1.4s ease-in-out both;
+}
+@keyframes mascot-wake-exit {
+  0% { opacity:1; translate:0 0; rotate:0deg; scale:1; }
+  8% { translate:0 4%; rotate:-4deg; scale:1.06 .92; }
+  18% { translate:0 -2%; rotate:2deg; scale:.98 1.06; }
+  30% { opacity:1; translate:0 0; rotate:0deg; scale:1; }
+  100% { opacity:0; translate:0 0; rotate:0deg; scale:1.9; }
+}
+.loading-mascot-frame { position:relative; display:inline-grid; isolation:isolate; }
+.loading-placeholder.is-waking .loading-placeholder-label { visibility:hidden; }
+.loading-placeholder.is-waking .loading-mascot-frame::after {
+  content:""; position:absolute; z-index:2; left:50%; top:46%; width:7%; aspect-ratio:1;
+  border:3px solid #a8d465; border-radius:50%; opacity:0; pointer-events:none;
+  animation:mascot-wake-ripple .9s .42s ease-out forwards;
+}
+@keyframes mascot-wake-ripple {
+  from { opacity:.8; transform:translate(-50%,-50%) scale(.2); }
+  to { opacity:0; transform:translate(-50%,-50%) scale(14); }
+}
+@media(prefers-reduced-motion:reduce) {
+  .mascot-art[data-idle="sleep"],.mascot-art[data-idle="waking"],.loading-placeholder.is-waking .loading-mascot-frame::after { animation:none; }
+}
 .mascot-sleep-symbols{position:absolute;inset:0;z-index:2;display:block;container-type:inline-size;font-family:"Avenir Next",system-ui,sans-serif;font-weight:850;color:#173D2C;pointer-events:none}
 .mascot-sleep-symbols span{position:absolute;top:62%;left:64%;font-size:17cqi;line-height:1;opacity:0;animation:mascot-sleep-z 3600ms ease-out infinite}
 .mascot-sleep-symbols span:nth-child(2){animation-delay:-2400ms}
 .mascot-sleep-symbols span:nth-child(3){animation-delay:-1200ms}
-.mascot-sleep-mouth{transform-box:fill-box;transform-origin:center;animation:mascot-sleep-snore 3200ms ease-in-out infinite}
 .mascot-art[data-idle="none"] .mascot-art-motion,.mascot-art[data-idle="none"]::before{animation:none}
 /* The former 600 ms greeting is now a hop, followed by a 1200 ms rest.
    Independent translate/rotate/scale keep hover transforms and calibration intact.
@@ -64,8 +135,6 @@
 @keyframes mascot-shadow-hop{0%,5%,33.333333%,100%{transform:scaleX(1)}16.666667%{transform:scaleX(.78)}}
 @keyframes mascot-art-float{0%,100%{translate:0 0}50%{translate:0 -10%}}
 @keyframes mascot-shadow-float{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.70)}}
-@keyframes mascot-art-sleep{0%,100%{translate:0 0;rotate:-1deg;scale:1 1}50%{translate:0 1.5%;rotate:1deg;scale:1.035 .97}}
-@keyframes mascot-sleep-snore{0%,100%{scale:1 .82}50%{scale:1.12 1.18}}
 @keyframes mascot-sleep-z{0%{opacity:0;translate:0 0;rotate:-12deg;scale:.45}14%{opacity:.88}68%{opacity:.8}100%{opacity:0;translate:22cqi -42cqi;rotate:13deg;scale:1.08}}
 @media(prefers-reduced-motion:reduce){.mascot-art-motion,.mascot-art::before,.mascot-sleep-mouth,.mascot-sleep-symbols span{animation:none!important;transition:none!important}.mascot-sleep-symbols span{opacity:0}.mascot-sleep-symbols span:first-child{top:30%;left:77%;opacity:.85}}
 

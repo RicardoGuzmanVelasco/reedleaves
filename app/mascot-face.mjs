@@ -92,12 +92,13 @@ export function mascotFace(stage, expression = "neutral", mouth = mascotMouthCon
     return `<svg class="mascot-face" viewBox="0 0 160 160" aria-hidden="true" focusable="false" data-expression="${state}"><g class="mascot-face-placement" transform="translate(${x} ${y}) rotate(${rotation}) scale(${scale}) translate(-82 -104)">${eyes}${mouthShape}</g></svg>`;
   }
   if (state === "sleep") {
-    const closedEye = side => {
-      const center = side === "left" ? 53 : 111;
-      const offset = eyeOffsets[side];
-      return `<path d="M${center-6+offset.x} ${104+offset.y}q6 5 12 0" stroke="#173D2C" stroke-width="3.5" stroke-linecap="round" fill="none"/>`;
-    };
-    return `<svg class="mascot-face" viewBox="0 0 160 160" aria-hidden="true" focusable="false" data-expression="sleep"><g class="mascot-face-placement" transform="translate(${x} ${y}) rotate(${rotation}) scale(${scale}) translate(-82 -104)">${closedEye("left")}${closedEye("right")}<ellipse class="mascot-sleep-mouth" cx="82" cy="119" rx="5.5" ry="4.5" fill="#173D2C"/></g></svg>`;
+    const eyes = ["left","right"].map(side => {
+      const cx=(side==="left"?53:111)+eyeOffsets[side].x, cy=104+eyeOffsets[side].y;
+      return `<g transform="translate(${cx} ${cy})"><path class="mascot-sleep-lid" d="M-6 0q6 5 12 0" stroke="#173D2C" stroke-width="3.5" stroke-linecap="round" fill="none"/><ellipse class="mascot-waking-eye" rx="3.5" ry="5" fill="#173D2C" opacity="0"/></g>`;
+    }).join("");
+    const drops = `<g transform="translate(11 0)"><g class="mascot-bubble-drops" opacity="0" fill="#69c5f3" stroke="#2c83be" stroke-width=".8"><ellipse cx="14" cy="-3" rx="3" ry="1.5" transform="rotate(-12 14 -3)"/><ellipse cx="4" cy="-11" rx="1.5" ry="2.7" transform="rotate(18 4 -11)"/><ellipse cx="9" cy="9" rx="2.7" ry="1.4" transform="rotate(35 9 9)"/><circle cx="-5" cy="6" r="1.5"/></g></g>`;
+    const bubble = `<g transform="translate(82 110) rotate(-18)"><g class="mascot-sleep-bubble"><path fill="#5cbaf0" stroke="#2c83be" stroke-width="1.2" d="M0 0C3.2 .2 4.7 -1.9 7.3 -3.8C11.4 -6.8 16.8 -4.8 17.5 -.4C18.2 4 14.3 7.1 10.3 5.7C6.3 4.5 4 1.2 0 0Z"/><ellipse fill="#e1f7ff" cx="11.7" cy="-2.6" rx="2.5" ry="1.1" transform="rotate(-13 11.7 -2.6)"/></g>${drops}</g>`;
+    return `<svg class="mascot-face" viewBox="0 0 160 160" aria-hidden="true" focusable="false" data-expression="sleep"><g class="mascot-face-placement" transform="translate(${x} ${y}) rotate(${rotation}) scale(${scale}) translate(-82 -104)">${eyes}<ellipse class="mascot-sleep-mouth" cx="82" cy="119" rx="5.5" ry="4.5" fill="#173D2C"/>${bubble}</g></svg>`;
   }
   if (state === "sad") {
     const sadMouthWidth=Math.max(mascotMouthWidth(stage,mouth),3.5);

@@ -1,9 +1,9 @@
-import React,{useEffect,useLayoutEffect,useOptimistic,useRef,useState,startTransition} from 'react';
+import React,{useEffect,useLayoutEffect,useMemo,useOptimistic,useRef,useState,startTransition} from 'react';
 import {createRoot} from 'react-dom/client';
 import {createPortal} from 'react-dom';
 import {contentText,contentLocale,quoteExcerpt} from './core.mjs';
 import {words} from './i18n.mjs';
-import {loadingPlaceholder} from './loading-placeholder.mjs';
+import {finishLoadingPlaceholder,loadingPlaceholder} from './loading-placeholder.mjs';
 import {cardActionRecord,savedReferences,optimisticCardAction,createCardActionTransport,createCardSaveConfirmationFlow,createCardSaveNotificationGate} from './card-interactions.mjs';
 
 function useRibbonPath(saved){
@@ -69,9 +69,21 @@ function GuestFeatures({context,api,callbacks}){
 
 export function SavedCardsEntry({count,c,onClick}){const hasSavedCards=count>0;return <button type="button" className="primary saved-cards-entry" onClick={onClick} aria-label={hasSavedCards?`${c.savedCards}, ${c.noteCardsCount(count)}`:c.savedCards}><Bookmark/><span>{c.savedCards}</span>{hasSavedCards&&<span aria-hidden="true">{count}</span>}</button>}
 function SavedCards({rows,catalog,c,language,onOpen,error,onRetry,onReady,loading}){
-  useLayoutEffect(()=>{onReady()},[rows,onReady]);
+  const placeholderHost=useRef(null);
+  const placeholderMarkup=useMemo(()=>({__html:loadingPlaceholder(c.loading)}),[c.loading]);
+  const [showPlaceholder,setShowPlaceholder]=useState(loading);
+  useLayoutEffect(()=>{
+    if (loading) {setShowPlaceholder(true);return;}
+    if (!showPlaceholder) return;
+    let current=true;
+    void finishLoadingPlaceholder(placeholderHost.current?.querySelector(".loading-placeholder")).then(()=>{
+      if (current) setShowPlaceholder(false);
+    });
+    return ()=>{current=false;};
+  },[loading,showPlaceholder]);
+  useLayoutEffect(()=>{if (!loading && !showPlaceholder) onReady()},[loading,showPlaceholder,rows,onReady]);
   return <>{error&&<div className="sync-note" role="status"><span>{c[error]||c.connectionError}</span><button type="button" className="text-button" onClick={onRetry}>{c.retry}</button></div>}
-    {loading?<div dangerouslySetInnerHTML={{__html:loadingPlaceholder(c.loading)}}/>:!rows.length?<p className="empty-state">{c.noSavedCards}</p>:<ul className="saved-cards-list">{rows.map(row=>{
+    {loading||showPlaceholder?<div ref={placeholderHost} dangerouslySetInnerHTML={placeholderMarkup}/>:!rows.length?<p className="empty-state">{c.noSavedCards}</p>:<ul className="saved-cards-list">{rows.map(row=>{
       const card=catalog.cardsById.get(row.cardId),deck=catalog.decksById.get(card.deckId);
       const cardLanguage=card.language||card.deckLanguage,isGuide=card.isReadingGuide;
       const title=isGuide?contentText(card.body,language,cardLanguage):card.isQuote?quoteExcerpt(contentText(card.body,language,cardLanguage)):contentText(card.title,language,cardLanguage);
