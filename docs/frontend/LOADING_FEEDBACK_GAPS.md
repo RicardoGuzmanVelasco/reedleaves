@@ -18,7 +18,7 @@ Referencias para las opciones de cada punto.
 
 | Clave | Patrón | Ya existe en |
 | --- | --- | --- |
-| **A** | Botón en curso: spinner o puntos dentro del botón pulsado, `aria-busy="true"`, el resto de controles quedan deshabilitados. | `.ai-spinner` en el autorrelleno del libro. |
+| **A** | Botón en curso: spinner o puntos dentro del botón pulsado, `aria-busy="true"`, el resto de controles quedan deshabilitados. | `.spinner` en el autorrelleno del libro. |
 | **B** | Capa de bloqueo suave: velo translúcido sobre `main` con Brote (mascota) y `role="status"`, solo si la espera supera el umbral. | Mascota dormida del perfil; `.opening-loading`. |
 | **C** | Placeholder en la zona que carga: esqueleto o mascota pequeña con el texto existente, en lugar del contenido vacío o falso. | `profilePendingView`, `dailyLoading`. |
 | **D** | Estado intermedio de dato: distinguir «cargando» de «vacío» o «cero» (guion, esqueleto o nada) hasta que llegue la respuesta. | `record.loaded` en `CardActions`. |
@@ -103,7 +103,7 @@ La base es `lockControls` (~373): `busy` solo pone `aria-busy` y deshabilita con
 - **Dónde:** `saveAuthorForm` (~1434), recarga con `loadCatalog`.
 - **Qué pasa:** todo se deshabilita sin texto ni spinner; luego recarga el catálogo, otra espera.
 - **Opciones:** **A** en el botón de guardar durante guardado y recarga; **G** al terminar.
-- **Notas:** solo el autorrelleno IA tiene spinner hoy; reutilizar `.ai-spinner`.
+- **Notas:** solo el autorrelleno IA tiene spinner hoy; reutilizar `.spinner`.
 
 ### 8. Editar título, idioma o colaboradores de una baraja; guardar guía de lectura
 - **Dónde:** `saveDeckTitle` (~1292), idioma (~1305), `addDeckContributor` (~1318), `saveReadingGuide` (~1052).

@@ -89,7 +89,7 @@ test("Book form keeps loading, retry, translations and save; book interfaces omi
   const form={kind:"book",title:"Pensar rápido",author:"",language:""};
   assert.match(authorFormView({...state,authorForm:form}),/Rellenar con IA/);
   const loading=authorFormView({...state,authorForm:{...form,autofilling:true}});
-  assert.match(loading,/class="ai-spinner" aria-hidden="true"/);assert.match(loading,/role="status">Buscando información/);
+  assert.match(loading,/class="spinner" aria-hidden="true"/);assert.match(loading,/role="status">Buscando información/);
   const failed=authorFormView({...state,authorForm:{...form,error:"aiAmbiguous"}});
   assert.match(failed,/Hay varios libros posibles/);assert.match(failed,/value="Pensar rápido"/);
   const metadata=structuredClone(bookMetadata);metadata.title.es='<script>alert("x")</script>';metadata.description.fr='<img src=x onerror="alert(1)">';
