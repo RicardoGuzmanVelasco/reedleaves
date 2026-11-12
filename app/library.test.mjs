@@ -99,13 +99,13 @@ test("Collection groups, empty states, book details and origin navigation transl
     assert.doesNotMatch(html,/data-action="home"|undefined|data-book="seven-habits"/);
     assert.ok(libraryView({...state,statuses:{}}).includes(c.emptyBookshelf));
     assert.match(libraryView({...state,openBookId:"atomic-habits"}),/<dialog class="deck-modal book-modal"/);
-    assert.ok(bookstoreView(state).includes(c.books)); assert.match(bookstoreView(state),/collections\/bookstore\.svg/);
+    assert.ok(bookstoreView(state).includes(c.bookstore)); assert.match(bookstoreView(state),/collections\/bookstore\.svg/);
     assert.doesNotMatch(bookstoreView(state),/collection-entry|Ir a mi biblioteca|Go to my Library/);
     assert.ok(bookstoreView({...state,bookstoreOrigin:"library"}).includes(c.shelfBack));
     assert.doesNotMatch(bookstoreView({...state,bookstoreOrigin:"home"}),/data-action="library"/);
     assert.doesNotMatch(homeView(state),/class="home-actions"|data-action="profile"/);
     const deckState={...state,bookId:"atomic-habits",deckChoices:featuredDecks(s.catalog,"atomic-habits")};
-    for (const [bookOrigin,label] of [["library",c.shelfBack],["bookstore",c.booksBack],["daily-idea",c.back]]) assert.ok(deckView({...deckState,bookOrigin}).includes(label));
+    for (const [bookOrigin,label] of [["library",c.shelfBack],["bookstore",c.bookstoreBack],["daily-idea",c.back]]) assert.ok(deckView({...deckState,bookOrigin}).includes(label));
   }
 });
 

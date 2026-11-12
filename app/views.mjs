@@ -229,11 +229,11 @@ function bookstoreFiltersMarkup(s) {
 
 export function bookstoreView(s) {
   const c = words[s.language];
-  injectPageHeaderTitle(s,collectionIconMarkup("bookstore",24),c.books);
+  injectPageHeaderTitle(s,collectionIconMarkup("bookstore",24),c.bookstore);
   const selected = s.catalog.booksById.get(s.openBookId);
   return `<section class="bookstore-screen">
     ${["library","cardcase"].includes(s.bookstoreOrigin) ? `<button class="text-button collection-back" type="button" data-action="library" ${s.bookstoreOrigin === "cardcase" ? 'data-tab="cardcase"' : ""}>${s.bookstoreOrigin === "cardcase" ? collectionIconMarkup("decks",18) : collectionIconMarkup("shelf",18)}${s.bookstoreOrigin === "cardcase" ? c.cardcaseBack : c.shelfBack}</button>` : ""}
-    <h1 class="sr-only" tabindex="-1">${collectionIconMarkup("bookstore",30)}${c.books}</h1>
+    <h1 class="sr-only" tabindex="-1">${collectionIconMarkup("bookstore",30)}${c.bookstore}</h1>
     <form class="book-search" role="search" data-book-search><label class="sr-only" for="book-search">${c.searchBooks}</label>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
       <input type="search" id="book-search" placeholder="${c.searchBooks}" value="${esc(s.bookstoreQuery || "")}" maxlength="200" autocomplete="off" enterkeyhint="search" aria-controls="book-search-results">
@@ -315,7 +315,7 @@ export function homeView(s) {
   const c=words[s.language],books=s.catalog?homeBooks(s.catalog,s.statuses,s.noteActivity,s.userId):(s.homeBooks||[]).filter(book=>s.statuses?.[book.id]==="reading"||(book.noteDeckCount||0)>0);
   return `<section class="home-screen"><h1 class="sr-only" tabindex="-1">${c.home}</h1>
     <button class="practice-launch" type="button" data-action="practice" aria-label="${esc(c.practiceLaunch)}"><span class="practice-launch-mascot">${mascotArt("sprout","practice-launch-art")}</span><span class="practice-launch-label" aria-hidden="true">${practiceLaunchLabel(c.practiceLaunch)}</span></button>
-    ${books.length ? s.catalog?bookListPresentation(s,books,"home",{note:true,selector:false,view:"covers"}):bookListMarkup({books,view:"covers",label:c.books,cover:book=>homeBookMarkup(s,book)}) : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
+    ${books.length ? s.catalog?bookListPresentation(s,books,"home",{note:true,selector:false,view:"covers"}):bookListMarkup({books,view:"covers",label:c.bookstore,cover:book=>homeBookMarkup(s,book)}) : `<div class="home-empty">${mascotArt("sprout")}<h2>${c.noReadingBooks}</h2></div>`}
     ${s.noteDestination ? noteDestinationMarkup(s) : ""}
     ${s.catalog?.booksById.has(s.openBookId) ? bookDetailsMarkup(s,s.catalog.booksById.get(s.openBookId)) : ""}
   </section>`;
@@ -629,7 +629,7 @@ export function deckView(s) {
   const guideCards=guideDeck?s.catalog.deckModels.get(guideDeck.id).cards:[];
   const ownGuide=guideCards.some(card=>card.creatorUserId===s.userId);
   const orderedDecks=sortDecks(s.catalog,[...choices.map(({deck})=>deck),...(guideDeck?[guideDeck]:[])],s);
-  return `<section class="deck-screen">${["bookstore","library","daily-idea"].includes(s.bookOrigin) ? `<button type="button" class="text-button collection-back" data-action="${s.bookOrigin}">${s.bookOrigin === "bookstore" ? collectionIconMarkup("bookstore",18) : s.bookOrigin === "library" ? collectionIconMarkup("shelf",18) : ""}${s.bookOrigin === "bookstore" ? c.booksBack : s.bookOrigin === "library" ? c.shelfBack : c.back}</button>` : ""}
+  return `<section class="deck-screen">${["bookstore","library","daily-idea"].includes(s.bookOrigin) ? `<button type="button" class="text-button collection-back" data-action="${s.bookOrigin}">${s.bookOrigin === "bookstore" ? collectionIconMarkup("bookstore",18) : s.bookOrigin === "library" ? collectionIconMarkup("shelf",18) : ""}${s.bookOrigin === "bookstore" ? c.bookstoreBack : s.bookOrigin === "library" ? c.shelfBack : c.back}</button>` : ""}
     <div class="screen-heading deck-heading"><div class="deck-heading-book"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>${mascotEntry(s,s.bookId)}</div><div class="deck-heading-title"><h1 tabindex="-1">${c.chooseDeck}</h1>${s.userId ? `<div data-saved-cards-entry></div>` : ""}</div></div>
     ${s.userId ? `<div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
     ${choices.length||guideDeck ? `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${orderedDecks.map(deck=>deck.id===guideDeck?.id?readingGuideTileMarkup(s,deck):deckTileMarkup(s,deck)).join("")}</div>` : `<div class="empty-state">${c.noDecks}</div>`}
