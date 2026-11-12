@@ -440,14 +440,16 @@ export function startReader({createCardFeatures} = {}) {
         departure.finished.then(finish,finish);
       });
     }
-    ++renderVersion; document.body.classList.toggle("is-opening",!ready&&!failed); document.body.classList.toggle("is-presenting",ready&&!navigationPending&&(mode === "preview"||mode === "guide-preview")); document.body.classList.toggle("is-practicing",ready&&!navigationPending&&mode === "practice"); document.body.classList.toggle("is-practice-choosing",ready&&!navigationPending&&mode === "practice" && practiceStage === "choose"); setHeaderLeading(""); header();
+    // Choosing a practice mode waits on the sleeping sprout until the session arrives.
+    const waiting=navigationPending||!!practiceStartRequest&&mode==="practice"&&practiceStage==="choose";
+    ++renderVersion; document.body.classList.toggle("is-opening",!ready&&!failed); document.body.classList.toggle("is-presenting",ready&&!waiting&&(mode === "preview"||mode === "guide-preview")); document.body.classList.toggle("is-practicing",ready&&!waiting&&mode === "practice"); document.body.classList.toggle("is-practice-choosing",ready&&!waiting&&mode === "practice" && practiceStage === "choose"); setHeaderLeading(""); header();
     if (!ready) {
       // Keep the first-paint flight running when the application module arrives.
       if(failed||!main.querySelector(".opening-loading"))main.innerHTML=loadingView(language,failed);
       else main.querySelector(".opening-loading").setAttribute("aria-label",words[language].loading);
       syncModalPageLock();presentReading(main);updateCardFeatures();return;
     }
-    if(navigationPending){main.innerHTML=loadingPlaceholder(words[language].loading);syncModalPageLock();updateCardFeatures();return;}
+    if(waiting){main.innerHTML=loadingPlaceholder(words[language].loading);syncModalPageLock();updateCardFeatures();return;}
     refreshState(); header();
     if (["deck","author"].includes(mode) && previewDeckId !== deckId) { deckPreview=false;previewColumns=2;previewDeckId=deckId; }
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
