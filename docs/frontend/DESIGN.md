@@ -174,7 +174,7 @@ Aplicar estos criterios con juicio en cada cambio; no asumir que describen la in
 
 - Cinco piezas de madera separadas, con relieve y pequeñas inclinaciones. La sección activa se convierte en un marcapáginas verde con contorno completo y relieve que siguen la muesca inferior.
 - Iconos grandes en reposo. El seleccionado crece y sube dentro del marcapáginas; el nombre se muestra dentro, bajo el icono. Los demás nombres quedan visualmente ocultos, conservando su nombre accesible.
-- Mantener los iconos existentes, los cinco destinos y el orden aprobado. El estudio `brand/explorations/bottom-navigation/index.html` recoge las proporciones aprobadas.
+- Mantener los iconos existentes, los cinco destinos y el orden aprobado.
 - El movimiento acompaña el cambio de sección y respeta movimiento reducido. Dejar espacio inferior suficiente para que la barra y su marcapáginas no tapen el contenido.
 
 - Al entrar en una ruta, la barra reaparece. El scroll descendente la desplaza hacia abajo con relación 1:1; el ascendente la recupera con relación 3:1. Sin temporizador de desaparición ni cambios en el espacio reservado al contenido. Movimiento reducido omite el deslizamiento.

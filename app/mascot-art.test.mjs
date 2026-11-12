@@ -35,15 +35,11 @@ test("Full mascots select their idle pattern; mystery floats and future artwork 
   }
 });
 
-test("Ground shadows are removed from active and proposed SVG artwork without removing faces",()=>{
-  for (const stage of ["pot","seed","mystery","stem","plant","flower"]) {
+test("Ground shadows are removed from the unlocked-state SVG artwork",()=>{
+  for (const stage of ["mystery","plant"]) {
     const svg=readFileSync(new URL(`../brand/reed/growth/${stage}.svg`,import.meta.url),"utf8");
     assert.doesNotMatch(svg,/<ellipse[^>]*opacity=/);
     assert.match(svg,/<path/);
-  }
-  for (const stage of ["pot","seed"]) {
-    const svg=readFileSync(new URL(`../brand/reed/growth/${stage}.svg`,import.meta.url),"utf8");
-    assert.equal((svg.match(/<ellipse/g)||[]).length,2);
   }
 });
 

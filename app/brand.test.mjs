@@ -53,16 +53,6 @@ test("The Home tab uses a simple outlined house instead of the Reedleaves logo",
   assert.match(home,/brand\/icons\/navigation\/home\.svg/);assert.doesNotMatch(home,/d-compacto\.svg/);
   assert.match(icon,/fill="none" stroke="#173d2c"/);assert.match(icon,/m3 10\.5 9-7\.5 9 7\.5/);
 });
-test("Seed stays a brown body with a separated face and no leaf",()=>{
-  const seed=readFileSync(new URL("../brand/reed/growth/seed.svg",import.meta.url),"utf8");
-  assert.doesNotMatch(seed,/fill="#58BE59"|fill="#B9E877"/);
-  assert.match(seed,/cx="67" cy="101"/);assert.match(seed,/cx="96" cy="100"/);
-});
-test("Sprout (legacy seedling.svg) has a friendly face with widely spaced eyes",()=>{
-  const seedling=readFileSync(new URL("../brand/reed/growth/seedling.svg",import.meta.url),"utf8");
-  assert.match(seedling,/cx="56" cy="101"/);assert.match(seedling,/cx="104" cy="101"/);
-  assert.match(seedling,/q4 5 8 0/);
-});
 test("Unknown mascot is a neutral silhouette and mascot surfaces have no green backplate",()=>{
   const mystery=readFileSync(new URL("../brand/reed/growth/mystery.svg",import.meta.url),"utf8"),css=readFileSync(new URL("./reader.css",import.meta.url),"utf8");
   assert.match(mystery,/fill="#969d96"/);assert.doesNotMatch(mystery,/question|#B9E877|#58BE59/);

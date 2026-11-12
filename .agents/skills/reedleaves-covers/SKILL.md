@@ -5,13 +5,13 @@ description: Diseña, compara o modifica estilos de portadas de libros de Reedle
 
 # Portadas Reedleaves
 
-Usa esta skill solo para las portadas de libros de Reedleaves. Respeta `AGENTS.md`, la dirección de `docs/frontend/DESIGN.md` y el estado actual del código. Para contexto reciente, lee `docs/development/README.md` y la entrada más reciente del diario. Consulta también `brand/reed/covers/README.md`.
+Usa esta skill solo para las portadas de libros de Reedleaves. Respeta `AGENTS.md`, la dirección de `docs/frontend/DESIGN.md` y el estado actual del código. Para contexto reciente, lee `docs/development/README.md` y la entrada más reciente del diario. Consulta también `brand/tools/covers/README.md`.
 
 ## Estado y fuentes
 
 - **Base** es el diseño activo y aprobado. **Entelada** es una alternativa guardada, todavía inactiva. **Editorial** está descartada.
 - Las propuestas bajo `brand/` no son decisiones aprobadas. Mantén los estilos nuevos en el estudio hasta que el usuario elija uno; no cambies el diseño de producto por inferencia.
-- `app/views.mjs` comparte el marcado de portada entre Inicio, Librería y Biblioteca. `app/reader.css` define el aspecto en la app. `brand/reed/covers/` contiene el estudio y sus controles. El código vigente manda si contradice una nota anterior.
+- `app/views.mjs` comparte el marcado de portada entre Inicio, Librería y Biblioteca. `app/reader.css` define el aspecto en la app. `brand/tools/covers/` contiene el estudio y sus controles. El código vigente manda si contradice una nota anterior.
 
 ## Diseñar y modificar
 
@@ -25,6 +25,6 @@ Usa esta skill solo para las portadas de libros de Reedleaves. Respeta `AGENTS.m
 
 ## Revisión y publicación
 
-- Abre `/brand/reed/covers/` con el servidor del proyecto y revisa visualmente Inicio y Librería, escritorio y móvil. Comprueba títulos largos, sello, solapa, canto y que ningún dato quede fuera o se solape.
+- Abre `/brand/tools/covers/` con el servidor del proyecto y revisa visualmente Inicio y Librería, escritorio y móvil. Comprueba títulos largos, sello, solapa, canto y que ningún dato quede fuera o se solape.
 - El estudio reutiliza vistas y catálogo reales; sus estados de ejemplo son locales. No guardes datos de cuentas para preparar comparaciones.
 - Sigue las instrucciones de Git de `AGENTS.md`. Una exploración no autoriza activar ni publicar una portada. Publica solo cuando el usuario lo pida expresamente; esa autorización se limita a la acción indicada en la conversación actual.

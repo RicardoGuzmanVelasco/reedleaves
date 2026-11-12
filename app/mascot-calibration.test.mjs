@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "../brand/reed/growth/position-study/calibration-model.mjs";
+import {calibrationStages,calibrationFields,currentCalibration,normalizeCalibration,restoreCalibration,calibrationConfiguration} from "../brand/tools/mascot-editor/calibration-model.mjs";
 import {mascotArt} from "./mascot-art.mjs";
 
 test("Flor is available in the shared calibration editor with a separate editable face",()=>{
