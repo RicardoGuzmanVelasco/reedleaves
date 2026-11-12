@@ -48,13 +48,13 @@ async function availableCards(db,userId,practiceMode,languages=null) {
   if(practiceMode==="discover") return (await discoverPracticeCandidateContext(db,userId,languages)).cards;
   const catalog=prepareCatalog(await readCatalog(db,userId));
   const statuses=new Map((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(row=>[row.book_id,row.status]));
-  const enrolled=new Set((await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(row=>row.deck_id));
+  const cardcaseDeckIds=new Set((await db.prepare("SELECT deck_id FROM cardcase_decks WHERE user_id=?").all(userId)).map(row=>row.deck_id));
   const saved=new Set((await db.prepare("SELECT card_id FROM card_saves WHERE user_id=?").all(userId)).map(row=>row.card_id));
   const access=await practiceDeckIds(db,userId);
   return catalog.allCards.filter(card=>{
     if(card.isReadingGuide||!access.has(card.deckId)||languages&&!languages.includes(effectiveCardLanguage(card))) return false;
     const status=statuses.get(card.bookId)||"unread",isSaved=saved.has(card.id);
-    const inCollection=enrolled.has(card.deckId),isReadingBook=inCollection&&status==="reading",isReadBook=inCollection&&status==="read";
+    const inCardcase=cardcaseDeckIds.has(card.deckId),isReadingBook=inCardcase&&status==="reading",isReadBook=inCardcase&&status==="read";
     return practiceMode==="reading"?isReadingBook:practiceMode==="read"?isReadBook:practiceMode==="saved"?isSaved:isReadingBook||isReadBook||isSaved;
   });
 }

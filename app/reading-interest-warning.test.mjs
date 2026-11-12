@@ -46,7 +46,7 @@ test("a failed confirmation keeps the warning available for retry and commits no
 
 test("the warning names the interest and requested status with semantic actions in ES and EN",()=>{
   const statuses=[
-    ["to-read","Para leer","To read"],
+    ["to_read","Para leer","To read"],
     ["reading","Leyendo","Reading"],
     ["read","Leído","Read"]
   ];

@@ -27,7 +27,7 @@ async function fixture(t,dialect="sqlite") {
   await db.prepare("INSERT INTO accounts(user_id,username,password_hash,time_zone,language) VALUES (?,?,?,?,?)").run("reader","reader","hash","Europe/Madrid","es");
   await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run("reader",10,"2026-10-06");
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,?)").run("reader","seven-habits","reading");
-  await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run("reader","seven-habits-editorial");
+  await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run("reader","seven-habits-editorial");
   return {db,session:{user_id:"reader",csrf_token:"csrf"}};
 }
 
@@ -78,7 +78,7 @@ for(const dialect of ["sqlite","postgres"]) {
       const requestId=randomUUID();
       item.deckId=(await createDeck(db,ownerSession,{requestId,bookId:"seven-habits",title:`Access ${item.label}`,language:item.language,
         kind:"collective",contributionPolicy:item.policy,maxCardsPerContributor:5})).deckId;
-      await db.prepare("DELETE FROM studies WHERE user_id=? AND deck_id=?").run(ownerSession.user_id,item.deckId);
+      await db.prepare("DELETE FROM cardcase_decks WHERE user_id=? AND deck_id=?").run(ownerSession.user_id,item.deckId);
       item.cardIds=[];
       for(let index=0;index<5;index++) {
         const card=await takeNote(db,ownerSession,{requestId:randomUUID(),deckId:item.deckId,
@@ -147,10 +147,10 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal(next.session.cost,2);
   });
 
-  test(`${dialect}: reading practice includes an enrolled non-recommended deck`,async t=>{
+  test(`${dialect}: reading practice includes a non-recommended deck in the Cardcase`,async t=>{
     const {db,session}=await fixture(t,dialect),deckId="seven-habits-inside-out";
-    await db.prepare("DELETE FROM studies WHERE user_id=? AND deck_id=?").run(session.user_id,"seven-habits-editorial");
-    await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,deckId);
+    await db.prepare("DELETE FROM cardcase_decks WHERE user_id=? AND deck_id=?").run(session.user_id,"seven-habits-editorial");
+    await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run(session.user_id,deckId);
     const deckCardIds=new Set((await db.prepare("SELECT id FROM cards WHERE deck_id=?").all(deckId)).map(row=>row.id));
     const started=await startPracticeSession(db,session,"reading",new Date("2026-10-06T12:00:00.000Z"));
     assert.ok(started.session);
@@ -160,7 +160,7 @@ for(const dialect of ["sqlite","postgres"]) {
   test(`${dialect}: a practice session covers every available book before repeating one`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'reading') ON CONFLICT(user_id,book_id) DO UPDATE SET status=excluded.status").run(session.user_id,"atomic-habits");
-    await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,"atomic-habits-editorial");
+    await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run(session.user_id,"atomic-habits-editorial");
     const started=await startPracticeSession(db,session,"reading",now);
     const selectedBooks=await db.prepare(`SELECT DISTINCT book_id FROM cards WHERE id IN (${started.session.cardIds.map(()=>"?").join(",")})`).all(...started.session.cardIds);
     assert.equal(selectedBooks.length,2);
@@ -340,7 +340,7 @@ for(const dialect of ["sqlite","postgres"]) {
   test(`${dialect}: purchased cards survive collection removal`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     const started=await startPracticeSession(db,session,"reading",now);
-    await db.prepare("DELETE FROM studies WHERE user_id=? AND deck_id=?").run(session.user_id,"seven-habits-editorial");
+    await db.prepare("DELETE FROM cardcase_decks WHERE user_id=? AND deck_id=?").run(session.user_id,"seven-habits-editorial");
     const preserved=await readReaderState(db,session,now);
     assert.equal(preserved.activePracticeSession.id,started.session.id);
     assert.deepEqual(preserved.activePracticeSession.cardIds,started.session.cardIds);

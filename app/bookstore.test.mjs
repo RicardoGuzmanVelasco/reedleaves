@@ -37,7 +37,7 @@ test("A book modal shows metadata, four reading choices and one explicit deck ac
   assert.match(modal,/aria-labelledby="book-dialog-title"/); assert.match(modal,/aria-describedby="book-dialog-description"/);
   const controls=[...modal.matchAll(/<button[^>]*data-action="set-book-reading"[^>]*>/g)].map(match=>match[0]);
   assert.equal(controls.length,4);
-  for (const [index,status] of ["unread","to-read","reading","read"].entries()) {
+  for (const [index,status] of ["unread","to_read","reading","read"].entries()) {
     assert.ok(controls[index].includes(`data-status="${status}"`));
     assert.ok(controls[index].includes(`aria-pressed="${status === "read"}"`));
     assert.doesNotMatch(controls[index],/disabled/);

@@ -63,7 +63,7 @@ for(const dialect of ["sqlite","postgres"]) test(`${dialect}: reading guides sta
   await assert.rejects(setCardVote(db,a,{cardId:first.cardId,value:1}),{code:"ownCardVote"});
   assert.equal((await setCardVote(db,a,{cardId:second.cardId,value:1})).vote,1);
   assert.equal((await setCardSave(db,a,{cardId:second.cardId,saved:true},now)).saved,true);
-  assert.equal((await db.prepare("SELECT status FROM book_reading WHERE user_id=? AND book_id=?").get(a.user_id,"atomic-habits")).status,"unread");
+  assert.equal((await db.prepare("SELECT status FROM book_reading WHERE user_id=? AND book_id=?").get(a.user_id,"atomic-habits")).status,"to_read");
 });
 
 for(const dialect of ["sqlite","postgres"]) test(`${dialect}: reading guides are reviewed individually and award 30 XP once on approval`,async t=>{

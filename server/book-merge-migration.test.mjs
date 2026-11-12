@@ -18,8 +18,8 @@ for(const [dialect,version] of [["sqlite",37],["postgres",29]]){
     const cards=await db.prepare("SELECT id,deck_id,book_id,parent_id,position FROM cards WHERE deck_id=? ORDER BY position,id").all(deck.id);
     assert.ok(cards.length);
     const cardId=cards[0].id;
-    await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(reader.user_id,deck.id);
-    await db.prepare("INSERT INTO deck_selections(user_id,book_id,deck_id) VALUES (?,?,?)").run(reader.user_id,sourceBookId,deck.id);
+    await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run(reader.user_id,deck.id);
+    await db.prepare("INSERT INTO book_selected_decks(user_id,book_id,deck_id) VALUES (?,?,?)").run(reader.user_id,sourceBookId,deck.id);
     await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'reading')").run(reader.user_id,sourceBookId);
     await db.prepare("INSERT INTO card_saves(user_id,card_id,saved_at) VALUES (?,?, '2026-10-25T12:00:00.000Z')").run(reader.user_id,cardId);
 
@@ -31,8 +31,8 @@ for(const [dialect,version] of [["sqlite",37],["postgres",29]]){
     assert.deepEqual((await db.prepare("SELECT id,deck_id,book_id,parent_id,position FROM cards WHERE deck_id=? ORDER BY position,id").all(deck.id))
       .map(row=>Object.fromEntries(Object.entries(row))),
       cards.map(card=>({...card,book_id:targetBookId})));
-    assert.ok(await db.prepare("SELECT 1 FROM studies WHERE user_id=? AND deck_id=?").get(reader.user_id,deck.id));
-    assert.deepEqual(Object.fromEntries(Object.entries(await db.prepare("SELECT user_id,book_id,deck_id FROM deck_selections WHERE user_id=? AND book_id=?").get(reader.user_id,targetBookId))),
+    assert.ok(await db.prepare("SELECT 1 FROM cardcase_decks WHERE user_id=? AND deck_id=?").get(reader.user_id,deck.id));
+    assert.deepEqual(Object.fromEntries(Object.entries(await db.prepare("SELECT user_id,book_id,deck_id FROM book_selected_decks WHERE user_id=? AND book_id=?").get(reader.user_id,targetBookId))),
       {user_id:reader.user_id,book_id:targetBookId,deck_id:deck.id});
     assert.equal((await db.prepare("SELECT status FROM book_reading WHERE user_id=? AND book_id=?").get(reader.user_id,targetBookId)).status,"reading");
     assert.equal((await db.prepare("SELECT card_id FROM card_saves WHERE user_id=?").get(reader.user_id)).card_id,cardId);

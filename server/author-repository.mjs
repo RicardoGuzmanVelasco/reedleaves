@@ -133,7 +133,7 @@ async function writeDeck(db,session,input) {
   }
   await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language,status,kind,contribution_policy,max_cards_per_contributor) VALUES (?,?,?,?,'draft',?,?,?)").run(id,input.bookId,session.user_id,language,kind,contributionPolicy,maxCardsPerContributor);
   await db.prepare("INSERT INTO deck_translations(deck_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,title,description || title,title);
-  await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(session.user_id,id);
+  await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run(session.user_id,id);
   await ensureBookToRead(db,session.user_id,input.bookId);
   return {deckId:id};
 }
@@ -324,7 +324,7 @@ export async function reassignTeamDeckCreator(db,{deckId,username}) {
 
 // Empty drafts have no content to keep, so finishing deletes them with their own references.
 async function deleteEmptyDraftDeck(db,deckId) {
-  for (const table of ["deck_translations","deck_contributors","deck_votes","deck_selections","studies"]) await db.prepare(`DELETE FROM ${table} WHERE deck_id=?`).run(deckId);
+  for (const table of ["deck_translations","deck_contributors","deck_votes","book_selected_decks","cardcase_decks"]) await db.prepare(`DELETE FROM ${table} WHERE deck_id=?`).run(deckId);
   await db.prepare("DELETE FROM decks WHERE id=? AND status='draft'").run(deckId);
 }
 
@@ -344,7 +344,7 @@ export async function finishNoteDecks(db,session,input) {
       if (!deck || deck.creator_user_id !== session.user_id || deck.book_id !== bookId) throw new ApiError(404,"deckUnavailable");
       const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(deck.id);
       // Other readers may have added an empty collective draft to their cardcase: keep it for them.
-      const sharedWithOthers=entry.cardCount === 0 && !!await db.prepare("SELECT 1 FROM studies WHERE deck_id=? AND user_id<>?").get(deck.id,session.user_id);
+      const sharedWithOthers=entry.cardCount === 0 && !!await db.prepare("SELECT 1 FROM cardcase_decks WHERE deck_id=? AND user_id<>?").get(deck.id,session.user_id);
       const status=entry.cardCount ? "finished" : sharedWithOthers ? "draft" : "deleted";
       if (total !== entry.cardCount || !(deck.status === "draft" || entry.cardCount > 0 && deck.status === "finished")) throw new ApiError(409,"noteDecksChanged");
       changes.push({deckId:deck.id,status});
@@ -402,7 +402,7 @@ export async function createTeamDeck(db,input) {
     }
     await db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language,status,quote_source_url) VALUES (?,?, 'reed-team',?,'draft',?)").run(id,input.bookId,language,quoteSourceUrl);
     await db.prepare("INSERT INTO deck_translations(deck_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)").run(id,language,title,description||title,editorialNote);
-    await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES ('reed-team',?)").run(id);
+    await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES ('reed-team',?)").run(id);
     const createdAt=new Date().toISOString();
     for (const card of normalizedCards) {
       await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,creator_user_id,language,created_at) VALUES (?,?,?,?,?,?,?,?,?)")

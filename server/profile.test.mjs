@@ -124,11 +124,11 @@ test("Author stats include quotes as a subset; shared libraries expose content b
 
 test("Public bookshelf groups explicit and deck-associated books as Para leer",async t=>{
   const {db,a,b}=await fixture(t);
-  await changeReading(db,a,"atomic-habits","to-read",day(10));
+  await changeReading(db,a,"atomic-habits","to_read",day(10));
   await createDeck(db,a,{requestId:randomUUID(),bookId:"seven-habits",title:"Another deck",language:"es"});
   const shelf=(await readProfile(db,a.user_id,b.user_id)).bookshelf;
-  assert.deepEqual(shelf.find(entry=>entry.bookId==="atomic-habits"),{bookId:"atomic-habits",reading:"unread",group:"to-read"});
-  assert.deepEqual(shelf.find(entry=>entry.bookId==="seven-habits"),{bookId:"seven-habits",reading:"unread",group:"to-read"});
+  assert.deepEqual(shelf.find(entry=>entry.bookId==="atomic-habits"),{bookId:"atomic-habits",reading:"to_read"});
+  assert.deepEqual(shelf.find(entry=>entry.bookId==="seven-habits"),{bookId:"seven-habits",reading:"to_read"});
 });
 
 test("SQLite v12 view migration preserves accounts and unlocks, backfills once and is repeatable",async t=>{

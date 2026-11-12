@@ -14,8 +14,8 @@ for (const [dialect,version] of [["sqlite",28],["postgres",20]]) {
     await initializeDatabase(db);
     assert.deepEqual(await db.prepare("SELECT id,book_id,parent_id,position FROM cards ORDER BY id").all(),beforeCards);
     assert.equal((await db.prepare("SELECT deck_id FROM cards WHERE id='habit-1'").get()).deck_id,"seven-habits-editorial");
-    assert.equal((await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").get(reader.user_id)).deck_id,"seven-habits-editorial");
-    assert.equal((await db.prepare("SELECT deck_id FROM deck_selections WHERE user_id=? AND book_id='seven-habits'").get(reader.user_id)).deck_id,"seven-habits-editorial");
+    assert.equal((await db.prepare("SELECT deck_id FROM cardcase_decks WHERE user_id=?").get(reader.user_id)).deck_id,"seven-habits-editorial");
+    assert.equal((await db.prepare("SELECT deck_id FROM book_selected_decks WHERE user_id=? AND book_id='seven-habits'").get(reader.user_id)).deck_id,"seven-habits-editorial");
     assert.equal((await db.prepare("SELECT card_id FROM card_views WHERE user_id=?").get(reader.user_id)).card_id,"habit-1");
     const tableNames= dialect==="sqlite"
       ? (await db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()).map(row=>row.name)

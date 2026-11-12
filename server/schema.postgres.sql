@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 55));
-INSERT INTO reed_schema VALUES (55);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 56));
+INSERT INTO reed_schema VALUES (56);
 
 CREATE TABLE interests(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '',
@@ -307,7 +307,7 @@ CREATE TABLE card_saves(
 CREATE INDEX saves_by_reader ON card_saves(user_id,saved_at,card_id);
 CREATE TABLE book_reading(
   user_id TEXT NOT NULL REFERENCES users(id), book_id TEXT NOT NULL REFERENCES books(id),
-  status TEXT NOT NULL CHECK(status IN ('unread','reading','read')), PRIMARY KEY(user_id,book_id)
+  status TEXT NOT NULL CHECK(status IN ('to_read','reading','read')), PRIMARY KEY(user_id,book_id)
 );
 CREATE TABLE leaf_wallets(
   user_id TEXT PRIMARY KEY REFERENCES users(id), balance BIGINT NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991),
@@ -350,8 +350,8 @@ CREATE TABLE card_views (
   PRIMARY KEY(user_id,card_id)
 );
 
-CREATE TABLE studies(rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE, user_id TEXT NOT NULL REFERENCES users(id), deck_id TEXT NOT NULL REFERENCES decks(id), PRIMARY KEY(user_id,deck_id));
-CREATE TABLE deck_selections(
+CREATE TABLE cardcase_decks(rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE, user_id TEXT NOT NULL REFERENCES users(id), deck_id TEXT NOT NULL REFERENCES decks(id), PRIMARY KEY(user_id,deck_id));
+CREATE TABLE book_selected_decks(
   user_id TEXT NOT NULL REFERENCES users(id), book_id TEXT NOT NULL REFERENCES books(id), deck_id TEXT NOT NULL,
   PRIMARY KEY(user_id,book_id), FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id)
 );

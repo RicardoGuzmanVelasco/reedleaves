@@ -178,7 +178,7 @@ test("Locked stages show known artwork and lock status up to the user's maximum 
 });
 
 test("Mascot collection opens from review album and deck selection, not bookstore, card detail or authoring",async()=>{
-  const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{},statuses:{},enrolledIds:[],deckChoices:[],storageAvailable:false};
+  const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{},statuses:{},cardcaseDeckIds:[],deckChoices:[],storageAvailable:false};
   assert.doesNotMatch(bookstoreView({...state,openBookId:"seven-habits"}),/data-action="open-mascots"/);
   assert.match(deckView(state),/data-action="open-mascots" data-book="seven-habits"/);
   assert.match(deckView({...state,growth:{"seven-habits":{added:true,practiceDays:1}}}),/mascot-entry[^>]*data-book="seven-habits"[^>]*>.*?<img src="\/app\/assets\/mascot\/soil\.svg(?:\?[^" ]*)?"/);
@@ -213,7 +213,7 @@ test("Mascot collection opens from review album and deck selection, not bookstor
 });
 test("Home book cover uses that book's earned mascot as a body-only icon",async()=>{
   const catalog=prepareCatalog(await payload()),version=catalog.decks[0],bookId=version.bookId;
-  const state=readerState(catalog,{statuses:{[bookId]:"reading"},enrolledIds:[version.id],growth:{[bookId]:{added:true,practiceDays:1}}});
+  const state=readerState(catalog,{statuses:{[bookId]:"reading"},cardcaseDeckIds:[version.id],growth:{[bookId]:{added:true,practiceDays:1}}});
   // Cover artwork has its own contract; the practice entrance can have a full mascot.
   const cover=overrides=>{
     const html=homeView({...state,...overrides}).match(/<button\b(?=[^>]*data-action="open-book-details")[^>]*>[\s\S]*?<\/button>/)?.[0];

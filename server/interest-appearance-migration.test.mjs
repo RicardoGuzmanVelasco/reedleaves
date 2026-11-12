@@ -15,10 +15,10 @@ async function retainedRows(db,dialect) {
   // the data-preservation contract of the interest-appearance migration.
   for(const {name} of tables) if(!["reed_schema","reader_book_sort_preferences","reader_interest_preferences","reader_interest_settings","reader_interest_reward_claims","reader_language_preferences","reader_known_interests","reader_interest_knowledge_visits","reader_known_books","reader_book_knowledge_visits","reader_xp_balances","reader_xp_events","reading_guide_reviews","app_roles","user_roles","reader_display_preferences"].includes(name)) {
     // Legacy keys keep one snapshot comparable before and after the interests rename.
-    const legacy={interests:"genres",interest_translations:"genre_translations",book_interests:"book_genres"}[name] || name;
+    const legacy={interests:"genres",interest_translations:"genre_translations",book_interests:"book_genres",cardcase_decks:"studies",book_selected_decks:"deck_selections"}[name] || name;
     const columns={genres:"id",book_genres:name==="book_interests"?"book_id,interest_id AS genre_id":"book_id,genre_id",genre_translations:name==="interest_translations"?"interest_id AS genre_id,language,name":"*"}[legacy] || "*";
     result[legacy]=(await db.prepare(`SELECT ${columns} FROM "${name}"`).all()).map(row=>{
-      const value=normalizeRetiredRow(name,row);if(name==="books"){delete value.incorporated_at;delete value.incorporation_order;}if(name==="practice_sessions")delete value.language_snapshot;return value;
+      const value=normalizeRetiredRow(name,row);if(name==="book_reading"&&value.status==="to_read")value.status="unread";if(name==="books"){delete value.incorporated_at;delete value.incorporation_order;}if(name==="practice_sessions")delete value.language_snapshot;return value;
     }).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
   }
   return result;

@@ -29,7 +29,7 @@ for(const dialect of ['sqlite','postgres']){
     const before=await readReaderState(db,a,now);
     const first=await setCardSave(db,a,{cardId:'habit-2',saved:true},now);
     assert.equal(first.saved,true);assert.equal(first.savedCount,1);
-    assert.equal((await db.prepare("SELECT status FROM book_reading WHERE user_id=? AND book_id=?").get(a.user_id,'seven-habits')).status,'unread');
+    assert.equal((await db.prepare("SELECT status FROM book_reading WHERE user_id=? AND book_id=?").get(a.user_id,'seven-habits')).status,'to_read');
     assert.deepEqual(await setCardSave(db,a,{cardId:'habit-2',saved:true},new Date('2026-10-14T12:00:00Z')),first);
     await recordCardView(db,a,{cardId:'habit-2',context:'saved'},new Date('2026-10-14T12:00:00Z'));
     const after=await readReaderState(db,a,now);
@@ -39,7 +39,7 @@ for(const dialect of ['sqlite','postgres']){
     assert.equal((await readCardActions(db,b,'habit-2')).saved,false);
     await assert.rejects(recordCardView(db,b,{cardId:'habit-2',context:'saved'},now),{code:'notAllowed'});
     const profile=await readProfile(db,a.user_id,b.user_id);
-    assert.equal(profile.cardSaves,undefined);assert.deepEqual(profile.bookshelf.find(entry=>entry.bookId==='seven-habits'),{bookId:'seven-habits',reading:'unread',group:'to-read'});
+    assert.equal(profile.cardSaves,undefined);assert.deepEqual(profile.bookshelf.find(entry=>entry.bookId==='seven-habits'),{bookId:'seven-habits',reading:'to_read'});
     await setCardVote(db,a,{cardId:'habit-2',value:1});
     const actions=await readCardActions(db,a,'habit-2');assert.equal(actions.saved,true);assert.equal(actions.vote,1);
     const removed=await setCardSave(db,a,{cardId:'habit-2',saved:false},now);assert.equal(removed.savedCount,0);

@@ -105,7 +105,7 @@ test("Practice start distinguishes legacy retry, canceled identity, and an expli
   const {db,call,register}=await fixture(t),{result,headers}=await register("practice.recovery");
   const userId=result.body.user.id,session={user_id:userId,csrf_token:result.body.csrfToken},now=new Date("2026-10-06T12:00:00Z");
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'reading')").run(userId,"seven-habits");
-  await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(userId,"seven-habits-editorial");
+  await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run(userId,"seven-habits-editorial");
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read')").run(userId,"atomic-habits");
   const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",language:"en",body:"A saved practice guide."});
   const normal=(await db.prepare("SELECT id FROM cards WHERE deck_id=? AND is_reading_guide=0 ORDER BY position LIMIT 5").all("seven-habits-editorial")).map(row=>row.id);
@@ -145,7 +145,7 @@ test("Origin, CSRF, malformed bodies and wrong methods are rejected without writ
   const {call,register,db,base} = await fixture(t), {headers} = await register("safe.reader");
   const v = "seven-habits-editorial";
   for (const bad of [{...headers,Origin:"https://evil.example"},{...headers,Origin:"null"},{...headers,Origin:""},{Cookie:headers.Cookie},{...headers,"X-CSRF-Token":"wrong"},{...headers,"Sec-Fetch-Site":"cross-site"}]) assert.equal((await call("/api/reader/select",{deckId:v},bad)).status,403);
-  assert.equal(db.prepare("SELECT count(*) AS n FROM studies").get().n,0);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM cardcase_decks").get().n,0);
   assert.equal((await call("/api/reader/open")).status,405);
   assert.equal((await call("/api/auth/login",{username:"safe.reader",password},{Origin:"https://evil.example"})).status,403);
   for (const [body,contentType,status] of [["{","application/json",400],["[]","application/json",400],["{}","text/plain",415],[JSON.stringify({x:"x".repeat(9000)}),"application/json",413]]) {

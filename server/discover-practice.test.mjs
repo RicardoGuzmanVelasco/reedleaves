@@ -87,7 +87,7 @@ for(const dialect of ["sqlite","postgres"]) {
     const bought=await startPracticeSession(db,session,"discover",now,null,cost);
     assert.equal(bought.session.practiceMode,"discover");assert.equal(new Set(bought.session.cardIds).size,5);
     const resumed=await startPracticeSession(db,session,"mixed",now,bought.session.id,2);
-    assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM studies WHERE user_id=?").get(session.user_id)).n,0,"Discover does not add decks");
+    assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM cardcase_decks WHERE user_id=?").get(session.user_id)).n,0,"Discover does not add decks");
     assert.equal(resumed.resumed,true);assert.deepEqual(resumed.session.cardIds,bought.session.cardIds);assert.equal(resumed.session.cost,bought.session.cost);
     assert.equal((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance,walletBefore-bought.session.cost);
   });

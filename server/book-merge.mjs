@@ -3,7 +3,7 @@ import {checkCatalog} from "./catalog-repository.mjs";
 import {ApiError} from "./errors.mjs";
 import {bookInterestError} from "../app/book-interests.mjs";
 
-const readingRank={unread:0,reading:1,read:2};
+const readingRank={to_read:0,reading:1,read:2};
 
 function bookId(value) {
   if(typeof value!=="string"||!value.trim()||value.length>240) throw new ApiError(400,"invalidRequest");
@@ -14,7 +14,7 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
   const sourceId=bookId(sourceBookId),targetId=bookId(targetBookId);
   if(sourceId===targetId) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
-    if(isPostgres(db)) await db.exec("LOCK TABLE books,decks,cards,book_reading,deck_selections IN SHARE ROW EXCLUSIVE MODE;");
+    if(isPostgres(db)) await db.exec("LOCK TABLE books,decks,cards,book_reading,book_selected_decks IN SHARE ROW EXCLUSIVE MODE;");
     // Completion locks these same rows before changing associations.
     const rowLock=isPostgres(db)?" FOR UPDATE":"";
     const source=await db.prepare(`SELECT id,creator_user_id,author,popular_title,popular_language FROM books WHERE id=?${rowLock}`).get(sourceId);
@@ -62,7 +62,7 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
     const sourceReading=await db.prepare("SELECT user_id,status FROM book_reading WHERE book_id=?").all(sourceId);
     // Account-created books appear on their creator's profile even if their explicit
     // reading row was cleared. Preserve that profile entry when removing the source.
-    if(source.creator_user_id&&!sourceReading.some(row=>row.user_id===source.creator_user_id)) sourceReading.push({user_id:source.creator_user_id,status:"unread"});
+    if(source.creator_user_id&&!sourceReading.some(row=>row.user_id===source.creator_user_id)) sourceReading.push({user_id:source.creator_user_id,status:"to_read"});
     let mergedReaders=0;
     for(const row of sourceReading){
       const existing=await db.prepare("SELECT status FROM book_reading WHERE user_id=? AND book_id=?").get(row.user_id,targetId);
@@ -74,8 +74,8 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
 
     // This legacy table permits one reference per user and book. Keep a target row
     // when both exist; otherwise carry the source row so its deck/book foreign key survives.
-    const sourceSelections=await db.prepare("SELECT user_id,deck_id FROM deck_selections WHERE book_id=?").all(sourceId);
-    await db.prepare("DELETE FROM deck_selections WHERE book_id=?").run(sourceId);
+    const sourceSelections=await db.prepare("SELECT user_id,deck_id FROM book_selected_decks WHERE book_id=?").all(sourceId);
+    await db.prepare("DELETE FROM book_selected_decks WHERE book_id=?").run(sourceId);
 
     const targetHasRecommendation=!!await db.prepare("SELECT 1 FROM decks WHERE book_id=? AND is_recommended=1").get(targetId);
     const sourceDecks=await db.prepare("SELECT id FROM decks WHERE book_id=? ORDER BY id").all(sourceId);
@@ -87,7 +87,7 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
     await db.prepare("DELETE FROM book_merge_operations WHERE source_book_id=? AND target_book_id=?").run(sourceId,targetId);
 
     for(const selection of sourceSelections){
-      await db.prepare(`INSERT INTO deck_selections(user_id,book_id,deck_id) VALUES (?,?,?)
+      await db.prepare(`INSERT INTO book_selected_decks(user_id,book_id,deck_id) VALUES (?,?,?)
         ON CONFLICT(user_id,book_id) DO NOTHING`).run(selection.user_id,targetId,selection.deck_id);
     }
     await db.prepare("DELETE FROM book_reading WHERE book_id=?").run(sourceId);
@@ -104,7 +104,7 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
       (SELECT count(*) FROM decks WHERE book_id=?) +
       (SELECT count(*) FROM cards WHERE book_id=?) +
       (SELECT count(*) FROM book_reading WHERE book_id=?) +
-      (SELECT count(*) FROM deck_selections WHERE book_id=?) +
+      (SELECT count(*) FROM book_selected_decks WHERE book_id=?) +
       (SELECT count(*) FROM book_links WHERE book_id=?) +
       (SELECT count(*) FROM book_interests WHERE book_id=?) +
       (SELECT count(*) FROM book_translations WHERE book_id=?) AS n`).get(sourceId,sourceId,sourceId,sourceId,sourceId,sourceId,sourceId);

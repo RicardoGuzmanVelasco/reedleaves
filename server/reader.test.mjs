@@ -26,7 +26,7 @@ async function fixture(t,path = ":memory:") {
 test("Adding a deck costs two leaves once; viewing it is free and users are isolated",async t=>{
   const {db,a,b} = await fixture(t), before = await readReaderState(db,a,today);
   const added = await addDeckToCardcase(db,a,version,today), state = added.state;
-  assert.deepEqual(state.enrolledIds,[version]); assert.equal(state.selections["seven-habits"],version);
+  assert.deepEqual(state.cardcaseDeckIds,[version]); assert.equal(state.selectedDeckByBook["seven-habits"],version);
   assert.equal(state.wallet.balance,before.wallet.balance-2); assert.equal("practices" in state,false);
   assert.deepEqual(state.growth["seven-habits"],{added:true,practiceDays:0});
   assert.equal((await selectDeck(db,a,version,today)).wallet.balance,state.wallet.balance);
@@ -34,36 +34,36 @@ test("Adding a deck costs two leaves once; viewing it is free and users are isol
   await db.prepare("UPDATE leaf_wallets SET balance=1 WHERE user_id=?").run(a.user_id);
   await assert.rejects(addDeckToCardcase(db,a,other,today),{code:"insufficientLeaves"});
   assert.equal((await readReaderState(db,a,today)).wallet.balance,1);
-  assert.deepEqual((await readReaderState(db,b,today)).enrolledIds,[]);
+  assert.deepEqual((await readReaderState(db,b,today)).cardcaseDeckIds,[]);
 });
 test("Removing a collected deck clears its selection and keeps catalog content",async t=>{
   const {db,a,b}=await fixture(t);
   const added=await addDeckToCardcase(db,a,version,today);
   const removed=await removeDeckFromCardcase(db,a,version,today);
-  assert.deepEqual(removed.state.enrolledIds,[]);
-  assert.equal(removed.state.selections["seven-habits"],undefined);
+  assert.deepEqual(removed.state.cardcaseDeckIds,[]);
+  assert.equal(removed.state.selectedDeckByBook["seven-habits"],undefined);
   assert.equal(removed.state.wallet.balance,added.state.wallet.balance);
   assert.equal((await readCatalog(db,b.user_id)).decks.some(deck=>deck.id===version),true);
-  assert.deepEqual((await readReaderState(db,b,today)).enrolledIds,[]);
+  assert.deepEqual((await readReaderState(db,b,today)).cardcaseDeckIds,[]);
 });
 test("Owners can remove their own deck and add it again for free",async t=>{
   const {db,a}=await fixture(t);
   const own=(await createDeck(db,a,{requestId:randomUUID(),bookId:"seven-habits",title:"Mis notas",language:"es"})).deckId;
   const added=await readReaderState(db,a,today);
   const removed=await removeDeckFromCardcase(db,a,own,today);
-  assert.deepEqual(removed.state.enrolledIds,[]);
+  assert.deepEqual(removed.state.cardcaseDeckIds,[]);
   assert.equal((await readCatalog(db,a.user_id)).decks.some(deck=>deck.id===own),true);
   const restored=await addDeckToCardcase(db,a,own,today);
-  assert.deepEqual(restored.state.enrolledIds,[own]);
+  assert.deepEqual(restored.state.cardcaseDeckIds,[own]);
   assert.equal(restored.state.wallet.balance,added.wallet.balance);
 });
 test("Adding an unread book persists explicit shelf membership without reading progress",async t=>{
   const {db,a}=await fixture(t);
   assert.deepEqual((await readReaderState(db,a,today)).shelfBookIds,[]);
-  const state=await changeReading(db,a,"atomic-habits","to-read",today);
-  assert.equal(state.statuses["atomic-habits"],"unread");
+  const state=await changeReading(db,a,"atomic-habits","to_read",today);
+  assert.equal(state.statuses["atomic-habits"],"to_read");
   assert.ok(state.shelfBookIds.includes("atomic-habits"));
-  assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id='a' AND book_id='atomic-habits'").get().status,"unread");
+  assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id='a' AND book_id='atomic-habits'").get().status,"to_read");
   const removed=await changeReading(db,a,"atomic-habits","unread",today);
   assert.ok(!removed.shelfBookIds.includes("atomic-habits"));
   assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id='a' AND book_id='atomic-habits'").get(),undefined);
@@ -71,20 +71,20 @@ test("Adding an unread book persists explicit shelf membership without reading p
 test("Deck connections become Por leer and preserve active reading states",async t=>{
   const {db,a}=await fixture(t);
   const added=await addDeckToCardcase(db,a,version,today);
-  assert.equal(added.state.statuses["seven-habits"],"unread");
-  assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id='a' AND book_id='seven-habits'").get().status,"unread");
+  assert.equal(added.state.statuses["seven-habits"],"to_read");
+  assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id='a' AND book_id='seven-habits'").get().status,"to_read");
   await changeReading(db,a,"seven-habits","reading",today);
   assert.equal((await addDeckToCardcase(db,a,version,today)).state.statuses["seven-habits"],"reading");
   await changeReading(db,a,"seven-habits","read",today);
   assert.equal((await selectDeck(db,a,version,today)).statuses["seven-habits"],"read");
   await changeReading(db,a,"seven-habits","unread",today);
-  assert.equal((await readReaderState(db,a,today)).statuses["seven-habits"],"unread");
+  assert.equal((await readReaderState(db,a,today)).statuses["seven-habits"],"to_read");
 });
 test("Existing deck connections appear as Por leer without changing stored reading progress",async t=>{
   const {db,a}=await fixture(t);
-  db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(a.user_id,version);
+  db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run(a.user_id,version);
   const state=await readReaderState(db,a,today);
-  assert.equal(state.statuses["seven-habits"],"unread");
+  assert.equal(state.statuses["seven-habits"],"to_read");
   assert.ok(state.shelfBookIds.includes("seven-habits"));
   assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id=? AND book_id=?").get(a.user_id,"seven-habits"),undefined);
 });
@@ -118,13 +118,13 @@ test("Any card opens freely and records a unique view without creating deck prog
   }
   await openCard(db,a,other,"atomic-1",today);
   assert.equal(db.prepare("SELECT count(*) AS n FROM card_views WHERE user_id='a'").get().n,2);
-  assert.equal(db.prepare("SELECT count(*) AS n FROM studies WHERE user_id='a'").get().n,2);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM cardcase_decks WHERE user_id='a'").get().n,2);
 });
 test("Invalid cards do not write views or collection changes",async t=>{
   const {db,a} = await fixture(t);
   for (const [v,c] of [[other,"atomic-1-wrong"],[version,"atomic-1"]]) await assert.rejects(openCard(db,a,v,c,today));
   assert.equal(db.prepare("SELECT count(*) AS n FROM card_views").get().n,0);
-  assert.equal(db.prepare("SELECT count(*) AS n FROM studies").get().n,0);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM cardcase_decks").get().n,0);
 });
 test("Leaves accrue independently of card views",async t=>{
   const {db,a} = await fixture(t), v = "seven-habits-inside-out";

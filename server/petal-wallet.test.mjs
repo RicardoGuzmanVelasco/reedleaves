@@ -23,7 +23,7 @@ async function fixture(t,dialect) {
     .run("reader","reader","hash","Europe/Madrid","es");
   await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run("reader",20,"2026-10-06");
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,?)").run("reader","seven-habits","reading");
-  await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run("reader","seven-habits-editorial");
+  await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run("reader","seven-habits-editorial");
   return {db,session:{user_id:"reader",csrf_token:"csrf"}};
 }
 

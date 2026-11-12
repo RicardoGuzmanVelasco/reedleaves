@@ -333,7 +333,7 @@ CREATE INDEX saves_by_reader ON card_saves(user_id,saved_at,card_id);
 CREATE TABLE book_reading (
   user_id TEXT NOT NULL REFERENCES users(id),
   book_id TEXT NOT NULL REFERENCES books(id),
-  status TEXT NOT NULL CHECK(status IN ('unread','reading','read')),
+  status TEXT NOT NULL CHECK(status IN ('to_read','reading','read')),
   PRIMARY KEY(user_id,book_id)
 ) STRICT;
 CREATE TABLE leaf_wallets (
@@ -385,12 +385,12 @@ CREATE TABLE card_views (
   PRIMARY KEY(user_id,card_id)
 ) STRICT;
 
-CREATE TABLE studies (
+CREATE TABLE cardcase_decks (
   user_id TEXT NOT NULL REFERENCES users(id),
   deck_id TEXT NOT NULL REFERENCES decks(id),
   PRIMARY KEY(user_id,deck_id)
 ) STRICT;
-CREATE TABLE deck_selections (
+CREATE TABLE book_selected_decks (
   user_id TEXT NOT NULL REFERENCES users(id),
   book_id TEXT NOT NULL REFERENCES books(id),
   deck_id TEXT NOT NULL,
@@ -420,4 +420,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 63;
+PRAGMA user_version = 64;

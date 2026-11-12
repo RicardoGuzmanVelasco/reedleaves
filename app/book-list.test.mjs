@@ -173,25 +173,25 @@ test('Personal shelf fixes Reading to covers; To read and Read have selectors',a
     assert.match(reading,/class="mascot-icon book-tile-mark"/);
     assert.ok(reading.indexOf('book-tile-mark')<reading.indexOf('id="home-book-state-'));
     assert.match(reading,/<\/svg>Leyendo<\/span>/);
-    for(const key of ['reading','to-read','read'])assert.match(html,new RegExp(`<h2 id="bookshelf-group-${key}"><svg class="reading-status-icon"`));
+    for(const key of ['reading','to_read','read'])assert.match(html,new RegExp(`<h2 id="bookshelf-group-${key}"><svg class="reading-status-icon"`));
     assert.doesNotMatch(group(html,'reading'),/data-action="set-book-view"/);
     assert.equal(group(html,'unread'),undefined);
-    assert.match(group(html,'to-read'),/data-book-spines="stack"/);
-    assert.match(group(html,'to-read'),/data-scope="bookshelf-to-read"/);
+    assert.match(group(html,'to_read'),/data-book-spines="stack"/);
+    assert.match(group(html,'to_read'),/data-scope="bookshelf-to_read"/);
     assert.match(group(html,'read'),/data-scope="bookshelf-read"/);
     assert.match(group(html,'read'),/data-book-spines="shelf"/);
     assert.equal((html.match(/data-action="set-book-view"/g)||[]).length,6);
     assert.match(group(libraryView({...base,bookViews:{'bookshelf-read':'stack'}}),'read'),/data-book-spines="stack"/);
-    const toReadCovers=group(libraryView({...base,bookViews:{'bookshelf-to-read':'covers'}}),'to-read');
+    const toReadCovers=group(libraryView({...base,bookViews:{'bookshelf-to_read':'covers'}}),'to_read');
     assert.match(toReadCovers,/book-tiles book-grid/);
     assert.match(toReadCovers,/<\/svg>Para leer<\/span>/);
     const ten={...base,statuses:{...statuses,[books[11].id]:'unread'}};
     assert.match(group(libraryView(ten),'read'),/data-book-spines="shelf"/);
     const nine={...base,statuses:{...ten.statuses,[books[10].id]:'unread'}};
     assert.match(group(libraryView(nine),'read'),/book-tiles book-grid/);
-    const publicShelf=libraryView({...base,readOnly:true,profileData:{profile:{id:'another',name:'Reader'},bookshelf:[{bookId:books[13].id,reading:'unread',group:'to-read'}]}});
-    assert.match(group(publicShelf,'to-read'),/data-book-spines="stack"/);
-    assert.match(group(publicShelf,'to-read'),/data-scope="public-bookshelf-to-read"/);
+    const publicShelf=libraryView({...base,readOnly:true,profileData:{profile:{id:'another',name:'Reader'},bookshelf:[{bookId:books[13].id,reading:'to_read'}]}});
+    assert.match(group(publicShelf,'to_read'),/data-book-spines="stack"/);
+    assert.match(group(publicShelf,'to_read'),/data-scope="public-bookshelf-to_read"/);
   }finally{await db.close();}
 });
 

@@ -23,7 +23,7 @@ async function fixture(t,dialect) {
   await db.prepare("INSERT INTO accounts(user_id,username,password_hash,time_zone,language) VALUES ('practice-xp-reader','practice-xp-reader','fixture','Europe/Madrid','es')").run();
   await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES ('practice-xp-reader',10,'2026-10-06')").run();
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES ('practice-xp-reader','seven-habits','reading')").run();
-  await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES ('practice-xp-reader','seven-habits-editorial')").run();
+  await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES ('practice-xp-reader','seven-habits-editorial')").run();
   return {db,reader:{user_id:"practice-xp-reader",csrf_token:"test"}};
 }
 async function xp(db) {return Number((await db.prepare("SELECT xp FROM reader_xp_balances WHERE user_id='practice-xp-reader'").get()).xp);}

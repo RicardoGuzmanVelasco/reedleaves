@@ -3,7 +3,7 @@
 export function readerState(catalog, overrides = {}) {
   return {
     catalog, language: "es", statuses: {},
-    enrolledIds: [], growth: {},
+    cardcaseDeckIds: [], growth: {},
     noteActivity: {}, noteDeckActivity: {}, cardSaves: [],
     storageAvailable: true, budget: {balance: 1}, ...overrides
   };

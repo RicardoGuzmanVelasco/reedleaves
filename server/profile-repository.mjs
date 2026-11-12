@@ -56,15 +56,15 @@ export async function recordCardView(db,session,{cardId,context,day:requestedDay
 
 async function readStatuses(db,userId) {
   const distinguished=await distinguishedBookIds(db,userId);
-  return Object.fromEntries([...distinguished.map(id=>[id,"unread"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(r=>[r.book_id,r.status])]);
+  return Object.fromEntries([...distinguished.map(id=>[id,"to_read"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(r=>[r.book_id,r.status])]);
 }
 
 async function profileBookshelf(db,userId,viewerId,statuses) {
   // Library entries are computed only from content visible to this viewer.
   const catalog=prepareCatalog(await readCatalog(db,viewerId));
-  const enrolledIds=(await db.prepare("SELECT deck_id FROM studies WHERE user_id=?").all(userId)).map(r=>r.deck_id+"-v1");
-  const entries=bookshelfBooks({catalog,statuses,shelfBookIds:Object.keys(statuses),enrolledIds,userId});
-  return entries.map(({book,reading,group})=>({bookId:book.id,reading,...(group==="to-read"?{group}:{})}));
+  const cardcaseDeckIds=(await db.prepare("SELECT deck_id FROM cardcase_decks WHERE user_id=?").all(userId)).map(r=>r.deck_id+"-v1");
+  const entries=bookshelfBooks({catalog,statuses,shelfBookIds:Object.keys(statuses),cardcaseDeckIds,userId});
+  return entries.map(({book,reading})=>({bookId:book.id,reading}));
 }
 
 function assertProfileId(userId) {
@@ -92,7 +92,7 @@ export async function readProfile(db,userId,viewerId,{bookshelf=true}={}) {
       JOIN cards c ON c.id=psc.card_id JOIN decks v ON v.id=c.deck_id
       WHERE ps.user_id=? AND ps.completed_at IS NOT NULL AND ps.completed_local_day IS NOT NULL GROUP BY v.book_id`).all(userId)).map(r=>[r.book_id,Number(r.n)]));
     const mascots={...Object.fromEntries(mascotStages.map(stage=>[stage.id,0])),sapling:0,plant:0};
-    const added=new Set([...Object.keys(statuses),...(await db.prepare("SELECT d.book_id FROM studies s JOIN decks d ON d.id=s.deck_id WHERE s.user_id=?").all(userId)).map(row=>row.book_id)]);
+    const added=new Set([...Object.keys(statuses),...(await db.prepare("SELECT d.book_id FROM cardcase_decks s JOIN decks d ON d.id=s.deck_id WHERE s.user_id=?").all(userId)).map(row=>row.book_id)]);
     for (const bookId of new Set([...added,...days.keys()])) {
       const stage=currentMascotStage({practiceDays:days.get(bookId)||0,added:added.has(bookId)});
       if (stage) mascots[stage]++;

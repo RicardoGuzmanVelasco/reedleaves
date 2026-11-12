@@ -29,7 +29,7 @@ test("Only a saved transition into reading with accessible guide cards qualifies
   ])};
   assert.equal(hasAccessibleReadingGuide(guideCatalog,"b"),true);
   assert.equal(hasAccessibleReadingGuide({...guideCatalog,decks:guideCatalog.decks.slice(1)},"b"),false);
-  const qualifies=values=>shouldShowReadingGuidePrompt({previousStatus:"to-read",nextStatus:"reading",saveSucceeded:true,hasGuideCards:true,...values});
+  const qualifies=values=>shouldShowReadingGuidePrompt({previousStatus:"to_read",nextStatus:"reading",saveSucceeded:true,hasGuideCards:true,...values});
   assert.equal(qualifies({}),true);
   assert.equal(qualifies({previousStatus:"reading"}),false);
   assert.equal(qualifies({saveSucceeded:false}),false);
@@ -57,7 +57,7 @@ test("Successful state mutation offers the guide; a failed mutation does not",as
     let shown=null,focused=null;
     const bookId="seven-habits";
     const context={
-      snapshot:{user:{id:"reader"},statuses:{[bookId]:"to-read"}},statuses:{[bookId]:"to-read"},mode:"bookstore",openBookId:bookId,
+      snapshot:{user:{id:"reader"},statuses:{[bookId]:"to_read"}},statuses:{[bookId]:"to_read"},mode:"bookstore",openBookId:bookId,
       catalog:{booksById:new Map([[bookId,{}]])},busy:false,bookStatusError:null,noteNudgeBookId:null,readingGuidePromptBookId:null,
       words,language:"es",live:{textContent:""},notesCompletion:null,createNotesCompletion:()=>null,
       hasAccessibleReadingGuide:()=>true,hasOwnReadingGuide:()=>false,shouldShowReadingGuidePrompt,shouldOfferReadingGuideCreationPrompt,bookInterestPrompt:null,bookInterestFlow:null,

@@ -35,7 +35,7 @@ test("all three incorporation operations return a structured confirmation withou
   assert.deepEqual(collect.operation,{type:"addDeckToCardcase",resourceId:"seven-habits-editorial",parameters:{}});
   assert.deepEqual(save.operation,{type:"saveCard",resourceId:"habit-1",parameters:{saved:true}});
   assert.equal(await db.prepare("SELECT 1 FROM book_reading WHERE user_id='reader' AND book_id='seven-habits'").get(),undefined);
-  assert.equal(await db.prepare("SELECT 1 FROM studies WHERE user_id='reader' AND deck_id='seven-habits-editorial'").get(),undefined);
+  assert.equal(await db.prepare("SELECT 1 FROM cardcase_decks WHERE user_id='reader' AND deck_id='seven-habits-editorial'").get(),undefined);
   assert.equal(await db.prepare("SELECT 1 FROM card_saves WHERE user_id='reader' AND card_id='habit-1'").get(),undefined);
   assert.deepEqual(await db.prepare("SELECT balance FROM leaf_wallets WHERE user_id=?").get(session.user_id),beforeWallet);
 });
@@ -62,7 +62,7 @@ test("a confirmation applies only to its operation, resource, parameters, and cu
 test("membership appearing between request and confirmation prevents a repeated warning",async t=>{
   const {db,session}=await fixture(t);
   const prompt=await changeReading(db,session,"seven-habits","reading",now,enabled);
-  await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'unread')").run(session.user_id,"seven-habits");
+  await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'to_read')").run(session.user_id,"seven-habits");
   const result=await changeReading(db,session,"seven-habits","reading",now,{...enabled,confirmation:prompt.confirmation});
   assert.equal(result.confirmationRequired,undefined);
   assert.equal(result.statuses["seven-habits"],"reading");
@@ -75,10 +75,10 @@ test("confirmed collection and save retries do not repeat charges or saved recor
   const balance=added.state.wallet.balance;
   const retried=await addDeckToCardcase(db,session,"seven-habits-editorial",now,{...enabled,confirmation:collectPrompt.confirmation});
   assert.equal(retried.state.wallet.balance,balance);
-  assert.equal((await db.prepare("SELECT count(*) AS count FROM studies WHERE user_id=? AND deck_id=?").get(session.user_id,"seven-habits-editorial")).count,1);
+  assert.equal((await db.prepare("SELECT count(*) AS count FROM cardcase_decks WHERE user_id=? AND deck_id=?").get(session.user_id,"seven-habits-editorial")).count,1);
 
-  await db.prepare("DELETE FROM studies WHERE user_id=? AND deck_id=?").run(session.user_id,"seven-habits-editorial");
-  await db.prepare("DELETE FROM deck_selections WHERE user_id=? AND book_id=?").run(session.user_id,"seven-habits");
+  await db.prepare("DELETE FROM cardcase_decks WHERE user_id=? AND deck_id=?").run(session.user_id,"seven-habits-editorial");
+  await db.prepare("DELETE FROM book_selected_decks WHERE user_id=? AND book_id=?").run(session.user_id,"seven-habits");
   await db.prepare("DELETE FROM book_reading WHERE user_id=? AND book_id=?").run(session.user_id,"seven-habits");
   const savePrompt=await setCardSave(db,session,{cardId:"habit-1",saved:true},now,enabled);
   const saved=await setCardSave(db,session,{cardId:"habit-1",saved:true,confirmation:savePrompt.confirmation},now,enabled);
@@ -96,13 +96,13 @@ test("the combined policy is enabled after all three confirmation entry points a
   ];
   assert.ok(results.every(result=>result.confirmationRequired));
   assert.equal(await db.prepare("SELECT 1 FROM book_reading WHERE user_id=? AND book_id=?").get(session.user_id,"seven-habits"),undefined);
-  assert.equal(await db.prepare("SELECT 1 FROM studies WHERE user_id=? AND deck_id=?").get(session.user_id,"seven-habits-editorial"),undefined);
+  assert.equal(await db.prepare("SELECT 1 FROM cardcase_decks WHERE user_id=? AND deck_id=?").get(session.user_id,"seven-habits-editorial"),undefined);
   assert.equal(await db.prepare("SELECT 1 FROM card_saves WHERE user_id=? AND card_id=?").get(session.user_id,"habit-1"),undefined);
 });
 
 test("existing bookstore membership bypasses confirmation even when policy is enabled",async t=>{
   const {db,session}=await fixture(t);
-  await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'unread')").run(session.user_id,"seven-habits");
+  await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'to_read')").run(session.user_id,"seven-habits");
   const result=await changeReading(db,session,"seven-habits","reading",now,enabled);
   assert.equal(result.confirmationRequired,undefined);
   assert.equal(result.statuses["seven-habits"],"reading");

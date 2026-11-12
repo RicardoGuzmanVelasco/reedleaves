@@ -59,7 +59,7 @@ test("Only incomplete owned books offer completion; optional links do not keep t
   const complete={...minimal,...bookMetadata};
   assert.equal(missingBookInformation(complete).length,0);
   const catalog={...state.catalog,books:[minimal],booksById:new Map([["mine",minimal]]),decks:[]};
-  const reader={...state,catalog,userId:"owner",statuses:{mine:"reading"},enrolledIds:[],storageAvailable:true};
+  const reader={...state,catalog,userId:"owner",statuses:{mine:"reading"},cardcaseDeckIds:[],storageAvailable:true};
   for (const view of [bookstoreView,libraryView]) {
     const html=view(reader);assert.match(html,/data-action="complete-book"/);assert.match(html,/aria-label="Falta información\. Completar información:/);
     assert.match(html,/<\/button><button class="book-incomplete"/);

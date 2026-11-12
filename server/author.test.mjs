@@ -48,7 +48,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal(card.body.es,input.body);assert.equal(card.parentId,null);
     const after=await readReaderState(db,session);
     assert.deepEqual(after.wallet,before.wallet);
-    assert.equal(after.statuses[input.bookId],"unread");assert.ok(after.noteActivity[input.bookId]);
+    assert.equal(after.statuses[input.bookId],"to_read");assert.ok(after.noteActivity[input.bookId]);
     await assert.rejects(takeNote(db,other,input),{code:"invalidRequest"});
     await assert.rejects(takeNote(db,session,{...input,body:"Otro texto"}),{code:"invalidRequest"});
     // Fail the final write, after the deck and card have been inserted.
@@ -94,7 +94,7 @@ for (const dialect of ["sqlite","postgres"]) {
   test(`${dialect}: empty collective drafts that other readers added are kept, and a null deck is rejected`,async t=>{
     const {db,session,other}=await fixture(t,dialect),bookId="seven-habits";
     const shared=await createDeck(db,session,{requestId:randomUUID(),bookId,title:"Compartida",language:"es",kind:"collective",contributionPolicy:"open"});
-    await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(other.user_id,shared.deckId);
+    await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run(other.user_id,shared.deckId);
     assert.deepEqual(await finishNoteDecks(db,session,{bookId,decks:[{deckId:shared.deckId,cardCount:0}]}),{bookId,decks:[{deckId:shared.deckId,status:"draft"}]});
     assert.equal((await db.prepare("SELECT status FROM decks WHERE id=?").get(shared.deckId)).status,"draft");
     await assert.rejects(takeNote(db,session,{requestId:randomUUID(),deckId:null,bookId,language:"es",title:"x",body:"y",isQuote:false,parentId:null}),{code:"invalidRequest"});
@@ -298,7 +298,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal((await readCatalog(db,other.user_id)).decks.some(v=>v.id===deckId),true);
     let catalog=prepareCatalog(await readCatalog(db,session.user_id));
     assert.equal(catalog.decksById.get(deckId).cardCount,0);
-    assert.equal((await readReaderState(db,session,new Date("2026-10-10T12:00:00Z"))).enrolledIds.includes(deckId),true);
+    assert.equal((await readReaderState(db,session,new Date("2026-10-10T12:00:00Z"))).cardcaseDeckIds.includes(deckId),true);
     await selectDeck(db,other,deckId,new Date("2026-10-10T12:00:00Z"));
     await assert.rejects(takeNote(db,other,{requestId:randomUUID(),deckId,title:"x",body:"x",parentId:null,isQuote:false}),e=>e.status===404);
     const add=(title,parentId=null,isQuote=false)=>({requestId:randomUUID(),deckId,title,body:"Texte à mémoriser\nDeuxième ligne",parentId,isQuote});

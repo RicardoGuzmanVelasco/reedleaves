@@ -33,7 +33,7 @@ async function createReader(db,label) {
   await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run(id,10,refillDay);
   await db.prepare("INSERT INTO leaf_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run(id,5,refillDay);
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'reading')").run(id,"seven-habits");
-  await db.prepare("INSERT INTO studies(user_id,deck_id) VALUES (?,?)").run(id,"seven-habits-editorial");
+  await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run(id,"seven-habits-editorial");
   const session=sessionFor(id);
   // These readers explicitly opt into both languages, as the fixtures span
   // English and Spanish card decks while their UI language starts as English.
@@ -144,6 +144,6 @@ postgresTest("real PostgreSQL serializes recovery, refunds once, and preserves r
     changePreferences(db,lockReader.session,{language:"es"},now),
     readReaderState(db,lockReader.session,now)
   ]);
-  assert.equal((await db.prepare("SELECT count(*) AS n FROM studies WHERE user_id=? AND deck_id=?").get(lockReader.id,targetDeck)).n,1);
+  assert.equal((await db.prepare("SELECT count(*) AS n FROM cardcase_decks WHERE user_id=? AND deck_id=?").get(lockReader.id,targetDeck)).n,1);
   assert.equal((await db.prepare("SELECT language FROM accounts WHERE user_id=?").get(lockReader.id)).language,"es");
 });

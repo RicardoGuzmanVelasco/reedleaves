@@ -86,7 +86,7 @@ test("Collective draft review UI lets invited contributors add cards without exp
   assert.doesNotMatch(html,/data-action="author-deck"|data-action="finish-deck"|data-contributor-form/);
 });
 test("Deck grid links to one page; every card is visible and openable", async () => {
-  const catalog = await fixture(),base = {catalog,language:"es",deckId,bookId:"seven-habits",requestedId:"inside-out-2",storageAvailable:true,userId:"reader",enrolledIds:[deckId]};
+  const catalog = await fixture(),base = {catalog,language:"es",deckId,bookId:"seven-habits",requestedId:"inside-out-2",storageAvailable:true,userId:"reader",cardcaseDeckIds:[deckId]};
   const html = deckPageView(base);
   assert.match(html,/data-action="previous-reading-card" aria-label="← Anterior"/);
   assert.match(html,/data-action="next-reading-card" aria-label="Siguiente →"/);
@@ -110,7 +110,7 @@ test("Deck grid links to one page; every card is visible and openable", async ()
 });
 
 test("Reading navigation offers an alternative control at deck boundaries",async()=>{
-  const catalog=await fixture(),cards=catalog.deckModels.get(deckId).cards,base={catalog,language:"en",deckId,bookId:"seven-habits",storageAvailable:true,userId:"reader",enrolledIds:[deckId]};
+  const catalog=await fixture(),cards=catalog.deckModels.get(deckId).cards,base={catalog,language:"en",deckId,bookId:"seven-habits",storageAvailable:true,userId:"reader",cardcaseDeckIds:[deckId]};
   const first=deckPageView({...base,requestedId:cards[0].id}),last=deckPageView({...base,requestedId:cards.at(-1).id});
   assert.doesNotMatch(first,/data-action="previous-reading-card"/);assert.match(first,/data-action="next-reading-card"/);
   assert.match(last,/data-action="previous-reading-card"/);assert.doesNotMatch(last,/data-action="next-reading-card"/);
@@ -168,7 +168,7 @@ test("Quote counts use the existing quote mark and quote dominant deck previews 
   const firstCards=catalog.deckModels.get(first.id).cards,secondCards=catalog.deckModels.get(second.id).cards;
   firstCards.forEach((card,index)=>{card.isQuote=index<4;});
   secondCards.forEach(card=>{card.isQuote=false;});
-  const choices=decks.map(deck=>({deck,tags:[]})),state=readerState(catalog,{language:"es",bookId:"seven-habits",deckId:first.id,deckChoices:choices,enrolledIds:decks.map(deck=>deck.id)});
+  const choices=decks.map(deck=>({deck,tags:[]})),state=readerState(catalog,{language:"es",bookId:"seven-habits",deckId:first.id,deckChoices:choices,cardcaseDeckIds:decks.map(deck=>deck.id)});
   const selector=deckView(state);
   assert.match(selector,/class="deck-tile deck-tile--quote-dominant"/);
   assert.match(selector,/class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="\d+ tarjetas"><span class="cards-icon" aria-hidden="true"><\/span><span>\d+<\/span><\/span>/);
@@ -264,7 +264,7 @@ test("Draft deck owner can edit its name and language from management",async()=>
 test("Home shows one closed book per active book, without exposing trees or spending leaves", async () => {
   const catalog = await fixture();
   const second = "atomic-habits-editorial";
-  const state = {catalog,language:"es",statuses:{"seven-habits":"reading","atomic-habits":"reading"},enrolledIds:[second],storageAvailable:true};
+  const state = {catalog,language:"es",statuses:{"seven-habits":"reading","atomic-habits":"reading"},cardcaseDeckIds:[second],storageAvailable:true};
   const html = homeView(state);
   assert.match(html,/data-action="practice" aria-label="¡Vamos a repasar!"/);
   assert.equal((html.match(/class="practice-launch-char"/g)||[]).length,[...words.es.practiceLaunch].length);
@@ -274,8 +274,8 @@ test("Home shows one closed book per active book, without exposing trees or spen
   assert.match(html,/Los 7 hábitos/); assert.match(html,/Stephen R\. Covey/);
   assert.doesNotMatch(html,/Choose your response|Make room for what matters|tree-node|tree-map|open-card|idea-card|Una idea al día/);
   assert.equal(homeView({...state,budget:null}),html);
-  assert.equal((homeView({...state,enrolledIds:[second,"seven-habits-editorial"]}).match(/class="book-tile"/g) || []).length,2);
-  const empty = homeView({...state,statuses:{},enrolledIds:[]});
+  assert.equal((homeView({...state,cardcaseDeckIds:[second,"seven-habits-editorial"]}).match(/class="book-tile"/g) || []).length,2);
+  const empty = homeView({...state,statuses:{},cardcaseDeckIds:[]});
   assert.ok(empty.includes(words.es.noReadingBooks)); assert.doesNotMatch(empty,/book-tile"/);
   assert.doesNotMatch(homeView({...state,language:"en"}),/data-action="bookstore"|Go to the bookstore/);
 });
@@ -385,7 +385,7 @@ test('Book and collection deck lists prioritize the current viewer’s contribut
     for(const card of catalog.deckModels.get(deck.id).cards)card.creatorUserId=deck.id===first.id?'first-reader':'second-reader';
   }
   for(const [userId,preferred,other] of [['second-reader',second,first],['first-reader',first,second]]){
-    const state=readerState(catalog,{userId,bookId:'seven-habits',deckChoices:availableDecks(catalog,'seven-habits'),enrolledIds:decks.map(deck=>deck.id),libraryTab:'cardcase'});
+    const state=readerState(catalog,{userId,bookId:'seven-habits',deckChoices:availableDecks(catalog,'seven-habits'),cardcaseDeckIds:decks.map(deck=>deck.id),libraryTab:'cardcase'});
     for(const html of [deckView(state),libraryView(state)]){
       assert.ok(html.indexOf(`data-deck="${preferred.id}"`)<html.indexOf(`data-deck="${other.id}"`));
     }
