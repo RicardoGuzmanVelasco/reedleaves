@@ -231,14 +231,12 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.deepEqual(book.title,{}); assert.equal(Object.hasOwn(book,"sources"),false);
     assert.deepEqual(book.description,{}); assert.deepEqual(book.links,{});
     assert.equal(book.creatorUserId,session.user_id);
-    assert.equal(catalog.models.has(bookId),false);
     assert.equal((await readReaderState(db,session,new Date("2026-10-10T12:00:00Z"))).statuses[bookId],"reading");
     // Existing books need no data migration or owner reassignment on restart.
     await initializeDatabase(db);
     for (const userId of [undefined,other.user_id]) {
       const shared=prepareCatalog(await readCatalog(db,userId));
       assert.deepEqual(shared.booksById.get(bookId),book);
-      assert.equal(shared.models.has(bookId),false);
     }
     assert.equal((await checkCatalog(db)).books,6);
     assert.equal((await readProfile(db,other.user_id,other.user_id)).bookshelf.some(b=>b.bookId===bookId),false);
@@ -326,7 +324,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const otherDaily=await dailyIdea(db,other,now);
     assert.ok(prepareCatalog(await readCatalog(db,other.user_id)).cardsById.has(otherDaily.dailyIdea.id));
     assert.equal("practices" in await readReaderState(db,other,now),false);
-    await assert.rejects(takeNote(db,session,{...add("x"),deckId:"seven-habits-editorial"}),e=>e.status===404);
+    await assert.rejects(takeNote(db,session,{...add("x"),deckId:"seven-habits-editorial"}),e=>e.code==="deckReadOnly");
     const ui={catalog,deckId,bookId:"seven-habits",language:"es",userId:session.user_id,mode:"author",requestedId:quote.cardId,budget:state.wallet,today:state.today,storageAvailable:true};
     assert.match(authorView({...ui,requestedId:null}),/Citas sin clasificar/); assert.match(authorView(ui),/<blockquote/);
     assert.match(authorView(ui),/quote-card/); assert.match(authorView({...ui,quotesOnly:true}),/Texte à mémoriser/);

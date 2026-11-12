@@ -34,17 +34,8 @@ export function prepareCatalog(payload) {
     if (d.cardCount !== model.cards.length || d.depth !== depth) throw new Error("Invalid deck dimensions");
     return [d.id,model];
   }));
-  // The default daily deck is selected per book; each tree belongs to one deck.
-  const models = new Map(), selectedDecks = new Map();
-  for (const book of books) {
-    const bookDecks=decks.filter(d=>d.bookId===book.id&&(d.kind||"standard")==="standard");
-    const deck = bookDecks.find(d => d.isRecommended) || bookDecks[0];
-    if (!deck) continue;
-    models.set(book.id,deckModels.get(deck.id)); selectedDecks.set(book.id,deck.id);
-  }
-  const cards = allCards.filter(c => selectedDecks.get(c.bookId) === c.deckId);
   return { books,booksById,decks,decksById,deckModels,allCards,
-    cards,cardsById:new Map(allCards.map(c => [c.id,c])),interests,models,selectedDecks };
+    cardsById:new Map(allCards.map(c => [c.id,c])),interests };
 }
 
 export async function loadCatalog(fetcher = fetch) {

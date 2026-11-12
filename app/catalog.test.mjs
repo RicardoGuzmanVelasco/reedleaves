@@ -36,8 +36,9 @@ test("Separate decks keep their own card trees in the catalog", async () => {
 });
 test("Frontend consumes the database API without a hard-coded book or card count", async () => {
   const data = await payload(), catalog = prepareCatalog(data);
-  assert.equal(catalog.models.get("atomic-habits").roots.length, 8);
-  assert.equal(catalog.models.get("rich-dad-poor-dad").roots.length, 6);
+  const recommendedRoots = bookId => catalog.deckModels.get(catalog.decks.find(deck => deck.bookId === bookId && deck.isRecommended).id).roots.length;
+  assert.equal(recommendedRoots("atomic-habits"), 8);
+  assert.equal(recommendedRoots("rich-dad-poor-dad"), 6);
   const result = await loadCatalog(async url => {
     assert.equal(url, "/api/catalog");
     return { ok: true, json: async () => data };
@@ -51,7 +52,6 @@ test("A team book without decks remains accessible and displays the empty state"
   data.cards=data.cards.filter(card=>card.bookId!==bookId);
   const catalog=prepareCatalog(data);
   assert.ok(catalog.booksById.has(bookId));
-  assert.equal(catalog.selectedDecks.has(bookId),false);
   const html=deckView({...readerState(catalog),bookId,deckChoices:[],language:"es"});
   assert.ok(html.includes(words.es.noDecks));
 });
@@ -205,7 +205,7 @@ test("Mascot collection opens from review album and deck selection, not bookstor
   assert.doesNotMatch(flowerReview,/<p lang="es"><\/p>|undefined/);
   const evergreenReview=deckPageView({...reviewing,growth:{"seven-habits":{added:true,practiceDays:30}}});
   assert.match(evergreenReview,/app\/assets\/mascot\/evergreen\.svg/);
-  const first=catalog.cards.find(card=>card.deckId===version.id);
+  const first=catalog.allCards.find(card=>card.deckId===version.id);
   for (const html of [deckPageView({...reviewing,requestedId:first.id}),authorView({...reviewing,requestedId:first.id})]) {
     const modal=html.match(/<dialog class="exclusive-card-modal"[^>]*>([\s\S]*?)<\/dialog>/)?.[1];
     assert.ok(modal);assert.doesNotMatch(modal,/data-action="open-mascots"/);

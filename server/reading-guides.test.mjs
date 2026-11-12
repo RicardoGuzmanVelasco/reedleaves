@@ -51,7 +51,6 @@ for(const dialect of ["sqlite","postgres"]) test(`${dialect}: reading guides sta
   const catalog=await readCatalog(db,a.user_id),prepared=prepareCatalog(catalog),guides=catalog.cards.filter(card=>card.isReadingGuide);
   assert.equal(guides.length,2);assert.deepEqual(guides.map(card=>card.language).sort(),["en","es"]);
   assert.ok(guides.every(card=>card.reviewStatus==="pending"));
-  assert.equal(prepared.cards.some(card=>card.isReadingGuide),false);
   assert.equal(catalog.decks.find(deck=>deck.id===first.deckId).kind,"collective");
   const viewState=readerState(prepared,{userId:a.user_id,language:"es",bookId:"atomic-habits",requestedId:first.cardId,statuses:{"atomic-habits":"unread"},deckChoices:availableDecks(prepared,"atomic-habits")});
   const deckHtml=deckView(viewState),guideHtml=readingGuidesView(viewState);

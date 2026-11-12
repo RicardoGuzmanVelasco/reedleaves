@@ -281,7 +281,7 @@ test("Home shows one closed book per active book, without exposing trees or spen
 });
 
 test("Practice exposes only the active card, enables writing and keeps the pile decorative",async()=>{
-  const catalog=await fixture(),cards=catalog.cards.slice(0,3),state=readerState(catalog,{practiceStage:"session"});
+  const catalog=await fixture(),cards=catalog.allCards.slice(0,3),state=readerState(catalog,{practiceStage:"session"});
   const html=practiceView(state,{cards,index:0,advancing:false,leaving:null});
   assert.deepEqual([...html.matchAll(/data-reading-card="([^"]+)"/g)].map(match=>match[1]),[cards[0].id]);
   assert.doesNotMatch(html,/data-reading-mode/);

@@ -243,6 +243,11 @@ export async function changePreferences(db,session,input,now=new Date()) {
     return stateInside(db,session,now);
   });
 }
+// The idea of the day is shared by everyone, so it only comes from public content:
+// root cards of finished decks, never reading guides.
+function dailyIdeaCandidates(catalog) {
+  return catalog.allCards.filter(card=>card.parentId===null && !card.isReadingGuide && catalog.decksById.get(card.deckId)?.status==="finished");
+}
 export async function dailyIdea(db,session,now=new Date()) {
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
@@ -257,7 +262,7 @@ export async function dailyIdea(db,session,now=new Date()) {
     const raced=await db.prepare("SELECT 1 FROM daily_ideas WHERE day=?").get(day);
     if(raced) return stateInside(db,session,now);
     const catalog=prepareCatalog(await readCatalog(db,session.user_id));
-    const candidates=catalog.allCards.filter(card=>card.parentId===null && card.deckId===catalog.selectedDecks.get(card.bookId));
+    const candidates=dailyIdeaCandidates(catalog);
     if(candidates.length) {
       const seen=new Set((await db.prepare("SELECT DISTINCT card_id FROM daily_ideas").all()).map(row=>row.card_id));
       const unused=candidates.filter(card=>!seen.has(card.id));
@@ -279,6 +284,6 @@ export async function dailyIdeaStatus(db,session,now=new Date()) {
   if(seen) return {day,unseen:false};
   if(await db.prepare("SELECT 1 FROM daily_ideas WHERE day=?").get(day)) return {day,unseen:true};
   const catalog=prepareCatalog(await readCatalog(db,session.user_id));
-  const available=catalog.allCards.some(card=>card.parentId===null&&card.deckId===catalog.selectedDecks.get(card.bookId));
+  const available=dailyIdeaCandidates(catalog).length>0;
   return {day,unseen:available};
 }

@@ -60,7 +60,7 @@ test('One deck page handles discovery, collection and ownership while clean read
 test('A shared card retains its content language and shows only the requested card',async()=>{
   const db=openDatabase(':memory:');let catalog;
   try{await initializeDatabase(db);await seedCatalog(db);catalog=prepareCatalog(await readCatalog(db));}finally{await db.close();}
-  const card=catalog.cards[0],deck=catalog.decksById.get(card.deckId);
+  const card=catalog.allCards[0],deck=catalog.decksById.get(card.deckId);
   const url=cardShareUrl('https://reedleaves.com/app/#daily-idea','card/one','es');
   assert.equal(url,'https://reedleaves.com/app/?sharedCard=card%2Fone&cardLanguage=es#card/card%2Fone/es');
   card.body={...card.body,es:'Texto compartido',en:'Shared text'};

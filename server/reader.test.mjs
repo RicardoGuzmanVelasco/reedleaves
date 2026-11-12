@@ -152,6 +152,17 @@ test("Reading and language preferences remain separate from wallets and practice
   assert.equal("practices" in state,false); await assert.rejects(changePreferences(db,a,{language:"zz"},today));
   await assert.rejects(changeReading(db,a,"missing","read",today));
 });
+test("The daily idea only comes from root cards of finished decks",async t=>{
+  const {db,a} = await fixture(t), catalog = await readCatalog(db), picked = new Set();
+  for (let offset=0;offset<60;offset++) {
+    const id=(await dailyIdea(db,a,date(new Date(Date.UTC(2026,9,6+offset)).toISOString().slice(0,10)))).dailyIdea.id;
+    const card=catalog.cards.find(item=>item.id===id), deck=catalog.decks.find(item=>item.id===card.deckId);
+    assert.equal(card.parentId,null); assert.equal(card.isReadingGuide,false); assert.equal(deck.status,"finished");
+    picked.add(id);
+  }
+  assert.ok(catalog.cards.some(card=>catalog.decks.find(item=>item.id===card.deckId).status==="draft"),"the fixture has cards in draft decks to exclude");
+  assert.ok(picked.size>1);
+});
 test("One daily idea is shared and daily assignment does not create a card view",async t=>{
   const {db,a,b} = await fixture(t), first = await dailyIdea(db,a,today);
   assert.ok(first.dailyIdea.id); assert.equal(first.wallet.balance,5);
