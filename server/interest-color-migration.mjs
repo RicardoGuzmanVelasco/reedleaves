@@ -13,14 +13,6 @@ export const INTEREST_COLOR_MIGRATION_SQLITE = `
     WHEN 'personal-growth' THEN '#AAD57B' WHEN 'productivity' THEN '#FE8957'
     WHEN 'psychology' THEN '#FF6E9E' WHEN 'society' THEN '#2D73FF'
     WHEN 'software' THEN '#BBC2C9' ELSE book_color END;
-  INSERT INTO genres(id,emoji,color,chip_color,book_color)
-  VALUES ('communication','💬','#59C8FF','#59C8FF','#0099FF')
-  ON CONFLICT(id) DO UPDATE SET emoji=excluded.emoji,color=excluded.color,
-    chip_color=excluded.chip_color,book_color=excluded.book_color;
-  UPDATE genres SET color=chip_color;
-  INSERT INTO genre_translations(genre_id,language,name) VALUES
-    ('communication','es','Comunicación'),('communication','en','Communication')
-  ON CONFLICT(genre_id,language) DO UPDATE SET name=excluded.name;
 `;
 
 export const INTEREST_COLOR_MIGRATION_POSTGRES = `
@@ -39,12 +31,4 @@ export const INTEREST_COLOR_MIGRATION_POSTGRES = `
     ('software','#BFC1C8','#BBC2C9')
   ) AS v(id,chip_color,book_color)
   WHERE g.id=v.id;
-  INSERT INTO public.genres(id,emoji,color,chip_color,book_color)
-  VALUES ('communication','💬','#59C8FF','#59C8FF','#0099FF')
-  ON CONFLICT(id) DO UPDATE SET emoji=EXCLUDED.emoji,color=EXCLUDED.color,
-    chip_color=EXCLUDED.chip_color,book_color=EXCLUDED.book_color;
-  UPDATE public.genres SET color=chip_color;
-  INSERT INTO public.genre_translations(genre_id,language,name) VALUES
-    ('communication','es','Comunicación'),('communication','en','Communication')
-  ON CONFLICT(genre_id,language) DO UPDATE SET name=EXCLUDED.name;
 `;

@@ -1,9 +1,8 @@
 // Seed importer frozen before the finished-vocabulary migration (SQLite v61 / PostgreSQL v53).
-// It still writes the retired columns, so the CSV rows get their former default values.
+// It writes the retired schema shape; the CSV chip color fills its legacy color field.
 import { readFileSync } from "node:fs";
 import { parseCsv } from "../server/csv.mjs";
 import { transaction,isPostgres } from "../server/database.mjs";
-import { checkCatalog } from "../server/catalog-repository.mjs";
 import { validateCards, LANGUAGES } from "../app/core.mjs";
 import {validInterestAppearance} from "../app/interests.mjs";
 import {bookInterestError} from "../app/book-interests.mjs";
@@ -195,6 +194,6 @@ export async function seedCatalog(db, seed = readSeed()) {
       const row = await db.prepare("SELECT status,editorial_status FROM decks WHERE id = ?").get(d.id);
       if (row.status !== d.status || row.editorial_status !== d.editorial_status) await db.prepare("UPDATE decks SET status = ?, editorial_status = ? WHERE id = ?").run(d.status,d.editorial_status,d.id);
     }
-    return checkCatalog(db);
+    return;
   });
 }
