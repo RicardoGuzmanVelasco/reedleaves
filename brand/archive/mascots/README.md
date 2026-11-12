@@ -9,15 +9,12 @@ Variantes de mascota guardadas para el futuro. Guardar aquí no aprueba ni activ
 
 | Carpeta | Contenido |
 | --- | --- |
-| `brote/` | 13 variantes vectoriales de Brote |
+| `brote/` | 6 variantes vectoriales de Brote |
 | `brotes-raster/` | Tierra v1–v3 y Cotiledones |
 | `flores-sin-tallo/` | Margarita, girasol, tulipán, amapola, rosa (la Flor activa es `reed/growth/bodies/flower.png`) |
 | `flores-con-tallo/` | Siete composiciones con tallo y hojas |
-| `macetas/` | Cuenco, abombada, alta, cuadrada, jardinera, clásica y asimétrica, con sus láminas |
-| `semillas/` | Redonda, arriñonada, achatada, café vertical, café ondulado y picos curvos, con láminas |
-| `raices/` | Vertical, extendida y ramificada |
+| `macetas/` | Cuenco, abombada, alta, cuadrada y jardinera, con su lámina |
+| `semillas/` | Redonda, arriñonada, achatada, café vertical y café ondulado, con su lámina |
 | `tallos/` | Flexible, nudos, junco y bambú |
-| `historical/` | Los cinco personajes vectoriales antiguos (maceta, semilla, tallo, planta, flor) |
-| `logos/` | Cuatro estudios de logo con mascota (abrazo, papel, trazo, compacto) |
 
 Las siluetas que la app ya usa (`reed/growth/bodies/`) no se duplican aquí.
