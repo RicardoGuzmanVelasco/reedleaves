@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {coverTintMode,coverTintGradients,mountBookCoverTints} from './book-cover-tint.mjs';
 
-const interests=[{id:'pink',color:'#ed93ad'},{id:'orange',color:'#f4ad70'},{id:'blue',color:'#83a9e8'}];
+const interests=[{id:'pink',chipColor:'#ed93ad',bookColor:'#ed93ad'},{id:'orange',chipColor:'#f4ad70',bookColor:'#f4ad70'},{id:'blue',chipColor:'#83a9e8',bookColor:'#83a9e8'}];
 const book={id:'book',genres:['pink','orange','blue']};
 
 test('tint respects the interest order, chosen mode, and missing colors',()=>{
@@ -15,6 +15,14 @@ test('tint respects the interest order, chosen mode, and missing colors',()=>{
   assert.match(poly.cover,/#ed93ad 38%, #fffdf6\) 43%.*#f4ad70 38%, #fffdf6\) 57%.*#f4ad70 38%, #fffdf6\) 73%.*#83a9e8 38%, #fffdf6\) 87%/);
   assert.match(coverTintGradients({...book,genres:['pink','orange']},interests,'poly').cover,/#ed93ad 38%, #fffdf6\) 58%.*#f4ad70 38%, #fffdf6\) 72%/);
   assert.equal(coverTintGradients({genres:[]},interests,'mono'),null);
+});
+
+test('cover tints use bookColor even when the chipColor differs',()=>{
+  const result=coverTintGradients({genres:['communication']},[
+    {id:'communication',chipColor:'#59C8FF',bookColor:'#0099FF'}
+  ],'mono');
+  assert.match(result.cover,/#0099FF/);
+  assert.doesNotMatch(result.cover,/#59C8FF/);
 });
 
 test('mounting and disabling tint updates both covers and spines',()=>{

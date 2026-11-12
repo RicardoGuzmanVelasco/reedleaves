@@ -1,11 +1,11 @@
 # Edición del catálogo
 
-La app consulta SQLite, no estos archivos. Los CSV son el formato plano de autoría/importación para los desarrolladores; no hay editor de usuarios todavía.
+La app carga los intereses desde la base de datos activa: PostgreSQL en producción y SQLite en desarrollo. Los CSV son el catálogo editorial de autoría y la fuente reproducible para `npm run db:seed`; no hay editor de usuarios todavía.
 
 | Archivo | Una fila representa |
 | --- | --- |
 | `users.csv` | Usuario creador; actualmente el equipo editorial real, sin sesiones ni lectores inventados |
-| `genres.csv` | Un interés con nombre ES/EN, emoji y color tenue `#RRGGBB` |
+| `genres.csv` | Un interés con nombre ES/EN, emoji, `chip_color` y `book_color` (`#RRGGBB`) |
 | `books.csv` | Un libro con metadatos ES/EN y géneros separados por `|` |
 | `links.csv` | Enlace externo de un libro: plataforma (`amazon` o `goodreads`) y URL HTTPS de su ficha |
 | `decks.csv` | Baraja, creador, libro, idioma principal y estado; enfoque y nota editorial |
@@ -13,9 +13,9 @@ La app consulta SQLite, no estos archivos. Los CSV son el formato plano de autor
 
 `decks.csv` declara una etiqueta de idioma BCP 47 en `language`, por ejemplo `fr`, `pt-BR` o `zh-Hant`. Esa columna fija el idioma original de la baraja. Las columnas traducidas usan sufijos de idioma, por ejemplo `title_fr` y `body_fr`. Añade una columna y rellénala solo si quieres ofrecer esa traducción; cada tarjeta siempre debe tener título y texto en el idioma principal.
 
-Todo interés nuevo exige nombre en ambos idiomas, un único emoji y color de las familias existentes antes de importar/publicar. Emoji y color viajan en `genres[]` del catálogo como campos aditivos; no cambian las asociaciones ni su orden. Los valores de apariencia se definen aquí, no en el cliente.
+Todo interés nuevo exige nombre en español e inglés, un emoji y dos colores: `chip_color` para chips legibles y `book_color` para portadas. El lomo se deriva de `book_color`. Estos campos se cargan desde el CSV a la base de datos y se exponen en `genres[]` como `chipColor` y `bookColor`; no cambian las asociaciones ni su orden.
 
-El catálogo de intereses incluye Sociedad (`society`) en español e inglés. Está disponible para futuras asignaciones; ningún libro actual tiene ese interés.
+El catálogo incluye Comunicación (`communication`) y Sociedad (`society`), ambos disponibles para asignar a libros.
 
 Comas, saltos de línea y comillas dentro de un campo siguen CSV estándar: rodear el campo con comillas y duplicar las interiores. No incluir citas largas ni transcribir capítulos. Mantener IDs y orden estables. Cada tarjeta tiene `deck_id` y `parent_id`; el orden es entre hermanas. Las correcciones actualizan la misma baraja y conservan los IDs de las tarjetas.
 

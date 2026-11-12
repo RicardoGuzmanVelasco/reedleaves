@@ -8,7 +8,7 @@ import {prepareCatalog} from "./catalog.mjs";
 import {bookstoreView,authorFormView} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 
-const approved={"personal-growth":"🌱",finance:"💰",productivity:"🔥",society:"🌍",software:"💻",mindfulness:"🧘‍♀️",metaphysics:"🔮"};
+const approved={"personal-growth":"🌱",finance:"💰",productivity:"🔥",society:"🌍",software:"💻",mindfulness:"🧘‍♀️",metaphysics:"🔮",psychology:"🧠",leadership:"🚀",communication:"💬"};
 test("All approved interests use catalog emojis and localized names in details, preview and real checkboxes; native filters stay text",async()=>{
   const db=openDatabase(":memory:");let catalog;
   try{initializeDatabase(db);await seedCatalog(db);catalog=prepareCatalog(await readCatalog(db));}finally{await db.close();}
@@ -32,11 +32,13 @@ test("All approved interests use catalog emojis and localized names in details, 
   }
 });
 test("Appearance validation accepts one emoji grapheme and a safe hex color without using an ID map",()=>{
-  const interest={id:"future-interest",emoji:"🧑‍💻",color:"#E4EFFB"};
+  const interest={id:"future-interest",emoji:"🧑‍💻",color:"#E4EFFB",chipColor:"#E4EFFB",bookColor:"#7398D3"};
   assert.ok(validInterestAppearance(interest));assert.ok(interestIcon(interest).includes("🧑‍💻"));
+  assert.equal(interestColor({...interest,chipColor:"#59C8FF"}), ' data-interest-color="#59C8FF"');
   for(const emoji of [undefined,"","🌱💰","Software",'<script>🌱</script>']) assert.equal(validInterestAppearance({...interest,emoji}),false);
   for(const color of [undefined,"","green",'#fff','" onmouseover="x',"#FFFFFF;background:red"]) {
-    assert.equal(validInterestAppearance({...interest,color}),false);assert.equal(interestColor({...interest,color}),"");
+    assert.equal(validInterestAppearance({...interest,chipColor:color}),false);assert.equal(interestColor({...interest,chipColor:color}),"");
+    assert.equal(validInterestAppearance({...interest,bookColor:color}),false);
   }
   assert.equal(interestIcon({emoji:'<img src=x onerror=x>'}),"");
 });

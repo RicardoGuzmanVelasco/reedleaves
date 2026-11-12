@@ -1,8 +1,9 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 53));
-INSERT INTO reed_schema VALUES (53);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 54));
+INSERT INTO reed_schema VALUES (54);
 
 CREATE TABLE genres(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
-  emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '');
+  emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '',
+  chip_color TEXT NOT NULL DEFAULT '', book_color TEXT NOT NULL DEFAULT '');
 CREATE TABLE genre_translations(
   genre_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),

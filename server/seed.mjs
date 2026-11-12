@@ -46,7 +46,7 @@ export function validateSeed(seed) {
   const genres = new Set(seed.genres.map(g => g.id)), books = new Set(seed.books.map(b => b.id));
   for (const g of seed.genres) {
     if (LANGUAGES.some(language => !text(g["name_" + language]))) throw new Error("Missing genre text");
-    if (!validInterestAppearance(g)) throw new Error("Missing or invalid interest appearance");
+    if (!validInterestAppearance({emoji:g.emoji,chipColor:g.chip_color,bookColor:g.book_color})) throw new Error("Missing or invalid interest appearance");
   }
   const positions = new Set();
   for (const b of seed.books) {
@@ -118,8 +118,9 @@ export async function seedCatalog(db, seed = readSeed()) {
     for (const u of seed.users) await db.prepare(`INSERT INTO users(id,display_name) VALUES (?,?)
       ON CONFLICT(id) DO UPDATE SET display_name = excluded.display_name`).run(u.id,u.display_name);
     for (const g of seed.genres) {
-      await db.prepare(`INSERT INTO genres(id,emoji,color) VALUES (?,?,?)
-        ON CONFLICT(id) DO UPDATE SET emoji=excluded.emoji,color=excluded.color`).run(g.id,g.emoji,g.color);
+      await db.prepare(`INSERT INTO genres(id,emoji,color,chip_color,book_color) VALUES (?,?,?,?,?)
+        ON CONFLICT(id) DO UPDATE SET emoji=excluded.emoji,color=excluded.color,
+        chip_color=excluded.chip_color,book_color=excluded.book_color`).run(g.id,g.emoji,g.chip_color,g.chip_color,g.book_color);
       for (const language of LANGUAGES) await db.prepare(`INSERT INTO genre_translations VALUES (?, ?, ?)
         ON CONFLICT(genre_id, language) DO UPDATE SET name = excluded.name`).run(g.id, language, g["name_" + language]);
     }

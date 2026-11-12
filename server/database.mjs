@@ -10,6 +10,7 @@ import {INTEREST_MIGRATION_SQL,SOFTWARE_BOOK_IDENTITY,SOFTWARE_RECLASSIFICATION_
 import {migrateSqliteToFinishedVocabulary,FINISHED_VOCABULARY_POSTGRES_SQL} from "./finished-vocabulary-migration.mjs";
 import {INTEREST_CHOICE_APPEARANCE_SQL} from "./interest-choice-appearance-migration.mjs";
 import {INTEREST_APPEARANCE_SQL} from "./interest-appearance-migration.mjs";
+import {INTEREST_COLOR_MIGRATION_SQLITE,INTEREST_COLOR_MIGRATION_POSTGRES} from "./interest-color-migration.mjs";
 import {PRODUCTIVITY_INTEREST_APPEARANCE_SQL} from "./productivity-interest-appearance-migration.mjs";
 
 import {POPULAR_TITLE_RENAME_SQL,POPULAR_TITLE_UPDATES} from "./popular-title-migration.mjs";
@@ -18,8 +19,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 61;
-export const POSTGRES_SCHEMA_VERSION = 53;
+export const SQLITE_SCHEMA_VERSION = 62;
+export const POSTGRES_SCHEMA_VERSION = 54;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -106,6 +107,12 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 61) {
+    db.exec("BEGIN IMMEDIATE");
+    try { db.exec(INTEREST_COLOR_MIGRATION_SQLITE); db.exec("PRAGMA user_version=62; COMMIT;"); }
+    catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 60) {
     migrateSqliteToFinishedVocabulary(db);
     return initializeDatabase(db);
@@ -993,6 +1000,15 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 53) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,genres,genre_translations IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 54) return;
+          await db.exec(INTEREST_COLOR_MIGRATION_POSTGRES);
+          await db.exec("ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=54; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=54);");
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 52) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,users,books,decks,cards,deck_translations,card_translations,deck_contributors,deck_votes,deck_selections,studies,practice_answers,practice_sessions IN ACCESS EXCLUSIVE MODE;");

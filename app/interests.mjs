@@ -5,13 +5,16 @@ const graphemes=new Intl.Segmenter(undefined,{granularity:"grapheme"});
 export const validInterestEmoji=emoji=>typeof emoji === "string" && emoji.length <= 32 &&
   /\p{Extended_Pictographic}/u.test(emoji) && [...graphemes.segment(emoji)].length === 1;
 export const validInterestColor=color=>typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color);
-export const validInterestAppearance=interest=>validInterestEmoji(interest?.emoji) && validInterestColor(interest?.color);
+const chipColorOf=interest=>interest?.chipColor ?? interest?.chip_color;
+const bookColorOf=interest=>interest?.bookColor ?? interest?.book_color;
+export const validInterestAppearance=interest=>validInterestEmoji(interest?.emoji) && validInterestColor(chipColorOf(interest)) && validInterestColor(bookColorOf(interest));
 
 export function interestIcon(interest) {
   return validInterestEmoji(interest?.emoji) ? `<span class="interest-emoji" aria-hidden="true">${esc(interest.emoji)}</span>` : "";
 }
 export function interestColor(interest) {
-  return validInterestColor(interest?.color) ? ` data-interest-color="${interest.color}"` : "";
+  const color=chipColorOf(interest);
+  return validInterestColor(color) ? ` data-interest-color="${color}"` : "";
 }
 
 // Update only state and descriptions: checkbox nodes, focus and option order stay put.

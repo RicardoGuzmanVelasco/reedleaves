@@ -1,10 +1,11 @@
-id,name_es,name_en,emoji,color
-personal-growth,Crecimiento personal,Personal growth,🌱,#AAD57B
-finance,Finanzas,Finance,💰,#EDC566
-productivity,Productividad,Productivity,🔥,#E85C22
-society,Sociedad,Society,🌍,#8EC5EA
-software,Software,Software,💻,#BBC2C9
-mindfulness,Mindfulness,Mindfulness,🧘‍♀️,#F7DDE7
-metaphysics,Metafísica,Metaphysics,🔮,#B99AED
-psychology,Psicología,Psychology,🧠,#F09FCB
-leadership,Liderazgo,Leadership,🚀,#7D95C1
+id,name_es,name_en,emoji,chip_color,book_color
+personal-growth,Crecimiento personal,Personal growth,🌱,#81F265,#AAD57B
+finance,Finanzas,Finance,💰,#EEC466,#EEC466
+productivity,Productividad,Productivity,🔥,#FF8040,#FE8957
+society,Sociedad,Society,🌍,#6B9CFF,#2D73FF
+software,Software,Software,💻,#BFC1C8,#BBC2C9
+mindfulness,Mindfulness,Mindfulness,🧘‍♀️,#FFC0D9,#FFC0D9
+metaphysics,Metafísica,Metaphysics,🔮,#D9AEFF,#B99AED
+psychology,Psicología,Psychology,🧠,#FF8DB3,#FF6E9E
+leadership,Liderazgo,Leadership,🚀,#9AB5EC,#8CA8DC
+communication,Comunicación,Communication,💬,#59C8FF,#0099FF

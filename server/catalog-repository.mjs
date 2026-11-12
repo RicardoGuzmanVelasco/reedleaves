@@ -16,9 +16,9 @@ async function rowsBy(db,sql,key,...values) {
 
 export async function readInterests(db) {
   const genres=[],names=await rowsBy(db,"SELECT genre_id,language,name FROM genre_translations","genre_id");
-  for(const {id,emoji,color} of await db.prepare("SELECT id,emoji,color FROM genres ORDER BY id").all()){
+  for(const {id,emoji,color,chip_color,book_color} of await db.prepare("SELECT id,emoji,color,chip_color,book_color FROM genres ORDER BY id").all()){
     const translations=names.get(id);
-    const genre={id,emoji,color,name:Object.fromEntries(translations.map(row=>[row.language,row.name]))};
+    const genre={id,emoji,color,chipColor:chip_color,bookColor:book_color,name:Object.fromEntries(translations.map(row=>[row.language,row.name]))};
     if(!validInterestAppearance(genre)||LANGUAGES.some(language=>!genre.name[language]?.trim()))throw new Error("Invalid interest catalog");
     genres.push(genre);
   }

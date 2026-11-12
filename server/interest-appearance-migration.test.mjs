@@ -29,11 +29,14 @@ for(const [dialect,version] of [["sqlite",42],["postgres",34]]) test(`${dialect}
   if(dialect==="postgres") await db.exec("ALTER TABLE genres ENABLE ROW LEVEL SECURITY;");
   const before=await retainedRows(db,dialect);
   await initializeDatabase(db);await initializeDatabase(db);
-  assert.deepEqual(await retainedRows(db,dialect),before);
+  const after=await retainedRows(db,dialect);
+  if(after.genres) after.genres=after.genres.filter(row=>row.id!=="communication");
+  assert.deepEqual(after,before);
   const catalog=await readCatalog(db),seed=readSeed();
   for(const interest of catalog.genres) {
     const expected=seed.genres.find(value=>value.id===interest.id);
-    assert.equal(interest.emoji,expected.emoji);assert.equal(interest.color,expected.color);
+    assert.equal(interest.emoji,expected.emoji);assert.equal(interest.color,expected.chip_color);
+    assert.equal(interest.chipColor,expected.chip_color);assert.equal(interest.bookColor,expected.book_color);
   }
   assert.equal(catalog.genres.find(value=>value.id==="metaphysics").emoji,"🔮");
   assert.ok(prepareCatalog(catalog));await checkCatalog(db);
@@ -50,8 +53,8 @@ test("Seed validates appearance before touching any books and round-trips future
   const db=await historicalDatabase(t,"sqlite",42);await initializeDatabase(db);
   const before=await readCatalog(db),invalid=readSeed();invalid.genres[0].emoji="";invalid.books[0].author="Must not be saved";
   await assert.rejects(seedCatalog(db,invalid),/interest appearance/);assert.deepEqual(await readCatalog(db),before);
-  const seed=readSeed();seed.genres.push({id:"future-interest",name_es:"Interés futuro",name_en:"Future interest",emoji:"🧑‍💻",color:"#E4EFFB"});
+  const seed=readSeed();seed.genres.push({id:"future-interest",name_es:"Interés futuro",name_en:"Future interest",emoji:"🧑‍💻",chip_color:"#E4EFFB",book_color:"#7398D3"});
   await seedCatalog(db,seed);await seedCatalog(db,seed);
   const interest=prepareCatalog(await readCatalog(db)).genres.find(value=>value.id==="future-interest");
-  assert.deepEqual(interest,{id:"future-interest",name:{es:"Interés futuro",en:"Future interest"},emoji:"🧑‍💻",color:"#E4EFFB"});
+  assert.deepEqual(interest,{id:"future-interest",name:{es:"Interés futuro",en:"Future interest"},emoji:"🧑‍💻",color:"#E4EFFB",chipColor:"#E4EFFB",bookColor:"#7398D3"});
 });

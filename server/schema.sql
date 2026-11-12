@@ -1,7 +1,9 @@
 CREATE TABLE genres (
   id TEXT PRIMARY KEY CHECK(length(trim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '',
-  color TEXT NOT NULL DEFAULT ''
+  color TEXT NOT NULL DEFAULT '',
+  chip_color TEXT NOT NULL DEFAULT '',
+  book_color TEXT NOT NULL DEFAULT ''
 ) STRICT;
 
 CREATE TABLE genre_translations (
@@ -418,4 +420,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 61;
+PRAGMA user_version = 62;
