@@ -113,8 +113,8 @@ test("PostgreSQL profiles count views and upgrade historical unlocks from v4",as
   assert.deepEqual(await migrationData(db),before);
   assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM card_views").get()).n,1);
   await db.prepare("INSERT INTO daily_ideas VALUES ('2026-10-10','habit-2')").run();
-  await recordCardView(db,session,{cardId:"habit-2",context:"daily"},now);
-  await recordCardView(db,session,{cardId:"habit-2",context:"daily"},now);
+  await recordCardView(db,session,{cardId:"habit-2",context:"daily-idea"},now);
+  await recordCardView(db,session,{cardId:"habit-2",context:"daily-idea"},now);
   const data=await readProfile(db,id,id);
   assert.equal(data.profile.counts.cardsViewed,2);
   assert.equal(data.profile.mascots.seed,0);assert.equal(data.profile.mascots.pot,1);

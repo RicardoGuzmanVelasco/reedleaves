@@ -7,9 +7,9 @@ import {readerProgressionForXp} from "./reader-progression.mjs";
 test("Receipts and owner snapshots announce each confirmed gain once, even out of order",()=>{
   const observe=createReaderXpTracker();
   assert.equal(observe("reader",100),null);
-  const daily={amount:20,balance:120};
-  assert.deepEqual(observe("reader",undefined,daily),{from:100,to:120});
-  assert.equal(observe("reader",120,daily),null);
+  const dailyIdea={amount:20,balance:120};
+  assert.deepEqual(observe("reader",undefined,dailyIdea),{from:100,to:120});
+  assert.equal(observe("reader",120,dailyIdea),null);
   assert.equal(observe("reader",100),null);
   const practice={amount:25,balance:145};
   assert.deepEqual(observe("reader",145,practice),{from:120,to:145});

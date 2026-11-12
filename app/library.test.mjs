@@ -105,7 +105,7 @@ test("Collection groups, empty states, book details and origin navigation transl
     assert.doesNotMatch(bookstoreView({...state,bookstoreOrigin:"home"}),/data-action="library"/);
     assert.doesNotMatch(homeView(state),/class="home-actions"|data-action="profile"/);
     const deckState={...state,bookId:"atomic-habits",deckChoices:featuredDecks(s.catalog,"atomic-habits")};
-    for (const [bookOrigin,label] of [["library",c.shelfBack],["bookstore",c.booksBack],["daily",c.back]]) assert.ok(deckView({...deckState,bookOrigin}).includes(label));
+    for (const [bookOrigin,label] of [["library",c.shelfBack],["bookstore",c.booksBack],["daily-idea",c.back]]) assert.ok(deckView({...deckState,bookOrigin}).includes(label));
   }
 });
 

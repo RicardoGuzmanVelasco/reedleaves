@@ -14,7 +14,7 @@ async function state() {
     initializeDatabase(db); await seedCatalog(db);
     const catalog=prepareCatalog(await readCatalog(db)),deckId="seven-habits-editorial";
     return {catalog,deckId,bookId:"seven-habits",language:"es",
-      statuses:{"seven-habits":"reading"},enrolledIds:[deckId],storageAvailable:true,budget:{balance:1},daily:{id:"habit-1"},
+      statuses:{"seven-habits":"reading"},enrolledIds:[deckId],storageAvailable:true,budget:{balance:1},dailyIdea:{id:"habit-1"},
       deckChoices:featuredDecks(catalog,"seven-habits")};
   } finally { db.close(); }
 }

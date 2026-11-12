@@ -409,8 +409,8 @@ test("daily idea stays global when card language preferences exclude its languag
   const preferences=await readReaderLanguagePreferences(db,session);
   await saveReaderLanguagePreferences(db,session,{languages:["fr-CA"],revision:preferences.revision});
   const state=await dailyIdea(db,session,now);
-  assert.ok(state.daily?.id,"the daily idea still comes from the global catalog");
-  const selected=await db.prepare("SELECT language FROM cards WHERE id=?").get(state.daily.id);
+  assert.ok(state.dailyIdea?.id,"the daily idea still comes from the global catalog");
+  const selected=await db.prepare("SELECT language FROM cards WHERE id=?").get(state.dailyIdea.id);
   assert.ok(["en","es"].includes(selected.language));
 });
 

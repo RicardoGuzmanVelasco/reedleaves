@@ -14,7 +14,7 @@ test('Saved-card HTTP flow authenticates, isolates accounts and opens a daily ca
   const a=await register('save.http'),b=await register('save.visitor');
   assert.equal((await call('/api/reader/saved/seven-habits')).status,401);
   assert.equal((await call('/api/cards/save',{cardId:'habit-1',saved:true},{Cookie:a.headers.Cookie})).status,403);
-  const daily=await call('/api/reader/daily',{},a.headers),cardId=daily.body.daily.id,bookId=daily.body.daily.bookId;
+  const dailyIdea=await call('/api/reader/daily-idea',{},a.headers),cardId=dailyIdea.body.dailyIdea.id,bookId=dailyIdea.body.dailyIdea.bookId;
   assert.equal((await call('/api/cards/save',{cardId,saved:true},a.headers)).status,200);
   assert.equal((await call(`/api/cards/${cardId}/actions`,undefined,a.headers)).body.saved,true);
   assert.equal((await call(`/api/reader/saved/${bookId}`,undefined,b.headers)).body.cards.length,0);

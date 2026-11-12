@@ -22,7 +22,7 @@ test("Only a daily idea opened on its day increases the streak",async()=>{
   try { initializeDatabase(db);await seedCatalog(db);catalog=prepareCatalog(await readCatalog(db)); }
   finally { await db.close(); }
   const card=catalog.allCards[0],today="2026-10-07",yesterday="2026-10-06";
-  const base={catalog,language:"es",daily:{id:card.id,bookId:card.bookId,day:today},dailyToday:{day:today},
+  const base={catalog,language:"es",dailyIdea:{id:card.id,bookId:card.bookId,day:today},dailyToday:{day:today},
     dailyHistory:[{id:card.id,bookId:card.bookId,day:today,seenInDay:false},row(yesterday)],selectedDailyDay:today,calendarMonth:"2026-10",storageAvailable:true};
   const unopened=dailyView(base);
   assert.match(unopened,/1 día de racha/);
@@ -32,7 +32,7 @@ test("Only a daily idea opened on its day increases the streak",async()=>{
   assert.doesNotMatch(unopened,/data-action="open-daily-card"|data-action="enter-review"/);
   assert.doesNotMatch(unopened,/daily-card-preview|data-reading-card|exclusive-card-modal/);
 
-  const loading=dailyView({...base,daily:null,dailyToday:null,dailyHistory:[],dailyLoading:true});
+  const loading=dailyView({...base,dailyIdea:null,dailyToday:null,dailyHistory:[],dailyLoading:true});
   assert.match(loading,/role="status"/);
   assert.doesNotMatch(loading,/empty-state|daily-card-preview|data-reading-card/);
 

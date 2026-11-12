@@ -17,10 +17,10 @@ export async function insertCardView(db,userId,cardId) {
 
 // Views count distinct cards actually displayed, independent of paid sessions.
 export async function recordCardView(db,session,{cardId,context,day:requestedDay} = {},now=new Date()) {
-  if (typeof cardId !== "string" || !["daily","practice","author","saved"].includes(context)) throw new ApiError(400,"invalidRequest");
-  if (context === "daily" && requestedDay !== undefined && typeof requestedDay !== "string") throw new ApiError(400,"invalidRequest");
+  if (typeof cardId !== "string" || !["daily-idea","practice","author","saved"].includes(context)) throw new ApiError(400,"invalidRequest");
+  if (context === "daily-idea" && requestedDay !== undefined && typeof requestedDay !== "string") throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
-    if (context === "daily") await lockReaderAccount(db,session.user_id);
+    if (context === "daily-idea") await lockReaderAccount(db,session.user_id);
     const card=await db.prepare(`SELECT c.id,c.deck_id,v.status,d.creator_user_id
       FROM cards c JOIN decks v ON v.id=c.deck_id JOIN decks d ON d.id=v.id
       WHERE c.id=?`).get(cardId);
@@ -29,7 +29,7 @@ export async function recordCardView(db,session,{cardId,context,day:requestedDay
     if (context === "author") allowed=card.creator_user_id === session.user_id && card.status === "draft";
     if (context === "practice") allowed=true;
     if (context === "saved") allowed=!!await db.prepare("SELECT 1 FROM card_saves WHERE user_id=? AND card_id=?").get(session.user_id,cardId);
-    if (context === "daily") {
+    if (context === "daily-idea") {
       allowed=!!await (requestedDay === undefined
         ? db.prepare("SELECT 1 FROM daily_ideas WHERE card_id=?").get(cardId)
         : db.prepare("SELECT 1 FROM daily_ideas WHERE day=? AND card_id=?").get(requestedDay,cardId));
@@ -37,7 +37,7 @@ export async function recordCardView(db,session,{cardId,context,day:requestedDay
     if (!allowed) throw new ApiError(403,"notAllowed");
     await insertCardView(db,session.user_id,cardId);
     let seenCurrentDay=false,xpReward;
-    if(context==="daily") {
+    if(context==="daily-idea") {
       const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id);
       const day=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea);
       const current=await db.prepare("SELECT 1 FROM daily_ideas WHERE day=? AND card_id=?").get(day,cardId);

@@ -33,26 +33,26 @@ test("Profile counts unique views; daily assignment alone is not a view",async t
   db.prepare("INSERT INTO daily_ideas VALUES ('2026-10-10','habit-2')").run();
   assert.equal((await readProfile(db,a.user_id,a.user_id)).profile.counts.cardsViewed,1);
   const before=await readReaderState(db,a,day(10));
-  await recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(10));
-  await recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(10));
+  await recordCardView(db,a,{cardId:"habit-2",context:"daily-idea"},day(10));
+  await recordCardView(db,a,{cardId:"habit-2",context:"daily-idea"},day(10));
   const after=await readReaderState(db,a,day(10));
   assert.equal(after.readerProgression.xp,20);
-  assert.deepEqual(after,{...before,readerProgression:after.readerProgression,daily:{...before.daily,seenInDay:true},dailyHistory:before.dailyHistory.map(row=>({...row,seenInDay:true}))});
+  assert.deepEqual(after,{...before,readerProgression:after.readerProgression,dailyIdea:{...before.dailyIdea,seenInDay:true},dailyHistory:before.dailyHistory.map(row=>({...row,seenInDay:true}))});
   const {counts}= (await readProfile(db,a.user_id,a.user_id)).profile;
   assert.equal(counts.cardsViewed,2);assert.equal("cardsReviewed" in counts,false);
   assert.equal("decksInProgress" in counts,false);assert.equal("decksCompleted" in counts,false);
   await recordCardView(db,a,{cardId:"habit-3",context:"practice"},day(10));
   await assert.rejects(recordCardView(db,a,{cardId:"habit-1",context:"author"},day(10)),{code:"notAllowed"});
-  await recordCardView(db,a,{cardId:"habit-2",context:"daily"},day(11));
+  await recordCardView(db,a,{cardId:"habit-2",context:"daily-idea"},day(11));
 });
 
 test("Opening a past daily idea does not credit today when the same card was reused",async t=>{
   const {db,a}=await fixture(t);
   db.prepare("INSERT INTO daily_ideas VALUES ('2026-10-09','habit-2'),('2026-10-10','habit-2')").run();
-  const past=await recordCardView(db,a,{cardId:"habit-2",context:"daily",day:"2026-10-09"},day(10));
+  const past=await recordCardView(db,a,{cardId:"habit-2",context:"daily-idea",day:"2026-10-09"},day(10));
   assert.equal(past.seenCurrentDay,false);
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM daily_idea_views WHERE user_id=?").get(a.user_id).n,0);
-  const current=await recordCardView(db,a,{cardId:"habit-2",context:"daily",day:"2026-10-10"},day(10));
+  const current=await recordCardView(db,a,{cardId:"habit-2",context:"daily-idea",day:"2026-10-10"},day(10));
   assert.equal(current.seenCurrentDay,true);
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM daily_idea_views WHERE user_id=?").get(a.user_id).n,1);
 });

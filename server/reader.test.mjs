@@ -155,13 +155,13 @@ test("Reading and language preferences remain separate from wallets and practice
 });
 test("One daily idea is shared and daily assignment does not create a card view",async t=>{
   const {db,a,b} = await fixture(t), first = await dailyIdea(db,a,today);
-  assert.ok(first.daily.id); assert.equal(first.wallet.balance,5);
-  assert.deepEqual((await dailyIdea(db,a,today)).daily,first.daily);
+  assert.ok(first.dailyIdea.id); assert.equal(first.wallet.balance,5);
+  assert.deepEqual((await dailyIdea(db,a,today)).dailyIdea,first.dailyIdea);
   await changePreferences(db,a,{language:"en"},today);
-  assert.deepEqual((await dailyIdea(db,a,today)).daily,first.daily);
-  const next=await dailyIdea(db,a,date("2026-10-07"));assert.ok(next.daily.id);assert.equal(next.daily.day,"2026-10-07");
+  assert.deepEqual((await dailyIdea(db,a,today)).dailyIdea,first.dailyIdea);
+  const next=await dailyIdea(db,a,date("2026-10-07"));assert.ok(next.dailyIdea.id);assert.equal(next.dailyIdea.day,"2026-10-07");
   const other=await readReaderState(db,b,today);
-  assert.deepEqual(other.daily,first.daily);assert.deepEqual(other.dailyHistory.map(row=>row.day),["2026-10-07","2026-10-06"]);
+  assert.deepEqual(other.dailyIdea,first.dailyIdea);assert.deepEqual(other.dailyHistory.map(row=>row.day),["2026-10-07","2026-10-06"]);
   assert.equal(db.prepare("SELECT count(*) AS n FROM card_views").get().n,0);
 });
 test("Daily idea follows each account's 06:00 local cycle date",async t=>{
@@ -169,24 +169,24 @@ test("Daily idea follows each account's 06:00 local cycle date",async t=>{
   db.prepare("UPDATE accounts SET time_zone='America/Los_Angeles' WHERE user_id='b'").run();
   const now=new Date("2026-10-19T10:30:00Z");
   const madrid=await dailyIdea(db,a,now),losAngeles=await dailyIdea(db,b,now);
-  assert.equal(madrid.daily.day,"2026-10-19");
-  assert.equal(losAngeles.daily.day,"2026-10-18");
-  assert.deepEqual((await readReaderState(db,a,now)).daily,madrid.daily);
-  assert.deepEqual((await readReaderState(db,b,now)).daily,losAngeles.daily);
+  assert.equal(madrid.dailyIdea.day,"2026-10-19");
+  assert.equal(losAngeles.dailyIdea.day,"2026-10-18");
+  assert.deepEqual((await readReaderState(db,a,now)).dailyIdea,madrid.dailyIdea);
+  assert.deepEqual((await readReaderState(db,b,now)).dailyIdea,losAngeles.dailyIdea);
 });
 test("Daily status is non-generating and only marks the account's assigned idea as seen that day",async t=>{
   const {db,a,b}=await fixture(t),day1=date("2026-10-06"),day2=date("2026-10-07");
   assert.deepEqual(await dailyIdeaStatus(db,a,day1),{day:"2026-10-06",unseen:true});
   assert.equal(db.prepare("SELECT count(*) AS n FROM daily_ideas").get().n,0);
-  const first=await dailyIdea(db,a,day1),cardId=first.daily.id;
+  const first=await dailyIdea(db,a,day1),cardId=first.dailyIdea.id;
   assert.equal((await dailyIdeaStatus(db,a,day1)).unseen,true);
   assert.equal((await dailyIdeaStatus(db,b,day1)).unseen,true);
-  await recordCardView(db,a,{cardId,context:"daily"},day1);
+  await recordCardView(db,a,{cardId,context:"daily-idea"},day1);
   assert.equal((await dailyIdeaStatus(db,a,day1)).unseen,false);
   assert.equal((await dailyIdeaStatus(db,b,day1)).unseen,true);
   assert.equal((await readReaderState(db,a,day1)).dailyHistory[0].seenInDay,true);
   await dailyIdea(db,a,day2);
-  await recordCardView(db,a,{cardId,context:"daily"},day2);
+  await recordCardView(db,a,{cardId,context:"daily-idea"},day2);
   assert.equal((await dailyIdeaStatus(db,a,day2)).unseen,true);
   assert.equal((await readReaderState(db,a,day2)).dailyHistory.find(row=>row.day==="2026-10-06").seenInDay,true);
   assert.equal((await readReaderState(db,a,day2)).dailyHistory.find(row=>row.day==="2026-10-07").seenInDay,false);

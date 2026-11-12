@@ -479,8 +479,8 @@ export function sharedCardView(s) {
 }
 
 export function dailyView(s) {
-  const c=words[s.language], item=s.daily, card=item&&s.catalog.cardsById.get(item.id);
-  injectPageHeaderTitle(s,calendarIconMarkup(),c.daily);
+  const c=words[s.language], item=s.dailyIdea, card=item&&s.catalog.cardsById.get(item.id);
+  injectPageHeaderTitle(s,calendarIconMarkup(),c.dailyIdea);
   if(s.dailyLoading&&!card)return loadingPlaceholder(words[s.language].loading);
   const month=s.calendarMonth||s.dailyToday?.day?.slice(0,7)||new Date().toISOString().slice(0,7);
   const [year,monthNumber]=month.split("-").map(Number),first=new Date(Date.UTC(year,monthNumber-1,1,12));
@@ -506,7 +506,7 @@ export function dailyView(s) {
   const streak=dailyIdeaStreak(s.dailyHistory,s.dailyToday?.day);
   const streakStatus=streak.seenToday?c.dailyStreakToday:streak.days?c.dailyStreakContinue:c.dailyStreakStart;
   const streakMarkup=`<div class="daily-streak" role="status"><img src="${imageUrl("/app/assets/brand/streak-flame.svg")}" alt="" width="42" height="42"><div><strong>${esc(c.dailyStreakDays(streak.days))}</strong><span>${esc(streakStatus)}</span></div></div>`;
-  return `<section class="daily-screen"><h1 class="sr-only" tabindex="-1">${calendarIconMarkup()}<span>${c.daily}</span></h1>
+  return `<section class="daily-screen"><h1 class="sr-only" tabindex="-1">${calendarIconMarkup()}<span>${c.dailyIdea}</span></h1>
     ${calendar}${card ? `${streakMarkup}${exclusive}` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p></div>`}
     </section>`;
 }
@@ -621,7 +621,7 @@ export function deckView(s) {
   const guideCards=guideDeck?s.catalog.deckModels.get(guideDeck.id).cards:[];
   const ownGuide=guideCards.some(card=>card.creatorUserId===s.userId);
   const orderedDecks=sortDecks(s.catalog,[...choices.map(({deck})=>deck),...(guideDeck?[guideDeck]:[])],s);
-  return `<section class="deck-screen">${["bookstore","library","daily"].includes(s.bookOrigin) ? `<button type="button" class="text-button collection-back" data-action="${s.bookOrigin}">${s.bookOrigin === "bookstore" ? collectionIconMarkup("bookstore",18) : s.bookOrigin === "library" ? collectionIconMarkup("shelf",18) : ""}${s.bookOrigin === "bookstore" ? c.booksBack : s.bookOrigin === "library" ? c.shelfBack : c.back}</button>` : ""}
+  return `<section class="deck-screen">${["bookstore","library","daily-idea"].includes(s.bookOrigin) ? `<button type="button" class="text-button collection-back" data-action="${s.bookOrigin}">${s.bookOrigin === "bookstore" ? collectionIconMarkup("bookstore",18) : s.bookOrigin === "library" ? collectionIconMarkup("shelf",18) : ""}${s.bookOrigin === "bookstore" ? c.booksBack : s.bookOrigin === "library" ? c.shelfBack : c.back}</button>` : ""}
     <div class="screen-heading deck-heading"><div class="deck-heading-book"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>${mascotEntry(s,s.bookId)}</div><div class="deck-heading-title"><h1 tabindex="-1">${c.chooseDeck}</h1>${s.userId ? `<div data-saved-cards-entry></div>` : ""}</div></div>
     ${s.userId ? `<div class="deck-author-action">${button(c.createDeck,"create-deck")}</div>` : ""}
     ${choices.length||guideDeck ? `<div class="deck-grid" role="group" aria-label="${c.chooseDeck}">${orderedDecks.map(deck=>deck.id===guideDeck?.id?readingGuideTileMarkup(s,deck):deckTileMarkup(s,deck)).join("")}</div>` : `<div class="empty-state">${c.noDecks}</div>`}

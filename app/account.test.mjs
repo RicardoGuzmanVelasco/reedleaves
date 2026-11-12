@@ -19,7 +19,7 @@ test("Account form is minimal, accessible and translated; passwords are not pers
     assert.doesNotMatch(login,/name="inviteCode"/);
   }
   const source = readFileSync(new URL("./reader-app.mjs",import.meta.url),"utf8");
-  assert.doesNotMatch(source,/store\.save\(keys\.(wallet|deckReview|studies|statuses|daily|preferences|selections)/);
+  assert.doesNotMatch(source,/store\.save\(keys\.(wallet|deckReview|studies|statuses|dailyIdea|preferences|selections)/);
   assert.doesNotMatch(source,/openTreeCard|spendLeaf|withBrowserLock/);
 });
 test("Account client serializes changes, sends cookies/CSRF and recovers after failure",async()=>{

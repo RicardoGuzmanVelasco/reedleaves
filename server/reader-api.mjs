@@ -52,7 +52,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       ["/api/auth/logout",["POST"]],["/api/interests",["GET","HEAD"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/balances",["GET","HEAD"]],["/api/reader/home-books",["GET","HEAD"]],["/api/reader/practice/discover-availability",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/cardcase/add",["POST"]],["/api/reader/cardcase/remove",["POST"]],
       ["/api/reader/book-knowledge/visit",["POST"]],
       ["/api/reader/interests/knowledge/snapshot",["POST"]],["/api/reader/interests/knowledge/recognize",["POST"]],
-      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily",["POST"]],["/api/reader/daily-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]]]);
+      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily-idea",["POST"]],["/api/reader/daily-idea-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]]]);
     routes.set("/api/reader/guides",["POST"]);
     routes.set("/api/reader/guide-reviews",["GET","HEAD"]);
     routes.set("/api/reader/guide-reviews/count",["GET","HEAD"]);
@@ -114,7 +114,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       if (path === "/api/reader/practice/discover-availability" && ["GET","HEAD"].includes(request.method)) {
         send(200,await readDiscoverPracticeAvailability(db,session)); return true;
       }
-      if (path === "/api/reader/daily-status") { send(200,await dailyIdeaStatus(db,session,time)); return true; }
+      if (path === "/api/reader/daily-idea-status") { send(200,await dailyIdeaStatus(db,session,time)); return true; }
       if (cardVotesMatch) { send(200,await readCardVotes(db,session,decodeURIComponent(cardVotesMatch[1]))); return true; }
       if (cardActionsMatch) { send(200,await readCardActions(db,session,decodeURIComponent(cardActionsMatch[1]))); return true; }
       if (savedCardsMatch) { send(200,await readSavedCards(db,session,decodeURIComponent(savedCardsMatch[1]))); return true; }

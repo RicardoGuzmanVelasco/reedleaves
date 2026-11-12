@@ -44,7 +44,7 @@ El navegador muestra el estado confirmado y consulta cambios al volver al primer
 | `/api/reader/open` | POST | Abrir tarjeta y registrar su vista |
 | `/api/reader/reading` | POST | Estado manual del libro original |
 | `/api/reader/preferences` | POST | Idioma y títulos originales |
-| `/api/reader/daily` | POST | Obtener o asignar la idea de hoy |
+| `/api/reader/daily-idea` | POST | Obtener o asignar la idea de hoy |
 
 `/api/catalog` sigue siendo público y de lectura. Registro y acceso requieren origen válido; las demás mutaciones requieren además sesión y `X-CSRF-Token`. Las pestañas comparten cookie; los dispositivos usan sesiones distintas de la misma cuenta.
 

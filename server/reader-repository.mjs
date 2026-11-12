@@ -136,7 +136,7 @@ async function stateInside(db,session,now) {
     statuses:Object.fromEntries([...distinguished.map(id=>[id,"unread"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])]),
     enrolledIds:(await db.prepare("SELECT deck_id FROM studies WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.deck_id),
     selections:Object.fromEntries((await db.prepare("SELECT book_id,deck_id FROM deck_selections WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.deck_id])),
-    daily:idea,dailyHistory};
+    dailyIdea:idea,dailyHistory};
 }
 async function knownDeck(db,deckId,userId) {
   if(typeof deckId!=="string") throw new ApiError(400,"invalidRequest");

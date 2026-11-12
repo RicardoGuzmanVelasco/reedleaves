@@ -93,8 +93,8 @@ test("Real registration, two sessions, spending, reconnecting and logout persist
   assert.equal((await call("/api/reader/state",undefined,b)).body.wallet.balance,10);
   const spending = await Promise.all([call("/api/reader/open",{deckId:v,cardId:"habit-2"},a),call("/api/reader/open",{deckId:v,cardId:"habit-3"},b)]);
   assert.ok(spending.every(r=>r.status === 200)); assert.equal((await call("/api/reader/state",undefined,a)).body.wallet.balance,10);
-  const daily = (await call("/api/reader/daily",{},a)).body.daily;
-  assert.deepEqual((await call("/api/reader/daily",{},b)).body.daily,daily);
+  const dailyIdea = (await call("/api/reader/daily-idea",{},a)).body.dailyIdea;
+  assert.deepEqual((await call("/api/reader/daily-idea",{},b)).body.dailyIdea,dailyIdea);
   assert.equal((await call("/api/auth/logout",{},a)).status,200);
   assert.equal((await call("/api/reader/state",undefined,a)).status,401);
   assert.equal((await call("/api/reader/state",undefined,b)).status,200);
@@ -135,9 +135,9 @@ test("Practice start distinguishes legacy retry, canceled identity, and an expli
 });
 test("Daily idea status is private and never assigns the day's card",async t=>{
   const {call,register,db}=await fixture(t);
-  assert.equal((await call("/api/reader/daily-status")).status,401);
+  assert.equal((await call("/api/reader/daily-idea-status")).status,401);
   const {headers}=await register("daily.badge");
-  const result=await call("/api/reader/daily-status",undefined,headers);
+  const result=await call("/api/reader/daily-idea-status",undefined,headers);
   assert.equal(result.status,200);assert.deepEqual(result.body,{day:"2026-10-06",unseen:true});
   assert.equal(db.prepare("SELECT count(*) AS n FROM daily_ideas").get().n,0);
 });

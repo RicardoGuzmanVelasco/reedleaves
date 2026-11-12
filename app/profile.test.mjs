@@ -156,7 +156,7 @@ test("Foreign shelf shows target reading/review states without mutation controls
 
 test("Card attributions link to the book, author, deck and creator",async()=>{
   const catalog=await fixture(),card=catalog.allCards[0];
-  const s={catalog,language:"es",daily:{id:card.id,day:"2026-10-06"},dailyToday:{day:"2026-10-06"},dailyHistory:[{id:card.id,day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",storageAvailable:true};
+  const s={catalog,language:"es",dailyIdea:{id:card.id,day:"2026-10-06"},dailyToday:{day:"2026-10-06"},dailyHistory:[{id:card.id,day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",storageAvailable:true};
   const html=dailyView({...s,dailyExclusiveCardId:card.id}),footer=html.slice(html.indexOf('<footer'),html.indexOf('</footer>'));
   assert.match(footer,/#bookstore\/book\//);assert.match(footer,/#bookstore\/author\//);
   assert.ok(footer.includes(`#deck/${encodeURIComponent(card.deckId)}`));
@@ -166,7 +166,7 @@ test("Card attributions link to the book, author, deck and creator",async()=>{
 
 test("Selected daily calendar day exposes its selected state and green style",async()=>{
   const catalog=await fixture(),card=catalog.allCards[0];
-  const s={catalog,language:"es",daily:{id:card.id,day:"2026-10-06"},dailyToday:{day:"2026-10-06"},dailyHistory:[{id:card.id,day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",storageAvailable:true};
+  const s={catalog,language:"es",dailyIdea:{id:card.id,day:"2026-10-06"},dailyToday:{day:"2026-10-06"},dailyHistory:[{id:card.id,day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",storageAvailable:true};
   const html=dailyView(s),selected=html.match(/<button[^>]*data-action="daily-date"[^>]*aria-pressed="true"[^>]*>/)?.[0];
   assert.ok(selected,"the selected date remains a semantic pressed button");
   assert.match(selected,/is-selected/);

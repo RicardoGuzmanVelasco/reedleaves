@@ -280,7 +280,7 @@ for (const dialect of ["sqlite","postgres"]) {
     await assert.rejects(recordCardView(db,other,{cardId,context:"author"}),e=>e.code==="notAllowed");
     await assert.rejects(takeNote(db,other,{requestId:randomUUID(),deckId,isQuote:true,parentId:null,body:"Ajena"}),e=>e.status===404);
     const idea=await dailyIdea(db,other,new Date("2026-10-10T12:00:00Z"));
-    assert.ok(prepareCatalog(await readCatalog(db,other.user_id)).cardsById.has(idea.daily.id));
+    assert.ok(prepareCatalog(await readCatalog(db,other.user_id)).cardsById.has(idea.dailyIdea.id));
     // Changing editorial status does not transfer ownership or block card views.
     await db.prepare("UPDATE decks SET status='finished' WHERE id=?").run(deckId.replace(/$/,""));
     assert.equal(prepareCatalog(await readCatalog(db)).cardsById.has(cardId),true);
@@ -324,7 +324,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.equal("practices" in await readReaderState(db,session),false);
     await takeNote(db,session,add("Plus tard"));
     const otherDaily=await dailyIdea(db,other,now);
-    assert.ok(prepareCatalog(await readCatalog(db,other.user_id)).cardsById.has(otherDaily.daily.id));
+    assert.ok(prepareCatalog(await readCatalog(db,other.user_id)).cardsById.has(otherDaily.dailyIdea.id));
     assert.equal("practices" in await readReaderState(db,other,now),false);
     await assert.rejects(takeNote(db,session,{...add("x"),deckId:"seven-habits-editorial"}),e=>e.status===404);
     const ui={catalog,deckId,bookId:"seven-habits",language:"es",userId:session.user_id,mode:"author",requestedId:quote.cardId,budget:state.wallet,today:state.today,storageAvailable:true};
@@ -334,7 +334,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.match(deckPageView({...ui,mode:"deck",requestedId:null}),/Citas sin clasificar/);
     // Existing saved titles must not reappear in quote views or navigation.
     model.byId.get(quote.cardId).title.fr = "Ancien titre";
-    for (const html of [authorView(ui),deckPageView({...ui,mode:"deck"}),dailyView({...ui,daily:{id:quote.cardId,day:"2026-10-06"},dailyExclusiveCardId:quote.cardId})]) {
+    for (const html of [authorView(ui),deckPageView({...ui,mode:"deck"}),dailyView({...ui,dailyIdea:{id:quote.cardId,day:"2026-10-06"},dailyExclusiveCardId:quote.cardId})]) {
       const quoteMarkup=html.match(/<article class="idea-card quote-card">[\s\S]*?<\/article>/)?.[0];
       assert.ok(quoteMarkup); assert.doesNotMatch(quoteMarkup,/<h[1-6]\b/);
       assert.doesNotMatch(html,/Ancien titre/);

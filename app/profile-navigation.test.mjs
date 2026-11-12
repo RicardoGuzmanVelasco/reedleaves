@@ -7,7 +7,7 @@ test("Profile back is useful only when it returns to a distinct previous screen"
     assert.equal(usefulProfileReturnHash(hash),false,hash);
     assert.equal(profileReturnTarget(hash),"#home",hash);
   }
-  for(const hash of ["#bookstore","#library/cardcase","#daily/2026-10-24","#deck/deck-id"]) {
+  for(const hash of ["#bookstore","#library/cardcase","#daily-idea/2026-10-24","#deck/deck-id"]) {
     assert.equal(usefulProfileReturnHash(hash),true,hash);
     assert.equal(profileReturnTarget(hash),hash,hash);
   }
