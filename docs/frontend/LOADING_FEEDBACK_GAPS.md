@@ -270,6 +270,6 @@ Aparte del feedback, hay que revisar la animación de espera. Se aborda después
 | 20 | Sin cambios (descartado) | 2026-11-12 | Tras optimizar el Perfil la espera es mínima; ya hay texto de carga. |
 | 21 | Sin cambios (descartado) | 2026-11-12 | Diseño optimista a propósito. |
 | 22 | Brote dormido + elección sin catálogo | 2026-11-12 | Partes 2 y 4 aplazadas (ver punto 22). |
-| 23 | | | |
+| 23 | Sin cambios (descartado) | 2026-11-12 | Brote al cargar la idea; el calendario llega con ella; el estado solo alimenta el puntito. |
 | 24 | | | |
 | 25 | | | |
