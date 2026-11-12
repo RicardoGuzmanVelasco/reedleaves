@@ -9,7 +9,7 @@ import {authenticate} from "./auth.mjs";
 import {createBook,createDeck,takeNote,addDeckContributors,completeBook,ownedBookInformation,finishDeck,finishNoteDecks} from "./author-repository.mjs";
 import {readCatalog,checkCatalog} from "./catalog-repository.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
-import {readReaderState as readReaderStateAtDate,selectDeck,openCard,dailyIdea,changeReading} from "./reader-repository.mjs";
+import {readReaderState as readReaderStateAtDate,openDeck,openCard,dailyIdea,changeReading} from "./reader-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
 import {featuredDecks} from "../app/decks.mjs";
 import {authorView,authorFormView,deckPageView,dailyView,bookstoreView,deckView} from "../app/views.mjs";
@@ -273,7 +273,7 @@ for (const dialect of ["sqlite","postgres"]) {
     }
     assert.equal((await readCatalog(db,session.user_id)).cards.some(c=>c.id===foreignCard.cardId),true);
     assert.equal((await readCatalog(db,other.user_id)).cards.some(c=>c.id===cardId),true);
-    await selectDeck(db,other,deckId,new Date("2026-10-10T12:00:00Z"));
+    await openDeck(db,other,deckId,new Date("2026-10-10T12:00:00Z"));
     const firstOpen=await openCard(db,other,deckId,cardId,new Date("2026-10-10T12:00:00Z"));
     assert.equal(firstOpen.state.wallet.balance,5);
     assert.equal("practices" in await readReaderState(db,session),false);
@@ -284,7 +284,7 @@ for (const dialect of ["sqlite","postgres"]) {
     // Changing editorial status does not transfer ownership or block card views.
     await db.prepare("UPDATE decks SET status='finished' WHERE id=?").run(deckId.replace(/$/,""));
     assert.equal(prepareCatalog(await readCatalog(db)).cardsById.has(cardId),true);
-    await selectDeck(db,other,deckId,new Date("2026-10-10T12:00:00Z"));
+    await openDeck(db,other,deckId,new Date("2026-10-10T12:00:00Z"));
     const opened=await openCard(db,other,deckId,cardId,new Date("2026-10-10T12:00:00Z"));
     assert.equal("practices" in opened.state,false);
     await recordCardView(db,other,{cardId,context:"practice"},new Date("2026-10-10T12:00:00Z"));
@@ -299,7 +299,7 @@ for (const dialect of ["sqlite","postgres"]) {
     let catalog=prepareCatalog(await readCatalog(db,session.user_id));
     assert.equal(catalog.decksById.get(deckId).cardCount,0);
     assert.equal((await readReaderState(db,session,new Date("2026-10-10T12:00:00Z"))).cardcaseDeckIds.includes(deckId),true);
-    await selectDeck(db,other,deckId,new Date("2026-10-10T12:00:00Z"));
+    await openDeck(db,other,deckId,new Date("2026-10-10T12:00:00Z"));
     await assert.rejects(takeNote(db,other,{requestId:randomUUID(),deckId,title:"x",body:"x",parentId:null,isQuote:false}),e=>e.status===404);
     const add=(title,parentId=null,isQuote=false)=>({requestId:randomUUID(),deckId,title,body:"Texte à mémoriser\nDeuxième ligne",parentId,isQuote});
     const root=await takeNote(db,session,add("Principe"));

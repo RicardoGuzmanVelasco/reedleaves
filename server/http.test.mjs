@@ -274,7 +274,7 @@ test("Author HTTP routes require CSRF and share content while reserving edits to
   const otherHeaders={Cookie:otherCookie,"X-CSRF-Token":(await other.json()).csrfToken};
   assert.equal((await post("/api/author/decks/title",{deckId,title:"Otro nombre",previousTitle:"Reading"},otherHeaders)).status,404);
   assert.equal((await post("/api/reader/cardcase/add",{deckId},otherHeaders)).status,200);
-  assert.equal((await post("/api/reader/select",{deckId},otherHeaders)).status,200);
+  assert.equal((await post("/api/reader/deck/open",{deckId},otherHeaders)).status,200);
   assert.equal((await post("/api/author/notes",{...cardInput,requestId:randomUUID()},otherHeaders)).status,404);
   const otherOpen=await post("/api/reader/open",{deckId,cardId},otherHeaders);
   assert.equal(otherOpen.status,200);assert.equal("practices" in (await otherOpen.json()).state,false);

@@ -2,7 +2,7 @@ import {randomUUID} from "node:crypto";
 import {authenticate, readSession, revokeSession, checkCsrf, sessionCookie} from "./auth.mjs";
 import {readProfile,readProfileBookshelf,recordCardView} from "./profile-repository.mjs";
 import {ApiError} from "./errors.mjs";
-import {readReaderState,readReaderBalances,readReaderHomeBooks,selectDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
+import {readReaderState,readReaderBalances,readReaderHomeBooks,openDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 
 import {createBook,createDeck,addDeckContributors,changeDeckLanguage,changeDeckTitle,takeNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
@@ -49,7 +49,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
   }
   return async (request,response,path,send) => {
     const routes = new Map([["/api/session",["GET","HEAD"]],["/api/auth/register",["POST"]],["/api/auth/login",["POST"]],
-      ["/api/auth/logout",["POST"]],["/api/interests",["GET","HEAD"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/balances",["GET","HEAD"]],["/api/reader/home-books",["GET","HEAD"]],["/api/reader/practice/discover-availability",["GET","HEAD"]],["/api/reader/select",["POST"]],["/api/reader/cardcase/add",["POST"]],["/api/reader/cardcase/remove",["POST"]],
+      ["/api/auth/logout",["POST"]],["/api/interests",["GET","HEAD"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/balances",["GET","HEAD"]],["/api/reader/home-books",["GET","HEAD"]],["/api/reader/practice/discover-availability",["GET","HEAD"]],["/api/reader/deck/open",["POST"]],["/api/reader/cardcase/add",["POST"]],["/api/reader/cardcase/remove",["POST"]],
       ["/api/reader/book-knowledge/visit",["POST"]],
       ["/api/reader/interests/knowledge/snapshot",["POST"]],["/api/reader/interests/knowledge/recognize",["POST"]],
       ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily-idea",["POST"]],["/api/reader/daily-idea-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]]]);
@@ -218,7 +218,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       }
       const result = path === "/api/reader/cardcase/add" ? await addDeckToCardcase(db,active,input.deckId,currentTime,{confirmation:input.confirmation,confirmationEnabled:bookInterestConfirmationEnabled}) :
         path === "/api/reader/cardcase/remove" ? await removeDeckFromCardcase(db,active,input.deckId,currentTime) :
-        path === "/api/reader/select" ? await selectDeck(db,active,input.deckId,currentTime,{requireCardcase:true}) :
+        path === "/api/reader/deck/open" ? await openDeck(db,active,input.deckId,currentTime,{requireCardcase:true}) :
         path === "/api/reader/open" ? await openCard(db,active,input.deckId,input.cardId,currentTime,{requireCardcase:true}) :
         path === "/api/reader/reading" ? await changeReading(db,active,input.bookId,input.status,currentTime,{confirmation:input.confirmation,confirmationEnabled:bookInterestConfirmationEnabled}) :
         path === "/api/reader/preferences" ? await changePreferences(db,active,input,currentTime) : await dailyIdea(db,active,currentTime);

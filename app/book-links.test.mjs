@@ -82,7 +82,7 @@ test("Each book modal offers labelled external anchors and platform icons in ES/
     assert.ok(modal.includes(words[language].writeReview));
     assert.equal((modal.match(/class="external-link-arrow"/g) || []).length, 2);
     assert.doesNotMatch(bookstoreView({...s,openBookId:null}), /book-external-links|app\/assets\/platforms/);
-    assert.doesNotMatch(modal, /data-action="(?:open-card|select-deck)"/);
+    assert.doesNotMatch(modal, /data-action="(?:open-card|enter-deck)"/);
   }
 });
 

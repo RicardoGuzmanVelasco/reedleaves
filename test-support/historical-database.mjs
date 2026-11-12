@@ -137,14 +137,11 @@ export async function migrationData(db) {
     ? await db.prepare(`SELECT c.id,v.deck_id,c.book_id,c.parent_id,c.position FROM cards c
         JOIN deck_versions v ON v.id=c.version_id ORDER BY c.id`).all()
     : await db.prepare("SELECT id,deck_id,book_id,parent_id,position FROM cards ORDER BY id").all();
-  // Snapshots keep the legacy names (studies, deck_selections, stored "unread") so one expected value compares a database before and after the Cardcase vocabulary migration.
-  const studiesTable=await has("cardcase_decks") ? "cardcase_decks" : "studies",selectionsTable=await has("book_selected_decks") ? "book_selected_decks" : "deck_selections";
+  // Snapshots keep the legacy names (studies, stored "unread") so one expected value compares a database before and after the Cardcase vocabulary migration.
+  const studiesTable=await has("cardcase_decks") ? "cardcase_decks" : "studies";
   result.book_reading=result.book_reading.map(row=>({...row,status:row.status === "to_read" ? "unread" : row.status}));
   result.studies=flattened
     ? await db.prepare(`SELECT s.user_id,v.deck_id FROM ${studiesTable} s JOIN deck_versions v ON v.id=s.version_id ORDER BY s.user_id,v.deck_id`).all()
     : await db.prepare(`SELECT user_id,deck_id FROM ${studiesTable} ORDER BY user_id,deck_id`).all();
-  result.deckSelections=flattened
-    ? await db.prepare(`SELECT s.user_id,s.book_id,v.deck_id FROM ${selectionsTable} s JOIN deck_versions v ON v.id=s.version_id ORDER BY s.user_id,s.book_id`).all()
-    : await db.prepare(`SELECT user_id,book_id,deck_id FROM ${selectionsTable} ORDER BY user_id,book_id`).all();
   return result;
 }

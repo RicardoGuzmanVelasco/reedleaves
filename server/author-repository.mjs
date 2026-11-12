@@ -324,7 +324,7 @@ export async function reassignTeamDeckCreator(db,{deckId,username}) {
 
 // Empty drafts have no content to keep, so finishing deletes them with their own references.
 async function deleteEmptyDraftDeck(db,deckId) {
-  for (const table of ["deck_translations","deck_contributors","deck_votes","book_selected_decks","cardcase_decks"]) await db.prepare(`DELETE FROM ${table} WHERE deck_id=?`).run(deckId);
+  for (const table of ["deck_translations","deck_contributors","deck_votes","cardcase_decks"]) await db.prepare(`DELETE FROM ${table} WHERE deck_id=?`).run(deckId);
   await db.prepare("DELETE FROM decks WHERE id=? AND status='draft'").run(deckId);
 }
 

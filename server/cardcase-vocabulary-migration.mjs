@@ -1,12 +1,12 @@
 // Schema v64 (SQLite) / v56 (PostgreSQL): stored names follow the section vocabulary.
 // - studies -> cardcase_decks (the decks in each reader's Cardcase).
-// - deck_selections -> book_selected_decks (the deck each reader chose for a book).
+// - deck_selections is dropped: nothing visible read the deck a reader "selected" for a book.
 // - book_reading.status: the stored 'unread' ("to read", a book on the Shelf) becomes 'to_read'.
 //   A book that is not read at all has no row.
 
 export const CARDCASE_VOCABULARY_SQLITE=`
   ALTER TABLE studies RENAME TO cardcase_decks;
-  ALTER TABLE deck_selections RENAME TO book_selected_decks;
+  DROP TABLE deck_selections;
   CREATE TABLE book_reading_new (
     user_id TEXT NOT NULL REFERENCES users(id),
     book_id TEXT NOT NULL REFERENCES books(id),
@@ -29,9 +29,5 @@ export const CARDCASE_VOCABULARY_POSTGRES=`
   ALTER TABLE public.cardcase_decks RENAME CONSTRAINT studies_user_id_fkey TO cardcase_decks_user_id_fkey;
   ALTER TABLE public.cardcase_decks RENAME CONSTRAINT studies_deck_id_fkey TO cardcase_decks_deck_id_fkey;
   ALTER SEQUENCE public.studies_rowid_seq RENAME TO cardcase_decks_rowid_seq;
-  ALTER TABLE public.deck_selections RENAME TO book_selected_decks;
-  ALTER TABLE public.book_selected_decks RENAME CONSTRAINT deck_selections_pkey TO book_selected_decks_pkey;
-  ALTER TABLE public.book_selected_decks RENAME CONSTRAINT deck_selections_user_id_fkey TO book_selected_decks_user_id_fkey;
-  ALTER TABLE public.book_selected_decks RENAME CONSTRAINT deck_selections_book_id_fkey TO book_selected_decks_book_id_fkey;
-  ALTER TABLE public.book_selected_decks RENAME CONSTRAINT deck_selections_deck_id_book_id_fkey TO book_selected_decks_deck_id_book_id_fkey;
+  DROP TABLE public.deck_selections;
 `;

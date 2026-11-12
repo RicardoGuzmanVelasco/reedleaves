@@ -390,13 +390,6 @@ CREATE TABLE cardcase_decks (
   deck_id TEXT NOT NULL REFERENCES decks(id),
   PRIMARY KEY(user_id,deck_id)
 ) STRICT;
-CREATE TABLE book_selected_decks (
-  user_id TEXT NOT NULL REFERENCES users(id),
-  book_id TEXT NOT NULL REFERENCES books(id),
-  deck_id TEXT NOT NULL,
-  PRIMARY KEY(user_id,book_id),
-  FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id)
-) STRICT;
 CREATE TABLE daily_ideas (
   day TEXT NOT NULL,
   card_id TEXT NOT NULL REFERENCES cards(id),

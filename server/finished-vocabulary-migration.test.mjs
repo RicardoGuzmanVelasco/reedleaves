@@ -37,7 +37,7 @@ for (const [dialect,version] of [["sqlite",60],["postgres",52]]) {
     assert.equal((await db.prepare("SELECT status FROM decks WHERE id='seven-habits-editorial'").get()).status,"finished");
     assert.deepEqual((await db.prepare("SELECT id FROM decks WHERE status='draft' ORDER BY id").all()).map(row=>row.id),draftIds.filter(id=>id!=="empty-archived"));
     assert.equal(await db.prepare("SELECT 1 FROM decks WHERE id='empty-archived'").get(),undefined);
-    for (const table of ["deck_translations","cardcase_decks","book_selected_decks","deck_votes"]) {
+    for (const table of ["deck_translations","cardcase_decks","deck_votes"]) {
       assert.equal(await db.prepare(`SELECT 1 FROM ${table} WHERE deck_id='empty-archived'`).get(),undefined,`${table} rows of the deleted deck are removed`);
     }
     assert.equal((await db.prepare("SELECT count(*) AS n FROM cards").get()).n,cardCount);

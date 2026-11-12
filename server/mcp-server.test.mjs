@@ -250,8 +250,6 @@ test(`${dialect}: MCP merges duplicate books without losing deck, card, profile 
   await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES ('merge-reader-two',?)").run(sourceDeck.deckId);
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES ('merge-reader',?,'reading'),('merge-reader',?,'read')")
     .run(targetBookId,sourceBookId);
-  await db.prepare("INSERT INTO book_selected_decks(user_id,book_id,deck_id) VALUES ('merge-reader',?,?),('merge-reader-two',?,?)")
-    .run(targetBookId,targetDeck.deckId,sourceBookId,sourceDeck.deckId);
   await db.prepare("INSERT INTO card_saves(user_id,card_id,saved_at) VALUES ('merge-reader',?,'2026-10-25T12:00:00.000Z')").run(sourceCard);
   await db.prepare("INSERT INTO card_views(user_id,card_id,first_seen_at) VALUES ('merge-reader',?,'2026-10-25T12:00:00.000Z')").run(sourceCard);
   await db.prepare("INSERT INTO daily_ideas(day,card_id) VALUES ('2099-01-01',?)").run(sourceCard);
@@ -270,8 +268,6 @@ test(`${dialect}: MCP merges duplicate books without losing deck, card, profile 
   assert.equal((await db.prepare("SELECT count(*) AS n FROM book_reading WHERE book_id=?").get(sourceBookId)).n,0);
   assert.equal((await db.prepare("SELECT count(*) AS n FROM cardcase_decks WHERE user_id='merge-reader'").get()).n,2);
   assert.ok(await db.prepare("SELECT 1 FROM cardcase_decks WHERE user_id='merge-reader-two' AND deck_id=?").get(sourceDeck.deckId));
-  assert.equal((await db.prepare("SELECT deck_id FROM book_selected_decks WHERE user_id='merge-reader' AND book_id=?").get(targetBookId)).deck_id,targetDeck.deckId);
-  assert.equal((await db.prepare("SELECT deck_id FROM book_selected_decks WHERE user_id='merge-reader-two' AND book_id=?").get(targetBookId)).deck_id,sourceDeck.deckId);
   assert.equal((await db.prepare("SELECT is_recommended FROM decks WHERE id=?").get(targetDeck.deckId)).is_recommended,1);
   assert.equal((await db.prepare("SELECT is_recommended FROM decks WHERE id=?").get(sourceDeck.deckId)).is_recommended,0);
   assert.deepEqual((await db.prepare("SELECT interest_id FROM book_interests WHERE book_id=? ORDER BY position").all(targetBookId)).map(row=>row.interest_id),["productivity","personal-growth"]);

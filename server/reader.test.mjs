@@ -9,7 +9,7 @@ import {openDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION} from "./database.
 import {seedCatalog} from "./seed.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {createDeck} from "./author-repository.mjs";
-import {readReaderState,selectDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
+import {readReaderState,openDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 import {serverDay} from "./auth.mjs";
@@ -26,10 +26,10 @@ async function fixture(t,path = ":memory:") {
 test("Adding a deck costs two leaves once; viewing it is free and users are isolated",async t=>{
   const {db,a,b} = await fixture(t), before = await readReaderState(db,a,today);
   const added = await addDeckToCardcase(db,a,version,today), state = added.state;
-  assert.deepEqual(state.cardcaseDeckIds,[version]); assert.equal(state.selectedDeckByBook["seven-habits"],version);
+  assert.deepEqual(state.cardcaseDeckIds,[version]);
   assert.equal(state.wallet.balance,before.wallet.balance-2); assert.equal("practices" in state,false);
   assert.deepEqual(state.growth["seven-habits"],{added:true,practiceDays:0});
-  assert.equal((await selectDeck(db,a,version,today)).wallet.balance,state.wallet.balance);
+  assert.equal((await openDeck(db,a,version,today)).wallet.balance,state.wallet.balance);
   assert.equal((await addDeckToCardcase(db,a,version,today)).state.wallet.balance,state.wallet.balance);
   await db.prepare("UPDATE leaf_wallets SET balance=1 WHERE user_id=?").run(a.user_id);
   await assert.rejects(addDeckToCardcase(db,a,other,today),{code:"insufficientLeaves"});
@@ -41,7 +41,6 @@ test("Removing a collected deck clears its selection and keeps catalog content",
   const added=await addDeckToCardcase(db,a,version,today);
   const removed=await removeDeckFromCardcase(db,a,version,today);
   assert.deepEqual(removed.state.cardcaseDeckIds,[]);
-  assert.equal(removed.state.selectedDeckByBook["seven-habits"],undefined);
   assert.equal(removed.state.wallet.balance,added.state.wallet.balance);
   assert.equal((await readCatalog(db,b.user_id)).decks.some(deck=>deck.id===version),true);
   assert.deepEqual((await readReaderState(db,b,today)).cardcaseDeckIds,[]);
@@ -76,7 +75,7 @@ test("Deck connections become Por leer and preserve active reading states",async
   await changeReading(db,a,"seven-habits","reading",today);
   assert.equal((await addDeckToCardcase(db,a,version,today)).state.statuses["seven-habits"],"reading");
   await changeReading(db,a,"seven-habits","read",today);
-  assert.equal((await selectDeck(db,a,version,today)).statuses["seven-habits"],"read");
+  assert.equal((await openDeck(db,a,version,today)).statuses["seven-habits"],"read");
   await changeReading(db,a,"seven-habits","unread",today);
   assert.equal((await readReaderState(db,a,today)).statuses["seven-habits"],"to_read");
 });

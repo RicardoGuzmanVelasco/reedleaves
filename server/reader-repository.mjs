@@ -135,7 +135,6 @@ async function stateInside(db,session,now) {
     noteActivity,noteDeckActivity,shelfBookIds:[...addedBooks],pendingNewBookCount:await pendingNewBookCount(db,userId),
     statuses:Object.fromEntries([...distinguished.map(id=>[id,"to_read"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])]),
     cardcaseDeckIds:(await db.prepare("SELECT deck_id FROM cardcase_decks WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.deck_id),
-    selectedDeckByBook:Object.fromEntries((await db.prepare("SELECT book_id,deck_id FROM book_selected_decks WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.deck_id])),
     dailyIdea:idea,dailyHistory};
 }
 async function knownDeck(db,deckId,userId) {
@@ -150,8 +149,6 @@ async function knownDeck(db,deckId,userId) {
 }
 async function addToCardcase(db,userId,deck) {
   await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?) ON CONFLICT DO NOTHING").run(userId,deck.id);
-  await db.prepare("INSERT INTO book_selected_decks VALUES (?,?,?) ON CONFLICT(user_id,book_id) DO UPDATE SET deck_id=excluded.deck_id")
-    .run(userId,deck.book_id,deck.id);
   await ensureBookToRead(db,userId,deck.book_id);
 }
 async function deckIsOwned(db,userId,deck) {
@@ -191,12 +188,11 @@ export async function removeDeckFromCardcase(db,session,deckId,now=new Date()) {
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
     const deck=await knownDeck(db,deckId,session.user_id);
-    await db.prepare("DELETE FROM book_selected_decks WHERE user_id=? AND deck_id=?").run(session.user_id,deckId);
     await db.prepare("DELETE FROM cardcase_decks WHERE user_id=? AND deck_id=?").run(session.user_id,deckId);
     return {state:await stateInside(db,session,now)};
   });
 }
-export async function selectDeck(db,session,deckId,now=new Date(),{requireCardcase=false}={}) {
+export async function openDeck(db,session,deckId,now=new Date(),{requireCardcase=false}={}) {
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
     const deck=await knownDeck(db,deckId,session.user_id);

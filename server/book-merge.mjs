@@ -14,7 +14,7 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
   const sourceId=bookId(sourceBookId),targetId=bookId(targetBookId);
   if(sourceId===targetId) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
-    if(isPostgres(db)) await db.exec("LOCK TABLE books,decks,cards,book_reading,book_selected_decks IN SHARE ROW EXCLUSIVE MODE;");
+    if(isPostgres(db)) await db.exec("LOCK TABLE books,decks,cards,book_reading IN SHARE ROW EXCLUSIVE MODE;");
     // Completion locks these same rows before changing associations.
     const rowLock=isPostgres(db)?" FOR UPDATE":"";
     const source=await db.prepare(`SELECT id,creator_user_id,author,popular_title,popular_language FROM books WHERE id=?${rowLock}`).get(sourceId);
@@ -72,11 +72,6 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
       mergedReaders++;
     }
 
-    // This legacy table permits one reference per user and book. Keep a target row
-    // when both exist; otherwise carry the source row so its deck/book foreign key survives.
-    const sourceSelections=await db.prepare("SELECT user_id,deck_id FROM book_selected_decks WHERE book_id=?").all(sourceId);
-    await db.prepare("DELETE FROM book_selected_decks WHERE book_id=?").run(sourceId);
-
     const targetHasRecommendation=!!await db.prepare("SELECT 1 FROM decks WHERE book_id=? AND is_recommended=1").get(targetId);
     const sourceDecks=await db.prepare("SELECT id FROM decks WHERE book_id=? ORDER BY id").all(sourceId);
     const movedCards=Number((await db.prepare("SELECT count(*) AS n FROM cards WHERE book_id=?").get(sourceId)).n);
@@ -86,10 +81,6 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
     await db.prepare("UPDATE decks SET book_id=? WHERE book_id=?").run(targetId,sourceId);
     await db.prepare("DELETE FROM book_merge_operations WHERE source_book_id=? AND target_book_id=?").run(sourceId,targetId);
 
-    for(const selection of sourceSelections){
-      await db.prepare(`INSERT INTO book_selected_decks(user_id,book_id,deck_id) VALUES (?,?,?)
-        ON CONFLICT(user_id,book_id) DO NOTHING`).run(selection.user_id,targetId,selection.deck_id);
-    }
     await db.prepare("DELETE FROM book_reading WHERE book_id=?").run(sourceId);
     await db.prepare("DELETE FROM books WHERE id=?").run(sourceId);
 
@@ -104,10 +95,9 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
       (SELECT count(*) FROM decks WHERE book_id=?) +
       (SELECT count(*) FROM cards WHERE book_id=?) +
       (SELECT count(*) FROM book_reading WHERE book_id=?) +
-      (SELECT count(*) FROM book_selected_decks WHERE book_id=?) +
       (SELECT count(*) FROM book_links WHERE book_id=?) +
       (SELECT count(*) FROM book_interests WHERE book_id=?) +
-      (SELECT count(*) FROM book_translations WHERE book_id=?) AS n`).get(sourceId,sourceId,sourceId,sourceId,sourceId,sourceId,sourceId);
+      (SELECT count(*) FROM book_translations WHERE book_id=?) AS n`).get(sourceId,sourceId,sourceId,sourceId,sourceId,sourceId);
     if(Number(dangling.n)!==0||await db.prepare("SELECT 1 FROM books WHERE id=?").get(sourceId)) throw new Error("Book merge left source references");
     await checkCatalog(db);
     return {sourceBookId:sourceId,targetBookId:targetId,movedDecks:sourceDecks.length,movedCards,mergedReaders,retainedDeckMemberships:true};

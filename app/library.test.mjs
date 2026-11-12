@@ -142,7 +142,7 @@ test("Deck details distinguish adding to the cardcase from starting practice",as
   const notAdded=deckPageView(state);
   assert.match(notAdded,/data-action="add-deck-to-cardcase"/);
   assert.match(notAdded,/Costs 2 leaves|Cuesta 2 hojas/);
-  assert.doesNotMatch(notAdded,/data-action="select-deck"/);
+  assert.doesNotMatch(notAdded,/data-action="enter-deck"/);
   const added=deckPageView({...state,cardcaseDeckIds:[deck.deck.id]});
   assert.doesNotMatch(added,/data-action="add-deck-to-cardcase"/);
   assert.match(added,/data-action="remove-cardcase-deck"/);

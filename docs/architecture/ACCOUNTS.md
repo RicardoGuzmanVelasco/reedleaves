@@ -40,7 +40,7 @@ El navegador muestra el estado confirmado y consulta cambios al volver al primer
 | `/api/auth/login` | POST | Sesión |
 | `/api/auth/logout` | POST | Revocar sesión actual |
 | `/api/reader/state` | GET / HEAD | Estado autenticado |
-| `/api/reader/select` | POST | Elegir baraja, gratis |
+| `/api/reader/deck/open` | POST | Abrir una baraja del Tarjetero, gratis |
 | `/api/reader/open` | POST | Abrir tarjeta y registrar su vista |
 | `/api/reader/reading` | POST | Estado manual del libro original |
 | `/api/reader/preferences` | POST | Idioma y títulos originales |

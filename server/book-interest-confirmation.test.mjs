@@ -78,7 +78,6 @@ test("confirmed collection and save retries do not repeat charges or saved recor
   assert.equal((await db.prepare("SELECT count(*) AS count FROM cardcase_decks WHERE user_id=? AND deck_id=?").get(session.user_id,"seven-habits-editorial")).count,1);
 
   await db.prepare("DELETE FROM cardcase_decks WHERE user_id=? AND deck_id=?").run(session.user_id,"seven-habits-editorial");
-  await db.prepare("DELETE FROM book_selected_decks WHERE user_id=? AND book_id=?").run(session.user_id,"seven-habits");
   await db.prepare("DELETE FROM book_reading WHERE user_id=? AND book_id=?").run(session.user_id,"seven-habits");
   const savePrompt=await setCardSave(db,session,{cardId:"habit-1",saved:true},now,enabled);
   const saved=await setCardSave(db,session,{cardId:"habit-1",saved:true,confirmation:savePrompt.confirmation},now,enabled);

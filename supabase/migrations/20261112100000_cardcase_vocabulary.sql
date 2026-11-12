@@ -7,8 +7,4 @@ ALTER TABLE public.cardcase_decks RENAME CONSTRAINT studies_rowid_key TO cardcas
 ALTER TABLE public.cardcase_decks RENAME CONSTRAINT studies_user_id_fkey TO cardcase_decks_user_id_fkey;
 ALTER TABLE public.cardcase_decks RENAME CONSTRAINT studies_deck_id_fkey TO cardcase_decks_deck_id_fkey;
 ALTER SEQUENCE public.studies_rowid_seq RENAME TO cardcase_decks_rowid_seq;
-ALTER TABLE public.deck_selections RENAME TO book_selected_decks;
-ALTER TABLE public.book_selected_decks RENAME CONSTRAINT deck_selections_pkey TO book_selected_decks_pkey;
-ALTER TABLE public.book_selected_decks RENAME CONSTRAINT deck_selections_user_id_fkey TO book_selected_decks_user_id_fkey;
-ALTER TABLE public.book_selected_decks RENAME CONSTRAINT deck_selections_book_id_fkey TO book_selected_decks_book_id_fkey;
-ALTER TABLE public.book_selected_decks RENAME CONSTRAINT deck_selections_deck_id_book_id_fkey TO book_selected_decks_deck_id_book_id_fkey;
+DROP TABLE public.deck_selections;

@@ -8,7 +8,7 @@ import {decideReadingGuide,listPendingReadingGuides,submitReadingGuide} from "./
 import {contentVersion} from "./reader-roles.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
-import {selectDeck,changeReading} from "./reader-repository.mjs";
+import {openDeck,changeReading} from "./reader-repository.mjs";
 import {setCardVote} from "./card-votes.mjs";
 import {setCardSave} from "./card-saves.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
@@ -59,7 +59,7 @@ for(const dialect of ["sqlite","postgres"]) test(`${dialect}: reading guides sta
   assert.match(deckHtml,/class="deck-tile reading-guides-deck-tile"[^>]*data-action="open-reading-guide-preview"/);assert.doesNotMatch(deckHtml,/data-action="open-reading-guides"|data-action="preview-deck" data-deck="reading-guides:/);
   assert.match(guideHtml,/data-card-type="reading-guide"/);assert.match(guideHtml,/Guide language|Idioma de la guía/);assert.match(guideHtml,/data-card-actions=/);
   assert.match(guideHtml,/\+30 XP fantasma/);assert.match(guidePreviewHtml,/data-review-status="pending"/);assert.match(guidePreviewHtml,/Pendiente de aprobación/);
-  await assert.rejects(selectDeck(db,a,first.deckId,now),{code:"deckUnavailable"});
+  await assert.rejects(openDeck(db,a,first.deckId,now),{code:"deckUnavailable"});
   await assert.rejects(setCardVote(db,a,{cardId:first.cardId,value:1}),{code:"ownCardVote"});
   assert.equal((await setCardVote(db,a,{cardId:second.cardId,value:1})).vote,1);
   assert.equal((await setCardSave(db,a,{cardId:second.cardId,saved:true},now)).saved,true);

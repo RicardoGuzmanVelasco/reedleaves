@@ -80,10 +80,10 @@ test("Real registration, two sessions, spending, reconnecting and logout persist
   const b = {Cookie:login.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":login.body.csrfToken};
   assert.notEqual(a.Cookie,b.Cookie); assert.equal(login.body.user.id,result.body.user.id);
   const v = "seven-habits-editorial";
-  assert.equal((await call("/api/reader/select",{deckId:v},a)).status,409);
+  assert.equal((await call("/api/reader/deck/open",{deckId:v},a)).status,409);
   assert.equal((await call("/api/reader/open",{deckId:v,cardId:"habit-1"},a)).status,409);
   assert.equal((await call("/api/reader/cardcase/add",{deckId:v},a)).status,200);
-  assert.equal((await call("/api/reader/select",{deckId:v},a)).status,200);
+  assert.equal((await call("/api/reader/deck/open",{deckId:v},a)).status,200);
   const both = await Promise.all([call("/api/reader/open",{deckId:v,cardId:"habit-1",userId:"reed-team",today:"2099-01-01",balance:3},a),call("/api/reader/open",{deckId:v,cardId:"habit-1"},b)]);
   assert.deepEqual(both.map(r=>r.status),[200,200]); assert.ok(both.every(r=>!Object.hasOwn(r.body,"spent")));
   assert.equal((await call("/api/reader/state",undefined,b)).body.wallet.balance,3);
@@ -144,12 +144,12 @@ test("Daily idea status is private and never assigns the day's card",async t=>{
 test("Origin, CSRF, malformed bodies and wrong methods are rejected without writes",async t=>{
   const {call,register,db,base} = await fixture(t), {headers} = await register("safe.reader");
   const v = "seven-habits-editorial";
-  for (const bad of [{...headers,Origin:"https://evil.example"},{...headers,Origin:"null"},{...headers,Origin:""},{Cookie:headers.Cookie},{...headers,"X-CSRF-Token":"wrong"},{...headers,"Sec-Fetch-Site":"cross-site"}]) assert.equal((await call("/api/reader/select",{deckId:v},bad)).status,403);
+  for (const bad of [{...headers,Origin:"https://evil.example"},{...headers,Origin:"null"},{...headers,Origin:""},{Cookie:headers.Cookie},{...headers,"X-CSRF-Token":"wrong"},{...headers,"Sec-Fetch-Site":"cross-site"}]) assert.equal((await call("/api/reader/deck/open",{deckId:v},bad)).status,403);
   assert.equal(db.prepare("SELECT count(*) AS n FROM cardcase_decks").get().n,0);
   assert.equal((await call("/api/reader/open")).status,405);
   assert.equal((await call("/api/auth/login",{username:"safe.reader",password},{Origin:"https://evil.example"})).status,403);
   for (const [body,contentType,status] of [["{","application/json",400],["[]","application/json",400],["{}","text/plain",415],[JSON.stringify({x:"x".repeat(9000)}),"application/json",413]]) {
-    const response = await fetch(base+"/api/reader/select",{method:"POST",headers:{...headers,Origin:base,"Content-Type":contentType},body}); assert.equal(response.status,status);
+    const response = await fetch(base+"/api/reader/deck/open",{method:"POST",headers:{...headers,Origin:base,"Content-Type":contentType},body}); assert.equal(response.status,status);
   }
   assert.equal((await call("/api/session",undefined,{Cookie:"reedleaves_session=fake"})).body.user,null);
 });

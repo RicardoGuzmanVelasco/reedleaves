@@ -351,10 +351,6 @@ CREATE TABLE card_views (
 );
 
 CREATE TABLE cardcase_decks(rowid BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE, user_id TEXT NOT NULL REFERENCES users(id), deck_id TEXT NOT NULL REFERENCES decks(id), PRIMARY KEY(user_id,deck_id));
-CREATE TABLE book_selected_decks(
-  user_id TEXT NOT NULL REFERENCES users(id), book_id TEXT NOT NULL REFERENCES books(id), deck_id TEXT NOT NULL,
-  PRIMARY KEY(user_id,book_id), FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id)
-);
 CREATE TABLE daily_ideas(day TEXT PRIMARY KEY, card_id TEXT NOT NULL REFERENCES cards(id));
 CREATE TABLE daily_idea_views(
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

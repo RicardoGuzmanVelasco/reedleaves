@@ -11,7 +11,7 @@ async function snapshot(db,dialect){
   const rows={};
   // The XP tables are introduced by a later additive migration and are not
   // part of this migration's data-preservation contract.
-  for(const {name} of tables){if(["reed_schema","reader_xp_balances","reader_xp_events","reading_guide_reviews","app_roles","user_roles","reader_display_preferences"].includes(name))continue;const legacy={interests:"genres",interest_translations:"genre_translations",book_interests:"book_genres",cardcase_decks:"studies",book_selected_decks:"deck_selections"}[name]||name;
+  for(const {name} of tables){if(["reed_schema","deck_selections","reader_xp_balances","reader_xp_events","reading_guide_reviews","app_roles","user_roles","reader_display_preferences"].includes(name))continue;const legacy={interests:"genres",interest_translations:"genre_translations",book_interests:"book_genres",cardcase_decks:"studies",book_selected_decks:"deck_selections"}[name]||name;
     // Legacy keys keep one snapshot comparable before and after the interests rename.
     const columns={genres:"id",genre_translations:name==="interest_translations"?"interest_id AS genre_id,language,name":"*",book_genres:name==="book_interests"?"book_id,interest_id AS genre_id,position":"*"}[legacy]||"*";
     rows[legacy]=(await db.prepare(`SELECT ${columns} FROM "${name}"`).all()).map(row=>normalizeRetiredRow(legacy,name==="book_reading"&&row.status==="to_read"?{...row,status:"unread"}:row)).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));}

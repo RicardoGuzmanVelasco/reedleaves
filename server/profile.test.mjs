@@ -6,7 +6,7 @@ import {openDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION} from "./database.
 import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
-import {openCard,changeReading,selectDeck,readReaderState} from "./reader-repository.mjs";
+import {openCard,changeReading,openDeck,readReaderState} from "./reader-repository.mjs";
 import {createBook,createDeck,takeNote} from "./author-repository.mjs";
 import {serverDay} from "./auth.mjs";
 
@@ -62,7 +62,7 @@ test("Profile counts one current pet per book rather than all unlocked stages, i
   await changeReading(db,a,"atomic-habits","read",day(10));
   await changeReading(db,a,"same-as-ever","reading",day(10));
   await changeReading(db,a,"seven-habits","reading",day(10));
-  await selectDeck(db,a,"getting-things-done-editorial",day(10));
+  await openDeck(db,a,"getting-things-done-editorial",day(10));
   for(let n=1;n<=7;n++) await recordCompletedPractice(db,a,"seven-habits",day(9+n));
   const p=(await readProfile(db,a.user_id,a.user_id)).profile;
   assert.equal(p.counts.booksRead,1);assert.equal(p.counts.booksReading,2);
@@ -83,7 +83,7 @@ test("Nonconsecutive review days across decks earn Bud, Flower and Evergreen at 
   }
   for(let n=0;n<30;n++) {
     const deck=decks[n%2];
-    await selectDeck(db,a,deck.deckId,day(1+n));
+    await openDeck(db,a,deck.deckId,day(1+n));
     await recordCompletedPractice(db,a,bookId,day(1+n),deck.deckId);
     const profile=(await readProfile(db,a.user_id,a.user_id)).profile;
     if(n===8) {assert.equal(profile.mascots.sprout,1);assert.equal(profile.mascots.stem,0);}
@@ -94,7 +94,7 @@ test("Nonconsecutive review days across decks earn Bud, Flower and Evergreen at 
     if(n===9) {assert.equal(profile.mascots.stem,1);assert.equal(profile.mascots.flower,0);}
   }
   // Another completed session on an existing local date adds no growth day.
-  await selectDeck(db,a,decks[1].deckId,day(30));
+  await openDeck(db,a,decks[1].deckId,day(30));
   await recordCompletedPractice(db,a,bookId,day(30),decks[1].deckId);
   assert.equal((await readReaderState(db,a,day(30))).growth[bookId].practiceDays,30);
   const {mascots}=(await readProfile(db,a.user_id,a.user_id)).profile;
