@@ -178,7 +178,7 @@ export async function readCardContexts(db, cardIds, userId) {
   });
   const deckTranslations=await rowsBy(db,`SELECT deck_id,language,title FROM deck_translations WHERE deck_id IN (${marks(deckIds)})`,"deck_id",...deckIds);
   const decks=(await db.prepare(`SELECT d.id,d.book_id,d.language,d.kind,d.status,d.quote_source_url,d.creator_user_id,u.display_name,
-    EXISTS(SELECT 1 FROM cards WHERE deck_id=d.id AND is_reading_guide) AS has_guide
+    EXISTS(SELECT 1 FROM cards WHERE deck_id=d.id AND is_reading_guide=1) AS has_guide
     FROM decks d JOIN users u ON u.id=d.creator_user_id WHERE d.id IN (${marks(deckIds)})`).all(...deckIds)).map(row=>{
     const deck={id:row.id,bookId:row.book_id,language:row.language,kind:row.kind || "standard",status:row.status,
       isReadingGuide:!!row.has_guide,creator:{kind:"user",userId:row.creator_user_id,name:row.display_name || null},title:{}};

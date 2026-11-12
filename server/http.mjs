@@ -78,7 +78,7 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
         const bytes = Buffer.from(JSON.stringify(await readCatalog(db,session?.user_id)));
         const etag = `"${createHash("sha1").update(bytes).digest("base64url")}"`;
         response.setHeader("ETag",etag);
-        if (request.headers["if-none-match"]?.split(",").some(tag => tag.trim() === etag)) { response.writeHead(304); response.end(); return; }
+        if (request.headers["if-none-match"]?.split(",").some(tag => tag.trim().replace(/^W\//,"") === etag)) { response.writeHead(304); response.end(); return; }
         send(200, bytes); return;
       }
       if (path === "/" || path === "/app") {

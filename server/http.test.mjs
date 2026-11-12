@@ -19,6 +19,8 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   assert.equal((await catalog.json()).cards.length, 42);
   const unchanged = await fetch(base + "/api/catalog", { headers: { "If-None-Match": etag } });
   assert.equal(unchanged.status, 304); assert.equal(await unchanged.text(), "");
+  // Proxies that compress the response turn the ETag into a weak one; it must still match.
+  assert.equal((await fetch(base + "/api/catalog", { headers: { "If-None-Match": `W/${etag}` } })).status, 304);
   db.prepare("UPDATE books SET author = ? WHERE id = ?").run("SQL-backed author", "same-as-ever");
   const updated = await (await fetch(base + "/api/catalog")).json();
   assert.equal(updated.books.find(b => b.id === "same-as-ever").author, "SQL-backed author");
