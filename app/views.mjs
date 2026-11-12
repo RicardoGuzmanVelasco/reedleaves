@@ -896,15 +896,12 @@ export function profileView(s) {
     <section class="profile-section" aria-labelledby="profile-mascots"><h2 id="profile-mascots">${c.currentMascots}</h2><ul class="profile-mascots">${mascotStages.filter(stage=>stage.days!==undefined || p.mascots[stage.id]>0).map(stage=>`<li>${mascotIcon(stage.id)}<span>${c[stage.name]}</span><strong>${p.mascots[stage.id] ?? 0}</strong></li>`).join("")}</ul></section>
   </section>`;
 }
-export function profileWakeOverlayView() {
-  return `<div class="profile-wake-overlay" aria-hidden="true">${mascotArt("sprout","profile-wake-mascot",{animation:"wake"})}</div>`;
-}
 export function profilePendingView(s) {
   const c=words[s.language];
   const pending=s.profileError
     ? `<div class="profile-error-state">${mascotArt("sprout","profile-error-mascot",{animation:"sob"})}${callout({variant:"error",role:"alert",className:"profile-error-callout",width:"content",main:s.profileError==="connectionError"?c.profileLoadErrorMain:c[s.profileError]||c.connectionError,action:{label:c.retry,dataAction:"retry-profile"}})}</div>`
     : loadingPlaceholder(c.loading);
-  return `<section class="profile-screen"><h1 tabindex="-1" class="profile-pending-title">${c.profile}</h1>${pending}</section>`;
+  return `<section class="profile-screen"><h1 class="sr-only" tabindex="-1">${c.profile}</h1>${pending}</section>`;
 }
 
 export function initialInterestsView(s) {

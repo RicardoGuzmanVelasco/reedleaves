@@ -20,7 +20,7 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=evergreen-2";
-import {sharedCardView,homeView,bookstoreView,bookstoreResultsMarkup,libraryView,dailyView,practiceView,deckView,readingGuidesView,guideReviewQueueView,readingGuideDeckPreviewView,deckPeekView,deckPageView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,profileWakeOverlayView,loadingView,notFoundView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=evergreen-2";
+import {sharedCardView,homeView,bookstoreView,bookstoreResultsMarkup,libraryView,dailyView,practiceView,deckView,readingGuidesView,guideReviewQueueView,readingGuideDeckPreviewView,deckPeekView,deckPageView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,notFoundView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=profile-wake-cleanup";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {filterBookstore,bookstoreDefaults} from "./book-search.mjs";
@@ -113,7 +113,7 @@ export function startReader({createCardFeatures} = {}) {
   let authorForm = null, quotesOnly = false, deckPreview = false, previewColumns = 2, previewDeckId = null;
   let noteDestination=null,deckCompletion=null,notesCompletion=null,bookStatusError=null,bookInterestPrompt=null,bookInterestFlow=null,bookInterestCardControls=null,noteNudgeBookId=null,readingGuidePromptBookId=null,guidePreviewReturn=null,readingGuideError=null,readingGuideDraft=null;
   let deckLanguageError=null,deckTitleEdit=null,deckContributorError=null,deckContributorInput="";
-  let profileId=null,profileData=null,profileError=null,profileReturnHash="#home",profileRequest=null,profileGeneration=0,profileInterests=null,profileLanguages=null,profileLoadingWasShown=false,profileTransition=null;
+  let profileId=null,profileData=null,profileError=null,profileReturnHash="#home",profileRequest=null,profileGeneration=0,profileInterests=null,profileLanguages=null;
   let homeInterestPreferences=null,homeInterestPreferencesUserId=null,homeInterestPreferencesRequest=null,homeInterestPreferencesGeneration=0;
   let initialInterestSetupRequest=null,openingOverlayFinished=Promise.resolve();
   const recordedViews=new Set(),pendingViews=new Set();
@@ -554,7 +554,7 @@ export function startReader({createCardFeatures} = {}) {
     state.catalog=viewCatalog()||state.catalog;
     presentationState=state;
     const markup = (syncError ? callout({variant:"error",role:"alert",className:"sync-note",content:`<p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p>`,actions:`<button class="text-button" type="button" data-action="sync">${words[language].refresh}</button>`}) : "") +
-      (mode === "shared-card" ? sharedCardView(state) : mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "not-found" ? notFoundView(state) : mode === "guide-reviews" ? guideReviewQueueView(state) : mode === "bookstore" ? bookstoreView(state) : mode === "library" ? libraryView(state) : mode === "public-library" ? (profileData ? libraryView(state) : profilePendingView(state))+(profileData&&profileTransition==="wake"?profileWakeOverlayView():"") : mode === "profile-loading-preview" ? profilePendingView(state) : mode === "profile" ? profileView(state)+(profileTransition==="wake"?profileWakeOverlayView():"") : mode === "daily-idea" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "guides" ? readingGuidesView(state) : mode === "guide-preview" ? readingGuideDeckPreviewView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : deckPageView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "") + bookInterestWarningView(state);
+      (mode === "shared-card" ? sharedCardView(state) : mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "not-found" ? notFoundView(state) : mode === "guide-reviews" ? guideReviewQueueView(state) : mode === "bookstore" ? bookstoreView(state) : mode === "library" ? libraryView(state) : mode === "public-library" ? (profileData ? libraryView(state) : profilePendingView(state)) : mode === "profile-loading-preview" ? profilePendingView(state) : mode === "profile" ? profileView(state) : mode === "daily-idea" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "guides" ? readingGuidesView(state) : mode === "guide-preview" ? readingGuideDeckPreviewView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : deckPageView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "") + bookInterestWarningView(state);
     replaceMainContent(markup);
     fitOneLineLabels();
     mountInterests(main);
@@ -717,7 +717,6 @@ export function startReader({createCardFeatures} = {}) {
     const profilePreview=new URLSearchParams(location.search).get("profileLoadingPreview");
     const localProfilePreview=["localhost","127.0.0.1"].includes(location.hostname);
     if(profilePreview&&localProfilePreview&&profilePreview!=="success") { mode="profile-loading-preview";profileError=profilePreview==="error"?"connectionError":null;render({focus});return; }
-    document.body.classList.toggle("is-profile-wake-preview",profilePreview==="success"&&localProfilePreview);
     if(view!=="practice"||previousMode!=="practice")discoverAvailability.invalidate();
     const returningFromGuidePreview=guidePreviewReturn?.hash===location.hash?guidePreviewReturn:null;
     if(returningFromGuidePreview)openBookId=returningFromGuidePreview.openBookId;
@@ -749,7 +748,7 @@ export function startReader({createCardFeatures} = {}) {
     if (["book","guides","guide-preview","preview","deck","author"].includes(view) && ["home","bookstore","library","daily-idea"].includes(history.state?.bookOrigin)) bookOrigin = history.state.bookOrigin;
     if (view === "profile" || view === "library" && first && first !== "cardcase") {
       let id; try { id=decodeURIComponent(first || snapshot.user?.id || ""); } catch { id=""; }
-      if (profileId !== id) { profileId=id; profileData=null; profileError=id?null:"profileUnavailable"; profileInterests=null; profileLanguages=null; profileLoadingWasShown=false;profileTransition=null;profileGeneration++; profileRequest=null; openBookId=null; }
+      if (profileId !== id) { profileId=id; profileData=null; profileError=id?null:"profileUnavailable"; profileInterests=null; profileLanguages=null; profileGeneration++; profileRequest=null; openBookId=null; }
       mode=view === "profile" ? "profile" : id === snapshot.user?.id ? "library" : "public-library";
     }
     else if (view === "card") {
@@ -897,7 +896,6 @@ export function startReader({createCardFeatures} = {}) {
     if (!profileId || !snapshot.user || profileRequest && !force) return;
     const id=profileId,viewer=snapshot.user.id,generation=++profileGeneration;
     profileError=null;
-    profileTransition=null;profileLoadingWasShown=true;
     const own=id===viewer;
     if(own){profileInterests={loading:true};profileLanguages={loading:true};}
     const request=Promise.allSettled([loadProfileData(id),api.request(own?"/api/reader/interests/preferences":"/api/profiles/"+encodeURIComponent(id)+"/interests"),...(own?[api.request("/api/reader/language-preferences")]:[])]); profileRequest=request;
@@ -906,16 +904,7 @@ export function startReader({createCardFeatures} = {}) {
       if (generation!==profileGeneration || id!==profileId || viewer!==snapshot.user?.id) return;
       if(profileResult.status==="fulfilled") {
         profileData=profileResult.value;
-        if(profileLoadingWasShown) {
-          profileTransition="wake";
-          const wakeDuration=document.body.classList.contains("is-profile-wake-preview")?2400:560;
-          setTimeout(()=>{
-            if(generation!==profileGeneration||id!==profileId)return;
-            profileTransition=null;profileLoadingWasShown=false;
-            if(["profile","public-library"].includes(mode))render();
-          },wakeDuration);
-        }
-      } else { profileError=profileResult.reason.code||"connectionError";profileTransition=null; }
+      } else { profileError=profileResult.reason.code||"connectionError"; }
       profileInterests=interestResult.status==="fulfilled"?{...interestResult.value,editing:false}:{loading:false,error:interestResult.reason.code||"connectionError"};
       if(own&&interestResult.status==="fulfilled")interestPreferences={...interestResult.value,userId:id};
       if(own)profileLanguages=languageResult.status==="fulfilled"?{...languageResult.value,editing:false}:{loading:false,error:languageResult.reason.code||"connectionError"};
