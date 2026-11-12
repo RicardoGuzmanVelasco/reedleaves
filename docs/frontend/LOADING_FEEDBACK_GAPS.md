@@ -212,6 +212,7 @@ La base es `lockControls` (~373): `busy` solo pone `aria-busy` y deshabilita con
   1. No mostrar nada si todo va bien y avisar solo de fallos repetidos (**E**).
   2. Indicador mínimo en la cabecera mientras sincroniza (riesgo de ruido visual).
 - **Notas:** probablemente se deje así; documentar la decisión.
+- **Decidido:** sin cambios. Es un polling cada 30 s con la app visible (y al recuperar foco, visibilidad o conexión), invisible si no cambia nada; los fallos ya avisan con «Reintentar». **Rendimiento:** cada ciclo descarga el catálogo entero y lo compara con `JSON.stringify`; no escala con un catálogo grande. Entra en la nota de arquitectura «catálogo bajo demanda».
 
 ### 25. Visita de libros y registro de vistas
 - **Dónde:** `/api/reader/book-knowledge/visit`, `/api/reader/view` (`catch {}`).
@@ -271,5 +272,6 @@ Aparte del feedback, hay que revisar la animación de espera. Se aborda después
 | 21 | Sin cambios (descartado) | 2026-11-12 | Diseño optimista a propósito. |
 | 22 | Brote dormido + elección sin catálogo | 2026-11-12 | Partes 2 y 4 aplazadas (ver punto 22). |
 | 23 | Sin cambios (descartado) | 2026-11-12 | Brote al cargar la idea; el calendario llega con ella; el estado solo alimenta el puntito. |
-| 24 | | | |
-| 25 | | | |
+| 24 | Sin cambios (descartado) | 2026-11-12 | Polling invisible; el coste del catálogo va a la nota de arquitectura. |
+| 25 | Sin cambios (descartado) | 2026-11-12 | Tarea interna, sin UI. |
+| 26 | Sin cambios (descartado) | 2026-11-12 | Ya tiene carga, error y reintento propios. |
