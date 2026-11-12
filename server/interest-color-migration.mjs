@@ -1,6 +1,7 @@
 export const INTEREST_COLOR_MIGRATION_SQLITE = `
   ALTER TABLE genres ADD COLUMN chip_color TEXT NOT NULL DEFAULT '';
   ALTER TABLE genres ADD COLUMN book_color TEXT NOT NULL DEFAULT '';
+  UPDATE genres SET emoji='💬' WHERE id='communication' AND (emoji IS NULL OR emoji='');
   UPDATE genres SET chip_color=CASE id
     WHEN 'finance' THEN '#EEC466' WHEN 'leadership' THEN '#9AB5EC'
     WHEN 'metaphysics' THEN '#D9AEFF' WHEN 'mindfulness' THEN '#FFC0D9'
@@ -18,6 +19,7 @@ export const INTEREST_COLOR_MIGRATION_SQLITE = `
 export const INTEREST_COLOR_MIGRATION_POSTGRES = `
   ALTER TABLE public.genres ADD COLUMN IF NOT EXISTS chip_color TEXT NOT NULL DEFAULT '';
   ALTER TABLE public.genres ADD COLUMN IF NOT EXISTS book_color TEXT NOT NULL DEFAULT '';
+  UPDATE public.genres SET emoji='💬' WHERE id='communication' AND (emoji IS NULL OR emoji='');
   UPDATE public.genres SET
     chip_color=CASE id
       WHEN 'finance' THEN '#EEC466' WHEN 'leadership' THEN '#9AB5EC'
