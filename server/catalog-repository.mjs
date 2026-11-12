@@ -129,9 +129,7 @@ export async function checkCatalog(db) {
   if(catalog.genres.some(g=>LANGUAGES.some(language=>!g.name[language]?.trim()))) throw new Error("Missing genre translation");
   if(catalog.genres.some(g=>!validInterestAppearance(g))) throw new Error("Missing or invalid interest appearance");
   for(const book of catalog.books) if(!book.creatorUserId && !book.genres.length||book.genres.some(id=>!ids.has(id))) throw new Error("Missing book genre");
-  for(const book of catalog.books) {
-    const positions=await db.prepare("SELECT position FROM book_genres WHERE book_id=? ORDER BY position").all(book.id);
-    if(positions.some((row,index)=>row.position!==index+1)) throw new Error("Invalid book interest order");
-  }
+  const positions=await rowsBy(db,"SELECT book_id,position FROM book_genres ORDER BY position","book_id");
+  for(const book of catalog.books) if(positions.get(book.id).some((row,index)=>row.position!==index+1)) throw new Error("Invalid book interest order");
   return {books:catalog.books.length,decks:catalog.decks.length,cards:catalog.cards.length,genres:catalog.genres.length};
 }
