@@ -1,6 +1,6 @@
 # Catálogo bajo demanda
 
-Estado: propuesta de arquitectura. No hay decisión aprobada sobre el orden de las capas ni sobre los endpoints. El código y sus pruebas son la referencia vigente.
+Estado: en curso. Las capas 1 y 2 están hechas (ver «Ya resuelto»); las demás siguen como propuesta. El código y sus pruebas son la referencia vigente.
 
 Vocabulario: Librería = catálogo global; Biblioteca = colección personal; Estantería = libros de la Biblioteca; Tarjetero = barajas de la Biblioteca.
 
@@ -20,6 +20,12 @@ Dónde se paga hoy:
 - Home, Perfil y `#practice` (elección de modo) abren sin catálogo completo (`opensWithoutFullCatalog`). Home usa `/api/reader/home-books`. `#practice` precarga `ensureFullCatalog()` en segundo plano; elegir modo sin catálogo espera con el Brote dormido.
 - `readProfile` ya no carga catálogo ni Estantería. La Biblioteca ajena pide `GET /api/profiles/:id/bookshelf` aparte.
 - Los idiomas de tarjeta son fijos (`CONTENT_LANGUAGES`; `availableLanguages()`), sin recorrer barajas.
+- **Sincronización barata (capa 1, parcial).** `GET /api/catalog` lleva ETag y responde 304 si no cambió (petición condicional con `If-None-Match`). El cliente reutiliza el catálogo ya procesado cuando el texto no cambia, y `sync()` se salta la comparación con `JSON.stringify`. El servidor sigue consultando la base de datos en cada petición; ahorrarlo exigiría un contador de revisión del catálogo.
+- **Tarjeta con contexto.** `readCardContexts` (server/catalog-repository.mjs) devuelve tarjetas con su libro y baraja, con las mismas formas y visibilidad que `readCatalog` (que no filtra por usuario salvo el motivo de rechazo de guías, solo para su creador). La baraja lleva `isReadingGuide` calculado en servidor. Una prueba compara cada tarjeta del seed con el catálogo.
+  - `GET /api/cards/:id/context`: enlace compartido. La ruta `#card/…` pinta sin catálogo; al seguir un enlace de la atribución se carga el catálogo completo.
+  - `GET /api/cards/context?ids=`: lote (máx. 20), para retomar una sesión de práctica.
+  - `practice/start` incluye `context` con las tarjetas de la sesión.
+- **Práctica sin catálogo completo (capa 2).** Empezar, responder y retomar tras recargar usan un catálogo parcial (`practiceCatalog`). `#practice/*` abre sin catálogo; al retomar pide `/api/reader/state` (Home no lo trae) y el lote de tarjetas. El selector de modos ya no precarga el catálogo.
 - Feedback de espera unificado: navegar y esperar → Brote dormido; esperar con la pantalla ya lista → `lockControls(verb)`. Ver `docs/frontend/LOADING_FEEDBACK_GAPS.md`.
 
 ## Modelo propuesto
@@ -30,10 +36,18 @@ Dónde se paga hoy:
 - **Caché local por id.** `catalog` deja de ser «todo el catálogo» y pasa a ser un mapa de lo ya visto (`booksById`, `decksById`, `cardsById`). Las vistas piden lo que falta.
 - **Sincronización por cambios.** Sustituir la descarga con `JSON.stringify` por una señal barata (versión del catálogo/etag, o `updatedAt` desde un cursor) y refrescar solo lo afectado.
 
+## Revisión independiente (resumen)
+
+Un agente sin contexto previo valoró la idea «tarjeta con contexto siempre»:
+- Es una práctica habitual (modelo de vista desnormalizado, `resource embedding`) y el repo ya la usa en `home-books`.
+- Conviene acotarla a vistas de **una** tarjeta o un lote pequeño. En pantallas con muchas tarjetas del mismo libro o baraja (baraja, Tarjetero, guías) repetiría libro, baraja y creador por tarjeta.
+- Riesgos: catálogo parcial como tercer estado de `catalog`/`catalogIsFull`, validación distinta a `prepareCatalog`, reconciliar con el catálogo completo cuando llegue, peor experiencia sin conexión.
+- Alternativa más general: índice ligero (libros, barajas, creadores, sin textos de tarjetas) más tarjetas por baraja. Resuelve el peso para todas las pantallas sin un segundo formato; decidir tras medir lo ya hecho.
+
 ## Capas (de más a menos dolor)
 
-1. **Sincronización barata.** Versión/etag del catálogo en `/api/reader/state` o endpoint mínimo; si no cambió, no descargar nada. Quita el coste repetido sin cambiar el modelo.
-2. **Práctica autosuficiente** (la «parte 4» diferida). `practice/start` devuelve las cinco tarjetas con sus libros y barajas resumidos; la práctica deja de exigir catálogo completo. La animación paralela a `practice/start` («parte 2») encaja aquí.
+1. **Sincronización barata.** *Hecha en parte:* ETag y 304. Pendiente: contador de revisión del catálogo para que el servidor tampoco trabaje cuando no hay cambios (migración SQLite y PostgreSQL; todo punto de escritura, MCP incluido, debe incrementarlo).
+2. **Práctica autosuficiente.** *Hecha* (la «parte 4»). Pendiente la «parte 2»: animación en paralelo a `practice/start`.
 3. **Detalle por id.** `GET` de libro y de baraja (con tarjetas). Las vistas de detalle usan la caché y piden lo que falte. Las mutaciones refrescan solo su objeto.
 4. **Listados paginados.** Librería con páginas/búsqueda/intereses en servidor; Biblioteca con sus propios endpoints.
 5. **Retirar `/api/catalog` completo** y `prepareCatalog` global; la validación pasa a cada respuesta.
