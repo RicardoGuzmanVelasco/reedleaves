@@ -110,7 +110,7 @@ test("Another reader's profile renders the public interest payload instead of a 
 
 test("Profile names interests from the interest list when the full catalog is not loaded",async()=>{
   const catalog=await fixture(),profileInterests={interested:["mindfulness"],notInterested:["finance"]};
-  const html=profileView({language:"en",profileData,userId:"viewer",catalog:null,interests:catalog.genres,profileInterests});
+  const html=profileView({language:"en",profileData,userId:"viewer",catalog:null,interests:catalog.interests,profileInterests});
   assert.match(html,/Mindfulness/);
   assert.match(html,/Finance/);
   assert.doesNotMatch(html,/profile-interests-empty/);

@@ -24,7 +24,7 @@ test("Manual book fields initialize, validate and submit without any autofill re
   const context={
     snapshot:{user:{id:"reader"}},language:"es",bookstoreQuery:"",authorForm:null,
     crypto:{randomUUID:()=>"manual-book"},normalizeBookMetadata,LANGUAGES,words,bookInterestError,selectBookInterest,
-    syncBookInterestSelector:()=>{},catalog:{genres:[{id:"personal-growth",name:{es:"Crecimiento personal"}}]},
+    syncBookInterestSelector:()=>{},catalog:{interests:[{id:"personal-growth",name:{es:"Crecimiento personal"}}]},
     openDeckId:null,openBookId:null,requestedId:null,render:()=>{},persistNoteDraft:()=>{},
     busy:false,syncGeneration:0,mode:"bookstore",lockControls:()=>{},
     api:{request:async(path,input)=>{requests.push({path,input});return {bookId:input.requestId,state:{}};}},
@@ -38,12 +38,12 @@ test("Manual book fields initialize, validate and submit without any autofill re
   const change=handler("changeAuthorField",context);
   const input=(name,value,checked)=>change({name,value,checked,closest:()=>form});
   context.syncBookFormValidity(form);
-  assert.equal(firstInterest.validationMessage,words.es.bookGenreRequired);
-  input("metadata.genres","personal-growth",true);
+  assert.equal(firstInterest.validationMessage,words.es.bookInterestRequired);
+  input("metadata.interests","personal-growth",true);
   assert.equal(firstInterest.validationMessage,"");
-  input("metadata.genres","personal-growth",false);
-  assert.equal(firstInterest.validationMessage,words.es.bookGenreRequired);
-  input("metadata.genres","personal-growth",true);
+  input("metadata.interests","personal-growth",false);
+  assert.equal(firstInterest.validationMessage,words.es.bookInterestRequired);
+  input("metadata.interests","personal-growth",true);
   input("metadata.title.es","Título preferido");
   assert.equal(translationInputs.get("metadata.description.es").required,true);
   assert.equal(translationInputs.get("metadata.editorialNote.es").required,true);
@@ -70,27 +70,27 @@ test("Book interest input and change events preserve click order, reject a fourt
     const renders=[],updates=[],ids=["finance","software","society","productivity"];
     const context={language,LANGUAGES,words,bookInterestError,selectBookInterest,live:{},
       authorForm:{kind:"book",metadata:normalizeBookMetadata()},
-      catalog:{genres:ids.map(id=>({id,name:{es:id,en:id}}))},
+      catalog:{interests:ids.map(id=>({id,name:{es:id,en:id}}))},
       syncBookInterestSelector:(_form,selected)=>updates.push([...selected]),render:()=>renders.push(true)};
     context.syncBookFormValidity=handler("syncBookFormValidity",context);
     const change=handler("changeAuthorField",context);
     const toggle=(value,checked)=>{
-      const input={name:"metadata.genres",value,checked,closest:()=>form};
+      const input={name:"metadata.interests",value,checked,closest:()=>form};
       change(input);change(input); // Native checkboxes fire both input and change.
       return input;
     };
     toggle("software",true);toggle("finance",true);toggle("society",true);
-    assert.deepEqual([...context.authorForm.metadata.genres],["software","finance","society"]);
+    assert.deepEqual([...context.authorForm.metadata.interests],["software","finance","society"]);
     const fourth=toggle("productivity",true);
-    assert.equal(fourth.checked,false);assert.equal(context.live.textContent,words[language].bookGenreLimit);
-    assert.deepEqual([...context.authorForm.metadata.genres],["software","finance","society"]);
+    assert.equal(fourth.checked,false);assert.equal(context.live.textContent,words[language].bookInterestLimit);
+    assert.deepEqual([...context.authorForm.metadata.interests],["software","finance","society"]);
     toggle("finance",false);
-    assert.deepEqual([...context.authorForm.metadata.genres],["software","society"]);
+    assert.deepEqual([...context.authorForm.metadata.interests],["software","society"]);
     toggle("finance",true);
-    assert.deepEqual([...context.authorForm.metadata.genres],["software","society","finance"]);
+    assert.deepEqual([...context.authorForm.metadata.interests],["software","society","finance"]);
     assert.ok(context.live.textContent.includes("3. finance"));
-    for (const id of [...context.authorForm.metadata.genres]) toggle(id,false);
-    assert.equal(firstInterest.validationMessage,words[language].bookGenreRequired);
+    for (const id of [...context.authorForm.metadata.interests]) toggle(id,false);
+    assert.equal(firstInterest.validationMessage,words[language].bookInterestRequired);
     assert.deepEqual(renders,[]);assert.ok(updates.length);
   }
 });

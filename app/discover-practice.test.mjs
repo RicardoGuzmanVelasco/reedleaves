@@ -3,12 +3,12 @@ import assert from "node:assert/strict";
 import {discoverPracticeLevels,selectDiscoverPracticeCards} from "./discover-practice.mjs";
 
 const books=[
-  {id:"outside-liked",genres:["favorite"]},
-  {id:"outside-flagged",genres:["favorite","rejected"]},
-  {id:"outside-rest",genres:["neutral"]},
-  {id:"inside-liked",genres:["favorite"]},
-  {id:"inside-flagged",genres:["favorite","rejected"]},
-  {id:"inside-rest",genres:["neutral"]}
+  {id:"outside-liked",interests:["favorite"]},
+  {id:"outside-flagged",interests:["favorite","rejected"]},
+  {id:"outside-rest",interests:["neutral"]},
+  {id:"inside-liked",interests:["favorite"]},
+  {id:"inside-flagged",interests:["favorite","rejected"]},
+  {id:"inside-rest",interests:["neutral"]}
 ];
 const cards=books.map(book=>({id:`card-${book.id}`,bookId:book.id}));
 const preferences={interested:["favorite"],notInterested:["rejected"]};

@@ -103,7 +103,7 @@ test("Nonconsecutive review days across decks earn Bud, Flower and Evergreen at 
 
 test("Author stats include quotes as a subset; shared libraries expose content but not account data or author permissions",async t=>{
   const {db,a,b}=await fixture(t);
-  const {bookId}=await createBook(db,a,{requestId:randomUUID(),title:"Shared book",author:"Book author",language:"es",metadata:{genres:["society"]}});
+  const {bookId}=await createBook(db,a,{requestId:randomUUID(),title:"Shared book",author:"Book author",language:"es",metadata:{interests:["society"]}});
   const {deckId}=await createDeck(db,a,{requestId:randomUUID(),bookId,title:"Shared deck",language:"es"});
   const {cardId}=await takeNote(db,a,{requestId:randomUUID(),deckId,title:"Personal card",body:"Personal text",parentId:null,isQuote:false});
   await takeNote(db,a,{requestId:randomUUID(),deckId,body:"A personal quote",parentId:null,isQuote:true});

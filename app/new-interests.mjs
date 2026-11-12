@@ -21,9 +21,9 @@ export function createNewInterestFlow({store,request,loadCatalog,createVisitId=(
       state={...state,ids:snapshot.newInterestIds,blocking:false};persist();notify();
       const catalog=await loadCatalog();
       if(!current(token,userId))return;
-      const ids=snapshot.newInterestIds.filter(id=>catalog.genres.some(item=>item.id===id));
+      const ids=snapshot.newInterestIds.filter(id=>catalog.interests.some(item=>item.id===id));
       if(!ids.length)return finish(null);
-      const available=new Set(catalog.genres.map(item=>item.id)),used=new Set();
+      const available=new Set(catalog.interests.map(item=>item.id)),used=new Set();
       const draft={step:state.draft.step};
       for(const kind of kinds)draft[kind]=state.draft[kind].filter(id=>available.has(id)&&!used.has(id)&&used.add(id));
       state={...state,catalog,ids,draft,saving:false,ready:true,blocking:true};persist();notify();

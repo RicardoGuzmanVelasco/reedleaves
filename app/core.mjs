@@ -85,7 +85,7 @@ export function bookCoverTitle(book, interfaceLanguage) {
 export function validateBook(book, requiredLanguages = ["es", "en"], {requirePopular = false} = {}) {
   if (!book || book.schemaVersion !== 1 || typeof book.id !== "string" || !book.id.trim() ||
       typeof book.author !== "string" || !book.author.trim()) throw new Error("Invalid book");
-  if (book.genres !== undefined && (!Array.isArray(book.genres) || book.genres.some(id => typeof id !== "string" || !id.trim()))) throw new Error("Invalid genres");
+  if (book.interests !== undefined && (!Array.isArray(book.interests) || book.interests.some(id => typeof id !== "string" || !id.trim()))) throw new Error("Invalid interests");
   if (requirePopular || book.popularTitle !== undefined || book.popularLanguage !== undefined) {
     if (typeof book.popularTitle !== "string" || !book.popularTitle.trim() || !isCanonicalLocale(book.popularLanguage)) throw new Error("Invalid popular book title or language");
   }

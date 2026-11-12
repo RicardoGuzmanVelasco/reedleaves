@@ -6,7 +6,7 @@ import {initialInterestsView} from "./views.mjs";
 import {readerState,emptyCatalog} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
 
-const catalog={...emptyCatalog(),genres:Array.from({length:12},(_,i)=>({id:`interest-${i}`,emoji:"🌱",color:"#B7DE76",name:{es:`Interés ${i}`,en:`Interest ${i}`}}))};
+const catalog={...emptyCatalog(),interests:Array.from({length:12},(_,i)=>({id:`interest-${i}`,emoji:"🌱",color:"#B7DE76",name:{es:`Interés ${i}`,en:`Interest ${i}`}}))};
 const preferences={revision:0,configured:false,initialOpportunityClosed:false};
 function setup(request=async()=>({state:{configured:true},newlyGranted:[]})) {
   const values=new Map(),store=createBrowserStore(()=>({getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)})),completed=[];
@@ -30,7 +30,7 @@ test("Draft restoration rejects foreign, unknown and duplicate IDs and repairs a
   const {flow,store,open}=setup();
   store.save(storageKeys.initialInterests("reader"),{userId:"someone-else",interested:["interest-0"],step:2});open();assert.equal(flow.state.draft.interested.length,0);
   assert.deepEqual(normalizeInitialInterestDraft({interested:["removed"],notInterested:["interest-1","interest-1"],step:2},catalog),{interested:[],notInterested:["interest-1"],step:1});
-  const sanitized=normalizeInitialInterestDraft({interested:catalog.genres.map(i=>i.id),notInterested:["interest-5"],step:2},catalog);assert.equal(sanitized.interested.length,5);assert.deepEqual(sanitized.notInterested,["interest-5"]);
+  const sanitized=normalizeInitialInterestDraft({interested:catalog.interests.map(i=>i.id),notInterested:["interest-5"],step:2},catalog);assert.equal(sanitized.interested.length,5);assert.deepEqual(sanitized.notInterested,["interest-5"]);
 });
 test("Save uses the initial transaction only once, keeps errors recoverable and clears only the confirmed draft",async()=>{
   let resolve,calls=[];const {flow,store,completed}=setup((...args)=>{calls.push(args);return new Promise(r=>resolve=r)});

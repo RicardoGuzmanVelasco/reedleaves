@@ -21,9 +21,9 @@ test("near-identical titles block, while subtitle additions remain suggestions",
 });
 
 test("book preview warns about candidates and disables confirmation for a very close title",()=>{
-  const existing={id:"atomic",creatorUserId:"owner",author:"James Clear",popularTitle:"Atomic Habits",popularLanguage:"en",title:{es:"Hábitos atómicos"},description:{},editorialNote:{},genres:[],links:{}};
+  const existing={id:"atomic",creatorUserId:"owner",author:"James Clear",popularTitle:"Atomic Habits",popularLanguage:"en",title:{es:"Hábitos atómicos"},description:{},editorialNote:{},interests:[],links:{}};
   const catalog={...emptyCatalog(),books:[existing],booksById:new Map([[existing.id,existing]])};
-  const metadata={popularTitle:"Atomic Habits",popularLanguage:"en",title:{en:"Atomic Habits"},description:{},editorialNote:{},genres:[],links:{}};
+  const metadata={popularTitle:"Atomic Habits",popularLanguage:"en",title:{en:"Atomic Habits"},description:{},editorialNote:{},interests:[],links:{}};
   const state={...readerState(catalog,{userId:"creator",language:"en"}),authorForm:{kind:"book",requestId:"new",title:"Atomic Habits",author:"A different author",language:"en",metadata}};
   const initial=authorFormView(state);
   assert.match(initial,/data-book-duplicate-hints/);assert.match(initial,/type="submit" disabled/);

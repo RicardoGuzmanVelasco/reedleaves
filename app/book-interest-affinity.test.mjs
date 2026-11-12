@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {compareBooksByInterestAffinity,detectUninterestingBook,sortBooksByInterestAffinity} from "./book-interest-affinity.mjs";
 
 const preferences={interested:["fav-first","fav-second"],notInterested:["reject-first","reject-second"]};
-const book=(id,genres)=>({id,genres});
+const book=(id,interests)=>({id,interests});
 
 test("affinity compares the primary, secondary, then tertiary book interest",()=>{
   const neutral=book("neutral",["unknown"]), liked=book("liked",["fav-first"]);

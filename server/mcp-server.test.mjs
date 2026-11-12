@@ -45,7 +45,7 @@ for (const dialect of ["sqlite","postgres"]) {
 test(`${dialect}: MCP accepts zero or one verified book link and rejects invalid links`,async t=>{
   const {db,client,base}=await fixture(t,dialect);
   const metadata={popularTitle:"Optional links book",popularLanguage:"en",title:{},
-    description:{es:"Descripción.",en:"Description."},editorialNote:{es:"Nota.",en:"Note."},genres:["software"]};
+    description:{es:"Descripción.",en:"Description."},editorialNote:{es:"Nota.",en:"Note."},interests:["software"]};
   const cases=[{id:"no-links",links:undefined},{id:"amazon-only",links:{amazon:"https://www.amazon.es/dp/B012345678"}},
     {id:"goodreads-only",links:{goodreads:"https://www.goodreads.com/book/show/123456"}}];
   for(const item of cases){
@@ -79,7 +79,7 @@ test(`${dialect}: admin MCP edits interests on owned books with incomplete metad
   await db.prepare("DELETE FROM book_translations WHERE book_id=?").run("seven-habits");
   const translations=await db.prepare("SELECT language,title,description,editorial_note FROM book_translations WHERE book_id=? ORDER BY language").all("atomic-habits");
   for(const id of ["atomic-habits","seven-habits"]) {
-    const result=await client.callTool({name:"edit_book",arguments:{bookId:id,metadata:{genres:["productivity"]}}});
+    const result=await client.callTool({name:"edit_book",arguments:{bookId:id,metadata:{interests:["productivity"]}}});
     assert.equal(result.isError,undefined);
     assert.equal(JSON.parse(result.content[0].text).bookId,id);
     assert.equal((await db.prepare("SELECT creator_user_id FROM books WHERE id=?").get(id)).creator_user_id,"mcp-book-owner");

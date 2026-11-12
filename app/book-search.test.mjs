@@ -108,11 +108,11 @@ test("Popular-title metadata is mandatory in SQL, imports and current catalog AP
 
 test("Bookstore filters intersect author, interest, deck language and title search",async()=>{
   const catalog=prepareCatalog(await fixture());
-  assert.deepEqual(ids(filterBookstore(catalog,"habits",{author:"Stephen R. Covey",genre:"",language:"en"})),["seven-habits"]);
+  assert.deepEqual(ids(filterBookstore(catalog,"habits",{author:"Stephen R. Covey",interest:"",language:"en"})),["seven-habits"]);
   assert.deepEqual(filterBookstore(catalog,"atomic",{author:"Stephen R. Covey"}),[]);
   assert.deepEqual(filterBookstore(catalog,"",{language:"ja"}),[]);
-  const genre=catalog.books[0].genres[0];
-  assert.ok(filterBookstore(catalog,"",{genre}).every(book=>book.genres.includes(genre)));
+  const interest=catalog.books[0].interests[0];
+  assert.ok(filterBookstore(catalog,"",{interest}).every(book=>book.interests.includes(interest)));
   const html=bookstoreView(readerState(catalog,{language:"en",bookstoreFiltersOpen:true,bookstoreFilters:{author:"Stephen R. Covey"}}));
   assert.match(html,/value="Stephen R. Covey" selected/);
   assert.equal((html.match(/data-action="open-book-details"/g)||[]).length,1);
@@ -120,12 +120,12 @@ test("Bookstore filters intersect author, interest, deck language and title sear
 
 test("Bookstore keeps the layout and filter controls compact and opens plain labels in a modal",async()=>{
   const catalog=prepareCatalog(await fixture()),state=readerState(catalog,{bookstoreFilters:{},bookstoreQuery:''});
-  const initial=bookstoreView(state);assert.match(initial,/data-action="open-bookstore-filters"/);assert.doesNotMatch(initial,/<details[^>]*bookstore-filters|id="bookstore-genre"|data-book-sort|book-sort-selector/);
-  const modal=bookstoreView({...state,bookstoreFiltersOpen:true,bookstoreFilterDraft:{author:'Stephen R. Covey',genre:'software',language:''},bookstoreSortDraft:'interests'});
+  const initial=bookstoreView(state);assert.match(initial,/data-action="open-bookstore-filters"/);assert.doesNotMatch(initial,/<details[^>]*bookstore-filters|id="bookstore-interest"|data-book-sort|book-sort-selector/);
+  const modal=bookstoreView({...state,bookstoreFiltersOpen:true,bookstoreFilterDraft:{author:'Stephen R. Covey',interest:'software',language:''},bookstoreSortDraft:'interests'});
   assert.match(modal,/<dialog class="bookshelf-filter-modal bookstore-filter-modal"/);
   assert.match(modal,/data-action="apply-bookstore-filters"/);assert.match(modal,/data-action="close-bookstore-filters"/);
   assert.match(modal,/<h3 id="bookstore-sort-title">Ordenar libros<\/h3>/);assert.equal((modal.match(/data-action="select-bookstore-sort"/g)||[]).length,3);assert.match(modal,/data-sort="interests" aria-pressed="true">Mis intereses<\/button>/);
   const english=bookstoreView({...state,language:'en',bookstoreFiltersOpen:true,bookstoreSortDraft:'alphabetical'});assert.match(english,/<h3 id="bookstore-sort-title">Sort books<\/h3>/);assert.match(english,/data-sort="alphabetical" aria-pressed="true">A–Z<\/button>/);
-  const genreLabel=modal.match(/<label for="bookstore-genre">([\s\S]*?)<\/label>/)?.[1];assert.ok(genreLabel);assert.doesNotMatch(genreLabel,/<svg|interest-icon/);
+  const interestLabel=modal.match(/<label for="bookstore-interest">([\s\S]*?)<\/label>/)?.[1];assert.ok(interestLabel);assert.doesNotMatch(interestLabel,/<svg|interest-icon/);
   assert.match(bookstoreView({...state,bookstoreQuery:'no-matches-ever'}),/data-action="open-bookstore-filters"/);
 });

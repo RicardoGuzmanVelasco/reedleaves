@@ -192,10 +192,10 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
           catch { throw new ApiError(400,"invalidRequest"); }
           // A historical list is immutable here. Generate missing text under the
           // current proposal contract, then restore the stored associations below.
-          if (search.metadata.genres.length>MAX_BOOK_INTERESTS) search.metadata={...search.metadata,genres:[]};
+          if (search.metadata.interests.length>MAX_BOOK_INTERESTS) search.metadata={...search.metadata,interests:[]};
         }
-        const genres=await db.prepare("SELECT g.id,t.name FROM genres g JOIN genre_translations t ON t.genre_id=g.id WHERE t.language='en' ORDER BY g.id").all();
-        const preview=await bookAutofill(active.user_id,search,genres);
+        const interests=await db.prepare("SELECT g.id,t.name FROM genres g JOIN genre_translations t ON t.genre_id=g.id WHERE t.language='en' ORDER BY g.id").all();
+        const preview=await bookAutofill(active.user_id,search,interests);
         // Search can outlive a session: don't return private drafts after logout.
         const stillActive=await readSession(db,request,now());
         if (!stillActive) throw new ApiError(401,"signInRequired");

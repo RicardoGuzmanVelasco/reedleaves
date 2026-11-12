@@ -6,7 +6,7 @@ import {createCurrencyReceiptPresentation} from "./currency-receipt.mjs";
 import {createBrowserStore} from "./storage.mjs";
 import {emptyCatalog} from "../test-support/reader-state.mjs";
 
-const catalog={...emptyCatalog(),genres:Array.from({length:6},(_,index)=>({id:`interest-${index}`}))};
+const catalog={...emptyCatalog(),interests:Array.from({length:6},(_,index)=>({id:`interest-${index}`}))};
 const rewards=[{rewardType:"interested_three",currency:"leaves",amount:3,balanceAfter:13}];
 function makeStore(){const values=new Map();return createBrowserStore(()=>({getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)}));}
 

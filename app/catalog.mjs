@@ -6,17 +6,17 @@ import {validCatalogIncorporation} from "./catalog-incorporation.mjs";
 
 export function prepareCatalog(payload) {
   if (payload?.schemaVersion !== 7 || !Array.isArray(payload.books) || !payload.books.length ||
-      !Array.isArray(payload.cards) || !Array.isArray(payload.genres) ||
+      !Array.isArray(payload.cards) || !Array.isArray(payload.interests) ||
       !Array.isArray(payload.decks)) throw new Error("Invalid catalog");
-  const genres = payload.genres;
-  if (new Set(genres.map(g => g.id)).size !== genres.length || genres.some(g => !g.id || !validInterestAppearance(g) || LANGUAGES.some(language => !g.name?.[language]?.trim()))) throw new Error("Invalid genres");
-  const genreIds = new Set(genres.map(g => g.id));
+  const interests = payload.interests;
+  if (new Set(interests.map(g => g.id)).size !== interests.length || interests.some(g => !g.id || !validInterestAppearance(g) || LANGUAGES.some(language => !g.name?.[language]?.trim()))) throw new Error("Invalid interests");
+  const interestIds = new Set(interests.map(g => g.id));
   const books = payload.books.map(book => {
     if (!validCatalogIncorporation(book)) throw new Error("Invalid book incorporation data");
     validateBookLinks(book.links);
     return validateBook(book, LANGUAGES, {requirePopular:true});
   }), booksById = new Map(books.map(b => [b.id,b]));
-  if (booksById.size !== books.length || books.some(b => !Array.isArray(b.genres) || !b.creatorUserId && !b.genres.length || b.genres.some(id => !genreIds.has(id)))) throw new Error("Invalid book references");
+  if (booksById.size !== books.length || books.some(b => !Array.isArray(b.interests) || !b.creatorUserId && !b.interests.length || b.interests.some(id => !interestIds.has(id)))) throw new Error("Invalid book references");
   const decks = payload.decks, decksById = new Map(decks.map(d => [d.id,d]));
   if (decksById.size !== decks.length || decks.some(d => !booksById.has(d.bookId) || !isCanonicalLocale(d.language) || !["standard","collective"].includes(d.kind || "standard") || !["owner","open","selected"].includes(d.contributionPolicy || "owner") || !["draft","finished"].includes(d.status) || !d.creator?.userId || !d.creator?.name?.trim() || d.quoteSourceUrl !== undefined && !validQuoteSourceUrl(d.quoteSourceUrl) || ["likes","dislikes"].some(k => !Number.isInteger(d.metrics?.[k]) || d.metrics[k] < 0) || ["title","description","editorialNote"].some(k => !d[k]?.[d.language]?.trim()))) throw new Error("Invalid deck references");
   const allCards = payload.cards;
@@ -44,7 +44,7 @@ export function prepareCatalog(payload) {
   }
   const cards = allCards.filter(c => selectedDecks.get(c.bookId) === c.deckId);
   return { books,booksById,decks,decksById,deckModels,allCards,
-    cards,cardsById:new Map(allCards.map(c => [c.id,c])),genres,models,selectedDecks };
+    cards,cardsById:new Map(allCards.map(c => [c.id,c])),interests,models,selectedDecks };
 }
 
 export async function loadCatalog(fetcher = fetch) {

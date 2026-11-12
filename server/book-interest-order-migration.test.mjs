@@ -15,12 +15,12 @@ for(const [dialect,version] of [["sqlite",42],["postgres",34]]) test(`${dialect}
   for(const bookId of new Set(associations.map(row=>row.book_id))) {
     const expected=EDITORIAL_BOOK_INTERESTS[bookId] || associations.filter(row=>row.book_id===bookId).map(row=>row.genre_id).sort();
     const saved=(await readCatalog(db)).books.find(book=>book.id===bookId);
-    assert.deepEqual(saved.genres,expected);
+    assert.deepEqual(saved.interests,expected);
     assert.deepEqual((await db.prepare("SELECT position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId)).map(row=>row.position),expected.map((_,index)=>index+1));
   }
   await checkCatalog(db);
   const seed=readSeed();await seedCatalog(db,seed);
-  for(const book of seed.books) assert.deepEqual((await readCatalog(db)).books.find(value=>value.id===book.id).genres,book.genres.split("|"));
+  for(const book of seed.books) assert.deepEqual((await readCatalog(db)).books.find(value=>value.id===book.id).interests,book.genres.split("|"));
 });
 
 for(const [dialect,version] of [["sqlite",42],["postgres",34]]) test(`${dialect}: editorial interest migration refuses an unexpected association`,async t=>{

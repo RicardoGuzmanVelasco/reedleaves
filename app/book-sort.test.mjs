@@ -23,11 +23,11 @@ test("book sort accepts recent, alphabetical and interests while rejecting unkno
 
 test("interest ordering uses saved preference positions and keeps neutral ties stable",()=>{
   const entries=[
-    {id:"neutral",genres:["unknown"]},
-    {id:"neutral-tie",genres:["other"]},
-    {id:"secondary",genres:["unknown","books"]},
-    {id:"primary",genres:["books"]},
-    {id:"rejected",genres:["society"]}
+    {id:"neutral",interests:["unknown"]},
+    {id:"neutral-tie",interests:["other"]},
+    {id:"secondary",interests:["unknown","books"]},
+    {id:"primary",interests:["books"]},
+    {id:"rejected",interests:["society"]}
   ];
   const preferences={interested:["books"],notInterested:["society"]};
   assert.deepEqual(sortBooks(entries,"interests","es",preferences).map(book=>book.id),["primary","secondary","neutral","neutral-tie","rejected"]);
@@ -48,8 +48,8 @@ test("A–Z uses localized visible titles, title fallback, accent normalization 
 
 test("search and filters keep the same matching set under either order",()=>{
   const catalog={books, decks:[{bookId:"fallback",language:"en"},{bookId:"accent",language:"es"}]};
-  const recent=filterBookstore(catalog,"",{author:"",genre:"",language:"es"},"recent","es");
-  const alphabetical=filterBookstore(catalog,"",{author:"",genre:"",language:"es"},"alphabetical","es");
+  const recent=filterBookstore(catalog,"",{author:"",interest:"",language:"es"},"recent","es");
+  const alphabetical=filterBookstore(catalog,"",{author:"",interest:"",language:"es"},"alphabetical","es");
   assert.deepEqual(new Set(alphabetical.map(book=>book.id)),new Set(recent.map(book=>book.id)));
   assert.deepEqual(alphabetical.map(book=>book.id),["accent"]);
 });

@@ -32,7 +32,7 @@ test("PostgreSQL schema and production catalog seed initialize and repeat safely
   const data = await readCatalog(db);
   assert.equal(data.books.length,5); assert.equal(data.cards.length,42);
   assert.equal(data.decks.length,6); assert.equal(data.decks.length,6);
-  assert.equal(data.books.find(book => book.id === "seven-habits").genres.includes("productivity"),true);
+  assert.equal(data.books.find(book => book.id === "seven-habits").interests.includes("productivity"),true);
 });
 
 test("PostgreSQL persists account, daily leaves and freely opened cards", async t => {

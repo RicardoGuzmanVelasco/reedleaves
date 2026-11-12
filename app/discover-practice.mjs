@@ -13,7 +13,7 @@ export function discoverPracticeLevels(cards,books,preferences,shelfBookIds=[]) 
     seen.add(card.id);
     const book=booksById.get(card.bookId);
     if(!book) continue;
-    const related=(book.genres||[]).some(id=>interested.has(id)),unfavorable=!!detectUninterestingBook(book,preferences),inShelf=shelf.has(book.id);
+    const related=(book.interests||[]).some(id=>interested.has(id)),unfavorable=!!detectUninterestingBook(book,preferences),inShelf=shelf.has(book.id);
     const level=(inShelf?3:0)+(related?(unfavorable?1:0):2);
     levels[level].push(card);
   }

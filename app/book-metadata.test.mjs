@@ -6,12 +6,12 @@ import {bookMetadata} from "../server/fixtures/book-autofill.mjs";
 import {words} from "./i18n.mjs";
 import {readerState,emptyCatalog} from "../test-support/reader-state.mjs";
 
-const state=readerState({...emptyCatalog(),genres:[{id:"personal-growth",name:{es:"Crecimiento personal"}}]});
+const state=readerState({...emptyCatalog(),interests:[{id:"personal-growth",name:{es:"Crecimiento personal"}}]});
 test("New books expose interests, both translations and links before AI, including after an unavailable provider",()=>{
   for (const language of ["es","en"]) for (const error of [undefined,"aiUnavailable"]) {
     const html=authorFormView({...state,language,authorForm:{kind:"book",title:"Mi libro",author:"Mi autor",language:"es",error}});
     assert.match(html,/<details class="book-metadata-editor" open>/);
-    assert.match(html,/name="metadata.genres"/);
+    assert.match(html,/name="metadata.interests"/);
     assert.ok(html.includes(words[language].bookInterestHelp));
     for (const tag of ["es","en"]) for (const field of ["title","description","editorialNote"]) {
       assert.ok(html.includes(`name="metadata.${field}.${tag}"`));
@@ -42,9 +42,9 @@ test("Preferred titles are optional and an empty preference preserves the popula
   assert.equal(mergeBookMetadata(bookMetadata,bookMetadata).title.en,"");
 });
 test("Existing metadata survives autofill; invalid translations and unsafe links cannot enter the catalog",()=>{
-  const current=structuredClone(bookMetadata);current.title.es="Título escrito";current.genres=["productivity"];
+  const current=structuredClone(bookMetadata);current.title.es="Título escrito";current.interests=["productivity"];
   const merged=mergeBookMetadata(current,bookMetadata);
-  assert.equal(merged.title.es,"Título escrito");assert.deepEqual(merged.genres,["productivity"]);
+  assert.equal(merged.title.es,"Título escrito");assert.deepEqual(merged.interests,["productivity"]);
   const partial=mergeBookMetadata({title:{es:"Título existente"},description:{es:""}},bookMetadata);
   assert.equal(partial.title.es,"Título existente");assert.equal(partial.description.es,bookMetadata.description.es);
   assert.throws(()=>normalizeBookMetadata({title:{es:"x"}}));

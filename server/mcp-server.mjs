@@ -36,17 +36,17 @@ function safeTool(handler) {
 const bookTitleTranslations=z.record(z.string(),z.string().trim().max(TITLE_MAX_LENGTH));
 const bookDescriptionTranslations=z.record(z.string(),z.string().trim().min(1).max(DESCRIPTION_MAX_LENGTH));
 const bookEditorialNoteTranslations=z.record(z.string(),z.string().trim().min(1).max(EDITORIAL_NOTE_MAX_LENGTH));
-const bookGenres=z.array(z.string().trim().min(1).max(80)).min(1).max(3);
+const bookInterests=z.array(z.string().trim().min(1).max(80)).min(1).max(3);
 const bookLinks=z.object({amazon:z.string().trim().max(2048).optional(),goodreads:z.string().trim().max(2048).optional()}).strict();
 const newBookMetadata=z.object({
   popularTitle:z.string().trim().min(1).max(TITLE_MAX_LENGTH),popularLanguage:z.string().min(2).max(35),
   title:bookTitleTranslations,description:bookDescriptionTranslations,editorialNote:bookEditorialNoteTranslations,
-  genres:bookGenres,links:bookLinks.optional()
+  interests:bookInterests,links:bookLinks.optional()
 }).strict();
 const bookMetadataPatch=z.object({
   popularTitle:z.string().trim().min(1).max(TITLE_MAX_LENGTH).optional(),popularLanguage:z.string().min(2).max(35).optional(),
   title:bookTitleTranslations.optional(),description:bookDescriptionTranslations.optional(),editorialNote:bookEditorialNoteTranslations.optional(),
-  genres:bookGenres.optional(),links:bookLinks.optional()
+  interests:bookInterests.optional(),links:bookLinks.optional()
 }).strict();
 
 function makeServer(db,publicBaseUrl) {
@@ -72,13 +72,13 @@ function makeServer(db,publicBaseUrl) {
   }));
   server.registerTool("create_book",{
     title:"Crear libro",
-    description:"Add a new public book to the shared Reedleaves catalog. The user must clearly ask to create/add the book. Supply a stable lowercase-hyphenated bookId, its author, popular title and language, Spanish and English descriptions/editorial notes, and genres. Amazon /dp and Goodreads book-page links are optional; any supplied links must be verified. The popular title language is independent from the preferred title translations. The book becomes visible to catalog readers.",
+    description:"Add a new public book to the shared Reedleaves catalog. The user must clearly ask to create/add the book. Supply a stable lowercase-hyphenated bookId, its author, popular title and language, Spanish and English descriptions/editorial notes, and interests. Amazon /dp and Goodreads book-page links are optional; any supplied links must be verified. The popular title language is independent from the preferred title translations. The book becomes visible to catalog readers.",
     inputSchema:{bookId:z.string().trim().min(1).max(240).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),author:z.string().trim().min(1).max(BOOK_AUTHOR_MAX_LENGTH),metadata:newBookMetadata},
     annotations:{readOnlyHint:false,destructiveHint:false,openWorldHint:false}
   },safeTool(async(input)=>toolText({...await createCatalogBook(db,input),url:`${publicBaseUrl.replace(/\/+$/ ,"")}/app/#book/${encodeURIComponent(input.bookId)}`})));
   server.registerTool("edit_book",{
     title:"Editar libro",
-    description:"Edit an existing public book in the shared Reedleaves catalog. Call only when the user clearly asks to change the book. Send only fields to change; translation maps merge by language. When changing genres or links, supply the complete replacement list. A preferred title can be cleared with an empty string so the popular title is used. Books with a creator can also be edited by this admin tool; the creator is preserved.",
+    description:"Edit an existing public book in the shared Reedleaves catalog. Call only when the user clearly asks to change the book. Send only fields to change; translation maps merge by language. When changing interests or links, supply the complete replacement list. A preferred title can be cleared with an empty string so the popular title is used. Books with a creator can also be edited by this admin tool; the creator is preserved.",
     inputSchema:{bookId:z.string().trim().min(1).max(240),author:z.string().trim().min(1).max(BOOK_AUTHOR_MAX_LENGTH).optional(),metadata:bookMetadataPatch.optional()},
     annotations:{readOnlyHint:false,destructiveHint:false,openWorldHint:false}
   },safeTool(async(input)=>toolText(await editCatalogBook(db,input))));

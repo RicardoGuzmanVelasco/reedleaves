@@ -48,7 +48,7 @@ class InterestHost extends EventTarget {
   back(){this.dispatch("click",{closest:()=>({dataset:{initialAction:"back"}})});}
 }
 
-const catalog={...emptyCatalog(),genres:[{id:"software",name:{es:"Software",en:"Software"}}]};
+const catalog={...emptyCatalog(),interests:[{id:"software",name:{es:"Software",en:"Software"}}]};
 for(const mode of ["initial","edit"])test(`${mode}: interest controls survive session initialization, account changes and reopening`,async()=>{
   const host=new InterestHost(),values=new Map(),calls=[],completed=[];
   const store=createBrowserStore(()=>({getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)}));

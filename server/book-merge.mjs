@@ -34,7 +34,7 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
     const targetPopularTranslation=await db.prepare("SELECT title FROM book_translations WHERE book_id=? AND language=?").get(targetId,source.popular_language);
     const targetLacksPopularTranslation=!targetPopularTranslation?.title?.trim();
 
-    // Fill missing translation fields, genres and links from the source.
+    // Fill missing translation fields, interests and links from the source.
     await db.prepare(`INSERT INTO book_translations(book_id,language,title,description,editorial_note)
       SELECT ?,language,title,description,editorial_note FROM book_translations WHERE book_id=?
       ON CONFLICT(book_id,language) DO UPDATE SET

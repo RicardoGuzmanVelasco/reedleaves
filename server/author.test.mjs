@@ -102,7 +102,7 @@ for (const dialect of ["sqlite","postgres"]) {
 
   test(`${dialect}: complete an existing book without duplicates, identity changes or loss of decks`,async t=>{
     const {db,session,other}=await fixture(t,dialect);
-    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:bookMetadata.popularTitle,author:"Autor ya escrito",language:"en",metadata:{genres:bookMetadata.genres}});
+    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:bookMetadata.popularTitle,author:"Autor ya escrito",language:"en",metadata:{interests:bookMetadata.interests}});
     const {deckId}=await createDeck(db,session,{requestId:randomUUID(),bookId,title:"Mi baraja",language:"es"});
     const {cardId}=await takeNote(db,session,{requestId:randomUUID(),deckId,title:"Idea",body:"Texto propio",parentId:null,isQuote:false});
     await openCard(db,session,deckId,cardId,new Date("2026-10-10T12:00:00Z"));
@@ -124,53 +124,53 @@ for (const dialect of ["sqlite","postgres"]) {
   });
   test(`${dialect}: preserve editorial interest order through book writes and catalog reads`,async t=>{
     const {db,session}=await fixture(t,dialect),metadata=structuredClone(bookMetadata);
-    metadata.genres=["finance","personal-growth","productivity"];
+    metadata.interests=["finance","personal-growth","productivity"];
     const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:metadata.popularTitle,author:"Daniel Kahneman",language:"en",metadata});
     const saved=(await readCatalog(db)).books.find(book=>book.id===bookId);
-    assert.deepEqual(saved.genres,metadata.genres);
+    assert.deepEqual(saved.interests,metadata.interests);
     assert.deepEqual((await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId)).map(row=>[row.genre_id,row.position]),[["finance",1],["personal-growth",2],["productivity",3]]);
-    await assert.rejects(createBook(db,session,{requestId:randomUUID(),title:"Repeated",author:"Author",language:"en",metadata:{...metadata,genres:["finance","finance"]}}),e=>e.status===400);
+    await assert.rejects(createBook(db,session,{requestId:randomUUID(),title:"Repeated",author:"Author",language:"en",metadata:{...metadata,interests:["finance","finance"]}}),e=>e.status===400);
   });
   test(`${dialect}: book writes require one to three distinct known interests before changing data`,async t=>{
     const {db,session}=await fixture(t,dialect),before=await checkCatalog(db);
     const input={requestId:randomUUID(),title:"A classified book",author:"Author",language:"en"};
-    for (const [genres,code] of [[[],"bookGenreRequired"],[["finance","society","software","productivity"],"bookGenreLimit"],[["finance","finance"],"bookGenreInvalid"],[["missing"],"bookGenreInvalid"]]) {
-      await assert.rejects(createBook(db,session,{...input,metadata:{genres}}),{status:400,code});
+    for (const [interests,code] of [[[],"bookInterestRequired"],[["finance","society","software","productivity"],"bookInterestLimit"],[["finance","finance"],"bookInterestInvalid"],[["missing"],"bookInterestInvalid"]]) {
+      await assert.rejects(createBook(db,session,{...input,metadata:{interests}}),{status:400,code});
       assert.deepEqual(await checkCatalog(db),before);
     }
-    const selected=["software","society","finance"],metadata={genres:selected};
+    const selected=["software","society","finance"],metadata={interests:selected};
     const {bookId}=await createBook(db,session,{...input,metadata});
-    assert.deepEqual((await ownedBookInformation(db,session,bookId)).metadata.genres,selected);
-    await assert.rejects(createBook(db,session,{...input,metadata:{genres:["finance","society","software"]}}),{status:409,code:"invalidRequest"});
-    assert.deepEqual((await ownedBookInformation(db,session,bookId)).metadata.genres,selected);
+    assert.deepEqual((await ownedBookInformation(db,session,bookId)).metadata.interests,selected);
+    await assert.rejects(createBook(db,session,{...input,metadata:{interests:["finance","society","software"]}}),{status:409,code:"invalidRequest"});
+    assert.deepEqual((await ownedBookInformation(db,session,bookId)).metadata.interests,selected);
   });
   test(`${dialect}: merging books rejects a union above three atomically`,async t=>{
     const {db,session}=await fixture(t,dialect);
-    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:"Classification merge source",author:"Author",language:"en",metadata:{genres:["software","finance"]}});
+    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:"Classification merge source",author:"Author",language:"en",metadata:{interests:["software","finance"]}});
     const before=await readCatalog(db);
-    await assert.rejects(mergeBooks(db,{sourceBookId:bookId,targetBookId:"seven-habits"}),{status:400,code:"bookGenreLimit"});
+    await assert.rejects(mergeBooks(db,{sourceBookId:bookId,targetBookId:"seven-habits"}),{status:400,code:"bookInterestLimit"});
     assert.deepEqual(await readCatalog(db),before);
-    assert.deepEqual(await checkCatalog(db),{books:6,decks:6,cards:42,genres:10});
+    assert.deepEqual(await checkCatalog(db),{books:6,decks:6,cards:42,interests:10});
   });
   test(`${dialect}: completing a historical book with four interests preserves its exact associations and order`,async t=>{
     const {db,session}=await fixture(t,dialect);
-    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:"Historical classification",author:"Author",language:"en",metadata:{genres:["software"]}});
+    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:"Historical classification",author:"Author",language:"en",metadata:{interests:["software"]}});
     // Simulate associations already stored by the former, more permissive writer.
     for (const [index,id] of ["finance","society","productivity"].entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(bookId,id,index+2);
-    const rows=await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId),genres=rows.map(row=>row.genre_id);
-    const proposal={...structuredClone(bookMetadata),genres};
+    const rows=await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId),interests=rows.map(row=>row.genre_id);
+    const proposal={...structuredClone(bookMetadata),interests};
     await completeBook(db,session,{bookId,metadata:proposal});
-    await completeBook(db,session,{bookId,metadata:{...proposal,genres:[]}});
+    await completeBook(db,session,{bookId,metadata:{...proposal,interests:[]}});
     const saved=await ownedBookInformation(db,session,bookId);
-    assert.deepEqual(saved.metadata.genres,genres);assert.equal(saved.metadata.description.es,proposal.description.es);
-    for (const invalid of [[...genres].reverse(),[...genres,"mindfulness"]]) await assert.rejects(completeBook(db,session,{bookId,metadata:{...proposal,genres:invalid}}),{status:400,code:"bookGenreLimit"});
+    assert.deepEqual(saved.metadata.interests,interests);assert.equal(saved.metadata.description.es,proposal.description.es);
+    for (const invalid of [[...interests].reverse(),[...interests,"mindfulness"]]) await assert.rejects(completeBook(db,session,{bookId,metadata:{...proposal,interests:invalid}}),{status:400,code:"bookInterestLimit"});
     assert.deepEqual(await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId),rows);
   });
   test(`${dialect}: preserve existing metadata and later additions, reject invalid completion atomically, support other original languages`,async t=>{
     const {db,session}=await fixture(t,dialect);
     const original=structuredClone(bookMetadata);
     for (const field of ["title","description","editorialNote"]) original[field]={es:original[field].es};
-    original.genres=["productivity"]; original.description.es="Descripción guardada";
+    original.interests=["productivity"]; original.description.es="Descripción guardada";
     original.links.goodreads="https://www.goodreads.com/book/show/999-existing";
     const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:bookMetadata.popularTitle,author:"Daniel Kahneman",language:"en",metadata:original});
     await completeBook(db,session,{bookId,metadata:bookMetadata});
@@ -178,10 +178,10 @@ for (const dialect of ["sqlite","postgres"]) {
     const stale=structuredClone(bookMetadata);stale.description.fr="Otra propuesta";stale.title.es="Otro título";
     await completeBook(db,session,{bookId,metadata:stale});
     const saved=(await readCatalog(db,session.user_id)).books.find(book=>book.id===bookId);
-    assert.deepEqual(saved,first);assert.equal(saved.description.es,"Descripción guardada");assert.deepEqual(saved.genres,["productivity"]);
+    assert.deepEqual(saved,first);assert.equal(saved.description.es,"Descripción guardada");assert.deepEqual(saved.interests,["productivity"]);
     assert.equal(saved.links.goodreads,original.links.goodreads);assert.equal(Object.hasOwn(saved,"sources"),false);
-    const japanese=(await createBook(db,session,{requestId:randomUUID(),title:"本の原題",author:"著者",language:"ja",metadata:{genres:bookMetadata.genres}})).bookId;
-    const invalid=structuredClone(bookMetadata);invalid.genres=["unknown"];
+    const japanese=(await createBook(db,session,{requestId:randomUUID(),title:"本の原題",author:"著者",language:"ja",metadata:{interests:bookMetadata.interests}})).bookId;
+    const invalid=structuredClone(bookMetadata);invalid.interests=["unknown"];
     await assert.rejects(completeBook(db,session,{bookId:japanese,metadata:invalid}),e=>e.status===400);
     assert.equal((await db.prepare("SELECT count(*) AS n FROM book_translations WHERE book_id=?").get(japanese)).n,0);
     const unsafe=structuredClone(bookMetadata);unsafe.links.goodreads="javascript:alert(1)";
@@ -209,7 +209,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const changed=structuredClone(input);changed.metadata.description.es="Otra descripción";
     await assert.rejects(createBook(db,session,changed),e=>e.status===409);
     const count=(await db.prepare("SELECT count(*) AS n FROM books").get()).n;
-    for (const change of [m=>m.genres.push("unknown-genre"),m=>m.links.goodreads="javascript:alert(1)",m=>delete m.description.en]) {
+    for (const change of [m=>m.interests.push("unknown-interest"),m=>m.links.goodreads="javascript:alert(1)",m=>delete m.description.en]) {
       const invalid=structuredClone(input);invalid.requestId=randomUUID();change(invalid.metadata);
       await assert.rejects(createBook(db,session,invalid),e=>e.status===400);
       assert.equal((await db.prepare("SELECT count(*) AS n FROM books").get()).n,count);
@@ -217,7 +217,7 @@ for (const dialect of ["sqlite","postgres"]) {
   });
   test(`${dialect}: share a minimal book and its decks while preserving authorship and metadata permissions`,async t=>{
     const {db,session,other}=await fixture(t,dialect);
-    const input={requestId:randomUUID(),title:"  L’Étranger  ",author:" Albert Camus ",language:"fr",metadata:{genres:["society"]}};
+    const input={requestId:randomUUID(),title:"  L’Étranger  ",author:" Albert Camus ",language:"fr",metadata:{interests:["society"]}};
     const {bookId}=await createBook(db,session,input);
     assert.equal((await createBook(db,session,input)).bookId,bookId);
     await assert.rejects(createBook(db,other,input),e=>e.status===409);
@@ -381,7 +381,7 @@ for (const dialect of ["sqlite","postgres"]) {
     await db.prepare("UPDATE card_translations SET body='Corrección conservada' WHERE card_id=? AND language='fr'").run(cardId);
     assert.equal((await db.prepare("SELECT body FROM card_translations WHERE card_id=? AND language='fr'").get(cardId)).body,"Corrección conservada");
     await db.prepare("UPDATE card_translations SET body='Citation conservée' WHERE card_id=? AND language='fr'").run(cardId);
-    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:"Après migration",author:"Auteur",language:"fr",metadata:{genres:["society"]}});
+    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:"Après migration",author:"Auteur",language:"fr",metadata:{interests:["society"]}});
     const next=await createDeck(db,session,{requestId:randomUUID(),bookId,title:"Notes",language:"fr"});
     await takeNote(db,session,{requestId:randomUUID(),deckId:next.deckId,isQuote:true,parentId:null,body:"Sans URL"});
     const own=prepareCatalog(await readCatalog(db,session.user_id));

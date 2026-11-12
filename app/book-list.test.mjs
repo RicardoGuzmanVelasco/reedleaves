@@ -112,10 +112,10 @@ test('Bookstore interest sort follows reader preferences across all three presen
     await initializeDatabase(db);await seedCatalog(db);
     const source=prepareCatalog(await readCatalog(db));
     const books=[
-      {...source.books[0],id:'neutral-book',genres:['unlisted']},
-      {...source.books[1],id:'secondary-book',genres:['unlisted','books']},
-      {...source.books[2],id:'primary-book',genres:['books']},
-      {...source.books[3],id:'rejected-book',genres:['society']}
+      {...source.books[0],id:'neutral-book',interests:['unlisted']},
+      {...source.books[1],id:'secondary-book',interests:['unlisted','books']},
+      {...source.books[2],id:'primary-book',interests:['books']},
+      {...source.books[3],id:'rejected-book',interests:['society']}
     ];
     const catalog={...source,books,booksById:new Map(books.map(book=>[book.id,book]))};
     const state=readerState(catalog,{bookstoreQuery:'',bookstoreFilters:{},bookSortOrder:'interests',interestPreferences:{interested:['books'],notInterested:['society']},userId:'reader'});
@@ -208,7 +208,7 @@ test('Bookstore shows ordered interest emoji only on covers',async()=>{
   try{
     await initializeDatabase(db);await seedCatalog(db);
     const catalog=prepareCatalog(await readCatalog(db)),book=catalog.books[0];
-    const interests=book.genres.map(id=>catalog.genres.find(interest=>interest.id===id));
+    const interests=book.interests.map(id=>catalog.interests.find(interest=>interest.id===id));
     const state=readerState(catalog,{bookstoreQuery:'',bookstoreFilters:{},userId:'reader',statuses:{[book.id]:'reading'},shelfBookIds:[book.id]});
     for(const view of ['covers','shelf','stack']){
       const html=bookstoreResultsMarkup({...state,bookViews:{bookstore:view}});

@@ -15,14 +15,14 @@ async function rowsBy(db,sql,key,...values) {
 }
 
 export async function readInterests(db) {
-  const genres=[],names=await rowsBy(db,"SELECT genre_id,language,name FROM genre_translations","genre_id");
+  const interests=[],names=await rowsBy(db,"SELECT genre_id,language,name FROM genre_translations","genre_id");
   for(const {id,emoji,color,chip_color,book_color} of await db.prepare("SELECT id,emoji,color,chip_color,book_color FROM genres ORDER BY id").all()){
     const translations=names.get(id);
-    const genre={id,emoji,color,chipColor:chip_color,bookColor:book_color,name:Object.fromEntries(translations.map(row=>[row.language,row.name]))};
-    if(!validInterestAppearance(genre)||LANGUAGES.some(language=>!genre.name[language]?.trim()))throw new Error("Invalid interest catalog");
-    genres.push(genre);
+    const interest={id,emoji,color,chipColor:chip_color,bookColor:book_color,name:Object.fromEntries(translations.map(row=>[row.language,row.name]))};
+    if(!validInterestAppearance(interest)||LANGUAGES.some(language=>!interest.name[language]?.trim()))throw new Error("Invalid interest catalog");
+    interests.push(interest);
   }
-  return {genres};
+  return {interests};
 }
 
 export async function readCatalog(db, userId) {
@@ -33,10 +33,10 @@ export async function readCatalog(db, userId) {
   const supportsGuideReviews=isPostgres(db)
     ? !!await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='reading_guide_reviews'").get()
     : !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='reading_guide_reviews'").get();
-  const {genres}=await readInterests(db);
+  const {interests}=await readInterests(db);
   const books = [];
   const bookLinks=await rowsBy(db,"SELECT book_id,platform,url FROM book_links ORDER BY platform","book_id");
-  const bookGenres=await rowsBy(db,"SELECT book_id,genre_id FROM book_genres ORDER BY position","book_id");
+  const bookInterests=await rowsBy(db,"SELECT book_id,genre_id FROM book_genres ORDER BY position","book_id");
   const bookTranslations=await rowsBy(db,"SELECT * FROM book_translations","book_id");
   for (const row of await db.prepare(`SELECT b.id,b.author,b.popular_title,b.popular_language,b.creator_user_id,
     ${supportsIncorporation?"b.incorporated_at,b.incorporation_order":"NULL AS incorporated_at,NULL AS incorporation_order"},
@@ -49,7 +49,7 @@ export async function readCatalog(db, userId) {
       incorporatedAt:row.incorporated_at instanceof Date?row.incorporated_at.toISOString():row.incorporated_at,
       incorporationOrder:row.incorporation_order==null?null:Number(row.incorporation_order),title:{},description:{},editorialNote:{},
       links:Object.fromEntries(bookLinks.get(row.id).map(link=>[link.platform,link.url])),
-      genres:bookGenres.get(row.id).map(t=>t.genre_id)};
+      interests:bookInterests.get(row.id).map(t=>t.genre_id)};
     for (const t of bookTranslations.get(row.id)) {
       if(t.title.trim() && t.title.trim()!==book.popularTitle.trim()) book.title[t.language]=t.title;
       book.description[t.language]=t.description; book.editorialNote[t.language]=t.editorial_note;
@@ -117,7 +117,7 @@ export async function readCatalog(db, userId) {
     if(model.cards.some(card=>!card.title[card.language]||!card.body[card.language])) throw new Error("Card is missing text in its language");
   }
   // Account-created decks and their cards join the shared catalog as they are saved.
-  return {schemaVersion:7,genres,books,decks,cards};
+  return {schemaVersion:7,interests,books,decks,cards};
 }
 
 export async function checkCatalog(db) {
@@ -125,11 +125,11 @@ export async function checkCatalog(db) {
     if ((await db.prepare("PRAGMA integrity_check").get()).integrity_check !== "ok") throw new Error("Database integrity check failed");
     if ((await db.prepare("PRAGMA foreign_key_check").all()).length) throw new Error("Broken references");
   } else await db.prepare("SELECT 1").get();
-  const catalog = await readCatalog(db), ids = new Set(catalog.genres.map(g=>g.id));
-  if(catalog.genres.some(g=>LANGUAGES.some(language=>!g.name[language]?.trim()))) throw new Error("Missing genre translation");
-  if(catalog.genres.some(g=>!validInterestAppearance(g))) throw new Error("Missing or invalid interest appearance");
-  for(const book of catalog.books) if(!book.creatorUserId && !book.genres.length||book.genres.some(id=>!ids.has(id))) throw new Error("Missing book genre");
+  const catalog = await readCatalog(db), ids = new Set(catalog.interests.map(g=>g.id));
+  if(catalog.interests.some(g=>LANGUAGES.some(language=>!g.name[language]?.trim()))) throw new Error("Missing interest translation");
+  if(catalog.interests.some(g=>!validInterestAppearance(g))) throw new Error("Missing or invalid interest appearance");
+  for(const book of catalog.books) if(!book.creatorUserId && !book.interests.length||book.interests.some(id=>!ids.has(id))) throw new Error("Missing book interest");
   const positions=await rowsBy(db,"SELECT book_id,position FROM book_genres ORDER BY position","book_id");
   for(const book of catalog.books) if(positions.get(book.id).some((row,index)=>row.position!==index+1)) throw new Error("Invalid book interest order");
-  return {books:catalog.books.length,decks:catalog.decks.length,cards:catalog.cards.length,genres:catalog.genres.length};
+  return {books:catalog.books.length,decks:catalog.decks.length,cards:catalog.cards.length,interests:catalog.interests.length};
 }

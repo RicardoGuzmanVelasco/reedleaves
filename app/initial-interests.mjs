@@ -4,7 +4,7 @@ import {toggleProfileInterest} from "./profile-interests.mjs";
 // This is a private draft, never a saved/public preference. Catalog validation
 // happens on restore so removed interests cannot trap the reader in step two.
 export function normalizeInitialInterestDraft(saved,catalog) {
-  const available=new Set(catalog.genres.map(item=>item.id)),used=new Set();
+  const available=new Set(catalog.interests.map(item=>item.id)),used=new Set();
   let limit=5;
   const list=values=>(Array.isArray(values)?values:[]).filter(id=>{
     if(typeof id!=="string"||!available.has(id)||used.has(id)||used.size>=limit)return false;
@@ -45,7 +45,7 @@ export function createInitialInterestFlow({store,request,onChange=()=>{},onCompl
     // Session cleanup keeps the private draft and lifetime host handlers.
     dispose(){generation++;pending=null;state=null;notify();},
     toggle(id,kind) {
-      if(!state||state.saving||!["interested","notInterested"].includes(kind)||!state.catalog.genres.some(item=>item.id===id))return;
+      if(!state||state.saving||!["interested","notInterested"].includes(kind)||!state.catalog.interests.some(item=>item.id===id))return;
       if(state.draft[kind==="interested"?"notInterested":"interested"].includes(id)){notify();return;}
       const result=toggleProfileInterest(state.draft,id,kind);
       state={...state,draft:result.state,feedback:result.reason==="limit"?"profileInterestLimit":null,error:null};

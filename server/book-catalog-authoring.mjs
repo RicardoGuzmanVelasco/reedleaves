@@ -53,7 +53,7 @@ export async function createCatalogBook(db,input) {
 
   return transaction(db,async()=>{
     if(isPostgres(db)) await db.exec("LOCK TABLE books IN SHARE ROW EXCLUSIVE MODE;");
-    await validateBookInterests(db,metadata.genres);
+    await validateBookInterests(db,metadata.interests);
     const existing=await readCatalog(db),sameId=existing.books.find(book=>book.id===id);
     if(sameId) {
       const saved=normalizeBookMetadata(sameId,{canonicalTitles:true});
@@ -68,7 +68,7 @@ export async function createCatalogBook(db,input) {
       .run(id,author,metadata.popularTitle,metadata.popularLanguage,position,catalogBookIncorporationTimestamp(),incorporationOrder);
     for(const language of Object.keys(metadata.description)) await db.prepare(`INSERT INTO book_translations(book_id,language,title,description,editorial_note)
       VALUES (?,?,?,?,?)`).run(id,language,metadata.title[language]||"",metadata.description[language],metadata.editorialNote[language]);
-    for(const [index,genre] of metadata.genres.entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(id,genre,index+1);
+    for(const [index,interest] of metadata.interests.entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(id,interest,index+1);
     for(const [platform,url] of Object.entries(metadata.links)) await db.prepare("INSERT INTO book_links(book_id,platform,url) VALUES (?,?,?)").run(id,platform,url);
     await checkCatalog(db);
     return {bookId:id};
@@ -79,7 +79,7 @@ async function readBookForEdit(db,id,{lock=false}={}) {
   const row=await db.prepare(`SELECT id,author,popular_title,popular_language,creator_user_id FROM books WHERE id=?${lock&&isPostgres(db)?" FOR UPDATE":""}`).get(id);
   if(!row) throw new ApiError(404,"bookUnavailable");
   const metadata={popularTitle:row.popular_title,popularLanguage:row.popular_language,title:{},description:{},editorialNote:{},
-    genres:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY position").all(id)).map(item=>item.genre_id),
+    interests:(await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY position").all(id)).map(item=>item.genre_id),
     links:Object.fromEntries((await db.prepare("SELECT platform,url FROM book_links WHERE book_id=? ORDER BY platform").all(id)).map(item=>[item.platform,item.url]))};
   for(const item of await db.prepare("SELECT language,title,description,editorial_note FROM book_translations WHERE book_id=?").all(id)) {
     metadata.title[item.language]=item.title;metadata.description[item.language]=item.description;metadata.editorialNote[item.language]=item.editorial_note;
@@ -95,8 +95,8 @@ export async function editCatalogBook(db,input) {
   if(hasMetadata) {
     try { proposal=normalizeBookMetadata(input.metadata,{completeTranslations:false,canonicalTitles:true}); }
     catch { throw new ApiError(400,"invalidRequest"); }
-    if(proposal.genres.length) {
-      const error=bookInterestError(proposal.genres);
+    if(proposal.interests.length) {
+      const error=bookInterestError(proposal.interests);
       if(error) throw new ApiError(400,error);
     }
     if(Object.keys(proposal.links).length) {
@@ -112,7 +112,7 @@ export async function editCatalogBook(db,input) {
     if(proposal) {
       for(const field of ["popularTitle","popularLanguage"]) if(proposal[field]!==undefined) next.metadata[field]=proposal[field];
       for(const field of ["title","description","editorialNote"]) next.metadata[field]={...next.metadata[field],...proposal[field]};
-      if(Object.hasOwn(input.metadata,"genres")) next.metadata.genres=proposal.genres;
+      if(Object.hasOwn(input.metadata,"interests")) next.metadata.interests=proposal.interests;
       if(Object.hasOwn(input.metadata,"links")) next.metadata.links=proposal.links;
     }
     // Validate supplied fields only; legacy catalog text may exceed current authoring limits.
@@ -122,7 +122,7 @@ export async function editCatalogBook(db,input) {
     for(const language of translationLanguages) if(!next.metadata.description[language]||!next.metadata.editorialNote[language]) throw new ApiError(400,"invalidRequest");
     if(!next.metadata.popularTitle||!next.metadata.popularLanguage) throw new ApiError(400,"invalidRequest");
     if(current.creatorUserId===null) for(const language of LANGUAGES) if(!next.metadata.description[language]||!next.metadata.editorialNote[language]) throw new ApiError(400,"invalidRequest");
-    if(current.creatorUserId===null||Object.hasOwn(input.metadata||{},"genres")) await validateBookInterests(db,next.metadata.genres,{existingIds:current.metadata.genres});
+    if(current.creatorUserId===null||Object.hasOwn(input.metadata||{},"interests")) await validateBookInterests(db,next.metadata.interests,{existingIds:current.metadata.interests});
     try { validateBookLinks(next.metadata.links); }
     catch { throw new ApiError(400,"invalidRequest"); }
 
@@ -142,9 +142,9 @@ export async function editCatalogBook(db,input) {
         await db.prepare(`UPDATE book_translations SET ${column}=? WHERE book_id=? AND language=?`).run(next.metadata[field][language],id,language);
       }
     }
-    if(Object.hasOwn(input.metadata||{},"genres")) {
+    if(Object.hasOwn(input.metadata||{},"interests")) {
       await db.prepare("DELETE FROM book_genres WHERE book_id=?").run(id);
-      for(const [index,genre] of next.metadata.genres.entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(id,genre,index+1);
+      for(const [index,interest] of next.metadata.interests.entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(id,interest,index+1);
     }
     if(Object.hasOwn(input.metadata||{},"links")) {
       await db.prepare("DELETE FROM book_links WHERE book_id=?").run(id);

@@ -7,7 +7,7 @@ export function missingBookInformation(book) {
   for (const language of LANGUAGES) for (const field of ["description"]) {
     if (!book[field]?.[language]?.trim()) missing.push({field,language});
   }
-  if (!book.genres?.length) missing.push({field:"genres"});
+  if (!book.interests?.length) missing.push({field:"interests"});
   return missing;
 }
 const object = value => value && typeof value === "object" && !Array.isArray(value);
@@ -18,7 +18,7 @@ function text(value,max,required=true) {
 // Shared by preview generation and saving. Unknown fields never enter the catalog.
 export function normalizeBookMetadata(value={}, {completeTranslations=true,canonicalTitles=false}={}) {
   if (!object(value)) throw new Error("Invalid book metadata");
-  const result={title:{},description:{},editorialNote:{},genres:[],links:{}};
+  const result={title:{},description:{},editorialNote:{},interests:[],links:{}};
   if (value.popularTitle !== undefined) result.popularTitle=text(value.popularTitle,TITLE_MAX_LENGTH);
   if (value.popularLanguage !== undefined) {
     if (!isCanonicalLocale(value.popularLanguage)) throw new Error("Invalid book metadata");
@@ -40,11 +40,11 @@ export function normalizeBookMetadata(value={}, {completeTranslations=true,canon
     result.title[language] ||= "";
   }
   if(canonicalTitles) for (const language of Object.keys(result.title)) if (result.title[language] === result.popularTitle) result.title[language]="";
-  if (value.genres !== undefined) {
+  if (value.interests !== undefined) {
     // Normalization also reads historical metadata. New writes enforce 1–3 separately.
-    if (!Array.isArray(value.genres) || value.genres.length > 20) throw new Error("Invalid book metadata");
-    result.genres=value.genres.map(id=>text(id,80));
-    if(new Set(result.genres).size!==result.genres.length) throw new Error("Invalid book metadata");
+    if (!Array.isArray(value.interests) || value.interests.length > 20) throw new Error("Invalid book metadata");
+    result.interests=value.interests.map(id=>text(id,80));
+    if(new Set(result.interests).size!==result.interests.length) throw new Error("Invalid book metadata");
   }
   if (value.links !== undefined) {
     if (!object(value.links) || Object.keys(value.links).some(key=>!BOOK_LINK_PLATFORMS.includes(key))) throw new Error("Invalid book metadata");
@@ -61,7 +61,7 @@ export function mergeBookMetadata(current,proposal) {
   const next=normalizeBookMetadata(current,{completeTranslations:false}),generated=normalizeBookMetadata(proposal);
   for (const field of ["popularTitle","popularLanguage"]) next[field] ||= generated[field];
   for (const field of Object.keys(TRANSLATION_FIELDS)) next[field]={...generated[field],...next[field]};
-  if (!next.genres.length) next.genres=generated.genres;
+  if (!next.interests.length) next.interests=generated.interests;
   next.links={...generated.links,...next.links};
   return normalizeBookMetadata(next,{canonicalTitles:true});
 }

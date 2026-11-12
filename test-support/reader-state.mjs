@@ -11,7 +11,7 @@ export function readerState(catalog, overrides = {}) {
 
 export function emptyCatalog() {
   return {
-    books: [], decks: [], genres: [], cards: [], allCards: [],
+    books: [], decks: [], interests: [], cards: [], allCards: [],
     ...Object.fromEntries(["booksById", "decksById", "deckModels",
       "cardsById", "models", "selectedDecks"].map(key => [key, new Map()]))
   };

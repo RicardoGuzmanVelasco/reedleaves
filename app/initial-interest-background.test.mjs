@@ -30,7 +30,7 @@ test("Navigation stays available while preferences load; the chooser appears on 
   h.context.mode="library";
   preferences.resolve({configured:false,initialOpportunityClosed:false});
   await new Promise(resolve=>setImmediate(resolve));
-  catalog.resolve({genres:[{id:"finance"}]});
+  catalog.resolve({interests:[{id:"finance"}]});
   await new Promise(resolve=>setImmediate(resolve));
   assert.equal(h.shown.length,0,"The opening animation finishes before the chooser is presented");
   opening.resolve();await loading;
@@ -47,7 +47,7 @@ test("Already configured readers never see the initial chooser",async()=>{
 
 test("A failed background request does not open a blocking dialog and can be retried",async()=>{
   let calls=0;
-  const h=harness({request:async()=>{if(!calls++)throw new Error("offline");return {configured:false};},loadInterests:async()=>({genres:[]})});
+  const h=harness({request:async()=>{if(!calls++)throw new Error("offline");return {configured:false};},loadInterests:async()=>({interests:[]})});
   await h.loadHomeInterestPreferences();
   assert.equal(h.shown.length,0);
   await h.loadHomeInterestPreferences();
@@ -56,7 +56,7 @@ test("A failed background request does not open a blocking dialog and can be ret
 
 test("Responses from a previous account cannot open its chooser",async()=>{
   const pending=deferred();
-  const h=harness({request:()=>pending.promise,loadInterests:async()=>({genres:[]})});
+  const h=harness({request:()=>pending.promise,loadInterests:async()=>({interests:[]})});
   const loading=h.loadHomeInterestPreferences();
   h.context.snapshot={user:{id:"other"}};
   h.context.homeInterestPreferencesGeneration++;

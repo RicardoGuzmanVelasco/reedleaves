@@ -14,7 +14,7 @@ export function recommendBooks(catalog,statuses={},preferences={},excludedBookId
     const interested=[],detected=[],other=[];
     for(const book of pool){
       if(detectUninterestingBook(book,preferences))detected.push(book);
-      else if(book.genres?.some(id=>preferences.interested?.includes(id)))interested.push(book);
+      else if(book.interests?.some(id=>preferences.interested?.includes(id)))interested.push(book);
       else other.push(book);
     }
     for(const group of [interested,detected,other]){

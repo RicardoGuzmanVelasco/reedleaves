@@ -113,12 +113,12 @@ test("Book details show a preferred title or fall back to the popular title", as
   assert.doesNotMatch(html, /undefined|Français/);
 });
 
-test("Missing required descriptions or genre metadata rejects the seed, API payload and incomplete persisted catalog", async () => {
+test("Missing required descriptions or interest metadata rejects the seed, API payload and incomplete persisted catalog", async () => {
   for (const mutate of [s => s.books[0].description_es = "", s => s.genres[0].name_en = ""]) {
     const seed = readSeed(); mutate(seed); assert.throws(() => validateSeed(seed));
   }
   const c = await catalog(), payload = {
-    schemaVersion:7, books:c.books, cards:c.allCards, genres:c.genres, decks:c.decks
+    schemaVersion:7, books:c.books, cards:c.allCards, interests:c.interests, decks:c.decks
   };
   delete payload.books[0].description.en;
   assert.throws(() => prepareCatalog(payload), /translation/);

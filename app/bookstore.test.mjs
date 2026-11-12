@@ -24,7 +24,7 @@ test("Add book lists the whole catalog as closed books, with essential data and 
   }
   assert.match(html,/catalog-book/); assert.match(html,/aria-haspopup="dialog"/);
   assert.match(html,/2 barajas/); assert.match(html,/1 baraja/);
-  assert.doesNotMatch(bookstoreResultsMarkup(s),/book-tile-genres/);
+  assert.doesNotMatch(bookstoreResultsMarkup(s),/book-tile-interests/);
   assert.doesNotMatch(html,/<dialog|data-book-status|book-row|tree-node|From the inside out|Ideas esenciales/);
   assert.deepEqual(s.budget,before);
 });

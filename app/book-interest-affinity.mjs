@@ -17,8 +17,8 @@ function interestRank(interestId, positions) {
 export function compareBooksByInterestAffinity(leftBook, rightBook, preferences) {
   const positions = preferencePositions(preferences);
   for (let index = 0; index < BOOK_INTEREST_POSITIONS; index++) {
-    const leftRank = interestRank(leftBook?.genres?.[index], positions);
-    const rightRank = interestRank(rightBook?.genres?.[index], positions);
+    const leftRank = interestRank(leftBook?.interests?.[index], positions);
+    const rightRank = interestRank(rightBook?.interests?.[index], positions);
     if (leftRank[0] !== rightRank[0]) return leftRank[0] - rightRank[0];
     if (leftRank[1] !== rightRank[1]) return leftRank[1] - rightRank[1];
   }
@@ -35,6 +35,6 @@ export function sortBooksByInterestAffinity(books, preferences) {
 /** Initial replaceable policy: flag a book only when it contains the first rejected interest. */
 export function detectUninterestingBook(book, preferences) {
   const firstRejectedInterest = preferences?.notInterested?.[0];
-  if (typeof firstRejectedInterest !== "string" || !book?.genres?.includes(firstRejectedInterest)) return null;
+  if (typeof firstRejectedInterest !== "string" || !book?.interests?.includes(firstRejectedInterest)) return null;
   return {reason:"contains-first-not-interested-interest", interestId:firstRejectedInterest};
 }

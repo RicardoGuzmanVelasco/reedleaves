@@ -34,7 +34,7 @@ export async function requireBookInterestConfirmation(db,userId,{
     WHERE user_id=? ORDER BY preference,position`).all(userId);
   const preferences={interested:[],notInterested:[]};
   for(const row of rows)(row.preference==="interested"?preferences.interested:preferences.notInterested)[Number(row.position)-1]=row.interest_id;
-  const reason=detectUninterestingBook({id:bookId,genres:interestIds},preferences);
+  const reason=detectUninterestingBook({id:bookId,interests:interestIds},preferences);
   if(!reason) return null;
 
   const metadata=await db.prepare(`SELECT g.id,g.emoji,COALESCE(local.name,english.name,g.id) AS name

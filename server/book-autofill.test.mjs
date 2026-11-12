@@ -9,7 +9,7 @@ import {seedCatalog} from "./seed.mjs";
 import {createCatalogServer} from "./http.mjs";
 
 const input={title:"Pensar rápido, pensar despacio",author:"",language:""};
-const genres=[{id:"personal-growth",name:"Personal growth"}];
+const interests=[{id:"personal-growth",name:"Personal growth"}];
 function fakeProvider(responses=[researchResponse(),extractionResponse()]) {
   const calls=[];
   return {calls,fetcher:async(url,options)=>{calls.push({url,...options,body:JSON.parse(options.body)});return {ok:true,json:async()=>responses.shift()};}};
@@ -18,8 +18,8 @@ function fakeProvider(responses=[researchResponse(),extractionResponse()]) {
 test("AI searches the web, extracts all translations, keeps entered metadata, and returns book metadata only",async()=>{
   const fake=fakeProvider();
   const autofill=createBookAutofill({apiKey:"private-test-key",...fake});
-  const metadata=structuredClone(bookMetadata);metadata.description.es="Descripción escrita por la persona";metadata.links={};metadata.genres=[];
-  const result=await autofill("reader",{...input,author:"Autor escrito",metadata},genres);
+  const metadata=structuredClone(bookMetadata);metadata.description.es="Descripción escrita por la persona";metadata.links={};metadata.interests=[];
+  const result=await autofill("reader",{...input,author:"Autor escrito",metadata},interests);
   assert.equal(result.author,"Autor escrito");
   assert.equal(result.metadata.description.es,metadata.description.es);
   assert.equal(Object.hasOwn(result.metadata,"sources"),false);
@@ -36,7 +36,7 @@ test("AI can create a preview without provider citations or a stored bibliograph
   const research=researchResponse();
   delete research.output[1].content[0].annotations;
   const fake=fakeProvider([research,extractionResponse()]);
-  const result=await createBookAutofill({apiKey:"key",...fake})("reader",input,genres);
+  const result=await createBookAutofill({apiKey:"key",...fake})("reader",input,interests);
   assert.equal(result.metadata.popularTitle,bookMetadata.popularTitle);
   assert.deepEqual(result.metadata.description,bookMetadata.description);
   assert.deepEqual(result.metadata.links,{});
@@ -48,22 +48,22 @@ test("AI can create a preview without provider citations or a stored bibliograph
 test("AI defaults to one interest, allows clear secondary interests, preserves manual order and rejects invalid lists",async()=>{
   const known=["personal-growth","society","finance","software"].map(id=>({id,name:id}));
   const selected=["software","society","finance"];
-  const fake=fakeProvider([researchResponse(),extractionResponse({genres:selected})]);
+  const fake=fakeProvider([researchResponse(),extractionResponse({interests:selected})]);
   const result=await createBookAutofill({apiKey:"key",...fake})("r",input,known);
-  assert.deepEqual(result.metadata.genres,selected);
-  const schema=fake.calls[1].body.text.format.schema.properties.genres;
+  assert.deepEqual(result.metadata.interests,selected);
+  const schema=fake.calls[1].body.text.format.schema.properties.interests;
   assert.equal(schema.minItems,1);assert.equal(schema.maxItems,3);
   assert.match(schema.description,/single strongest interest by default/);
   assert.match(fake.calls[1].body.instructions,/usually contain exactly one id/);
   assert.match(fake.calls[1].body.instructions,/If unsure, omit it/);
   const manual=["finance","software"];
-  const edited=await createBookAutofill({apiKey:"key",...fakeProvider()})("r",{...input,metadata:{genres:manual}},known);
-  assert.deepEqual(edited.metadata.genres,manual);
-  for (const genres of [[],["software","software"],["missing"],known.map(genre=>genre.id)]) {
-    await assert.rejects(createBookAutofill({apiKey:"key",logger:()=>{},...fakeProvider([researchResponse(),extractionResponse({genres})])})("r",input,known),{code:"aiError"});
+  const edited=await createBookAutofill({apiKey:"key",...fakeProvider()})("r",{...input,metadata:{interests:manual}},known);
+  assert.deepEqual(edited.metadata.interests,manual);
+  for (const interests of [[],["software","software"],["missing"],known.map(interest=>interest.id)]) {
+    await assert.rejects(createBookAutofill({apiKey:"key",logger:()=>{},...fakeProvider([researchResponse(),extractionResponse({interests})])})("r",input,known),{code:"aiError"});
   }
   const unused=fakeProvider();
-  await assert.rejects(createBookAutofill({apiKey:"key",...unused})("r",{...input,metadata:{genres:known.map(genre=>genre.id)}},known),{code:"bookGenreLimit"});
+  await assert.rejects(createBookAutofill({apiKey:"key",...unused})("r",{...input,metadata:{interests:known.map(interest=>interest.id)}},known),{code:"bookInterestLimit"});
   assert.equal(unused.calls.length,0);
 });
 
@@ -76,14 +76,14 @@ test("HTTP autofill and completion retain an immutable historical list above thr
   const post=(path,data,headers={})=>fetch(base+path,{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify(data)});
   const signed=await post("/api/auth/register",{username:"legacy.reader",password:"a local test password"}),state=await signed.json();
   const headers={Cookie:signed.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":state.csrfToken},bookId=randomUUID();
-  assert.equal((await post("/api/author/books",{requestId:bookId,title:bookMetadata.popularTitle,author:"Author",language:"en",metadata:{genres:["software"]}},headers)).status,200);
+  assert.equal((await post("/api/author/books",{requestId:bookId,title:bookMetadata.popularTitle,author:"Author",language:"en",metadata:{interests:["software"]}},headers)).status,200);
   for (const [index,id] of ["finance","society","productivity"].entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(bookId,id,index+2);
-  const rows=await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId),genres=rows.map(row=>row.genre_id);
-  const rejected=await post("/api/author/books/autofill",{bookId,metadata:{genres:[...genres].reverse()}},headers);
+  const rows=await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId),interests=rows.map(row=>row.genre_id);
+  const rejected=await post("/api/author/books/autofill",{bookId,metadata:{interests:[...interests].reverse()}},headers);
   assert.equal(rejected.status,400);assert.equal(fake.calls.length,0);
-  const preview=await post("/api/author/books/autofill",{bookId,metadata:{genres}},headers);
+  const preview=await post("/api/author/books/autofill",{bookId,metadata:{interests}},headers);
   assert.equal(preview.status,200);
-  const result=await preview.json();assert.deepEqual(result.metadata.genres,genres);assert.equal(fake.calls.length,2);
+  const result=await preview.json();assert.deepEqual(result.metadata.interests,interests);assert.equal(fake.calls.length,2);
   assert.equal((await post("/api/author/books/complete",{bookId,metadata:result.metadata},headers)).status,200);
   assert.deepEqual(await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId),rows);
 });
@@ -94,13 +94,13 @@ test("AI separates mixed headings and subtitles, preserves personal edits and om
   Object.assign(translations.en,{title:"Never Split the Difference: Negotiating as if Your Life Depended on It",subtitle:"Negotiating as if Your Life Depended on It"});
   const response=extractionResponse({popularTitle:translations.en.title,popularSubtitle:translations.en.subtitle,author:"Chris Voss",translations});
   const fake=fakeProvider([researchResponse(),response]);
-  const result=await createBookAutofill({apiKey:"key",...fake})("r",{title:"rompe la barrera del no",author:"",language:""},genres);
+  const result=await createBookAutofill({apiKey:"key",...fake})("r",{title:"rompe la barrera del no",author:"",language:""},interests);
   assert.equal(result.metadata.popularTitle,"Never Split the Difference");
   assert.deepEqual(result.metadata.title,{es:"Rompe la barrera del no",en:""});
   assert.doesNotMatch(JSON.stringify(result.metadata),/Never Split de Difference|Un manuel|Negotiating as/);
   assert.deepEqual(Object.keys(fake.calls[1].body.text.format.schema.properties.translations.properties).sort(),["en","es"]);
   assert.equal(fake.calls[1].body.instructions.includes("francés"),false);
-  const edited=await createBookAutofill({apiKey:"key",...fakeProvider([researchResponse(),response])})("r",{...input,metadata:{title:{es:"Título personal"}}},genres);
+  const edited=await createBookAutofill({apiKey:"key",...fakeProvider([researchResponse(),response])})("r",{...input,metadata:{title:{es:"Título personal"}}},interests);
   assert.equal(edited.metadata.title.es,"Título personal");assert.equal(Object.hasOwn(edited.metadata,"shortTitle"),false);
 });
 
@@ -108,7 +108,7 @@ test("AI leaves preferred titles empty when the popular title is the common titl
   const translations=JSON.parse(extractionResponse().output[0].content[0].text).translations;
   translations.es.title=null;translations.en.title=null;
   const fake=fakeProvider([researchResponse(),extractionResponse({popularTitle:"Clean Code",translations})]);
-  const result=await createBookAutofill({apiKey:"key",...fake})("r",{title:"Clean Code",author:"",language:""},genres);
+  const result=await createBookAutofill({apiKey:"key",...fake})("r",{title:"Clean Code",author:"",language:""},interests);
   assert.equal(result.metadata.popularTitle,"Clean Code");
   assert.deepEqual(result.metadata.title,{es:"",en:""});
   assert.match(fake.calls[1].body.instructions,/Never invent or mechanically translate a title/);
@@ -118,7 +118,7 @@ test("Autofill can choose an English popular title for a work identified by its 
   const translations=JSON.parse(extractionResponse().output[0].content[0].text).translations;
   translations.es.title=null;translations.en.title="Surrounded by Idiots";
   const fake=fakeProvider([researchResponse(),extractionResponse({popularTitle:"Surrounded by Idiots",popularLanguage:"en",author:"Thomas Erikson",translations})]);
-  const result=await createBookAutofill({apiKey:"key",...fake})("r",{title:"Omgiven av idioter",author:"Thomas Erikson",language:"sv"},genres);
+  const result=await createBookAutofill({apiKey:"key",...fake})("r",{title:"Omgiven av idioter",author:"Thomas Erikson",language:"sv"},interests);
   assert.equal(result.metadata.popularTitle,"Surrounded by Idiots");
   assert.equal(result.metadata.popularLanguage,"en");
   assert.deepEqual(result.metadata.title,{es:"",en:""});
@@ -126,32 +126,32 @@ test("Autofill can choose an English popular title for a work identified by its 
 });
 
 test("AI missing configuration, invalid input, ambiguity, refusal, incomplete responses and invented links are handled",async()=>{
-  await assert.rejects(createBookAutofill({apiKey:""})("r",input,genres),e=>e.code==="aiUnavailable");
+  await assert.rejects(createBookAutofill({apiKey:""})("r",input,interests),e=>e.code==="aiUnavailable");
   const fake=fakeProvider();const autofill=createBookAutofill({apiKey:"key",...fake});
-  await assert.rejects(autofill("r",{...input,title:""},genres),e=>e.code==="aiInputRequired");assert.equal(fake.calls.length,0);
+  await assert.rejects(autofill("r",{...input,title:""},interests),e=>e.code==="aiInputRequired");assert.equal(fake.calls.length,0);
   for (const [status,code] of [["ambiguous","aiAmbiguous"],["not_found","aiNoMatch"]]) {
-    await assert.rejects(createBookAutofill({apiKey:"key",...fakeProvider([researchResponse(),extractionResponse({status})])})("r",input,genres),e=>e.code===code);
+    await assert.rejects(createBookAutofill({apiKey:"key",...fakeProvider([researchResponse(),extractionResponse({status})])})("r",input,interests),e=>e.code===code);
   }
   for (const response of [{status:"incomplete",output:[]},{status:"completed",output:[{type:"message",content:[{type:"refusal",refusal:"No"}]}]}]) {
-    await assert.rejects(createBookAutofill({apiKey:"key",...fakeProvider([response])})("r",input,genres),e=>["aiError","aiNoMatch"].includes(e.code));
+    await assert.rejects(createBookAutofill({apiKey:"key",...fakeProvider([response])})("r",input,interests),e=>["aiError","aiNoMatch"].includes(e.code));
   }
-  const result=await createBookAutofill({apiKey:"key",...fakeProvider([researchResponse(),extractionResponse({links:{amazon:"https://www.amazon.es/dp/0123456789",goodreads:"https://www.goodreads.com/book/show/123456-made-up"}})])})("r",input,genres);
+  const result=await createBookAutofill({apiKey:"key",...fakeProvider([researchResponse(),extractionResponse({links:{amazon:"https://www.amazon.es/dp/0123456789",goodreads:"https://www.goodreads.com/book/show/123456-made-up"}})])})("r",input,interests);
   assert.deepEqual(result.metadata.links,{});
-  await assert.rejects(createBookAutofill({apiKey:"key",...fakeProvider([researchResponse(),extractionResponse({genres:["made-up"]})])})("r",input,genres),e=>e.code==="aiError");
+  await assert.rejects(createBookAutofill({apiKey:"key",...fakeProvider([researchResponse(),extractionResponse({interests:["made-up"]})])})("r",input,interests),e=>e.code==="aiError");
 });
 
 test("AI enforces one concurrent search and account rate limit; timeout releases the pending search",async()=>{
   let time=0,release;
   const fake=fakeProvider([researchResponse(),extractionResponse(),researchResponse(),extractionResponse()]);
   const autofill=createBookAutofill({apiKey:"key",limit:1,now:()=>time,fetcher:async(...args)=>{if (!release) await new Promise(resolve=>{release=resolve;});return fake.fetcher(...args);}});
-  const first=autofill("reader",input,genres);
-  await assert.rejects(autofill("reader",input,genres),e=>e.code==="aiTryLater");release();await first;
-  await assert.rejects(autofill("reader",input,genres),e=>e.code==="aiTryLater");
-  time=900001;await autofill("reader",input,genres);assert.equal(fake.calls.length,4);
+  const first=autofill("reader",input,interests);
+  await assert.rejects(autofill("reader",input,interests),e=>e.code==="aiTryLater");release();await first;
+  await assert.rejects(autofill("reader",input,interests),e=>e.code==="aiTryLater");
+  time=900001;await autofill("reader",input,interests);assert.equal(fake.calls.length,4);
   // Abort-aware fetch: the server maps a hung provider to a retryable timeout.
   const timed=createBookAutofill({apiKey:"key",timeoutMs:5,fetcher:(_url,{signal})=>new Promise((_,reject)=>{signal.addEventListener("abort",()=>reject(signal.reason));setTimeout(()=>{},10);})});
-  await assert.rejects(timed("r",input,genres),e=>e.code==="aiTimeout");
-  await assert.rejects(timed("r",input,genres),e=>e.code==="aiTimeout");
+  await assert.rejects(timed("r",input,interests),e=>e.code==="aiTimeout");
+  await assert.rejects(timed("r",input,interests),e=>e.code==="aiTimeout");
 });
 
 test("Provider failures distinguish quota, credentials, request configuration and service availability without exposing private data",async()=>{
@@ -162,7 +162,7 @@ test("Provider failures distinguish quota, credentials, request configuration an
     const fill=createBookAutofill({apiKey:"private-test-key",logger:entry=>logs.push(entry),fetcher:async()=>({ok:false,status,
       headers:new Headers({"x-request-id":"req_provider123"}),json:async()=>({error:{code:providerCode,type:"provider_error",param:"tool_choice",message:"private-test-key, private book title"}})})});
     let failure;
-    await assert.rejects(fill("private-user",input,genres),error=>{failure=error;return error.code===code && error.status===502;});
+    await assert.rejects(fill("private-user",input,interests),error=>{failure=error;return error.code===code && error.status===502;});
     assert.equal(logs.length,1);assert.equal(logs[0].reference,failure.reference);
     assert.equal(logs[0].providerStatus,status);assert.equal(logs[0].providerCode,providerCode);
     assert.equal(logs[0].providerParam,"tool_choice");assert.equal(logs[0].requestId,"req_provider123");assert.equal(logs[0].phase,"research");
@@ -174,11 +174,11 @@ test("Diagnostics identify extraction truncation and malformed upstream bodies; 
   const logs=[],truncated={status:"incomplete",incomplete_details:{reason:"max_output_tokens"},output:[]};
   const fake=fakeProvider([researchResponse(),truncated,researchResponse(),extractionResponse()]);
   const fill=createBookAutofill({apiKey:"key",logger:record=>logs.push(record),...fake});
-  await assert.rejects(fill("r",input,genres),error=>error.code==="aiError" && !!error.reference);
+  await assert.rejects(fill("r",input,interests),error=>error.code==="aiError" && !!error.reference);
   assert.equal(logs[0].phase,"extraction");assert.equal(logs[0].incompleteReason,"max_output_tokens");
-  assert.ok((await fill("r",input,genres)).metadata.title.es);
+  assert.ok((await fill("r",input,interests)).metadata.title.es);
   const broken=createBookAutofill({apiKey:"key",logger:record=>logs.push(record),fetcher:async()=>({ok:false,status:502,json:async()=>{throw new SyntaxError("upstream HTML");}})});
-  await assert.rejects(broken("r",input,genres),error=>error.code==="aiProviderBusy");
+  await assert.rejects(broken("r",input,interests),error=>error.code==="aiProviderBusy");
   assert.equal(logs[1].providerStatus,502);
 });
 
@@ -216,7 +216,7 @@ test("Manual creation persists all book fields without invoking the unavailable 
   assert.equal(book.author,"Autor manual");
   const expectedTitle=Object.fromEntries(Object.entries(metadata.title).filter(([,value])=>value && value!==metadata.popularTitle));
   assert.deepEqual(book.title,expectedTitle);
-  for (const field of ["popularTitle","popularLanguage","description","editorialNote","genres","links"]) assert.deepEqual(book[field],metadata[field]);
+  for (const field of ["popularTitle","popularLanguage","description","editorialNote","interests","links"]) assert.deepEqual(book[field],metadata[field]);
 });
 
 test("Autofill HTTP requires session, origin and CSRF; preview never creates a book; logout during search revokes result",async t=>{
@@ -259,7 +259,7 @@ test("Existing-book HTTP autofill uses stored identity, enforces ownership and p
   };
   const owner=await login("fill.owner"),other=await login("fill.other");
   const bookId=randomUUID();
-  assert.equal((await post("/api/author/books",{requestId:bookId,title:bookMetadata.popularTitle,author:"Autor guardado",language:"en",metadata:{genres:bookMetadata.genres}},owner)).status,200);
+  assert.equal((await post("/api/author/books",{requestId:bookId,title:bookMetadata.popularTitle,author:"Autor guardado",language:"en",metadata:{interests:bookMetadata.interests}},owner)).status,200);
   const fill={bookId,title:"Identidad manipulada",author:"Otro autor",language:"fr"};
   const complete={bookId,metadata:bookMetadata};
   for (const path of ["/api/author/books/autofill","/api/author/books/complete"]) {

@@ -24,5 +24,5 @@ for(const [dialect,version] of [["sqlite",57],["postgres",49]]) test(`${dialect}
     {genre_id:"psychology",language:"en",name:"Psychology"},{genre_id:"psychology",language:"es",name:"Psicología"}
   ]);
   const catalog=await readCatalog(db);
-  assert.deepEqual(catalog.genres.filter(genre=>["psychology","leadership"].includes(genre.id)).map(genre=>genre.id).sort(),["leadership","psychology"]);
+  assert.deepEqual(catalog.interests.filter(genre=>["psychology","leadership"].includes(genre.id)).map(genre=>genre.id).sort(),["leadership","psychology"]);
 });

@@ -31,12 +31,12 @@ for(const [dialect,version] of [["sqlite",42],["postgres",34]]) test(`${dialect}
   await initializeDatabase(db);await initializeDatabase(db);
   assert.deepEqual(await retainedRows(db,dialect),before);
   const catalog=await readCatalog(db),seed=readSeed();
-  for(const interest of catalog.genres) {
+  for(const interest of catalog.interests) {
     const expected=seed.genres.find(value=>value.id===interest.id);
     assert.equal(interest.emoji,expected.emoji);
     assert.equal(interest.chipColor,expected.chip_color);assert.equal(interest.bookColor,expected.book_color);
   }
-  assert.equal(catalog.genres.find(value=>value.id==="metaphysics").emoji,"🔮");
+  assert.equal(catalog.interests.find(value=>value.id==="metaphysics").emoji,"🔮");
   assert.ok(prepareCatalog(catalog));await checkCatalog(db);
   if(dialect==="postgres") {
     assert.equal((await db.prepare("SELECT version FROM reed_schema").get()).version,POSTGRES_SCHEMA_VERSION);
@@ -53,6 +53,6 @@ test("Seed validates appearance before touching any books and round-trips future
   await assert.rejects(seedCatalog(db,invalid),/interest appearance/);assert.deepEqual(await readCatalog(db),before);
   const seed=readSeed();seed.genres.push({id:"future-interest",name_es:"Interés futuro",name_en:"Future interest",emoji:"🧑‍💻",chip_color:"#E4EFFB",book_color:"#7398D3"});
   await seedCatalog(db,seed);await seedCatalog(db,seed);
-  const interest=prepareCatalog(await readCatalog(db)).genres.find(value=>value.id==="future-interest");
+  const interest=prepareCatalog(await readCatalog(db)).interests.find(value=>value.id==="future-interest");
   assert.deepEqual(interest,{id:"future-interest",name:{es:"Interés futuro",en:"Future interest"},emoji:"🧑‍💻",color:"#E4EFFB",chipColor:"#E4EFFB",bookColor:"#7398D3"});
 });

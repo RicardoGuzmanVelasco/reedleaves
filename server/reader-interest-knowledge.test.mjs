@@ -26,13 +26,13 @@ for(const [dialect,version] of [["sqlite",53],["postgres",45]]) {
     if(dialect==="postgres") await db.exec(`CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;
       GRANT ALL ON ALL TABLES IN SCHEMA public TO anon,authenticated;
       ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO anon,authenticated;`);
-    const genresBefore=(await db.prepare("SELECT id FROM genres ORDER BY id").all()).map(row=>row.id);
+    const interestsBefore=(await db.prepare("SELECT id FROM genres ORDER BY id").all()).map(row=>row.id);
     await initializeDatabase(db);await initializeDatabase(db);
     const schemaVersion=dialect==="sqlite"?(await db.prepare("PRAGMA user_version").get()).user_version:(await db.prepare("SELECT version FROM reed_schema").get()).version;
     assert.equal(schemaVersion,dialect==="sqlite"?SQLITE_SCHEMA_VERSION:POSTGRES_SCHEMA_VERSION);
     for(const id of ["interest-baseline-a","interest-baseline-b"]) {
       const known=(await db.prepare("SELECT interest_id FROM reader_known_interests WHERE user_id=? ORDER BY interest_id").all(id)).map(row=>row.interest_id);
-      assert.deepEqual(known,genresBefore);
+      assert.deepEqual(known,interestsBefore);
     }
     if(dialect==="postgres") for(const table of ["reader_known_interests","reader_interest_knowledge_visits"]) {
       assert.equal((await db.prepare("SELECT relrowsecurity FROM pg_class WHERE relname=?").get(table)).relrowsecurity,true);

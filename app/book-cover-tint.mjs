@@ -7,7 +7,7 @@ export const coverTintMode=value=>coverTintModes.includes(value)?value:'off';
 export function coverTintGradients(book,interests,mode){
   if(coverTintMode(mode)==='off')return null;
   const byId=new Map((interests||[]).map(interest=>[interest.id,interest.bookColor ?? interest.book_color ?? interest.color]));
-  const colors=(book?.genres||[]).map(id=>byId.get(id)).filter(validInterestColor);
+  const colors=(book?.interests||[]).map(id=>byId.get(id)).filter(validInterestColor);
   if(!colors.length)return null;
   const chosen=mode==='mono'?colors.slice(0,1):colors;
   const boundaries=chosen.length===2?[65]:chosen.length===3?[50,80]:chosen.slice(1).map((_,index)=>50+index*50/(chosen.length-1));
