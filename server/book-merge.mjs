@@ -20,8 +20,8 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
     const source=await db.prepare(`SELECT id,creator_user_id,author,popular_title,popular_language FROM books WHERE id=?${rowLock}`).get(sourceId);
     const target=await db.prepare(`SELECT id,author,popular_title,popular_language FROM books WHERE id=?${rowLock}`).get(targetId);
     if(!source||!target) throw new ApiError(404,"bookUnavailable");
-    const interestRows=await db.prepare("SELECT book_id,genre_id FROM book_genres WHERE book_id IN (?,?) ORDER BY book_id,position").all(targetId,sourceId);
-    const mergedInterests=[...new Set(interestRows.map(row=>row.genre_id))];
+    const interestRows=await db.prepare("SELECT book_id,interest_id FROM book_interests WHERE book_id IN (?,?) ORDER BY book_id,position").all(targetId,sourceId);
+    const mergedInterests=[...new Set(interestRows.map(row=>row.interest_id))];
     const interestError=bookInterestError(mergedInterests);
     if(interestError) throw new ApiError(400,interestError);
 
@@ -52,11 +52,11 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
     await db.prepare(`INSERT INTO book_links(book_id,platform,url)
       SELECT ?,platform,url FROM book_links WHERE book_id=? ON CONFLICT(book_id,platform) DO UPDATE SET
         url=CASE WHEN length(trim(book_links.url))=0 THEN excluded.url ELSE book_links.url END`).run(targetId,sourceId);
-    let targetInterestPosition=(await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM book_genres WHERE book_id=?").get(targetId)).position;
-    const sourceInterests=await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY position").all(sourceId);
-    for(const {genre_id} of sourceInterests) {
-      if(await db.prepare("SELECT 1 FROM book_genres WHERE book_id=? AND genre_id=?").get(targetId,genre_id)) continue;
-      await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(targetId,genre_id,targetInterestPosition++);
+    let targetInterestPosition=(await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM book_interests WHERE book_id=?").get(targetId)).position;
+    const sourceInterests=await db.prepare("SELECT interest_id FROM book_interests WHERE book_id=? ORDER BY position").all(sourceId);
+    for(const {interest_id} of sourceInterests) {
+      if(await db.prepare("SELECT 1 FROM book_interests WHERE book_id=? AND interest_id=?").get(targetId,interest_id)) continue;
+      await db.prepare("INSERT INTO book_interests(book_id,interest_id,position) VALUES (?,?,?)").run(targetId,interest_id,targetInterestPosition++);
     }
 
     const sourceReading=await db.prepare("SELECT user_id,status FROM book_reading WHERE book_id=?").all(sourceId);
@@ -106,7 +106,7 @@ export async function mergeBooks(db,{sourceBookId,targetBookId}) {
       (SELECT count(*) FROM book_reading WHERE book_id=?) +
       (SELECT count(*) FROM deck_selections WHERE book_id=?) +
       (SELECT count(*) FROM book_links WHERE book_id=?) +
-      (SELECT count(*) FROM book_genres WHERE book_id=?) +
+      (SELECT count(*) FROM book_interests WHERE book_id=?) +
       (SELECT count(*) FROM book_translations WHERE book_id=?) AS n`).get(sourceId,sourceId,sourceId,sourceId,sourceId,sourceId,sourceId);
     if(Number(dangling.n)!==0||await db.prepare("SELECT 1 FROM books WHERE id=?").get(sourceId)) throw new Error("Book merge left source references");
     await checkCatalog(db);

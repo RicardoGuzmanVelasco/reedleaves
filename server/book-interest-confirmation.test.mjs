@@ -11,6 +11,8 @@ const enabled={confirmationEnabled:true};
 async function fixture(t) {
   const db=openDatabase(":memory:");
   await initializeDatabase(db); await seedCatalog(db);
+  // The warning scenarios need a book with two interests; the seed book has one.
+  db.prepare("INSERT INTO book_interests(book_id,interest_id,position) VALUES ('seven-habits','personal-growth',2)").run();
   db.prepare("INSERT INTO users(id,display_name) VALUES ('reader','Reader')").run();
   db.prepare("INSERT INTO accounts VALUES ('reader','reader','fixture only','Europe/Madrid','es')").run();
   db.prepare("INSERT INTO reader_interest_preferences(user_id,interest_id,preference,position) VALUES ('reader','personal-growth','not_interested',1)").run();

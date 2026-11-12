@@ -15,8 +15,8 @@ async function rowsBy(db,sql,key,...values) {
 }
 
 export async function readInterests(db) {
-  const interests=[],names=await rowsBy(db,"SELECT genre_id,language,name FROM genre_translations","genre_id");
-  for(const {id,emoji,color,chip_color,book_color} of await db.prepare("SELECT id,emoji,color,chip_color,book_color FROM genres ORDER BY id").all()){
+  const interests=[],names=await rowsBy(db,"SELECT interest_id,language,name FROM interest_translations","interest_id");
+  for(const {id,emoji,color,chip_color,book_color} of await db.prepare("SELECT id,emoji,color,chip_color,book_color FROM interests ORDER BY id").all()){
     const translations=names.get(id);
     const interest={id,emoji,color,chipColor:chip_color,bookColor:book_color,name:Object.fromEntries(translations.map(row=>[row.language,row.name]))};
     if(!validInterestAppearance(interest)||LANGUAGES.some(language=>!interest.name[language]?.trim()))throw new Error("Invalid interest catalog");
@@ -36,7 +36,7 @@ export async function readCatalog(db, userId) {
   const {interests}=await readInterests(db);
   const books = [];
   const bookLinks=await rowsBy(db,"SELECT book_id,platform,url FROM book_links ORDER BY platform","book_id");
-  const bookInterests=await rowsBy(db,"SELECT book_id,genre_id FROM book_genres ORDER BY position","book_id");
+  const bookInterests=await rowsBy(db,"SELECT book_id,interest_id FROM book_interests ORDER BY position","book_id");
   const bookTranslations=await rowsBy(db,"SELECT * FROM book_translations","book_id");
   for (const row of await db.prepare(`SELECT b.id,b.author,b.popular_title,b.popular_language,b.creator_user_id,
     ${supportsIncorporation?"b.incorporated_at,b.incorporation_order":"NULL AS incorporated_at,NULL AS incorporation_order"},
@@ -49,7 +49,7 @@ export async function readCatalog(db, userId) {
       incorporatedAt:row.incorporated_at instanceof Date?row.incorporated_at.toISOString():row.incorporated_at,
       incorporationOrder:row.incorporation_order==null?null:Number(row.incorporation_order),title:{},description:{},editorialNote:{},
       links:Object.fromEntries(bookLinks.get(row.id).map(link=>[link.platform,link.url])),
-      interests:bookInterests.get(row.id).map(t=>t.genre_id)};
+      interests:bookInterests.get(row.id).map(t=>t.interest_id)};
     for (const t of bookTranslations.get(row.id)) {
       if(t.title.trim() && t.title.trim()!==book.popularTitle.trim()) book.title[t.language]=t.title;
       book.description[t.language]=t.description; book.editorialNote[t.language]=t.editorial_note;
@@ -129,7 +129,7 @@ export async function checkCatalog(db) {
   if(catalog.interests.some(g=>LANGUAGES.some(language=>!g.name[language]?.trim()))) throw new Error("Missing interest translation");
   if(catalog.interests.some(g=>!validInterestAppearance(g))) throw new Error("Missing or invalid interest appearance");
   for(const book of catalog.books) if(!book.creatorUserId && !book.interests.length||book.interests.some(id=>!ids.has(id))) throw new Error("Missing book interest");
-  const positions=await rowsBy(db,"SELECT book_id,position FROM book_genres ORDER BY position","book_id");
+  const positions=await rowsBy(db,"SELECT book_id,position FROM book_interests ORDER BY position","book_id");
   for(const book of catalog.books) if(positions.get(book.id).some((row,index)=>row.position!==index+1)) throw new Error("Invalid book interest order");
   return {books:catalog.books.length,decks:catalog.decks.length,cards:catalog.cards.length,interests:catalog.interests.length};
 }

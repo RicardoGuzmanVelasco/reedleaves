@@ -70,7 +70,7 @@ export async function saveReaderInterestPreferencesInside(db,userId,input,timest
   if (!account) throw new ApiError(401,"signInRequired");
   const currentState=await readState(db,userId);
   if (input.revision!==currentState.revision) return {conflict:true,current:currentState};
-  const interests=new Set((await db.prepare("SELECT id FROM genres").all()).map(row=>row.id));
+  const interests=new Set((await db.prepare("SELECT id FROM interests").all()).map(row=>row.id));
   if ([...input.interested,...input.notInterested].some(id=>!interests.has(id))) throw new ApiError(400,"invalidRequest");
 
   await db.prepare("DELETE FROM reader_interest_preferences WHERE user_id=?").run(userId);
@@ -111,7 +111,7 @@ export async function saveInitialReaderInterestPreferences(db,session,input,now=
       return {conflict:true,current};
     }
     if (input.revision!==current.revision) return {conflict:true,current};
-    const interests=new Set((await db.prepare("SELECT id FROM genres").all()).map(row=>row.id));
+    const interests=new Set((await db.prepare("SELECT id FROM interests").all()).map(row=>row.id));
     if ([...input.interested,...input.notInterested].some(id=>!interests.has(id))) throw new ApiError(400,"invalidRequest");
 
     await db.prepare("DELETE FROM reader_interest_preferences WHERE user_id=?").run(userId);
@@ -123,7 +123,7 @@ export async function saveInitialReaderInterestPreferences(db,session,input,now=
       .run(userId,1,timestamp,timestamp,timestamp);
     // Interests present when initial onboarding is completed belong to its
     // baseline, including interests added after account registration.
-    await db.prepare(`INSERT INTO reader_known_interests(user_id,interest_id) SELECT ?,id FROM genres WHERE true ON CONFLICT DO NOTHING`).run(userId);
+    await db.prepare(`INSERT INTO reader_known_interests(user_id,interest_id) SELECT ?,id FROM interests WHERE true ON CONFLICT DO NOTHING`).run(userId);
 
     const newlyGranted=[];
     const rewards=[];

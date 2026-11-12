@@ -29,6 +29,8 @@ test('Saved-card HTTP flow authenticates, isolates accounts and opens a daily ca
 
 test('HTTP card saves revalidate the warning, keep cancellation side-effect free and bypass when already in the Library',async t=>{
   const db=openDatabase(':memory:');await initializeDatabase(db);await seedCatalog(db);
+  // This scenario needs a book with two interests; the seed book has one.
+  await db.prepare("INSERT INTO book_interests(book_id,interest_id,position) VALUES ('seven-habits','personal-growth',2)").run();
   const server=createCatalogServer(db);server.listen(0,'127.0.0.1');await once(server,'listening');t.after(async()=>{server.closeAllConnections();await new Promise(r=>server.close(r));await db.close()});
   const base=`http://127.0.0.1:${server.address().port}`;
   const call=async(path,input,headers={})=>{const response=await fetch(base+path,{method:input===undefined?'GET':'POST',headers:{Origin:base,...(input===undefined?{}:{'Content-Type':'application/json'}),...headers},...(input===undefined?{}:{body:JSON.stringify(input)})});return {status:response.status,body:await response.json(),headers:response.headers}};

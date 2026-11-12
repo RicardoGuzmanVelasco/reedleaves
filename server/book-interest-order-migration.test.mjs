@@ -8,19 +8,19 @@ import {EDITORIAL_BOOK_INTERESTS} from "./book-interest-editorial-migration.mjs"
 
 for(const [dialect,version] of [["sqlite",42],["postgres",34]]) test(`${dialect}: interest migrations preserve associations and apply editorial order idempotently`,async t=>{
   const db=await historicalDatabase(t,dialect,version);
-  const associations=await db.prepare("SELECT book_id,genre_id FROM book_genres ORDER BY book_id,genre_id").all();
+  const associations=await db.prepare("SELECT book_id,genre_id AS interest_id FROM book_genres ORDER BY book_id,genre_id").all();
   if(dialect==="postgres") await db.exec("ALTER TABLE book_genres ENABLE ROW LEVEL SECURITY;");
   await initializeDatabase(db);await initializeDatabase(db);
-  assert.deepEqual(await db.prepare("SELECT book_id,genre_id FROM book_genres ORDER BY book_id,genre_id").all(),associations);
+  assert.deepEqual(await db.prepare("SELECT book_id,interest_id FROM book_interests ORDER BY book_id,interest_id").all(),associations);
   for(const bookId of new Set(associations.map(row=>row.book_id))) {
-    const expected=EDITORIAL_BOOK_INTERESTS[bookId] || associations.filter(row=>row.book_id===bookId).map(row=>row.genre_id).sort();
+    const expected=EDITORIAL_BOOK_INTERESTS[bookId] || associations.filter(row=>row.book_id===bookId).map(row=>row.interest_id).sort();
     const saved=(await readCatalog(db)).books.find(book=>book.id===bookId);
     assert.deepEqual(saved.interests,expected);
-    assert.deepEqual((await db.prepare("SELECT position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId)).map(row=>row.position),expected.map((_,index)=>index+1));
+    assert.deepEqual((await db.prepare("SELECT position FROM book_interests WHERE book_id=? ORDER BY position").all(bookId)).map(row=>row.position),expected.map((_,index)=>index+1));
   }
   await checkCatalog(db);
   const seed=readSeed();await seedCatalog(db,seed);
-  for(const book of seed.books) assert.deepEqual((await readCatalog(db)).books.find(value=>value.id===book.id).interests,book.genres.split("|"));
+  for(const book of seed.books) assert.deepEqual((await readCatalog(db)).books.find(value=>value.id===book.id).interests,book.interests.split("|"));
 });
 
 for(const [dialect,version] of [["sqlite",42],["postgres",34]]) test(`${dialect}: editorial interest migration refuses an unexpected association`,async t=>{

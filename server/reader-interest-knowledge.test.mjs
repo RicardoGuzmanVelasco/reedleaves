@@ -15,7 +15,7 @@ async function insertAccount(db,id) {
 }
 
 async function addInterest(db,id) {
-  await db.prepare("INSERT INTO genres(id) VALUES (?) ON CONFLICT(id) DO NOTHING").run(id);
+  await db.prepare("INSERT INTO interests(id) VALUES (?) ON CONFLICT(id) DO NOTHING").run(id);
 }
 
 for(const [dialect,version] of [["sqlite",53],["postgres",45]]) {
@@ -87,7 +87,7 @@ for(const [dialect,version] of [["sqlite",53],["postgres",45]]) test(`${dialect}
 test("reader API exposes snapshots only to the signed-in account and requires CSRF to recognize",async t=>{
   const db=await historicalDatabase(t,"sqlite",53);await initializeDatabase(db);
   await insertAccount(db,"snapshot-api-a");await insertAccount(db,"snapshot-api-b");
-  for(const userId of ["snapshot-api-a","snapshot-api-b"]) await db.prepare("INSERT INTO reader_known_interests(user_id,interest_id) SELECT ?,id FROM genres").run(userId);
+  for(const userId of ["snapshot-api-a","snapshot-api-b"]) await db.prepare("INSERT INTO reader_known_interests(user_id,interest_id) SELECT ?,id FROM interests").run(userId);
   for(const userId of ["snapshot-api-a","snapshot-api-b"]) await db.prepare(`INSERT INTO reader_interest_settings(user_id,revision,configured_at,initial_opportunity_closed_at)
     VALUES (?,1,'2026-10-29T00:00:00Z','2026-10-29T00:00:00Z')`).run(userId);
   await addInterest(db,"api-new-interest");

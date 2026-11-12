@@ -28,7 +28,7 @@ export async function captureReaderInterestSnapshot(db,session,input) {
 
     const configured=await db.prepare("SELECT 1 FROM reader_interest_settings WHERE user_id=?").get(userId);
     const newInterestIds=configured
-      ? (await db.prepare(`SELECT g.id FROM genres AS g
+      ? (await db.prepare(`SELECT g.id FROM interests AS g
           LEFT JOIN reader_known_interests AS known ON known.user_id=? AND known.interest_id=g.id
           WHERE known.interest_id IS NULL ORDER BY g.id`).all(userId)).map(row=>row.id)
       : [];
@@ -43,7 +43,7 @@ export async function recognizeReaderInterestSnapshotInside(db,userId,visitId,sh
   const snapshot=await db.prepare("SELECT interest_ids FROM reader_interest_knowledge_visits WHERE user_id=? AND visit_id=?").get(userId,visitId);
   if(!snapshot) throw new ApiError(409,"interestSnapshotUnavailable");
   const captured=shownInterestIds??JSON.parse(snapshot.interest_ids);
-  const knownNow=new Set((await db.prepare(`SELECT id FROM genres WHERE id IN (${captured.length?captured.map(()=>"?").join(","):"NULL"})`).all(...captured)).map(row=>row.id));
+  const knownNow=new Set((await db.prepare(`SELECT id FROM interests WHERE id IN (${captured.length?captured.map(()=>"?").join(","):"NULL"})`).all(...captured)).map(row=>row.id));
   const recognized=captured.filter(id=>knownNow.has(id));
   for(const interestId of recognized) {
     await db.prepare("INSERT INTO reader_known_interests(user_id,interest_id) VALUES (?,?) ON CONFLICT DO NOTHING")

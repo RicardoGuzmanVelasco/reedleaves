@@ -77,15 +77,15 @@ test("HTTP autofill and completion retain an immutable historical list above thr
   const signed=await post("/api/auth/register",{username:"legacy.reader",password:"a local test password"}),state=await signed.json();
   const headers={Cookie:signed.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":state.csrfToken},bookId=randomUUID();
   assert.equal((await post("/api/author/books",{requestId:bookId,title:bookMetadata.popularTitle,author:"Author",language:"en",metadata:{interests:["software"]}},headers)).status,200);
-  for (const [index,id] of ["finance","society","productivity"].entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(bookId,id,index+2);
-  const rows=await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId),interests=rows.map(row=>row.genre_id);
+  for (const [index,id] of ["finance","society","productivity"].entries()) await db.prepare("INSERT INTO book_interests(book_id,interest_id,position) VALUES (?,?,?)").run(bookId,id,index+2);
+  const rows=await db.prepare("SELECT interest_id,position FROM book_interests WHERE book_id=? ORDER BY position").all(bookId),interests=rows.map(row=>row.interest_id);
   const rejected=await post("/api/author/books/autofill",{bookId,metadata:{interests:[...interests].reverse()}},headers);
   assert.equal(rejected.status,400);assert.equal(fake.calls.length,0);
   const preview=await post("/api/author/books/autofill",{bookId,metadata:{interests}},headers);
   assert.equal(preview.status,200);
   const result=await preview.json();assert.deepEqual(result.metadata.interests,interests);assert.equal(fake.calls.length,2);
   assert.equal((await post("/api/author/books/complete",{bookId,metadata:result.metadata},headers)).status,200);
-  assert.deepEqual(await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId),rows);
+  assert.deepEqual(await db.prepare("SELECT interest_id,position FROM book_interests WHERE book_id=? ORDER BY position").all(bookId),rows);
 });
 
 test("AI separates mixed headings and subtitles, preserves personal edits and omits retired short-title metadata",async()=>{

@@ -31,7 +31,7 @@ function translations(row, fields) {
   return result;
 }
 
-export function readSeed(directory = new URL("../content/catalog/", import.meta.url)) {
+export function readSeed(directory = new URL("../server/fixtures/migrations/catalog-v54/", import.meta.url)) {
   const seed=Object.fromEntries(["users", "genres", "books", "decks", "cards", "links"].map(name => [name, parseCsv(readFileSync(new URL(name + ".csv", directory), "utf8"))]));
   for (const user of seed.users) user.can_create_decks="1";
   for (const book of seed.books) book.editorial_status="draft";

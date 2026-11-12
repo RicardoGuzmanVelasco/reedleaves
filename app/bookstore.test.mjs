@@ -33,7 +33,7 @@ test("A book modal shows metadata, four reading choices and one explicit deck ac
   const s = {...await state(),openBookId:"seven-habits"}, book = s.catalog.booksById.get(s.openBookId);
   const html = bookstoreView(s), modal = html.match(/<dialog\b[\s\S]*?<\/dialog>/)[0];
   assert.ok(modal.includes(book.title.es)); assert.ok(modal.includes(book.description.es));
-  assert.match(modal,/Crecimiento personal/); assert.match(modal,/Productividad/);
+  assert.match(modal,/Productividad/);
   assert.match(modal,/aria-labelledby="book-dialog-title"/); assert.match(modal,/aria-describedby="book-dialog-description"/);
   const controls=[...modal.matchAll(/<button[^>]*data-action="set-book-reading"[^>]*>/g)].map(match=>match[0]);
   assert.equal(controls.length,4);

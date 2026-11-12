@@ -31,11 +31,11 @@ function translations(row, fields) {
 }
 
 export function readSeed(directory = new URL("../content/catalog/", import.meta.url)) {
-  return Object.fromEntries(["users", "genres", "books", "decks", "cards", "links"].map(name => [name, parseCsv(readFileSync(new URL(name + ".csv", directory), "utf8"))]));
+  return Object.fromEntries(["users", "interests", "books", "decks", "cards", "links"].map(name => [name, parseCsv(readFileSync(new URL(name + ".csv", directory), "utf8"))]));
 }
 
 export function validateSeed(seed) {
-  for (const key of ["users", "genres", "books", "decks", "cards"]) {
+  for (const key of ["users", "interests", "books", "decks", "cards"]) {
     if (!Array.isArray(seed[key]) || !seed[key].length) throw new Error("Empty " + key);
     const ids = seed[key].map(row => row.id);
     if (new Set(ids).size !== ids.length) throw new Error("Duplicate " + key + " IDs");
@@ -43,9 +43,9 @@ export function validateSeed(seed) {
   }
   const users = new Set(seed.users.map(u => u.id));
   for (const u of seed.users) if (!text(u.display_name)) throw new Error("Invalid author");
-  const genres = new Set(seed.genres.map(g => g.id)), books = new Set(seed.books.map(b => b.id));
-  for (const g of seed.genres) {
-    if (LANGUAGES.some(language => !text(g["name_" + language]))) throw new Error("Missing genre text");
+  const interests = new Set(seed.interests.map(g => g.id)), books = new Set(seed.books.map(b => b.id));
+  for (const g of seed.interests) {
+    if (LANGUAGES.some(language => !text(g["name_" + language]))) throw new Error("Missing interest text");
     if (!validInterestAppearance({emoji:g.emoji,chipColor:g.chip_color,bookColor:g.book_color})) throw new Error("Missing or invalid interest appearance");
   }
   const positions = new Set();
@@ -53,8 +53,8 @@ export function validateSeed(seed) {
     if (!text(b.popular_title) || !locale(b.popular_language)) throw new Error("Invalid popular book title or language");
     if (!text(b.author) || !/^\d+$/.test(b.position) || Number(b.position) < 1 || positions.has(Number(b.position))) throw new Error("Invalid book position or author");
     positions.add(Number(b.position));
-    const bookGenres=b.genres?.split("|");
-    if (bookInterestError(bookGenres,genres)) throw new Error("Invalid book interests: choose one to three distinct known interests");
+    const bookInterests=b.interests?.split("|");
+    if (bookInterestError(bookInterests,interests)) throw new Error("Invalid book interests: choose one to three distinct known interests");
     for (const language of LANGUAGES) for (const field of ["description", "editorial_note"]) {
       if (!text(b[field + "_" + language])) throw new Error("Missing book text");
     }
@@ -117,12 +117,12 @@ export async function seedCatalog(db, seed = readSeed()) {
     const seedIncorporatedAt=hasCatalogIncorporation?catalogBookIncorporationTimestamp():null;
     for (const u of seed.users) await db.prepare(`INSERT INTO users(id,display_name) VALUES (?,?)
       ON CONFLICT(id) DO UPDATE SET display_name = excluded.display_name`).run(u.id,u.display_name);
-    for (const g of seed.genres) {
-      await db.prepare(`INSERT INTO genres(id,emoji,color,chip_color,book_color) VALUES (?,?,?,?,?)
+    for (const g of seed.interests) {
+      await db.prepare(`INSERT INTO interests(id,emoji,color,chip_color,book_color) VALUES (?,?,?,?,?)
         ON CONFLICT(id) DO UPDATE SET emoji=excluded.emoji,color=excluded.color,
         chip_color=excluded.chip_color,book_color=excluded.book_color`).run(g.id,g.emoji,g.chip_color,g.chip_color,g.book_color);
-      for (const language of LANGUAGES) await db.prepare(`INSERT INTO genre_translations VALUES (?, ?, ?)
-        ON CONFLICT(genre_id, language) DO UPDATE SET name = excluded.name`).run(g.id, language, g["name_" + language]);
+      for (const language of LANGUAGES) await db.prepare(`INSERT INTO interest_translations VALUES (?, ?, ?)
+        ON CONFLICT(interest_id, language) DO UPDATE SET name = excluded.name`).run(g.id, language, g["name_" + language]);
     }
     for (const b of seed.books) {
       const incorporationOrder=hasCatalogIncorporation?(await db.prepare("SELECT COALESCE(MAX(incorporation_order),0)+1 AS n FROM books").get()).n:null;
@@ -137,8 +137,8 @@ export async function seedCatalog(db, seed = readSeed()) {
         description = excluded.description, editorial_note = excluded.editorial_note`).run(...(hasLegacyShortTitle
           ? [b.id,language,b[`title_${language}`],b[`short_title_${language}`] || b[`title_${language}`],b[`description_${language}`],b[`editorial_note_${language}`]]
           : [b.id, language, ...["title", "description", "editorial_note"].map(field => b[field + "_" + language])]));
-      await db.prepare("DELETE FROM book_genres WHERE book_id = ?").run(b.id);
-      for (const [index,id] of b.genres.split("|").entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(b.id,id,index+1);
+      await db.prepare("DELETE FROM book_interests WHERE book_id = ?").run(b.id);
+      for (const [index,id] of b.interests.split("|").entries()) await db.prepare("INSERT INTO book_interests(book_id,interest_id,position) VALUES (?,?,?)").run(b.id,id,index+1);
     }
     for (const link of seed.links) await db.prepare(`INSERT INTO book_links(book_id,platform,url) VALUES (?,?,?)
       ON CONFLICT(book_id,platform) DO UPDATE SET url = excluded.url`).run(link.book_id, link.platform, bookLinkUrl(link.platform, link.url));

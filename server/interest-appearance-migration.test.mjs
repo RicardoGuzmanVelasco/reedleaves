@@ -14,8 +14,10 @@ async function retainedRows(db,dialect) {
   // These tables are introduced by later additive migrations and are outside
   // the data-preservation contract of the interest-appearance migration.
   for(const {name} of tables) if(!["reed_schema","reader_book_sort_preferences","reader_interest_preferences","reader_interest_settings","reader_interest_reward_claims","reader_language_preferences","reader_known_interests","reader_interest_knowledge_visits","reader_known_books","reader_book_knowledge_visits","reader_xp_balances","reader_xp_events","reading_guide_reviews","app_roles","user_roles","reader_display_preferences"].includes(name)) {
-    const columns=name === "genres" ? "id" : name === "book_genres" ? "book_id,genre_id" : "*";
-    result[name]=(await db.prepare(`SELECT ${columns} FROM "${name}"`).all()).map(row=>{
+    // Legacy keys keep one snapshot comparable before and after the interests rename.
+    const legacy={interests:"genres",interest_translations:"genre_translations",book_interests:"book_genres"}[name] || name;
+    const columns={genres:"id",book_genres:name==="book_interests"?"book_id,interest_id AS genre_id":"book_id,genre_id",genre_translations:name==="interest_translations"?"interest_id AS genre_id,language,name":"*"}[legacy] || "*";
+    result[legacy]=(await db.prepare(`SELECT ${columns} FROM "${name}"`).all()).map(row=>{
       const value=normalizeRetiredRow(name,row);if(name==="books"){delete value.incorporated_at;delete value.incorporation_order;}if(name==="practice_sessions")delete value.language_snapshot;return value;
     }).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
   }
@@ -32,7 +34,7 @@ for(const [dialect,version] of [["sqlite",42],["postgres",34]]) test(`${dialect}
   assert.deepEqual(await retainedRows(db,dialect),before);
   const catalog=await readCatalog(db),seed=readSeed();
   for(const interest of catalog.interests) {
-    const expected=seed.genres.find(value=>value.id===interest.id);
+    const expected=seed.interests.find(value=>value.id===interest.id);
     assert.equal(interest.emoji,expected.emoji);
     assert.equal(interest.chipColor,expected.chip_color);assert.equal(interest.bookColor,expected.book_color);
   }
@@ -40,18 +42,18 @@ for(const [dialect,version] of [["sqlite",42],["postgres",34]]) test(`${dialect}
   assert.ok(prepareCatalog(catalog));await checkCatalog(db);
   if(dialect==="postgres") {
     assert.equal((await db.prepare("SELECT version FROM reed_schema").get()).version,POSTGRES_SCHEMA_VERSION);
-    assert.equal((await db.prepare("SELECT relrowsecurity FROM pg_class WHERE relname='genres'").get()).relrowsecurity,true);
+    assert.equal((await db.prepare("SELECT relrowsecurity FROM pg_class WHERE relname='interests'").get()).relrowsecurity,true);
   } else assert.equal(db.prepare("PRAGMA user_version").get().user_version,SQLITE_SCHEMA_VERSION);
   // Old writers can still insert an ID; publication requires complete editorial metadata.
-  await db.exec("INSERT INTO genres(id) VALUES ('unpublished-interest');");
-  await db.exec("INSERT INTO genre_translations(genre_id,language,name) VALUES ('unpublished-interest','es','Interés'),('unpublished-interest','en','Interest');");
+  await db.exec("INSERT INTO interests(id) VALUES ('unpublished-interest');");
+  await db.exec("INSERT INTO interest_translations(interest_id,language,name) VALUES ('unpublished-interest','es','Interés'),('unpublished-interest','en','Interest');");
   await assert.rejects(checkCatalog(db),/Invalid interest catalog/);
 });
 test("Seed validates appearance before touching any books and round-trips future interests without a client list",async t=>{
   const db=await historicalDatabase(t,"sqlite",42);await initializeDatabase(db);
-  const before=await readCatalog(db),invalid=readSeed();invalid.genres[0].emoji="";invalid.books[0].author="Must not be saved";
+  const before=await readCatalog(db),invalid=readSeed();invalid.interests[0].emoji="";invalid.books[0].author="Must not be saved";
   await assert.rejects(seedCatalog(db,invalid),/interest appearance/);assert.deepEqual(await readCatalog(db),before);
-  const seed=readSeed();seed.genres.push({id:"future-interest",name_es:"Interés futuro",name_en:"Future interest",emoji:"🧑‍💻",chip_color:"#E4EFFB",book_color:"#7398D3"});
+  const seed=readSeed();seed.interests.push({id:"future-interest",name_es:"Interés futuro",name_en:"Future interest",emoji:"🧑‍💻",chip_color:"#E4EFFB",book_color:"#7398D3"});
   await seedCatalog(db,seed);await seedCatalog(db,seed);
   const interest=prepareCatalog(await readCatalog(db)).interests.find(value=>value.id==="future-interest");
   assert.deepEqual(interest,{id:"future-interest",name:{es:"Interés futuro",en:"Future interest"},emoji:"🧑‍💻",color:"#E4EFFB",chipColor:"#E4EFFB",bookColor:"#7398D3"});

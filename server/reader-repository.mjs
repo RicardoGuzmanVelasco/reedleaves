@@ -66,7 +66,7 @@ export async function readReaderHomeBooks(db,session) {
         SELECT book_id FROM book_reading WHERE user_id=? AND status='reading'
         UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='draft'
       ) active ON active.book_id=bt.book_id JOIN books b ON b.id=bt.book_id`).all(userId,userId);
-    const interests=await db.prepare(`SELECT bg.book_id,bg.genre_id FROM book_genres bg JOIN (
+    const interests=await db.prepare(`SELECT bg.book_id,bg.interest_id FROM book_interests bg JOIN (
         SELECT book_id FROM book_reading WHERE user_id=? AND status='reading'
         UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='draft'
       ) active ON active.book_id=bg.book_id ORDER BY bg.position`).all(userId,userId);
@@ -78,7 +78,7 @@ export async function readReaderHomeBooks(db,session) {
           UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='draft') GROUP BY d.book_id`).all(userId,userId,userId);
     const translationsByBook=new Map(),interestsByBook=new Map(),growthByBook=new Map();
     for(const row of translations){const translated=translationsByBook.get(row.book_id)||{title:{},description:{}};if(row.title.trim()!==row.popular_title.trim())translated.title[row.language]=row.title;translated.description[row.language]=row.description;translationsByBook.set(row.book_id,translated);}
-    for(const row of interests){const values=interestsByBook.get(row.book_id)||[];values.push(row.genre_id);interestsByBook.set(row.book_id,values);}
+    for(const row of interests){const values=interestsByBook.get(row.book_id)||[];values.push(row.interest_id);interestsByBook.set(row.book_id,values);}
     for(const row of practiceDays)growthByBook.set(row.book_id,Number(row.review_days));
     return {pendingNewBookCount:await pendingNewBookCount(db,userId),books:books.map(row=>({id:row.id,author:row.author,popularTitle:row.popular_title,popularLanguage:row.popular_language,
       creatorUserId:row.creator_user_id,status:row.status,noteDeckCount:Number(row.note_deck_count),lastNoteAt:row.last_note_at,

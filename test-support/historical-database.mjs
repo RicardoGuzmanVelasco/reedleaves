@@ -108,12 +108,15 @@ export async function migrationData(db) {
     ? await db.prepare("SELECT column_name AS name FROM information_schema.columns WHERE table_schema='public' AND table_name='books'").all()
     : db.prepare("PRAGMA table_info(books)").all();
   const popular=bookColumns.some(column=>column.name === "popular_title");
-  const columns={genres:"id",book_genres:"book_id,genre_id",books:popular ? "id,author,position,popular_title AS original_title,popular_language AS original_language,updated_at" : "id,author,position,original_title,original_language,updated_at",
+  // Snapshots keep the legacy keys (genres, genre_id) so one expected value compares a database before and after the interests rename.
+  const renamed={genres:"interests",genre_translations:"interest_translations",book_genres:"book_interests"};
+  const migrated=await has("interests"),idColumn=migrated ? "interest_id" : "genre_id";
+  const columns={genres:"id",genre_translations:`${idColumn} AS genre_id,language,name`,book_genres:`book_id,${idColumn} AS genre_id`,books:popular ? "id,author,position,popular_title AS original_title,popular_language AS original_language,updated_at" : "id,author,position,original_title,original_language,updated_at",
     decks:"id,book_id,creator_user_id,language,is_recommended,created_at",
     users:"id,display_name,created_at"};
   for (const table of tables) {
-    const additiveGenre=table === "genres" ? " WHERE id NOT IN ('society','software','mindfulness','psychology','leadership')" : table === "genre_translations" ? " WHERE genre_id NOT IN ('society','software','mindfulness','psychology','leadership')" : "";
-    result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${table}${additiveGenre} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();
+    const additiveGenre=table === "genres" ? " WHERE id NOT IN ('society','software','mindfulness','psychology','leadership')" : table === "genre_translations" ? ` WHERE ${idColumn} NOT IN ('society','software','mindfulness','psychology','leadership')` : "";
+    result[table]=await db.prepare(`SELECT ${columns[table] || "*"} FROM ${migrated && renamed[table] ? renamed[table] : table}${additiveGenre} ORDER BY 1${table === "genres" ? "" : ",2"}`).all();
     if (table === "book_translations") result[table]=result[table].map(({short_title,...translation})=>{
       // The approved GTD title cleanup is the only editorial change in these
       // released fixtures. Transform the expected legacy snapshot, never the

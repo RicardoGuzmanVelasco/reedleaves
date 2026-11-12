@@ -29,7 +29,7 @@ export async function requireBookInterestConfirmation(db,userId,{
   if(!enabled||!await db.prepare("SELECT 1 FROM books WHERE id=?").get(bookId)||await isInLibrary(db,userId,bookId)) return null;
 
   const account=await db.prepare("SELECT language FROM accounts WHERE user_id=?").get(userId);
-  const interestIds=(await db.prepare(`SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY position`).all(bookId)).map(row=>row.genre_id);
+  const interestIds=(await db.prepare(`SELECT interest_id FROM book_interests WHERE book_id=? ORDER BY position`).all(bookId)).map(row=>row.interest_id);
   const rows=await db.prepare(`SELECT interest_id,preference,position FROM reader_interest_preferences
     WHERE user_id=? ORDER BY preference,position`).all(userId);
   const preferences={interested:[],notInterested:[]};
@@ -38,8 +38,8 @@ export async function requireBookInterestConfirmation(db,userId,{
   if(!reason) return null;
 
   const metadata=await db.prepare(`SELECT g.id,g.emoji,COALESCE(local.name,english.name,g.id) AS name
-    FROM genres g LEFT JOIN genre_translations local ON local.genre_id=g.id AND local.language=?
-    LEFT JOIN genre_translations english ON english.genre_id=g.id AND english.language='en'
+    FROM interests g LEFT JOIN interest_translations local ON local.interest_id=g.id AND local.language=?
+    LEFT JOIN interest_translations english ON english.interest_id=g.id AND english.language='en'
     WHERE g.id=?`).get(account?.language||"en",reason.interestId);
   const operationDetails={type:operation,resourceId,parameters};
   const current={operation:operationDetails,interestId:reason.interestId,price};

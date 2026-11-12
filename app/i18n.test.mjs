@@ -106,7 +106,6 @@ test("Book details show a preferred title or fall back to the popular title", as
   assert.match(html, /Bookstore/);
   for (const book of s.catalog.books) assert.ok(html.includes(escapeHtml(bookTitle(book,"en").text)));
   assert.match(html, /<h2 id="book-dialog-title"[^>]*>The 7 Habits of Highly Effective People<\/h2>/);
-  assert.match(html, /Personal growth/);
   assert.match(html, /Productivity/);
   assert.match(html, /View decks/);
   assert.match(html, /data-action="open-book"[^>]*>View decks · 2<\/button>/);
@@ -114,7 +113,7 @@ test("Book details show a preferred title or fall back to the popular title", as
 });
 
 test("Missing required descriptions or interest metadata rejects the seed, API payload and incomplete persisted catalog", async () => {
-  for (const mutate of [s => s.books[0].description_es = "", s => s.genres[0].name_en = ""]) {
+  for (const mutate of [s => s.books[0].description_es = "", s => s.interests[0].name_en = ""]) {
     const seed = readSeed(); mutate(seed); assert.throws(() => validateSeed(seed));
   }
   const c = await catalog(), payload = {

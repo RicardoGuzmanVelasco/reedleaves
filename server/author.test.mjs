@@ -128,7 +128,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:metadata.popularTitle,author:"Daniel Kahneman",language:"en",metadata});
     const saved=(await readCatalog(db)).books.find(book=>book.id===bookId);
     assert.deepEqual(saved.interests,metadata.interests);
-    assert.deepEqual((await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId)).map(row=>[row.genre_id,row.position]),[["finance",1],["personal-growth",2],["productivity",3]]);
+    assert.deepEqual((await db.prepare("SELECT interest_id,position FROM book_interests WHERE book_id=? ORDER BY position").all(bookId)).map(row=>[row.interest_id,row.position]),[["finance",1],["personal-growth",2],["productivity",3]]);
     await assert.rejects(createBook(db,session,{requestId:randomUUID(),title:"Repeated",author:"Author",language:"en",metadata:{...metadata,interests:["finance","finance"]}}),e=>e.status===400);
   });
   test(`${dialect}: book writes require one to three distinct known interests before changing data`,async t=>{
@@ -146,7 +146,7 @@ for (const dialect of ["sqlite","postgres"]) {
   });
   test(`${dialect}: merging books rejects a union above three atomically`,async t=>{
     const {db,session}=await fixture(t,dialect);
-    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:"Classification merge source",author:"Author",language:"en",metadata:{interests:["software","finance"]}});
+    const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:"Classification merge source",author:"Author",language:"en",metadata:{interests:["software","finance","society"]}});
     const before=await readCatalog(db);
     await assert.rejects(mergeBooks(db,{sourceBookId:bookId,targetBookId:"seven-habits"}),{status:400,code:"bookInterestLimit"});
     assert.deepEqual(await readCatalog(db),before);
@@ -156,15 +156,15 @@ for (const dialect of ["sqlite","postgres"]) {
     const {db,session}=await fixture(t,dialect);
     const {bookId}=await createBook(db,session,{requestId:randomUUID(),title:"Historical classification",author:"Author",language:"en",metadata:{interests:["software"]}});
     // Simulate associations already stored by the former, more permissive writer.
-    for (const [index,id] of ["finance","society","productivity"].entries()) await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?,?,?)").run(bookId,id,index+2);
-    const rows=await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId),interests=rows.map(row=>row.genre_id);
+    for (const [index,id] of ["finance","society","productivity"].entries()) await db.prepare("INSERT INTO book_interests(book_id,interest_id,position) VALUES (?,?,?)").run(bookId,id,index+2);
+    const rows=await db.prepare("SELECT interest_id,position FROM book_interests WHERE book_id=? ORDER BY position").all(bookId),interests=rows.map(row=>row.interest_id);
     const proposal={...structuredClone(bookMetadata),interests};
     await completeBook(db,session,{bookId,metadata:proposal});
     await completeBook(db,session,{bookId,metadata:{...proposal,interests:[]}});
     const saved=await ownedBookInformation(db,session,bookId);
     assert.deepEqual(saved.metadata.interests,interests);assert.equal(saved.metadata.description.es,proposal.description.es);
     for (const invalid of [[...interests].reverse(),[...interests,"mindfulness"]]) await assert.rejects(completeBook(db,session,{bookId,metadata:{...proposal,interests:invalid}}),{status:400,code:"bookInterestLimit"});
-    assert.deepEqual(await db.prepare("SELECT genre_id,position FROM book_genres WHERE book_id=? ORDER BY position").all(bookId),rows);
+    assert.deepEqual(await db.prepare("SELECT interest_id,position FROM book_interests WHERE book_id=? ORDER BY position").all(bookId),rows);
   });
   test(`${dialect}: preserve existing metadata and later additions, reject invalid completion atomically, support other original languages`,async t=>{
     const {db,session}=await fixture(t,dialect);

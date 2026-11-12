@@ -63,7 +63,7 @@ test("Schema initialization and seed are repeatable without duplicating data", a
 });
 test("Foreign keys, order and translations are constrained", async t => {
   const db = await fixture(t);
-  assert.throws(() => db.prepare("INSERT INTO book_genres VALUES (?, ?)").run("missing", "finance"));
+  assert.throws(() => db.prepare("INSERT INTO book_interests VALUES (?, ?)").run("missing", "finance"));
   assert.throws(() => db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position) VALUES (?, ?, ?, ?, ?)").run("same-order", "atomic-habits-editorial", "atomic-habits", null, 1));
   assert.throws(() => db.prepare("INSERT INTO card_translations VALUES (?, ?, ?, ?)").run("atomic-1", "", "x", "x"));
   assert.throws(() => db.prepare("UPDATE card_translations SET body = '' WHERE card_id = 'atomic-1'").run());
@@ -83,7 +83,7 @@ test("Invalid seed rolls back every change and does not move established card ID
 });
 test("Missing translations, references, duplicate IDs and order gaps reject the import", async t => {
   const db = await fixture(t);
-  for (const mutate of [s => s.cards[0].body_es = "", s => s.genres[0].emoji = "", s => s.genres[0].chip_color = "red;display:none", s => s.books[0].genres = "invented", s => s.cards.push(s.cards[0]), s => s.cards[0].position = "9"]) {
+  for (const mutate of [s => s.cards[0].body_es = "", s => s.interests[0].emoji = "", s => s.interests[0].chip_color = "red;display:none", s => s.books[0].interests = "invented", s => s.cards.push(s.cards[0]), s => s.cards[0].position = "9"]) {
     const seed = readSeed(); mutate(seed); await assert.rejects(seedCatalog(db, seed));
   }
   assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, cards: 42, interests: 10 });

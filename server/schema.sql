@@ -1,4 +1,4 @@
-CREATE TABLE genres (
+CREATE TABLE interests (
   id TEXT PRIMARY KEY CHECK(length(trim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '',
   color TEXT NOT NULL DEFAULT '',
@@ -6,11 +6,11 @@ CREATE TABLE genres (
   book_color TEXT NOT NULL DEFAULT ''
 ) STRICT;
 
-CREATE TABLE genre_translations (
-  genre_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+CREATE TABLE interest_translations (
+  interest_id TEXT NOT NULL REFERENCES interests(id) ON DELETE CASCADE,
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
   name TEXT NOT NULL CHECK(length(trim(name)) > 0),
-  PRIMARY KEY(genre_id, language)
+  PRIMARY KEY(interest_id, language)
 ) STRICT;
 
 CREATE TABLE books (
@@ -40,15 +40,15 @@ CREATE TABLE book_translations (
   PRIMARY KEY(book_id, language)
 ) STRICT;
 
-CREATE TABLE book_genres (
+CREATE TABLE book_interests (
   book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
-  genre_id TEXT NOT NULL REFERENCES genres(id),
+  interest_id TEXT NOT NULL REFERENCES interests(id),
   position INTEGER NOT NULL CHECK(position > 0),
-  PRIMARY KEY(book_id, genre_id),
+  PRIMARY KEY(book_id, interest_id),
   UNIQUE(book_id, position)
 ) STRICT;
 
-CREATE INDEX book_genres_by_genre ON book_genres(genre_id, book_id);
+CREATE INDEX book_interests_by_interest ON book_interests(interest_id, book_id);
 
 CREATE TABLE users (
   id TEXT PRIMARY KEY,
@@ -112,7 +112,7 @@ CREATE TABLE reader_book_sort_preferences (
 ) STRICT;
 CREATE TABLE reader_interest_preferences (
   user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
-  interest_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+  interest_id TEXT NOT NULL REFERENCES interests(id) ON DELETE CASCADE,
   preference TEXT NOT NULL CHECK(preference IN ('interested','not_interested')),
   position INTEGER NOT NULL CHECK(position BETWEEN 1 AND 5),
   PRIMARY KEY(user_id,interest_id), UNIQUE(user_id,preference,position)
@@ -126,7 +126,7 @@ CREATE TABLE reader_interest_settings (
 ) STRICT;
 CREATE TABLE reader_known_interests (
   user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
-  interest_id TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+  interest_id TEXT NOT NULL REFERENCES interests(id) ON DELETE CASCADE,
   PRIMARY KEY(user_id,interest_id)
 ) STRICT;
 CREATE TABLE reader_interest_knowledge_visits (
@@ -420,4 +420,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 62;
+PRAGMA user_version = 63;

@@ -194,7 +194,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
           // current proposal contract, then restore the stored associations below.
           if (search.metadata.interests.length>MAX_BOOK_INTERESTS) search.metadata={...search.metadata,interests:[]};
         }
-        const interests=await db.prepare("SELECT g.id,t.name FROM genres g JOIN genre_translations t ON t.genre_id=g.id WHERE t.language='en' ORDER BY g.id").all();
+        const interests=await db.prepare("SELECT g.id,t.name FROM interests g JOIN interest_translations t ON t.interest_id=g.id WHERE t.language='en' ORDER BY g.id").all();
         const preview=await bookAutofill(active.user_id,search,interests);
         // Search can outlive a session: don't return private drafts after logout.
         const stillActive=await readSession(db,request,now());

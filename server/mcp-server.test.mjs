@@ -83,7 +83,7 @@ test(`${dialect}: admin MCP edits interests on owned books with incomplete metad
     assert.equal(result.isError,undefined);
     assert.equal(JSON.parse(result.content[0].text).bookId,id);
     assert.equal((await db.prepare("SELECT creator_user_id FROM books WHERE id=?").get(id)).creator_user_id,"mcp-book-owner");
-    assert.deepEqual((await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY position").all(id)).map(row=>row.genre_id),["productivity"]);
+    assert.deepEqual((await db.prepare("SELECT interest_id FROM book_interests WHERE book_id=? ORDER BY position").all(id)).map(row=>row.interest_id),["productivity"]);
     assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM book_links WHERE book_id=?").get(id)).n,0);
   }
   assert.deepEqual(await db.prepare("SELECT language,title,description,editorial_note FROM book_translations WHERE book_id=? ORDER BY language").all("atomic-habits"),translations);
@@ -234,7 +234,7 @@ test(`${dialect}: MCP merges duplicate books without losing deck, card, profile 
     .run(targetBookId,"es","","Descripción canónica.","Nota editorial canónica.");
   await db.prepare("INSERT INTO book_translations(book_id,language,title,description,editorial_note) VALUES (?,?,?,?,?)")
     .run(sourceBookId,"fr","Livre source","Description source.","Note source.");
-  await db.prepare("INSERT INTO book_genres(book_id,genre_id,position) VALUES (?, 'productivity',1), (?, 'personal-growth',1)").run(targetBookId,sourceBookId);
+  await db.prepare("INSERT INTO book_interests(book_id,interest_id,position) VALUES (?, 'productivity',1), (?, 'personal-growth',1)").run(targetBookId,sourceBookId);
   await db.prepare("INSERT INTO book_links(book_id,platform,url) VALUES (?, 'amazon','https://www.amazon.es/dp/B012345678'), (?, 'amazon','https://www.amazon.es/dp/B098765432'), (?, 'goodreads','https://www.goodreads.com/book/show/1234567-source')")
     .run(targetBookId,sourceBookId,sourceBookId);
   if(dialect==="sqlite") await db.exec("PRAGMA ignore_check_constraints=ON;");
@@ -274,7 +274,7 @@ test(`${dialect}: MCP merges duplicate books without losing deck, card, profile 
   assert.equal((await db.prepare("SELECT deck_id FROM deck_selections WHERE user_id='merge-reader-two' AND book_id=?").get(targetBookId)).deck_id,sourceDeck.deckId);
   assert.equal((await db.prepare("SELECT is_recommended FROM decks WHERE id=?").get(targetDeck.deckId)).is_recommended,1);
   assert.equal((await db.prepare("SELECT is_recommended FROM decks WHERE id=?").get(sourceDeck.deckId)).is_recommended,0);
-  assert.deepEqual((await db.prepare("SELECT genre_id FROM book_genres WHERE book_id=? ORDER BY position").all(targetBookId)).map(row=>row.genre_id),["productivity","personal-growth"]);
+  assert.deepEqual((await db.prepare("SELECT interest_id FROM book_interests WHERE book_id=? ORDER BY position").all(targetBookId)).map(row=>row.interest_id),["productivity","personal-growth"]);
   assert.equal((await db.prepare("SELECT url FROM book_links WHERE book_id=? AND platform='amazon'").get(targetBookId)).url,"https://www.amazon.es/dp/B012345678");
   assert.equal((await db.prepare("SELECT url FROM book_links WHERE book_id=? AND platform='goodreads'").get(targetBookId)).url,"https://www.goodreads.com/book/show/1234567-source","empty destination URL is filled from source");
   assert.equal((await db.prepare("SELECT title FROM book_translations WHERE book_id=? AND language='es'").get(targetBookId)).title,"Libro duplicado");
