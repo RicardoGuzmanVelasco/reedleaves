@@ -894,7 +894,7 @@ export function profileWakeOverlayView() {
 export function profilePendingView(s) {
   const c=words[s.language];
   const pending=s.profileError
-    ? `<div class="profile-error-state">${mascotArt("sprout","profile-error-mascot",{expression:"sad",idle:false})}${callout({variant:"error",role:"alert",className:"profile-error-callout",width:"content",main:s.profileError==="connectionError"?c.profileLoadErrorMain:c[s.profileError]||c.connectionError,suggestion:s.profileError==="connectionError"?c.profileLoadErrorSuggestion:"",action:{label:c.retry,dataAction:"retry-profile"}})}</div>`
+    ? `<div class="profile-error-state">${mascotArt("sprout","profile-error-mascot",{expression:"sad",idle:false})}${callout({variant:"error",role:"alert",className:"profile-error-callout",width:"content",main:s.profileError==="connectionError"?c.profileLoadErrorMain:c[s.profileError]||c.connectionError,action:{label:c.retry,dataAction:"retry-profile"}})}</div>`
     : loadingPlaceholder(c.loading);
   return `<section class="profile-screen"><h1 tabindex="-1" class="profile-pending-title">${c.profile}</h1>${pending}</section>`;
 }
