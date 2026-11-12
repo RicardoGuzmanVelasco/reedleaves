@@ -511,6 +511,12 @@ export function dailyView(s) {
     </section>`;
 }
 
+// Unknown address: same sad sprout as the offline state, with the way back home.
+export function notFoundView(s) {
+  const c = words[s.language];
+  return `<section class="loading loading-error loading-not-found">${mascotArt("sprout","",{expression:"sad",idle:false})}<h1 tabindex="-1">${esc(c.pageNotFound)}</h1><a class="text-button" href="#home">${esc(c.home)}</a></section>`;
+}
+
 export function loadingView(language, failed) {
   const c = words[language];
   if (!failed) return `<section class="loading opening-loading" role="status" aria-live="polite" aria-label="${esc(c.loading)}"><span class="opening-sprout">${mascotArt("sprout","initial-mascot",{idle:false})}</span></section>`;

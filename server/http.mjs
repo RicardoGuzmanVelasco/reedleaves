@@ -8,6 +8,8 @@ import {bookTitle,contentText,quoteExcerpt} from "../app/core.mjs";
 import {createReaderApi} from "./reader-api.mjs";
 import {readSession} from "./auth.mjs";
 import {handleMcpRequest} from "./mcp-server.mjs";
+import {mascotArt} from "../app/mascot-art.mjs";
+import {words} from "../app/i18n.mjs";
 
 const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
   ".webmanifest": "application/manifest+json; charset=utf-8",
@@ -40,6 +42,12 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
       response.writeHead(status, { "Content-Type": type, "Content-Length": bytes.length });
       response.end(request.method === "HEAD" ? undefined : bytes);
     };
+    // Browsers asking for an unknown page get the sad sprout; API and asset callers keep the JSON error.
+    const notFound = () => {
+      if (request.url.startsWith("/api/") || !request.headers.accept?.includes("text/html")) { send(404, { error: "Not found" }); return; }
+      const language = /^\s*en/i.test(request.headers["accept-language"] || "") ? "en" : "es", c = words[language];
+      send(404, `<!doctype html><html lang="${language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Reedleaves</title><link rel="stylesheet" href="/app/mascot-art.css"><link rel="stylesheet" href="/app/reader.css"></head><body><main id="main"><section class="loading loading-error loading-not-found">${mascotArt("sprout","",{expression:"sad",idle:false})}<h1>${c.pageNotFound}</h1><a class="text-button" href="/app/">${c.home}</a></section></main></body></html>`,"text/html; charset=utf-8");
+    };
     try {
       const url = new URL(request.url, "http://localhost");
       const pathname = decodeURIComponent(url.pathname);
@@ -61,15 +69,15 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
       }
       // Never expose the database, seeds, server code, docs, tests, or directory listings.
       if (!servedPrefix.test(path) || path.includes("\0") || path.split("/").includes("..") || /\.test\.mjs$/.test(path)) {
-        send(404, { error: "Not found" }); return;
+        notFound(); return;
       }
       const relative = path.endsWith("/") ? `${path}index.html` : path;
       const type = types[extname(relative)];
-      if (!type) { send(404, { error: "Not found" }); return; }
+      if (!type) { notFound(); return; }
       if (imageTypes.has(extname(relative)) && url.searchParams.has("content")) response.setHeader("Cache-Control", "no-store");
       const allowed = await realpath(resolve(root, path.split("/")[1]));
       const file = await realpath(resolve(root, `.${relative}`));
-      if (!file.startsWith(allowed + sep)) { send(404, { error: "Not found" }); return; }
+      if (!file.startsWith(allowed + sep)) { notFound(); return; }
       if (path.startsWith("/app/")) response.setHeader("Content-Security-Policy",
         "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
       let bytes = await readFile(file);
@@ -114,7 +122,7 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
       send(200, bytes, type);
     } catch (error) {
       if (error instanceof URIError) { send(400, { error: "Invalid path" }); return; }
-      if (["ENOENT", "ENOTDIR", "EISDIR"].includes(error.code)) { send(404, { error: "Not found" }); return; }
+      if (["ENOENT", "ENOTDIR", "EISDIR"].includes(error.code)) { notFound(); return; }
       console.error("Catalog request failed", error);
       send(500, { error: "Catalog unavailable" });
     }

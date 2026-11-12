@@ -18,3 +18,10 @@ test("Startup failure without connection is its own sad state, distinct from the
   assert.match(offline,/data-action="retry"/);
   assert.ok(generic.includes(words.es.error));assert.doesNotMatch(generic,/data-expression="sad"/);assert.ok(!generic.includes(words.es.connectionError));
 });
+
+import {notFoundView} from "./views.mjs";
+
+test("Not-found view shows the sad sprout, the message and a way home",()=>{
+  const html=notFoundView({language:"es"});
+  assert.match(html,/data-expression="sad"/);assert.ok(html.includes(words.es.pageNotFound));assert.match(html,/href="#home"/);
+});

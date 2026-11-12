@@ -356,3 +356,18 @@ test("Profiles require a session and view writes require origin, CSRF and a vali
   await post("/api/reader/open",{deckId:"seven-habits-editorial",cardId:"habit-1"},headers);
   assert.equal((await post("/api/reader/view",{cardId:"habit-1",context:"practice"},headers)).status,200);
 });
+
+test("Unknown pages answer browsers with the sad sprout and everything else with the JSON error", async t => {
+  const db = openDatabase(":memory:"); initializeDatabase(db); await seedCatalog(db);
+  const server = createCatalogServer(db);
+  server.listen(0, "127.0.0.1"); await once(server, "listening");
+  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await db.close(); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const page = await fetch(base + "/nowhere", {headers:{Accept:"text/html","Accept-Language":"en-US"}});
+  const html = await page.text();
+  assert.equal(page.status, 404); assert.match(page.headers.get("content-type"), /text\/html/);
+  assert.match(html, /data-expression="sad"/); assert.match(html, /This page doesn’t exist\./); assert.match(html, /href="\/app\/"/);
+  assert.match(await (await fetch(base + "/nowhere", {headers:{Accept:"text/html"}})).text(), /Esta página no existe\./);
+  const json = await fetch(base + "/nowhere"); assert.equal(json.status, 404); assert.deepEqual(await json.json(), {error:"Not found"});
+  const api = await fetch(base + "/api/nowhere", {headers:{Accept:"text/html"}}); assert.equal(api.status, 404); assert.deepEqual(await api.json(), {error:"Not found"});
+});
