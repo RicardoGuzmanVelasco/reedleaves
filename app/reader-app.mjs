@@ -20,7 +20,7 @@ import {createBrowserStore, storageKeys as keys} from "./storage.mjs";
 import {createNoteDrafts} from "./note-drafts.mjs";
 import {createAccountClient} from "./account-client.mjs";
 import {words} from "./i18n.mjs?v=evergreen-2";
-import {sharedCardView,homeView,bookstoreView,bookstoreResultsMarkup,libraryView,dailyView,practiceView,deckView,readingGuidesView,guideReviewQueueView,readingGuideDeckPreviewView,deckPeekView,deckPageView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,notFoundView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=profile-wake-cleanup";
+import {sharedCardView,homeView,bookstoreView,bookstoreResultsMarkup,libraryView,dailyIdeaView,practiceView,deckView,readingGuidesView,guideReviewQueueView,readingGuideDeckPreviewView,deckPeekView,deckPageView,presentationCardMarkup,savedCardsView,mascotsView,authorView,authorFormView,deckCompletionView,notesCompletionView,profileView,profilePendingView,loadingView,notFoundView,accountView,escapeHtml,takeNoteIconMarkup,calendarIconMarkup,bottomNavigationProfileIconMarkup,bookDuplicateSuggestionsMarkup,bookInterestWarningView} from "./views.mjs?v=profile-wake-cleanup";
 import {missingBookInformation,normalizeBookMetadata} from "./book-metadata.mjs";
 import {findBookTitleMatches} from "./book-duplicates.mjs";
 import {filterBookstore,bookstoreDefaults} from "./book-search.mjs";
@@ -83,7 +83,7 @@ export function startReader({createCardFeatures} = {}) {
   const presentReading = createReadingArrival();
   const practicePresentation = createPracticePresentation({presentReading});
   let sharedContentLanguage=null;
-  let language = restoreLanguage(store.read(keys.language)), catalog, catalogIsFull=false,homeBooksUserId=null,homeBooksData=[],homeBooksRequest=null,fullCatalogRequest=null,sharedCard=null,sharedCardRequest=null,practiceCatalog=null,practiceStateUserId=null,snapshot = {user:null}, budget, preferences, statuses, dailyIdea, dailyHistory=[],dailyStatus=null,dailyStatusRequest=null,dailyStatusGeneration=0,dailySeenDays=new Set(),dailyLoading=false, selectedDailyDay=null, dailyExclusiveCardId=null, calendarMonth=null,calendarNavFocus=null,bookId, deckId, requestedId, cardcaseDeckIds;
+  let language = restoreLanguage(store.read(keys.language)), catalog, catalogIsFull=false,homeBooksUserId=null,homeBooksData=[],homeBooksRequest=null,fullCatalogRequest=null,sharedCard=null,sharedCardRequest=null,practiceCatalog=null,practiceStateUserId=null,snapshot = {user:null}, budget, preferences, statuses, dailyIdea, dailyIdeaHistory=[],dailyIdeaStatus=null,dailyIdeaStatusRequest=null,dailyIdeaStatusGeneration=0,dailyIdeaSeenDays=new Set(),dailyIdeaLoading=false, selectedDailyIdeaDay=null, dailyIdeaCardId=null, calendarMonth=null,calendarNavFocus=null,bookId, deckId, requestedId, cardcaseDeckIds;
   let tintMode=coverTintMode(store.read(keys.coverTint)),homeCoverInterests=[];
   let bookSortOrder=validVisitorBookSortOrder(store.read(keys.visitorBookSort))?store.read(keys.visitorBookSort):"recent";
   let bookstoreSortOrder=bookSortOrder,interestPreferences=null,interestPreferencesRequest=null,bookstoreInterestSortPending=false,bookstoreInterestSortError=false,bookstoreInterestSortGeneration=0;
@@ -233,7 +233,7 @@ export function startReader({createCardFeatures} = {}) {
     }
     authoritativeStateGeneration++;
     if(captureGrowth && snapshot.user?.id && snapshot.user.id===state.user?.id) pendingGrowthFeedback.push(...growthFeedbackChanges(snapshot.growth,state.growth));
-    if (snapshot.user?.id !== state.user?.id) { dailyStatus=null;dailyStatusGeneration++;dailyStatusRequest=null;dailySeenDays.clear();bookstoreVisitId=null;bookstoreNewBookIds=[];homeInterestPreferences=null;homeInterestPreferencesUserId=null;homeInterestPreferencesRequest=null;homeInterestPreferencesGeneration++; }
+    if (snapshot.user?.id !== state.user?.id) { dailyIdeaStatus=null;dailyIdeaStatusGeneration++;dailyIdeaStatusRequest=null;dailyIdeaSeenDays.clear();bookstoreVisitId=null;bookstoreNewBookIds=[];homeInterestPreferences=null;homeInterestPreferencesUserId=null;homeInterestPreferencesRequest=null;homeInterestPreferencesGeneration++; }
     if (snapshot.user?.id !== state.user?.id) {
       deckLanguageError=null;deckTitleEdit=null;deckContributorError=null;deckContributorInput="";
       persistNoteDraft(); authorForm=null; noteDestination=null; deckCompletion=null; notesCompletion=null; bookStatusError=null;
@@ -262,7 +262,7 @@ export function startReader({createCardFeatures} = {}) {
   function refreshState() {
     budget = snapshot.wallet || {balance:0,lastAccrualDay:snapshot.today || localDay()};
     cardcaseDeckIds = snapshot.cardcaseDeckIds || [];
-    dailyIdea = snapshot.dailyIdea || null; dailyHistory=snapshot.dailyHistory||[];
+    dailyIdea = snapshot.dailyIdea || null; dailyIdeaHistory=snapshot.dailyIdeaHistory||[];
     if (!catalog) return;
     statuses = Object.fromEntries(catalog.books.map(book=>[book.id,snapshot.statuses?.[book.id] || "unread"]));
   }
@@ -349,9 +349,9 @@ export function startReader({createCardFeatures} = {}) {
     const navigation=document.getElementById("main-navigation"),signedIn=!!snapshot.user;
     navigation.hidden=!signedIn;document.body.classList.toggle("has-bottom-navigation",signedIn);
     navigation.setAttribute("aria-label",c.navigation);
-    const profileIcon=document.getElementById("nav-profile-icon"),dailyIcon=document.getElementById("nav-daily-idea-icon");
+    const profileIcon=document.getElementById("nav-profile-icon"),dailyIdeaIcon=document.getElementById("nav-daily-idea-icon");
     if(!profileIcon.firstElementChild)profileIcon.innerHTML=bottomNavigationProfileIconMarkup();
-    if(!dailyIcon.firstElementChild)dailyIcon.innerHTML=calendarIconMarkup();
+    if(!dailyIdeaIcon.firstElementChild)dailyIdeaIcon.innerHTML=calendarIconMarkup();
     document.getElementById("nav-home-label").textContent=c.navHome;
     document.getElementById("nav-bookstore-label").textContent=c.navBookstore;
     document.getElementById("nav-library-label").textContent=c.navLibrary;
@@ -428,7 +428,7 @@ export function startReader({createCardFeatures} = {}) {
   function showBusyFeedback(verb="Working") {
     const trigger=busyTrigger&&document.contains(busyTrigger)&&performance.now()-busyTriggerAt<BUSY_TRIGGER_WINDOW_MS?busyTrigger:null;
     if(trigger&&!busyMarked){busyMarked=trigger;trigger.setAttribute("data-busy-trigger","");}
-    if(busyOverlay||busyOverlayTimer||navigationPending||dailyLoading)return;
+    if(busyOverlay||busyOverlayTimer||navigationPending||dailyIdeaLoading)return;
     const label=words[language]["busy"+verb];
     busyOverlayTimer=setTimeout(()=>{
       busyOverlayTimer=null;
@@ -546,15 +546,15 @@ export function startReader({createCardFeatures} = {}) {
     refreshState(); header();
     if (["deck","author"].includes(mode) && previewDeckId !== deckId) { deckPreview=false;previewColumns=2;previewDeckId=deckId; }
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
-    const selectedDaily=dailyHistory.find(item=>item.day===selectedDailyDay)||dailyIdea;
+    const selectedDailyIdea=dailyIdeaHistory.find(item=>item.day===selectedDailyIdeaDay)||dailyIdea;
     if(mode==="practice"&&practiceStage==="choose"&&!snapshot.activePracticeSession&&snapshot.user&&discoverAvailability.state.status==="idle")void discoverAvailability.load();
-    const state = {discoverAvailability:discoverAvailability.state,practiceStarting:practiceStartRequest?.practiceMode||null,presentationLayout,presentationIndex,bookViews,userId:snapshot.user?.id,user:snapshot.user,guideReviewPendingCount,guideReviewQueue,guideReviewLoading,guideReviewError,guideReviewRejectingId,guideReviewExpandedId,guideReviewReason,guideReviewNotice,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,deckContributorError,deckContributorInput,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,interests:catalog?.interests||homeCoverInterests,homeBooks:homeBooksData,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},dailyIdea:selectedDaily,dailyToday:dailyIdea,dailyHistory,dailyStatus,dailyLoading,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountMode:snapshot.practiceDiscountMode,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
+    const state = {discoverAvailability:discoverAvailability.state,practiceStarting:practiceStartRequest?.practiceMode||null,presentationLayout,presentationIndex,bookViews,userId:snapshot.user?.id,user:snapshot.user,guideReviewPendingCount,guideReviewQueue,guideReviewLoading,guideReviewError,guideReviewRejectingId,guideReviewExpandedId,guideReviewReason,guideReviewNotice,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,deckContributorError,deckContributorInput,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,interests:catalog?.interests||homeCoverInterests,homeBooks:homeBooksData,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},dailyIdea:selectedDailyIdea,dailyIdeaToday:dailyIdea,dailyIdeaHistory,dailyIdeaStatus,dailyIdeaLoading,selectedDailyIdeaDay,dailyIdeaCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountMode:snapshot.practiceDiscountMode,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
       sharedContentLanguage:mode === "shared-card" ? sharedContentLanguage : null,deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,readingGuidePromptBookId,readingGuideError,readingGuideDraft,bookstoreQuery,bookstoreFilters,bookstoreFiltersOpen,bookstoreFilterDraft,bookstoreSortDraft,bookSortOrder,bookstoreSortOrder,interestPreferences,bookstoreInterestSortPending,bookstoreInterestSortError,libraryTab,bookOrigin,bookstoreOrigin,sourcesOpen,cardcaseDeckIds,
       profileData,profileError,profileInterests,profileLanguages,homeInterestPreferences,bookInterestPrompt,readOnly:mode === "public-library",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,accountLearningNotice,accountInterestSortNotice,bookstoreNewBookIds,injectHeaderLeading:setHeaderLeading,profileReturnHash,showProfileBack:snapshot.user&&usefulProfileReturnHash(profileReturnHash)};
     state.catalog=viewCatalog()||state.catalog;
     presentationState=state;
     const markup = (syncError ? callout({variant:"error",role:"alert",className:"sync-note",content:`<p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p>`,actions:`<button class="text-button" type="button" data-action="sync">${words[language].refresh}</button>`}) : "") +
-      (mode === "shared-card" ? sharedCardView(state) : mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "not-found" ? notFoundView(state) : mode === "guide-reviews" ? guideReviewQueueView(state) : mode === "bookstore" ? bookstoreView(state) : mode === "library" ? libraryView(state) : mode === "public-library" ? (profileData ? libraryView(state) : profilePendingView(state)) : mode === "profile-loading-preview" ? profilePendingView(state) : mode === "profile" ? profileView(state) : mode === "daily-idea" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "guides" ? readingGuidesView(state) : mode === "guide-preview" ? readingGuideDeckPreviewView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : deckPageView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "") + bookInterestWarningView(state);
+      (mode === "shared-card" ? sharedCardView(state) : mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "not-found" ? notFoundView(state) : mode === "guide-reviews" ? guideReviewQueueView(state) : mode === "bookstore" ? bookstoreView(state) : mode === "library" ? libraryView(state) : mode === "public-library" ? (profileData ? libraryView(state) : profilePendingView(state)) : mode === "profile-loading-preview" ? profilePendingView(state) : mode === "profile" ? profileView(state) : mode === "daily-idea" ? dailyIdeaView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "guides" ? readingGuidesView(state) : mode === "guide-preview" ? readingGuideDeckPreviewView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : deckPageView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "") + bookInterestWarningView(state);
     replaceMainContent(markup);
     fitOneLineLabels();
     mountInterests(main);
@@ -638,10 +638,10 @@ export function startReader({createCardFeatures} = {}) {
     lockControls();
     updateCardFeatures();
     if (focus) {
-      const dailyFocus=calendarNavFocus ? main.querySelector(`[data-action="daily-month"][data-direction="${calendarNavFocus}"]`) : null;
-      if(dailyFocus){dailyFocus.focus({preventScroll:true});calendarNavFocus=null;}
+      const dailyIdeaFocus=calendarNavFocus ? main.querySelector(`[data-action="daily-idea-month"][data-direction="${calendarNavFocus}"]`) : null;
+      if(dailyIdeaFocus){dailyIdeaFocus.focus({preventScroll:true});calendarNavFocus=null;}
       else main.querySelector(requestedId ? ".exclusive-card-modal #idea-content" : "h1")?.focus({preventScroll:true});
-      if (mode === "deck" && requestedId && scrollToCard) main.querySelector("#idea-content")?.scrollIntoView({block:"start"}); else if(!dailyFocus) window.scrollTo({top:0});
+      if (mode === "deck" && requestedId && scrollToCard) main.querySelector("#idea-content")?.scrollIntoView({block:"start"}); else if(!dailyIdeaFocus) window.scrollTo({top:0});
     }
     if(pendingGrowthFeedback.length && !document.querySelector("dialog[open]")) {
       const dialog=document.getElementById("growth-feedback");
@@ -727,7 +727,7 @@ export function startReader({createCardFeatures} = {}) {
       accountLearningNotice=false;accountInterestSortNotice=false;
     }
     libraryTab=view === "library" && first === "cardcase" ? "cardcase" : "shelf";
-    dailyExclusiveCardId=null;
+    dailyIdeaCardId=null;
     if (view === "bookstore" && first === "book") {
       try { const id=decodeURIComponent(second||""); openBookId=catalog.booksById.has(id)?id:null; } catch { openBookId=null; }
     }
@@ -804,8 +804,8 @@ export function startReader({createCardFeatures} = {}) {
       requestedId = null;
       if (mode === "daily-idea") {
         const routeDay=/^\d{4}-\d{2}-\d{2}$/.test(first||"") ? first : dailyIdea?.day;
-        selectedDailyDay=dailyHistory.some(item=>item.day===routeDay) ? routeDay : dailyIdea?.day || null;
-        calendarMonth=selectedDailyDay?.slice(0,7)||dailyIdea?.day?.slice(0,7)||null;
+        selectedDailyIdeaDay=dailyIdeaHistory.some(item=>item.day===routeDay) ? routeDay : dailyIdea?.day || null;
+        calendarMonth=selectedDailyIdeaDay?.slice(0,7)||dailyIdea?.day?.slice(0,7)||null;
       }
       if (mode === "home" && !snapshot.user) { pendingDeck = null; authReturn = "#home"; }
     }
@@ -819,14 +819,14 @@ export function startReader({createCardFeatures} = {}) {
     if(enteredBookstore) void startBookstoreBookKnowledgeVisit();
     if(shouldLoadInterestPreferences({mode,order:bookSortOrder==="interests"?"interests":bookstoreSortOrder,userId:snapshot.user?.id,preferences:interestPreferences}))void activateInterestSort({persist:false});
     if(returningFromGuidePreview)finishGuidePreviewReturn(returningFromGuidePreview);
-    if(snapshot.user&&!dailyStatus)void refreshDailyStatus();
-    if(mode==="home"&&snapshot.user)void refreshDailyStatus();
+    if(snapshot.user&&!dailyIdeaStatus)void refreshDailyIdeaStatus();
+    if(mode==="home"&&snapshot.user)void refreshDailyIdeaStatus();
     if(snapshot.user)void loadHomeInterestPreferences();
     if (focus && ["bookstore","library"].includes(mode) && listPositions[mode] && !openBookId && !authorForm) {
       window.scrollTo({top:listPositions[mode].scrollY});
       [...main.querySelectorAll('[data-action="open-book-details"]')].find(b=>b.dataset.book === listPositions[mode].bookId)?.focus({preventScroll:true});
     }
-    if (mode === "daily-idea" && snapshot.user && !dailyIdea) ensureDaily();
+    if (mode === "daily-idea" && snapshot.user && !dailyIdea) ensureDailyIdea();
     if (["profile","public-library"].includes(mode) && !profileData && !profileError) loadProfile();
   }
   async function startBookstoreBookKnowledgeVisit() {
@@ -982,21 +982,21 @@ export function startReader({createCardFeatures} = {}) {
     }
   }
   function recordDisplayedCard() {
-    if(mode === "daily-idea" && !dailyExclusiveCardId) return;
+    if(mode === "daily-idea" && !dailyIdeaCardId) return;
     const exclusiveCard=main.querySelector(".exclusive-card-modal [data-reading-card]");
     const cardId=(exclusiveCard || (mode === "daily-idea" ? null : main.querySelector("[data-reading-card]")))?.dataset.readingCard;
     if (!cardId || !snapshot.user || document.hidden || !["daily-idea","deck","author","saved"].includes(mode)) return;
     const context=mode === "deck" ? "practice" : mode,day=context === "daily-idea" ? dailyIdea?.day : null,userId=snapshot.user.id;
-    const key=context === "daily-idea" ? `${snapshot.user.id}:daily-idea:${selectedDailyDay || day}:${cardId}` : `${snapshot.user.id}:${cardId}`;
+    const key=context === "daily-idea" ? `${snapshot.user.id}:daily-idea:${selectedDailyIdeaDay || day}:${cardId}` : `${snapshot.user.id}:${cardId}`;
     if (recordedViews.has(key) || pendingViews.has(key)) return;
     pendingViews.add(key);
-    api.request("/api/reader/view",{cardId,context,...(context === "daily-idea" ? {day:selectedDailyDay || day} : {})}).then(result=>{
+    api.request("/api/reader/view",{cardId,context,...(context === "daily-idea" ? {day:selectedDailyIdeaDay || day} : {})}).then(result=>{
       if(snapshot.user?.id!==userId)return;
       recordedViews.add(key);
       if(result.xpReward)syncReaderXp(userId,undefined,result.xpReward);
       if(context === "daily-idea" && result.seenCurrentDay) {
-        dailySeenDays.add(day);dailyHistory=dailyHistory.map(row=>row.day===day?{...row,seenInDay:true}:row);snapshot={...snapshot,dailyHistory};
-        if(dailyStatus?.day===day) dailyStatus={...dailyStatus,unseen:false};
+        dailyIdeaSeenDays.add(day);dailyIdeaHistory=dailyIdeaHistory.map(row=>row.day===day?{...row,seenInDay:true}:row);snapshot={...snapshot,dailyIdeaHistory};
+        if(dailyIdeaStatus?.day===day) dailyIdeaStatus={...dailyIdeaStatus,unseen:false};
         updateBadges();
         if(mode === "daily-idea") render();
       }
@@ -1005,21 +1005,21 @@ export function startReader({createCardFeatures} = {}) {
   function updateBadges() {
     updateNavigationBadges(document,{language,
       bookstoreCount:snapshot.user?snapshot.pendingNewBookCount:catalog?pendingVisitorBookCount(store,catalog.books.map(book=>book.id)):0,
-      dailyUnseen:!!snapshot.user&&!!dailyStatus?.unseen
+      dailyIdeaUnseen:!!snapshot.user&&!!dailyIdeaStatus?.unseen
     });
     const inbox=document.getElementById("guide-review-inbox"),badge=document.getElementById("guide-review-inbox-count");
     if(inbox&&badge){const enabled=!!snapshot.user?.roles?.includes("archivist"),count=guideReviewPendingCount||0,label=words[language].guideReviewInboxLabel(count);inbox.hidden=!enabled;inbox.setAttribute("aria-label",label);inbox.title=label;inbox.dataset.pending=String(count>0);badge.textContent=count>99?"99+":String(count);badge.hidden=count===0;}
   }
-  async function refreshDailyStatus() {
+  async function refreshDailyIdeaStatus() {
     if(!ready||!snapshot.user)return;
-    if(dailyStatusRequest)return dailyStatusRequest;
-    const userId=snapshot.user.id,generation=++dailyStatusGeneration;
+    if(dailyIdeaStatusRequest)return dailyIdeaStatusRequest;
+    const userId=snapshot.user.id,generation=++dailyIdeaStatusGeneration;
     const request=api.request("/api/reader/daily-idea-status").then(result=>{
-      if(generation!==dailyStatusGeneration||snapshot.user?.id!==userId)return;
-      const unseen=!!result.unseen&&!dailySeenDays.has(result.day);
-      dailyStatus={day:result.day,unseen};updateBadges();
-    }).catch(()=>{}).finally(()=>{if(dailyStatusRequest===request)dailyStatusRequest=null;});
-    dailyStatusRequest=request;return request;
+      if(generation!==dailyIdeaStatusGeneration||snapshot.user?.id!==userId)return;
+      const unseen=!!result.unseen&&!dailyIdeaSeenDays.has(result.day);
+      dailyIdeaStatus={day:result.day,unseen};updateBadges();
+    }).catch(()=>{}).finally(()=>{if(dailyIdeaStatusRequest===request)dailyIdeaStatusRequest=null;});
+    dailyIdeaStatusRequest=request;return request;
   }
   function restorePracticeSession(session=snapshot.activePracticeSession) {
     return restorePracticeSessionFromState(session,catalog?.cardsById||practiceCatalog?.cardsById,{introSession:practiceIntroSession});
@@ -1222,8 +1222,8 @@ export function startReader({createCardFeatures} = {}) {
     history.replaceState({bookOrigin,bookstoreOrigin},"",hash); route(false); restoreAlbumPosition(cardId);
   }
   function closeExclusive() {
-    if (mode === "daily-idea" && dailyExclusiveCardId) {
-      dailyExclusiveCardId=null;render();main.querySelector(`[data-action="daily-date"][data-day="${selectedDailyDay}"]`)?.focus({preventScroll:true});return;
+    if (mode === "daily-idea" && dailyIdeaCardId) {
+      dailyIdeaCardId=null;render();main.querySelector(`[data-action="daily-idea-date"][data-day="${selectedDailyIdeaDay}"]`)?.focus({preventScroll:true});return;
     }
     if (mode === "saved" || mode === "guides" || ["deck","author"].includes(mode) && deckId) { returnToAlbum(); return; }
   }
@@ -1710,7 +1710,7 @@ export function startReader({createCardFeatures} = {}) {
       } else if (path === "/api/reader/open") {
         loadCatalog().then(updatedCatalog=>{catalog=updatedCatalog;if(!busy)render();}).catch(()=>{});
       }
-      refreshState(); if(path === "/api/reader/daily-idea" && mode === "daily-idea") { selectedDailyDay=snapshot.dailyIdea?.day||null;calendarMonth=selectedDailyDay?.slice(0,7)||null; } onSuccess?.(result); return true;
+      refreshState(); if(path === "/api/reader/daily-idea" && mode === "daily-idea") { selectedDailyIdeaDay=snapshot.dailyIdea?.day||null;calendarMonth=selectedDailyIdeaDay?.slice(0,7)||null; } onSuccess?.(result); return true;
     } catch(error) { syncError = error.status === 401 ? "sessionExpired" : error.code || "connectionError";
       if (error.status === 409) { try { applyState(await api.request("/api/reader/state")); } catch { /* Keep the last known state; retry remains idempotent. */ } }
       if (error.status === 401) { snapshot = {user:null}; authReturn = location.hash; mode = "account"; } return false;
@@ -1854,11 +1854,11 @@ export function startReader({createCardFeatures} = {}) {
     const cards=catalog.deckModels.get(deckId)?.cards||[],target=adjacentCard(cards,requestedId,direction);
     if(target)void openCard(target,deckId);
   }
-  async function ensureDaily() {
-    if(busy||dailyLoading)return;
-    dailyLoading=true;render();
+  async function ensureDailyIdea() {
+    if(busy||dailyIdeaLoading)return;
+    dailyIdeaLoading=true;render();
     try { await mutation("/api/reader/daily-idea",{}); }
-    finally { dailyLoading=false;if(mode==="daily-idea")render(); }
+    finally { dailyIdeaLoading=false;if(mode==="daily-idea")render(); }
   }
   async function sync(force = false) {
     if (!ready || busy || navigationPending || hasPendingPracticeOperation({startRequest:practiceStartRequest,answerRequest:practiceAnswerRequest,recoveryRequest:practiceRecoveryRequest}) || cardFeatures?.pending || !force && (main.querySelector("[data-account-form]") || document.activeElement?.id === "book-search" || document.activeElement?.matches("[data-bookstore-filter]") || main.querySelector(".deck-modal") || mode === "author" || settings.open)) return;
@@ -2269,14 +2269,14 @@ export function startReader({createCardFeatures} = {}) {
         navigate("#bookstore"); break;
       case "library": navigate(b.dataset.tab === "cardcase" ? "#library/cardcase" : "#library"); break;
       case "daily-idea": navigate("#daily-idea"); break;
-      case "daily-date": {
-        const day=b.dataset.day,selected=dailyHistory.find(item=>item.day===day);
+      case "daily-idea-date": {
+        const day=b.dataset.day,selected=dailyIdeaHistory.find(item=>item.day===day);
         if(!selected?.id||!catalog.cardsById.has(selected.id))break;
         navigate("#daily-idea/"+day);
-        dailyExclusiveCardId=selected.id;render();
+        dailyIdeaCardId=selected.id;render();
         break;
       }
-      case "daily-month": calendarNavFocus=b.dataset.direction;calendarMonth=b.dataset.month;render();break;
+      case "daily-idea-month": calendarNavFocus=b.dataset.direction;calendarMonth=b.dataset.month;render();break;
       case "open-book": openBook(b.dataset.book); break;
       case "open-reading-guides": readingGuidePromptBookId=null;noteNudgeBookId=null;bookId=b.dataset.book;requestedId=null;navigate("#guides/"+encodeURIComponent(bookId));break;
       case "open-reading-guide-preview": bookId=b.dataset.book;requestedId=null;navigate("#guide-preview/"+encodeURIComponent(bookId));break;
@@ -2310,8 +2310,8 @@ export function startReader({createCardFeatures} = {}) {
     deckLanguageError=null;deckTitleEdit=null;deckContributorError=null;deckContributorInput="";
     const cardId=requestedId,returning=cardId && location.hash === "#"+mode+"/"+(mode === "saved" ? bookId : deckId);
     persistNoteDraft(); authorForm = null; deckCompletion=null; route(!returning); if (returning) restoreAlbumPosition(cardId);
-  }); document.addEventListener("visibilitychange",()=>{ if (document.hidden) persistNoteDraft(); else { updateCurrencyCountdown();recordDisplayedCard();sync();refreshDailyStatus();loadGuideReviewCount(true); } });
+  }); document.addEventListener("visibilitychange",()=>{ if (document.hidden) persistNoteDraft(); else { updateCurrencyCountdown();recordDisplayedCard();sync();refreshDailyIdeaStatus();loadGuideReviewCount(true); } });
   window.addEventListener("pagehide",persistNoteDraft);
   window.addEventListener("resize",positionNoteDestination);window.addEventListener("scroll",positionNoteDestination,{passive:true});
-  window.addEventListener("focus",()=>{sync();refreshDailyStatus();loadGuideReviewCount(true)}); window.addEventListener("online",()=>{if(failed==="offline"&&!ready){void load();return;}sync();refreshDailyStatus();loadGuideReviewCount(true)}); setInterval(()=>{ if (!document.hidden) {sync();refreshDailyStatus();loadGuideReviewCount(true)} },30000); setInterval(()=>{if(!document.hidden)updateCurrencyCountdown()},60000); load();
+  window.addEventListener("focus",()=>{sync();refreshDailyIdeaStatus();loadGuideReviewCount(true)}); window.addEventListener("online",()=>{if(failed==="offline"&&!ready){void load();return;}sync();refreshDailyIdeaStatus();loadGuideReviewCount(true)}); setInterval(()=>{ if (!document.hidden) {sync();refreshDailyIdeaStatus();loadGuideReviewCount(true)} },30000); setInterval(()=>{if(!document.hidden)updateCurrencyCountdown()},60000); load();
 }

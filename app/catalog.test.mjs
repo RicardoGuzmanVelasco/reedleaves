@@ -7,7 +7,7 @@ import { readSeed } from "../server/seed.mjs";
 import { readCatalog } from "../server/catalog-repository.mjs";
 import { prepareCatalog, loadCatalog } from "./catalog.mjs";
 import { createBrowserStore, storageKeys } from "./storage.mjs";
-import { dailyView, deckPageView, bookstoreView, mascotsView, deckView, homeView, authorView } from "./views.mjs";
+import { dailyIdeaView, deckPageView, bookstoreView, mascotsView, deckView, homeView, authorView } from "./views.mjs";
 import { readerState } from "../test-support/reader-state.mjs";
 
 async function payload() {
@@ -73,15 +73,15 @@ test("Storage preserves v2 book keys, reads live changes and fails closed withou
 });
 test("Views expose every review card and preserve book attribution", async () => {
   const catalog=prepareCatalog(await payload()),deckId="atomic-habits-editorial";
-  const state = { catalog, deckId, language: "es", bookId: "atomic-habits", requestedId: "atomic-8", dailyIdea: { id: "rich-dad-2", bookId: "rich-dad-poor-dad", day:"2026-10-06" },dailyToday:{day:"2026-10-06"},dailyHistory:[{id:"rich-dad-2",bookId:"rich-dad-poor-dad",day:"2026-10-06",seenInDay:true}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",
+  const state = { catalog, deckId, language: "es", bookId: "atomic-habits", requestedId: "atomic-8", dailyIdea: { id: "rich-dad-2", bookId: "rich-dad-poor-dad", day:"2026-10-06" },dailyIdeaToday:{day:"2026-10-06"},dailyIdeaHistory:[{id:"rich-dad-2",bookId:"rich-dad-poor-dad",day:"2026-10-06",seenInDay:true}],selectedDailyIdeaDay:"2026-10-06",calendarMonth:"2026-10",
     statuses: {}, today: "2026-10-06", storageAvailable: true };
-  const dailyIdea = dailyView(state);
-  assert.match(dailyIdea,/data-action="daily-date"/); assert.match(dailyIdea, /daily-calendar/);assert.match(dailyIdea,/data-day="2026-10-06"/);
-  assert.doesNotMatch(dailyIdea,/data-action="open-daily-card"|data-action="enter-review"/);
-  assert.match(dailyView({...state,dailyExclusiveCardId:"rich-dad-2"}),/Robert T\. Kiyosaki/);
-  assert.match(dailyIdea,/daily-calendar-seen/);assert.match(dailyIdea,/Vista durante su día/);
-  const home=homeView({...state,dailyStatus:{day:"2026-10-06",unseen:true,animate:true}});
-  assert.doesNotMatch(home,/data-action="daily-idea"|daily-new-badge|daily-badge-entering/);
+  const dailyIdea = dailyIdeaView(state);
+  assert.match(dailyIdea,/data-action="daily-idea-date"/); assert.match(dailyIdea, /daily-idea-calendar/);assert.match(dailyIdea,/data-day="2026-10-06"/);
+  assert.doesNotMatch(dailyIdea,/data-action="open-daily-idea-card"|data-action="enter-review"/);
+  assert.match(dailyIdeaView({...state,dailyIdeaCardId:"rich-dad-2"}),/Robert T\. Kiyosaki/);
+  assert.match(dailyIdea,/daily-idea-calendar-seen/);assert.match(dailyIdea,/Vista durante su día/);
+  const home=homeView({...state,dailyIdeaStatus:{day:"2026-10-06",unseen:true,animate:true}});
+  assert.doesNotMatch(home,/data-action="daily-idea"|daily-idea-new-badge|daily-idea-badge-entering/);
   assert.doesNotMatch(dailyIdea,/data-source=|source-content|exclusive-card-modal/);
   assert.doesNotMatch(dailyIdea,/data-book-status=/);
   assert.doesNotMatch(bookstoreView(state),/data-book-status=/);

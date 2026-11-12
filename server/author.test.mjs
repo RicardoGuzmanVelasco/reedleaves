@@ -12,7 +12,7 @@ import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {readReaderState as readReaderStateAtDate,openDeck,openCard,dailyIdea,changeReading} from "./reader-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
 import {featuredDecks} from "../app/decks.mjs";
-import {authorView,authorFormView,deckPageView,dailyView,bookstoreView,deckView} from "../app/views.mjs";
+import {authorView,authorFormView,deckPageView,dailyIdeaView,bookstoreView,deckView} from "../app/views.mjs";
 import {bookMetadata} from "./fixtures/book-autofill.mjs";
 import {mergeBooks} from "./book-merge.mjs";
 
@@ -321,8 +321,8 @@ for (const dialect of ["sqlite","postgres"]) {
     await openCard(db,session,deckId,childQuote.cardId,new Date("2026-10-15T12:00:00Z"));
     assert.equal("practices" in await readReaderState(db,session),false);
     await takeNote(db,session,add("Plus tard"));
-    const otherDaily=await dailyIdea(db,other,now);
-    assert.ok(prepareCatalog(await readCatalog(db,other.user_id)).cardsById.has(otherDaily.dailyIdea.id));
+    const otherDailyIdea=await dailyIdea(db,other,now);
+    assert.ok(prepareCatalog(await readCatalog(db,other.user_id)).cardsById.has(otherDailyIdea.dailyIdea.id));
     assert.equal("practices" in await readReaderState(db,other,now),false);
     await assert.rejects(takeNote(db,session,{...add("x"),deckId:"seven-habits-editorial"}),e=>e.code==="deckReadOnly");
     const ui={catalog,deckId,bookId:"seven-habits",language:"es",userId:session.user_id,mode:"author",requestedId:quote.cardId,budget:state.wallet,today:state.today,storageAvailable:true};
@@ -332,7 +332,7 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.match(deckPageView({...ui,mode:"deck",requestedId:null}),/Citas sin clasificar/);
     // Existing saved titles must not reappear in quote views or navigation.
     model.byId.get(quote.cardId).title.fr = "Ancien titre";
-    for (const html of [authorView(ui),deckPageView({...ui,mode:"deck"}),dailyView({...ui,dailyIdea:{id:quote.cardId,day:"2026-10-06"},dailyExclusiveCardId:quote.cardId})]) {
+    for (const html of [authorView(ui),deckPageView({...ui,mode:"deck"}),dailyIdeaView({...ui,dailyIdea:{id:quote.cardId,day:"2026-10-06"},dailyIdeaCardId:quote.cardId})]) {
       const quoteMarkup=html.match(/<article class="idea-card quote-card">[\s\S]*?<\/article>/)?.[0];
       assert.ok(quoteMarkup); assert.doesNotMatch(quoteMarkup,/<h[1-6]\b/);
       assert.doesNotMatch(html,/Ancien titre/);

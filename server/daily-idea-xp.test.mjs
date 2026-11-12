@@ -7,7 +7,7 @@ import {recordCardView} from "./profile-repository.mjs";
 const at=iso=>new Date(iso);
 async function fixture(t,dialect) {
   const db=await historicalDatabase(t,dialect,dialect === "sqlite" ? 55 : 47);
-  const reader=await historicalReader(db,`daily-xp-${dialect}`);
+  const reader=await historicalReader(db,`daily-idea-xp-${dialect}`);
   const other=await historicalReader(db,`other-daily-xp-${dialect}`);
   await initializeDatabase(db);
   return {db,reader,other};

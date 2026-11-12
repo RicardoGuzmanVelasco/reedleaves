@@ -20,7 +20,7 @@ Referencias para las opciones de cada punto.
 | --- | --- | --- |
 | **A** | Botón en curso: spinner o puntos dentro del botón pulsado, `aria-busy="true"`, el resto de controles quedan deshabilitados. | `.spinner` en el autorrelleno del libro. |
 | **B** | Capa de bloqueo suave: velo translúcido sobre `main` con Brote (mascota) y `role="status"`, solo si la espera supera el umbral. | Mascota dormida del perfil; `.opening-loading`. |
-| **C** | Placeholder en la zona que carga: esqueleto o mascota pequeña con el texto existente, en lugar del contenido vacío o falso. | `profilePendingView`, `dailyLoading`. |
+| **C** | Placeholder en la zona que carga: esqueleto o mascota pequeña con el texto existente, en lugar del contenido vacío o falso. | `profilePendingView`, `dailyIdeaLoading`. |
 | **D** | Estado intermedio de dato: distinguir «cargando» de «vacío» o «cero» (guion, esqueleto o nada) hasta que llegue la respuesta. | `record.loaded` en `CardActions`. |
 | **E** | Aviso de lentitud + reintento: tras el umbral, mostrar texto y botón «Reintentar»; al fallar, estado de error con salida. | `loadingView(failed)`, `sync-note` con reintento. |
 | **F** | Navegación optimista: pintar ya la pantalla destino con su placeholder (C) y rellenar al llegar. | Ninguno. |
@@ -203,9 +203,9 @@ La base es `lockControls` (~373): `busy` solo pone `aria-busy` y deshabilita con
 - **Futuro, parte 4:** que `practice/start` devuelva las 5 tarjetas con sus libros y barajas, y el cliente no necesite el catálogo completo. La tarjeta de práctica enlaza libro, autor, baraja y usuario (`cardAttribution`), así que exige un catálogo parcial en el cliente. Hoy la precarga ya esconde esa carga tras la elección de modo.
 
 ### 23. Diario
-- **Dónde:** `dailyLoading`, `daily-status`, calendario.
+- **Dónde:** `dailyIdeaLoading`, `daily-idea-status`, calendario.
 - **Qué pasa:** el texto existe, pero el estado y el calendario cargan en silencio.
-- **Opciones:** **C** en el calendario hasta que llegue `dailyStatus`; **D** para días aún no confirmados.
+- **Opciones:** **C** en el calendario hasta que llegue `dailyIdeaStatus`; **D** para días aún no confirmados.
 
 ---
 

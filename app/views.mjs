@@ -18,7 +18,7 @@ import {loadingPlaceholder} from "./loading-placeholder.mjs";
 import {readerLevelName} from "./reader-level-name.mjs";
 import {missingBookInformation,TRANSLATION_FIELDS} from "./book-metadata.mjs";
 import {defaultNoteDeckTitle} from "./note-defaults.mjs";
-import {dailyIdeaStreak} from "./daily-streak.mjs";
+import {dailyIdeaStreak} from "./daily-idea-streak.mjs";
 import {DECK_ADD_COST} from "./wallet.mjs";
 import {interestIcon,interestColor,readerInterestSelector} from "./interests.mjs";
 import {interestChoicePresentation,nextLabel} from "./interest-choice.mjs";
@@ -480,35 +480,35 @@ export function sharedCardView(s) {
   return `<section class="shared-card-screen"><p class="shared-card-deck" lang="${esc(contentLocale(deck.title,s.language,deck.language))}">${esc(title)}</p>${cardMarkup(s,card,"h1",{linkBook:false})}</section>`;
 }
 
-export function dailyView(s) {
+export function dailyIdeaView(s) {
   const c=words[s.language], item=s.dailyIdea, card=item&&s.catalog.cardsById.get(item.id);
   injectPageHeaderTitle(s,calendarIconMarkup(),c.dailyIdea);
-  if(s.dailyLoading&&!card)return loadingPlaceholder(words[s.language].loading);
-  const month=s.calendarMonth||s.dailyToday?.day?.slice(0,7)||new Date().toISOString().slice(0,7);
+  if(s.dailyIdeaLoading&&!card)return loadingPlaceholder(words[s.language].loading);
+  const month=s.calendarMonth||s.dailyIdeaToday?.day?.slice(0,7)||new Date().toISOString().slice(0,7);
   const [year,monthNumber]=month.split("-").map(Number),first=new Date(Date.UTC(year,monthNumber-1,1,12));
   const offset=(first.getUTCDay()+6)%7,daysInMonth=new Date(Date.UTC(year,monthNumber,0,12)).getUTCDate();
-  const history=new Map((s.dailyHistory||[]).map(row=>[row.day,row]));
-  const earliestMonth=[...(s.dailyHistory||[])].map(row=>row.day.slice(0,7)).sort()[0]||month;
+  const history=new Map((s.dailyIdeaHistory||[]).map(row=>[row.day,row]));
+  const earliestMonth=[...(s.dailyIdeaHistory||[])].map(row=>row.day.slice(0,7)).sort()[0]||month;
   const locale=s.language === "es" ? "es-ES" : s.language === "fr" ? "fr-FR" : "en-GB";
   const monthLabel=`${new Intl.DateTimeFormat(locale,{month:"long",timeZone:"UTC"}).format(first)} ${year}`;
   const weekdayLabels=Array.from({length:7},(_,index)=>new Intl.DateTimeFormat(locale,{weekday:"short",timeZone:"UTC"}).format(new Date(Date.UTC(2026,0,5+index,12))));
   const monthShift=(amount)=>{const date=new Date(Date.UTC(year,monthNumber-1+amount,1,12));return date.toISOString().slice(0,7)};
   const cells=Array.from({length:Math.ceil((offset+daysInMonth)/7)*7},(_,index)=>{
     const dayNumber=index-offset+1;
-    if(dayNumber<1||dayNumber>daysInMonth)return '<span class="daily-calendar-empty" aria-hidden="true"></span>';
-    const day=`${month}-${String(dayNumber).padStart(2,"0")}`,saved=history.get(day),today=day===s.dailyToday?.day;
-    if(!saved)return `<span class="daily-calendar-day${today?" is-today":""}" aria-label="${dayNumber}">${dayNumber}</span>`;
+    if(dayNumber<1||dayNumber>daysInMonth)return '<span class="daily-idea-calendar-empty" aria-hidden="true"></span>';
+    const day=`${month}-${String(dayNumber).padStart(2,"0")}`,saved=history.get(day),today=day===s.dailyIdeaToday?.day;
+    if(!saved)return `<span class="daily-idea-calendar-day${today?" is-today":""}" aria-label="${dayNumber}">${dayNumber}</span>`;
     const label=new Intl.DateTimeFormat(locale,{dateStyle:"full",timeZone:"UTC"}).format(new Date(`${day}T12:00:00Z`));
-    const seenLabel=saved.seenInDay?c.dailySeenInDay:today?c.dailyCurrent:c.dailyMissed;
-    const seenIcon=saved.seenInDay?'<svg class="daily-calendar-seen" viewBox="0 0 12 12" aria-hidden="true"><path d="m2 6 2.4 2.4L10 3"/></svg>':"";
-    return `<button type="button" class="daily-calendar-day has-idea${saved.seenInDay?" was-seen-in-day":""}${day===s.selectedDailyDay?" is-selected":""}${today?" is-today":""}" data-action="daily-date" data-day="${day}" aria-label="${esc(label+", "+seenLabel)}" aria-haspopup="dialog" aria-pressed="${day===s.selectedDailyDay}"><span class="daily-calendar-number">${dayNumber}</span>${seenIcon}</button>`;
+    const seenLabel=saved.seenInDay?c.dailyIdeaSeenInDay:today?c.dailyIdeaCurrent:c.dailyIdeaMissed;
+    const seenIcon=saved.seenInDay?'<svg class="daily-idea-calendar-seen" viewBox="0 0 12 12" aria-hidden="true"><path d="m2 6 2.4 2.4L10 3"/></svg>':"";
+    return `<button type="button" class="daily-idea-calendar-day has-idea${saved.seenInDay?" was-seen-in-day":""}${day===s.selectedDailyIdeaDay?" is-selected":""}${today?" is-today":""}" data-action="daily-idea-date" data-day="${day}" aria-label="${esc(label+", "+seenLabel)}" aria-haspopup="dialog" aria-pressed="${day===s.selectedDailyIdeaDay}"><span class="daily-idea-calendar-number">${dayNumber}</span>${seenIcon}</button>`;
   }).join("");
-  const calendar=`<section class="daily-calendar" aria-labelledby="daily-calendar-title"><div class="daily-calendar-heading"><button type="button" class="calendar-nav" data-action="daily-month" data-direction="previous" data-month="${monthShift(-1)}" aria-label="${esc(c.previousMonth)}" ${monthShift(-1)<earliestMonth?"disabled":""}>‹</button><h2 id="daily-calendar-title">${esc(monthLabel)}</h2><button type="button" class="calendar-nav" data-action="daily-month" data-direction="next" data-month="${monthShift(1)}" aria-label="${esc(c.nextMonth)}" ${monthShift(1)>(s.dailyToday?.day?.slice(0,7)||month)?"disabled":""}>›</button></div><div class="daily-calendar-grid" role="group" aria-label="${esc(monthLabel)}">${weekdayLabels.map(label=>`<span class="daily-calendar-weekday">${esc(label)}</span>`).join("")}${cells}</div></section>`;
-  const exclusive=card&&s.dailyExclusiveCardId===card.id?exclusiveCardMarkup(s,card):"";
-  const streak=dailyIdeaStreak(s.dailyHistory,s.dailyToday?.day);
-  const streakStatus=streak.seenToday?c.dailyStreakToday:streak.days?c.dailyStreakContinue:c.dailyStreakStart;
-  const streakMarkup=`<div class="daily-streak" role="status"><img src="${imageUrl("/app/assets/brand/streak-flame.svg")}" alt="" width="42" height="42"><div><strong>${esc(c.dailyStreakDays(streak.days))}</strong><span>${esc(streakStatus)}</span></div></div>`;
-  return `<section class="daily-screen"><h1 class="sr-only" tabindex="-1">${calendarIconMarkup()}<span>${c.dailyIdea}</span></h1>
+  const calendar=`<section class="daily-idea-calendar" aria-labelledby="daily-idea-calendar-title"><div class="daily-idea-calendar-heading"><button type="button" class="calendar-nav" data-action="daily-idea-month" data-direction="previous" data-month="${monthShift(-1)}" aria-label="${esc(c.previousMonth)}" ${monthShift(-1)<earliestMonth?"disabled":""}>‹</button><h2 id="daily-idea-calendar-title">${esc(monthLabel)}</h2><button type="button" class="calendar-nav" data-action="daily-idea-month" data-direction="next" data-month="${monthShift(1)}" aria-label="${esc(c.nextMonth)}" ${monthShift(1)>(s.dailyIdeaToday?.day?.slice(0,7)||month)?"disabled":""}>›</button></div><div class="daily-idea-calendar-grid" role="group" aria-label="${esc(monthLabel)}">${weekdayLabels.map(label=>`<span class="daily-idea-calendar-weekday">${esc(label)}</span>`).join("")}${cells}</div></section>`;
+  const exclusive=card&&s.dailyIdeaCardId===card.id?exclusiveCardMarkup(s,card):"";
+  const streak=dailyIdeaStreak(s.dailyIdeaHistory,s.dailyIdeaToday?.day);
+  const streakStatus=streak.seenToday?c.dailyIdeaStreakToday:streak.days?c.dailyIdeaStreakContinue:c.dailyIdeaStreakStart;
+  const streakMarkup=`<div class="daily-idea-streak" role="status"><img src="${imageUrl("/app/assets/brand/streak-flame.svg")}" alt="" width="42" height="42"><div><strong>${esc(c.dailyIdeaStreakDays(streak.days))}</strong><span>${esc(streakStatus)}</span></div></div>`;
+  return `<section class="daily-idea-screen"><h1 class="sr-only" tabindex="-1">${calendarIconMarkup()}<span>${c.dailyIdea}</span></h1>
     ${calendar}${card ? `${streakMarkup}${exclusive}` : `<div class="empty-state"><p>${s.storageAvailable ? c.empty : c.storage}</p></div>`}
     </section>`;
 }

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {bookTitle,bookCoverTitle} from "./core.mjs";
-import {bookstoreView,bookstoreResultsMarkup,homeView,deckView,deckPageView,dailyView} from "./views.mjs";
+import {bookstoreView,bookstoreResultsMarkup,homeView,deckView,deckPageView,dailyIdeaView} from "./views.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {featuredDecks} from "./decks.mjs";
 import {openDatabase,initializeDatabase} from "../server/database.mjs";
@@ -44,15 +44,15 @@ test("Preferred titles apply across reading views while the popular title stays 
   book.popularTitle="Titre populaire"; book.popularLanguage="fr";
   for (const language of ["es","en"]) {
     book.title[language]="Preferred book title";
-    const localized={...s,language,dailyExclusiveCardId:"habit-1"};
+    const localized={...s,language,dailyIdeaCardId:"habit-1"};
     for (const html of [bookstoreView({...localized,openBookId:s.bookId}),bookstoreResultsMarkup({...localized,bookstoreQuery:"Titre populaire"}),
-      homeView(localized),deckView(localized),deckPageView(localized),deckPageView({...localized,requestedId:"habit-1"}),dailyView(localized)]) {
+      homeView(localized),deckView(localized),deckPageView(localized),deckPageView({...localized,requestedId:"habit-1"}),dailyIdeaView(localized)]) {
       assert.match(html,new RegExp(`lang="${language}" dir="auto"[^>]*>Preferred book title`));
     }
     const details=bookstoreView({...localized,openBookId:s.bookId});
     assert.match(details,/<h2 id="book-dialog-title"[^>]*>Preferred book title<\/h2><p class="book-popular-title" lang="fr" dir="auto">Titre populaire<\/p>/);
     assert.doesNotMatch(details,/Título original|Original title|Título popular|Popular title/);
-    assert.ok(dailyView(localized).includes(s.catalog.cardsById.get("habit-1").body.es));
+    assert.ok(dailyIdeaView(localized).includes(s.catalog.cardsById.get("habit-1").body.es));
   }
   book.popularTitle='<img src=x onerror="bad">';
   const html=bookstoreView({...s,openBookId:s.bookId});

@@ -117,11 +117,11 @@ async function stateInside(db,session,now) {
     .map(r=>[r.book_id,{practiceDays:Number(r.review_days)}]));
   for(const bookId of addedBooks) growth[bookId]={practiceDays:growth[bookId]?.practiceDays||0,added:true};
   for(const value of Object.values(growth)) value.added=!!value.added;
-  const dailyRows=await db.prepare(`SELECT d.day,c.id,c.book_id,v.user_id AS seen_by_user
+  const dailyIdeaRows=await db.prepare(`SELECT d.day,c.id,c.book_id,v.user_id AS seen_by_user
     FROM daily_ideas d JOIN cards c ON c.id=d.card_id
     LEFT JOIN daily_idea_views v ON v.day=d.day AND v.user_id=? ORDER BY d.day DESC`).all(userId);
-  const dailyHistory=dailyRows.map(row=>({day:row.day,id:row.id,bookId:row.book_id,seenInDay:!!row.seen_by_user}));
-  const idea=dailyHistory.find(row=>row.day===ideaDay) || null;
+  const dailyIdeaHistory=dailyIdeaRows.map(row=>({day:row.day,id:row.id,bookId:row.book_id,seenInDay:!!row.seen_by_user}));
+  const idea=dailyIdeaHistory.find(row=>row.day===ideaDay) || null;
   const activityRows=await db.prepare(`SELECT d.id AS deck_id,c.book_id,MAX(c.created_at) AS last_note_at
     FROM decks d JOIN cards c ON c.deck_id=d.id
     WHERE d.creator_user_id=? AND c.created_at IS NOT NULL GROUP BY d.id,c.book_id`).all(userId);
@@ -135,7 +135,7 @@ async function stateInside(db,session,now) {
     noteActivity,noteDeckActivity,shelfBookIds:[...addedBooks],pendingNewBookCount:await pendingNewBookCount(db,userId),
     statuses:Object.fromEntries([...distinguished.map(id=>[id,"to_read"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])]),
     cardcaseDeckIds:(await db.prepare("SELECT deck_id FROM cardcase_decks WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.deck_id),
-    dailyIdea:idea,dailyHistory};
+    dailyIdea:idea,dailyIdeaHistory};
 }
 async function knownDeck(db,deckId,userId) {
   if(typeof deckId!=="string") throw new ApiError(400,"invalidRequest");

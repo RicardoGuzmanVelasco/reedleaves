@@ -5,7 +5,7 @@ import {openDatabase,initializeDatabase} from "../server/database.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
 import {prepareCatalog} from "./catalog.mjs";
-import {profileView,libraryView,dailyView} from "./views.mjs";
+import {profileView,libraryView,dailyIdeaView} from "./views.mjs";
 import {words} from "./i18n.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {toggleProfileInterest} from "./profile-interests.mjs";
@@ -156,8 +156,8 @@ test("Foreign shelf shows target reading/review states without mutation controls
 
 test("Card attributions link to the book, author, deck and creator",async()=>{
   const catalog=await fixture(),card=catalog.allCards[0];
-  const s={catalog,language:"es",dailyIdea:{id:card.id,day:"2026-10-06"},dailyToday:{day:"2026-10-06"},dailyHistory:[{id:card.id,day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",storageAvailable:true};
-  const html=dailyView({...s,dailyExclusiveCardId:card.id}),footer=html.slice(html.indexOf('<footer'),html.indexOf('</footer>'));
+  const s={catalog,language:"es",dailyIdea:{id:card.id,day:"2026-10-06"},dailyIdeaToday:{day:"2026-10-06"},dailyIdeaHistory:[{id:card.id,day:"2026-10-06"}],selectedDailyIdeaDay:"2026-10-06",calendarMonth:"2026-10",storageAvailable:true};
+  const html=dailyIdeaView({...s,dailyIdeaCardId:card.id}),footer=html.slice(html.indexOf('<footer'),html.indexOf('</footer>'));
   assert.match(footer,/#bookstore\/book\//);assert.match(footer,/#bookstore\/author\//);
   assert.ok(footer.includes(`#deck/${encodeURIComponent(card.deckId)}`));
   assert.match(footer,/#profile\/reed-team/);
@@ -166,11 +166,11 @@ test("Card attributions link to the book, author, deck and creator",async()=>{
 
 test("Selected daily calendar day exposes its selected state and green style",async()=>{
   const catalog=await fixture(),card=catalog.allCards[0];
-  const s={catalog,language:"es",dailyIdea:{id:card.id,day:"2026-10-06"},dailyToday:{day:"2026-10-06"},dailyHistory:[{id:card.id,day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",storageAvailable:true};
-  const html=dailyView(s),selected=html.match(/<button[^>]*data-action="daily-date"[^>]*aria-pressed="true"[^>]*>/)?.[0];
+  const s={catalog,language:"es",dailyIdea:{id:card.id,day:"2026-10-06"},dailyIdeaToday:{day:"2026-10-06"},dailyIdeaHistory:[{id:card.id,day:"2026-10-06"}],selectedDailyIdeaDay:"2026-10-06",calendarMonth:"2026-10",storageAvailable:true};
+  const html=dailyIdeaView(s),selected=html.match(/<button[^>]*data-action="daily-idea-date"[^>]*aria-pressed="true"[^>]*>/)?.[0];
   assert.ok(selected,"the selected date remains a semantic pressed button");
   assert.match(selected,/is-selected/);
   const styles=readFileSync(new URL("./reader.css",import.meta.url),"utf8");
-  assert.match(styles,/\.daily-calendar-day\.has-idea:hover:not\(\.is-selected\)\{background:#fff\}/);
-  assert.match(styles,/\.daily-calendar-day\.is-selected\{background:var\(--light\);color:var\(--ink\);/);
+  assert.match(styles,/\.daily-idea-calendar-day\.has-idea:hover:not\(\.is-selected\)\{background:#fff\}/);
+  assert.match(styles,/\.daily-idea-calendar-day\.is-selected\{background:var\(--light\);color:var\(--ink\);/);
 });

@@ -162,7 +162,7 @@ export function localDay(date = new Date()) {
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
 }
 
-export function selectDaily(roots, day, saved, random = Math.random) {
+export function selectDailyIdea(roots, day, saved, random = Math.random) {
   if (!roots.length) return null;
   if (saved?.day === day && roots.some(card => card.id === saved.id)) return { day, id: saved.id };
   const index = Math.min(roots.length - 1, Math.max(0, Math.floor(random() * roots.length)));

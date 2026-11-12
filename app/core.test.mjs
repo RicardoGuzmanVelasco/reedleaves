@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { parseCards, validateCards, selectDaily, localDay, validateBook, contentText } from "./core.mjs";
+import { parseCards, validateCards, selectDailyIdea, localDay, validateBook, contentText } from "./core.mjs";
 
 const text = readFileSync(new URL("./fixtures/v1/seven-habits.ndjson",import.meta.url),"utf8");
 const model = parseCards(text,"seven-habits");
@@ -57,18 +57,18 @@ test("Rechaza orden duplicado, libro incorrecto y texto sin ningún idioma", () 
   assert.throws(()=>parseCards("not json", "seven-habits"));
 });
 test("La tarjeta diaria se conserva durante el mismo día", () => {
-  const first=selectDaily(model.roots,"2026-10-06",null,()=>.4);
-  const reload=selectDaily(model.roots,"2026-10-06",first,()=>.99);
+  const first=selectDailyIdea(model.roots,"2026-10-06",null,()=>.4);
+  const reload=selectDailyIdea(model.roots,"2026-10-06",first,()=>.99);
   assert.deepEqual(reload,first);
 });
 test("Un nuevo día sortea solo entre principales y puede repetir", () => {
   const previous={day:"2026-10-06",id:"habit-1"};
-  assert.equal(selectDaily(model.roots,"2026-10-07",previous,()=>0).id,"habit-1");
-  assert.equal(selectDaily(model.roots,"2026-10-07",previous,()=>.999).id,"habit-7");
-  assert.equal(selectDaily([], "2026-10-07",null),null);
+  assert.equal(selectDailyIdea(model.roots,"2026-10-07",previous,()=>0).id,"habit-1");
+  assert.equal(selectDailyIdea(model.roots,"2026-10-07",previous,()=>.999).id,"habit-7");
+  assert.equal(selectDailyIdea([], "2026-10-07",null),null);
 });
 test("Una selección diaria inválida se recupera y el día usa fecha local", () => {
-  assert.equal(selectDaily(model.roots,"2026-10-06",{day:"2026-10-06",id:"missing"},()=>0).id,"habit-1");
+  assert.equal(selectDailyIdea(model.roots,"2026-10-06",{day:"2026-10-06",id:"missing"},()=>0).id,"habit-1");
   assert.equal(localDay(new Date(2026,9,6,23,59)),"2026-10-06");
   assert.equal(localDay(new Date(2026,9,7,0,0)),"2026-10-07");
 });

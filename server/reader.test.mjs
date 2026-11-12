@@ -171,7 +171,7 @@ test("One daily idea is shared and daily assignment does not create a card view"
   assert.deepEqual((await dailyIdea(db,a,today)).dailyIdea,first.dailyIdea);
   const next=await dailyIdea(db,a,date("2026-10-07"));assert.ok(next.dailyIdea.id);assert.equal(next.dailyIdea.day,"2026-10-07");
   const other=await readReaderState(db,b,today);
-  assert.deepEqual(other.dailyIdea,first.dailyIdea);assert.deepEqual(other.dailyHistory.map(row=>row.day),["2026-10-07","2026-10-06"]);
+  assert.deepEqual(other.dailyIdea,first.dailyIdea);assert.deepEqual(other.dailyIdeaHistory.map(row=>row.day),["2026-10-07","2026-10-06"]);
   assert.equal(db.prepare("SELECT count(*) AS n FROM card_views").get().n,0);
 });
 test("Daily idea follows each account's 06:00 local cycle date",async t=>{
@@ -194,12 +194,12 @@ test("Daily status is non-generating and only marks the account's assigned idea 
   await recordCardView(db,a,{cardId,context:"daily-idea"},day1);
   assert.equal((await dailyIdeaStatus(db,a,day1)).unseen,false);
   assert.equal((await dailyIdeaStatus(db,b,day1)).unseen,true);
-  assert.equal((await readReaderState(db,a,day1)).dailyHistory[0].seenInDay,true);
+  assert.equal((await readReaderState(db,a,day1)).dailyIdeaHistory[0].seenInDay,true);
   await dailyIdea(db,a,day2);
   await recordCardView(db,a,{cardId,context:"daily-idea"},day2);
   assert.equal((await dailyIdeaStatus(db,a,day2)).unseen,true);
-  assert.equal((await readReaderState(db,a,day2)).dailyHistory.find(row=>row.day==="2026-10-06").seenInDay,true);
-  assert.equal((await readReaderState(db,a,day2)).dailyHistory.find(row=>row.day==="2026-10-07").seenInDay,false);
+  assert.equal((await readReaderState(db,a,day2)).dailyIdeaHistory.find(row=>row.day==="2026-10-06").seenInDay,true);
+  assert.equal((await readReaderState(db,a,day2)).dailyIdeaHistory.find(row=>row.day==="2026-10-07").seenInDay,false);
 });
 test("Account date handles time zones and DST; older server time does not change wallet accrual",async t=>{
   assert.equal(serverDay("Europe/Madrid",new Date("2026-10-06T22:30:00Z")),"2026-10-07");

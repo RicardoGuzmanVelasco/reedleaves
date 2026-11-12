@@ -15,7 +15,7 @@ function fixture(){
 test("both navigation badges share one noninteractive mark and localized accessible status",()=>{
   for(const language of ["es","en"]){
     const {root,links}=fixture();
-    updateNavigationBadges(root,{language,bookstoreCount:1234,dailyUnseen:true});
+    updateNavigationBadges(root,{language,bookstoreCount:1234,dailyIdeaUnseen:true});
     const bookstore=links.get("bookstore"),dailyIdea=links.get("daily-idea");
     assert.match(bookstore.attributes.get("aria-label"),/1234/);
     assert.match(bookstore.attributes.get("aria-label"),language==="es"?/Librería.*libros nuevos/:/Bookstore.*new books/);
@@ -23,7 +23,7 @@ test("both navigation badges share one noninteractive mark and localized accessi
     assert.equal(bookstore.children[0].className,dailyIdea.children[0].className);
     assert.equal(bookstore.children[0]["aria-hidden"],"true");
     const mark=bookstore.children[0];
-    updateNavigationBadges(root,{language,bookstoreCount:1,dailyUnseen:false});
+    updateNavigationBadges(root,{language,bookstoreCount:1,dailyIdeaUnseen:false});
     assert.equal(bookstore.children[0],mark,"rerender keeps the mark and does not restart its animation");
     assert.equal(bookstore.attributes.get("aria-label"),language==="es"?"Librería, 1 libro nuevo":"Bookstore, 1 new book");
     assert.equal(dailyIdea.children.length,0);
