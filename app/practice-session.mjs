@@ -28,3 +28,12 @@ export function hasPendingPracticeOperation({startRequest,answerRequest,recovery
 export function canApplyReaderSync(requestGeneration,currentGeneration,{busy=false,practicePending=false}={}) {
   return requestGeneration===currentGeneration&&!busy&&!practicePending;
 }
+
+// What entering the practice screens must load first, without the full catalog. Home data does not carry the
+// session, and the session decides between the mode chooser and "resume"; a resumed session also needs its cards.
+export function practiceScreenNeeds({hash,catalogIsFull,userId,stateUserId,activeSession,loadedCardIds}) {
+  const inSession=hash==="#practice/session";
+  if(!userId||catalogIsFull||hash!=="#practice"&&!inSession) return {state:false,cardIds:[]};
+  const cardIds=inSession?(activeSession?.cardIds||[]).filter(id=>!loadedCardIds.has(id)):[];
+  return {state:stateUserId!==userId,cardIds};
+}

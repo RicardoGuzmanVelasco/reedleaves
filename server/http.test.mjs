@@ -410,3 +410,26 @@ test("A card arrives with its book and deck, matching what the catalog says, wit
   assert.deepEqual(batch.decks.map(deck => deck.id).sort(), [...new Set(batch.cards.map(card => card.deckId))].sort());
   assert.equal((await fetch(base + "/api/cards/context")).status, 400);
 });
+
+test("An unfinished practice can be resumed without the catalog: only the reader state carries the session, and its cards load by id",async t=>{
+  const db=openDatabase(":memory:");initializeDatabase(db);await seedCatalog(db);
+  const server=createCatalogServer(db);server.listen(0,"127.0.0.1");await once(server,"listening");
+  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const registered=await fetch(base+"/api/auth/register",{method:"POST",headers:{Origin:base,"Content-Type":"application/json"},body:JSON.stringify({username:"resume.reader",password:"a local resume test phrase",language:"es",timeZone:"Europe/Madrid"})});
+  const state=await registered.json(),cookie=registered.headers.get("set-cookie").split(";")[0],headers={Cookie:cookie,"X-CSRF-Token":state.csrfToken};
+  const started=await (await fetch(base+"/api/reader/practice/start",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify({practiceMode:"discover",expectedCost:state.practiceDiscountMode==="discover"?2:3})})).json();
+  const cardIds=started.session.cardIds;
+  // The client leaves the screen and comes back (or reloads): the session is still open on the server.
+  // /api/session (the startup call) does not carry it, so the practice screens must load /api/reader/state,
+  // otherwise the mode chooser appears instead of "resume".
+  const startup=await (await fetch(base+"/api/session",{headers:{Cookie:cookie}})).json();
+  assert.equal(startup.activePracticeSession,undefined);
+  const reader=await (await fetch(base+"/api/reader/state",{headers:{Cookie:cookie}})).json();
+  assert.deepEqual(reader.activePracticeSession.cardIds,cardIds);
+  assert.equal(reader.activePracticeSession.index,0);
+  // Resuming draws the five cards without the catalog.
+  const batch=await (await fetch(`${base}/api/cards/context?ids=${cardIds.join(",")}`,{headers:{Cookie:cookie}})).json();
+  assert.deepEqual(batch.cards.map(card=>card.id),cardIds);
+  assert.ok(batch.cards.every(card=>batch.books.some(book=>book.id===card.bookId)&&batch.decks.some(deck=>deck.id===card.deckId)));
+});

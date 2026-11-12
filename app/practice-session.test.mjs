@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,practiceSessionAfterAnimation,restorePracticeSession,samePracticeRecoveryTicket} from "./practice-session.mjs";
+import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,practiceScreenNeeds,practiceSessionAfterAnimation,restorePracticeSession,samePracticeRecoveryTicket} from "./practice-session.mjs";
 
 const session={id:"session",practiceMode:"reading",cardIds:["a","b","c","d","e"],index:2,cost:2,startedAt:"2026-10-06T10:00:00Z"};
 const cardsById=new Map(session.cardIds.map(id=>[id,{id}]));
@@ -89,4 +89,26 @@ test("reader sync waits while any practice request can still change its snapshot
   assert.equal(canApplyReaderSync(6,7),false,"a practice mutation invalidates syncs started earlier");
   assert.equal(canApplyReaderSync(6,6,{practicePending:true}),false);
   assert.equal(canApplyReaderSync(6,6,{busy:true}),false);
+});
+
+const screen={hash:"#practice",catalogIsFull:false,userId:"reader",stateUserId:null,activeSession:null,loadedCardIds:new Set()};
+
+test("entering the mode chooser loads the session state first, so an unfinished practice offers to resume",()=>{
+  assert.deepEqual(practiceScreenNeeds(screen),{state:true,cardIds:[]});
+  assert.deepEqual(practiceScreenNeeds({...screen,stateUserId:"reader"}),{state:false,cardIds:[]});
+});
+
+test("resuming a session loads its state and only the cards that are missing",()=>{
+  const resumed={...screen,hash:"#practice/session"};
+  assert.deepEqual(practiceScreenNeeds(resumed),{state:true,cardIds:[]});
+  const withState={...resumed,stateUserId:"reader",activeSession:session};
+  assert.deepEqual(practiceScreenNeeds(withState),{state:false,cardIds:session.cardIds});
+  assert.deepEqual(practiceScreenNeeds({...withState,loadedCardIds:new Set(["a","b","c"])}),{state:false,cardIds:["d","e"]});
+  assert.deepEqual(practiceScreenNeeds({...withState,loadedCardIds:new Set(session.cardIds)}),{state:false,cardIds:[]});
+});
+
+test("nothing is loaded outside the practice screens, without a reader or once the full catalog is there",()=>{
+  for(const changed of [{hash:"#home"},{hash:"#practice/empty"},{userId:undefined},{catalogIsFull:true}]) {
+    assert.deepEqual(practiceScreenNeeds({...screen,...changed}),{state:false,cardIds:[]});
+  }
 });

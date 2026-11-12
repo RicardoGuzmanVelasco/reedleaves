@@ -39,7 +39,7 @@ import {createModalPageLock} from "./modal-page-lock.mjs";
 import {adjacentCard,swipeStep} from "./card-reading-navigation.mjs";
 import {mascotStages} from "./mascot-progress.mjs?v=evergreen-2";
 import {growthFeedbackChanges,growthFeedbackMarkup,fitGrowthFeedbackTitle,playGrowthFeedback} from "./growth-feedback.mjs?v=evergreen-2";
-import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,practiceSessionAfterAnimation,restorePracticeSession as restorePracticeSessionFromState,samePracticeRecoveryTicket} from "./practice-session.mjs";
+import {canApplyPracticeRecovery,canApplyReaderSync,hasPendingPracticeOperation,practiceScreenNeeds,practiceSessionAfterAnimation,restorePracticeSession as restorePracticeSessionFromState,samePracticeRecoveryTicket} from "./practice-session.mjs";
 import {hasAccessibleReadingGuide,hasOwnReadingGuide,shouldShowReadingGuidePrompt,shouldOfferReadingGuideCreationPrompt} from "./reading-guide-prompt.mjs";
 import {requestConfirmedMutation,requestPendingDeckIntent} from "./confirmed-mutation.mjs";
 import {createReadingInterestWarningFlow} from "./reading-interest-warning.mjs";
@@ -684,14 +684,13 @@ export function startReader({createCardFeatures} = {}) {
       void request.then(()=>route(focus)).catch(error=>{navigationPending=false;syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
       return;
     }
-    // The practice screens need the session state (Home data does not carry it, and it decides between the
-    // mode chooser and "resume"), and a resumed session its cards; neither needs the full catalog.
     if(!location.hash.startsWith("#practice"))practiceStateUserId=null;
-    const inSession=location.hash==="#practice/session",practiceUser=(location.hash==="#practice"||inSession)&&!catalogIsFull?snapshot.user?.id:null;
-    const sessionCardIds=inSession?snapshot.activePracticeSession?.cardIds||[]:[];
-    if(ready&&practiceUser&&(practiceStateUserId!==practiceUser||!sessionCardIds.every(id=>practiceCatalog?.cardsById.has(id)))){
+    const practiceNeeds=practiceScreenNeeds({hash:location.hash,catalogIsFull,userId:snapshot.user?.id,stateUserId:practiceStateUserId,
+      activeSession:snapshot.activePracticeSession,loadedCardIds:new Set(practiceCatalog?.cardsById.keys()||[])});
+    if(ready&&(practiceNeeds.state||practiceNeeds.cardIds.length)){
+      const practiceUser=snapshot.user.id;
       const request=(async()=>{
-        if(practiceStateUserId!==practiceUser){
+        if(practiceNeeds.state){
           const state=await api.request("/api/reader/state");
           if(snapshot.user?.id===practiceUser){applyState(state);practiceStateUserId=practiceUser;}
         }
@@ -1184,10 +1183,9 @@ export function startReader({createCardFeatures} = {}) {
     render({focus:true});
     } finally {if(practiceAnswerRequest===requestTicket)practiceAnswerRequest=null;}
   }
+  // The session screen loads the cards it is missing (route), so resuming does not need them yet.
   function resumePractice() {
-    practiceSession=restorePracticeSession();
-    if(!practiceSession){void recoverPracticeSession();return;}
-    practiceUnavailable=null;practiceStage="session";navigate("#practice/session");
+    practiceUnavailable=null;navigate("#practice/session");
   }
   function openBook(id) {
     if (!catalog.booksById.has(id)) return;
