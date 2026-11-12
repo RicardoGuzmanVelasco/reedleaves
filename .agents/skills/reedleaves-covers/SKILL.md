@@ -10,7 +10,7 @@ Usa esta skill solo para las portadas de libros de Reedleaves. Respeta `AGENTS.m
 ## Estado y fuentes
 
 - **Base** es el diseño activo y aprobado. **Entelada** es una alternativa guardada, todavía inactiva. **Editorial** está descartada.
-- Las propuestas bajo `brand/` no son decisiones aprobadas. Mantén los estilos nuevos en el estudio hasta que el usuario elija uno; no cambies el diseño de producto por inferencia.
+- Las propuestas de `brand/tools/covers/` no son decisiones aprobadas. Mantén los estilos nuevos en el estudio hasta que el usuario elija uno; no cambies el diseño de producto por inferencia.
 - `app/views.mjs` comparte el marcado de portada entre Inicio, Librería y Biblioteca. `app/reader.css` define el aspecto en la app. `brand/tools/covers/` contiene el estudio y sus controles. El código vigente manda si contradice una nota anterior.
 
 ## Diseñar y modificar
