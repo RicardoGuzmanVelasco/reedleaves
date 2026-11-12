@@ -193,6 +193,9 @@ La base es `lockControls` (~373): `busy` solo pone `aria-busy` y deshabilita con
 - **Dónde:** `startPractice` (~930), `practiceStarting`.
 - **Qué pasa:** solo el botón del tema lo refleja.
 - **Opciones:** **B** con Brote tras el umbral, **A** en el tema; **G** ya anuncia la preparación en Descubrir.
+- **Resuelto:** `#practice` se abre sin catálogo completo y lo precarga en segundo plano mientras se elige modo. Tras elegir modo, Brote dormido a pantalla completa hasta que llega la sesión; después, la animación de apilar y cortar.
+- **Futuro, parte 2:** animación de apilar y cortar en paralelo a `practice/start` (escena sin tarjetas, pausa hasta la respuesta). Gana como mucho la latencia de `practice/start`; toca `route()`, la vista, la presentación y los fallos. Solo si la espera sigue molestando.
+- **Futuro, parte 4:** que `practice/start` devuelva las 5 tarjetas con sus libros y barajas, y el cliente no necesite el catálogo completo. La tarjeta de práctica enlaza libro, autor, baraja y usuario (`cardAttribution`), así que exige un catálogo parcial en el cliente. Hoy la precarga ya esconde esa carga tras la elección de modo.
 
 ### 23. Diario
 - **Dónde:** `dailyLoading`, `daily-status`, calendario.
@@ -266,7 +269,7 @@ Aparte del feedback, hay que revisar la animación de espera. Se aborda después
 | 19 | Sin cambios (descartado) | 2026-11-11 | Login ya lo cubre el Brote (punto 6); el guardado avisa si falla. |
 | 20 | Sin cambios (descartado) | 2026-11-12 | Tras optimizar el Perfil la espera es mínima; ya hay texto de carga. |
 | 21 | Sin cambios (descartado) | 2026-11-12 | Diseño optimista a propósito. |
-| 22 | | | |
+| 22 | Brote dormido + elección sin catálogo | 2026-11-12 | Partes 2 y 4 aplazadas (ver punto 22). |
 | 23 | | | |
 | 24 | | | |
 | 25 | | | |
