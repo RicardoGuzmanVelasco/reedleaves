@@ -33,7 +33,7 @@ for(const [dialect,version] of [["sqlite",42],["postgres",34]]) test(`${dialect}
   const catalog=await readCatalog(db),seed=readSeed();
   for(const interest of catalog.genres) {
     const expected=seed.genres.find(value=>value.id===interest.id);
-    assert.equal(interest.emoji,expected.emoji);assert.equal(interest.color,expected.chip_color);
+    assert.equal(interest.emoji,expected.emoji);
     assert.equal(interest.chipColor,expected.chip_color);assert.equal(interest.bookColor,expected.book_color);
   }
   assert.equal(catalog.genres.find(value=>value.id==="metaphysics").emoji,"🔮");
