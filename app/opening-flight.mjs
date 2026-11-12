@@ -38,7 +38,7 @@ export function prepareOpeningFlight(root, reducedMotion = false) {
     skipIfWaiting();
   } else {
     const background = new Image();
-    background.src = imageUrl("/brand/reed/vein-pattern.svg");
+    background.src = imageUrl("/app/assets/brand/vein-pattern.svg");
     Promise.all([imageReady(sprout),imageReady(background)]).then(()=>{
       if (!waiting) return;
       waiting=false;

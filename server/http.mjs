@@ -17,13 +17,16 @@ const imageTypes = new Set([".svg", ".ico", ".png", ".jpg", ".webp"]);
 
 // Explicit URLs bypass Safari's previous icon URL; conventional names also cover
 // discovery at the origin root and alongside the app document. Keep the allowlist.
-const publicFiles = new Map([["/favicon.ico", "/brand/reed/favicon.ico"]]);
+const publicFiles = new Map([["/favicon.ico", "/app/assets/brand/favicon.ico"]]);
 for (const prefix of ["", "/app"]) {
   for (const name of ["apple-touch-icon-v2.png", "apple-touch-icon.png", "apple-touch-icon-precomposed.png",
     "apple-touch-icon-180x180.png", "apple-touch-icon-180x180-precomposed.png"]) {
-    publicFiles.set(`${prefix}/${name}`, "/brand/reed/apple-touch-icon.png");
+    publicFiles.set(`${prefix}/${name}`, "/app/assets/brand/apple-touch-icon.png");
   }
 }
+
+// /brand (herramientas y archivo de diseño) solo se sirve en local con SERVE_BRAND=1.
+const servedPrefix = process.env.SERVE_BRAND === "1" ? /^\/(app|brand)\// : /^\/app\//;
 
 export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
   const readerApi = createReaderApi(db,options);
@@ -57,7 +60,7 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
         response.writeHead(302, { Location: "/app/" }); response.end(); return;
       }
       // Never expose the database, seeds, server code, docs, tests, or directory listings.
-      if (!/^\/(app|brand)\//.test(path) || path.includes("\0") || path.split("/").includes("..") || /\.test\.mjs$/.test(path)) {
+      if (!servedPrefix.test(path) || path.includes("\0") || path.split("/").includes("..") || /\.test\.mjs$/.test(path)) {
         send(404, { error: "Not found" }); return;
       }
       const relative = path.endsWith("/") ? `${path}index.html` : path;

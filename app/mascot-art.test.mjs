@@ -37,14 +37,14 @@ test("Full mascots select their idle pattern; mystery floats and future artwork 
 
 test("Ground shadows are removed from the unlocked-state SVG artwork",()=>{
   for (const stage of ["mystery","plant"]) {
-    const svg=readFileSync(new URL(`../brand/reed/growth/${stage}.svg`,import.meta.url),"utf8");
+    const svg=readFileSync(new URL(`./assets/mascot/${stage}.svg`,import.meta.url),"utf8");
     assert.doesNotMatch(svg,/<ellipse[^>]*opacity=/);
     assert.match(svg,/<path/);
   }
 });
 
 test("Root uses an alpha PNG and the static loading fallback matches the shared component",()=>{
-  const png=readFileSync(new URL("../brand/reed/growth/bodies/root.png",import.meta.url));
+  const png=readFileSync(new URL("./assets/mascot/root.png",import.meta.url));
   assert.equal(png.readUInt32BE(0),0x89504e47);
   assert.equal(png[25],6); // RGBA PNG.
   const html=readFileSync(new URL("./index.html",import.meta.url),"utf8");

@@ -19,7 +19,7 @@ Copiar configuración produce un JSON con etapa, cuerpo, sombra (`shadow.width` 
 2. Añadir la calibración corporal en CSS cuando difiera de los valores comunes.
 3. La mascota aparecerá automáticamente en el selector. Puede añadirse su nombre a `names` en `editor.mjs`; sin nombre específico se muestra su identificador.
 
-La página se mantiene en `brand/tools/mascot-editor/` como herramienta interna. No desbloquea propuestas futuras ni modifica las reglas del producto.
+La página se mantiene en `brand/tools/mascot-editor/` como herramienta interna; se abre en `/brand/tools/mascot-editor/` con el servidor iniciado con `SERVE_BRAND=1`. No desbloquea propuestas futuras ni modifica las reglas del producto.
 
 Tallo (`stem`) está disponible como A · Carnoso, elegida por el usuario el 14 de octubre de 2026. Usa un cuerpo PNG transparente sin cara ni sombra, con la cara SVG, la sombra y el movimiento del componente compartido. Su calibración inicial se puede ajustar con los mismos catorce controles. Desde el 15 de octubre la regla de producto elegida es diez días distintos de gasto por libro; el editor no modifica ese progreso.
 

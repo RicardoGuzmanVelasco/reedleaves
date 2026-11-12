@@ -77,7 +77,7 @@ El esquema actual es SQLite v30 / PostgreSQL v22. No hay tablas ni columnas de v
 
 `app/book-search.mjs` filtra el catálogo recibido de la API por todos los títulos originales, completos y cortos, sin idioma activo como filtro. La consulta es estado temporal de la vista: no se escribe en SQLite ni en localStorage. Para este catálogo pequeño se consulta localmente el resultado SQL ya cargado; no hay una base simulada en JSON. Cuando el volumen requiera paginación, habrá que trasladar esa búsqueda a un endpoint con índices SQL, conservando las mismas reglas de coincidencia.
 
-La API entrega `book.links.amazon` y `book.links.goodreads`, sin codificar libros concretos en la vista. `app/book-links.mjs` valida dominio y ruta de ficha en importación, repositorio, consumidor y render. Los iconos son SVG locales en `brand/platforms/`; no cargan rastreadores de plataformas externas.
+La API entrega `book.links.amazon` y `book.links.goodreads`, sin codificar libros concretos en la vista. `app/book-links.mjs` valida dominio y ruta de ficha en importación, repositorio, consumidor y render. Los iconos son SVG locales en `app/assets/platforms/`; no cargan rastreadores de plataformas externas.
 
 ## Límites explícitos
 

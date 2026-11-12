@@ -137,7 +137,7 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
       const languageName=new Intl.DisplayNames([language],{type:"language"}).of(choice.deck.language);
       assert.ok(label.includes(languageName),"The deck language remains accessible");
       if (["es","en"].includes(choice.deck.language)) {
-        assert.match(html,new RegExp(`brand/icons/languages/${choice.deck.language}\\.svg`));
+        assert.match(html,new RegExp(`app/assets/icons/languages/${choice.deck.language}\\.svg`));
         assert.doesNotMatch(html,/deck-language-icon|>es<|>en</);
       } else {
         assert.match(html,/brand\/icons\/languages\/globe\.svg/);

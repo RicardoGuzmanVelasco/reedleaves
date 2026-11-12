@@ -2,7 +2,7 @@
 
 **Base** es el diseño aprobado y activo en la app. **Entelada** queda guardada como alternativa sin activar. **Editorial** ha sido descartada y retirada del selector y del CSS.
 
-Abrir `/brand/tools/covers/` con el servidor del proyecto. Lee el catálogo común y reutiliza las portadas y fichas de `app/views.mjs`. Los controles permiten comparar **Base** y **Entelada**, en Inicio o Librería, español o inglés y con títulos originales. Base usa borde continuo, sin páginas sobresalientes, y sombra verde bosque. El progreso de las cinco primeras etapas es una muestra local; no se modifica ninguna cuenta ni se gasta ninguna hoja.
+Abrir `/brand/tools/covers/` con el servidor del proyecto iniciado con `SERVE_BRAND=1` (solo local; en producción `/brand/` no se sirve). Lee el catálogo común y reutiliza las portadas y fichas de `app/views.mjs`. Los controles permiten comparar **Base** y **Entelada**, en Inicio o Librería, español o inglés y con títulos originales. Base usa borde continuo, sin páginas sobresalientes, y sombra verde bosque. El progreso de las cinco primeras etapas es una muestra local; no se modifica ninguna cuenta ni se gasta ninguna hoja.
 
 - **Base**: cubierta verde redondeada y tipografía de la interfaz. Título arriba a la izquierda, de 23 px (19 px en móvil), y autor debajo, también a la izquierda.
 - **Entelada**: verde salvia, textura de tela sutil, lomo oscuro y título con serif clásica. Sin marco interior.

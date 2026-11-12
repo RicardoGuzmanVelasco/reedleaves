@@ -11,16 +11,15 @@ const hash = value => createHash("sha256").update(value).digest("hex");
 
 test("public images revalidate and content URLs never cache mismatched bytes", async t => {
   const root = await mkdtemp(join(tmpdir(), "reed-image-cache-"));
-  await mkdir(join(root, "brand"));
-  await mkdir(join(root, "app"));
-  const file = join(root, "brand", "test.svg");
+  await mkdir(join(root, "app", "assets"), {recursive:true});
+  const file = join(root, "app", "assets", "test.svg");
   const old = "<svg>old</svg>", current = "<svg>current</svg>";
   await writeFile(file, old);
   const server = createCatalogServer({}, root);
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await rm(root, {recursive:true,force:true}); });
   const base = `http://127.0.0.1:${server.address().port}`;
-  const path = "/brand/test.svg";
+  const path = "/app/assets/test.svg";
   const legacy = await fetch(base + path);
   assert.equal(legacy.headers.get("cache-control"), "no-cache");
   const etag = legacy.headers.get("etag");
@@ -50,7 +49,7 @@ test("public images revalidate and content URLs never cache mismatched bytes", a
     assert.equal(invalid.status, 400);
     assert.equal(invalid.headers.get("cache-control"), "no-store");
   }
-  const missing = await fetch(base + `/brand/missing.svg?content=${hash(current)}`);
+  const missing = await fetch(base + `/app/assets/missing.svg?content=${hash(current)}`);
   assert.equal(missing.status, 404);
   assert.equal(missing.headers.get("cache-control"), "no-store");
 });

@@ -23,7 +23,7 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
     assert.match(book.links.goodreads, /^https:\/\/www\.goodreads\.com\//);
   }
   for (const platform of ["amazon", "goodreads"]) {
-    const icon = await fetch(base + "/brand/platforms/" + platform + ".svg");
+    const icon = await fetch(base + "/app/assets/platforms/" + platform + ".svg");
     assert.equal(icon.status, 200); assert.match(icon.headers.get("content-type"), /svg/);
   }
   const app = await fetch(base + "/app/");
@@ -34,7 +34,7 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   assert.match(appHtml,/class="[^"]*\bdialog-close\b[^"]*" id="close-feedback"[^>]*aria-label="Cerrar comentarios"[^>]*><svg/);
   assert.match(app.headers.get("content-security-policy"), /script-src 'self'/);
   assert.match((await fetch(base + "/app/reader.mjs")).headers.get("content-type"), /javascript/);
-  assert.equal((await fetch(base + "/brand/reed/d-compacto.svg")).status, 200);
+  assert.equal((await fetch(base + "/app/assets/brand/d-compacto.svg")).status, 200);
   const favicon = await fetch(base + "/favicon.ico");
   assert.equal(favicon.status, 200);
   assert.match(favicon.headers.get("content-type"), /image\/x-icon/);
@@ -88,7 +88,7 @@ test("Shared card links expose per-card previews without a session", async t => 
       assert.equal(response.status,200);
       assert.ok(html.includes(`property="og:title" content="${escape(title)}"`));
       assert.ok(html.includes(`property="og:description" content="${escape(bookTitle(book,language).text)}"`));
-      assert.match(html,/property="og:image" content="https:\/\/reedleaves\.com\/brand\/reed\/share-card\.png(?:\?[^" ]*)?"/);
+      assert.match(html,/property="og:image" content="https:\/\/reedleaves\.com\/app\/assets\/brand\/share-card\.png(?:\?[^" ]*)?"/);
     }
   }
   const missing=await fetch(base+"/app/?sharedCard=missing&cardLanguage=es").then(r=>r.text());

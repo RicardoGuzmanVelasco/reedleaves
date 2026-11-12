@@ -15,7 +15,7 @@
 .xp-junco-stem{position:absolute;left:0;top:50%;height:.625em;min-width:.625em;width:calc(var(--p)*100%);transform:translateY(-50%);border:2px solid var(--ink);border-radius:.3125em;
   background:repeating-linear-gradient(90deg,transparent 0 calc(10cqw - 2px),rgb(23 61 44 / 60%) calc(10cqw - 2px) 10cqw),linear-gradient(180deg,#8fd97c,#58be59 45%,#4ba955);background-origin:border-box}
 .xp-junco-leaf{position:absolute;left:calc(var(--t)*100% - .19em);width:1.19em;height:1.19em;scale:clamp(0,calc((var(--p) - var(--t))*16),1)}
-.xp-junco-leaf::before{content:"";position:absolute;inset:0;background:url("../brand/reed/leaf-token.svg") center/contain no-repeat}
+.xp-junco-leaf::before{content:"";position:absolute;inset:0;background:url("/app/assets/brand/leaf-token.svg") center/contain no-repeat}
 .xp-junco-leaf.is-up{bottom:calc(50% + .19em);transform-origin:0 100%}
 .xp-junco-leaf.is-down{top:calc(50% + .19em);transform-origin:0 0}
 .xp-junco-leaf.is-down::before{transform:rotate(90deg)}

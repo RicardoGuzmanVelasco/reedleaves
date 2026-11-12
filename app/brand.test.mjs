@@ -49,12 +49,12 @@ test("Renaming the team changes only its public label, not creator identity or p
 
 test("The Home tab uses a simple outlined house instead of the Reedleaves logo",()=>{
   const html=readFileSync(new URL("./index.html",import.meta.url),"utf8"),home=html.match(/<a class="bottom-navigation-link bottom-navigation-home"[\s\S]*?<\/a>/)?.[0]||"";
-  const icon=readFileSync(new URL("../brand/icons/navigation/home.svg",import.meta.url),"utf8");
+  const icon=readFileSync(new URL("./assets/icons/navigation/home.svg",import.meta.url),"utf8");
   assert.match(home,/brand\/icons\/navigation\/home\.svg/);assert.doesNotMatch(home,/d-compacto\.svg/);
   assert.match(icon,/fill="none" stroke="#173d2c"/);assert.match(icon,/m3 10\.5 9-7\.5 9 7\.5/);
 });
 test("Unknown mascot is a neutral silhouette and mascot surfaces have no green backplate",()=>{
-  const mystery=readFileSync(new URL("../brand/reed/growth/mystery.svg",import.meta.url),"utf8"),css=readFileSync(new URL("./reader.css",import.meta.url),"utf8");
+  const mystery=readFileSync(new URL("./assets/mascot/mystery.svg",import.meta.url),"utf8"),css=readFileSync(new URL("./reader.css",import.meta.url),"utf8");
   assert.match(mystery,/fill="#969d96"/);assert.doesNotMatch(mystery,/question|#B9E877|#58BE59/);
   assert.match(css,/\.mascot-entry\{background:transparent;box-shadow:none/);
   assert.match(css,/\.deck-mascot-callout\{[^}]*background:transparent/);

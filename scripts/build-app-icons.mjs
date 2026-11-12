@@ -7,7 +7,7 @@ import { mascotFace } from "../app/mascot-face.mjs";
 
 const run = promisify(execFile);
 const root = new URL("../", import.meta.url);
-const body = await readFile(new URL("brand/reed/growth/bodies/sprout.svg", root), "utf8");
+const body = await readFile(new URL("app/assets/mascot/sprout.svg", root), "utf8");
 const bodyContents = body.match(/<svg[^>]*>([\s\S]*)<\/svg>/)?.[1];
 const face = mascotFace("sprout").replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "");
 if (!bodyContents || !face) throw new Error("Could not compose the canonical smiling Brote artwork");
@@ -16,15 +16,15 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" vi
 <rect width="160" height="160" fill="#FFF9ED"/>
 <svg x="0" y="0" width="160" height="160" viewBox="0 0 160 160">${bodyContents}${face}</svg>
 </svg>\n`;
-await writeFile(new URL("brand/reed/app-icon.svg", root), svg);
+await writeFile(new URL("app/assets/brand/app-icon.svg", root), svg);
 
-const directory = new URL("brand/reed/", root);
+const directory = new URL("app/assets/brand/", root);
 for (const size of [16, 32, 48, 180, 192, 512]) {
   const iconSize = size === 16 || size === 32 || size === 48;
   const name = size === 180 ? "apple-touch-icon.png" : iconSize ? `reedleaves-favicon-${size}.png` : `app-icon-${size}-v4.png`;
   const rawPath = join(tmpdir(), `reedleaves-icon-${size}-raw.png`);
   const pngPath = iconSize ? join(tmpdir(), name) : new URL(name, directory).pathname;
-  await run("rsvg-convert", ["--format", "png", "--width", String(size), "--height", String(size), "--output", rawPath, new URL("brand/reed/app-icon.svg", root).pathname]);
+  await run("rsvg-convert", ["--format", "png", "--width", String(size), "--height", String(size), "--output", rawPath, new URL("app/assets/brand/app-icon.svg", root).pathname]);
   // sips emits an opaque RGB PNG, matching the public icon contract.
   await run("sips", ["-s", "format", "png", rawPath, "--out", pngPath]);
 }
@@ -50,6 +50,6 @@ for (let index = 0; index < frames.length; index++) {
   entries.push(entry);
   offset += frames[index].length;
 }
-await writeFile(new URL("brand/reed/favicon.ico", root), Buffer.concat([header, ...entries, ...frames]));
+await writeFile(new URL("app/assets/brand/favicon.ico", root), Buffer.concat([header, ...entries, ...frames]));
 await Promise.all([16, 32, 48, 180, 192, 512].map(size => unlink(join(tmpdir(), `reedleaves-icon-${size}-raw.png`))));
 await Promise.all([16, 32, 48].map(size => unlink(join(tmpdir(), `reedleaves-favicon-${size}.png`))));

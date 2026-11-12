@@ -6,18 +6,18 @@ if (typeof document !== "undefined") startMascotBlinking(document);
 
 // Decorative artwork only. Stage availability remains the caller's responsibility.
 export const mascotAssets = Object.freeze({
-  pot: "/brand/reed/growth/bodies/pot-a-body.png",
-  soil: "/brand/reed/growth/bodies/soil.svg",
-  seed: "/brand/reed/growth/bodies/seed.svg",
-  root: "/brand/reed/growth/bodies/root.png",
-  seedling: "/brand/reed/growth/bodies/seedling.svg",
-  sprout: "/brand/reed/growth/bodies/sprout.svg",
-  mystery: "/brand/reed/growth/mystery.svg",
-  stem: "/brand/reed/growth/bodies/stem-flat.svg",
-  plant: "/brand/reed/growth/plant.svg",
-  bud: "/brand/reed/growth/bodies/bud.svg",
-  flower: "/brand/reed/growth/bodies/flower.png",
-  evergreen: "/brand/reed/growth/bodies/evergreen.svg"
+  pot: "/app/assets/mascot/pot-a-body.png",
+  soil: "/app/assets/mascot/soil.svg",
+  seed: "/app/assets/mascot/seed.svg",
+  root: "/app/assets/mascot/root.png",
+  seedling: "/app/assets/mascot/seedling.svg",
+  sprout: "/app/assets/mascot/sprout.svg",
+  mystery: "/app/assets/mascot/mystery.svg",
+  stem: "/app/assets/mascot/stem-flat.svg",
+  plant: "/app/assets/mascot/plant.svg",
+  bud: "/app/assets/mascot/bud.svg",
+  flower: "/app/assets/mascot/flower.png",
+  evergreen: "/app/assets/mascot/evergreen.svg"
 });
 // New stages hop by default. The historical seedling/sprout IDs name Seedling/Sprout.
 export const mascotIdlePatterns = Object.freeze({seed:"float",seedling:"float",sprout:"float",bud:"float",evergreen:"float",mystery:"float"});

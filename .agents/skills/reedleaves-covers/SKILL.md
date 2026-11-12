@@ -25,6 +25,6 @@ Usa esta skill solo para las portadas de libros de Reedleaves. Respeta `AGENTS.m
 
 ## Revisión y publicación
 
-- Abre `/brand/tools/covers/` con el servidor del proyecto y revisa visualmente Inicio y Librería, escritorio y móvil. Comprueba títulos largos, sello, solapa, canto y que ningún dato quede fuera o se solape.
+- Abre `/brand/tools/covers/` con el servidor del proyecto iniciado con `SERVE_BRAND=1` y revisa visualmente Inicio y Librería, escritorio y móvil. Comprueba títulos largos, sello, solapa, canto y que ningún dato quede fuera o se solape.
 - El estudio reutiliza vistas y catálogo reales; sus estados de ejemplo son locales. No guardes datos de cuentas para preparar comparaciones.
 - Sigue las instrucciones de Git de `AGENTS.md`. Una exploración no autoriza activar ni publicar una portada. Publica solo cuando el usuario lo pida expresamente; esa autorización se limita a la acción indicada en la conversación actual.

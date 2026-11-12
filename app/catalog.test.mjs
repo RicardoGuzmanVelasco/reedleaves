@@ -160,7 +160,7 @@ test("Locked stages show known artwork and lock status up to the user's maximum 
     const rows=html.match(/<li class="mascot-stage[^\"]*"[^>]*>[\s\S]*?<\/li>/g);
     for (const [index,asset] of knownLocked) {
       assert.match(rows[index],/class="mascot-stage is-known is-locked"/);
-      assert.ok(rows[index].includes(`/brand/reed/growth/bodies/${asset}`));
+      assert.ok(rows[index].includes(`/app/assets/mascot/${asset}`));
       assert.match(rows[index],/<span class="mascot-stage-marker mascot-stage-number" aria-hidden="true"><\/span>/);
       assert.doesNotMatch(rows[index],/mascot-stage-motto|mascotMotto/);
       assert.ok(rows[index].includes(`<p class="mascot-stage-lock">${words[language].mascotNotUnlocked}</p>`));
