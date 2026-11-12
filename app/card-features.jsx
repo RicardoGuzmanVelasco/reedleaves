@@ -1,4 +1,4 @@
-import React,{useEffect,useLayoutEffect,useMemo,useOptimistic,useRef,useState,startTransition} from 'react';
+import React,{useEffect,useLayoutEffect,useOptimistic,useRef,useState,startTransition} from 'react';
 import {createRoot} from 'react-dom/client';
 import {createPortal} from 'react-dom';
 import {contentText,contentLocale,quoteExcerpt} from './core.mjs';
@@ -70,7 +70,7 @@ function GuestFeatures({context,api,callbacks}){
 export function SavedCardsEntry({count,c,onClick}){const hasSavedCards=count>0;return <button type="button" className="primary saved-cards-entry" onClick={onClick} aria-label={hasSavedCards?`${c.savedCards}, ${c.noteCardsCount(count)}`:c.savedCards}><Bookmark/><span>{c.savedCards}</span>{hasSavedCards&&<span aria-hidden="true">{count}</span>}</button>}
 function SavedCards({rows,catalog,c,language,onOpen,error,onRetry,onReady,loading}){
   const placeholderHost=useRef(null);
-  const placeholderMarkup=useMemo(()=>({__html:loadingPlaceholder(c.loading)}),[c.loading]);
+  const placeholderMarkup={__html:loadingPlaceholder(c.loading)};
   const [showPlaceholder,setShowPlaceholder]=useState(loading);
   useLayoutEffect(()=>{
     if (loading) {setShowPlaceholder(true);return;}
