@@ -376,3 +376,24 @@ test("Unknown pages answer browsers with the sad sprout and everything else with
   const json = await fetch(base + "/nowhere"); assert.equal(json.status, 404); assert.deepEqual(await json.json(), {error:"Not found"});
   const api = await fetch(base + "/api/nowhere", {headers:{Accept:"text/html"}}); assert.equal(api.status, 404); assert.deepEqual(await api.json(), {error:"Not found"});
 });
+
+test("A card arrives with its book and deck, matching what the catalog says, without the rest of the catalog", async t => {
+  const db = openDatabase(":memory:"); initializeDatabase(db); await seedCatalog(db);
+  const server = createCatalogServer(db);
+  server.listen(0, "127.0.0.1"); await once(server, "listening");
+  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await db.close(); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const catalog = await (await fetch(base + "/api/catalog")).json();
+  const pick = (object, keys) => Object.fromEntries(keys.map(key => [key, object[key]]));
+  for (const card of catalog.cards) {
+    const response = await fetch(`${base}/api/cards/${encodeURIComponent(card.id)}/context`);
+    assert.equal(response.status, 200);
+    const context = await response.json(), book = catalog.books.find(b => b.id === card.bookId), deck = catalog.decks.find(d => d.id === card.deckId);
+    assert.deepEqual(context.card, card);
+    assert.deepEqual(context.book, pick(book, Object.keys(context.book)));
+    const { isReadingGuide, ...deckFields } = context.deck;
+    assert.deepEqual(deckFields, pick(deck, Object.keys(deckFields)));
+    assert.equal(isReadingGuide, catalog.cards.some(c => c.deckId === deck.id && c.isReadingGuide));
+  }
+  assert.equal((await fetch(base + "/api/cards/does-not-exist/context")).status, 404);
+});

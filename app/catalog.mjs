@@ -62,3 +62,13 @@ export async function loadHomeBooks(fetcher = fetch) {
   if(!response.ok)throw new Error("Home books unavailable");
   return response.json();
 }
+
+// Partial catalog with a single card, its book and its deck, enough to display the card and its attribution.
+// null (unknown card) gives an empty one, so the view shows its "unavailable" state.
+export async function loadCardContext(id, fetcher = fetch) {
+  const response = await fetcher(`/api/cards/${encodeURIComponent(id)}/context`, { cache:"no-cache" });
+  if (response.status === 404) return { cardId:id, cardsById:new Map(), booksById:new Map(), decksById:new Map(), decks:[], deckModels:new Map() };
+  if (!response.ok) throw new Error("Card unavailable");
+  const { card, book, deck } = await response.json();
+  return { cardId:id, cardsById:new Map([[card.id,card]]), booksById:new Map([[book.id,book]]), decksById:new Map([[deck.id,deck]]), decks:[deck], deckModels:new Map() };
+}

@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
 import { extname, resolve, sep } from "node:path";
 import { PROJECT_ROOT } from "./database.mjs";
-import { readCatalog } from "./catalog-repository.mjs";
+import { readCatalog, readCardContext } from "./catalog-repository.mjs";
 import {bookTitle,contentText,quoteExcerpt} from "../app/core.mjs";
 import {createReaderApi} from "./reader-api.mjs";
 import {readSession} from "./auth.mjs";
@@ -59,6 +59,13 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
         send(405, { error: "Method not allowed" }); return;
       }
       if (path === "/api/health") { await db.prepare("SELECT 1").get(); send(200, { status: "ok" }); return; }
+      const cardContextMatch = path.match(/^\/api\/cards\/([^/]+)\/context$/);
+      if (cardContextMatch) {
+        const session = await readSession(db,request,options.now?.() || new Date());
+        const context = await readCardContext(db,cardContextMatch[1],session?.user_id);
+        if (!context) { send(404, { error: "Not found" }); return; }
+        send(200, context); return;
+      }
       if (path === "/api/catalog") {
         const session = await readSession(db,request,options.now?.() || new Date());
         // The catalog is large and rarely changes: the browser keeps its copy and revalidates it with the ETag (304 sends no body).

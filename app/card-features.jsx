@@ -59,7 +59,7 @@ export function CardActions({record,saved,c,onVote,onSave,error,onRetry,requires
 
 function GuestFeatures({context,api,callbacks}){
   const [record,setRecord]=useState(null);
-  useEffect(()=>{let active=true;setRecord(null);api.request(`/api/cards/${encodeURIComponent(context.cardId)}/votes`).then(row=>{if(active)setRecord({...row,loaded:true})}).catch(()=>{if(active)setRecord({likes:null,dislikes:null,vote:null,isOwn:false,loaded:true})});return()=>{active=false}},[context.cardId]);
+  useEffect(()=>{let active=true;setRecord(null);if(!context.cardId)return;api.request(`/api/cards/${encodeURIComponent(context.cardId)}/votes`).then(row=>{if(active)setRecord({...row,loaded:true})}).catch(()=>{if(active)setRecord({likes:null,dislikes:null,vote:null,isOwn:false,loaded:true})});return()=>{active=false}},[context.cardId]);
   const card=context.catalog.cardsById.get(context.cardId);
   if(!context.actionSlot||!card)return null;
   const askForVote=value=>callbacks.onAuthRequired({kind:'vote',value,cardId:card.id,deckId:card.deckId});

@@ -25,7 +25,8 @@ export function sortDecks(catalog,decks,{userId=null,language='es'}={}) {
 }
 
 export function isReadingGuideDeck(catalog,deck) {
-  return !!deck && (catalog.deckModels.get(deck.id)?.cards.some(card=>card.isReadingGuide) || false);
+  // Decks that arrive with a single shared card carry the flag; the full catalog derives it from the deck's cards.
+  return !!deck && (deck.isReadingGuide ?? (catalog.deckModels.get(deck.id)?.cards.some(card=>card.isReadingGuide) || false));
 }
 
 export function availableDecks(catalog, bookId) {
