@@ -11,7 +11,7 @@ import {bookInterestError,selectBookInterest} from "./book-interests.mjs";
 import {callout} from "./callout.mjs";
 import {mountBookLists,BOOK_VIEWS} from "./book-list.mjs?v=adaptive-shelf-spines-2";
 import {updateNavigationBadges} from "./navigation-badges.mjs";
-import {loadCatalog,loadCardContext,loadHomeBooks,loadInterests} from "./catalog.mjs";
+import {loadCatalog,loadCardContext,loadCardContexts,partialCatalog,loadHomeBooks,loadInterests} from "./catalog.mjs";
 import {finishLoadingPlaceholder,loadingPlaceholder} from "./loading-placeholder.mjs";
 import {createBookKnowledgeVisitId,visitVisitorBooks,pendingVisitorBookCount,inBookstoreVisit} from "./book-knowledge.mjs";
 import {localDay, restoreLanguage, bookTitle, FEEDBACK_MESSAGE_MAX_LENGTH, LANGUAGES} from "./core.mjs";
@@ -83,7 +83,7 @@ export function startReader({createCardFeatures} = {}) {
   const presentReading = createReadingArrival();
   const practicePresentation = createPracticePresentation({presentReading});
   let sharedContentLanguage=null;
-  let language = restoreLanguage(store.read(keys.language)), catalog, catalogIsFull=false,homeBooksUserId=null,homeBooksData=[],homeBooksRequest=null,fullCatalogRequest=null,sharedCard=null,sharedCardRequest=null,snapshot = {user:null}, budget, preferences, statuses, dailyIdea, dailyHistory=[],dailyStatus=null,dailyStatusRequest=null,dailyStatusGeneration=0,dailySeenDays=new Set(),dailyLoading=false, selectedDailyDay=null, dailyExclusiveCardId=null, calendarMonth=null,calendarNavFocus=null,bookId, deckId, requestedId, cardcaseDeckIds;
+  let language = restoreLanguage(store.read(keys.language)), catalog, catalogIsFull=false,homeBooksUserId=null,homeBooksData=[],homeBooksRequest=null,fullCatalogRequest=null,sharedCard=null,sharedCardRequest=null,practiceCatalog=null,practiceStateUserId=null,snapshot = {user:null}, budget, preferences, statuses, dailyIdea, dailyHistory=[],dailyStatus=null,dailyStatusRequest=null,dailyStatusGeneration=0,dailySeenDays=new Set(),dailyLoading=false, selectedDailyDay=null, dailyExclusiveCardId=null, calendarMonth=null,calendarNavFocus=null,bookId, deckId, requestedId, cardcaseDeckIds;
   let tintMode=coverTintMode(store.read(keys.coverTint)),homeCoverInterests=[];
   let bookSortOrder=validVisitorBookSortOrder(store.read(keys.visitorBookSort))?store.read(keys.visitorBookSort):"recent";
   let bookstoreSortOrder=bookSortOrder,interestPreferences=null,interestPreferencesRequest=null,bookstoreInterestSortPending=false,bookstoreInterestSortError=false,bookstoreInterestSortGeneration=0;
@@ -211,7 +211,7 @@ export function startReader({createCardFeatures} = {}) {
   function updateCardFeatures() {
     const actionSlots=[...main.querySelectorAll("[data-card-actions]")].filter(slot=>!slot.closest(".presentation-outgoing"));
     const cardId=actionSlots[0]?.dataset.cardActions;
-    cardFeatures?.update({userId:snapshot.user?.id,catalog,language,bookId:catalog?.cardsById.get(cardId)?.bookId||bookId,mode,quotesOnly,cardId,
+    cardFeatures?.update({userId:snapshot.user?.id,catalog:viewCatalog(),language,bookId:viewCatalog()?.cardsById.get(cardId)?.bookId||bookId,mode,quotesOnly,cardId,
       cardSaves:snapshot.cardSaves||[],revision:syncGeneration,actionSlots,actionSlot:main.querySelector("[data-card-actions]"),entrySlot:main.querySelector("[data-saved-cards-entry]"),listSlot:main.querySelector("[data-saved-cards-list]")});
   }
   function applyState(state,{captureGrowth=false,xpReward}={}) {
@@ -312,6 +312,17 @@ export function startReader({createCardFeatures} = {}) {
     if(sharedCardRequest?.id===id)return sharedCardRequest.promise;
     const promise=loadCardContext(id).then(context=>{sharedCard=context;return context;}).finally(()=>{if(sharedCardRequest?.promise===promise)sharedCardRequest=null;});
     sharedCardRequest={id,promise};return promise;
+  }
+  // The practice cards arrive with their books and decks; the full catalog is not needed to practise.
+  async function ensurePracticeCards(ids){
+    if(catalogIsFull||ids.every(id=>practiceCatalog?.cardsById.has(id)))return;
+    const userId=snapshot.user?.id,loaded=await loadCardContexts(ids);
+    if(snapshot.user?.id===userId)practiceCatalog=loaded;
+  }
+  // What the screen reads cards, books and decks from: the catalog once it is full, or the partial one of this view.
+  function viewCatalog(){
+    if(catalogIsFull)return catalog;
+    return mode==="shared-card"?sharedCard:mode==="practice"?practiceCatalog:catalog;
   }
   function choicesForBook() {
     return featuredDecks(catalog,bookId);
@@ -558,7 +569,7 @@ export function startReader({createCardFeatures} = {}) {
     const state = {discoverAvailability:discoverAvailability.state,practiceStarting:practiceStartRequest?.practiceMode||null,presentationLayout,presentationIndex,bookViews,userId:snapshot.user?.id,user:snapshot.user,guideReviewPendingCount,guideReviewQueue,guideReviewLoading,guideReviewError,guideReviewRejectingId,guideReviewExpandedId,guideReviewReason,guideReviewNotice,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,deckContributorError,deckContributorInput,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,interests:catalog?.interests||homeCoverInterests,homeBooks:homeBooksData,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},dailyIdea:selectedDaily,dailyToday:dailyIdea,dailyHistory,dailyStatus,dailyLoading,selectedDailyDay,dailyExclusiveCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountMode:snapshot.practiceDiscountMode,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
       sharedContentLanguage:mode === "shared-card" ? sharedContentLanguage : null,deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,readingGuidePromptBookId,readingGuideError,readingGuideDraft,bookstoreQuery,bookstoreFilters,bookstoreFiltersOpen,bookstoreFilterDraft,bookstoreSortDraft,bookSortOrder,bookstoreSortOrder,interestPreferences,bookstoreInterestSortPending,bookstoreInterestSortError,libraryTab,bookOrigin,bookstoreOrigin,sourcesOpen,cardcaseDeckIds,
       profileData,profileError,profileInterests,profileLanguages,homeInterestPreferences,bookInterestPrompt,readOnly:mode === "public-library",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,accountLearningNotice,accountInterestSortNotice,bookstoreNewBookIds,injectHeaderLeading:setHeaderLeading,profileReturnHash,showProfileBack:snapshot.user&&usefulProfileReturnHash(profileReturnHash)};
-    if(mode==="shared-card"&&!catalogIsFull&&sharedCard)state.catalog=sharedCard;
+    state.catalog=viewCatalog()||state.catalog;
     presentationState=state;
     const markup = (syncError ? callout({variant:"error",role:"alert",className:"sync-note",content:`<p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p>`,actions:`<button class="text-button" type="button" data-action="sync">${words[language].refresh}</button>`}) : "") +
       (mode === "shared-card" ? sharedCardView(state) : mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "not-found" ? notFoundView(state) : mode === "guide-reviews" ? guideReviewQueueView(state) : mode === "bookstore" ? bookstoreView(state) : mode === "library" ? libraryView(state) : mode === "public-library" ? (profileData ? libraryView(state) : profilePendingView(state))+(profileData&&profileTransition==="wake"?profileWakeOverlayView():"") : mode === "profile-loading-preview" ? profilePendingView(state) : mode === "profile" ? profileView(state)+(profileTransition==="wake"?profileWakeOverlayView():"") : mode === "daily-idea" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "guides" ? readingGuidesView(state) : mode === "guide-preview" ? readingGuideDeckPreviewView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : deckPageView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "") + bookInterestWarningView(state);
@@ -677,7 +688,7 @@ export function startReader({createCardFeatures} = {}) {
   function hidePendingOverlay() {finishOverlay(pendingOverlay);pendingOverlay=null;}
   // Profile, like Home, needs balances and interests but never the full catalog.
   // The practice mode chooser neither; its cards need the catalog only once a session starts.
-  const opensWithoutFullCatalog=()=>!location.hash||location.hash==="#home"||location.hash==="#practice"||location.hash.slice(1).split("/")[0]==="profile";
+  const opensWithoutFullCatalog=()=>!location.hash||location.hash==="#home"||location.hash.startsWith("#practice")||location.hash.slice(1).split("/")[0]==="profile";
   function route(focus = true) {
     navigationPending=false;
     const requestedHome=!location.hash||location.hash==="#home";
@@ -685,6 +696,20 @@ export function startReader({createCardFeatures} = {}) {
     const sharedCardId=location.hash.startsWith("#card/")&&!catalogIsFull?(()=>{try{return decodeURIComponent(location.hash.slice(6).split("/")[0]);}catch{return "";}})():null;
     if(ready&&sharedCardId!==null&&sharedCard?.cardId!==sharedCardId){
       const request=ensureSharedCard(sharedCardId);
+      showNavigationPending();
+      void request.then(()=>route(focus)).catch(error=>{navigationPending=false;syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
+      return;
+    }
+    // Resuming a session needs its state (Home data does not carry it) and its cards, not the full catalog.
+    const practiceResumeUser=location.hash==="#practice/session"&&!catalogIsFull?snapshot.user?.id:null;
+    if(ready&&practiceResumeUser&&(practiceStateUserId!==practiceResumeUser||!(snapshot.activePracticeSession?.cardIds||[]).every(id=>practiceCatalog?.cardsById.has(id)))){
+      const request=(async()=>{
+        if(practiceStateUserId!==practiceResumeUser){
+          const state=await api.request("/api/reader/state");
+          if(snapshot.user?.id===practiceResumeUser){applyState(state);practiceStateUserId=practiceResumeUser;}
+        }
+        await ensurePracticeCards(snapshot.activePracticeSession?.cardIds||[]);
+      })();
       showNavigationPending();
       void request.then(()=>route(focus)).catch(error=>{navigationPending=false;syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
       return;
@@ -812,8 +837,6 @@ export function startReader({createCardFeatures} = {}) {
     if(shouldLoadInterestPreferences({mode,order:bookSortOrder==="interests"?"interests":bookstoreSortOrder,userId:snapshot.user?.id,preferences:interestPreferences}))void activateInterestSort({persist:false});
     if(returningFromGuidePreview)finishGuidePreviewReturn(returningFromGuidePreview);
     if(snapshot.user&&!dailyStatus)void refreshDailyStatus();
-    // The reader will almost always pick a mode next: load the catalog while they choose.
-    if(mode==="practice"&&practiceStage==="choose"&&snapshot.user&&!catalogIsFull)void ensureFullCatalog().catch(()=>{});
     if(mode==="home"&&snapshot.user)void refreshDailyStatus();
     if(snapshot.user)void loadHomeInterestPreferences();
     if (focus && ["bookstore","library"].includes(mode) && listPositions[mode] && !openBookId && !authorForm) {
@@ -1026,7 +1049,7 @@ export function startReader({createCardFeatures} = {}) {
     dailyStatusRequest=request;return request;
   }
   function restorePracticeSession(session=snapshot.activePracticeSession) {
-    return restorePracticeSessionFromState(session,catalog?.cardsById,{introSession:practiceIntroSession});
+    return restorePracticeSessionFromState(session,catalog?.cardsById||practiceCatalog?.cardsById,{introSession:practiceIntroSession});
   }
   function invalidatePracticeRecovery() {
     practiceRecoveryGeneration++;
@@ -1091,8 +1114,9 @@ export function startReader({createCardFeatures} = {}) {
         return;
       }
       syncGeneration++;
-      applyState(result.state);
+      applyState(result.state);practiceStateUserId=userId;
       const active=result.state.activePracticeSession;
+      if(active&&!catalogIsFull){if(result.context)practiceCatalog=partialCatalog(result.context);else await ensurePracticeCards(active.cardIds);}
       if(result.practiceRecovery?.status==="cancelled") {
         practiceSession=null;practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",practiceMode};
         history.replaceState(history.state,"","#practice");render({focus:true});return;

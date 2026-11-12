@@ -2,6 +2,7 @@ import {randomUUID} from "node:crypto";
 import {authenticate, readSession, revokeSession, checkCsrf, sessionCookie} from "./auth.mjs";
 import {readProfile,readProfileBookshelf,recordCardView} from "./profile-repository.mjs";
 import {ApiError} from "./errors.mjs";
+import {readCardContexts} from "./catalog-repository.mjs";
 import {readReaderState,readReaderBalances,readReaderHomeBooks,openDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 
@@ -146,7 +147,9 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       if(path === "/api/reader/interests/knowledge/recognize") { send(200,await saveAndRecognizeReaderInterestSnapshot(db,active,input)); return true; }
       if (path === "/api/reader/practice/start") {
         const result=await startPracticeSession(db,active,input.practiceMode,currentTime,Object.hasOwn(input,"sessionId")?input.sessionId:undefined,input.expectedCost);
-        send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
+        const state=await readReaderState(db,active,currentTime);
+        // The practice cards arrive with their books and decks, so the screen does not need the full catalog.
+        send(200,{...result,state,...(state.activePracticeSession?{context:await readCardContexts(db,state.activePracticeSession.cardIds,active.user_id)}:{})}); return true;
       }
       if (path === "/api/reader/practice/answer") {
         const result=await answerPracticeSession(db,active,input,currentTime);

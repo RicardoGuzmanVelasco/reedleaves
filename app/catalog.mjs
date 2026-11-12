@@ -63,12 +63,23 @@ export async function loadHomeBooks(fetcher = fetch) {
   return response.json();
 }
 
-// Partial catalog with a single card, its book and its deck, enough to display the card and its attribution.
-// null (unknown card) gives an empty one, so the view shows its "unavailable" state.
+// Partial catalog of the cards in a context ({cards,books,decks}): enough to display them and their attribution.
+export function partialCatalog({ cards = [], books = [], decks = [] } = {}, cardId = null) {
+  return { cardId, cardsById:new Map(cards.map(card => [card.id,card])), booksById:new Map(books.map(book => [book.id,book])),
+    decksById:new Map(decks.map(deck => [deck.id,deck])), decks, deckModels:new Map() };
+}
+
+// One card (a shared link). An unknown card gives an empty catalog, so the view shows its "unavailable" state.
 export async function loadCardContext(id, fetcher = fetch) {
   const response = await fetcher(`/api/cards/${encodeURIComponent(id)}/context`, { cache:"no-cache" });
-  if (response.status === 404) return { cardId:id, cardsById:new Map(), booksById:new Map(), decksById:new Map(), decks:[], deckModels:new Map() };
+  if (response.status === 404) return partialCatalog({}, id);
   if (!response.ok) throw new Error("Card unavailable");
   const { card, book, deck } = await response.json();
-  return { cardId:id, cardsById:new Map([[card.id,card]]), booksById:new Map([[book.id,book]]), decksById:new Map([[deck.id,deck]]), decks:[deck], deckModels:new Map() };
+  return partialCatalog({ cards:[card], books:[book], decks:[deck] }, id);
+}
+
+export async function loadCardContexts(ids, fetcher = fetch) {
+  const response = await fetcher(`/api/cards/context?ids=${ids.map(encodeURIComponent).join(",")}`, { cache:"no-cache" });
+  if (!response.ok) throw new Error("Cards unavailable");
+  return partialCatalog(await response.json());
 }

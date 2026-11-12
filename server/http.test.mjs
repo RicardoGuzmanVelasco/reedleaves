@@ -227,6 +227,9 @@ test("Discover exposes authenticated availability and starts an enabled session 
   const purchased=await fetch(base+"/api/reader/practice/start",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify({practiceMode:"discover",expectedCost})});
   assert.equal(purchased.status,200);
   const bought=await purchased.json();assert.equal(bought.session.practiceMode,"discover");assert.equal(bought.session.cardIds.length,5);
+  // The cards arrive with their books and decks, so the screen does not need the catalog.
+  assert.deepEqual(bought.context.cards.map(card=>card.id),bought.session.cardIds);
+  assert.ok(bought.context.cards.every(card=>bought.context.books.some(book=>book.id===card.bookId)&&bought.context.decks.some(deck=>deck.id===card.deckId)));
   assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,walletBefore-bought.session.cost);
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM practice_sessions WHERE user_id=?").get(userId).n,1);
 });
@@ -396,4 +399,12 @@ test("A card arrives with its book and deck, matching what the catalog says, wit
     assert.equal(isReadingGuide, catalog.cards.some(c => c.deckId === deck.id && c.isReadingGuide));
   }
   assert.equal((await fetch(base + "/api/cards/does-not-exist/context")).status, 404);
+  // Several cards at once: each card once, with their books and decks deduplicated.
+  const ids = catalog.cards.slice(0, 5).map(card => card.id);
+  const batch = await (await fetch(`${base}/api/cards/context?ids=${ids.join(",")}`)).json();
+  assert.deepEqual(batch.cards.map(card => card.id), ids);
+  assert.deepEqual(batch.cards, catalog.cards.slice(0, 5));
+  assert.deepEqual(batch.books.map(book => book.id).sort(), [...new Set(batch.cards.map(card => card.bookId))].sort());
+  assert.deepEqual(batch.decks.map(deck => deck.id).sort(), [...new Set(batch.cards.map(card => card.deckId))].sort());
+  assert.equal((await fetch(base + "/api/cards/context")).status, 400);
 });

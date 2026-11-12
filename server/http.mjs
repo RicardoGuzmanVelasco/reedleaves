@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
 import { extname, resolve, sep } from "node:path";
 import { PROJECT_ROOT } from "./database.mjs";
-import { readCatalog, readCardContext } from "./catalog-repository.mjs";
+import { readCatalog, readCardContext, readCardContexts } from "./catalog-repository.mjs";
 import {bookTitle,contentText,quoteExcerpt} from "../app/core.mjs";
 import {createReaderApi} from "./reader-api.mjs";
 import {readSession} from "./auth.mjs";
@@ -59,6 +59,12 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
         send(405, { error: "Method not allowed" }); return;
       }
       if (path === "/api/health") { await db.prepare("SELECT 1").get(); send(200, { status: "ok" }); return; }
+      if (path === "/api/cards/context") {
+        const ids = (url.searchParams.get("ids") || "").split(",").filter(Boolean);
+        if (!ids.length || ids.length > 20) { send(400, { error: "invalidRequest" }); return; }
+        const session = await readSession(db,request,options.now?.() || new Date());
+        send(200, { schemaVersion:1, ...await readCardContexts(db,ids,session?.user_id) }); return;
+      }
       const cardContextMatch = path.match(/^\/api\/cards\/([^/]+)\/context$/);
       if (cardContextMatch) {
         const session = await readSession(db,request,options.now?.() || new Date());

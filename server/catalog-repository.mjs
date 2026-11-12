@@ -138,43 +138,58 @@ export async function checkCatalog(db) {
   return {books:catalog.books.length,decks:catalog.decks.length,cards:catalog.cards.length,interests:catalog.interests.length};
 }
 
-// One card with only what is needed to display it and its attribution: the card, its book and its deck.
+// Cards with only what is needed to display them and their attribution: each card, its book and its deck.
 // Same shapes and the same visibility as readCatalog (which returns every card to everyone), without
-// reading or validating the rest of the catalog. Returns null when the card does not exist.
-export async function readCardContext(db, cardId, userId) {
+// reading or validating the rest of the catalog. Unknown ids are left out.
+export async function readCardContexts(db, cardIds, userId) {
+  const ids=[...new Set(cardIds)];
+  if(!ids.length) return {cards:[],books:[],decks:[]};
   const supportsGuideReviews=await hasGuideReviews(db);
-  const row=await db.prepare(`SELECT c.id,c.book_id,c.deck_id,c.language,c.creator_user_id,c.is_quote,c.is_reading_guide,c.parent_id,c.position,
+  const marks=values=>values.map(()=>"?").join(",");
+  const rows=await db.prepare(`SELECT c.id,c.book_id,c.deck_id,c.language,c.creator_user_id,c.is_quote,c.is_reading_guide,c.parent_id,c.position,
     deck.language AS deck_language,creator.display_name AS creator_name,
     ${supportsGuideReviews?"guide_review.status":"NULL"} AS reading_guide_review_status,
     ${supportsGuideReviews?"guide_review.rejection_reason":"NULL"} AS reading_guide_rejection_reason
     FROM cards c JOIN decks deck ON deck.id=c.deck_id
     LEFT JOIN users creator ON creator.id=c.creator_user_id ${supportsGuideReviews?"LEFT JOIN reading_guide_reviews guide_review ON guide_review.card_id=c.id":""}
-    WHERE c.id=?`).get(cardId);
-  if(!row) return null;
-  const card={id:row.id,bookId:row.book_id,deckId:row.deck_id,deckLanguage:row.deck_language,
-    language:row.language || row.deck_language,creatorUserId:row.creator_user_id || null,creatorName:row.creator_name || null,
-    isQuote:!!row.is_quote,isReadingGuide:!!row.is_reading_guide,
-    ...(row.is_reading_guide?{reviewStatus:row.reading_guide_review_status||"legacy"}:{}),
-    ...(row.is_reading_guide&&row.creator_user_id===userId&&row.reading_guide_rejection_reason?{reviewRejectionReason:row.reading_guide_rejection_reason}:{}),
-    parentId:row.parent_id,order:row.position,title:{},body:{}};
-  for(const t of await db.prepare("SELECT language,title,body FROM card_translations WHERE card_id=?").all(cardId)) {
-    card.title[t.language]=t.title; card.body[t.language]=t.body;
-  }
-  const bookRow=await db.prepare(`SELECT b.id,b.author,b.popular_title,b.popular_language,b.creator_user_id,
+    WHERE c.id IN (${marks(ids)})`).all(...ids);
+  if(!rows.length) return {cards:[],books:[],decks:[]};
+  const translations=await rowsBy(db,`SELECT card_id,language,title,body FROM card_translations WHERE card_id IN (${marks(rows)})`,"card_id",...rows.map(row=>row.id));
+  const byId=new Map(rows.map(row=>{
+    const card={id:row.id,bookId:row.book_id,deckId:row.deck_id,deckLanguage:row.deck_language,
+      language:row.language || row.deck_language,creatorUserId:row.creator_user_id || null,creatorName:row.creator_name || null,
+      isQuote:!!row.is_quote,isReadingGuide:!!row.is_reading_guide,
+      ...(row.is_reading_guide?{reviewStatus:row.reading_guide_review_status||"legacy"}:{}),
+      ...(row.is_reading_guide&&row.creator_user_id===userId&&row.reading_guide_rejection_reason?{reviewRejectionReason:row.reading_guide_rejection_reason}:{}),
+      parentId:row.parent_id,order:row.position,title:{},body:{}};
+    for(const t of translations.get(row.id)) { card.title[t.language]=t.title; card.body[t.language]=t.body; }
+    return [row.id,card];
+  }));
+  const bookIds=[...new Set(rows.map(row=>row.book_id))],deckIds=[...new Set(rows.map(row=>row.deck_id))];
+  const bookTranslations=await rowsBy(db,`SELECT book_id,language,title FROM book_translations WHERE book_id IN (${marks(bookIds)})`,"book_id",...bookIds);
+  const books=(await db.prepare(`SELECT b.id,b.author,b.popular_title,b.popular_language,b.creator_user_id,
     COALESCE(u.display_name,(SELECT display_name FROM users WHERE id='reed-team'),'Equipo Reedleaves') AS creator_name,
     COALESCE(u.id,(SELECT id FROM users WHERE id='reed-team')) AS creator_profile_user_id
-    FROM books b LEFT JOIN users u ON u.id=b.creator_user_id WHERE b.id=?`).get(row.book_id);
-  const book={id:bookRow.id,author:bookRow.author,creatorUserId:bookRow.creator_user_id,creatorName:bookRow.creator_name || null,
-    creatorProfileUserId:bookRow.creator_profile_user_id || null,popularTitle:bookRow.popular_title,popularLanguage:bookRow.popular_language,title:{}};
-  for(const t of await db.prepare("SELECT language,title FROM book_translations WHERE book_id=?").all(book.id)) {
-    if(t.title.trim() && t.title.trim()!==book.popularTitle.trim()) book.title[t.language]=t.title;
-  }
-  const deckRow=await db.prepare(`SELECT d.id,d.book_id,d.language,d.kind,d.status,d.quote_source_url,d.creator_user_id,u.display_name,
+    FROM books b LEFT JOIN users u ON u.id=b.creator_user_id WHERE b.id IN (${marks(bookIds)})`).all(...bookIds)).map(row=>{
+    const book={id:row.id,author:row.author,creatorUserId:row.creator_user_id,creatorName:row.creator_name || null,
+      creatorProfileUserId:row.creator_profile_user_id || null,popularTitle:row.popular_title,popularLanguage:row.popular_language,title:{}};
+    for(const t of bookTranslations.get(book.id)) if(t.title.trim() && t.title.trim()!==book.popularTitle.trim()) book.title[t.language]=t.title;
+    return book;
+  });
+  const deckTranslations=await rowsBy(db,`SELECT deck_id,language,title FROM deck_translations WHERE deck_id IN (${marks(deckIds)})`,"deck_id",...deckIds);
+  const decks=(await db.prepare(`SELECT d.id,d.book_id,d.language,d.kind,d.status,d.quote_source_url,d.creator_user_id,u.display_name,
     EXISTS(SELECT 1 FROM cards WHERE deck_id=d.id AND is_reading_guide) AS has_guide
-    FROM decks d JOIN users u ON u.id=d.creator_user_id WHERE d.id=?`).get(row.deck_id);
-  const deck={id:deckRow.id,bookId:deckRow.book_id,language:deckRow.language,kind:deckRow.kind || "standard",status:deckRow.status,
-    isReadingGuide:!!deckRow.has_guide,creator:{kind:"user",userId:deckRow.creator_user_id,name:deckRow.display_name || null},title:{}};
-  if(deckRow.quote_source_url) deck.quoteSourceUrl=deckRow.quote_source_url;
-  for(const t of await db.prepare("SELECT language,title FROM deck_translations WHERE deck_id=?").all(deck.id)) deck.title[t.language]=t.title;
-  return {schemaVersion:1,card,book,deck};
+    FROM decks d JOIN users u ON u.id=d.creator_user_id WHERE d.id IN (${marks(deckIds)})`).all(...deckIds)).map(row=>{
+    const deck={id:row.id,bookId:row.book_id,language:row.language,kind:row.kind || "standard",status:row.status,
+      isReadingGuide:!!row.has_guide,creator:{kind:"user",userId:row.creator_user_id,name:row.display_name || null},title:{}};
+    if(row.quote_source_url) deck.quoteSourceUrl=row.quote_source_url;
+    for(const t of deckTranslations.get(deck.id)) deck.title[t.language]=t.title;
+    return deck;
+  });
+  return {cards:ids.filter(id=>byId.has(id)).map(id=>byId.get(id)),books,decks};
+}
+
+export async function readCardContext(db, cardId, userId) {
+  const {cards,books,decks}=await readCardContexts(db,[cardId],userId);
+  return cards.length?{schemaVersion:1,card:cards[0],book:books[0],deck:decks[0]}:null;
 }
