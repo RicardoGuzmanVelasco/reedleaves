@@ -684,15 +684,18 @@ export function startReader({createCardFeatures} = {}) {
       void request.then(()=>route(focus)).catch(error=>{navigationPending=false;syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
       return;
     }
-    // Resuming a session needs its state (Home data does not carry it) and its cards, not the full catalog.
-    const practiceResumeUser=location.hash==="#practice/session"&&!catalogIsFull?snapshot.user?.id:null;
-    if(ready&&practiceResumeUser&&(practiceStateUserId!==practiceResumeUser||!(snapshot.activePracticeSession?.cardIds||[]).every(id=>practiceCatalog?.cardsById.has(id)))){
+    // The practice screens need the session state (Home data does not carry it, and it decides between the
+    // mode chooser and "resume"), and a resumed session its cards; neither needs the full catalog.
+    if(!location.hash.startsWith("#practice"))practiceStateUserId=null;
+    const inSession=location.hash==="#practice/session",practiceUser=(location.hash==="#practice"||inSession)&&!catalogIsFull?snapshot.user?.id:null;
+    const sessionCardIds=inSession?snapshot.activePracticeSession?.cardIds||[]:[];
+    if(ready&&practiceUser&&(practiceStateUserId!==practiceUser||!sessionCardIds.every(id=>practiceCatalog?.cardsById.has(id)))){
       const request=(async()=>{
-        if(practiceStateUserId!==practiceResumeUser){
+        if(practiceStateUserId!==practiceUser){
           const state=await api.request("/api/reader/state");
-          if(snapshot.user?.id===practiceResumeUser){applyState(state);practiceStateUserId=practiceResumeUser;}
+          if(snapshot.user?.id===practiceUser){applyState(state);practiceStateUserId=practiceUser;}
         }
-        await ensurePracticeCards(snapshot.activePracticeSession?.cardIds||[]);
+        await ensurePracticeCards(location.hash==="#practice/session"?snapshot.activePracticeSession?.cardIds||[]:[]);
       })();
       showNavigationPending();
       void request.then(()=>route(focus)).catch(error=>{navigationPending=false;syncError=error.code||"connectionError";live.textContent=words[language].connectionError;render();});
