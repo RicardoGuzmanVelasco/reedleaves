@@ -14,10 +14,10 @@ Las herramientas se abren con `SERVE_BRAND=1 npm start` en `/brand/tools/...`. E
 
 | Carpeta | Contenido |
 | --- | --- |
-| `mascot/` | Cuerpos activos (sin cara ni sombra) y `mystery.svg`, `plant.svg`, `infinity.svg` |
+| `mascot/` | Cuerpos activos (sin cara ni sombra) y `mystery.svg` y `plant.svg` |
 | `icons/` | Iconos de interfaz |
 | `platforms/` | Logos de Amazon y Goodreads |
-| `brand/` | Icono de app, favicon, tokens, reverso de tarjeta, tarjeta de compartir, logo |
+| `brand/` | Icono de app, favicon, tokens, reverso de tarjeta, tarjeta de compartir |
 
 Se sirven como `/app/assets/...` y `scripts/image-manifest.mjs` les añade versión por contenido.
 

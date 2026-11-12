@@ -34,7 +34,7 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   assert.match(appHtml,/class="[^"]*\bdialog-close\b[^"]*" id="close-feedback"[^>]*aria-label="Cerrar comentarios"[^>]*><svg/);
   assert.match(app.headers.get("content-security-policy"), /script-src 'self'/);
   assert.match((await fetch(base + "/app/reader.mjs")).headers.get("content-type"), /javascript/);
-  assert.equal((await fetch(base + "/app/assets/brand/d-compacto.svg")).status, 200);
+  assert.equal((await fetch(base + "/app/assets/brand/leaf-token.svg")).status, 200);
   const favicon = await fetch(base + "/favicon.ico");
   assert.equal(favicon.status, 200);
   assert.match(favicon.headers.get("content-type"), /image\/x-icon/);

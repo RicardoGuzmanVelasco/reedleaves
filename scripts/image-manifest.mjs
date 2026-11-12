@@ -10,7 +10,7 @@ export const imagePaths = [
   ...["cards","cards-filled","cards-pen","cards-read","reading-guide"].map(name=>`/app/assets/icons/note-capture/${name}.svg`),
   ...["amazon","goodreads"].map(name=>`/app/assets/platforms/${name}.svg`),
   ...["pot-a-body.png","pot-a-left-eye.png","pot-a-right-eye.png","pot-a-mouth.png","soil.svg","seed.svg","root.png","seedling.svg","sprout.svg","stem-flat.svg","bud.svg","flower.png","evergreen.svg"].map(name=>`/app/assets/mascot/${name}`),
-  ...["mystery","plant","infinity"].map(name=>`/app/assets/mascot/${name}.svg`),
+  ...["mystery","plant"].map(name=>`/app/assets/mascot/${name}.svg`),
   ...["petal-token.svg","leaf-token.svg","streak-flame.svg","vein-pattern.svg","card-back.svg","app-icon.svg","app-icon-192-v4.png","app-icon-512-v4.png","share-card.png","favicon.ico","apple-touch-icon.png"].map(name=>`/app/assets/brand/${name}`),
   "/app/assets/icons/navigation/home.svg"
 ];
