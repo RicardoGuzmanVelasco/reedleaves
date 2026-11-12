@@ -41,9 +41,11 @@ test("Frontend consumes the database API without a hard-coded book or card count
   assert.equal(recommendedRoots("rich-dad-poor-dad"), 6);
   const result = await loadCatalog(async url => {
     assert.equal(url, "/api/catalog");
-    return { ok: true, json: async () => data };
+    return { ok: true, text: async () => JSON.stringify(data) };
   });
   assert.equal(result.books.length, 5);
+  // An unchanged response reuses the prepared catalog so callers can skip comparing it.
+  assert.equal(await loadCatalog(async () => ({ ok: true, text: async () => JSON.stringify(data) })), result);
   await assert.rejects(loadCatalog(async () => ({ ok: false })));
 });
 test("A team book without decks remains accessible and displays the empty state", async () => {

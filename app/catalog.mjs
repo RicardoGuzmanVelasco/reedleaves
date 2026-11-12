@@ -38,10 +38,17 @@ export function prepareCatalog(payload) {
     cardsById:new Map(allCards.map(c => [c.id,c])),interests };
 }
 
+// The browser revalidates /api/catalog with its ETag. When the text is unchanged, reuse the prepared catalog
+// so callers can detect "nothing changed" by identity instead of comparing the whole catalog.
+let lastCatalog = null;
 export async function loadCatalog(fetcher = fetch) {
   const response = await fetcher("/api/catalog", { cache:"no-cache" });
   if (!response.ok) throw new Error("Catalog unavailable");
-  return prepareCatalog(await response.json());
+  const text = await response.text();
+  if (lastCatalog?.text === text) return lastCatalog.catalog;
+  const catalog = prepareCatalog(JSON.parse(text));
+  lastCatalog = { text, catalog };
+  return catalog;
 }
 
 export async function loadInterests(fetcher=fetch){

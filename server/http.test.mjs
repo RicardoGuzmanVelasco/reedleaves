@@ -14,10 +14,15 @@ test("Live HTTP API reads SQL; static access cannot expose private files", async
   const base = `http://127.0.0.1:${server.address().port}`;
   const catalog = await fetch(base + "/api/catalog");
   assert.equal(catalog.status, 200); assert.match(catalog.headers.get("content-type"), /application\/json/);
+  const etag = catalog.headers.get("etag");
+  assert.ok(etag);
   assert.equal((await catalog.json()).cards.length, 42);
+  const unchanged = await fetch(base + "/api/catalog", { headers: { "If-None-Match": etag } });
+  assert.equal(unchanged.status, 304); assert.equal(await unchanged.text(), "");
   db.prepare("UPDATE books SET author = ? WHERE id = ?").run("SQL-backed author", "same-as-ever");
   const updated = await (await fetch(base + "/api/catalog")).json();
   assert.equal(updated.books.find(b => b.id === "same-as-ever").author, "SQL-backed author");
+  assert.equal((await fetch(base + "/api/catalog", { headers: { "If-None-Match": etag } })).status, 200);
   for (const book of updated.books) {
     assert.match(book.links.amazon, /^https:\/\/www\.amazon\.es\/dp\//);
     assert.match(book.links.goodreads, /^https:\/\/www\.goodreads\.com\//);

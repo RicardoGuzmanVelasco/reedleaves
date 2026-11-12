@@ -61,8 +61,12 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
       if (path === "/api/health") { await db.prepare("SELECT 1").get(); send(200, { status: "ok" }); return; }
       if (path === "/api/catalog") {
         const session = await readSession(db,request,options.now?.() || new Date());
-        response.setHeader("Cache-Control","no-store");
-        send(200, await readCatalog(db,session?.user_id)); return;
+        // The catalog is large and rarely changes: the browser keeps its copy and revalidates it with the ETag (304 sends no body).
+        const bytes = Buffer.from(JSON.stringify(await readCatalog(db,session?.user_id)));
+        const etag = `"${createHash("sha1").update(bytes).digest("base64url")}"`;
+        response.setHeader("ETag",etag);
+        if (request.headers["if-none-match"]?.split(",").some(tag => tag.trim() === etag)) { response.writeHead(304); response.end(); return; }
+        send(200, bytes); return;
       }
       if (path === "/" || path === "/app") {
         response.writeHead(302, { Location: "/app/" }); response.end(); return;

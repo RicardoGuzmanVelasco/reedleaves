@@ -1859,7 +1859,7 @@ export function startReader({createCardFeatures} = {}) {
     if(!catalogIsFull)return;
     try { const state = await api.request("/api/reader/state"); const updatedCatalog = await loadCatalog(); if (!canApplyReaderSync(generation,syncGeneration,{busy,practicePending:hasPendingPracticeOperation({startRequest:practiceStartRequest,answerRequest:practiceAnswerRequest,recoveryRequest:practiceRecoveryRequest})})) return;
       const sameUser=snapshot.user?.id===state.user?.id;
-      const changed = JSON.stringify(state) !== JSON.stringify(snapshot) || ["books","decks","cards"].some(key=>JSON.stringify(updatedCatalog?.[key]) !== JSON.stringify(catalog?.[key])); catalog = updatedCatalog; applyState(state); syncError = null;
+      const changed = JSON.stringify(state) !== JSON.stringify(snapshot) || (updatedCatalog !== catalog && ["books","decks","cards"].some(key=>JSON.stringify(updatedCatalog?.[key]) !== JSON.stringify(catalog?.[key]))); catalog = updatedCatalog; applyState(state); syncError = null;
       if (sameUser && main.querySelector(".exclusive-card-modal")) {header();updateCardFeatures()}
       else if (changed || force) { if (["profile","public-library"].includes(mode)) profileData=null; route(false); }
     } catch(error) { if (generation === syncGeneration) { syncError = error.code;if(main.querySelector(".exclusive-card-modal"))header();else render(); } }
