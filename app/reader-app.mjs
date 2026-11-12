@@ -51,6 +51,30 @@ import {createReaderXpTracker,mountReaderXpFeedback,syncReaderProgressionState} 
 
 export function startReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
+  function fitOneLineLabel(container) {
+    const label=container.querySelector("bdi");
+    if(!label||!container.clientWidth)return;
+    label.style.fontSize="";
+    const base=parseFloat(getComputedStyle(label).fontSize);
+    if(!Number.isFinite(base)||label.scrollWidth<=label.clientWidth)return;
+    let lower=8,upper=base;
+    label.style.fontSize=`${lower}px`;
+    if(label.scrollWidth>label.clientWidth){label.style.fontSize=`${lower}px`;return;}
+    for(let step=0;step<8;step++){
+      const middle=(lower+upper)/2;
+      label.style.fontSize=`${middle}px`;
+      if(label.scrollWidth<=label.clientWidth)lower=middle;else upper=middle;
+    }
+    label.style.fontSize=`${Math.floor(lower*10)/10}px`;
+  }
+  const oneLineFitObserver=new ResizeObserver(entries=>entries.forEach(({target})=>fitOneLineLabel(target)));
+  function fitOneLineLabels() {
+    oneLineFitObserver.disconnect();
+    for(const container of main.querySelectorAll(".reading-footer .card-attribution-row,.deck-tile .deck-tile-creator")){
+      fitOneLineLabel(container);
+      oneLineFitObserver.observe(container);
+    }
+  }
   startBottomNavigationBehavior();
   document.addEventListener("pointerdown",()=>document.documentElement.dataset.inputModality="pointer",true);
   document.addEventListener("keydown",()=>document.documentElement.dataset.inputModality="keyboard",true);
@@ -447,9 +471,10 @@ export function startReader({createCardFeatures} = {}) {
       // Keep the first-paint flight running when the application module arrives.
       if(failed||!main.querySelector(".opening-loading"))main.innerHTML=loadingView(language,failed);
       else main.querySelector(".opening-loading").setAttribute("aria-label",words[language].loading);
+      fitOneLineLabels();
       syncModalPageLock();presentReading(main);updateCardFeatures();return;
     }
-    if(waiting){main.innerHTML=loadingPlaceholder(words[language].loading);syncModalPageLock();updateCardFeatures();return;}
+    if(waiting){main.innerHTML=loadingPlaceholder(words[language].loading);fitOneLineLabels();syncModalPageLock();updateCardFeatures();return;}
     refreshState(); header();
     if (["deck","author"].includes(mode) && previewDeckId !== deckId) { deckPreview=false;previewColumns=2;previewDeckId=deckId; }
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
@@ -461,6 +486,7 @@ export function startReader({createCardFeatures} = {}) {
     presentationState=state;
     main.innerHTML = (syncError ? callout({variant:"error",role:"alert",className:"sync-note",content:`<p>${escapeHtml(words[language][syncError] || words[language].connectionError)}</p>`,actions:`<button class="text-button" type="button" data-action="sync">${words[language].refresh}</button>`}) : "") +
       (mode === "shared-card" ? sharedCardView(state) : mode === "account" || mode === "home" && !snapshot.user ? accountView(state) : mode === "home" ? homeView(state) : mode === "guide-reviews" ? guideReviewQueueView(state) : mode === "bookstore" ? bookstoreView(state) : mode === "library" ? libraryView(state) : mode === "public-library" ? (profileData ? libraryView(state) : profilePendingView(state))+(profileData&&profileTransition==="wake"?profileWakeOverlayView():"") : mode === "profile-loading-preview" ? profilePendingView(state) : mode === "profile" ? profileView(state)+(profileTransition==="wake"?profileWakeOverlayView():"") : mode === "daily-idea" ? dailyView(state) : mode === "practice" ? practiceView(state,practiceSession) : mode === "book" ? deckView(state) : mode === "guides" ? readingGuidesView(state) : mode === "guide-preview" ? readingGuideDeckPreviewView(state) : mode === "preview" ? deckPeekView(state) : mode === "saved" ? savedCardsView(state) : mode === "mascots" ? mascotsView(state) : mode === "author" ? authorView(state) : deckPageView(state)) + (authorForm ? authorFormView(state) : "") + (deckCompletion ? deckCompletionView(state) : "") + (notesCompletion ? notesCompletionView(state) : "") + bookInterestWarningView(state);
+    fitOneLineLabels();
     mountInterests(main);
     mountBookCoverTints(main,[...(catalog?.books||[]),...homeBooksData],catalog?.interests||homeCoverInterests,tintMode);
     for(const option of main.querySelectorAll('[data-action="practice-mode"]')) {
