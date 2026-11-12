@@ -150,7 +150,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const before=await readCatalog(db);
     await assert.rejects(mergeBooks(db,{sourceBookId:bookId,targetBookId:"seven-habits"}),{status:400,code:"bookGenreLimit"});
     assert.deepEqual(await readCatalog(db),before);
-    assert.deepEqual(await checkCatalog(db),{books:6,decks:6,cards:42,genres:9});
+    assert.deepEqual(await checkCatalog(db),{books:6,decks:6,cards:42,genres:10});
   });
   test(`${dialect}: completing a historical book with four interests preserves its exact associations and order`,async t=>{
     const {db,session}=await fixture(t,dialect);

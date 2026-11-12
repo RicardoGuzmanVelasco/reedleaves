@@ -56,7 +56,7 @@ test("A team book without decks remains accessible and displays the empty state"
   assert.ok(html.includes(words.es.noDecks));
 });
 test("Catalog validation rejects orphan cards, duplicate IDs and missing genre translations", async () => {
-  for (const mutate of [p => p.cards[0].bookId = "unknown", p => p.cards.push(p.cards[0]), p => delete p.genres[0].name.en, p => delete p.genres[0].emoji, p => p.genres[0].color="url(https://example.com)", p => p.books[0].genres.push("unknown")]) {
+  for (const mutate of [p => p.cards[0].bookId = "unknown", p => p.cards.push(p.cards[0]), p => delete p.genres[0].name.en, p => delete p.genres[0].emoji, p => p.genres[0].chipColor="url(https://example.com)", p => p.books[0].genres.push("unknown")]) {
     const data = await payload(); mutate(data); assert.throws(() => prepareCatalog(data));
   }
 });

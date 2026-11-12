@@ -29,9 +29,7 @@ for(const [dialect,version] of [["sqlite",42],["postgres",34]]) test(`${dialect}
   if(dialect==="postgres") await db.exec("ALTER TABLE genres ENABLE ROW LEVEL SECURITY;");
   const before=await retainedRows(db,dialect);
   await initializeDatabase(db);await initializeDatabase(db);
-  const after=await retainedRows(db,dialect);
-  if(after.genres) after.genres=after.genres.filter(row=>row.id!=="communication");
-  assert.deepEqual(after,before);
+  assert.deepEqual(await retainedRows(db,dialect),before);
   const catalog=await readCatalog(db),seed=readSeed();
   for(const interest of catalog.genres) {
     const expected=seed.genres.find(value=>value.id===interest.id);

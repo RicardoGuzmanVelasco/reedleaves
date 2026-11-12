@@ -126,7 +126,7 @@ export async function seedCatalog(db, seed = readSeed()) {
       ON CONFLICT(id) DO UPDATE SET display_name = excluded.display_name, can_create_decks = excluded.can_create_decks`).run(u.id,u.display_name,Number(u.can_create_decks));
     for (const g of seed.genres) {
       await db.prepare(`INSERT INTO genres(id,emoji,color) VALUES (?,?,?)
-        ON CONFLICT(id) DO UPDATE SET emoji=excluded.emoji,color=excluded.color`).run(g.id,g.emoji,g.color);
+        ON CONFLICT(id) DO UPDATE SET emoji=excluded.emoji,color=excluded.color`).run(g.id,g.emoji,g.chip_color);
       for (const language of LANGUAGES) await db.prepare(`INSERT INTO genre_translations VALUES (?, ?, ?)
         ON CONFLICT(genre_id, language) DO UPDATE SET name = excluded.name`).run(g.id, language, g["name_" + language]);
     }
