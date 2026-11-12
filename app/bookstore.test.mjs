@@ -69,6 +69,6 @@ test("Bookstore has an empty state; deck selection can return to the catalog", a
   const s = await state();
   assert.match(bookstoreView({...s,catalog:{...s.catalog,books:[]}}),/Todavía no hay libros disponibles/);
   const deckState = {...s,bookId:"seven-habits",bookOrigin:"bookstore",deckChoices:featuredDecks(s.catalog,"seven-habits"),openDeckId:null};
-  const deckDetails=deckView(deckState); assert.match(deckDetails,/data-action="bookstore"/); assert.ok(deckDetails.includes("← Librería"));
+  const deckDetails=deckView(deckState); assert.match(deckDetails,/data-action="bookstore"/); assert.match(deckDetails,/<span class="back-arrow" aria-hidden="true">←<\/span> Librería/);
   assert.doesNotMatch(deckView({...deckState,bookOrigin:"home"}),/data-action="(?:home|bookstore)"/);
 });
