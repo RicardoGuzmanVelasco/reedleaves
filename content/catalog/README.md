@@ -5,7 +5,7 @@ La app carga los intereses desde la base de datos activa: PostgreSQL en producci
 | Archivo | Una fila representa |
 | --- | --- |
 | `users.csv` | Usuario creador; actualmente el equipo editorial real, sin sesiones ni lectores inventados |
-| `genres.csv` | Un interés con nombre ES/EN, emoji, `chip_color` y `book_color` (`#RRGGBB`) |
+| `interests.csv` | Un interés con nombre ES/EN, emoji, `chip_color` y `book_color` (`#RRGGBB`) |
 | `books.csv` | Un libro con metadatos ES/EN y géneros separados por `|` |
 | `links.csv` | Enlace externo de un libro: plataforma (`amazon` o `goodreads`) y URL HTTPS de su ficha |
 | `decks.csv` | Baraja, creador, libro, idioma principal y estado; enfoque y nota editorial |
