@@ -130,7 +130,7 @@ test("Multiple decks per book, nested cards, calculated counts and depth", async
   assert.throws(() => db.prepare("UPDATE cards SET parent_id = 'practical-grandchild' WHERE id = 'practical-root'").run(), /cycle/);
   assert.throws(() => db.prepare("UPDATE cards SET parent_id = 'habit-1' WHERE id = 'practical-root'").run(), /FOREIGN KEY/);
 });
-test("One optional vote and independent book reading / deck enrolment", async t => {
+test("One optional vote and independent book reading / Cardcase membership", async t => {
   const db = await fixture(t);
   db.prepare("INSERT INTO users(id,display_name) VALUES ('test-reader','Reader'),('test-author','Author')").run();
   db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language) VALUES ('allowed','seven-habits','test-author','fr')").run();

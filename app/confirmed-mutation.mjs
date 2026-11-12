@@ -8,7 +8,7 @@ export async function requestConfirmedMutation(request,path,input,confirm) {
   return result;
 }
 
-/** Run a deck intent after sign-in, confirming collection before charging for it. */
+/** Run a deck intent after sign-in, confirming the Cardcase addition before charging for it. */
 export async function requestPendingDeckIntent(request,deckId,intent,confirm) {
   if(intent==="addToCardcase") return requestConfirmedMutation(request,"/api/reader/cardcase/add",{deckId},confirm);
   return request("/api/reader/deck/open",{deckId});

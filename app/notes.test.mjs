@@ -34,10 +34,10 @@ test("Home orders by latest note date and preserves catalog order on ties and ab
 
 test("Recent note destinations exclude foreign and finished decks and stop at two",()=>{
   const s=fixture();
-  for (const [deckId,userId,status] of [["older","reader","draft"],["third","reader","draft"],["foreign-write","other","draft"],["published","reader","published"]]) {
+  for (const [deckId,userId,status] of [["older","reader","draft"],["third","reader","draft"],["foreign-write","other","draft"],["finished","reader","finished"]]) {
     s.catalog.decks.push({id:deckId,bookId:"writing",creator:{userId},status,title:{es:deckId},language:"es"});
   }
-  const activity={own:"2026-10-15",older:"2026-10-14",third:"2026-10-13","foreign-write":"2026-10-16",published:"2026-10-16"};
+  const activity={own:"2026-10-15",older:"2026-10-14",third:"2026-10-13","foreign-write":"2026-10-16",finished:"2026-10-16"};
   assert.deepEqual(ids(recentNoteDecks(s.catalog,"writing",s.userId,activity)),["own","older"]);
   assert.deepEqual(recentNoteDecks(s.catalog,"writing",s.userId,{}),[]);
 });

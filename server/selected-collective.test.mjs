@@ -44,9 +44,9 @@ for(const dialect of ["sqlite","postgres"]) test(`${dialect}: selected contribut
   await addDeckContributors(db,owner,{deckId:deck.deckId,userIds:[member.user_id]});
   await finishDeck(db,owner,{deckId:deck.deckId});
   await assert.rejects(addDeckContributors(db,owner,{deckId:deck.deckId,userIds:[]}),{code:"deckReadOnly"});
-  await assert.rejects(add(member,"Published decks cannot change."),{code:"deckReadOnly"});
+  await assert.rejects(add(member,"Finished decks cannot change."),{code:"deckReadOnly"});
   assert.deepEqual((await db.prepare("SELECT user_id FROM deck_contributors WHERE deck_id=? ORDER BY user_id").all(deck.deckId)).map(row=>row.user_id),[member.user_id]);
-  assert.equal((await openDeck(db,outsider,deck.deckId)).user.id,outsider.user_id,"Published collective decks can be read by everyone");
+  assert.equal((await openDeck(db,outsider,deck.deckId)).user.id,outsider.user_id,"Finished collective decks can be read by everyone");
 
   const unlimited=await createDeck(db,owner,{requestId:randomUUID(),bookId:"atomic-habits",title:"Long collective",language:"en",kind:"collective",contributionPolicy:"selected"});
   for(let index=0;index<26;index++) await takeNote(db,owner,{requestId:randomUUID(),deckId:unlimited.deckId,title:`Idea ${index+1}`,body:"A collective deck has no standard-deck size cap.",parentId:null,isQuote:false});

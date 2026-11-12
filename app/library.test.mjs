@@ -18,7 +18,7 @@ async function fixture() {
   } finally { await db.close(); }
 }
 const ids = entries=>entries.map(item=>item.book.id);
-test("Bookshelf excludes untouched recommendations and includes reading, enrolments and personal content",async()=>{
+test("Bookshelf excludes untouched recommendations and includes reading, Cardcase decks and personal content",async()=>{
   const s=await fixture();
   assert.deepEqual(bookshelfBooks(s),[]);
   s.statuses={"atomic-habits":"reading","getting-things-done":"read"};
@@ -99,7 +99,7 @@ test("Collection groups, empty states, book details and origin navigation transl
     assert.doesNotMatch(html,/data-action="home"|undefined|data-book="seven-habits"/);
     assert.ok(libraryView({...state,statuses:{}}).includes(c.emptyBookshelf));
     assert.match(libraryView({...state,openBookId:"atomic-habits"}),/<dialog class="deck-modal book-modal"/);
-    assert.ok(bookstoreView(state).includes(c.bookstore)); assert.match(bookstoreView(state),/collections\/bookstore\.svg/);
+    assert.ok(bookstoreView(state).includes(c.bookstore)); assert.match(bookstoreView(state),/sections\/bookstore\.svg/);
     assert.doesNotMatch(bookstoreView(state),/collection-entry|Ir a mi biblioteca|Go to my Library/);
     assert.ok(bookstoreView({...state,bookstoreOrigin:"library"}).includes(c.shelf));
     assert.doesNotMatch(bookstoreView({...state,bookstoreOrigin:"home"}),/data-action="library"/);

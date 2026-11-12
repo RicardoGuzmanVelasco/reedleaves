@@ -6,7 +6,7 @@ import {words} from "./i18n.mjs";
 const prompt=(confirmation,interestId="personal-growth")=>({confirmationRequired:true,bookId:"seven-habits",
   interest:{id:interestId,emoji:"🌱",name:"Personal growth"},price:2,confirmation});
 
-test("cancelling a collection warning makes no retry or local result",async()=>{
+test("cancelling a cardcase warning makes no retry or local result",async()=>{
   const requests=[];
   const result=await requestConfirmedMutation(async(...args)=>{requests.push(args);return prompt({interestId:"personal-growth"})},
     "/api/reader/cardcase/add",{deckId:"seven-habits-editorial"},()=>false);
@@ -39,7 +39,7 @@ test("the confirmation copy identifies the book, interest, and leaf cost in both
   assert.match(english,/The 7 Habits/);assert.match(english,/🌱 Personal growth/);assert.match(english,/2 leaves/);
 });
 
-test("the post-login collection intent cannot bypass confirmation or charge after cancellation",async()=>{
+test("the post-login cardcase intent cannot bypass confirmation or charge after cancellation",async()=>{
   const requests=[],applied=[];
   const cancelled=await requestPendingDeckIntent(async(...args)=>{requests.push(args);return prompt({interestId:"personal-growth"})},
     "seven-habits-editorial","addToCardcase",()=>false);
@@ -49,7 +49,7 @@ test("the post-login collection intent cannot bypass confirmation or charge afte
   assert.deepEqual(requests,[["/api/reader/cardcase/add",{deckId:"seven-habits-editorial"}]]);
 });
 
-test("post-login collection confirms the server's latest reason before applying state",async()=>{
+test("post-login cardcase confirms the server's latest reason before applying state",async()=>{
   const requests=[],shown=[],applied=[];
   const initial=prompt({interestId:"personal-growth"});
   const updated=prompt({interestId:"productivity"},"productivity");

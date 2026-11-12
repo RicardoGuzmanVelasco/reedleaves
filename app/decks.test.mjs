@@ -120,7 +120,7 @@ test("Reading navigation offers an alternative control at deck boundaries",async
 
 test("Deck tiles only label ongoing creation and retain the change warning in their details, in both languages",async()=>{
   const catalog=await fixture(),choices=featuredDecks(catalog,"seven-habits");
-  const deckChoices=choices.slice(0,2).map((item,i)=>({...item,deck:{...item.deck,status:i ? "published" : "draft"}}));
+  const deckChoices=choices.slice(0,2).map((item,i)=>({...item,deck:{...item.deck,status:i ? "finished" : "draft"}}));
   for (const language of ["es","en"]) {
     const c=words[language],state=readerState(catalog,{language,bookId:"seven-habits",deckChoices});
     for (const choice of deckChoices) {
@@ -362,7 +362,7 @@ test("Only the explicit team recommendation gets the translated visible and acce
   const catalog=await fixture(),choice=featuredDecks(catalog,"seven-habits")[0];
   for(const language of ["es","en"]){
     const c=words[language];
-    for(const status of ["draft","published"]){
+    for(const status of ["draft","finished"]){
       for(const recommended of [true,false]){
         const item={...choice,deck:{...choice.deck,isRecommended:recommended,status},tags:["recommended","popular","preferred"]};
         const html=deckView(readerState(catalog,{language,bookId:"seven-habits",deckChoices:[item]}));
