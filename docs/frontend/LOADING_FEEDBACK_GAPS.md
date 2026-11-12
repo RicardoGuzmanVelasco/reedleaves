@@ -264,7 +264,7 @@ Aparte del feedback, hay que revisar la animación de espera. Se aborda después
 | 17 | Sin cambios (descartado) | 2026-11-11 | Opcional; fallo silencioso aceptado. |
 | 18 | Sin cambios (descartado) | 2026-11-11 | Mismo criterio que el 17. |
 | 19 | Sin cambios (descartado) | 2026-11-11 | Login ya lo cubre el Brote (punto 6); el guardado avisa si falla. |
-| 20 | | | |
+| 20 | Sin cambios (descartado) | 2026-11-12 | Tras optimizar el Perfil la espera es mínima; ya hay texto de carga. |
 | 21 | | | |
 | 22 | | | |
 | 23 | | | |
