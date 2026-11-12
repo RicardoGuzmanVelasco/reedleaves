@@ -76,7 +76,11 @@ Combinaciones frecuentes: **A + G** para acciones puntuales, **F + C** para nave
 La base es `lockControls` (~373): `busy` solo pone `aria-busy` y deshabilita controles; visualmente solo baja la opacidad al 40 %. Una solución común resuelve los puntos 5 a 11.
 
 ### Decisión transversal (puntos 5–11)
-- **Decidido: T3 con etiquetas por acción.** Al pulsar, el botón activador muestra un spinner (**A**, atributo `data-busy-trigger`). Si la acción sigue tras 900 ms, un Brote dormido a pantalla completa (**B**, `popover` sobre diálogos) muestra una etiqueta visible según la acción: «Guardando…», «Terminando…» o «Un momento…» (por defecto). Implementado en `lockControls`; la etiqueta visible es una opción de `loadingPlaceholder(label,{visible:true})`. Enviar feedback usa solo **A** (su diálogo es modal).
+- **Decidido: T3 con un verbo por acción.** Al pulsar, el botón activador muestra un spinner (**A**, atributo `data-busy-trigger`). Si la acción sigue tras 900 ms, un Brote dormido a pantalla completa (**B**, `popover` sobre diálogos) muestra el verbo de la acción con tres puntos animados (1→2→3→2→1) que pone el propio componente: `loadingPlaceholder(verbo,{visible:true})`. Quien llama pasa solo el verbo (claves `busy*` de i18n): `lockControls("Saving")`, `mutation(...,{verb:"Opening"})`. Enviar feedback usa solo **A**.
+  - **Creando:** libro, baraja, idea o cita.
+  - **Guardando:** completar datos de libro, título de baraja, guía de lectura, aprobar o rechazar guía.
+  - **Actualizando:** idioma de baraja, colaboradores, estado de lectura, aviso de interés, idioma de la interfaz.
+  - **Añadiendo / Quitando:** baraja del Tarjetero. **Abriendo:** elegir baraja, abrir tarjeta. **Saliendo:** cerrar sesión. **Terminando:** terminar baraja o notas. **Un momento:** por defecto.
 - **Opción T1 (recomendada):** que `lockControls` marque el botón activador con `aria-busy="true"` y muestre el patrón **A**. Los demás controles siguen apagados. Poco código, cubre todo `mutation`.
 - **Opción T2:** añadir **B** global a `main` con umbral para acciones largas.
 - **Opción T3:** T1 + T2: **A** inmediato y **B** si pasa el umbral.

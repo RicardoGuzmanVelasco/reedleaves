@@ -408,17 +408,11 @@ export function startReader({createCardFeatures} = {}) {
   const rememberBusyTrigger=button=>{if(button){busyTrigger=button;busyTriggerAt=performance.now();}};
   document.addEventListener("click",event=>rememberBusyTrigger(event.target.closest?.("button")),true);
   document.addEventListener("submit",event=>rememberBusyTrigger(event.submitter),true);
-  function busyLabel(trigger) {
-    const c=words[language],action=trigger?.dataset.action||"";
-    if(/finish/.test(action))return c.finishingDeck;
-    if(trigger?.closest("[data-author-form]")||/^(save|confirm)/.test(action))return c.saving;
-    return c.working;
-  }
-  function showBusyFeedback() {
+  function showBusyFeedback(verb="Working") {
     const trigger=busyTrigger&&document.contains(busyTrigger)&&performance.now()-busyTriggerAt<BUSY_TRIGGER_WINDOW_MS?busyTrigger:null;
     if(trigger&&!busyMarked){busyMarked=trigger;trigger.setAttribute("data-busy-trigger","");}
-    if(busyOverlay||busyOverlayTimer||navigationPending)return;
-    const label=busyLabel(trigger);
+    if(busyOverlay||busyOverlayTimer||navigationPending||dailyLoading)return;
+    const label=words[language]["busy"+verb];
     busyOverlayTimer=setTimeout(()=>{
       busyOverlayTimer=null;
       if(!busy||busyOverlay)return;
@@ -432,9 +426,9 @@ export function startReader({createCardFeatures} = {}) {
     busyOverlay?.remove();busyOverlay=null;
     busyMarked?.removeAttribute("data-busy-trigger");busyMarked=null;
   }
-  function lockControls() {
+  function lockControls(verb) {
     main.setAttribute("aria-busy",String(busy));
-    if(busy)showBusyFeedback();else clearBusyFeedback();
+    if(busy)showBusyFeedback(verb);else clearBusyFeedback();
     for (const control of main.querySelectorAll("button,input,select,textarea")) {
       if (busy) {
         if (!busyDisabledState.has(control)) busyDisabledState.set(control,control.disabled);
@@ -813,7 +807,7 @@ export function startReader({createCardFeatures} = {}) {
     const cardId=button.dataset.cardId,contentVersion=button.dataset.contentVersion,reason=decision==="reject"?main.querySelector("#guide-review-reason")?.value.trim():undefined;
     const userId=snapshot.user?.id;
     if(decision==="reject"&&(!reason||reason.length>1000)){guideReviewReason=main.querySelector("#guide-review-reason")?.value||"";guideReviewNotice=words[language].guideReviewReasonRequired;render();main.querySelector("#guide-review-reason")?.focus();return;}
-    busy=true;lockControls();
+    busy=true;lockControls("Saving");
     try{
       await api.request("/api/reader/guide-reviews/decision",{cardId,decision,contentVersion,...(reason?{reason}:{})});
       if(snapshot.user?.id!==userId||!snapshot.user.roles?.includes("archivist"))return;
@@ -1147,7 +1141,7 @@ export function startReader({createCardFeatures} = {}) {
     const deck=catalog.decks.find(item=>item.bookId===bookId&&isReadingGuideDeck(catalog,item));
     const own=deck?catalog.deckModels.get(deck.id).cards.find(card=>card.creatorUserId===snapshot.user.id):null;
     const values=new FormData(form),input={bookId,body:values.get("body"),language:values.get("language"),...(own?{cardId:own.id}:{})};
-    readingGuideDraft={bookId,body:input.body,language:input.language};busy=true;syncGeneration++;readingGuideError=null;lockControls();
+    readingGuideDraft={bookId,body:input.body,language:input.language};busy=true;syncGeneration++;readingGuideError=null;lockControls("Saving");
     try {
       const result=await api.request("/api/reader/guides",input);
       catalog=await loadCatalog();applyState(result.state);readingGuideDraft=null;requestedId=null;live.textContent=words[language].readingGuideSaved;render({focus:true});
@@ -1320,7 +1314,7 @@ export function startReader({createCardFeatures} = {}) {
     if (busy || !notesCompletion || !notesCompletion.decks.length) return;
     const completion=notesCompletion;
     if (completion.decks.some(entry=>findNoteDraft(completion.bookId,entry.deckId))) {completion.error="pendingNotesBeforeFinish";render();return;}
-    busy=true;syncGeneration++;completion.saving=true;completion.error=null;render();
+    busy=true;syncGeneration++;completion.saving=true;completion.error=null;showBusyFeedback("Finishing");render();
     try {
       const result=await api.request("/api/author/decks/finish-notes",{bookId:completion.bookId,decks:completion.decks});
       for (const entry of result.decks) {
@@ -1386,7 +1380,7 @@ export function startReader({createCardFeatures} = {}) {
   async function saveDeckTitle(form) {
     if (busy || !deckTitleEdit || mode !== "author") return;
     const edit=deckTitleEdit;edit.title=new FormData(form).get("title");
-    busy=true;syncGeneration++;edit.error=null;lockControls();
+    busy=true;syncGeneration++;edit.error=null;lockControls("Saving");
     try {
       const result=await api.request("/api/author/decks/title",{deckId,title:edit.title,previousTitle:edit.previousTitle});
       catalog=await loadCatalog();applyState(result.state);deckTitleEdit=null;live.textContent=words[language].deckTitleSaved;
@@ -1399,7 +1393,7 @@ export function startReader({createCardFeatures} = {}) {
     const deck=catalog?.decksById.get(deckId);
     if (busy || mode !== "author" || deck?.status !== "draft" || deck.creator.userId !== snapshot.user?.id || !["es","en"].includes(nextLanguage)) return;
     if(nextLanguage===deck.language)return;
-    busy=true;syncGeneration++;deckLanguageError=null;lockControls();
+    busy=true;syncGeneration++;deckLanguageError=null;lockControls("Updating");
     try {
       const result=await api.request("/api/author/decks/language",{deckId,language:nextLanguage,previousLanguage:deck.language});
       catalog=await loadCatalog();applyState(result.state);live.textContent=words[language].deckLanguageSaved;
@@ -1411,7 +1405,7 @@ export function startReader({createCardFeatures} = {}) {
   async function saveDeckContributors(usernames,focusSelector="#deck-contributor-username") {
     const deck=catalog?.decksById.get(deckId);
     if(busy||mode!=="author"||deck?.status!=="draft"||deck.creator.userId!==snapshot.user?.id||deck.kind!=="collective"||deck.contributionPolicy!=="selected")return;
-    busy=true;syncGeneration++;deckContributorError=null;lockControls();
+    busy=true;syncGeneration++;deckContributorError=null;lockControls("Updating");
     try {
       const result=await api.request("/api/author/decks/contributors",{deckId,usernames});
       catalog=await loadCatalog();applyState(result.state);deckContributorInput="";live.textContent=words[language].deckContributorsSaved;
@@ -1440,7 +1434,7 @@ export function startReader({createCardFeatures} = {}) {
     if (busy || !deckCompletion) return;
     const completion=deckCompletion,targetDeck=catalog.decksById.get(completion.deckId);
     if (findNoteDraft(targetDeck.bookId,targetDeck.id)) {completion.error="pendingNoteBeforeFinish";render();return;}
-    busy=true;syncGeneration++;completion.saving=true;completion.error=null;render();
+    busy=true;syncGeneration++;completion.saving=true;completion.error=null;showBusyFeedback("Finishing");render();
     try {
       const result=await api.request("/api/author/decks/finish",{deckId:completion.deckId});
       // The server has confirmed the irreversible change, even if catalog refresh fails.
@@ -1526,7 +1520,7 @@ export function startReader({createCardFeatures} = {}) {
     const savedForm = authorForm,userId=snapshot.user?.id;
     const deckInput=savedForm.kind==="deck"?(({contributionMode,...deckFields})=>({...deckFields,kind:contributionMode==="owner"?"standard":"collective",contributionPolicy:contributionMode||"owner"}))(fields):null;
     const input = savedForm.bookId ? {bookId:savedForm.bookId,metadata:savedForm.metadata} : savedForm.kind === "book" ? {title:savedForm.title,author:savedForm.author,language:savedForm.language,metadata:savedForm.metadata,requestId:savedForm.requestId} : savedForm.kind === "deck" ? {...deckInput,requestId:savedForm.requestId,bookId:savedForm.noteBookId || bookId} : savedForm.createNoteDeck ? {...fields,requestId:savedForm.requestId,bookId:savedForm.noteBookId,language:savedForm.noteLanguage,isQuote:savedForm.kind === "quote"} : {...fields,requestId:savedForm.requestId,deckId:savedForm.noteDeckId || deckId,parentId:fields.parentId || null,isQuote:savedForm.kind === "quote"};
-    busy = true; syncGeneration++; savedForm.error = null; savedForm.errorReference = null; lockControls();
+    busy = true; syncGeneration++; savedForm.error = null; savedForm.errorReference = null; lockControls(savedForm.bookId ? "Saving" : "Creating");
     try {
       const result = await api.request(savedForm.bookId ? "/api/author/books/complete" : savedForm.kind === "book" ? "/api/author/books" : savedForm.kind === "deck" ? "/api/author/decks" : "/api/author/notes",input);
       if(snapshot.user?.id!==userId)return;
@@ -1648,8 +1642,8 @@ export function startReader({createCardFeatures} = {}) {
     const title=book ? bookTitle(book,language).text : confirmation.bookId;
     return window.confirm(words[language].confirmBookInterest(title,confirmation.interest?.emoji||"",confirmation.interest?.name||confirmation.interest?.id||"",confirmation.price||0));
   }
-  async function mutation(path,input,onSuccess,{preserveDOM=()=>false}={}) {
-    if (busy) return false; busy = true; syncGeneration++; syncError = null; lockControls();
+  async function mutation(path,input,onSuccess,{preserveDOM=()=>false,verb="Working"}={}) {
+    if (busy) return false; busy = true; syncGeneration++; syncError = null; lockControls(verb);
     try { const result = await requestConfirmedMutation(api.request,path,input,confirmBookInterest);
       if (result === null) return false;
       applyState(result.state || result,{captureGrowth:true});
@@ -1688,7 +1682,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function runBookInterestAction(action,id,status) {
     if(busy)return;
-    busy=true;syncGeneration++;syncError=null;lockControls();
+    busy=true;syncGeneration++;syncError=null;lockControls("Updating");
     try { await action(); }
     finally {
       busy=false;lockControls();render();
@@ -1739,7 +1733,7 @@ export function startReader({createCardFeatures} = {}) {
     if(bookInterestPrompt?.kind==="save-card"){
       if(busy||!bookInterestCardControls)return;
       const cardId=bookInterestPrompt.cardId;
-      busy=true;syncGeneration++;lockControls();
+      busy=true;syncGeneration++;lockControls("Updating");
       try{await bookInterestCardControls.confirm();}
       finally{
         busy=false;lockControls();render();
@@ -1775,7 +1769,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function enterDeck(id) {
     if (!snapshot.user) { openDeckId = null; navigate("#deck/"+id); return; }
-    await mutation("/api/reader/select",{deckId:id},()=>{ openDeckId = null; navigate("#deck/"+id); });
+    await mutation("/api/reader/select",{deckId:id},()=>{ openDeckId = null; navigate("#deck/"+id); },{verb:"Opening"});
   }
   function requestAccountForCardAction(action) {
     pendingCardAction=action;accountLearningNotice=true;authMode="register";
@@ -1785,11 +1779,11 @@ export function startReader({createCardFeatures} = {}) {
   async function addDeckToCardcase(id) {
     if (!catalog.decksById.has(id)) return;
     if (!snapshot.user) { pendingDeck=id;pendingIntent="addToCardcase";accountLearningNotice=true;authMode="register";authReturn=deckPageHash(id);navigate("#account");return; }
-    await mutation("/api/reader/cardcase/add",{deckId:id},()=>{ openDeckId=null;live.textContent=words[language].deckAddedToCardcase; });
+    await mutation("/api/reader/cardcase/add",{deckId:id},()=>{ openDeckId=null;live.textContent=words[language].deckAddedToCardcase; },{verb:"Adding"});
   }
   async function removeDeckFromCardcase(id) {
     if (!catalog.decksById.has(id) || !window.confirm(words[language].confirmRemoveDeck)) return;
-    await mutation("/api/reader/cardcase/remove",{deckId:id},()=>{ live.textContent=words[language].deckRemovedFromCardcase; });
+    await mutation("/api/reader/cardcase/remove",{deckId:id},()=>{ live.textContent=words[language].deckRemovedFromCardcase; },{verb:"Removing"});
   }
   async function openCard(id,activeDeck = deckId) {
     const savedScrollY=albumPosition?.deckId===activeDeck&&albumPosition.mode==="deck"?albumPosition.scrollY:window.scrollY;
@@ -1797,7 +1791,7 @@ export function startReader({createCardFeatures} = {}) {
     if (!snapshot.user) { requestedId=id;scrollToCard=true;navigate("#deck/"+activeDeck+"/"+id);return; }
     await mutation("/api/reader/open",{deckId:activeDeck,cardId:id},()=>{
       requestedId = id; scrollToCard = true; navigate("#deck/"+activeDeck+"/"+id);
-    });
+    },{verb:"Opening"});
   }
   function moveReadingCard(direction){
     if(mode!=="deck"||!deckId||!requestedId)return;
@@ -1862,7 +1856,7 @@ export function startReader({createCardFeatures} = {}) {
     event.preventDefault();navigate(link.hash);
   });
   document.querySelectorAll("[data-language]").forEach(b=>b.addEventListener("click",async()=>{
-    if (snapshot.user) { await mutation("/api/reader/preferences",{language:b.dataset.language});initialInterests.setLanguage(language);profileInterestEditor.setLanguage(language);newInterests.setLanguage(language); } else { language = restoreLanguage(b.dataset.language); store.save(keys.language,language); initialInterests.setLanguage(language);profileInterestEditor.setLanguage(language);newInterests.setLanguage(language); render(); }
+    if (snapshot.user) { await mutation("/api/reader/preferences",{language:b.dataset.language},undefined,{verb:"Updating"});initialInterests.setLanguage(language);profileInterestEditor.setLanguage(language);newInterests.setLanguage(language); } else { language = restoreLanguage(b.dataset.language); store.save(keys.language,language); initialInterests.setLanguage(language);profileInterestEditor.setLanguage(language);newInterests.setLanguage(language); render(); }
   }));
   const currencyWallets=document.getElementById("currency-wallets"),currencyRecovery=document.getElementById("currency-recovery");
   currencyWallets.addEventListener("click",()=>setCurrencyRecoveryOpen(currencyWallets.getAttribute("aria-expanded")!=="true"));
@@ -1917,7 +1911,7 @@ export function startReader({createCardFeatures} = {}) {
     if (event.target === settings) settings.close(); const action = event.target.closest("[data-account-action]")?.dataset.accountAction;
     if (action === "profile") { settings.close(); openOwnProfile(); }
     if (action === "login") { settings.close(); pendingDeck = null;pendingIntent=null;pendingCardAction=null;accountLearningNotice=false;authMode="login";authReturn = "#home"; navigate("#account"); }
-    if (action === "logout" && !busy) await mutation("/api/auth/logout",{},()=>{ settings.close(); pendingDeck = null;pendingIntent=null; authReturn = "#home"; navigate("#home"); });
+    if (action === "logout" && !busy) await mutation("/api/auth/logout",{},()=>{ settings.close(); pendingDeck = null;pendingIntent=null; authReturn = "#home"; navigate("#home"); },{verb:"SigningOut"});
   });
   main.addEventListener("toggle",e=>{ if (e.target.classList?.contains("bookstore-filters")) bookstoreFiltersOpen=e.target.open; },true);
   function updateBookSearch() { disposeBookLists(); main.querySelector("#book-search-results").innerHTML = bookstoreResultsMarkup({catalog,language,bookstoreQuery,bookstoreFilters,bookViews,bookSortOrder,bookstoreSortOrder,interestPreferences,bookstoreInterestSortPending,bookstoreInterestSortError,bookstoreNewBookIds,statuses,userId:snapshot.user?.id}); mountBookCoverTints(main,[...(catalog?.books||[]),...homeBooksData],catalog?.interests||homeCoverInterests,tintMode); disposeBookLists=mountBookLists(main); main.querySelector("[data-book-search] button").hidden = !bookstoreQuery; live.textContent = words[language].searchResults(filterBookstore(catalog,bookstoreQuery,bookstoreFilters,bookstoreSortOrder,language,interestPreferences).length); }
