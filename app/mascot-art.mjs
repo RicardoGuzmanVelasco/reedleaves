@@ -26,10 +26,10 @@ const escapeAttribute = value => String(value).replace(/[&<>"']/g, character => 
 export function mascotArt(stage, className = "", {expression = "neutral", mouth, face, variant = "mascot", idle = true, animation = "idle"} = {}) {
   if (variant === "icon") return mascotIcon(stage,className);
   const id = Object.hasOwn(mascotAssets, stage) ? stage : "mystery";
-  const sleeping = animation === "sleep", waking=animation === "wake";
-  const pattern = sleeping ? "sleep" : waking ? "wake" : idle ? (mascotIdlePatterns[id] ?? "hop") : "none";
+  const sleeping = animation === "sleep", waking=animation === "wake", sobbing = animation === "sob";
+  const pattern = sleeping ? "sleep" : waking ? "wake" : sobbing ? "sob" : idle ? (mascotIdlePatterns[id] ?? "hop") : "none";
   const sleepSymbols = sleeping ? '<span class="mascot-sleep-symbols"><span>Z</span><span>z</span><span>z</span></span>' : "";
-  return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}" data-idle="${pattern}" aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${imageUrl(mascotAssets[id])}" width="160" height="160" alt="" draggable="false">${mascotFace(id,sleeping ? "sleep" : expression,mouth,face)}</span></span>${sleepSymbols}</span>`;
+  return `<span class="mascot-art${className ? ` ${escapeAttribute(className)}` : ""}" data-mascot="${id}" data-idle="${pattern}" aria-hidden="true"><span class="mascot-art-placement"><span class="mascot-art-motion"><img src="${imageUrl(mascotAssets[id])}" width="160" height="160" alt="" draggable="false">${mascotFace(id,sleeping ? "sleep" : sobbing ? "sad" : expression,mouth,face)}</span></span>${sleepSymbols}${sobbing ? '<span class="mascot-tear"></span>' : ""}</span>`;
 }
 
 // Contact and recovery are separate animations so callers can react to the landing frame.

@@ -1240,3 +1240,5 @@ html,body{overflow-x:clip}
 @keyframes loading-dot-2{0%,24%{visibility:hidden}25%,100%{visibility:visible}}
 @keyframes loading-dot-3{0%,49%{visibility:hidden}50%,74%{visibility:visible}75%,100%{visibility:hidden}}
 @media(prefers-reduced-motion:reduce){.loading-dots span{animation:none!important;visibility:visible!important}}
+.loading-offline>.mascot-art,.loading-not-found>.mascot-art{display:block;width:min(260px,70vw);height:min(260px,70vw);margin:0 auto 20px}
+.loading-not-found .primary{display:inline-flex;align-items:center;gap:8px;text-decoration:none}

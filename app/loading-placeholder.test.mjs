@@ -25,3 +25,10 @@ test("Not-found view shows the sad sprout, the message and a way home",()=>{
   const html=notFoundView({language:"es"});
   assert.match(html,/data-expression="sad"/);assert.ok(html.includes(words.es.pageNotFound));assert.match(html,/href="#home"/);
 });
+
+import {mascotArt} from "./mascot-art.mjs";
+
+test("Sobbing sprout moves as one piece, is sad and carries its tear",()=>{
+  const html=mascotArt("sprout","",{animation:"sob"});
+  assert.match(html,/data-idle="sob"/);assert.match(html,/data-expression="sad"/);assert.match(html,/class="mascot-tear"/);
+});

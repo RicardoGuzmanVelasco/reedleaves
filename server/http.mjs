@@ -46,7 +46,7 @@ export function createCatalogServer(db, root = PROJECT_ROOT, options = {}) {
     const notFound = () => {
       if (request.url.startsWith("/api/") || !request.headers.accept?.includes("text/html")) { send(404, { error: "Not found" }); return; }
       const language = /^\s*en/i.test(request.headers["accept-language"] || "") ? "en" : "es", c = words[language];
-      send(404, `<!doctype html><html lang="${language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Reedleaves</title><link rel="stylesheet" href="/app/mascot-art.css"><link rel="stylesheet" href="/app/reader.css"></head><body><main id="main"><section class="loading loading-error loading-not-found">${mascotArt("sprout","",{expression:"sad",idle:false})}<h1>${c.pageNotFound}</h1><a class="text-button" href="/app/">${c.home}</a></section></main></body></html>`,"text/html; charset=utf-8");
+      send(404, `<!doctype html><html lang="${language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Reedleaves</title><link rel="stylesheet" href="/app/mascot-art.css"><link rel="stylesheet" href="/app/reader.css"></head><body><main id="main"><section class="loading loading-error loading-not-found">${mascotArt("sprout","",{animation:"sob"})}<h1>${c.pageNotFound}</h1><a class="primary" href="/app/"><img src="/app/assets/icons/navigation/home.svg" width="20" height="20" alt="">${c.home}</a></section></main></body></html>`,"text/html; charset=utf-8");
     };
     try {
       const url = new URL(request.url, "http://localhost");

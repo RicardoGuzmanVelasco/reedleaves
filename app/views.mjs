@@ -514,14 +514,14 @@ export function dailyView(s) {
 // Unknown address: same sad sprout as the offline state, with the way back home.
 export function notFoundView(s) {
   const c = words[s.language];
-  return `<section class="loading loading-error loading-not-found">${mascotArt("sprout","",{expression:"sad",idle:false})}<h1 tabindex="-1">${esc(c.pageNotFound)}</h1><a class="text-button" href="#home">${esc(c.home)}</a></section>`;
+  return `<section class="loading loading-error loading-not-found">${mascotArt("sprout","",{animation:"sob"})}<h1 tabindex="-1">${esc(c.pageNotFound)}</h1><a class="primary" href="#home"><img src="/app/assets/icons/navigation/home.svg" width="20" height="20" alt="">${esc(c.home)}</a></section>`;
 }
 
 export function loadingView(language, failed) {
   const c = words[language];
   if (!failed) return `<section class="loading opening-loading" role="status" aria-live="polite" aria-label="${esc(c.loading)}"><span class="opening-sprout">${mascotArt("sprout","initial-mascot",{idle:false})}</span></section>`;
   // No connection to the server: the sprout is sad and the existing connection message replaces the generic error.
-  if (failed === "offline") return `<section class="loading loading-error loading-offline" role="alert">${mascotArt("sprout","",{expression:"sad",idle:false})}<h1>${c.connectionError}</h1>${button(c.retry, "retry")}</section>`;
+  if (failed === "offline") return `<section class="loading loading-error loading-offline" role="alert">${mascotArt("sprout","",{animation:"sob"})}<h1>${c.connectionError}</h1>${button(c.retry, "retry")}</section>`;
   return `<section class="loading loading-error">${mascotArt("sprout")}<h1>${c.error}</h1>${button(c.retry, "retry")}</section>`;
 }
 
@@ -900,7 +900,7 @@ export function profileWakeOverlayView() {
 export function profilePendingView(s) {
   const c=words[s.language];
   const pending=s.profileError
-    ? `<div class="profile-error-state">${mascotArt("sprout","profile-error-mascot",{expression:"sad",idle:false})}${callout({variant:"error",role:"alert",className:"profile-error-callout",width:"content",main:s.profileError==="connectionError"?c.profileLoadErrorMain:c[s.profileError]||c.connectionError,action:{label:c.retry,dataAction:"retry-profile"}})}</div>`
+    ? `<div class="profile-error-state">${mascotArt("sprout","profile-error-mascot",{animation:"sob"})}${callout({variant:"error",role:"alert",className:"profile-error-callout",width:"content",main:s.profileError==="connectionError"?c.profileLoadErrorMain:c[s.profileError]||c.connectionError,action:{label:c.retry,dataAction:"retry-profile"}})}</div>`
     : loadingPlaceholder(c.loading);
   return `<section class="profile-screen"><h1 tabindex="-1" class="profile-pending-title">${c.profile}</h1>${pending}</section>`;
 }
