@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {runInNewContext} from "node:vm";
 import {hasAccessibleReadingGuide,hasOwnReadingGuide,shouldOfferReadingGuideCreationPrompt,shouldShowReadingGuidePrompt} from "./reading-guide-prompt.mjs";
-import {libraryView,bookcaseView} from "./views.mjs";
+import {bookstoreView,libraryView} from "./views.mjs";
 import {words} from "./i18n.mjs";
 
 const source=readFileSync(new URL("./reader-app.mjs",import.meta.url),"utf8");
@@ -57,7 +57,7 @@ test("Successful state mutation offers the guide; a failed mutation does not",as
     let shown=null,focused=null;
     const bookId="seven-habits";
     const context={
-      snapshot:{user:{id:"reader"},statuses:{[bookId]:"to-read"}},statuses:{[bookId]:"to-read"},mode:"library",openBookId:bookId,
+      snapshot:{user:{id:"reader"},statuses:{[bookId]:"to-read"}},statuses:{[bookId]:"to-read"},mode:"bookstore",openBookId:bookId,
       catalog:{booksById:new Map([[bookId,{}]])},busy:false,bookStatusError:null,noteNudgeBookId:null,readingGuidePromptBookId:null,
       words,language:"es",live:{textContent:""},notesCompletion:null,createNotesCompletion:()=>null,
       hasAccessibleReadingGuide:()=>true,hasOwnReadingGuide:()=>false,shouldShowReadingGuidePrompt,shouldOfferReadingGuideCreationPrompt,bookInterestPrompt:null,bookInterestFlow:null,
@@ -77,7 +77,7 @@ test("Marking a book read offers a guide and still opens note completion when ne
   for(const {hasOwnGuide,expected} of [{hasOwnGuide:false,expected:"book"},{hasOwnGuide:true,expected:null}]) {
     const bookId="book";
     const context={
-      snapshot:{user:{id:"reader"},statuses:{[bookId]:"reading"}},statuses:{[bookId]:"reading"},mode:"library",openBookId:bookId,
+      snapshot:{user:{id:"reader"},statuses:{[bookId]:"reading"}},statuses:{[bookId]:"reading"},mode:"bookstore",openBookId:bookId,
       catalog:{booksById:new Map([[bookId,{}]])},busy:false,bookStatusError:null,noteNudgeBookId:null,readingGuidePromptBookId:null,
       words,language:"es",live:{textContent:""},notesCompletion:null,createNotesCompletion:()=>({bookId}),
       hasAccessibleReadingGuide:()=>true,hasOwnReadingGuide:()=>hasOwnGuide,shouldShowReadingGuidePrompt,shouldOfferReadingGuideCreationPrompt,
@@ -98,9 +98,9 @@ test("Reading-guide prompt replaces the note nudge and exposes translated, keybo
   const {prepareCatalog}=await import("./catalog.mjs");
   const db=dbState.openDatabase(":memory:");let catalog;
   try{dbState.initializeDatabase(db);await seedCatalog(db);catalog=prepareCatalog(await readCatalog(db));}finally{await db.close();}
-  const bookId="seven-habits",book=catalog.booksById.get(bookId),state=withGuide({catalog,language:"es",statuses:{[bookId]:"reading"},openBookId:bookId,mode:"library",readingGuidePromptBookId:bookId,noteNudgeBookId:bookId,storageAvailable:true,userId:"reader"},bookId);
+  const bookId="seven-habits",book=catalog.booksById.get(bookId),state=withGuide({catalog,language:"es",statuses:{[bookId]:"reading"},openBookId:bookId,mode:"bookstore",readingGuidePromptBookId:bookId,noteNudgeBookId:bookId,storageAvailable:true,userId:"reader"},bookId);
   for(const language of ["es","en"]) {
-    const html=libraryView({...state,language});
+    const html=bookstoreView({...state,language});
     assert.ok(html.includes(words[language].readingGuideReadingPrompt));
     assert.ok(html.includes(words[language].viewReadingGuides));
     assert.ok(html.includes(words[language].readingGuidePromptDismiss));
@@ -110,7 +110,7 @@ test("Reading-guide prompt replaces the note nudge and exposes translated, keybo
     assert.doesNotMatch(html,/data-action="take-note-from-book"/);
   }
   const withoutGuide={...state,catalog:{...catalog,decks:catalog.decks.filter(deck=>deck.id!=="guide-deck"),deckModels:new Map([...catalog.deckModels].filter(([id])=>id!=="guide-deck"))}};
-  assert.doesNotMatch(libraryView(withoutGuide),/reading-guide-reading-prompt/);
+  assert.doesNotMatch(bookstoreView(withoutGuide),/reading-guide-reading-prompt/);
   assert.equal(book.id,bookId);
 });
 
@@ -121,9 +121,9 @@ test("Marking a book read offers the user a translated shortcut to its guide edi
   const {prepareCatalog}=await import("./catalog.mjs");
   const db=dbState.openDatabase(":memory:");let catalog;
   try{dbState.initializeDatabase(db);await seedCatalog(db);catalog=prepareCatalog(await readCatalog(db));}finally{await db.close();}
-  const bookId="seven-habits",state={catalog,language:"es",statuses:{[bookId]:"read"},openBookId:bookId,mode:"library",readingGuidePromptBookId:bookId,noteNudgeBookId:bookId,storageAvailable:true,userId:"reader"};
+  const bookId="seven-habits",state={catalog,language:"es",statuses:{[bookId]:"read"},openBookId:bookId,mode:"bookstore",readingGuidePromptBookId:bookId,noteNudgeBookId:bookId,storageAvailable:true,userId:"reader"};
   for(const language of ["es","en"]) {
-    const html=libraryView({...state,language});
+    const html=bookstoreView({...state,language});
     assert.ok(html.includes(words[language].readingGuideWritePrompt));
     assert.ok(html.includes(words[language].readingGuideWrite));
     assert.ok(html.includes(words[language].readingGuidePromptDismiss));
@@ -131,7 +131,7 @@ test("Marking a book read offers the user a translated shortcut to its guide edi
     assert.match(html,/data-action="dismiss-reading-guide-writing-prompt"/);
     assert.doesNotMatch(html,/data-action="take-note-from-book"/);
   }
-  assert.doesNotMatch(libraryView({...state,readingGuidePromptBookId:null}),/reading-guide-writing-prompt/);
+  assert.doesNotMatch(bookstoreView({...state,readingGuidePromptBookId:null}),/reading-guide-writing-prompt/);
 });
 
 test("A reading transition from the personal Shelf gets the guide prompt; public shelves never do",async()=>{
@@ -143,26 +143,26 @@ test("A reading transition from the personal Shelf gets the guide prompt; public
   try{dbState.initializeDatabase(db);await seedCatalog(db);catalog=prepareCatalog(await readCatalog(db));}finally{await db.close();}
   const bookId="seven-habits",deck={id:"shelf-guide",bookId,status:"finished",creator:{userId:"guide-author"}},card={id:"shelf-guide-card",bookId,deckId:deck.id,isReadingGuide:true};
   catalog.decks.push(deck);catalog.deckModels.set(deck.id,{cards:[card],byId:new Map([[card.id,card]])});
-  const own={catalog,language:"es",statuses:{[bookId]:"reading"},openBookId:bookId,mode:"bookcase",bookcaseTab:"shelf",shelfBookIds:[bookId],userId:"reader",storageAvailable:true,readingGuidePromptBookId:bookId};
-  const html=bookcaseView(own);
+  const own={catalog,language:"es",statuses:{[bookId]:"reading"},openBookId:bookId,mode:"library",libraryTab:"shelf",shelfBookIds:[bookId],userId:"reader",storageAvailable:true,readingGuidePromptBookId:bookId};
+  const html=libraryView(own);
   assert.ok(html.includes(words.es.readingGuideReadingPrompt));
   assert.match(html,/data-action="view-reading-guides-after-reading"/);
-  const publicState={...own,mode:"public-bookcase",readOnly:true,userId:null,profileData:{profile:{id:"reader",name:"Reader"},bookshelf:[{bookId,group:"reading"}]}};
-  assert.doesNotMatch(bookcaseView(publicState),/reading-guide-reading-prompt/);
+  const publicState={...own,mode:"public-library",readOnly:true,userId:null,profileData:{profile:{id:"reader",name:"Reader"},bookshelf:[{bookId,group:"reading"}]}};
+  assert.doesNotMatch(libraryView(publicState),/reading-guide-reading-prompt/);
 });
 
 test("Guide action routes to the existing preview and dismiss restores status focus",()=>{
   const bookId="b",focused=[];let target=null,rendered=false;
-  const context={readingGuidePromptBookId:bookId,statuses:{[bookId]:"reading"},catalog:{},mode:"bookcase",hasAccessibleReadingGuide:()=>true,
-    location:{hash:"#library"},bookOrigin:"library",openBookId:bookId,window:{scrollY:28},main:{querySelector:()=>({scrollTop:9})},
+  const context={readingGuidePromptBookId:bookId,statuses:{[bookId]:"reading"},catalog:{},mode:"library",hasAccessibleReadingGuide:()=>true,
+    location:{hash:"#bookstore"},bookOrigin:"bookstore",openBookId:bookId,window:{scrollY:28},main:{querySelector:()=>({scrollTop:9})},
     navigate:hash=>{target=hash;},render:()=>{rendered=true;},
     document:{},
   };
   const open=handlerWith("openReadingGuidePrompt","backFromReadingGuidePreview",context);
   open(bookId);
   assert.equal(target,"#guide-preview/b");
-  assert.equal(context.guidePreviewReturn.hash,"#library");
-  assert.equal(context.guidePreviewReturn.origin,"bookcase");
+  assert.equal(context.guidePreviewReturn.hash,"#bookstore");
+  assert.equal(context.guidePreviewReturn.origin,"library");
   const dismissContext={readingGuidePromptBookId:bookId,statuses:{[bookId]:"reading"},noteNudgeBookId:bookId,render:()=>{rendered=true;},
     main:{querySelectorAll:()=>[{dataset:{book:bookId,status:"reading"},focus:()=>focused.push(true)}]}};
   handlerWith("dismissReadingGuidePrompt","openReadingGuidePrompt",dismissContext)(bookId);
@@ -177,11 +177,11 @@ test("Guide action routes to the existing preview and dismiss restores status fo
   assert.deepEqual(focused,[true,"read"]);
 });
 
-test("Returning from guide preview restores its Library or Shelf context, scroll and reading focus",()=>{
-  for(const origin of ["library","bookcase"]) {
+test("Returning from guide preview restores its Bookstore or Shelf context, scroll and reading focus",()=>{
+  for(const origin of ["bookstore","library"]) {
     const calls=[],bookId="b",button={dataset:{book:bookId,status:"reading"},focus:options=>calls.push({focus:true,options})};
     const dialog={scrollTop:0};
-    const context={guidePreviewReturn:{hash:origin==="library"?"#library":"#bookcase",origin,openBookId:bookId,bookId,scrollY:87,dialogScrollTop:24},
+    const context={guidePreviewReturn:{hash:origin==="bookstore"?"#bookstore":"#library",origin,openBookId:bookId,bookId,scrollY:87,dialogScrollTop:24},
       bookOrigin:"home",openBookId:null,window:{scrollTo:options=>calls.push({scroll:options})},main:{querySelector:()=>dialog,querySelectorAll:()=>[button]}};
     handlerWith("finishGuidePreviewReturn","enterDeck",context)(context.guidePreviewReturn);
     assert.equal(context.guidePreviewReturn,null);

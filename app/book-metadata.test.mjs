@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {mergeBookMetadata,normalizeBookMetadata,missingBookInformation} from "./book-metadata.mjs";
-import {authorFormView,libraryView,bookcaseView,homeView} from "./views.mjs";
+import {authorFormView,bookstoreView,libraryView,homeView} from "./views.mjs";
 import {bookMetadata} from "../server/fixtures/book-autofill.mjs";
 import {words} from "./i18n.mjs";
 import {readerState,emptyCatalog} from "../test-support/reader-state.mjs";
@@ -60,7 +60,7 @@ test("Only incomplete owned books offer completion; optional links do not keep t
   assert.equal(missingBookInformation(complete).length,0);
   const catalog={...state.catalog,books:[minimal],booksById:new Map([["mine",minimal]]),decks:[]};
   const reader={...state,catalog,userId:"owner",statuses:{mine:"reading"},enrolledIds:[],storageAvailable:true};
-  for (const view of [libraryView,bookcaseView]) {
+  for (const view of [bookstoreView,libraryView]) {
     const html=view(reader);assert.match(html,/data-action="complete-book"/);assert.match(html,/aria-label="Falta información\. Completar información:/);
     assert.match(html,/<\/button><button class="book-incomplete"/);
     assert.doesNotMatch(view({...reader,userId:"other"}),/data-action="complete-book"/);
@@ -68,8 +68,8 @@ test("Only incomplete owned books offer completion; optional links do not keep t
     const fullCatalog={...catalog,books:[complete],booksById:new Map([["mine",complete]])};
     assert.doesNotMatch(view({...reader,catalog:fullCatalog}),/data-action="complete-book"/);
   }
-  assert.match(libraryView({...reader,openBookId:"mine"}),/book-detail-author-row/);
-  assert.equal((libraryView({...reader,openBookId:"mine"}).match(/data-action="complete-book"/g)||[]).length,2);
+  assert.match(bookstoreView({...reader,openBookId:"mine"}),/book-detail-author-row/);
+  assert.equal((bookstoreView({...reader,openBookId:"mine"}).match(/data-action="complete-book"/g)||[]).length,2);
   assert.doesNotMatch(homeView(reader),/class="home-actions"|data-action="profile"/);
 });
 
@@ -101,7 +101,7 @@ test("Book form keeps loading, retry, translations and save; book interfaces omi
   const catalog={...state.catalog,books:[book],booksById:new Map([[book.id,book]])};
   for (const language of ["es","en"]) {
     const current={...state,catalog,language,userId:"owner",openBookId:book.id};
-    const interfaces=[libraryView(current),bookcaseView(current),homeView({...current,statuses:{[book.id]:"reading"}}),
+    const interfaces=[bookstoreView(current),libraryView(current),homeView({...current,statuses:{[book.id]:"reading"}}),
       authorFormView({...current,authorForm:{...form,author:book.author,metadata:bookMetadata,preview:true}})];
     for (const html of interfaces) {
       assert.ok(html.includes(bookMetadata.description[language]));

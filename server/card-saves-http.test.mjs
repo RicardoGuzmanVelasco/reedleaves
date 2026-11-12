@@ -27,7 +27,7 @@ test('Saved-card HTTP flow authenticates, isolates accounts and opens a daily ca
   assert.equal((await call(`/api/reader/saved/${bookId}`,undefined,a.headers)).body.cards.length,0);
 });
 
-test('HTTP card saves revalidate the warning, keep cancellation side-effect free and bypass when already in the Bookcase',async t=>{
+test('HTTP card saves revalidate the warning, keep cancellation side-effect free and bypass when already in the Library',async t=>{
   const db=openDatabase(':memory:');await initializeDatabase(db);await seedCatalog(db);
   const server=createCatalogServer(db);server.listen(0,'127.0.0.1');await once(server,'listening');t.after(async()=>{server.closeAllConnections();await new Promise(r=>server.close(r));await db.close()});
   const base=`http://127.0.0.1:${server.address().port}`;

@@ -4,11 +4,11 @@ import {sortBooksByInterestAffinity} from "./book-interest-affinity.mjs";
 
 export const BOOK_SORT_ORDERS=["recent","alphabetical","interests"];
 export const validBookSortOrder=value=>BOOK_SORT_ORDERS.includes(value);
-export const LIBRARY_SORT_ORDERS=BOOK_SORT_ORDERS;
-export const validLibrarySortOrder=value=>LIBRARY_SORT_ORDERS.includes(value);
+export const BOOKSTORE_SORT_ORDERS=BOOK_SORT_ORDERS;
+export const validBookstoreSortOrder=value=>BOOKSTORE_SORT_ORDERS.includes(value);
 export const validVisitorBookSortOrder=value=>value==="recent"||value==="alphabetical";
 export const requiresInterestSortSignIn=(order,userId)=>order==="interests"&&!userId;
-export const shouldLoadInterestPreferences=({mode,order,userId,preferences})=>mode==="library"&&order==="interests"&&!!userId&&preferences?.userId!==userId;
+export const shouldLoadInterestPreferences=({mode,order,userId,preferences})=>mode==="bookstore"&&order==="interests"&&!!userId&&preferences?.userId!==userId;
 
 const normalizedTitle=(book,language)=>bookTitle(book,language).text.normalize("NFKD").replace(/\p{M}/gu,"").toLocaleLowerCase(language);
 

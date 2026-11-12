@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {createBrowserStore,storageKeys} from "./storage.mjs";
 import {validBookSortOrder,requiresInterestSortSignIn} from "./book-sort.mjs";
 
-test("visitor recent/A–Z library sort persists in browser storage across app instances",()=>{
+test("visitor recent/A–Z bookstore sort persists in browser storage across app instances",()=>{
   const values=new Map(),provider=()=>({
     getItem:key=>values.get(key)??null,
     setItem:(key,value)=>values.set(key,value),

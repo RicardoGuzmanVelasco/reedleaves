@@ -5,7 +5,7 @@ import {initializeDatabase,SQLITE_SCHEMA_VERSION,POSTGRES_SCHEMA_VERSION} from "
 import {changePreferences,readReaderState} from "./reader-repository.mjs";
 
 for(const [dialect,version] of [["sqlite",19],["postgres",18]]){
-  test(`${dialect}: account library sort preference migrates, persists interests and remains private per account`,async t=>{
+  test(`${dialect}: account bookstore sort preference migrates, persists interests and remains private per account`,async t=>{
     const db=await historicalDatabase(t,dialect,version),reader=await historicalReader(db,`book-sort-${dialect}`),other=await historicalReader(db,`book-sort-other-${dialect}`);
     if(dialect==="postgres")await db.exec(`CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;
       ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO anon,authenticated;`);

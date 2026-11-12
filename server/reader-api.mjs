@@ -18,7 +18,7 @@ import {readReaderInterestPreferences,readPublicReaderInterestPreferences,saveRe
 import {captureReaderInterestSnapshot,saveAndRecognizeReaderInterestSnapshot} from "./reader-interest-knowledge.mjs";
 import {BOOK_INTEREST_CONFIRMATION_ENABLED} from "./book-interest-confirmation.mjs";
 import {readReaderLanguagePreferences,saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
-import {MAX_BOOK_KNOWLEDGE_REQUEST_BYTES,recognizeLibraryBookSnapshot} from "./book-knowledge-repository.mjs";
+import {MAX_BOOK_KNOWLEDGE_REQUEST_BYTES,recognizeBookstoreBookSnapshot} from "./book-knowledge-repository.mjs";
 import {readDiscoverPracticeAvailability} from "./discover-practice.mjs";
 import {readInterests} from "./catalog-repository.mjs";
 
@@ -135,7 +135,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       if (!active) throw new ApiError(401,"signInRequired");
       checkCsrf(active,request.headers["x-csrf-token"]);
       const currentTime = now();
-      if(path === "/api/reader/book-knowledge/visit") { send(200,await recognizeLibraryBookSnapshot(db,active,input)); return true; }
+      if(path === "/api/reader/book-knowledge/visit") { send(200,await recognizeBookstoreBookSnapshot(db,active,input)); return true; }
       if(path === "/api/reader/guide-reviews/decision") {
         if(!await isArchivist(db,active.user_id))throw new ApiError(403,"archivistRequired");
         if(typeof input.cardId!=="string"||typeof input.decision!=="string"||typeof input.contentVersion!=="string"||!/^[a-f0-9]{64}$/.test(input.contentVersion))throw new ApiError(400,"invalidRequest");

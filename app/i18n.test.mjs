@@ -5,7 +5,7 @@ import {LANGUAGES, restoreLanguage, validateBook, contentText, contentLocale, bo
 import {words} from "./i18n.mjs";
 import {currentMascotStage} from "./mascot-progress.mjs";
 import {prepareCatalog} from "./catalog.mjs";
-import {libraryView, escapeHtml} from "./views.mjs";
+import {bookstoreView, escapeHtml} from "./views.mjs";
 import {openDatabase, initializeDatabase} from "../server/database.mjs";
 import {readSeed, seedCatalog, validateSeed} from "../server/seed.mjs";
 import {readCatalog, checkCatalog} from "../server/catalog-repository.mjs";
@@ -27,14 +27,14 @@ test("All interface languages have the same complete set of messages and types",
   }
 });
 
-test("Personal collection copy distinguishes Bookcase from Library and drops duplicate navigation labels", () => {
-  assert.equal(Object.hasOwn(words.es,"goBookcase"), false);
+test("Personal collection copy distinguishes Library from Bookstore and drops duplicate navigation labels", () => {
   assert.equal(Object.hasOwn(words.es,"goLibrary"), false);
+  assert.equal(Object.hasOwn(words.es,"goBookstore"), false);
   assert.equal(Object.hasOwn(words.es,"viewBookshelf"), false);
   assert.equal(words.es.viewShelf, "Ver estantería");
   assert.equal(words.es.deckInCardcase, "En tu tarjetero");
-  assert.equal(Object.hasOwn(words.en,"goBookcase"), false);
   assert.equal(Object.hasOwn(words.en,"goLibrary"), false);
+  assert.equal(Object.hasOwn(words.en,"goBookstore"), false);
   assert.equal(Object.hasOwn(words.en,"viewBookshelf"), false);
   assert.equal(words.en.viewShelf, "View shelf");
   assert.equal(words.es.deckMayChangeUnadded, "Puedes previsualizar sus tarjetas. Añádela al tarjetero para guardarla en tu colección.");
@@ -102,7 +102,7 @@ test("The SQL catalog requires Spanish and English descriptions and notes, while
 
 test("Book details show a preferred title or fall back to the popular title", async () => {
   const s = {catalog:await catalog(), language:"en", statuses:{}, openBookId:"seven-habits", storageAvailable:true};
-  const html = libraryView(s);
+  const html = bookstoreView(s);
   assert.match(html, /Bookstore/);
   for (const book of s.catalog.books) assert.ok(html.includes(escapeHtml(bookTitle(book,"en").text)));
   assert.match(html, /<h2 id="book-dialog-title"[^>]*>The 7 Habits of Highly Effective People<\/h2>/);

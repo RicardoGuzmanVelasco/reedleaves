@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {bookTitle,bookCoverTitle} from "./core.mjs";
-import {libraryView,libraryResultsMarkup,homeView,deckView,deckPageView,dailyView} from "./views.mjs";
+import {bookstoreView,bookstoreResultsMarkup,homeView,deckView,deckPageView,dailyView} from "./views.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {featuredDecks} from "./decks.mjs";
 import {openDatabase,initializeDatabase} from "../server/database.mjs";
@@ -31,11 +31,11 @@ test("Cover labels and book details retain the complete title for display and ac
   const s=await state(),book=s.catalog.booksById.get(s.bookId),localized={...s};
   for (const language of ["es","en"]) {
     book.title[language]="Nombre completo del libro";
-    for (const html of [libraryView({...localized,language,openBookId:s.bookId}),homeView({...localized,language})]) {
+    for (const html of [bookstoreView({...localized,language,openBookId:s.bookId}),homeView({...localized,language})]) {
       assert.match(html,new RegExp(`<strong\\b[^>]*lang="${language}"[^>]*>Nombre completo del libro<\\/strong>`));
       assert.match(html,/aria-label="[^"]*Nombre completo del libro/);
     }
-    assert.match(libraryView({...localized,language,openBookId:s.bookId}),/id="book-dialog-title"[^>]*>Nombre completo del libro<\/h2>/);
+    assert.match(bookstoreView({...localized,language,openBookId:s.bookId}),/id="book-dialog-title"[^>]*>Nombre completo del libro<\/h2>/);
   }
 });
 
@@ -45,16 +45,16 @@ test("Preferred titles apply across reading views while the popular title stays 
   for (const language of ["es","en"]) {
     book.title[language]="Preferred book title";
     const localized={...s,language,dailyExclusiveCardId:"habit-1"};
-    for (const html of [libraryView({...localized,openBookId:s.bookId}),libraryResultsMarkup({...localized,libraryQuery:"Titre populaire"}),
+    for (const html of [bookstoreView({...localized,openBookId:s.bookId}),bookstoreResultsMarkup({...localized,bookstoreQuery:"Titre populaire"}),
       homeView(localized),deckView(localized),deckPageView(localized),deckPageView({...localized,requestedId:"habit-1"}),dailyView(localized)]) {
       assert.match(html,new RegExp(`lang="${language}" dir="auto"[^>]*>Preferred book title`));
     }
-    const details=libraryView({...localized,openBookId:s.bookId});
+    const details=bookstoreView({...localized,openBookId:s.bookId});
     assert.match(details,/<h2 id="book-dialog-title"[^>]*>Preferred book title<\/h2><p class="book-popular-title" lang="fr" dir="auto">Titre populaire<\/p>/);
     assert.doesNotMatch(details,/Título original|Original title|Título popular|Popular title/);
     assert.ok(dailyView(localized).includes(s.catalog.cardsById.get("habit-1").body.es));
   }
   book.popularTitle='<img src=x onerror="bad">';
-  const html=libraryView({...s,openBookId:s.bookId});
+  const html=bookstoreView({...s,openBookId:s.bookId});
   assert.doesNotMatch(html,/<img src=x/); assert.match(html,/&lt;img src=x/);
 });

@@ -65,7 +65,7 @@ test("the warning names the interest and requested status with semantic actions 
   }
 });
 
-test("the shared accessible warning names a card-save interest and Bookcase effect in ES and EN",()=>{
+test("the shared accessible warning names a card-save interest and Library effect in ES and EN",()=>{
   for(const [language,interest,copy,continueLabel,cancelLabel] of [
     ["es","Crecimiento personal","Guardar esta tarjeta también añadirá el libro a tu Biblioteca.","Continuar","Cancelar"],
     ["en","Personal growth","Saving this card will also add the book to your Library.","Continue","Cancel"]

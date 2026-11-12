@@ -5,7 +5,7 @@ import {readCatalog} from "../server/catalog-repository.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {availableDecks,featuredDecks,treeLinks} from "./decks.mjs";
-import {deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,deckPageView,homeView,practiceView,authorView,authorFormView,bookcaseView,escapeHtml} from "./views.mjs";
+import {deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,deckPageView,homeView,practiceView,authorView,authorFormView,libraryView,escapeHtml} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
 
@@ -176,7 +176,7 @@ test("Quote counts use the existing quote mark and quote dominant deck previews 
   assert.doesNotMatch(selector,/title="0 citas"/);
   assert.match(deckPageView(state),/class="deck-facts"><span class="deck-card-count">\d+ tarjetas<\/span><span class="deck-facts-separator" aria-hidden="true">·<\/span><span class="deck-quote-count"><span class="quote-mark" aria-hidden="true">❝<\/span><span>4 citas<\/span><\/span><\/span>/);
   assert.doesNotMatch(deckPeekView(state),/class="deck-facts"/);
-  const collection=bookcaseView({...state,bookcaseTab:"cardcase"});
+  const collection=libraryView({...state,libraryTab:"cardcase"});
   assert.match(collection,/class="deck-tile deck-tile--quote-dominant deck-tile--cardcase"/);
   assert.match(collection,/class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="\d+ tarjetas"/);
   assert.match(collection,/class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="4 citas"/);
@@ -277,7 +277,7 @@ test("Home shows one closed book per active book, without exposing trees or spen
   assert.equal((homeView({...state,enrolledIds:[second,"seven-habits-editorial"]}).match(/class="book-tile"/g) || []).length,2);
   const empty = homeView({...state,statuses:{},enrolledIds:[]});
   assert.ok(empty.includes(words.es.noReadingBooks)); assert.doesNotMatch(empty,/book-tile"/);
-  assert.doesNotMatch(homeView({...state,language:"en"}),/data-action="library"|Go to the library/);
+  assert.doesNotMatch(homeView({...state,language:"en"}),/data-action="bookstore"|Go to the bookstore/);
 });
 
 test("Practice exposes only the active card, enables writing and keeps the pile decorative",async()=>{
@@ -323,7 +323,7 @@ test("Practice prices show one discounted practiceMode, the wallet cap, and usef
   assert.match(recoveredEnglish,/The session was cancelled and its cost was refunded\./);
   const insufficient=practiceView({...state,practiceStage:"empty",practiceUnavailable:{reason:"notEnoughCards",practiceMode:"mixed",available:4,required:5}},null);
   assert.match(insufficient,/Necesitas 5 para empezar/);
-  assert.match(insufficient,/#bookcase\/cardcase/);assert.match(insufficient,/#library/);
+  assert.match(insufficient,/#library\/cardcase/);assert.match(insufficient,/#bookstore/);
   const resume=practiceView({...state,practiceStage:"choose",activePracticeSession:{practiceMode:"reading",index:2,cardIds:["a","b","c","d","e"]}},null);
   assert.match(resume,/data-action="practice-resume"/);assert.match(resume,/2\/5/);
 });
@@ -385,8 +385,8 @@ test('Book and collection deck lists prioritize the current viewer’s contribut
     for(const card of catalog.deckModels.get(deck.id).cards)card.creatorUserId=deck.id===first.id?'first-reader':'second-reader';
   }
   for(const [userId,preferred,other] of [['second-reader',second,first],['first-reader',first,second]]){
-    const state=readerState(catalog,{userId,bookId:'seven-habits',deckChoices:availableDecks(catalog,'seven-habits'),enrolledIds:decks.map(deck=>deck.id),bookcaseTab:'cardcase'});
-    for(const html of [deckView(state),bookcaseView(state)]){
+    const state=readerState(catalog,{userId,bookId:'seven-habits',deckChoices:availableDecks(catalog,'seven-habits'),enrolledIds:decks.map(deck=>deck.id),libraryTab:'cardcase'});
+    for(const html of [deckView(state),libraryView(state)]){
       assert.ok(html.indexOf(`data-deck="${preferred.id}"`)<html.indexOf(`data-deck="${other.id}"`));
     }
   }

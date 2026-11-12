@@ -4,71 +4,157 @@ import {openDatabase,initializeDatabase} from "../server/database.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
 import {prepareCatalog} from "./catalog.mjs";
-import {bookTitle} from "./core.mjs";
 import {featuredDecks} from "./decks.mjs";
-import {libraryView,libraryResultsMarkup,deckView} from "./views.mjs";
+import {bookshelfBooks} from "./bookshelf.mjs";
+import {libraryView,homeView,bookstoreView,deckView,deckPageView} from "./views.mjs";
+import {words} from "./i18n.mjs";
 
-async function state() {
-  const db = openDatabase(":memory:");
-  let catalog;
-  try { initializeDatabase(db); await seedCatalog(db); catalog = prepareCatalog(await readCatalog(db)); }
-  finally { await db.close(); }
-  return {catalog,language:"es",statuses:{"seven-habits":"read"},openBookId:null,storageAvailable:true,userId:"reader",budget:{balance:2,lastAccrualDay:"2026-10-06"}};
+async function fixture() {
+  const db=openDatabase(":memory:");
+  try {
+    initializeDatabase(db); await seedCatalog(db);
+    const catalog=prepareCatalog(await readCatalog(db));
+    return {catalog,userId:"reader",language:"es",statuses:{},enrolledIds:[],storageAvailable:true};
+  } finally { await db.close(); }
 }
+const ids = entries=>entries.map(item=>item.book.id);
+test("Bookshelf excludes untouched recommendations and includes reading, enrolments and personal content",async()=>{
+  const s=await fixture();
+  assert.deepEqual(bookshelfBooks(s),[]);
+  s.statuses={"atomic-habits":"reading","getting-things-done":"read"};
+  s.enrolledIds=["seven-habits-editorial","missing"];
+  const before=structuredClone({enrolledIds:s.enrolledIds,statuses:s.statuses});
+  assert.deepEqual(ids(bookshelfBooks(s)),["seven-habits","getting-things-done","atomic-habits"]);
+  const book=s.catalog.booksById.get("same-as-ever"); book.creatorUserId=s.userId;
+  assert.ok(ids(bookshelfBooks(s)).includes(book.id));
+  book.creatorUserId="another-user";
+  assert.ok(!ids(bookshelfBooks(s)).includes(book.id));
+  const deck=s.catalog.decks.find(d=>d.bookId===book.id); deck.creator.userId=s.userId;
+  assert.ok(ids(bookshelfBooks(s)).includes(book.id));
+  assert.deepEqual({enrolledIds:s.enrolledIds,statuses:s.statuses},before);
+});
 
-test("Add book lists the whole catalog as closed books, with essential data and no forms or deck content", async () => {
-  const s = await state(), before = structuredClone(s.budget), html = libraryView(s);
-  assert.equal((html.match(/data-action="open-book-details"/g) || []).length,s.catalog.books.length);
-  for (const book of s.catalog.books) {
-    assert.ok(html.includes(bookTitle(book,s.language).text)); assert.ok(html.includes(book.author));
+test("Saved-only books belong to the personal bookshelf without inventing reading progress",async()=>{
+  const s=await fixture();s.cardSaves=[{cardId:"habit-1",bookId:"seven-habits",savedAt:"2026-10-13T12:00:00Z"}];
+  const entries=bookshelfBooks(s);
+  assert.deepEqual(ids(entries),["seven-habits"]);assert.equal(entries[0].reading,"unread");assert.equal(entries[0].group,"to-read");
+  assert.deepEqual(s.enrolledIds,[]);
+  assert.deepEqual(bookshelfBooks({...s,cardSaves:[]}),[]);
+});
+
+test("Choosing Para leer saves a book and selects its chip in the catalog",async()=>{
+  const s=await fixture();
+  assert.deepEqual(ids(bookshelfBooks(s)),[]);
+  assert.match(bookstoreView({...s,openBookId:"atomic-habits"}),/data-status="to-read" aria-pressed="false"/);
+  s.statuses={"atomic-habits":"unread"};s.shelfBookIds=["atomic-habits"];
+  assert.deepEqual(ids(bookshelfBooks(s)),["atomic-habits"]);
+  assert.equal(bookshelfBooks(s)[0].group,"to-read");
+  assert.match(libraryView(s),/bookshelf-group-to-read/);
+  assert.match(libraryView(s),/data-book-spines="stack"/);
+  assert.match(bookstoreView({...s,openBookId:"atomic-habits"}),/data-status="to-read" aria-pressed="true"/);
+  assert.doesNotMatch(bookstoreView({...s,openBookId:"atomic-habits"}),/add-book-to-shelf|collection-object-state/);
+});
+
+test("Default unread statuses for the whole catalog do not make every book a shelf member",async()=>{
+  const s=await fixture();
+  s.statuses=Object.fromEntries(s.catalog.books.map(book=>[book.id,"unread"]));
+  s.shelfBookIds=[];
+  assert.deepEqual(bookshelfBooks(s),[]);
+  assert.ok(libraryView(s).includes(words.es.emptyBookshelf));
+  assert.match(bookstoreView({...s,openBookId:"atomic-habits"}),/data-status="unread" aria-pressed="true"/);
+});
+
+test("Saved cards stay in the book header without taking a deck grid position",async()=>{
+  const s=await fixture(),bookId="seven-habits",choices=featuredDecks(s.catalog,bookId);
+  const html=deckView({...s,bookId,deckChoices:choices});
+  const gridStart=html.indexOf('<div class="deck-grid"'),savedEntry=html.indexOf('data-saved-cards-entry'),firstDeck=html.indexOf('<article class="deck-tile"');
+  assert.ok(savedEntry>=0);assert.ok(gridStart>savedEntry);assert.ok(firstDeck>gridStart);
+  assert.equal((html.match(/data-saved-cards-entry/g)||[]).length,1);
+  const noDecks=deckView({...s,bookId,deckChoices:[]});
+  assert.ok(noDecks.includes('data-saved-cards-entry'));
+  assert.ok(!noDecks.includes('class="deck-grid"'));
+  const anonymous=deckView({...s,userId:null,bookId,deckChoices:choices});
+  assert.ok(!anonymous.includes('data-saved-cards-entry'));
+});
+
+test("Deck membership keeps a book on the shelf without card progress groups",async()=>{
+  const s=await fixture();
+  s.enrolledIds=["seven-habits-inside-out"];
+  const entries=bookshelfBooks({...s,shelfBookIds:["seven-habits"],toReadBookIds:[]});
+  assert.equal(entries.length,1); assert.equal(entries[0].group,"to-read");
+  assert.equal((libraryView(s).match(/data-book="seven-habits"/g)||[]).length,1);
+  s.enrolledIds=[];
+  assert.deepEqual(bookshelfBooks(s),[]);
+});
+
+test("Collection groups, empty states, book details and origin navigation translate consistently",async()=>{
+  const s=await fixture(); s.statuses={"atomic-habits":"read"};
+  for (const language of ["es","en"]) {
+    const state={...s,language}; const c=words[language];
+    const html=libraryView(state);
+    assert.ok(html.includes(c.library)); assert.ok(html.includes(c.shelf)); assert.ok(html.includes(c.cardcase));
+    assert.match(html,/aria-label="(?:Biblioteca|Library)"/); assert.match(html,/href="#library" aria-current="page"/); assert.match(html,/href="#library\/cardcase"/);
+    assert.doesNotMatch(html,/open-bookshelf-filters|bookshelf-filter-reading|reset-bookshelf-filters/);
+    assert.match(html,/id="bookshelf-group-read"/);
+    assert.doesNotMatch(html,/data-action="home"|undefined|data-book="seven-habits"/);
+    assert.ok(libraryView({...state,statuses:{}}).includes(c.emptyBookshelf));
+    assert.match(libraryView({...state,openBookId:"atomic-habits"}),/<dialog class="deck-modal book-modal"/);
+    assert.ok(bookstoreView(state).includes(c.books)); assert.match(bookstoreView(state),/collections\/bookstore\.svg/);
+    assert.doesNotMatch(bookstoreView(state),/collection-entry|Ir a mi biblioteca|Go to my Library/);
+    assert.ok(bookstoreView({...state,bookstoreOrigin:"library"}).includes(c.shelfBack));
+    assert.doesNotMatch(bookstoreView({...state,bookstoreOrigin:"home"}),/data-action="library"/);
+    assert.doesNotMatch(homeView(state),/class="home-actions"|data-action="profile"/);
+    const deckState={...state,bookId:"atomic-habits",deckChoices:featuredDecks(s.catalog,"atomic-habits")};
+    for (const [bookOrigin,label] of [["library",c.shelfBack],["bookstore",c.booksBack],["daily",c.back]]) assert.ok(deckView({...deckState,bookOrigin}).includes(label));
   }
-  assert.match(html,/catalog-book/); assert.match(html,/aria-haspopup="dialog"/);
-  assert.match(html,/2 barajas/); assert.match(html,/1 baraja/);
-  assert.doesNotMatch(libraryResultsMarkup(s),/book-tile-genres/);
-  assert.doesNotMatch(html,/<dialog|data-book-status|book-row|tree-node|From the inside out|Ideas esenciales/);
-  assert.deepEqual(s.budget,before);
 });
 
-test("A book modal shows metadata, four reading choices and one explicit deck action", async () => {
-  const s = {...await state(),openBookId:"seven-habits"}, book = s.catalog.booksById.get(s.openBookId);
-  const html = libraryView(s), modal = html.match(/<dialog\b[\s\S]*?<\/dialog>/)[0];
-  assert.ok(modal.includes(book.title.es)); assert.ok(modal.includes(book.description.es));
-  assert.match(modal,/Crecimiento personal/); assert.match(modal,/Productividad/);
-  assert.match(modal,/aria-labelledby="book-dialog-title"/); assert.match(modal,/aria-describedby="book-dialog-description"/);
-  const controls=[...modal.matchAll(/<button[^>]*data-action="set-book-reading"[^>]*>/g)].map(match=>match[0]);
-  assert.equal(controls.length,4);
-  for (const [index,status] of ["unread","to-read","reading","read"].entries()) {
-    assert.ok(controls[index].includes(`data-status="${status}"`));
-    assert.ok(controls[index].includes(`aria-pressed="${status === "read"}"`));
-    assert.doesNotMatch(controls[index],/disabled/);
+test("Cardcase tab groups owned and enrolled decks by their book's reading status",async()=>{
+  const s=await fixture(),ownDeck=s.catalog.decksById.get("atomic-habits-editorial");
+  ownDeck.creator.userId=s.userId;
+  s.catalog.decksById.get("atomic-habits-editorial").status="draft";
+  const enrolled="seven-habits-editorial";
+  const render=(statuses,toReadBookIds=[])=>libraryView({...s,libraryTab:"cardcase",enrolledIds:[enrolled,ownDeck.id],statuses,toReadBookIds});
+  for (const language of ["es","en"]) {
+    const html=libraryView({...s,language,libraryTab:"cardcase",enrolledIds:[enrolled,ownDeck.id],statuses:{"atomic-habits":"reading","seven-habits":"read"}});
+    const c=words[language];
+    assert.match(html,/href="#library\/cardcase" aria-current="page"/);
+    assert.ok(html.indexOf('id="cardcase-decks-reading"')<html.indexOf('id="cardcase-decks-read"'));
+    assert.match(html,new RegExp(c.readingStatus));
+    assert.match(html,new RegExp(c.readStatus));
+    assert.match(html,/data-action="open-cardcase-deck" data-deck="seven-habits-editorial"/);
+    assert.match(html,/data-action="open-cardcase-deck" data-deck="atomic-habits-editorial"/);
+    assert.doesNotMatch(html,/data-action="remove-cardcase-deck"/);
+    assert.match(html,/class="deck-grid cardcase-decks"/);
+    assert.equal((html.match(/class="deck-tile(?:\s|")/g)||[]).length,2);
+    assert.doesNotMatch(html,/open-bookshelf-filters/);
   }
-  assert.match(modal,/data-action="open-book" data-book="seven-habits"[^>]*>Ver barajas · 2<\/button>/);
-  assert.doesNotMatch(libraryView({...s,openBookId:"missing"}),/<dialog/);
-  const unavailable=libraryView({...s,storageAvailable:false});
-  const disabled=[...unavailable.matchAll(/<button[^>]*data-action="set-book-reading"[^>]*>/g)];
-  assert.equal(disabled.length,4); assert.ok(disabled.every(([tag])=>tag.includes("disabled")));
+  assert.match(render({},["seven-habits"]),/id="cardcase-decks-to-read"/);
+  assert.match(render({}),/id="cardcase-decks-to-read"/);
+  assert.doesNotMatch(render({}),/id="cardcase-decks-unread"/);
+  const empty=await fixture();
+  assert.match(libraryView({...empty,libraryTab:"cardcase"}),/Todavía no has añadido barajas a tu tarjetero/);
 });
 
-test("Book grid and modal translate, escape content and count current decks", async () => {
-  const s = {...await state(),language:"en",openBookId:"atomic-habits"};
-  const v = s.catalog.decks.find(v => v.bookId === "atomic-habits");
-  s.catalog.decks.push({...v,id:v.id+"-second"});
-  const book = s.catalog.booksById.get("atomic-habits");
-  book.title.en = '<script>alert("title")</script>';
-  book.author = '<img src=x onerror="bad">';
-  const html = libraryView(s);
-  assert.match(html,/Bookstore/); assert.match(html,/View decks/); assert.match(html,/2 decks/);
-  assert.doesNotMatch(html,/<script|<img src=x/);
-  assert.match(html,/&lt;script&gt;/); assert.match(html,/&lt;img/);
-  const modal = html.slice(html.indexOf('<dialog'));
-  assert.doesNotMatch(modal,/1 deck<\/button>/);
-  assert.match(modal,/data-action="open-book"[^>]*>View decks · 2<\/button>/);
+test("Deck details distinguish adding to the cardcase from starting practice",async()=>{
+  const s=await fixture(),deck=featuredDecks(s.catalog,"atomic-habits")[0];
+  const state={...s,bookId:"atomic-habits",deckChoices:[deck],deckId:deck.deck.id};
+  const notAdded=deckPageView(state);
+  assert.match(notAdded,/data-action="add-deck-to-cardcase"/);
+  assert.match(notAdded,/Costs 2 leaves|Cuesta 2 hojas/);
+  assert.doesNotMatch(notAdded,/data-action="select-deck"/);
+  const added=deckPageView({...state,enrolledIds:[deck.deck.id]});
+  assert.doesNotMatch(added,/data-action="add-deck-to-cardcase"/);
+  assert.match(added,/data-action="remove-cardcase-deck"/);
+  assert.ok(added.includes(words.es.removeDeckFromCardcase));
 });
 
-test("Library has an empty state; deck selection can return to the catalog", async () => {
-  const s = await state();
-  assert.match(libraryView({...s,catalog:{...s.catalog,books:[]}}),/Todavía no hay libros disponibles/);
-  const deckState = {...s,bookId:"seven-habits",bookOrigin:"library",deckChoices:featuredDecks(s.catalog,"seven-habits"),openDeckId:null};
-  const deckDetails=deckView(deckState); assert.match(deckDetails,/data-action="library"/); assert.ok(deckDetails.includes("← Librería"));
-  assert.doesNotMatch(deckView({...deckState,bookOrigin:"home"}),/data-action="(?:home|library)"/);
+test("Own empty drafts remain pending, while completed books stay out of simplified Home",async()=>{
+  const s=await fixture();
+  const version=s.catalog.decks.find(v=>v.bookId==="atomic-habits"); version.status="draft"; version.cardCount=0;
+  s.enrolledIds=[version.id];
+  assert.equal(bookshelfBooks(s)[0].group,"to-read");
+  s.enrolledIds=[];
+  assert.deepEqual(bookshelfBooks(s),[]);
+  assert.doesNotMatch(homeView(s),/data-action="resume-book"/);
 });

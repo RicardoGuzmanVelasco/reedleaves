@@ -5,7 +5,7 @@ import {openDatabase,initializeDatabase} from "../server/database.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
 import {prepareCatalog} from "./catalog.mjs";
-import {profileView,bookcaseView,dailyView} from "./views.mjs";
+import {profileView,libraryView,dailyView} from "./views.mjs";
 import {words} from "./i18n.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {toggleProfileInterest} from "./profile-interests.mjs";
@@ -28,8 +28,8 @@ test("Profiles show book, card-view and contribution counts without old per-card
     assert.match(html,/<header class="profile-heading"><div class="profile-avatar"/);
     assert.doesNotMatch(html,/data-action="profile-back"|profile-topline/);
     for(const key of Object.keys(profileData.profile.counts)) assert.ok(html.includes(words[language][key]),key);
-    assert.match(html,/href="#bookcase\/test-user"/);assert.match(html,/datetime="2026-10-10"/);
-    assert.doesNotMatch(profileView({language,profileData,userId:"test-user"}),/href="#bookcase(?:\/|")/);
+    assert.match(html,/href="#library\/test-user"/);assert.match(html,/datetime="2026-10-10"/);
+    assert.doesNotMatch(profileView({language,profileData,userId:"test-user"}),/href="#library(?:\/|")/);
     assert.match(profileView({language,profileError:"profileUnavailable"}),new RegExp(words[language].profileUnavailable.replace('.','\\.')));
   }
 });
@@ -144,13 +144,13 @@ test("Profile interest selection appends in click order, moves between lists, an
 
 test("Foreign shelf shows target reading/review states without mutation controls or private metadata actions",async()=>{
   const catalog=await fixture(),s={catalog,language:"es",readOnly:true,profileData,userId:"other",openBookId:"seven-habits"};
-  const html=bookcaseView(s);
+  const html=libraryView(s);
   assert.match(html,/Solo lectura/);assert.match(html,/data-status="read" aria-pressed="true" disabled/);
     assert.doesNotMatch(html,/Repasando|Tarjetas repasadas|Continuar repaso/);assert.match(html,/href="#profile\/test-user"/);
   assert.match(html,/data-action="open-book" data-book="seven-habits"/);
   const controls=[...html.matchAll(/<button[^>]*data-action="set-book-reading"[^>]*>/g)];
   assert.equal(controls.length,4); assert.ok(controls.every(([tag])=>tag.includes("disabled")));
-  assert.doesNotMatch(html,/data-book-status|data-action="(?:library|complete-book|create-book)"/);
+  assert.doesNotMatch(html,/data-book-status|data-action="(?:bookstore|complete-book|create-book)"/);
   assert.doesNotMatch(html,/open-bookshelf-filters|bookshelf-filter-reading/);
 });
 
@@ -158,7 +158,7 @@ test("Card attributions link to the book, author, deck and creator",async()=>{
   const catalog=await fixture(),card=catalog.allCards[0];
   const s={catalog,language:"es",daily:{id:card.id,day:"2026-10-06"},dailyToday:{day:"2026-10-06"},dailyHistory:[{id:card.id,day:"2026-10-06"}],selectedDailyDay:"2026-10-06",calendarMonth:"2026-10",storageAvailable:true};
   const html=dailyView({...s,dailyExclusiveCardId:card.id}),footer=html.slice(html.indexOf('<footer'),html.indexOf('</footer>'));
-  assert.match(footer,/#library\/book\//);assert.match(footer,/#library\/author\//);
+  assert.match(footer,/#bookstore\/book\//);assert.match(footer,/#bookstore\/author\//);
   assert.ok(footer.includes(`#deck/${encodeURIComponent(card.deckId)}`));
   assert.match(footer,/#profile\/reed-team/);
   assert.doesNotMatch(footer,/ · /);

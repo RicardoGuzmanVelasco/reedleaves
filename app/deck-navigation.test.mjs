@@ -71,7 +71,7 @@ test('A shared card retains its content language and shows only the requested ca
   assert.doesNotMatch(html,/Shared text/);
   assert.ok(html.includes(catalog.booksById.get(card.bookId).author));
   assert.ok(html.includes(deck.title.en || deck.title[deck.language]));
-  const authorHref=`#library/author/${encodeURIComponent(catalog.booksById.get(card.bookId).author)}`;
+  const authorHref=`#bookstore/author/${encodeURIComponent(catalog.booksById.get(card.bookId).author)}`;
   const deckHref=deckPageHash(deck.id), creatorHref=`#profile/${encodeURIComponent(deck.creator.userId)}`;
   assert.ok(html.indexOf(authorHref)<html.indexOf(deckHref));
   assert.ok(html.indexOf(deckHref)<html.indexOf(creatorHref));

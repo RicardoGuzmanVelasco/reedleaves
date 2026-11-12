@@ -12,7 +12,7 @@ import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {readReaderState as readReaderStateAtDate,selectDeck,openCard,dailyIdea,changeReading} from "./reader-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
 import {featuredDecks} from "../app/decks.mjs";
-import {authorView,authorFormView,deckPageView,dailyView,libraryView,deckView} from "../app/views.mjs";
+import {authorView,authorFormView,deckPageView,dailyView,bookstoreView,deckView} from "../app/views.mjs";
 import {bookMetadata} from "./fixtures/book-autofill.mjs";
 import {mergeBooks} from "./book-merge.mjs";
 
@@ -252,11 +252,11 @@ for (const dialect of ["sqlite","postgres"]) {
     await assert.rejects(changeReading(db,other,"missing","read"),e=>e.status===400);
     await assert.rejects(completeBook(db,other,{bookId,metadata:bookMetadata}),e=>e.status===404);
     const ui={catalog,language:"en",userId:session.user_id,openBookId:bookId,statuses:{},storageAvailable:true,deckChoices:[],bookId};
-    const library=libraryView(ui);
-    assert.match(library,/L’Étranger/); assert.doesNotMatch(library,/undefined|book-dialog-description/);
-    assert.match(library,/data-action="open-book"[^>]*>View decks/);
-    assert.doesNotMatch(libraryView({...ui,userId:other.user_id}),/data-action="open-book"[^>]*disabled/);
-    assert.match(libraryView({...ui,userId:null}),/data-action="open-book"[^>]*disabled/);
+    const bookstore=bookstoreView(ui);
+    assert.match(bookstore,/L’Étranger/); assert.doesNotMatch(bookstore,/undefined|book-dialog-description/);
+    assert.match(bookstore,/data-action="open-book"[^>]*>View decks/);
+    assert.doesNotMatch(bookstoreView({...ui,userId:other.user_id}),/data-action="open-book"[^>]*disabled/);
+    assert.match(bookstoreView({...ui,userId:null}),/data-action="open-book"[^>]*disabled/);
     assert.match(deckView(ui),/Create deck/);
     assert.match(authorFormView({...ui,authorForm:{kind:"book",language:"fr"}}),/name="author"/);
     const {deckId}=await createDeck(db,session,deckInput);

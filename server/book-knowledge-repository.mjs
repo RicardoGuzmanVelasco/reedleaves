@@ -15,7 +15,7 @@ export async function pendingNewBookCount(db,userId) {
   return Number(row.total);
 }
 
-export async function recognizeLibraryBookSnapshot(db,session,input) {
+export async function recognizeBookstoreBookSnapshot(db,session,input) {
   const {visitId,bookIds}=input||{};
   if(typeof visitId!=="string"||!VISIT_ID.test(visitId)||!Array.isArray(bookIds)||bookIds.length>MAX_SNAPSHOT_BOOKS||
     bookIds.some(id=>typeof id!=="string"||!id.trim()||id.length>200)||new Set(bookIds).size!==bookIds.length) throw new ApiError(400,"invalidRequest");

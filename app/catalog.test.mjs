@@ -7,7 +7,7 @@ import { readSeed } from "../server/seed.mjs";
 import { readCatalog } from "../server/catalog-repository.mjs";
 import { prepareCatalog, loadCatalog } from "./catalog.mjs";
 import { createBrowserStore, storageKeys } from "./storage.mjs";
-import { dailyView, deckPageView, libraryView, mascotsView, deckView, homeView, authorView } from "./views.mjs";
+import { dailyView, deckPageView, bookstoreView, mascotsView, deckView, homeView, authorView } from "./views.mjs";
 import { readerState } from "../test-support/reader-state.mjs";
 
 async function payload() {
@@ -82,8 +82,8 @@ test("Views expose every review card and preserve book attribution", async () =>
   assert.doesNotMatch(home,/data-action="daily"|daily-new-badge|daily-badge-entering/);
   assert.doesNotMatch(daily,/data-source=|source-content|exclusive-card-modal/);
   assert.doesNotMatch(daily,/data-book-status=/);
-  assert.doesNotMatch(libraryView(state),/data-book-status=/);
-  assert.equal((libraryView({...state,openBookId:"atomic-habits"}).match(/data-action="set-book-reading"/g) || []).length, 4);
+  assert.doesNotMatch(bookstoreView(state),/data-book-status=/);
+  assert.equal((bookstoreView({...state,openBookId:"atomic-habits"}).match(/data-action="set-book-reading"/g) || []).length, 4);
   assert.doesNotMatch(deckPageView(state), /Vuelve tras un fallo/);
   const review=deckPageView(state);
   assert.match(review,/Small changes count/);
@@ -177,9 +177,9 @@ test("Locked stages show known artwork and lock status up to the user's maximum 
   }
 });
 
-test("Mascot collection opens from review album and deck selection, not library, card detail or authoring",async()=>{
+test("Mascot collection opens from review album and deck selection, not bookstore, card detail or authoring",async()=>{
   const catalog=prepareCatalog(await payload()),state={catalog,language:"es",bookId:"seven-habits",growth:{},statuses:{},enrolledIds:[],deckChoices:[],storageAvailable:false};
-  assert.doesNotMatch(libraryView({...state,openBookId:"seven-habits"}),/data-action="open-mascots"/);
+  assert.doesNotMatch(bookstoreView({...state,openBookId:"seven-habits"}),/data-action="open-mascots"/);
   assert.match(deckView(state),/data-action="open-mascots" data-book="seven-habits"/);
   assert.match(deckView({...state,growth:{"seven-habits":{added:true,practiceDays:1}}}),/mascot-entry[^>]*data-book="seven-habits"[^>]*>.*?<img src="\/app\/assets\/mascot\/soil\.svg(?:\?[^" ]*)?"/);
   assert.doesNotMatch(homeView(state),/data-action="open-mascots"/);

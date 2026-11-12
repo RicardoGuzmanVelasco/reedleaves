@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {filterBooks,filterLibrary} from "./book-search.mjs";
-import {libraryView, libraryResultsMarkup} from "./views.mjs";
+import {filterBooks,filterBookstore} from "./book-search.mjs";
+import {bookstoreView, bookstoreResultsMarkup} from "./views.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {bookTitle} from "./core.mjs";
 import {openDatabase, initializeDatabase} from "../server/database.mjs";
@@ -27,7 +27,7 @@ test("One query searches all full titles regardless of interface language", asyn
   }
   const catalog = prepareCatalog(data);
   for (const language of ["es","en"]) {
-    const html = libraryResultsMarkup(readerState(catalog,{language,libraryQuery:"Atomic Habits"}));
+    const html = bookstoreResultsMarkup(readerState(catalog,{language,bookstoreQuery:"Atomic Habits"}));
     assert.match(html,/data-book="atomic-habits"/);
     assert.ok(html.includes(bookTitle(catalog.booksById.get("atomic-habits"),language).text));
     assert.equal((html.match(/data-action="open-book-details"/g)||[]).length,1);
@@ -52,11 +52,11 @@ test("Empty search restores ordered books; no duplicates, author/body matches, o
 
 test("Simple search is labelled, escaped, clearable and recovers from no results", async () => {
   const s = {catalog:prepareCatalog(await fixture()),language:"es",statuses:{},storageAvailable:true};
-  const initial = libraryView(s);
+  const initial = bookstoreView(s);
   assert.match(initial,/role="search"/); assert.match(initial,/for="book-search">Buscar libro/);
   assert.match(initial,/aria-controls="book-search-results"/);
   assert.match(initial,/aria-label="Borrar búsqueda" hidden/);
-  const query = '"><script>alert(1)</script>', html = libraryView({...s,libraryQuery:query});
+  const query = '"><script>alert(1)</script>', html = bookstoreView({...s,bookstoreQuery:query});
   assert.doesNotMatch(html,/<script/); assert.match(html,/&quot;&gt;&lt;script&gt;/);
   assert.match(html,/No hay libros que coincidan con la búsqueda/); assert.match(html,/data-action="clear-book-search">Borrar búsqueda/);
   assert.doesNotMatch(html,/data-action="open-book-details"/);
@@ -64,26 +64,26 @@ test("Simple search is labelled, escaped, clearable and recovers from no results
 
 test("Signed-in readers can create a book from an unfiltered empty search",async()=>{
   const catalog=prepareCatalog(await fixture()),base={catalog,language:"en",statuses:{},userId:"reader"};
-  const empty=libraryView({...base,libraryQuery:"A book not in the catalog"});
+  const empty=bookstoreView({...base,bookstoreQuery:"A book not in the catalog"});
   assert.match(empty,/class="book-create-from-search" type="button" data-action="create-book" data-focus-book-title-end="true"/);
   assert.match(empty,/No books match your search/);
-  assert.doesNotMatch(empty,/library-author-action/);
-  const filtered=libraryView({...base,libraryQuery:"A book not in the catalog",libraryFilters:{author:"Unknown author"}});
+  assert.doesNotMatch(empty,/bookstore-author-action/);
+  const filtered=bookstoreView({...base,bookstoreQuery:"A book not in the catalog",bookstoreFilters:{author:"Unknown author"}});
   assert.doesNotMatch(filtered,/book-create-from-search/);
-  const visitor=libraryView({catalog,language:"en",statuses:{},libraryQuery:"A book not in the catalog"});
+  const visitor=bookstoreView({catalog,language:"en",statuses:{},bookstoreQuery:"A book not in the catalog"});
   assert.doesNotMatch(visitor,/book-create-from-search/);
 });
 
 test("Book details show the preferred title and only add a different popular title, without labels", async () => {
   const catalog = prepareCatalog(await fixture());
   for (const language of ["es","en"]) for (const book of catalog.books) {
-    const html = libraryView({catalog,language,statuses:{},openBookId:book.id,storageAvailable:true});
+    const html = bookstoreView({catalog,language,statuses:{},openBookId:book.id,storageAvailable:true});
     const secondary=bookTitle(book,language).text !== book.popularTitle;
     assert.equal(html.includes('class="book-popular-title"'),secondary);
     assert.doesNotMatch(html,/Título original|Original title|Título popular|Popular title/);
   }
   const book = catalog.books[0]; book.popularTitle = '<img src=x>'; book.popularLanguage = "fr";
-  const html = libraryView({catalog,language:"en",statuses:{},openBookId:book.id});
+  const html = bookstoreView({catalog,language:"en",statuses:{},openBookId:book.id});
   assert.match(html,/lang="fr" dir="auto">&lt;img src=x&gt;/); assert.doesNotMatch(html,/<img src=x>/);
 });
 
@@ -106,26 +106,26 @@ test("Popular-title metadata is mandatory in SQL, imports and current catalog AP
   } finally { await db.close(); }
 });
 
-test("Library filters intersect author, interest, deck language and title search",async()=>{
+test("Bookstore filters intersect author, interest, deck language and title search",async()=>{
   const catalog=prepareCatalog(await fixture());
-  assert.deepEqual(ids(filterLibrary(catalog,"habits",{author:"Stephen R. Covey",genre:"",language:"en"})),["seven-habits"]);
-  assert.deepEqual(filterLibrary(catalog,"atomic",{author:"Stephen R. Covey"}),[]);
-  assert.deepEqual(filterLibrary(catalog,"",{language:"ja"}),[]);
+  assert.deepEqual(ids(filterBookstore(catalog,"habits",{author:"Stephen R. Covey",genre:"",language:"en"})),["seven-habits"]);
+  assert.deepEqual(filterBookstore(catalog,"atomic",{author:"Stephen R. Covey"}),[]);
+  assert.deepEqual(filterBookstore(catalog,"",{language:"ja"}),[]);
   const genre=catalog.books[0].genres[0];
-  assert.ok(filterLibrary(catalog,"",{genre}).every(book=>book.genres.includes(genre)));
-  const html=libraryView(readerState(catalog,{language:"en",libraryFiltersOpen:true,libraryFilters:{author:"Stephen R. Covey"}}));
+  assert.ok(filterBookstore(catalog,"",{genre}).every(book=>book.genres.includes(genre)));
+  const html=bookstoreView(readerState(catalog,{language:"en",bookstoreFiltersOpen:true,bookstoreFilters:{author:"Stephen R. Covey"}}));
   assert.match(html,/value="Stephen R. Covey" selected/);
   assert.equal((html.match(/data-action="open-book-details"/g)||[]).length,1);
 });
 
-test("Library keeps the layout and filter controls compact and opens plain labels in a modal",async()=>{
-  const catalog=prepareCatalog(await fixture()),state=readerState(catalog,{libraryFilters:{},libraryQuery:''});
-  const initial=libraryView(state);assert.match(initial,/data-action="open-library-filters"/);assert.doesNotMatch(initial,/<details[^>]*library-filters|id="library-genre"|data-book-sort|book-sort-selector/);
-  const modal=libraryView({...state,libraryFiltersOpen:true,libraryFilterDraft:{author:'Stephen R. Covey',genre:'software',language:''},librarySortDraft:'interests'});
-  assert.match(modal,/<dialog class="bookshelf-filter-modal library-filter-modal"/);
-  assert.match(modal,/data-action="apply-library-filters"/);assert.match(modal,/data-action="close-library-filters"/);
-  assert.match(modal,/<h3 id="library-sort-title">Ordenar libros<\/h3>/);assert.equal((modal.match(/data-action="select-library-sort"/g)||[]).length,3);assert.match(modal,/data-sort="interests" aria-pressed="true">Mis intereses<\/button>/);
-  const english=libraryView({...state,language:'en',libraryFiltersOpen:true,librarySortDraft:'alphabetical'});assert.match(english,/<h3 id="library-sort-title">Sort books<\/h3>/);assert.match(english,/data-sort="alphabetical" aria-pressed="true">A–Z<\/button>/);
-  const genreLabel=modal.match(/<label for="library-genre">([\s\S]*?)<\/label>/)?.[1];assert.ok(genreLabel);assert.doesNotMatch(genreLabel,/<svg|interest-icon/);
-  assert.match(libraryView({...state,libraryQuery:'no-matches-ever'}),/data-action="open-library-filters"/);
+test("Bookstore keeps the layout and filter controls compact and opens plain labels in a modal",async()=>{
+  const catalog=prepareCatalog(await fixture()),state=readerState(catalog,{bookstoreFilters:{},bookstoreQuery:''});
+  const initial=bookstoreView(state);assert.match(initial,/data-action="open-bookstore-filters"/);assert.doesNotMatch(initial,/<details[^>]*bookstore-filters|id="bookstore-genre"|data-book-sort|book-sort-selector/);
+  const modal=bookstoreView({...state,bookstoreFiltersOpen:true,bookstoreFilterDraft:{author:'Stephen R. Covey',genre:'software',language:''},bookstoreSortDraft:'interests'});
+  assert.match(modal,/<dialog class="bookshelf-filter-modal bookstore-filter-modal"/);
+  assert.match(modal,/data-action="apply-bookstore-filters"/);assert.match(modal,/data-action="close-bookstore-filters"/);
+  assert.match(modal,/<h3 id="bookstore-sort-title">Ordenar libros<\/h3>/);assert.equal((modal.match(/data-action="select-bookstore-sort"/g)||[]).length,3);assert.match(modal,/data-sort="interests" aria-pressed="true">Mis intereses<\/button>/);
+  const english=bookstoreView({...state,language:'en',bookstoreFiltersOpen:true,bookstoreSortDraft:'alphabetical'});assert.match(english,/<h3 id="bookstore-sort-title">Sort books<\/h3>/);assert.match(english,/data-sort="alphabetical" aria-pressed="true">A–Z<\/button>/);
+  const genreLabel=modal.match(/<label for="bookstore-genre">([\s\S]*?)<\/label>/)?.[1];assert.ok(genreLabel);assert.doesNotMatch(genreLabel,/<svg|interest-icon/);
+  assert.match(bookstoreView({...state,bookstoreQuery:'no-matches-ever'}),/data-action="open-bookstore-filters"/);
 });

@@ -4,7 +4,7 @@ import {bookLinkUrl, validateBookLinks} from "./book-links.mjs";
 import {LANGUAGES} from "./core.mjs";
 import {words} from "./i18n.mjs";
 import {prepareCatalog} from "./catalog.mjs";
-import {libraryView} from "./views.mjs";
+import {bookstoreView} from "./views.mjs";
 import {openDatabase, initializeDatabase} from "../server/database.mjs";
 import {readSeed, seedCatalog} from "../server/seed.mjs";
 import {readCatalog, checkCatalog} from "../server/catalog-repository.mjs";
@@ -70,7 +70,7 @@ test("Each book modal offers labelled external anchors and platform icons in ES/
   const db = await fixture(t), catalog = prepareCatalog(await readCatalog(db));
   for (const language of LANGUAGES) for (const book of catalog.books) {
     const s = {catalog,language,statuses:{},openBookId:book.id,storageAvailable:true};
-    const html = libraryView(s), modal = html.slice(html.indexOf("<dialog"));
+    const html = bookstoreView(s), modal = html.slice(html.indexOf("<dialog"));
     assert.equal((modal.match(/class="book-external-link"/g) || []).length, 2);
     for (const platform of ["amazon", "goodreads"]) {
       assert.ok(modal.includes(`href="${book.links[platform]}" target="_blank" rel="noopener noreferrer"`));
@@ -81,7 +81,7 @@ test("Each book modal offers labelled external anchors and platform icons in ES/
     assert.ok(modal.includes(words[language].buy));
     assert.ok(modal.includes(words[language].writeReview));
     assert.equal((modal.match(/class="external-link-arrow"/g) || []).length, 2);
-    assert.doesNotMatch(libraryView({...s,openBookId:null}), /book-external-links|app\/assets\/platforms/);
+    assert.doesNotMatch(bookstoreView({...s,openBookId:null}), /book-external-links|app\/assets\/platforms/);
     assert.doesNotMatch(modal, /data-action="(?:open-card|select-deck)"/);
   }
 });
@@ -89,7 +89,7 @@ test("Each book modal offers labelled external anchors and platform icons in ES/
 test("The view never renders an unsafe link or a misleading edition note", async t => {
   const db = await fixture(t), catalog = prepareCatalog(await readCatalog(db)), book = catalog.books[0];
   book.links.amazon = "javascript:alert(1)";
-  const html = libraryView({catalog,language:"es",statuses:{},openBookId:book.id,storageAvailable:true});
+  const html = bookstoreView({catalog,language:"es",statuses:{},openBookId:book.id,storageAvailable:true});
   assert.doesNotMatch(html, /javascript:|platforms\/amazon|Edición en español/);
   assert.match(html, /platforms\/goodreads/);
 });

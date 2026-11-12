@@ -1,7 +1,7 @@
 export function createInterestSortLoginIntent(){
   let returnHash=null;
   return {
-    request(hash="#library"){returnHash=hash||"#library";},
+    request(hash="#bookstore"){returnHash=hash||"#bookstore";},
     consume(userId){if(!returnHash||!userId)return null;const hash=returnHash;returnHash=null;return hash;},
     clear(){returnHash=null;},
     get pending(){return returnHash!==null;}

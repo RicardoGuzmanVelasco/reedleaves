@@ -20,7 +20,7 @@ for(const [dialect,version] of [["sqlite",51],["postgres",43]]) {
     const actual=dialect==="sqlite"?db.prepare("PRAGMA user_version").get().user_version:(await db.prepare("SELECT version FROM reed_schema").get()).version;
     assert.equal(actual,dialect==="sqlite"?SQLITE_SCHEMA_VERSION:POSTGRES_SCHEMA_VERSION);
     assert.ok(await db.prepare("SELECT 1 FROM reader_known_books WHERE user_id=? AND book_id='seven-habits'").get(session.user_id),
-      "the preceding step 25 migration retains its library-knowledge baseline");
+      "the preceding step 25 migration retains its bookstore-knowledge baseline");
     const existing=await db.prepare("SELECT practice_mode,card_ids,card_index,cost,started_at,completed_at FROM practice_sessions WHERE id=?").get("existing-session");
     assert.deepEqual({...existing,started_at:existing.started_at instanceof Date?existing.started_at.toISOString():existing.started_at,
       completed_at:existing.completed_at instanceof Date?existing.completed_at.toISOString():existing.completed_at},

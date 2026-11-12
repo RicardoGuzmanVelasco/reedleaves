@@ -22,11 +22,11 @@ test("Manual book fields initialize, validate and submit without any autofill re
   const form={elements:{namedItem:name=>translationInputs.get(name)},querySelector:()=>firstInterest};
   const requests=[],navigations=[];
   const context={
-    snapshot:{user:{id:"reader"}},language:"es",libraryQuery:"",authorForm:null,
+    snapshot:{user:{id:"reader"}},language:"es",bookstoreQuery:"",authorForm:null,
     crypto:{randomUUID:()=>"manual-book"},normalizeBookMetadata,LANGUAGES,words,bookInterestError,selectBookInterest,
     syncBookInterestSelector:()=>{},catalog:{genres:[{id:"personal-growth",name:{es:"Crecimiento personal"}}]},
     openDeckId:null,openBookId:null,requestedId:null,render:()=>{},persistNoteDraft:()=>{},
-    busy:false,syncGeneration:0,mode:"library",lockControls:()=>{},
+    busy:false,syncGeneration:0,mode:"bookstore",lockControls:()=>{},
     api:{request:async(path,input)=>{requests.push({path,input});return {bookId:input.requestId,state:{}};}},
     loadCatalog:async()=>({}),applyState:()=>{},live:{},navigate:path=>navigations.push(path),
     restoreNoteContext:()=>false,

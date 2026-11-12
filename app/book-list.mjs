@@ -4,7 +4,7 @@ export const BOOK_VIEWS=['covers','shelf','stack'];
 export const BOOK_SHELF_THRESHOLD=10;
 export const selectedBookView=(preferred,fallback)=>BOOK_VIEWS.includes(preferred)?preferred:fallback;
 export const defaultBookView=(count,preferred)=>selectedBookView(preferred,count>=BOOK_SHELF_THRESHOLD?'shelf':'covers');
-export function partitionLibraryBooks(books,newBookIds=[]){
+export function partitionBookstoreBooks(books,newBookIds=[]){
   const newIds=new Set(Array.isArray(newBookIds)?newBookIds:[]);
   return {newBooks:books.filter(book=>newIds.has(book.id)),otherBooks:books.filter(book=>!newIds.has(book.id))};
 }

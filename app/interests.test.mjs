@@ -5,7 +5,7 @@ import {openDatabase,initializeDatabase} from "../server/database.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {readCatalog} from "../server/catalog-repository.mjs";
 import {prepareCatalog} from "./catalog.mjs";
-import {libraryView,authorFormView} from "./views.mjs";
+import {bookstoreView,authorFormView} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 
 const approved={"personal-growth":"🌱",finance:"💰",productivity:"🔥",society:"🌍",software:"💻",mindfulness:"🧘‍♀️",metaphysics:"🔮"};
@@ -17,8 +17,8 @@ test("All approved interests use catalog emojis and localized names in details, 
     assert.equal(interest.emoji,emoji);assert.ok(validInterestAppearance(interest));
     const name=interest.name[language];assert.ok(name);
     const book={...catalog.booksById.get("seven-habits"),genres:[id]};
-    const state=readerState({...catalog,booksById:new Map(catalog.booksById).set(book.id,book)},{language,libraryFiltersOpen:true,openBookId:book.id,libraryFilters:{genre:id}});
-    const html=libraryView(state);
+    const state=readerState({...catalog,booksById:new Map(catalog.booksById).set(book.id,book)},{language,bookstoreFiltersOpen:true,openBookId:book.id,bookstoreFilters:{genre:id}});
+    const html=bookstoreView(state);
     assert.match(html,new RegExp(`<option value="${id}" selected>${name}</option>`));
     assert.ok(html.includes(`${interestIcon(interest)}${name}`));
     assert.ok(html.includes(interestColor(interest)));

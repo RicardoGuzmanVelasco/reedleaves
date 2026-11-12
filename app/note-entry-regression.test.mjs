@@ -41,9 +41,9 @@ test("Tomar nota desde la ficha de libro abre el editor",()=>{
   let opened=null;
   const bookId="book-1";
   const context={
-    snapshot:{user:{id:"reader"}},mode:"library",openBookId:bookId,openDeckId:null,
+    snapshot:{user:{id:"reader"}},mode:"bookstore",openBookId:bookId,openDeckId:null,
     catalog:{booksById:new Map([[bookId,{}]])},findNoteDraft:()=>null,
-    noteDecksWithSpace:()=>[],location:{hash:"#library"},window:{scrollY:36},
+    noteDecksWithSpace:()=>[],location:{hash:"#bookstore"},window:{scrollY:36},
     main:{querySelector:()=>({scrollTop:12})},noteDestination:null,language:"es",
     openAuthorForm:(kind,options)=>{opened={kind,options};}
   };

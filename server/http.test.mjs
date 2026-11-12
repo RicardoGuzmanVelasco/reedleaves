@@ -187,7 +187,7 @@ test("Feedback requires a session and CSRF, then stores the account and current 
   t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();});
   const base=`http://127.0.0.1:${server.address().port}`;
   const post=(input,headers={})=>fetch(base+"/api/feedback",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify(input)});
-  const input={message:"Añadir una búsqueda a esta página",page:"/app/#library",language:"es"};
+  const input={message:"Añadir una búsqueda a esta página",page:"/app/#bookstore",language:"es"};
   assert.equal((await post(input)).status,401);
   const login=await fetch(base+"/api/auth/register",{method:"POST",headers:{Origin:base,"Content-Type":"application/json"},body:JSON.stringify({username:"feedback.reader",password:"a local feedback test phrase"})});
   const state=await login.json(),cookie=login.headers.get("set-cookie").split(";")[0],headers={Cookie:cookie,"X-CSRF-Token":state.csrfToken};

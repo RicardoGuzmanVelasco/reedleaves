@@ -10,8 +10,8 @@ export function filterBooks(books, query = "") {
     .some(title => { const candidate = normalize(title); return terms.every(term => candidate.includes(term)); }));
 }
 
-export const libraryDefaults = {author:"",genre:"",language:""};
-export function filterLibrary(catalog,query = "",filters = libraryDefaults,order="recent",language="es",interestPreferences) {
+export const bookstoreDefaults = {author:"",genre:"",language:""};
+export function filterBookstore(catalog,query = "",filters = bookstoreDefaults,order="recent",language="es",interestPreferences) {
   return sortBooks(filterBooks(catalog.books,query).filter(book =>
     (!filters.author || book.author === filters.author) &&
     (!filters.genre || book.genres.includes(filters.genre)) &&

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createBrowserStore} from "./storage.mjs";
-import {createBookKnowledgeVisitId,visitVisitorBooks,pendingVisitorBookCount,inLibraryVisit} from "./book-knowledge.mjs";
+import {createBookKnowledgeVisitId,visitVisitorBooks,pendingVisitorBookCount,inBookstoreVisit} from "./book-knowledge.mjs";
 
 function storeFixture() {
   const values=new Map();
@@ -54,12 +54,12 @@ test("visitor pending count never acknowledges or changes its baseline",async()=
   assert.equal(pendingVisitorBookCount(store,["old","new"]),0);
   assert.equal(pendingVisitorBookCount(store,["old","new","later"]),1);
 });
-test("library visit spans its book details and ends at another main section",()=>{
-  assert.equal(inLibraryVisit("library","home"),true);
+test("bookstore visit spans its book details and ends at another main section",()=>{
+  assert.equal(inBookstoreVisit("bookstore","home"),true);
   for(const mode of ["book","guides","guide-preview","preview","deck","saved","mascots","author"]){
-    assert.equal(inLibraryVisit(mode,"library"),true);
-    assert.equal(inLibraryVisit(mode,"home"),false);
+    assert.equal(inBookstoreVisit(mode,"bookstore"),true);
+    assert.equal(inBookstoreVisit(mode,"home"),false);
   }
-  for(const mode of ["home","bookcase","daily","profile","account","practice"])
-    assert.equal(inLibraryVisit(mode,"library"),false);
+  for(const mode of ["home","library","daily","profile","account","practice"])
+    assert.equal(inBookstoreVisit(mode,"bookstore"),false);
 });

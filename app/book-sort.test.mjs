@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {sortBooks,validBookSortOrder,validLibrarySortOrder,validVisitorBookSortOrder,shouldLoadInterestPreferences} from "./book-sort.mjs";
-import {filterLibrary} from "./book-search.mjs";
+import {sortBooks,validBookSortOrder,validBookstoreSortOrder,validVisitorBookSortOrder,shouldLoadInterestPreferences} from "./book-sort.mjs";
+import {filterBookstore} from "./book-search.mjs";
 
 const books=[
   {id:"last",popularTitle:"Zèbre",popularLanguage:"fr",title:{es:"",en:"Zebra"}},
@@ -14,9 +14,9 @@ test("book sort accepts recent, alphabetical and interests while rejecting unkno
   assert.equal(validBookSortOrder("recent"),true);
   assert.equal(validBookSortOrder("alphabetical"),true);
   assert.equal(validBookSortOrder("interests"),true);
-  assert.equal(validLibrarySortOrder("interests"),true);
-  assert.equal(validLibrarySortOrder("alphabetical"),true);
-  assert.equal(validLibrarySortOrder("unknown"),false);
+  assert.equal(validBookstoreSortOrder("interests"),true);
+  assert.equal(validBookstoreSortOrder("alphabetical"),true);
+  assert.equal(validBookstoreSortOrder("unknown"),false);
   assert.equal(validVisitorBookSortOrder("alphabetical"),true);
   assert.equal(validVisitorBookSortOrder("interests"),false);
 });
@@ -35,10 +35,10 @@ test("interest ordering uses saved preference positions and keeps neutral ties s
 });
 
 test("restored account interest sort reloads preferences only when Librería needs them",()=>{
-  assert.equal(shouldLoadInterestPreferences({mode:"library",order:"interests",userId:"reader",preferences:null}),true);
-  assert.equal(shouldLoadInterestPreferences({mode:"library",order:"interests",userId:"reader",preferences:{userId:"reader"}}),false);
-  assert.equal(shouldLoadInterestPreferences({mode:"bookcase",order:"interests",userId:"reader",preferences:null}),false);
-  assert.equal(shouldLoadInterestPreferences({mode:"library",order:"interests",userId:null,preferences:null}),false);
+  assert.equal(shouldLoadInterestPreferences({mode:"bookstore",order:"interests",userId:"reader",preferences:null}),true);
+  assert.equal(shouldLoadInterestPreferences({mode:"bookstore",order:"interests",userId:"reader",preferences:{userId:"reader"}}),false);
+  assert.equal(shouldLoadInterestPreferences({mode:"library",order:"interests",userId:"reader",preferences:null}),false);
+  assert.equal(shouldLoadInterestPreferences({mode:"bookstore",order:"interests",userId:null,preferences:null}),false);
 });
 
 test("A–Z uses localized visible titles, title fallback, accent normalization and stable ties",()=>{
@@ -48,8 +48,8 @@ test("A–Z uses localized visible titles, title fallback, accent normalization 
 
 test("search and filters keep the same matching set under either order",()=>{
   const catalog={books, decks:[{bookId:"fallback",language:"en"},{bookId:"accent",language:"es"}]};
-  const recent=filterLibrary(catalog,"",{author:"",genre:"",language:"es"},"recent","es");
-  const alphabetical=filterLibrary(catalog,"",{author:"",genre:"",language:"es"},"alphabetical","es");
+  const recent=filterBookstore(catalog,"",{author:"",genre:"",language:"es"},"recent","es");
+  const alphabetical=filterBookstore(catalog,"",{author:"",genre:"",language:"es"},"alphabetical","es");
   assert.deepEqual(new Set(alphabetical.map(book=>book.id)),new Set(recent.map(book=>book.id)));
   assert.deepEqual(alphabetical.map(book=>book.id),["accent"]);
 });

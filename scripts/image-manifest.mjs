@@ -4,7 +4,7 @@ import {dirname, resolve} from "node:path";
 
 // The app's public image inputs, including choices made at runtime.
 export const imagePaths = [
-  ...["library","bookcase","shelf","decks","decks-add","deck-badge"].map(name=>`/app/assets/icons/collections/${name}.svg`),
+  ...["bookstore","library","shelf","decks","decks-add","deck-badge"].map(name=>`/app/assets/icons/collections/${name}.svg`),
   ...["es","en","globe"].map(name=>`/app/assets/icons/languages/${name}.svg`),
   ...["covers","shelf","stack"].map(name=>`/app/assets/icons/book-layout/${name}.svg`),
   ...["cards","cards-filled","cards-pen","cards-read","reading-guide"].map(name=>`/app/assets/icons/note-capture/${name}.svg`),

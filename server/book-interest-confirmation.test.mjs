@@ -98,7 +98,7 @@ test("the combined policy is enabled after all three confirmation entry points a
   assert.equal(await db.prepare("SELECT 1 FROM card_saves WHERE user_id=? AND card_id=?").get(session.user_id,"habit-1"),undefined);
 });
 
-test("existing library membership bypasses confirmation even when policy is enabled",async t=>{
+test("existing bookstore membership bypasses confirmation even when policy is enabled",async t=>{
   const {db,session}=await fixture(t);
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'unread')").run(session.user_id,"seven-habits");
   const result=await changeReading(db,session,"seven-habits","reading",now,enabled);
