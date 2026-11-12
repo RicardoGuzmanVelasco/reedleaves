@@ -52,7 +52,10 @@ test("AI defaults to one interest, allows clear secondary interests, preserves m
   const result=await createBookAutofill({apiKey:"key",...fake})("r",input,known);
   assert.deepEqual(result.metadata.genres,selected);
   const schema=fake.calls[1].body.text.format.schema.properties.genres;
-  assert.equal(schema.minItems,1);assert.equal(schema.maxItems,3);\n  assert.match(schema.description,/single strongest interest by default/);\n  assert.match(fake.calls[1].body.instructions,/usually contain exactly one id/);\n  assert.match(fake.calls[1].body.instructions,/If unsure, omit it/);
+  assert.equal(schema.minItems,1);assert.equal(schema.maxItems,3);
+  assert.match(schema.description,/single strongest interest by default/);
+  assert.match(fake.calls[1].body.instructions,/usually contain exactly one id/);
+  assert.match(fake.calls[1].body.instructions,/If unsure, omit it/);
   const manual=["finance","software"];
   const edited=await createBookAutofill({apiKey:"key",...fakeProvider()})("r",{...input,metadata:{genres:manual}},known);
   assert.deepEqual(edited.metadata.genres,manual);
