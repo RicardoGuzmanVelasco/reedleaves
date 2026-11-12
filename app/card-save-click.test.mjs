@@ -12,7 +12,7 @@ const {outputFiles}=await build({entryPoints:[entry],bundle:true,write:false,for
     builder.onResolve({filter:/^react-dom$/},()=>({path:'react-dom',namespace:'test'}));
     builder.onResolve({filter:/^react-dom\/client$/},()=>({path:'client',namespace:'test'}));
     builder.onResolve({filter:/^react\/jsx-runtime$/},({path})=>({path:import.meta.resolve(path),external:true}));
-    builder.onLoad({filter:/.*/,namespace:'test'},({path})=>({contents:path==='react'?`export const useEffect=()=>{}, useLayoutEffect=()=>{}, useRef=value=>({current:value}), useState=value=>[typeof value==='function'?value():value,()=>{}], useOptimistic=value=>[value,()=>{}], startTransition=fn=>fn(); export default {};`:path==='react-dom'?'export const createPortal=child=>child;':'export const createRoot=()=>({});',loader:'js'}));
+    builder.onLoad({filter:/.*/,namespace:'test'},({path})=>({contents:path==='react'?`export const useEffect=()=>{}, useLayoutEffect=()=>{}, useMemo=fn=>fn(), useRef=value=>({current:value}), useState=value=>[typeof value==='function'?value():value,()=>{}], useOptimistic=value=>[value,()=>{}], startTransition=fn=>fn(); export default {};`:path==='react-dom'?'export const createPortal=child=>child;':'export const createRoot=()=>({});',loader:'js'}));
   }
 }]});
 const {Features,CardActions}=await import(`data:text/javascript;base64,${Buffer.from(outputFiles[0].text).toString('base64')}`);

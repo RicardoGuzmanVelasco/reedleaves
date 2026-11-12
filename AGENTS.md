@@ -6,6 +6,7 @@
 - Copy de interfaz: incluir solo texto funcional, necesario o ya aprobado. No inventar slogans, frases promocionales ni texto decorativo de relleno. Ejemplo: «Entrar / Sign in» sí; «Tus libros, allá donde estés…» no.
 - Vocabulario de secciones, obligatorio y sin excepciones: Librería / Bookstore (catálogo global), Biblioteca / Library (colección personal), Estantería / Shelf (libros de la Biblioteca) y Tarjetero / Cardcase (barajas de la Biblioteca). «Library» en inglés nunca es el catálogo. Usarlo en interfaz, docs, commits, conversaciones y mensajes entre agentes; el glosario completo está en `docs/frontend/DESIGN.md`.
 - Mantener el carácter expresivo, amable y animado de las referencias Duolingo y Forest.
+- Si una solución propuesta para un fallo implica quitar una función, hook o comportamiento existente, preguntar primero al usuario y explicar la implicación; buscar corregir la causa raíz (por ejemplo, el mock o la integración) antes de considerar eliminarlo.
 - La interfaz y las traducciones editoriales de libros tendrán español e inglés. El idioma del título popular de un libro y el idioma del contenido de sus barajas son independientes. La plataforma sigue pendiente de decisión.
 - El material en `brand/` (herramientas y archivo) son propuestas; no convertirlo en decisiones aprobadas.
 - El primer logo de tarjetas y estrella está descartado.
