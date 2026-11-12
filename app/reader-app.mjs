@@ -568,7 +568,8 @@ export function startReader({createCardFeatures} = {}) {
   }
   function hidePendingOverlay() {pendingOverlay?.remove();pendingOverlay=null;}
   // Profile, like Home, needs balances and interests but never the full catalog.
-  const opensWithoutFullCatalog=()=>!location.hash||location.hash==="#home"||location.hash.slice(1).split("/")[0]==="profile";
+  // The practice mode chooser neither; its cards need the catalog only once a session starts.
+  const opensWithoutFullCatalog=()=>!location.hash||location.hash==="#home"||location.hash==="#practice"||location.hash.slice(1).split("/")[0]==="profile";
   function route(focus = true) {
     navigationPending=false;
     const requestedHome=!location.hash||location.hash==="#home";
@@ -696,6 +697,8 @@ export function startReader({createCardFeatures} = {}) {
     if(shouldLoadInterestPreferences({mode,order:bookSortOrder==="interests"?"interests":bookstoreSortOrder,userId:snapshot.user?.id,preferences:interestPreferences}))void activateInterestSort({persist:false});
     if(returningFromGuidePreview)finishGuidePreviewReturn(returningFromGuidePreview);
     if(snapshot.user&&!dailyStatus)void refreshDailyStatus();
+    // The reader will almost always pick a mode next: load the catalog while they choose.
+    if(mode==="practice"&&practiceStage==="choose"&&snapshot.user&&!catalogIsFull)void ensureFullCatalog().catch(()=>{});
     if(mode==="home"&&snapshot.user)void refreshDailyStatus();
     if(snapshot.user)void loadHomeInterestPreferences();
     if (focus && ["bookstore","library"].includes(mode) && listPositions[mode] && !openBookId && !authorForm) {
