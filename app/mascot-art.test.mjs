@@ -19,7 +19,7 @@ test("Decorative mascot artwork reserves separate placement and motion layers",(
 test("Unavailable stages have neutral artwork and attribute values are escaped",()=>{
   for (const stage of [null,"sapling","not-a-stage","__proto__"]) {
     assert.match(mascotArt(stage),/data-mascot="mystery"/);
-    assert.match(mascotArt(stage),/growth\/mystery\.svg/);
+    assert.match(mascotArt(stage),/mascot\/mystery\.svg/);
   }
   assert.doesNotMatch(mascotArt("pot",'x" onclick="alert(1)'),/ onclick="/);
 });

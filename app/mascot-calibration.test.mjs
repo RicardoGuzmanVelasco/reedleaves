@@ -10,7 +10,7 @@ test("Flor is available in the shared calibration editor with a separate editabl
   const edited=normalizeCalibration({...baseline,faceY:80,mouthWidth:3},baseline);
   const config=calibrationConfiguration("flower",edited);
   const html=mascotArt("flower","",{face:config.face,mouth:config.mouth});
-  assert.match(html,/growth\/bodies\/flower\.png/);
+  assert.match(html,/mascot\/flower\.png/);
   assert.match(html,/mascot-face-placement/);
   assert.match(html,/translate\(80 80\)/);
   assert.deepEqual(restoreCalibration({baseline:JSON.stringify(baseline),values:edited},baseline),edited);
@@ -24,7 +24,7 @@ test("Siempreverde is available after Flor with a faceless body and editable cal
   const edited=normalizeCalibration({...baseline,faceY:80,faceScale:1.05,bodyScale:1.1,mouthWidth:3},baseline);
   const config=calibrationConfiguration("evergreen",edited);
   const html=mascotArt("evergreen","",{face:config.face,mouth:config.mouth});
-  assert.match(html,/growth\/bodies\/evergreen\.svg/);
+  assert.match(html,/mascot\/evergreen\.svg/);
   assert.match(html,/mascot-face-placement/);
   assert.match(html,/translate\(80 80\)/);
   assert.deepEqual(config.shadow,{width:81.5,height:20.7183258376889});
@@ -38,7 +38,7 @@ test("Tallo exports all fourteen controls and renders its adjusted face independ
   const edited=normalizeCalibration({...baseline,faceX:75,leftEyeX:2,rightEyeY:-1,mouthWidth:3},baseline);
   const config=calibrationConfiguration("stem",edited);
   const html=mascotArt("stem","",{face:config.face,mouth:config.mouth});
-  assert.match(html,/growth\/bodies\/stem-flat\.svg/);
+  assert.match(html,/mascot\/stem-flat\.svg/);
   assert.match(html,/translate\(75 54\)/);
   assert.match(html,/mascot-eye--left" transform="translate\(55 100\)"/);
   assert.match(html,/mascot-eye--right" transform="translate\(111 103\)"/);

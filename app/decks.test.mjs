@@ -140,7 +140,7 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
         assert.match(html,new RegExp(`app/assets/icons/languages/${choice.deck.language}\\.svg`));
         assert.doesNotMatch(html,/deck-language-icon|>es<|>en</);
       } else {
-        assert.match(html,/brand\/icons\/languages\/globe\.svg/);
+        assert.match(html,/app\/assets\/icons\/languages\/globe\.svg/);
         assert.ok(html.includes(`>${choice.deck.language}</span>`));
       }
       assert.equal(html.includes('class="deck-tile-count deck-tile-quote-count"'),quoteCount>0,"Only decks with quotes show a quote-count chip");
