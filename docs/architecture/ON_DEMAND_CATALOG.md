@@ -17,7 +17,7 @@ Dónde se paga hoy:
 
 ## Ya resuelto
 
-- Home, Perfil y `#practice` (elección de modo) abren sin catálogo completo (`opensWithoutFullCatalog`). Home usa `/api/reader/home-books`. `#practice` precarga `ensureFullCatalog()` en segundo plano; elegir modo sin catálogo espera con el Brote dormido.
+- Home, Perfil y `#practice` (elección de modo) abren sin catálogo completo (`opensWithoutFullCatalog`). Home usa `/api/reader/home-books`. `#practice` ya no precarga el catálogo (ver capa 2).
 - `readProfile` ya no carga catálogo ni Estantería. La Biblioteca ajena pide `GET /api/profiles/:id/bookshelf` aparte.
 - Los idiomas de tarjeta son fijos (`CONTENT_LANGUAGES`; `availableLanguages()`), sin recorrer barajas.
 - **Sincronización barata (capa 1, parcial).** `GET /api/catalog` lleva ETag y responde 304 si no cambió (petición condicional con `If-None-Match`). El cliente reutiliza el catálogo ya procesado cuando el texto no cambia, y `sync()` se salta la comparación con `JSON.stringify`. El servidor sigue consultando la base de datos en cada petición; ahorrarlo exigiría un contador de revisión del catálogo.
@@ -27,7 +27,7 @@ Dónde se paga hoy:
   - `practice/start` incluye `context` con las tarjetas de la sesión.
 - **Práctica sin catálogo completo (capa 2).** Empezar, responder y retomar tras recargar usan un catálogo parcial (`practiceCatalog`). `#practice/*` abre sin catálogo; al retomar pide `/api/reader/state` (Home no lo trae) y el lote de tarjetas. El selector de modos ya no precarga el catálogo.
 - **Comprobado en producción** (2026-11-12): tarjeta compartida sin sesión, seguir un enlace de la atribución, revalidación con 304 del catálogo y repaso completo (empezar, responder, retomar tras recargar). Dos lecciones: Cloudflare vuelve débil el ETag (`W/"…"`), así que `If-None-Match` se compara sin el prefijo `W/`; y las consultas de `readCardContexts` corren en PostgreSQL con columnas enteras (`is_reading_guide=1`, no un booleano), algo que las pruebas HTTP en SQLite no detectan. Pendiente: prueba de esas consultas contra PostgreSQL.
-- Feedback de espera unificado: navegar y esperar → Brote dormido; esperar con la pantalla ya lista → `lockControls(verb)`. Ver `docs/frontend/LOADING_FEEDBACK_GAPS.md`.
+- Feedback de espera unificado: navegar y esperar → Brote dormido; esperar con la pantalla ya lista → `lockControls(verb)`. Estrategia del Brote (`app/pending-feedback.mjs`): espera lenta → Brote al instante; espera rápida → Brote solo tras 300 ms, y mientras tanto se mantiene la pantalla actual. Ver `docs/frontend/LOADING_FEEDBACK_GAPS.md`.
 
 ## Modelo propuesto
 
