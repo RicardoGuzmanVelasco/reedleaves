@@ -29,7 +29,7 @@ test("Deck recommendations and community likes stay separate", async () => {
 });
 test("Collective decks remain ordinary book decks, while reading-guide cards stay in their dedicated view",async()=>{
   const catalog=await fixture(),deck=catalog.decks.find(item=>item.bookId==="seven-habits"),card=catalog.deckModels.get(deck.id).cards[0];
-  deck.kind="collective";deck.contributionPolicy="selected";
+  deck.contributionPolicy="selected";
   assert.ok(availableDecks(catalog,deck.bookId).some(item=>item.deck.id===deck.id));
   card.isReadingGuide=true;
   assert.ok(!availableDecks(catalog,deck.bookId).some(item=>item.deck.id===deck.id));
@@ -79,7 +79,7 @@ test("Reading guide authoring shows only its styled editor; community guides sta
 
 test("Collective draft review UI lets invited contributors add cards without exposing deck management",async()=>{
   const catalog=await fixture(),deck=catalog.decks.find(item=>item.bookId==="seven-habits"),userId="contributor";
-  deck.kind="collective";deck.contributionPolicy="selected";deck.status="draft";deck.canContribute=true;
+  deck.contributionPolicy="selected";deck.status="draft";deck.canContribute=true;
   const state=readerState(catalog,{userId,deckId:deck.id,bookId:deck.bookId,language:"en"});
   const html=deckPageView(state);
   assert.match(html,/data-action="take-deck-note"/);
