@@ -70,7 +70,7 @@ for(const dialect of ["sqlite","postgres"]) {
 
   test(`${dialect}: collective and team cards do not count as reader notes`,async t=>{
     const {db,reader}=await fixture(t,dialect);
-    const collective=await createDeck(db,reader,{requestId:randomUUID(),bookId:"seven-habits",title:"Colectiva",language:"es",kind:"collective",contributionPolicy:"open"});
+    const collective=await createDeck(db,reader,{requestId:randomUUID(),bookId:"seven-habits",title:"Colectiva",language:"es",contributionPolicy:"open"});
     const shared=await takeNote(db,reader,cardInput(collective.deckId));
     assert.equal("xpReward" in shared,false);
     const team={user_id:"reed-team"};

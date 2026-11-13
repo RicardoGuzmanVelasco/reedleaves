@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 57));
-INSERT INTO reed_schema VALUES (57);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 58));
+INSERT INTO reed_schema VALUES (58);
 
 CREATE TABLE interests(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '',
@@ -203,11 +203,9 @@ CREATE TABLE decks(
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35), is_recommended SMALLINT NOT NULL DEFAULT 0 CHECK(is_recommended IN (0,1)),
   status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','finished')),
   quote_source_url TEXT CHECK(quote_source_url IS NULL OR (quote_source_url LIKE 'https://%' AND length(btrim(quote_source_url)) BETWEEN 9 AND 2048)),
-  kind TEXT NOT NULL DEFAULT 'standard' CHECK(kind IN ('standard','collective')),
   contribution_policy TEXT NOT NULL DEFAULT 'owner' CHECK(contribution_policy IN ('owner','open','selected')),
   max_cards_per_contributor INTEGER CHECK(max_cards_per_contributor IS NULL OR max_cards_per_contributor > 0),
-  CHECK((kind='standard' AND contribution_policy='owner' AND max_cards_per_contributor IS NULL) OR
-        (kind='collective' AND contribution_policy IN ('open','selected'))),
+  CONSTRAINT decks_owner_limit CHECK(contribution_policy <> 'owner' OR max_cards_per_contributor IS NULL),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(id,book_id)
 );
 CREATE INDEX decks_by_book ON decks(book_id);

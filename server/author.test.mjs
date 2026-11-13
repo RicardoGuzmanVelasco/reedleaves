@@ -93,7 +93,7 @@ for (const dialect of ["sqlite","postgres"]) {
 
   test(`${dialect}: empty collective drafts that other readers added are kept, and a null deck is rejected`,async t=>{
     const {db,session,other}=await fixture(t,dialect),bookId="seven-habits";
-    const shared=await createDeck(db,session,{requestId:randomUUID(),bookId,title:"Compartida",language:"es",kind:"collective",contributionPolicy:"open"});
+    const shared=await createDeck(db,session,{requestId:randomUUID(),bookId,title:"Compartida",language:"es",contributionPolicy:"open"});
     await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run(other.user_id,shared.deckId);
     assert.deepEqual(await finishNoteDecks(db,session,{bookId,decks:[{deckId:shared.deckId,cardCount:0}]}),{bookId,decks:[{deckId:shared.deckId,status:"draft"}]});
     assert.equal((await db.prepare("SELECT status FROM decks WHERE id=?").get(shared.deckId)).status,"draft");

@@ -75,7 +75,7 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   if(!active) return {session:null,recovery:null};
 
   const session=sessionFromRow(active),rows=await db.prepare(`SELECT psc.card_id,psc.position,c.id AS existing_card_id,c.is_reading_guide,c.language AS card_language,d.language AS deck_language,
-      d.id AS existing_deck_id,d.status AS deck_status,d.kind AS deck_kind,d.contribution_policy,d.creator_user_id,
+      d.id AS existing_deck_id,d.status AS deck_status,d.contribution_policy,d.creator_user_id,
       dc.user_id AS invited_user_id
     FROM practice_session_cards psc LEFT JOIN cards c ON c.id=psc.card_id
     LEFT JOIN decks d ON d.id=c.deck_id LEFT JOIN deck_contributors dc ON dc.deck_id=d.id AND dc.user_id=?
@@ -112,7 +112,7 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
     const id=cardIds[position],row=cardByPosition.get(position);
     // Purchased cards survive collection and archive changes. A revoked
     // selected-draft invitation still removes access to the pending card.
-    const hasAccess=canPracticeDeck({status:row?.deck_status,kind:row?.deck_kind,
+    const hasAccess=canPracticeDeck({status:row?.deck_status,
       contributionPolicy:row?.contribution_policy,creatorUserId:row?.creator_user_id,
       invited:row?.invited_user_id===userId,hasReadingGuide:false},userId);
     const valid=row?.card_id===id&&row.existing_card_id===id&&row.existing_deck_id&&!row.is_reading_guide&&hasAccess&&!seen.has(id);

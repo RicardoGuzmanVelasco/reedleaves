@@ -19,9 +19,13 @@ for (const [dialect,version] of [["sqlite",37],["postgres",29]]) {
     assert.deepEqual(migrated.map(row=>({id:row.id,creator_user_id:row.creator_user_id,language:row.language})),original.map(row=>({id:row.id,creator_user_id:row.creator_user_id,language:row.language})));
 
     await db.prepare("INSERT INTO users(id,display_name) VALUES ('collective-owner','Owner'),('collective-member','Member')").run();
-    await db.prepare(`INSERT INTO decks(id,book_id,creator_user_id,language,kind,contribution_policy,max_cards_per_contributor)
-      VALUES ('collective-test','atomic-habits','collective-owner','en','collective','selected',2)`).run();
+    await db.prepare(`INSERT INTO decks(id,book_id,creator_user_id,language,contribution_policy,max_cards_per_contributor)
+      VALUES ('collective-test','atomic-habits','collective-owner','en','selected',2)`).run();
     await db.prepare("INSERT INTO deck_contributors(deck_id,user_id) VALUES ('collective-test','collective-member')").run();
+    const deckColumns=dialect==="sqlite"?db.prepare("PRAGMA table_info(decks)").all().map(column=>column.name):(await db.prepare("SELECT column_name AS name FROM information_schema.columns WHERE table_schema='public' AND table_name='decks'").all()).map(column=>column.name);
+    assert.ok(!deckColumns.includes("kind"),"a deck is collective when its contribution policy is not owner");
+    const ownerWithLimit=()=>db.prepare("INSERT INTO decks(id,book_id,creator_user_id,language,contribution_policy,max_cards_per_contributor) VALUES ('owner-with-limit','atomic-habits','collective-owner','en','owner',2)").run();
+    if (dialect==="sqlite") assert.throws(ownerWithLimit,/CHECK/); else await assert.rejects(ownerWithLimit,/decks_owner_limit/);
     await db.prepare("UPDATE decks SET status='finished' WHERE id='collective-test'").run();
     const rejects=async operation=>dialect==="sqlite"?assert.throws(operation,/immutable/):assert.rejects(operation,/immutable/);
     await rejects(()=>db.prepare("INSERT INTO deck_contributors(deck_id,user_id) VALUES ('collective-test','collective-owner')").run());

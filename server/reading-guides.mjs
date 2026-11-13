@@ -17,11 +17,11 @@ export async function submitReadingGuide(db,session,input={}) {
     let deck=await db.prepare("SELECT * FROM decks WHERE id=?").get(id);
     if(!deck) {
       if(reading?.status!=="read") throw new ApiError(409,"bookMustBeRead");
-      await db.prepare(`INSERT INTO decks(id,book_id,creator_user_id,language,status,kind,contribution_policy,max_cards_per_contributor)
-        VALUES (?,?,'reed-team','en','finished','collective','open',1) ON CONFLICT(id) DO NOTHING`).run(id,bookId);
+      await db.prepare(`INSERT INTO decks(id,book_id,creator_user_id,language,status,contribution_policy,max_cards_per_contributor)
+        VALUES (?,?,'reed-team','en','finished','open',1) ON CONFLICT(id) DO NOTHING`).run(id,bookId);
     }
     deck=await db.prepare(`SELECT * FROM decks WHERE id=?${isPostgres(db)?" FOR UPDATE":""}`).get(id);
-    if(!deck||deck.book_id!==bookId||deck.kind!=="collective"||deck.contribution_policy!=="open"||deck.max_cards_per_contributor!==1) throw new ApiError(409,"readingGuidesUnavailable");
+    if(!deck||deck.book_id!==bookId||deck.contribution_policy!=="open"||deck.max_cards_per_contributor!==1) throw new ApiError(409,"readingGuidesUnavailable");
     const owned=await db.prepare("SELECT id,language FROM cards WHERE deck_id=? AND creator_user_id=? AND is_reading_guide=1").get(id,session.user_id);
     if(owned) {
       if(input.cardId!==owned.id) throw new ApiError(409,"readingGuideAlreadyAdded");

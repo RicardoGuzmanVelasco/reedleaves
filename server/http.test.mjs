@@ -318,7 +318,7 @@ test("Selected collective author routes enforce invitation, owner and CSRF rules
     return {user:state.user,headers:{Cookie:response.headers.get("set-cookie").split(";")[0],"X-CSRF-Token":state.csrfToken}};
   }
   const owner=await register("selected.owner"),member=await register("selected.member"),outsider=await register("selected.outsider");
-  const created=await post("/api/author/decks",{requestId:randomUUID(),bookId:"atomic-habits",title:"Invited draft",language:"en",kind:"collective",contributionPolicy:"selected",maxCardsPerContributor:1},owner.headers);
+  const created=await post("/api/author/decks",{requestId:randomUUID(),bookId:"atomic-habits",title:"Invited draft",language:"en",contributionPolicy:"selected",maxCardsPerContributor:1},owner.headers);
   assert.equal(created.status,200);const {deckId}=await created.json();
   const path="/api/author/decks/contributors",input={deckId,usernames:[member.user.username]};
   assert.equal((await post(path,input)).status,401);

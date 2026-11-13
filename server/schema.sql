@@ -181,12 +181,10 @@ CREATE TABLE decks (
   is_recommended INTEGER NOT NULL DEFAULT 0 CHECK(is_recommended IN (0,1)),
   status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','finished')),
   quote_source_url TEXT CHECK(quote_source_url IS NULL OR (quote_source_url LIKE 'https://%' AND length(trim(quote_source_url)) BETWEEN 9 AND 2048)),
-  kind TEXT NOT NULL DEFAULT 'standard' CHECK(kind IN ('standard','collective')),
   contribution_policy TEXT NOT NULL DEFAULT 'owner' CHECK(contribution_policy IN ('owner','open','selected')),
   max_cards_per_contributor INTEGER CHECK(max_cards_per_contributor IS NULL OR max_cards_per_contributor > 0),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CHECK((kind='standard' AND contribution_policy='owner' AND max_cards_per_contributor IS NULL) OR
-        (kind='collective' AND contribution_policy IN ('open','selected'))),
+  CHECK(contribution_policy <> 'owner' OR max_cards_per_contributor IS NULL),
   UNIQUE(id,book_id)
 ) STRICT;
 CREATE INDEX decks_by_book ON decks(book_id);
@@ -412,4 +410,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 65;
+PRAGMA user_version = 66;

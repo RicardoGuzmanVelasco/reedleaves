@@ -51,7 +51,7 @@ for(const dialect of ["sqlite","postgres"]) {
       ["rich-dad-poor-dad-editorial","selected","draft"]
     ];
     for(const [deckId,policy,status] of cases) {
-      await db.prepare(`UPDATE decks SET kind='collective',contribution_policy=?,
+      await db.prepare(`UPDATE decks SET contribution_policy=?,
         max_cards_per_contributor=1,status=? WHERE id=?`).run(policy,status,deckId);
     }
     await db.prepare("INSERT INTO deck_contributors(deck_id,user_id) VALUES (?,?)").run("seven-habits-inside-out",session.user_id);
@@ -77,7 +77,7 @@ for(const dialect of ["sqlite","postgres"]) {
     for(const item of cases) {
       const requestId=randomUUID();
       item.deckId=(await createDeck(db,ownerSession,{requestId,bookId:"seven-habits",title:`Access ${item.label}`,language:item.language,
-        kind:"collective",contributionPolicy:item.policy,maxCardsPerContributor:5})).deckId;
+        contributionPolicy:item.policy,maxCardsPerContributor:5})).deckId;
       await db.prepare("DELETE FROM cardcase_decks WHERE user_id=? AND deck_id=?").run(ownerSession.user_id,item.deckId);
       item.cardIds=[];
       for(let index=0;index<5;index++) {
@@ -348,7 +348,7 @@ for(const dialect of ["sqlite","postgres"]) {
 
   test(`${dialect}: revoking a selected collective draft invitation refunds its active session`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
-    await db.prepare("UPDATE decks SET kind='collective',contribution_policy='selected',max_cards_per_contributor=1,status='draft' WHERE id=?").run("seven-habits-editorial");
+    await db.prepare("UPDATE decks SET contribution_policy='selected',max_cards_per_contributor=1,status='draft' WHERE id=?").run("seven-habits-editorial");
     await db.prepare("INSERT INTO deck_contributors(deck_id,user_id) VALUES (?,?)").run("seven-habits-editorial",session.user_id);
     const initial=await readReaderState(db,session,now),started=await startPracticeSession(db,session,"reading",now);
     assert.ok(started.session);

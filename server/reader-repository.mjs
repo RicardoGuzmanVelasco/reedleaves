@@ -144,7 +144,7 @@ async function knownDeck(db,deckId,userId) {
   const owner=deck?.creator_user_id===userId;
   const invited=deck&&deck.contribution_policy==="selected"&&!!await db.prepare("SELECT 1 FROM deck_contributors WHERE deck_id=? AND user_id=?").get(deckId,userId);
   if(!deck||readingGuide||
-      deck.kind==="collective"&&deck.status==="draft"&&!owner&&deck.contribution_policy!=="open"&&!invited) throw new ApiError(404,"deckUnavailable");
+      deck.contribution_policy!=="owner"&&deck.status==="draft"&&!owner&&deck.contribution_policy!=="open"&&!invited) throw new ApiError(404,"deckUnavailable");
   return deck;
 }
 async function addToCardcase(db,userId,deck) {

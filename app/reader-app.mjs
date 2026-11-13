@@ -1466,7 +1466,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function saveDeckContributors(usernames,focusSelector="#deck-contributor-username") {
     const deck=catalog?.decksById.get(deckId);
-    if(busy||mode!=="author"||deck?.status!=="draft"||deck.creator.userId!==snapshot.user?.id||deck.kind!=="collective"||deck.contributionPolicy!=="selected")return;
+    if(busy||mode!=="author"||deck?.status!=="draft"||deck.creator.userId!==snapshot.user?.id||deck.contributionPolicy!=="selected")return;
     busy=true;syncGeneration++;deckContributorError=null;lockControls("Updating");
     try {
       const result=await api.request("/api/author/decks/contributors",{deckId,usernames});
@@ -1580,7 +1580,7 @@ export function startReader({createCardFeatures} = {}) {
     const fields = Object.fromEntries([...new FormData(form)].filter(([key])=>!key.startsWith("metadata."))); Object.assign(authorForm,fields);
     persistNoteDraft();
     const savedForm = authorForm,userId=snapshot.user?.id;
-    const deckInput=savedForm.kind==="deck"?(({contributionMode,...deckFields})=>({...deckFields,kind:contributionMode==="owner"?"standard":"collective",contributionPolicy:contributionMode||"owner"}))(fields):null;
+    const deckInput=savedForm.kind==="deck"?(({contributionMode,...deckFields})=>({...deckFields,contributionPolicy:contributionMode||"owner"}))(fields):null;
     const input = savedForm.bookId ? {bookId:savedForm.bookId,metadata:savedForm.metadata} : savedForm.kind === "book" ? {title:savedForm.title,author:savedForm.author,language:savedForm.language,metadata:savedForm.metadata,requestId:savedForm.requestId} : savedForm.kind === "deck" ? {...deckInput,requestId:savedForm.requestId,bookId:savedForm.noteBookId || bookId} : savedForm.createNoteDeck ? {...fields,requestId:savedForm.requestId,bookId:savedForm.noteBookId,language:savedForm.noteLanguage,isQuote:savedForm.kind === "quote"} : {...fields,requestId:savedForm.requestId,deckId:savedForm.noteDeckId || deckId,parentId:fields.parentId || null,isQuote:savedForm.kind === "quote"};
     busy = true; syncGeneration++; savedForm.error = null; savedForm.errorReference = null; lockControls(savedForm.bookId ? "Saving" : "Creating");
     try {

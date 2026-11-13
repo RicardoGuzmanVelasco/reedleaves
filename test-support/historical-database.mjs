@@ -50,6 +50,7 @@ export async function historicalDatabase(t,dialect,version) {
 export function normalizeRetiredRow(table,row) {
   const value={...row};
   delete value.editorial_status;delete value.can_create_decks;
+  if (table === "decks") delete value.kind;
   if (table === "decks" && value.status === "published") value.status="finished";
   if (Object.hasOwn(value,"topic")) { value.practice_mode=value.topic;delete value.topic; }
   return value;

@@ -26,9 +26,9 @@ async function fixture(t,dialect) {
 
 for(const dialect of ["sqlite","postgres"]) test(`${dialect}: selected contributors can add cards only in drafts, within their quota`,async t=>{
   const {db,owner,member,outsider}=await fixture(t,dialect),requestId=randomUUID();
-  const deck=await createDeck(db,owner,{requestId,bookId:"atomic-habits",title:"Shared draft",language:"en",kind:"collective",contributionPolicy:"selected",maxCardsPerContributor:2});
-  assert.deepEqual(await createDeck(db,owner,{requestId,bookId:"atomic-habits",title:"Shared draft",language:"en",kind:"collective",contributionPolicy:"selected",maxCardsPerContributor:2}),deck);
-  assert.equal((await db.prepare("SELECT kind,contribution_policy,max_cards_per_contributor FROM decks WHERE id=?").get(deck.deckId)).kind,"collective");
+  const deck=await createDeck(db,owner,{requestId,bookId:"atomic-habits",title:"Shared draft",language:"en",contributionPolicy:"selected",maxCardsPerContributor:2});
+  assert.deepEqual(await createDeck(db,owner,{requestId,bookId:"atomic-habits",title:"Shared draft",language:"en",contributionPolicy:"selected",maxCardsPerContributor:2}),deck);
+  assert.equal((await db.prepare("SELECT contribution_policy,max_cards_per_contributor FROM decks WHERE id=?").get(deck.deckId)).contribution_policy,"selected");
 
   await addDeckContributors(db,owner,{deckId:deck.deckId,userIds:[member.user_id]});
   await assert.rejects(takeNote(db,outsider,{requestId:randomUUID(),deckId:deck.deckId,title:"Outside",body:"Not invited",parentId:null,isQuote:false}),{code:"deckUnavailable"});
@@ -48,7 +48,7 @@ for(const dialect of ["sqlite","postgres"]) test(`${dialect}: selected contribut
   assert.deepEqual((await db.prepare("SELECT user_id FROM deck_contributors WHERE deck_id=? ORDER BY user_id").all(deck.deckId)).map(row=>row.user_id),[member.user_id]);
   assert.equal((await openDeck(db,outsider,deck.deckId)).user.id,outsider.user_id,"Finished collective decks can be read by everyone");
 
-  const unlimited=await createDeck(db,owner,{requestId:randomUUID(),bookId:"atomic-habits",title:"Long collective",language:"en",kind:"collective",contributionPolicy:"selected"});
+  const unlimited=await createDeck(db,owner,{requestId:randomUUID(),bookId:"atomic-habits",title:"Long collective",language:"en",contributionPolicy:"selected"});
   for(let index=0;index<26;index++) await takeNote(db,owner,{requestId:randomUUID(),deckId:unlimited.deckId,title:`Idea ${index+1}`,body:"A collective deck has no standard-deck size cap.",parentId:null,isQuote:false});
   assert.equal((await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(unlimited.deckId)).total,26);
 });

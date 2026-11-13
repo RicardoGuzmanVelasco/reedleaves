@@ -87,18 +87,18 @@ export async function readCatalog(db, userId) {
   const myCardCounts=new Map(userId?(await db.prepare("SELECT deck_id,count(*) AS n FROM cards WHERE creator_user_id=? GROUP BY deck_id").all(userId)).map(row=>[row.deck_id,Number(row.n)]):[]);
   for (const row of await db.prepare(`SELECT d.*,u.display_name FROM decks d
     JOIN users u ON u.id=d.creator_user_id ORDER BY d.book_id,d.is_recommended DESC,d.id`).all()) {
-    decks.push({id:row.id,bookId:row.book_id,language:row.language,kind:row.kind || "standard",contributionPolicy:row.contribution_policy || "owner",maxCardsPerContributor:row.max_cards_per_contributor ?? null,isRecommended:!!row.is_recommended,
+    decks.push({id:row.id,bookId:row.book_id,language:row.language,contributionPolicy:row.contribution_policy || "owner",maxCardsPerContributor:row.max_cards_per_contributor ?? null,isRecommended:!!row.is_recommended,
       creator:{kind:"user",userId:row.creator_user_id,name:row.display_name || null},metrics:{
         likes:votes.get(`${row.id}:1`)||0,
         dislikes:votes.get(`${row.id}:-1`)||0
       }});
-    if (userId === row.creator_user_id && row.status === "draft" && row.kind === "collective" && row.contribution_policy === "selected") {
+    if (userId === row.creator_user_id && row.status === "draft" && row.contribution_policy === "selected") {
       decks.at(-1).contributors=await db.prepare(`SELECT c.user_id AS userId,a.username,u.display_name AS name FROM deck_contributors c
         JOIN accounts a ON a.user_id=c.user_id JOIN users u ON u.id=c.user_id WHERE c.deck_id=? ORDER BY a.username`).all(row.id);
     }
     if (userId) {
       const member=memberDeckIds.has(row.id);
-      decks.at(-1).canContribute=row.status==="draft"&&(row.creator_user_id===userId||row.kind==="collective"&&(row.contribution_policy==="open"||member));
+      decks.at(-1).canContribute=row.status==="draft"&&(row.creator_user_id===userId||row.contribution_policy!=="owner"&&(row.contribution_policy==="open"||member));
       decks.at(-1).myCardCount=myCardCounts.get(row.id)||0;
     }
   }
@@ -177,10 +177,10 @@ export async function readCardContexts(db, cardIds, userId) {
     return book;
   });
   const deckTranslations=await rowsBy(db,`SELECT deck_id,language,title FROM deck_translations WHERE deck_id IN (${marks(deckIds)})`,"deck_id",...deckIds);
-  const decks=(await db.prepare(`SELECT d.id,d.book_id,d.language,d.kind,d.status,d.quote_source_url,d.creator_user_id,u.display_name,
+  const decks=(await db.prepare(`SELECT d.id,d.book_id,d.language,d.contribution_policy,d.status,d.quote_source_url,d.creator_user_id,u.display_name,
     EXISTS(SELECT 1 FROM cards WHERE deck_id=d.id AND is_reading_guide=1) AS has_guide
     FROM decks d JOIN users u ON u.id=d.creator_user_id WHERE d.id IN (${marks(deckIds)})`).all(...deckIds)).map(row=>{
-    const deck={id:row.id,bookId:row.book_id,language:row.language,kind:row.kind || "standard",status:row.status,
+    const deck={id:row.id,bookId:row.book_id,language:row.language,contributionPolicy:row.contribution_policy || "owner",status:row.status,
       isReadingGuide:!!row.has_guide,creator:{kind:"user",userId:row.creator_user_id,name:row.display_name || null},title:{}};
     if(row.quote_source_url) deck.quoteSourceUrl=row.quote_source_url;
     for(const t of deckTranslations.get(deck.id)) deck.title[t.language]=t.title;
