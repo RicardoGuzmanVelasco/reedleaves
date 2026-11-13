@@ -10,7 +10,7 @@ import {lockReaderAccount} from "./reader-account-lock.mjs";
 import {grantReaderXpInside} from "./reader-xp-repository.mjs";
 import {effectiveCardLanguage,normalizeLanguageList} from "../app/core.mjs";
 import {readerLanguagePreferencesInside} from "./reader-language-preferences.mjs";
-import {canPracticeDeck,practiceDeckIds} from "./practice-card-access.mjs";
+import {practiceDeckIds} from "./practice-card-access.mjs";
 import {discoverPracticeCandidateContext,selectDiscoverPracticeForReader} from "./discover-practice.mjs";
 
 import {PRACTICE_ENABLED_MODES} from "../app/practice-modes.mjs";
@@ -75,11 +75,10 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   if(!active) return {session:null,recovery:null};
 
   const session=sessionFromRow(active),rows=await db.prepare(`SELECT psc.card_id,psc.position,c.id AS existing_card_id,c.is_reading_guide,c.language AS card_language,d.language AS deck_language,
-      d.id AS existing_deck_id,d.status AS deck_status,d.contribution_policy,d.creator_user_id,
-      dc.user_id AS invited_user_id
+      d.id AS existing_deck_id
     FROM practice_session_cards psc LEFT JOIN cards c ON c.id=psc.card_id
-    LEFT JOIN decks d ON d.id=c.deck_id LEFT JOIN deck_contributors dc ON dc.deck_id=d.id AND dc.user_id=?
-    WHERE psc.session_id=? ORDER BY psc.position`).all(userId,active.id);
+    LEFT JOIN decks d ON d.id=c.deck_id
+    WHERE psc.session_id=? ORDER BY psc.position`).all(active.id);
   const cardIds=session.cardIds;
   const cardByPosition=new Map(rows.map(row=>[Number(row.position),row]));
   if(!session.languageSnapshot) {
@@ -110,12 +109,8 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   let changed=rows.some(row=>Number(row.position)>=PRACTICE_SESSION_SIZE);
   for(let position=session.index;position<PRACTICE_SESSION_SIZE;position++) {
     const id=cardIds[position],row=cardByPosition.get(position);
-    // Purchased cards survive collection and archive changes. A revoked
-    // selected-draft invitation still removes access to the pending card.
-    const hasAccess=canPracticeDeck({status:row?.deck_status,
-      contributionPolicy:row?.contribution_policy,creatorUserId:row?.creator_user_id,
-      invited:row?.invited_user_id===userId,hasReadingGuide:false},userId);
-    const valid=row?.card_id===id&&row.existing_card_id===id&&row.existing_deck_id&&!row.is_reading_guide&&hasAccess&&!seen.has(id);
+    // Purchased cards survive Cardcase and deck-state changes.
+    const valid=row?.card_id===id&&row.existing_card_id===id&&row.existing_deck_id&&!row.is_reading_guide&&!seen.has(id);
     if(valid) { pending[position-session.index]=id;seen.add(id); }
     else changed=true;
   }

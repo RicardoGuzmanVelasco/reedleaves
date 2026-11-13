@@ -30,6 +30,8 @@ for(const dialect of ["sqlite","postgres"]) test(`${dialect}: selected contribut
   assert.deepEqual(await createDeck(db,owner,{requestId,bookId:"atomic-habits",title:"Shared draft",language:"en",contributionPolicy:"selected",maxCardsPerContributor:2}),deck);
   assert.equal((await db.prepare("SELECT contribution_policy,max_cards_per_contributor FROM decks WHERE id=?").get(deck.deckId)).contribution_policy,"selected");
 
+  // Reading is open to everyone; the policy only limits who contributes.
+  assert.equal((await openDeck(db,outsider,deck.deckId)).user.id,outsider.user_id,"a selected draft can be opened and added by any reader");
   await addDeckContributors(db,owner,{deckId:deck.deckId,userIds:[member.user_id]});
   await assert.rejects(takeNote(db,outsider,{requestId:randomUUID(),deckId:deck.deckId,title:"Outside",body:"Not invited",parentId:null,isQuote:false}),{code:"deckUnavailable"});
   const add=(session,body)=>takeNote(db,session,{requestId:randomUUID(),deckId:deck.deckId,title:"Shared idea",body,parentId:null,isQuote:false});

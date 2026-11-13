@@ -42,7 +42,7 @@ async function preparePracticeMode(db,session,practiceMode) {
 }
 
 for(const dialect of ["sqlite","postgres"]) {
-  test(`${dialect}: reviewable decks preserve owner, invitation, and open collective access rules`,async t=>{
+  test(`${dialect}: reviewable decks are open to every reader whatever the contribution policy`,async t=>{
     const {db,session}=await fixture(t,dialect);
     const cases=[
       ["seven-habits-editorial","selected","draft"],
@@ -59,16 +59,16 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal(ownerIds.has("seven-habits-editorial"),true,"an owner retains access to their draft");
     assert.equal(memberIds.has("seven-habits-inside-out"),true,"an invited reader can access a selected draft");
     assert.equal(memberIds.has("atomic-habits-editorial"),true,"an open collective draft is available to readers");
-    assert.equal(memberIds.has("rich-dad-poor-dad-editorial"),false,"a selected draft stays private without an invitation");
+    assert.equal(memberIds.has("rich-dad-poor-dad-editorial"),true,"a selected draft is readable without an invitation");
   });
 
-  test(`${dialect}: language options stay fixed and selected cards follow all four review-access cases`,async t=>{
+  test(`${dialect}: language options stay fixed and selected cards come from decks of every contribution policy`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     const cases=[
       {policy:"selected",status:"draft",language:"it",userId:"reed-team",expected:true,label:"owner"},
       {policy:"selected",status:"draft",language:"fr-CA",userId:session.user_id,expected:true,label:"invited"},
       {policy:"open",status:"draft",language:"de",userId:session.user_id,expected:true,label:"open"},
-      {policy:"selected",status:"draft",language:"ja",userId:session.user_id,expected:false,label:"selected-closed"}
+      {policy:"selected",status:"draft",language:"ja",userId:session.user_id,expected:true,label:"selected-not-invited"}
     ];
     await db.prepare("INSERT INTO accounts(user_id,username,password_hash,time_zone,language) VALUES (?,?,?,?,?)")
       .run("reed-team","team.access","hash","Europe/Madrid","es");
@@ -344,25 +344,6 @@ for(const dialect of ["sqlite","postgres"]) {
     const preserved=await readReaderState(db,session,now);
     assert.equal(preserved.activePracticeSession.id,started.session.id);
     assert.deepEqual(preserved.activePracticeSession.cardIds,started.session.cardIds);
-  });
-
-  test(`${dialect}: revoking a selected collective draft invitation refunds its active session`,async t=>{
-    const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
-    await db.prepare("UPDATE decks SET contribution_policy='selected',max_cards_per_contributor=1,status='draft' WHERE id=?").run("seven-habits-editorial");
-    await db.prepare("INSERT INTO deck_contributors(deck_id,user_id) VALUES (?,?)").run("seven-habits-editorial",session.user_id);
-    const initial=await readReaderState(db,session,now),started=await startPracticeSession(db,session,"reading",now);
-    assert.ok(started.session);
-    await db.prepare("DELETE FROM deck_contributors WHERE deck_id=? AND user_id=?").run("seven-habits-editorial",session.user_id);
-    const staleAnswer=await answerPracticeSession(db,session,{sessionId:started.session.id,index:0,cardId:started.session.cardIds[0],answer:"see_more"},now);
-    assert.equal(staleAnswer.practiceRecovery.status,"cancelled","answering revalidates the pending card after revocation");
-    assert.equal(await db.prepare("SELECT 1 FROM practice_answers WHERE user_id=? AND card_id=?").get(session.user_id,started.session.cardIds[0]),undefined,
-      "a revoked pending card is not recorded as answered");
-    const state=await readReaderState(db,session,now);
-    assert.equal(state.practiceRecovery.status,"cancelled");
-    assert.equal(state.activePracticeSession,null);
-    assert.equal(state.petals,initial.petals);
-    const row=await db.prepare("SELECT completed_at,completed_local_day,cancelled_at FROM practice_sessions WHERE id=?").get(started.session.id);
-    assert.equal(row.completed_at,null);assert.equal(row.completed_local_day,null);assert.ok(row.cancelled_at);
   });
 
   test(`${dialect}: an answer for a different session cannot consume another active session's recovery`,async t=>{

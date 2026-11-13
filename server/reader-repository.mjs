@@ -137,14 +137,12 @@ async function stateInside(db,session,now) {
     cardcaseDeckIds:(await db.prepare("SELECT deck_id FROM cardcase_decks WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.deck_id),
     dailyIdea:idea,dailyIdeaHistory};
 }
-async function knownDeck(db,deckId,userId) {
+async function knownDeck(db,deckId) {
   if(typeof deckId!=="string") throw new ApiError(400,"invalidRequest");
   const deck=await db.prepare("SELECT * FROM decks WHERE id = ?").get(deckId);
   const readingGuide=deck&&!!await db.prepare("SELECT 1 FROM cards WHERE deck_id=? AND is_reading_guide=1").get(deckId);
-  const owner=deck?.creator_user_id===userId;
-  const invited=deck&&deck.contribution_policy==="selected"&&!!await db.prepare("SELECT 1 FROM deck_contributors WHERE deck_id=? AND user_id=?").get(deckId,userId);
-  if(!deck||readingGuide||
-      deck.contribution_policy!=="owner"&&deck.status==="draft"&&!owner&&deck.contribution_policy!=="open"&&!invited) throw new ApiError(404,"deckUnavailable");
+  // Anyone can read any deck; contribution_policy only limits who adds cards.
+  if(!deck||readingGuide) throw new ApiError(404,"deckUnavailable");
   return deck;
 }
 async function addToCardcase(db,userId,deck) {
@@ -164,7 +162,7 @@ export async function addDeckToCardcase(db,session,deckId,now=new Date(),{confir
   return transaction(db,async()=>{
     const userId=session.user_id;
     await lockReaderAccount(db,userId);
-    const deck=await knownDeck(db,deckId,userId);
+    const deck=await knownDeck(db,deckId);
     const required=await requireBookInterestConfirmation(db,userId,{enabled:confirmationEnabled,bookId:deck.book_id,
       operation:"addDeckToCardcase",resourceId:deck.id,parameters:{},price:DECK_ADD_COST,confirmation});
     if(required) return required;
@@ -187,7 +185,7 @@ export async function addDeckToCardcase(db,session,deckId,now=new Date(),{confir
 export async function removeDeckFromCardcase(db,session,deckId,now=new Date()) {
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
-    const deck=await knownDeck(db,deckId,session.user_id);
+    const deck=await knownDeck(db,deckId);
     await db.prepare("DELETE FROM cardcase_decks WHERE user_id=? AND deck_id=?").run(session.user_id,deckId);
     return {state:await stateInside(db,session,now)};
   });
@@ -195,7 +193,7 @@ export async function removeDeckFromCardcase(db,session,deckId,now=new Date()) {
 export async function openDeck(db,session,deckId,now=new Date(),{requireCardcase=false}={}) {
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
-    const deck=await knownDeck(db,deckId,session.user_id);
+    const deck=await knownDeck(db,deckId);
     if(requireCardcase) await requireDeckInCardcase(db,session.user_id,deck);
     await addToCardcase(db,session.user_id,deck);
     return stateInside(db,session,now);
@@ -205,7 +203,7 @@ export async function openCard(db,session,deckId,cardId,now=new Date(),{requireC
   return transaction(db,async()=>{
     const userId=session.user_id;
     await lockReaderAccount(db,userId);
-    const deck=await knownDeck(db,deckId,userId),catalog=prepareCatalog(await readCatalog(db,session.user_id)),model=catalog.deckModels.get(deck.id);
+    const deck=await knownDeck(db,deckId),catalog=prepareCatalog(await readCatalog(db,session.user_id)),model=catalog.deckModels.get(deck.id);
     if(typeof cardId!=="string"||!model.byId.has(cardId)) throw new ApiError(404,"cardUnavailable");
     if(requireCardcase) await requireDeckInCardcase(db,userId,deck);
     const state=await stateInside(db,session,now);
