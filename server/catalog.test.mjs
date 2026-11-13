@@ -38,7 +38,7 @@ test("Reading the catalog uses a fixed number of queries, however many cards it 
 test("Real SQLite schema: five books, six authored decks and 42 single-language sample cards", async t => {
   const db = await fixture(t), catalog = await readCatalog(db);
   assert.deepEqual(await checkCatalog(db), { books: 5, decks: 6, cards: 42, interests: 10 });
-  assert.deepEqual(catalog.interests.find(interest=>interest.id === "society"),{id:"society",emoji:"🌍",color:"#6B9CFF",chipColor:"#6B9CFF",bookColor:"#2D73FF",name:{es:"Sociedad",en:"Society"}});
+  assert.deepEqual(catalog.interests.find(interest=>interest.id === "society"),{id:"society",emoji:"🌍",chipColor:"#6B9CFF",bookColor:"#2D73FF",name:{es:"Sociedad",en:"Society"}});
   assert.equal(catalog.books.every(book=>!book.interests.includes("society")),true);
   assert.equal(catalog.cards.every(c => c.title[c.deckLanguage] && c.body[c.deckLanguage] && Object.keys(c.title).length === 1 && Object.keys(c.body).length === 1), true);
   assert.deepEqual(catalog.books.map(b => catalog.cards.filter(c => c.bookId === b.id).length), [14, 6, 7, 8, 7]);

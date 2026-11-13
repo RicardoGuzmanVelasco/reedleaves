@@ -9,7 +9,7 @@ import {openDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION} from "./database.
 import {seedCatalog} from "./seed.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {createDeck} from "./author-repository.mjs";
-import {readReaderState,openDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
+import {readReaderState,openDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeBookStatus,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 import {serverDay} from "./auth.mjs";
@@ -59,11 +59,11 @@ test("Owners can remove their own deck and add it again for free",async t=>{
 test("Adding an unread book persists explicit shelf membership without reading progress",async t=>{
   const {db,a}=await fixture(t);
   assert.deepEqual((await readReaderState(db,a,today)).shelfBookIds,[]);
-  const state=await changeReading(db,a,"atomic-habits","to_read",today);
+  const state=await changeBookStatus(db,a,"atomic-habits","to_read",today);
   assert.equal(state.statuses["atomic-habits"],"to_read");
   assert.ok(state.shelfBookIds.includes("atomic-habits"));
   assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id='a' AND book_id='atomic-habits'").get().status,"to_read");
-  const removed=await changeReading(db,a,"atomic-habits","unread",today);
+  const removed=await changeBookStatus(db,a,"atomic-habits","unread",today);
   assert.ok(!removed.shelfBookIds.includes("atomic-habits"));
   assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id='a' AND book_id='atomic-habits'").get(),undefined);
 });
@@ -72,11 +72,11 @@ test("Deck connections become Por leer and preserve active reading states",async
   const added=await addDeckToCardcase(db,a,version,today);
   assert.equal(added.state.statuses["seven-habits"],"to_read");
   assert.equal(db.prepare("SELECT status FROM book_reading WHERE user_id='a' AND book_id='seven-habits'").get().status,"to_read");
-  await changeReading(db,a,"seven-habits","reading",today);
+  await changeBookStatus(db,a,"seven-habits","reading",today);
   assert.equal((await addDeckToCardcase(db,a,version,today)).state.statuses["seven-habits"],"reading");
-  await changeReading(db,a,"seven-habits","read",today);
+  await changeBookStatus(db,a,"seven-habits","read",today);
   assert.equal((await openDeck(db,a,version,today)).statuses["seven-habits"],"read");
-  await changeReading(db,a,"seven-habits","unread",today);
+  await changeBookStatus(db,a,"seven-habits","unread",today);
   assert.equal((await readReaderState(db,a,today)).statuses["seven-habits"],"to_read");
 });
 test("Existing deck connections appear as Por leer without changing stored reading progress",async t=>{
@@ -90,7 +90,7 @@ test("Existing deck connections appear as Por leer without changing stored readi
 test("Mascot growth counts distinct days with completed paid practices, not card views",async t=>{
   const {db,a,b}=await fixture(t);
   await readReaderState(db,a,date("2026-10-06"));
-  await changeReading(db,a,"seven-habits","reading",date("2026-10-06"));
+  await changeBookStatus(db,a,"seven-habits","reading",date("2026-10-06"));
   const practice=async now=>{
     const started=await startPracticeSession(db,a,"reading",now); assert.ok(started.session);
     let result;
@@ -146,11 +146,11 @@ test("Leaf and petal refills switch together at 11:11 local",async t=>{
 });
 test("Reading and language preferences remain separate from wallets and practices",async t=>{
   const {db,a} = await fixture(t), before = await readReaderState(db,a,today);
-  const reading = await changeReading(db,a,"seven-habits","read",today); assert.equal(reading.statuses["seven-habits"],"read");
+  const reading = await changeBookStatus(db,a,"seven-habits","read",today); assert.equal(reading.statuses["seven-habits"],"read");
   const state = await changePreferences(db,a,{language:"en"},today);
   assert.equal(state.language,"en"); assert.equal("preferences" in state,false); assert.deepEqual(state.wallet,before.wallet);
   assert.equal("practices" in state,false); await assert.rejects(changePreferences(db,a,{language:"zz"},today));
-  await assert.rejects(changeReading(db,a,"missing","read",today));
+  await assert.rejects(changeBookStatus(db,a,"missing","read",today));
 });
 test("The daily idea only comes from root cards of finished decks",async t=>{
   const {db,a} = await fixture(t), catalog = await readCatalog(db), picked = new Set();

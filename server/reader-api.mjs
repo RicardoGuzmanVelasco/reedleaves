@@ -3,7 +3,7 @@ import {authenticate, readSession, revokeSession, checkCsrf, sessionCookie} from
 import {readProfile,readProfileBookshelf,recordCardView} from "./profile-repository.mjs";
 import {ApiError} from "./errors.mjs";
 import {readCardContexts} from "./catalog-repository.mjs";
-import {readReaderState,readReaderBalances,readReaderHomeBooks,openDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeReading,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
+import {readReaderState,readReaderBalances,readReaderHomeBooks,openDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeBookStatus,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 
 import {createBook,createDeck,addDeckContributors,changeDeckLanguage,changeDeckTitle,takeNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
@@ -53,7 +53,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       ["/api/auth/logout",["POST"]],["/api/interests",["GET","HEAD"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/balances",["GET","HEAD"]],["/api/reader/home-books",["GET","HEAD"]],["/api/reader/practice/discover-availability",["GET","HEAD"]],["/api/reader/deck/open",["POST"]],["/api/reader/cardcase/add",["POST"]],["/api/reader/cardcase/remove",["POST"]],
       ["/api/reader/book-knowledge/visit",["POST"]],
       ["/api/reader/interests/knowledge/snapshot",["POST"]],["/api/reader/interests/knowledge/recognize",["POST"]],
-      ["/api/reader/open",["POST"]],["/api/reader/reading",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily-idea",["POST"]],["/api/reader/daily-idea-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]]]);
+      ["/api/reader/open",["POST"]],["/api/reader/book-status",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily-idea",["POST"]],["/api/reader/daily-idea-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]]]);
     routes.set("/api/reader/guides",["POST"]);
     routes.set("/api/reader/guide-reviews",["GET","HEAD"]);
     routes.set("/api/reader/guide-reviews/count",["GET","HEAD"]);
@@ -223,7 +223,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         path === "/api/reader/cardcase/remove" ? await removeDeckFromCardcase(db,active,input.deckId,currentTime) :
         path === "/api/reader/deck/open" ? await openDeck(db,active,input.deckId,currentTime,{requireCardcase:true}) :
         path === "/api/reader/open" ? await openCard(db,active,input.deckId,input.cardId,currentTime,{requireCardcase:true}) :
-        path === "/api/reader/reading" ? await changeReading(db,active,input.bookId,input.status,currentTime,{confirmation:input.confirmation,confirmationEnabled:bookInterestConfirmationEnabled}) :
+        path === "/api/reader/book-status" ? await changeBookStatus(db,active,input.bookId,input.status,currentTime,{confirmation:input.confirmation,confirmationEnabled:bookInterestConfirmationEnabled}) :
         path === "/api/reader/preferences" ? await changePreferences(db,active,input,currentTime) : await dailyIdea(db,active,currentTime);
       send(200,result);
     } catch(error) {

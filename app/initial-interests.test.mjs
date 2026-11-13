@@ -6,7 +6,7 @@ import {initialInterestsView} from "./views.mjs";
 import {readerState,emptyCatalog} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
 
-const catalog={...emptyCatalog(),interests:Array.from({length:12},(_,i)=>({id:`interest-${i}`,emoji:"🌱",color:"#B7DE76",name:{es:`Interés ${i}`,en:`Interest ${i}`}}))};
+const catalog={...emptyCatalog(),interests:Array.from({length:12},(_,i)=>({id:`interest-${i}`,emoji:"🌱",name:{es:`Interés ${i}`,en:`Interest ${i}`}}))};
 const preferences={revision:0,configured:false,initialOpportunityClosed:false};
 function setup(request=async()=>({state:{configured:true},newlyGranted:[]})) {
   const values=new Map(),store=createBrowserStore(()=>({getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)})),completed=[];

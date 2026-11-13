@@ -1,7 +1,6 @@
 CREATE TABLE interests (
   id TEXT PRIMARY KEY CHECK(length(trim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '',
-  color TEXT NOT NULL DEFAULT '',
   chip_color TEXT NOT NULL DEFAULT '',
   book_color TEXT NOT NULL DEFAULT ''
 ) STRICT;
@@ -413,4 +412,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 64;
+PRAGMA user_version = 65;

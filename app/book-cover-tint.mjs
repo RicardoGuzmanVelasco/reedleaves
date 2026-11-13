@@ -6,7 +6,7 @@ export const coverTintMode=value=>coverTintModes.includes(value)?value:'off';
 // Stops place the most important interest over the largest part of the cover.
 export function coverTintGradients(book,interests,mode){
   if(coverTintMode(mode)==='off')return null;
-  const byId=new Map((interests||[]).map(interest=>[interest.id,interest.bookColor ?? interest.book_color ?? interest.color]));
+  const byId=new Map((interests||[]).map(interest=>[interest.id,interest.bookColor ?? interest.book_color]));
   const colors=(book?.interests||[]).map(id=>byId.get(id)).filter(validInterestColor);
   if(!colors.length)return null;
   const chosen=mode==='mono'?colors.slice(0,1):colors;

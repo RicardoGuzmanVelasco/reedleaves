@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {createReadingInterestWarningFlow} from "./reading-interest-warning.mjs";
 import {bookInterestWarningView} from "./views.mjs";
 
-const prompt=(interestId,emoji,name,status="reading")=>({confirmationRequired:true,interest:{id:interestId,emoji,name},operation:{parameters:{status}},confirmation:{interestId,price:0,operation:{type:"changeReading",resourceId:"book-1",parameters:{status}}}});
+const prompt=(interestId,emoji,name,status="reading")=>({confirmationRequired:true,interest:{id:interestId,emoji,name},operation:{parameters:{status}},confirmation:{interestId,price:0,operation:{type:"changeBookStatus",resourceId:"book-1",parameters:{status}}}});
 
 test("cancelling a reading warning discards the pending action without another request",async()=>{
   const requests=[],commits=[];

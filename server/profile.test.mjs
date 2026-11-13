@@ -6,7 +6,7 @@ import {openDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION} from "./database.
 import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
 import {readProfile,recordCardView} from "./profile-repository.mjs";
-import {openCard,changeReading,openDeck,readReaderState} from "./reader-repository.mjs";
+import {openCard,changeBookStatus,openDeck,readReaderState} from "./reader-repository.mjs";
 import {createBook,createDeck,takeNote} from "./author-repository.mjs";
 import {serverDay} from "./auth.mjs";
 
@@ -59,9 +59,9 @@ test("Opening a past daily idea does not credit today when the same card was reu
 
 test("Profile counts one current pet per book rather than all unlocked stages, including completion",async t=>{
   const {db,a}=await fixture(t),v="seven-habits-editorial";
-  await changeReading(db,a,"atomic-habits","read",day(10));
-  await changeReading(db,a,"same-as-ever","reading",day(10));
-  await changeReading(db,a,"seven-habits","reading",day(10));
+  await changeBookStatus(db,a,"atomic-habits","read",day(10));
+  await changeBookStatus(db,a,"same-as-ever","reading",day(10));
+  await changeBookStatus(db,a,"seven-habits","reading",day(10));
   await openDeck(db,a,"getting-things-done-editorial",day(10));
   for(let n=1;n<=7;n++) await recordCompletedPractice(db,a,"seven-habits",day(9+n));
   const p=(await readProfile(db,a.user_id,a.user_id)).profile;
@@ -73,7 +73,7 @@ test("Profile counts one current pet per book rather than all unlocked stages, i
 
 test("Nonconsecutive review days across decks earn Bud, Flower and Evergreen at their milestones",async t=>{
   const {db,a}=await fixture(t),bookId="seven-habits";
-  await changeReading(db,a,bookId,"reading",day(1));
+  await changeBookStatus(db,a,bookId,"reading",day(1));
   const decks=[];
   for(let n=0;n<2;n++) {
     const {deckId}=await createDeck(db,a,{requestId:randomUUID(),bookId,title:`Stem test ${n}`,language:"es"});
@@ -124,7 +124,7 @@ test("Author stats include quotes as a subset; shared libraries expose content b
 
 test("Public bookshelf groups explicit and deck-associated books as Para leer",async t=>{
   const {db,a,b}=await fixture(t);
-  await changeReading(db,a,"atomic-habits","to_read",day(10));
+  await changeBookStatus(db,a,"atomic-habits","to_read",day(10));
   await createDeck(db,a,{requestId:randomUUID(),bookId:"seven-habits",title:"Another deck",language:"es"});
   const shelf=(await readProfile(db,a.user_id,b.user_id)).bookshelf;
   assert.deepEqual(shelf.find(entry=>entry.bookId==="atomic-habits"),{bookId:"atomic-habits",reading:"to_read"});

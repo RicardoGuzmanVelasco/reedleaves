@@ -56,5 +56,5 @@ test("Seed validates appearance before touching any books and round-trips future
   const seed=readSeed();seed.interests.push({id:"future-interest",name_es:"Interés futuro",name_en:"Future interest",emoji:"🧑‍💻",chip_color:"#E4EFFB",book_color:"#7398D3"});
   await seedCatalog(db,seed);await seedCatalog(db,seed);
   const interest=prepareCatalog(await readCatalog(db)).interests.find(value=>value.id==="future-interest");
-  assert.deepEqual(interest,{id:"future-interest",name:{es:"Interés futuro",en:"Future interest"},emoji:"🧑‍💻",color:"#E4EFFB",chipColor:"#E4EFFB",bookColor:"#7398D3"});
+  assert.deepEqual(interest,{id:"future-interest",name:{es:"Interés futuro",en:"Future interest"},emoji:"🧑‍💻",chipColor:"#E4EFFB",bookColor:"#7398D3"});
 });

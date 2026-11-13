@@ -10,6 +10,7 @@ import {INTEREST_MIGRATION_SQL,SOFTWARE_BOOK_IDENTITY,SOFTWARE_RECLASSIFICATION_
 import {migrateSqliteToFinishedVocabulary,FINISHED_VOCABULARY_POSTGRES_SQL} from "./finished-vocabulary-migration.mjs";
 import {INTEREST_CHOICE_APPEARANCE_SQL} from "./interest-choice-appearance-migration.mjs";
 import {INTEREST_APPEARANCE_SQL} from "./interest-appearance-migration.mjs";
+import {INTEREST_COLOR_REMOVAL_SQLITE,INTEREST_COLOR_REMOVAL_POSTGRES} from "./interest-color-removal-migration.mjs";
 import {CARDCASE_VOCABULARY_SQLITE,CARDCASE_VOCABULARY_POSTGRES} from "./cardcase-vocabulary-migration.mjs";
 import {INTEREST_TABLE_RENAME_SQLITE,INTEREST_TABLE_RENAME_POSTGRES} from "./interest-table-rename-migration.mjs";
 import {INTEREST_COLOR_MIGRATION_SQLITE,INTEREST_COLOR_MIGRATION_POSTGRES} from "./interest-color-migration.mjs";
@@ -21,8 +22,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 64;
-export const POSTGRES_SCHEMA_VERSION = 56;
+export const SQLITE_SCHEMA_VERSION = 65;
+export const POSTGRES_SCHEMA_VERSION = 57;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -109,6 +110,12 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 64) {
+    db.exec("BEGIN IMMEDIATE");
+    try { db.exec(INTEREST_COLOR_REMOVAL_SQLITE); db.exec("PRAGMA user_version=65; COMMIT;"); }
+    catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 63) {
     db.exec("BEGIN IMMEDIATE");
     try { db.exec(CARDCASE_VOCABULARY_SQLITE); db.exec("PRAGMA user_version=64; COMMIT;"); }
@@ -1014,6 +1021,15 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 56) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,interests IN ACCESS EXCLUSIVE MODE;");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 57) return;
+          await db.exec(INTEREST_COLOR_REMOVAL_POSTGRES);
+          await db.exec("ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=57; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=57);");
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 55) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,book_reading,studies,deck_selections IN ACCESS EXCLUSIVE MODE;");

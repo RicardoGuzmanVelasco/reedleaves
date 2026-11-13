@@ -8,7 +8,7 @@ import {decideReadingGuide,listPendingReadingGuides,submitReadingGuide} from "./
 import {contentVersion} from "./reader-roles.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
-import {openDeck,changeReading} from "./reader-repository.mjs";
+import {openDeck,changeBookStatus} from "./reader-repository.mjs";
 import {setCardVote} from "./card-votes.mjs";
 import {setCardSave} from "./card-saves.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
@@ -46,7 +46,7 @@ for(const dialect of ["sqlite","postgres"]) test(`${dialect}: reading guides sta
 
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read')").run(b.user_id,"atomic-habits");
   const second=await submitReadingGuide(db,b,{bookId:"atomic-habits",body:"Lee el capítulo 10.",language:"es"});
-  await changeReading(db,a,"atomic-habits","unread",now);
+  await changeBookStatus(db,a,"atomic-habits","unread",now);
   assert.equal((await submitReadingGuide(db,a,{bookId:"atomic-habits",cardId:first.cardId,body:"Still helpful after marking the book unread.",language:"en"})).updated,true);
   const catalog=await readCatalog(db,a.user_id),prepared=prepareCatalog(catalog),guides=catalog.cards.filter(card=>card.isReadingGuide);
   assert.equal(guides.length,2);assert.deepEqual(guides.map(card=>card.language).sort(),["en","es"]);

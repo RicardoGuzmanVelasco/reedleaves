@@ -34,7 +34,7 @@ for(const [dialect,version] of [["sqlite",54],["postgres",46]])test(`${dialect}:
   const catalog=await readCatalog(db),seed=readSeed();
   for(const expected of seed.interests){const actual=catalog.interests.find(g=>g.id===expected.id);assert.equal(actual.chipColor,expected.chip_color);assert.equal(actual.bookColor,expected.book_color);assert.equal(actual.emoji,expected.emoji);}
   assert.equal(new Set(seed.interests.map(g=>g.chip_color)).size,10);
-  assert.equal(catalog.interests.find(g=>g.id==="future-interest").color,"#123456");
+  assert.equal(catalog.interests.find(g=>g.id==="future-interest").chipColor,"#123456");
   assert.equal(catalog.interests.find(g=>g.id==="mindfulness").emoji,"🧘‍♀️");
   await checkCatalog(db);
 });

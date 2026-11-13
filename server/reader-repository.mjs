@@ -214,13 +214,13 @@ export async function openCard(db,session,deckId,cardId,now=new Date(),{requireC
     return {state:await stateInside(db,session,now)};
   });
 }
-export async function changeReading(db,session,bookId,status,now=new Date(),{confirmation,confirmationEnabled=BOOK_INTEREST_CONFIRMATION_ENABLED}={}) {
+export async function changeBookStatus(db,session,bookId,status,now=new Date(),{confirmation,confirmationEnabled=BOOK_INTEREST_CONFIRMATION_ENABLED}={}) {
   if(typeof bookId!=="string"||!["unread","to_read","reading","read"].includes(status)||!await db.prepare("SELECT 1 FROM books WHERE id = ?").get(bookId)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
     if(status!=="unread") {
       const required=await requireBookInterestConfirmation(db,session.user_id,{enabled:confirmationEnabled,bookId,
-        operation:"changeReading",resourceId:bookId,parameters:{status},confirmation});
+        operation:"changeBookStatus",resourceId:bookId,parameters:{status},confirmation});
       if(required) return required;
     }
     if(status === "unread") await db.prepare("DELETE FROM book_reading WHERE user_id=? AND book_id=?").run(session.user_id,bookId);

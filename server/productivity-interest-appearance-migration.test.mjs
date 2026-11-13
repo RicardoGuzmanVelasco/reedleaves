@@ -12,8 +12,8 @@ for(const [dialect,version] of [["sqlite",57],["postgres",49]]) test(`${dialect}
   await initializeDatabase(db);
   await initializeDatabase(db);
 
-  const updated=await db.prepare("SELECT emoji,color FROM interests WHERE id='productivity'").get();
-  assert.deepEqual({...updated},{emoji:"🔥",color:"#E85C22"});
+  const updated=await db.prepare("SELECT emoji,chip_color FROM interests WHERE id='productivity'").get();
+  assert.deepEqual({...updated},{emoji:"🔥",chip_color:"#FF8040"});
   assert.deepEqual(await db.prepare("SELECT book_id,interest_id FROM book_interests ORDER BY book_id,interest_id").all(),associations);
   assert.deepEqual(await db.prepare("SELECT language,name FROM interest_translations WHERE interest_id='productivity' ORDER BY language").all(),names);
   const schemaVersion=dialect==="sqlite"

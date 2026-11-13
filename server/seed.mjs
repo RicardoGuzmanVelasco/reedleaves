@@ -118,9 +118,9 @@ export async function seedCatalog(db, seed = readSeed()) {
     for (const u of seed.users) await db.prepare(`INSERT INTO users(id,display_name) VALUES (?,?)
       ON CONFLICT(id) DO UPDATE SET display_name = excluded.display_name`).run(u.id,u.display_name);
     for (const g of seed.interests) {
-      await db.prepare(`INSERT INTO interests(id,emoji,color,chip_color,book_color) VALUES (?,?,?,?,?)
-        ON CONFLICT(id) DO UPDATE SET emoji=excluded.emoji,color=excluded.color,
-        chip_color=excluded.chip_color,book_color=excluded.book_color`).run(g.id,g.emoji,g.chip_color,g.chip_color,g.book_color);
+      await db.prepare(`INSERT INTO interests(id,emoji,chip_color,book_color) VALUES (?,?,?,?)
+        ON CONFLICT(id) DO UPDATE SET emoji=excluded.emoji,
+        chip_color=excluded.chip_color,book_color=excluded.book_color`).run(g.id,g.emoji,g.chip_color,g.book_color);
       for (const language of LANGUAGES) await db.prepare(`INSERT INTO interest_translations VALUES (?, ?, ?)
         ON CONFLICT(interest_id, language) DO UPDATE SET name = excluded.name`).run(g.id, language, g["name_" + language]);
     }

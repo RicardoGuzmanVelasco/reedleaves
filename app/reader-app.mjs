@@ -1755,7 +1755,7 @@ export function startReader({createCardFeatures} = {}) {
     if (!snapshot.user || mode === "public-library" || !catalog.booksById.has(id) || !["unread","to_read","reading","read"].includes(status) || (snapshot.statuses?.[id] || "unread") === status) return;
     bookStatusError=null;const previousStatus=statuses[id]||"unread";
     bookInterestFlow=createReadingInterestWarningFlow({
-      request:input=>api.request("/api/reader/reading",input),
+      request:input=>api.request("/api/reader/book-status",input),
       onWarning:pending=>{bookInterestPrompt={...pending,error:null};},
       onCommit:result=>{
         bookInterestPrompt=null;applyState(result.state||result,{captureGrowth:true});refreshState();

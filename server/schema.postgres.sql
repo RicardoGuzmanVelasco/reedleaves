@@ -1,8 +1,8 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 56));
-INSERT INTO reed_schema VALUES (56);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 57));
+INSERT INTO reed_schema VALUES (57);
 
 CREATE TABLE interests(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
-  emoji TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '',
+  emoji TEXT NOT NULL DEFAULT '',
   chip_color TEXT NOT NULL DEFAULT '', book_color TEXT NOT NULL DEFAULT '');
 CREATE TABLE interest_translations(
   interest_id TEXT NOT NULL REFERENCES interests(id) ON DELETE CASCADE,

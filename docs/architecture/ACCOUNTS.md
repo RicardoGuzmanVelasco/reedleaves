@@ -42,7 +42,7 @@ El navegador muestra el estado confirmado y consulta cambios al volver al primer
 | `/api/reader/state` | GET / HEAD | Estado autenticado |
 | `/api/reader/deck/open` | POST | Abrir una baraja del Tarjetero, gratis |
 | `/api/reader/open` | POST | Abrir tarjeta y registrar su vista |
-| `/api/reader/reading` | POST | Estado manual del libro original |
+| `/api/reader/book-status` | POST | Estado manual del libro original |
 | `/api/reader/preferences` | POST | Idioma y títulos originales |
 | `/api/reader/daily-idea` | POST | Obtener o asignar la idea de hoy |
 

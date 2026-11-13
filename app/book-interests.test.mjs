@@ -24,7 +24,7 @@ test("Book interests validate one to three distinct known IDs without sorting or
 
 test("Selector exposes stable native options, catalog labels and associated localized ordering help",()=>{
   const ids=["finance","society","software","productivity"];
-  const catalog={...emptyCatalog(),interests:ids.map(id=>({id,name:{es:`Interés ${id}`,en:`Interest ${id}`},emoji:"🌱",color:"#E4F0CC"}))};
+  const catalog={...emptyCatalog(),interests:ids.map(id=>({id,name:{es:`Interés ${id}`,en:`Interest ${id}`},emoji:"🌱",}))};
   for(const language of ["es","en"]) for(const selected of [[],["software","finance","society"],["software","society","finance"]]) {
     const html=authorFormView(readerState(catalog,{language,authorForm:{kind:"book",metadata:normalizeBookMetadata({interests:selected})}}));
     assert.deepEqual([...html.matchAll(/name="metadata.interests" value="([^"]+)"/g)].map(match=>match[1]),ids);

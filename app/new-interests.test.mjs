@@ -5,7 +5,7 @@ import {newInterestsView} from "./new-interests-ui.mjs";
 import {createBrowserStore,storageKeys} from "./storage.mjs";
 import {emptyCatalog} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
-const catalog={...emptyCatalog(),interests:Array.from({length:12},(_,i)=>({id:`i${i}`,emoji:"🌱",color:"#B7DE76",name:{es:`Interés ${i}`,en:`Interest ${i}`}}))};
+const catalog={...emptyCatalog(),interests:Array.from({length:12},(_,i)=>({id:`i${i}`,emoji:"🌱",name:{es:`Interés ${i}`,en:`Interest ${i}`}}))};
 const prefs={interested:["i0","i1"],notInterested:["i2"],revision:1,configured:true};
 function setup({ids=["i6","i7","i8"],request,preferences=prefs,loadCatalog=async()=>catalog}={}) {
   const values=new Map(),store=createBrowserStore(()=>({getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)})),calls=[],completed=[];

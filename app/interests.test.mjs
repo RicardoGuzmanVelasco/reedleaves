@@ -32,7 +32,7 @@ test("All approved interests use catalog emojis and localized names in details, 
   }
 });
 test("Appearance validation accepts one emoji grapheme and a safe hex color without using an ID map",()=>{
-  const interest={id:"future-interest",emoji:"🧑‍💻",color:"#E4EFFB",chipColor:"#E4EFFB",bookColor:"#7398D3"};
+  const interest={id:"future-interest",emoji:"🧑‍💻",chipColor:"#E4EFFB",bookColor:"#7398D3"};
   assert.ok(validInterestAppearance(interest));assert.ok(interestIcon(interest).includes("🧑‍💻"));
   assert.equal(interestColor({...interest,chipColor:"#59C8FF"}), ' data-interest-color="#59C8FF"');
   for(const emoji of [undefined,"","🌱💰","Software",'<script>🌱</script>']) assert.equal(validInterestAppearance({...interest,emoji}),false);

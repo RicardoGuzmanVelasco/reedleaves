@@ -16,8 +16,8 @@ for(const [dialect,version] of [["sqlite",57],["postgres",49]]) test(`${dialect}
     ? Number((await db.prepare("PRAGMA user_version").get()).user_version)
     : Number((await db.prepare("SELECT version FROM reed_schema").get()).version);
   assert.equal(schemaVersion,dialect==="sqlite"?SQLITE_SCHEMA_VERSION:POSTGRES_SCHEMA_VERSION);
-  assert.deepEqual((await db.prepare("SELECT id,emoji,color FROM interests WHERE id IN ('psychology','leadership') ORDER BY id").all()).map(row=>({...row})),[
-    {id:"leadership",emoji:"🚀",color:"#7D95C1"},{id:"psychology",emoji:"🧠",color:"#F09FCB"}
+  assert.deepEqual((await db.prepare("SELECT id,emoji,chip_color FROM interests WHERE id IN ('psychology','leadership') ORDER BY id").all()).map(row=>({...row})),[
+    {id:"leadership",emoji:"🚀",chip_color:"#9DC6FF"},{id:"psychology",emoji:"🧠",chip_color:"#FF8DB3"}
   ]);
   assert.deepEqual((await db.prepare("SELECT interest_id,language,name FROM interest_translations WHERE interest_id IN ('psychology','leadership') ORDER BY interest_id,language").all()).map(row=>({...row})),[
     {interest_id:"leadership",language:"en",name:"Leadership"},{interest_id:"leadership",language:"es",name:"Liderazgo"},
