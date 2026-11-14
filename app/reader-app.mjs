@@ -819,6 +819,9 @@ export function startReader({createCardFeatures} = {}) {
     if(mode!=="profile"||profileId!==snapshot.user?.id)profileInterestEditor.dispose();
     const enteredBookstore=mode==="bookstore"&&!bookstoreVisitId;
     if(!inBookstoreVisit(mode,bookOrigin)) { bookstoreVisitId=null;bookstoreNewBookIds=[]; }
+    // Flag the creation before rendering so the daily idea's own sprout replaces the navigation one instead of overlapping its wake.
+    const creatingDailyIdea=mode==="daily-idea"&&!!snapshot.user&&!dailyIdea&&!busy&&!dailyIdeaLoading;
+    if(creatingDailyIdea)dailyIdeaLoading=true;
     render({focus});
     if(mode==="guide-reviews"&&!guideReviewLoaded&&!guideReviewLoading)void loadGuideReviewQueue();
     if(snapshot.user?.roles?.includes("archivist")&&guideReviewPendingCount===null&&!guideReviewCountLoading)void loadGuideReviewCount();
@@ -832,7 +835,7 @@ export function startReader({createCardFeatures} = {}) {
       window.scrollTo({top:listPositions[mode].scrollY});
       [...main.querySelectorAll('[data-action="open-book-details"]')].find(b=>b.dataset.book === listPositions[mode].bookId)?.focus({preventScroll:true});
     }
-    if (mode === "daily-idea" && snapshot.user && !dailyIdea) ensureDailyIdea();
+    if (creatingDailyIdea) ensureDailyIdea(true);
     if (["profile","public-library"].includes(mode) && !profileData && !profileError) loadProfile();
   }
   async function startBookstoreBookKnowledgeVisit() {
@@ -1859,9 +1862,9 @@ export function startReader({createCardFeatures} = {}) {
     const cards=catalog.deckModels.get(deckId)?.cards||[],target=adjacentCard(cards,requestedId,direction);
     if(target)void openCard(target,deckId);
   }
-  async function ensureDailyIdea() {
-    if(busy||dailyIdeaLoading)return;
-    dailyIdeaLoading=true;render();
+  async function ensureDailyIdea(started=false) {
+    if(!started&&(busy||dailyIdeaLoading))return;
+    dailyIdeaLoading=true;if(!started)render();
     try { await mutation("/api/reader/daily-idea",{}); }
     finally { dailyIdeaLoading=false;if(mode==="daily-idea")render(); }
   }
