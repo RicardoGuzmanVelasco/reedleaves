@@ -43,6 +43,8 @@ Hecho en código: `authorView`, la acción `author-deck`/`inspect-card` y los bo
 
 ### 0c — Quitar información de la vista de baraja
 
+Hecho (1, 2, 3, 4, 5, 6, 8): idioma, título y colaboradores dentro de «Información de la baraja»; sin chip de estado en la baraja personal propia en borrador; contador «N tarjetas» hasta cerca del tope; alternador y filtro desde 6 tarjetas. Pendiente: el punto 7 (atribución en la hoja) y ver el resultado en la app.
+
 Medido en móvil: el árbol empieza al 73 % de la pantalla, tras ocho bloques. Quitar o mover, en este orden:
 
 1. Selector «Idioma de la baraja» (ya sale en el meta): a los ajustes plegados.

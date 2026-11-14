@@ -708,6 +708,9 @@ function deckColumnsControl(s) {
   return `<div class="deck-preview-tools" data-columns="${columns}"><label class="sr-only" for="preview-columns">${c.previewColumns}</label><output for="preview-columns" id="preview-column-count" aria-hidden="true" title="${esc(c.previewColumnCount(columns))}">${columnIcons}</output><div class="preview-density-slider"><span class="preview-density-rail" aria-hidden="true"><span class="preview-density-fill"></span><span class="preview-density-stops"><i></i><i></i><i></i><i></i></span></span><input id="preview-columns" type="range" min="1" max="4" step="1" value="${columns}" aria-valuetext="${esc(c.previewColumnCount(columns))}" aria-controls="deck-preview-grid"></div></div>`;
 }
 
+// A short deck fits on screen: the tree/grid switch and the quote filter only appear from this many cards.
+const DECK_BROWSING_MIN_CARDS=6;
+
 function deckBrowsingControls(s) {
   return deckDisplaySelector(s)+(s.deckPreview ? deckColumnsControl(s) : '')+quoteFilter(s);
 }
@@ -754,11 +757,24 @@ function albumSummary(s,deck,model,mascot="",management=false) {
   const editable=management && deck.status === "draft" && deck.creator.userId === s.userId;
   const title=contentText(deck.title,s.language,deck.language),titleLanguage=contentLocale(deck.title,s.language,deck.language);
   const titleMarkup=editable && s.deckTitleEdit ? `<form class="deck-title-editor" data-deck-title-form><label class="sr-only" for="deck-title">${esc(c.editDeckTitle)}</label><input id="deck-title" name="title" value="${esc(s.deckTitleEdit.title)}" maxlength="160" required aria-describedby="deck-title-error"><p id="deck-title-error" class="deck-edit-error" role="alert" ${s.deckTitleEdit.error ? "" : "hidden"}>${esc(c[s.deckTitleEdit.error] || c.deckTitleSaveError)}</p><div class="deck-title-editor-actions"><button class="primary" type="submit">${esc(c.save)}</button><button class="text-button" type="button" data-action="cancel-deck-title">${esc(c.cancel)}</button></div></form>`
-    : `<div class="deck-title-row"><h1 tabindex="-1" lang="${esc(titleLanguage)}" dir="auto">${esc(title)}</h1>${editable ? `<button class="text-button deck-title-edit" type="button" data-action="edit-deck-title" aria-label="${esc(c.editDeckTitle)}">${esc(c.editDeckTitle)}</button>` : ""}</div>`;
-  const languageControl=editable ? `<label class="deck-language-control" for="deck-language"><span>${esc(c.deckLanguage)}</span><select id="deck-language" data-deck-language aria-describedby="deck-language-error">${CONTENT_LANGUAGES.map(tag=>`<option value="${tag}" ${deck.language===tag?"selected":""}>${esc(new Intl.DisplayNames([s.language],{type:"language"}).of(tag))}</option>`).join("")}</select></label><p id="deck-language-error" class="deck-edit-error" role="alert" ${s.deckLanguageError ? "" : "hidden"}>${esc(c[s.deckLanguageError] || c.deckLanguageSaveError)}</p>` : "";
+    : `<div class="deck-title-row"><h1 tabindex="-1" lang="${esc(titleLanguage)}" dir="auto">${esc(title)}</h1></div>`;
+  // The owner's own personal draft needs no status chip: «Terminar baraja» already says it is open.
+  const ownPersonalDraft=deck.status === "draft" && deck.contributionPolicy === "owner" && deck.creator.userId === s.userId;
+  // The cap only matters near it; the plain count is enough before that.
+  const count=deck.contributionPolicy === "owner" && model.cards.length >= MAX_CARDS_PER_DECK-5 ? c.deckCardCount(model.cards.length) : c.noteCardsCount(model.cards.length);
   return `<header class="album-heading${mascot ? " album-heading--mascot" : ""}"><div class="album-heading-copy"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>
     ${titleMarkup}
-    <p class="deck-creator">${deckCreator(deck)}</p><p class="album-meta">${esc(language)} · ${esc(c.deckCardCount(model.cards.length))}</p>${languageControl}${deckStatusMarkup(s,deck)}</div>${mascot}</header>`;
+    <p class="deck-creator">${deckCreator(deck)}</p><p class="album-meta">${esc(language)} · ${esc(count)}</p>${ownPersonalDraft ? "" : deckStatusMarkup(s,deck)}</div>${mascot}</header>`;
+}
+
+// Owner-only settings of a draft deck, folded inside «Información de la baraja».
+function deckSettingsMarkup(s,deck) {
+  if (deck.status !== "draft" || deck.creator.userId !== s.userId) return "";
+  const c=words[s.language];
+  const languageName=tag=>new Intl.DisplayNames([s.language],{type:"language"}).of(tag);
+  const title=s.deckTitleEdit ? "" : `<button class="text-button deck-title-edit" type="button" data-action="edit-deck-title">${esc(c.editDeckTitle)}</button>`;
+  const language=`<label class="deck-language-control" for="deck-language"><span>${esc(c.deckLanguage)}</span><select id="deck-language" data-deck-language aria-describedby="deck-language-error">${CONTENT_LANGUAGES.map(tag=>`<option value="${tag}" ${deck.language===tag?"selected":""}>${esc(languageName(tag))}</option>`).join("")}</select></label><p id="deck-language-error" class="deck-edit-error" role="alert" ${s.deckLanguageError ? "" : "hidden"}>${esc(c[s.deckLanguageError] || c.deckLanguageSaveError)}</p>`;
+  return `<div class="deck-settings">${title}${language}${deckContributorManager(s,deck)}</div>`;
 }
 
 export function deckPageView(s) {
@@ -767,10 +783,9 @@ export function deckPageView(s) {
   const shareAction=`<button class="primary share-deck-button" type="button" data-action="share-deck">${shareIconMarkup}<span>${esc(c.shareDeck)}</span></button>`;
   return `<section class="deck-page-screen album-screen"><div class="deck-page-heading"><button class="text-button" type="button" data-action="choose-book">${backLabelMarkup(c.decks)}</button>${shareAction}</div>
     ${albumSummary(s,deck,model,deckMascotCallout(s,deck.bookId),true)}
-    ${deckContributorManager(s,deck)}
-    <details class="sources deck-information"><summary>${c.deckInformation}</summary><p class="deck-description" lang="${esc(contentLocale(deck.description,s.language,deck.language))}" dir="auto">${esc(contentText(deck.description,s.language,deck.language))}</p>${quoteSourceLink(deck,c)}${deckFactsMarkup(c,deck,deckQuoteCount(s,deck))}</details>
+    <details class="sources deck-information" ${s.deckLanguageError||s.deckContributorError||s.deckContributorInput ? "open" : ""}><summary>${c.deckInformation}</summary><p class="deck-description" lang="${esc(contentLocale(deck.description,s.language,deck.language))}" dir="auto">${esc(contentText(deck.description,s.language,deck.language))}</p>${quoteSourceLink(deck,c)}${deckFactsMarkup(c,deck,deckQuoteCount(s,deck))}${deckSettingsMarkup(s,deck)}</details>
     <div class="deck-page-actions">${s.userId && (s.cardcaseDeckIds||[]).includes(deck.id) ? `<button class="secondary secondary--subtle deck-remove-from-cardcase" type="button" data-action="remove-cardcase-deck" data-deck="${esc(deck.id)}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 5h18M5 9h14M7 13h10M14 19h7"/></svg><span>${esc(c.removeDeckFromCardcase)}</span></button>` : `<div class="deck-page-cardcase"><button class="primary deck-cardcase-primary" type="button" data-action="add-deck-to-cardcase" data-deck="${esc(deck.id)}" ${s.userId&&!s.storageAvailable?"disabled":""}><img src="${imageUrl("/app/assets/icons/sections/decks-add.svg")}" alt="" width="24" height="24"><span>${c.addDeckToCardcase}</span>${deck.creator.userId===s.userId ? "" : priceTag({amount:DECK_ADD_COST,icon:"leaf",label:c.deckAddCost(DECK_ADD_COST)})}</button></div>`}${model.cards.length ? `<button class="secondary secondary--subtle deck-read-action" type="button" data-action="preview-deck" data-deck="${esc(deck.id)}"><span class="cards-read-icon" aria-hidden="true"></span><span>${c.readDeckCards}</span></button>` : ""}</div>
-    <div class="content-tools deck-content-tools">${model.cards.length ? deckBrowsingControls(s) : ""}${deckWritingActions(s,deck,"deck-content-edit")}</div>
+    <div class="content-tools deck-content-tools">${model.cards.length >= DECK_BROWSING_MIN_CARDS || model.cards.length && (s.deckPreview || s.quotesOnly) ? deckBrowsingControls(s) : ""}${deckWritingActions(s,deck,"deck-content-edit")}</div>
     ${deckFinishHint(s,deck)}
     ${model.cards.length ? deckContentMarkup(s,model,deck) : `<div class="empty-state">${c.emptyAuthor}</div>`}${card ? (()=>{const index=model.cards.findIndex(item=>item.id===card.id);return exclusiveCardMarkup(s,card,c.position(index+1,model.cards.length),{previous:model.cards[index-1]?.id,next:model.cards[index+1]?.id},deckCanWrite(s,deck)?{deckId:deck.id,disabled:deckNoteLimitReached(s,deck)}:null);})() : ""}
     ${s.quotesOnly && model.cards.length && !model.cards.some(card=>card.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}</section>`;

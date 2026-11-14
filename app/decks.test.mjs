@@ -343,9 +343,16 @@ test("Draft creation status stays distinct from practice sessions across deck su
     for(const userId of [deck.creator.userId,"another-reader"]){
       const state={...base,userId},explanation=userId===deck.creator.userId?c.deckDraftOwnerExplanation:c.deckMayChangeUnadded;
       const surfaces=[deckPageView(state)];
+      const ownPersonalDraft=userId===deck.creator.userId&&deck.contributionPolicy==="owner";
       for(const html of surfaces){
-        assert.ok(html.includes(c.deckInProgress));
-        assert.ok(html.includes(explanation));
+        if(ownPersonalDraft){
+          // The owner's own personal draft carries no status chip; finishing it is already offered.
+          assert.ok(!html.includes(explanation));
+          assert.match(html,/data-action="finish-deck"/);
+        } else {
+          assert.ok(html.includes(c.deckInProgress));
+          assert.ok(html.includes(explanation));
+        }
         assert.ok(!html.includes(userId===deck.creator.userId?c.deckMayChangeUnadded:c.deckDraftOwnerExplanation));
       }
       assert.ok(deckPageView(state).includes(`data-action="share-deck"`));
