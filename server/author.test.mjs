@@ -12,7 +12,7 @@ import {readProfile,recordCardView} from "./profile-repository.mjs";
 import {readReaderState as readReaderStateAtDate,openDeck,openCard,dailyIdea,changeBookStatus} from "./reader-repository.mjs";
 import {prepareCatalog} from "../app/catalog.mjs";
 import {featuredDecks} from "../app/decks.mjs";
-import {authorView,authorFormView,deckPageView,dailyIdeaView,bookstoreView,deckView} from "../app/views.mjs";
+import {authorFormView,deckPageView,dailyIdeaView,bookstoreView,deckView} from "../app/views.mjs";
 import {bookMetadata} from "./fixtures/book-autofill.mjs";
 import {mergeBooks} from "./book-merge.mjs";
 
@@ -261,7 +261,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const {cardId}=await takeNote(db,session,{requestId:randomUUID(),deckId,isQuote:true,parentId:null,body:"Aujourd’hui, maman est morte."});
     catalog=prepareCatalog(await readCatalog(db,session.user_id));
     assert.equal(Object.hasOwn(catalog.cardsById.get(cardId),"sourceUrl"),false);
-    const html=authorView({...ui,catalog,deckId,requestedId:cardId,mode:"author"});
+    const html=deckPageView({...ui,catalog,deckId,requestedId:cardId,mode:"deck"});
     assert.match(html,/L’Étranger/); assert.match(html,/<blockquote/); assert.doesNotMatch(html,/href="#"|undefined/);
     await openCard(db,session,deckId,cardId,new Date("2026-10-10T12:00:00Z"));
     for (const userId of [undefined,other.user_id]) {
@@ -325,14 +325,14 @@ for (const dialect of ["sqlite","postgres"]) {
     assert.ok(prepareCatalog(await readCatalog(db,other.user_id)).cardsById.has(otherDailyIdea.dailyIdea.id));
     assert.equal("practices" in await readReaderState(db,other,now),false);
     await assert.rejects(takeNote(db,session,{...add("x"),deckId:"seven-habits-editorial"}),e=>e.code==="deckReadOnly");
-    const ui={catalog,deckId,bookId:"seven-habits",language:"es",userId:session.user_id,mode:"author",requestedId:quote.cardId,budget:state.wallet,today:state.today,storageAvailable:true};
-    assert.match(authorView({...ui,requestedId:null}),/Citas sin clasificar/); assert.match(authorView(ui),/<blockquote/);
-    assert.match(authorView(ui),/quote-card/); assert.match(authorView({...ui,quotesOnly:true}),/Texte à mémoriser/);
+    const ui={catalog,deckId,bookId:"seven-habits",language:"es",userId:session.user_id,mode:"deck",requestedId:quote.cardId,budget:state.wallet,today:state.today,storageAvailable:true};
+    assert.match(deckPageView({...ui,requestedId:null}),/Citas sin clasificar/); assert.match(deckPageView(ui),/<blockquote/);
+    assert.match(deckPageView(ui),/quote-card/); assert.match(deckPageView({...ui,quotesOnly:true}),/Texte à mémoriser/);
     assert.match(authorFormView({...ui,authorForm:{kind:"quote",language:"fr"}}),/Citas sin clasificar/);
-    assert.match(deckPageView({...ui,mode:"deck",requestedId:null}),/Citas sin clasificar/);
+    assert.match(deckPageView({...ui,requestedId:null}),/Citas sin clasificar/);
     // Existing saved titles must not reappear in quote views or navigation.
     model.byId.get(quote.cardId).title.fr = "Ancien titre";
-    for (const html of [authorView(ui),deckPageView({...ui,mode:"deck"}),dailyIdeaView({...ui,dailyIdea:{id:quote.cardId,day:"2026-10-06"},dailyIdeaCardId:quote.cardId})]) {
+    for (const html of [deckPageView(ui),dailyIdeaView({...ui,dailyIdea:{id:quote.cardId,day:"2026-10-06"},dailyIdeaCardId:quote.cardId})]) {
       const quoteMarkup=html.match(/<article class="idea-card quote-card">[\s\S]*?<\/article>/)?.[0];
       assert.ok(quoteMarkup); assert.doesNotMatch(quoteMarkup,/<h[1-6]\b/);
       assert.doesNotMatch(html,/Ancien titre/);

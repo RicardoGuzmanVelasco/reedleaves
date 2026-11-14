@@ -465,11 +465,12 @@ function cardMarkup(s, card, heading = "h2", {exclusive = false, actions = exclu
     <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book,{compact,linkBook,showDraftStatus:exclusive})}</div>${actions ? `${cardActionsHost(card)}<button class="primary card-share" type="button" data-action="share-card" data-card="${esc(card.id)}" aria-label="${esc(words[s.language].shareDeck)}" title="${esc(words[s.language].shareDeck)}">${shareIconMarkup}</button>` : ""}</footer></article></div>`;
 }
 
-function exclusiveCardMarkup(s,card,position="",navigation=null) {
+// childNote: {deckId,disabled} adds «Tomar nota» under the card so a note can be taken inside it.
+function exclusiveCardMarkup(s,card,position="",navigation=null,childNote=null) {
   const c=words[s.language],type=cardTypeFor(card);
   const previous=navigation?.previous?`<button class="exclusive-card-step exclusive-card-step--previous" type="button" data-action="previous-reading-card" aria-label="${esc(c.previous)}" title="${esc(c.previous)}">‹</button>`:`<span class="exclusive-card-step-placeholder" aria-hidden="true"></span>`;
   const next=navigation?.next?`<button class="exclusive-card-step exclusive-card-step--next" type="button" data-action="next-reading-card" aria-label="${esc(c.next)}" title="${esc(c.next)}">›</button>`:`<span class="exclusive-card-step-placeholder" aria-hidden="true"></span>`;
-  return `<dialog class="exclusive-card-modal" aria-label="${c.exclusiveCard}"><div class="exclusive-card-shell"><div class="exclusive-card-content"><button class="dialog-close exclusive-card-close" type="button" data-action="close-exclusive" aria-label="${c.closeCard}">${closeIconMarkup}</button><div class="exclusive-card-controls">${previous}<span>${esc(position)}</span>${next}</div>${type.accessibleHeading ? `<h1 class="sr-only">${c[type.accessibleHeading]}</h1>` : ""}${cardMarkup(s,card,"h1",{exclusive:true})}</div></div></dialog>`;
+  return `<dialog class="exclusive-card-modal" aria-label="${c.exclusiveCard}"><div class="exclusive-card-shell"><div class="exclusive-card-content"><button class="dialog-close exclusive-card-close" type="button" data-action="close-exclusive" aria-label="${c.closeCard}">${closeIconMarkup}</button><div class="exclusive-card-controls">${previous}<span>${esc(position)}</span>${next}</div>${type.accessibleHeading ? `<h1 class="sr-only">${c[type.accessibleHeading]}</h1>` : ""}${cardMarkup(s,card,"h1",{exclusive:true})}${childNote ? `<button class="text-button exclusive-card-note" type="button" data-action="take-child-note" data-card="${esc(card.id)}" data-deck="${esc(childNote.deckId)}" aria-haspopup="dialog" ${childNote.disabled ? "disabled" : ""}>${takeNoteIconMarkup}<span>${esc(c.takeNote)}</span></button>` : ""}</div></div></dialog>`;
 }
 
 export function sharedCardView(s) {
@@ -610,13 +611,37 @@ export function bookInterestWarningView(s) {
   </article></dialog>`;
 }
 
-function deckWritingActions(s,deck,className="") {
-  if (!(deck.canContribute ?? s.userId === deck.creator.userId) || deck.status !== "draft") return "";
-  const c=words[s.language];
+function deckCanWrite(s,deck) {
+  return !!s.userId && deck.status === "draft" && !!(deck.canContribute ?? s.userId === deck.creator.userId);
+}
+
+function deckNoteLimitReached(s,deck) {
   const mine=deck.myCardCount ?? s.catalog.deckModels.get(deck.id).cards.filter(card=>card.creatorUserId===s.userId).length;
-  const full=deck.contributionPolicy!=="owner" ? deck.maxCardsPerContributor!==null&&mine>=deck.maxCardsPerContributor : deck.cardCount>=MAX_CARDS_PER_DECK;
-  const owner=s.userId===deck.creator.userId;
-  return `<div class="deck-writing-actions${className ? ` ${className}` : ""}"><button class="text-button note-icon-only" type="button" data-action="take-deck-note" data-deck="${esc(deck.id)}" aria-haspopup="dialog" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}" ${full ? "disabled" : ""}>${takeNoteIconMarkup}</button>${owner?`<button class="text-button" type="button" data-action="author-deck" data-deck="${esc(deck.id)}">${c.manageDeck} →</button>`:""}</div>`;
+  return deck.contributionPolicy!=="owner" ? deck.maxCardsPerContributor!==null&&mine>=deck.maxCardsPerContributor : deck.cardCount>=MAX_CARDS_PER_DECK;
+}
+
+// Writing controls of the single deck page: take a note, and (owner) finish the deck.
+function deckWritingActions(s,deck,className="") {
+  if (!deckCanWrite(s,deck)) return "";
+  const c=words[s.language],owner=s.userId===deck.creator.userId;
+  const finish=owner ? `<button class="text-button finish-deck-action" type="button" data-action="finish-deck" ${deckCannotFinish(s,deck) ? 'disabled aria-describedby="finish-deck-hint"' : ""}>${c.finishDeck}</button>` : "";
+  return `<div class="deck-writing-actions${className ? ` ${className}` : ""}"><button class="text-button note-icon-only" type="button" data-action="take-deck-note" data-deck="${esc(deck.id)}" aria-haspopup="dialog" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}" ${deckNoteLimitReached(s,deck) ? "disabled" : ""}>${takeNoteIconMarkup}</button>${finish}</div>`;
+}
+
+function deckCannotFinish(s,deck) {
+  return !s.catalog.deckModels.get(deck.id).cards.length || !!s.hasPendingNoteDraft;
+}
+
+function deckFinishHint(s,deck) {
+  if (!deckCanWrite(s,deck) || s.userId!==deck.creator.userId || !deckCannotFinish(s,deck)) return "";
+  const c=words[s.language];
+  return `<p class="finish-deck-hint" id="finish-deck-hint">${s.hasPendingNoteDraft ? c.pendingNoteBeforeFinish : c.emptyDeckCannotFinish}</p>`;
+}
+
+function deckContributorManager(s,deck) {
+  if (deck.contributionPolicy!=="selected" || deck.status!=="draft" || deck.creator.userId!==s.userId) return "";
+  const c=words[s.language];
+  return `<section class="deck-contributor-manager" aria-labelledby="deck-contributors-title"><h2 id="deck-contributors-title">${c.deckContributors}</h2><p>${c.deckContributorsHelp}</p><ul>${(deck.contributors||[]).map(person=>`<li><span><bdi>@${esc(person.username)}</bdi></span><button class="text-button" type="button" data-action="remove-deck-contributor" data-user-id="${esc(person.userId)}" aria-label="${esc(c.removeContributor(person.username))}">${esc(c.removeContributor(person.username))}</button></li>`).join("")}</ul><form data-contributor-form><label for="deck-contributor-username">${c.contributorUsername}</label><div class="deck-contributor-add"><input id="deck-contributor-username" name="username" value="${esc(s.deckContributorInput||"")}" maxlength="${USERNAME_MAX_LENGTH+1}" autocomplete="off" required><button class="secondary" type="submit">${c.addContributor}</button></div></form><p class="account-error" role="alert" ${s.deckContributorError?"":"hidden"}>${esc(c[s.deckContributorError]||c.connectionError)}</p></section>`;
 }
 
 function readingGuideTileMarkup(s,deck) {
@@ -688,7 +713,7 @@ function deckBrowsingControls(s) {
 }
 
 function deckPreviewMarkup(s,model,deck) {
-  const c=words[s.language],author=s.mode === "author";
+  const c=words[s.language];
   const columns=[1,2,3,4].includes(s.previewColumns) ? s.previewColumns : 2;
   return `<section class="deck-preview" aria-label="${c.deckPreview}"><ul class="deck-preview-grid" id="deck-preview-grid" data-columns="${columns}">${model.cards.filter(card=>!s.quotesOnly || card.isQuote).map(card=>{
       const type=cardTypeFor(card);
@@ -698,9 +723,8 @@ function deckPreviewMarkup(s,model,deck) {
       const heading=type.showTitle ? `<h2 lang="${esc(titleLanguage)}" dir="auto">${esc(title)}</h2>` : '';
       const body=`<${type.bodyTag} class="idea-body" lang="${esc(contentLocale(card.body,s.language,deck.language))}" dir="auto">${esc(contentText(card.body,s.language,deck.language))}</${type.bodyTag}>`;
       const book=s.catalog.booksById.get(card.bookId),bookName=displayedBookTitle(s,book,true);
-      const takeNoteLabel=`${c.takeNote}: ${title}`;
-      return `<li class="deck-preview-item${author ? ' is-authored' : ''}"><div class="reading-stage" data-card-type="${type.id}"><article class="idea-card" aria-hidden="true"><span class="card-header-icon">${type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${heading}${body}</div><footer class="reading-footer"><span lang="${esc(bookName.language)}" dir="auto">${esc(bookName.text)}</span></footer></article></div>
-        <button class="preview-card-open" type="button" data-action="open-preview-card" data-card="${esc(card.id)}" data-deck="${esc(deck.id)}" aria-haspopup="dialog" aria-label="${esc(label)}"></button>${author ? `<button class="preview-card-note" type="button" data-action="take-child-note" data-card="${esc(card.id)}" data-deck="${esc(deck.id)}" aria-haspopup="dialog" aria-label="${esc(takeNoteLabel)}" title="${esc(takeNoteLabel)}">${takeNoteIconMarkup}</button>` : ''}</li>`;
+      return `<li class="deck-preview-item"><div class="reading-stage" data-card-type="${type.id}"><article class="idea-card" aria-hidden="true"><span class="card-header-icon">${type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${heading}${body}</div><footer class="reading-footer"><span lang="${esc(bookName.language)}" dir="auto">${esc(bookName.text)}</span></footer></article></div>
+        <button class="preview-card-open" type="button" data-action="open-preview-card" data-card="${esc(card.id)}" data-deck="${esc(deck.id)}" aria-haspopup="dialog" aria-label="${esc(label)}"></button></li>`;
     }).join("")}</ul></section>`;
 }
 
@@ -710,7 +734,6 @@ function deckContentMarkup(s,model,deck) {
 
 function treeMapMarkup(s,model,deck) {
   const c = words[s.language];
-  const author = s.mode === "author";
   const containsQuote = card => card.isQuote || (model.children.get(card.id) || []).some(containsQuote);
   const node = card => {
     const title = card.isQuote ? quoteExcerpt(contentText(card.body,s.language,deck.language)) : contentText(card.title,s.language,deck.language);
@@ -718,9 +741,8 @@ function treeMapMarkup(s,model,deck) {
     const accessibleName = title;
     const children = (model.children.get(card.id) || []).filter(c=>!s.quotesOnly || containsQuote(c));
     if (s.quotesOnly && !card.isQuote) return `<li><span class="quote-context">${name}</span>${children.length ? `<ul>${children.map(node).join("")}</ul>` : ""}</li>`;
-    const treeButton=`<button type="button" class="tree-node ${card.isQuote ? "tree-node--quote" : ""} ${author ? "tree-node--author" : ""}" data-action="${author ? "inspect-card" : "open-card"}" data-deck="${esc(deck.id)}" data-card="${esc(card.id)}" aria-label="${esc(accessibleName)}">${name}</button>`;
-    const takeNoteLabel=`${c.takeNote}: ${title}`;
-    return `<li>${author ? `<div class="tree-node-row">${treeButton}<button class="tree-node-note" type="button" data-action="take-child-note" data-card="${esc(card.id)}" data-deck="${esc(deck.id)}" aria-haspopup="dialog" aria-label="${esc(takeNoteLabel)}" title="${esc(takeNoteLabel)}">${takeNoteIconMarkup}</button></div>` : treeButton}
+    const treeButton=`<button type="button" class="tree-node ${card.isQuote ? "tree-node--quote" : ""}" data-action="open-card" data-deck="${esc(deck.id)}" data-card="${esc(card.id)}" aria-label="${esc(accessibleName)}">${name}</button>`;
+    return `<li>${treeButton}
       ${children.length ? `<ul>${children.map(node).join("")}</ul>` : ""}</li>`;
   };
   return `<section class="tree-map" aria-label="${c.treeMap}"><div class="tree-map-viewport"><ul class="mini-tree">${model.roots.filter(c=>!c.isQuote && (!s.quotesOnly || containsQuote(c))).map(node).join("")}${model.roots.some(c=>c.isQuote) ? `<li class="virtual-quotes"><span class="virtual-quotes-title">${c.unclassifiedQuotes}</span><ul>${model.roots.filter(c=>c.isQuote).map(node).join("")}</ul></li>` : ""}</ul></div></section>`;
@@ -744,11 +766,13 @@ export function deckPageView(s) {
   const card=model.byId.get(s.requestedId) || null;
   const shareAction=`<button class="primary share-deck-button" type="button" data-action="share-deck">${shareIconMarkup}<span>${esc(c.shareDeck)}</span></button>`;
   return `<section class="deck-page-screen album-screen"><div class="deck-page-heading"><button class="text-button" type="button" data-action="choose-book">${backLabelMarkup(c.decks)}</button>${shareAction}</div>
-    ${albumSummary(s,deck,model,deckMascotCallout(s,deck.bookId))}
+    ${albumSummary(s,deck,model,deckMascotCallout(s,deck.bookId),true)}
+    ${deckContributorManager(s,deck)}
     <details class="sources deck-information"><summary>${c.deckInformation}</summary><p class="deck-description" lang="${esc(contentLocale(deck.description,s.language,deck.language))}" dir="auto">${esc(contentText(deck.description,s.language,deck.language))}</p>${quoteSourceLink(deck,c)}${deckFactsMarkup(c,deck,deckQuoteCount(s,deck))}</details>
     <div class="deck-page-actions">${s.userId && (s.cardcaseDeckIds||[]).includes(deck.id) ? `<button class="secondary secondary--subtle deck-remove-from-cardcase" type="button" data-action="remove-cardcase-deck" data-deck="${esc(deck.id)}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 5h18M5 9h14M7 13h10M14 19h7"/></svg><span>${esc(c.removeDeckFromCardcase)}</span></button>` : `<div class="deck-page-cardcase"><button class="primary deck-cardcase-primary" type="button" data-action="add-deck-to-cardcase" data-deck="${esc(deck.id)}" ${s.userId&&!s.storageAvailable?"disabled":""}><img src="${imageUrl("/app/assets/icons/sections/decks-add.svg")}" alt="" width="24" height="24"><span>${c.addDeckToCardcase}</span>${deck.creator.userId===s.userId ? "" : priceTag({amount:DECK_ADD_COST,icon:"leaf",label:c.deckAddCost(DECK_ADD_COST)})}</button></div>`}${model.cards.length ? `<button class="secondary secondary--subtle deck-read-action" type="button" data-action="preview-deck" data-deck="${esc(deck.id)}"><span class="cards-read-icon" aria-hidden="true"></span><span>${c.readDeckCards}</span></button>` : ""}</div>
     <div class="content-tools deck-content-tools">${model.cards.length ? deckBrowsingControls(s) : ""}${deckWritingActions(s,deck,"deck-content-edit")}</div>
-    ${model.cards.length ? deckContentMarkup(s,model,deck) : `<div class="empty-state">${c.emptyAuthor}</div>`}${card ? (()=>{const index=model.cards.findIndex(item=>item.id===card.id);return exclusiveCardMarkup(s,card,c.position(index+1,model.cards.length),{previous:model.cards[index-1]?.id,next:model.cards[index+1]?.id});})() : ""}
+    ${deckFinishHint(s,deck)}
+    ${model.cards.length ? deckContentMarkup(s,model,deck) : `<div class="empty-state">${c.emptyAuthor}</div>`}${card ? (()=>{const index=model.cards.findIndex(item=>item.id===card.id);return exclusiveCardMarkup(s,card,c.position(index+1,model.cards.length),{previous:model.cards[index-1]?.id,next:model.cards[index+1]?.id},deckCanWrite(s,deck)?{deckId:deck.id,disabled:deckNoteLimitReached(s,deck)}:null);})() : ""}
     ${s.quotesOnly && model.cards.length && !model.cards.some(card=>card.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}</section>`;
 }
 
@@ -781,19 +805,6 @@ export function savedCardsView(s) {
 function quoteFilter(s) {
   const c=words[s.language];
   return `<div class="segmented-selector card-filter-selector" role="group" aria-label="${c.cardBody}"><button type="button" data-action="filter-all" aria-pressed="${!s.quotesOnly}">${c.allCards}</button><button type="button" data-action="filter-quotes" aria-pressed="${!!s.quotesOnly}">${c.quotesOnly}</button></div>`;
-}
-
-export function authorView(s) {
-  const c=words[s.language],deck=s.catalog.decksById.get(s.deckId),model=s.catalog.deckModels.get(s.deckId);
-  const card=model.byId.get(s.requestedId);
-  const owner=deck.creator.userId===s.userId;
-  const contributorManager=deck.contributionPolicy==="selected"&&deck.status==="draft"&&owner?`<section class="deck-contributor-manager" aria-labelledby="deck-contributors-title"><h2 id="deck-contributors-title">${c.deckContributors}</h2><p>${c.deckContributorsHelp}</p><ul>${(deck.contributors||[]).map(person=>`<li><span><bdi>@${esc(person.username)}</bdi></span><button class="text-button" type="button" data-action="remove-deck-contributor" data-user-id="${esc(person.userId)}" aria-label="${esc(c.removeContributor(person.username))}">${esc(c.removeContributor(person.username))}</button></li>`).join("")}</ul><form data-contributor-form><label for="deck-contributor-username">${c.contributorUsername}</label><div class="deck-contributor-add"><input id="deck-contributor-username" name="username" value="${esc(s.deckContributorInput||"")}" maxlength="${USERNAME_MAX_LENGTH+1}" autocomplete="off" required><button class="secondary" type="submit">${c.addContributor}</button></div></form><p class="account-error" role="alert" ${s.deckContributorError?"":"hidden"}>${esc(c[s.deckContributorError]||c.connectionError)}</p></section>`:"";
-  return `<section class="author-screen album-screen"><div class="deck-page-heading"><button type="button" class="text-button" data-action="choose-book">${backLabelMarkup(c.decks)}</button><button type="button" class="text-button" data-action="enter-deck" data-deck="${esc(deck.id)}" ${!model.cards.length ? "disabled" : ""}>${c.viewDeck} →</button></div>
-    ${albumSummary(s,deck,model,"",true)}
-    ${contributorManager}<div class="author-actions"><button class="primary note-icon-only" type="button" data-action="take-deck-note" data-deck="${esc(deck.id)}" aria-haspopup="dialog" aria-label="${esc(c.takeNote)}" title="${esc(c.takeNote)}" ${deck.contributionPolicy==="owner"&&model.cards.length>=MAX_CARDS_PER_DECK||deck.maxCardsPerContributor!==null&&model.cards.filter(item=>item.creatorUserId===s.userId).length>=deck.maxCardsPerContributor ? "disabled" : ""}>${takeNoteIconMarkup}</button>${owner?`<button class="text-button finish-deck-action" type="button" data-action="finish-deck" ${!model.cards.length || s.hasPendingNoteDraft ? 'disabled aria-describedby="finish-deck-hint"' : ""}>${c.finishDeck}</button>`:""}</div>
-    ${!model.cards.length || s.hasPendingNoteDraft ? `<p class="finish-deck-hint" id="finish-deck-hint">${s.hasPendingNoteDraft ? c.pendingNoteBeforeFinish : c.emptyDeckCannotFinish}</p>` : ""}
-    ${model.cards.length ? `<div class="content-tools deck-content-tools">${deckBrowsingControls(s)}</div>`+deckContentMarkup(s,model,deck) : `<div class="empty-state">${c.emptyAuthor}</div>`}
-    ${s.quotesOnly && model.cards.length && !model.cards.some(c=>c.isQuote) ? `<p class="empty-state">${c.noQuotes}</p>` : ""}${card ? exclusiveCardMarkup(s,card,c.position(model.cards.findIndex(item=>item.id===card.id)+1,model.cards.length)) : ""}</section>`;
 }
 
 export function authorFormView(s) {

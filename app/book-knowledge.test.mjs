@@ -56,7 +56,7 @@ test("visitor pending count never acknowledges or changes its baseline",async()=
 });
 test("bookstore visit spans its book details and ends at another main section",()=>{
   assert.equal(inBookstoreVisit("bookstore","home"),true);
-  for(const mode of ["book","guides","guide-preview","preview","deck","saved","mascots","author"]){
+  for(const mode of ["book","guides","guide-preview","preview","deck","saved","mascots"]){
     assert.equal(inBookstoreVisit(mode,"bookstore"),true);
     assert.equal(inBookstoreVisit(mode,"home"),false);
   }

@@ -15,16 +15,15 @@ function handlerWith(name,nextName,context) {
 
 for(const {name,action,parentId,withinDialog} of [
   {name:"baraja abierta desde el libro",action:"take-deck-note",parentId:null,withinDialog:true},
-  {name:"gestión de la baraja",action:"take-deck-note",parentId:null,withinDialog:false},
+  {name:"la página de la baraja",action:"take-deck-note",parentId:null,withinDialog:false},
   {name:"reanudar un borrador de nota",action:"take-deck-note",parentId:null,withinDialog:false},
-  {name:"tarjeta hija en árbol",action:"take-child-note",parentId:"card-1",withinDialog:false},
-  {name:"tarjeta hija en cuadrícula",action:"take-child-note",parentId:"card-1",withinDialog:false}
+  {name:"la hoja de una tarjeta",action:"take-child-note",parentId:"card-1",withinDialog:true}
 ]) test(`Tomar nota desde ${name} abre el editor`,()=>{
   let opened=null;
   const deck={id:"deck-1",bookId:"book-1",creator:{userId:"reader"},status:"draft"};
   const context={
     catalog:{decksById:new Map([[deck.id,deck]]),deckModels:new Map([[deck.id,{byId:new Map([["card-1",{}]])}]])},
-    snapshot:{user:{id:"reader"}},busy:false,location:{hash:"#author/deck-1"},
+    snapshot:{user:{id:"reader"}},busy:false,location:{hash:"#deck/deck-1"},
     openDeckId:null,openBookId:null,notesCompletion:null,setModalPageLock:{scrollY:()=>64},
     openAuthorForm:(kind,options)=>{opened={kind,options};}
   };

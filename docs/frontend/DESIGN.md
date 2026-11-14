@@ -160,13 +160,13 @@ En castellano, llamar **tarjeta** a cada unidad de contenido; no usar **carta** 
 
 Para iniciar la captura de una idea o cita, usar siempre **Tomar nota / Take a note**, incluidos botones, nombres accesibles, encabezados del editor y título de página. Reutilizar la clave de traducción `takeNote`. Evitar las variantes «Añadir contenido», «Añadir tarjeta» y «Añadir cita» para esta acción. Idea / Cita identifica el tipo dentro del editor; Tarjeta sigue nombrando la unidad de lectura y repaso.
 
-«Tomar nota» abre el editor directamente cuando la baraja ya está determinada. Guardar o cancelar devuelve al punto de partida, conservando vista, filtros, posición y foco. «Gestionar baraja / Manage deck» es el acceso a revisar las notas propias y marcar la baraja como terminada; no es un paso previo para tomar una nota.
+«Tomar nota» abre el editor directamente cuando la baraja ya está determinada. Guardar o cancelar devuelve al punto de partida, conservando vista, filtros, posición y foco. No hay pantalla de gestión aparte: la página de la baraja (`#deck/<id>`) sirve a todos. Quien puede aportar ve «Tomar nota»; el dueño de una baraja en borrador ve además «Terminar baraja» y los ajustes. «Tomar nota» dentro de una nota se hace desde la hoja de esa nota, no desde botones por nodo. `#author/<id>` redirige a `#deck/<id>`.
 
 Si el «+» de Inicio no tiene una baraja propia en borrador, abre el editor de nota directamente. Se avisa de que se creará «Notas de lectura» / «Reading notes». La baraja nace al guardar la primera nota, con el idioma elegido para la app al abrir el editor, independiente del idioma del título popular del libro. No se pide configurar nombre o idioma. Cancelar no crea una baraja vacía.
 
 Borrador describe creación y no privacidad. Guardar comparte el contenido con quienes tienen acceso al catálogo; terminar cierra cambios, no lo hace visible por primera vez. El estado editorial `draft/reviewed` es independiente de `status`. Los nombres internos `deckInProgress` y `notesInProgress` conservan su contrato, pero su copy de creación usa Borrador. Las notas sin guardar solo se recuperan en el navegador y dispositivo donde se conservaron.
 
-En Gestionar baraja, su creador puede corregir el título y el idioma mientras esté en borrador. Cambiar idioma conserva las traducciones ya existentes y actualiza el idioma del texto original cuando no hay traducción de destino.
+En la página de la baraja, su creador puede corregir el título y el idioma mientras esté en borrador. Cambiar idioma conserva las traducciones ya existentes y actualiza el idioma del texto original cuando no hay traducción de destino.
 
 ## Cómo usarla
 

@@ -5,7 +5,7 @@ import {readCatalog} from "../server/catalog-repository.mjs";
 import {seedCatalog} from "../server/seed.mjs";
 import {prepareCatalog} from "./catalog.mjs";
 import {availableDecks,featuredDecks,treeLinks} from "./decks.mjs";
-import {deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,deckPageView,homeView,practiceView,authorView,authorFormView,libraryView,escapeHtml} from "./views.mjs";
+import {deckView,readingGuidesView,readingGuideDeckPreviewView,deckPeekView,deckPageView,homeView,practiceView,authorFormView,libraryView,escapeHtml} from "./views.mjs";
 import {readerState} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
 
@@ -83,7 +83,7 @@ test("Collective draft review UI lets invited contributors add cards without exp
   const state=readerState(catalog,{userId,deckId:deck.id,bookId:deck.bookId,language:"en"});
   const html=deckPageView(state);
   assert.match(html,/data-action="take-deck-note"/);
-  assert.doesNotMatch(html,/data-action="author-deck"|data-action="finish-deck"|data-contributor-form/);
+  assert.doesNotMatch(html,/data-action="finish-deck"|data-contributor-form/);
 });
 test("Deck grid links to one page; every card is visible and openable", async () => {
   const catalog = await fixture(),base = {catalog,language:"es",deckId,bookId:"seven-habits",requestedId:"inside-out-2",storageAvailable:true,userId:"reader",cardcaseDeckIds:[deckId]};
@@ -208,22 +208,12 @@ test("Deck albums show cards without per-deck progress",async()=>{
   const catalog=await fixture(),model=catalog.deckModels.get(deckId),deck=catalog.decksById.get(deckId);
   const card=model.roots[0];
   const base={catalog,language:"es",deckId,bookId:deck.bookId,storageAvailable:true};
-  for (const [mode,view] of [["deck",deckPageView],["author",authorView]]) {
+  for (const [mode,view] of [["deck",deckPageView]]) {
     const state={...base,mode,userId:deck.creator.userId};
     const album=view(state);
     assert.doesNotMatch(album,/tarjetas repasadas|<progress|Repaso completo/);
     assert.match(album,/class="tree-map"/);assert.doesNotMatch(album,/idea-card|blockquote|data-action="home"|aria-current="page"|tree-map-legend/);
-    if(mode === "author") {
-      const noteButtons=album.match(/data-action="take-child-note"/g) || [];
-      assert.equal(noteButtons.length,model.cards.length,"Every authored tree card has a child-note action");
-      for(const card of model.cards) assert.match(album,new RegExp(`data-action="take-child-note" data-card="${card.id}" data-deck="${deckId}"[^>]*aria-label="Tomar nota:`));
-      const grid=view({...state,deckPreview:true});
-      assert.equal((grid.match(/data-action="take-child-note"/g) || []).length,model.cards.length,"Every authored grid card has a child-note action");
-      for(const card of model.cards) assert.match(grid,new RegExp(`data-action="take-child-note" data-card="${card.id}" data-deck="${deckId}"[^>]*aria-label="Tomar nota:`));
-      const parent=model.roots[0];
-      const form=authorFormView({...state,authorForm:{kind:"idea",requestId:"child-note",noteBookId:deck.bookId,noteDeckId:deck.id,parentId:parent.id,title:"",body:"",language:deck.language}});
-      assert.match(form,new RegExp(`<option value="${parent.id}" selected>`),"The parent selected from a card action is preselected in the note form");
-    } else assert.doesNotMatch(album,/data-action="take-child-note"/);
+    assert.doesNotMatch(album,/data-action="take-child-note"/);
     const detail=view({...state,requestedId:card.id});
     const modal=detail.match(/<dialog\b[^>]*class="exclusive-card-modal"[\s\S]*?<\/dialog>/)?.[0];
     assert.ok(modal,"An explicitly opened card has its own exclusive dialog");
@@ -242,21 +232,37 @@ test("Deck albums show cards without per-deck progress",async()=>{
   assert.match(openable,/tree-map/);assert.match(openable,new RegExp(escapeHtml(model.cards.at(-1).body[deck.language])));
 });
 
-test("Draft deck owner can edit its name and language from management",async()=>{
+test("Writers take a note inside a card from its sheet, never from the tree or grid",async()=>{
+  const catalog=await fixture(),deck=catalog.decksById.get(deckId),parent=catalog.deckModels.get(deckId).roots[0];
+  deck.status="draft";
+  const state={catalog,language:"es",deckId,bookId:deck.bookId,storageAvailable:true,mode:"deck",userId:deck.creator.userId};
+  assert.doesNotMatch(deckPageView(state),/data-action="take-child-note"/);
+  assert.doesNotMatch(deckPageView({...state,deckPreview:true}),/data-action="take-child-note"/);
+  const sheet=deckPageView({...state,requestedId:parent.id}).match(/<dialog\b[^>]*class="exclusive-card-modal"[\s\S]*?<\/dialog>/)?.[0];
+  assert.match(sheet,new RegExp(`data-action="take-child-note" data-card="${parent.id}" data-deck="${deckId}"`));
+  assert.doesNotMatch(deckPageView({...state,requestedId:parent.id,userId:"another-reader"}),/data-action="take-child-note"/);
+  deck.status="finished";
+  assert.doesNotMatch(deckPageView({...state,requestedId:parent.id}),/data-action="take-child-note"/);
+  deck.status="draft";
+  const form=authorFormView({...state,authorForm:{kind:"idea",requestId:"child-note",noteBookId:deck.bookId,noteDeckId:deck.id,parentId:parent.id,title:"",body:"",language:deck.language}});
+  assert.match(form,new RegExp(`<option value="${parent.id}" selected>`),"The parent selected from a card action is preselected in the note form");
+});
+
+test("Draft deck owner can edit its name and language from the deck page",async()=>{
   const catalog=await fixture(),deck=catalog.decksById.get(deckId);
   deck.status="draft";
   for(const language of ["es","en"]) {
-    const state=readerState(catalog,{language,deckId,bookId:deck.bookId,userId:deck.creator.userId,mode:"author"});
-    const html=authorView(state);
+    const state=readerState(catalog,{language,deckId,bookId:deck.bookId,userId:deck.creator.userId,mode:"deck"});
+    const html=deckPageView(state);
     assert.match(html,/data-action="edit-deck-title"/);
     assert.match(html,/data-deck-language/);
     assert.match(html,new RegExp(`value="${deck.language}" selected`));
-    const editing=authorView({...state,deckTitleEdit:{title:"Nombre <nuevo>"}});
+    const editing=deckPageView({...state,deckTitleEdit:{title:"Nombre <nuevo>"}});
     assert.match(editing,/name="title" value="Nombre &lt;nuevo&gt;"/);
     assert.match(editing,/data-deck-title-form/);
-    assert.doesNotMatch(authorView({...state,userId:"other"}),/data-action="edit-deck-title"|data-deck-language/);
+    assert.doesNotMatch(deckPageView({...state,userId:"other"}),/data-action="edit-deck-title"|data-deck-language/);
     deck.status="finished";
-    assert.doesNotMatch(authorView(state),/data-action="edit-deck-title"|data-deck-language/);
+    assert.doesNotMatch(deckPageView(state),/data-action="edit-deck-title"|data-deck-language/);
     deck.status="draft";
   }
 });
@@ -337,7 +343,6 @@ test("Draft creation status stays distinct from practice sessions across deck su
     for(const userId of [deck.creator.userId,"another-reader"]){
       const state={...base,userId},explanation=userId===deck.creator.userId?c.deckDraftOwnerExplanation:c.deckMayChangeUnadded;
       const surfaces=[deckPageView(state)];
-      if(userId===deck.creator.userId)surfaces.push(authorView({...state,mode:"author"}));
       for(const html of surfaces){
         assert.ok(html.includes(c.deckInProgress));
         assert.ok(html.includes(explanation));

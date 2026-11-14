@@ -7,7 +7,7 @@ import { readSeed } from "../server/seed.mjs";
 import { readCatalog } from "../server/catalog-repository.mjs";
 import { prepareCatalog, loadCatalog } from "./catalog.mjs";
 import { createBrowserStore, storageKeys } from "./storage.mjs";
-import { dailyIdeaView, deckPageView, bookstoreView, mascotsView, deckView, homeView, authorView } from "./views.mjs";
+import { dailyIdeaView, deckPageView, bookstoreView, mascotsView, deckView, homeView } from "./views.mjs";
 import { readerState } from "../test-support/reader-state.mjs";
 
 async function payload() {
@@ -208,7 +208,7 @@ test("Mascot collection opens from review album and deck selection, not bookstor
   const evergreenReview=deckPageView({...reviewing,growth:{"seven-habits":{added:true,practiceDays:30}}});
   assert.match(evergreenReview,/app\/assets\/mascot\/evergreen\.svg/);
   const first=catalog.allCards.find(card=>card.deckId===version.id);
-  for (const html of [deckPageView({...reviewing,requestedId:first.id}),authorView({...reviewing,requestedId:first.id})]) {
+  for (const html of [deckPageView({...reviewing,requestedId:first.id})]) {
     const modal=html.match(/<dialog class="exclusive-card-modal"[^>]*>([\s\S]*?)<\/dialog>/)?.[1];
     assert.ok(modal);assert.doesNotMatch(modal,/data-action="open-mascots"/);
   }
