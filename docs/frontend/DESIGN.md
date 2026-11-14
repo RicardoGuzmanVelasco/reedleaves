@@ -46,6 +46,44 @@ Fuentes: `app/reader.css` (tokens globales, precios, recomendaciones, respuestas
 - La hoja usa `app/assets/brand/leaf-token.svg`, con dos planos longitudinales de H1: verde `#58BE59` y lima `#B7DE76`.
 - Mantener tratamientos distintos para que cada forma conserve su lectura. Revisarlos también al tamaño de monedero (24–30 px).
 
+## Iconografía de la interfaz nueva (biblia de iconos)
+
+Fuente de verdad del estilo de iconos de la interfaz nueva (`?ui=2`). Los SVG viven en `app/assets/icons/ui2/`; su `README.md` es el catálogo (id, significado, dónde se usa). Esta sección fija las reglas; el catálogo, qué icono hay. Estilo elegido por el dueño del producto: muy redondeado, trazo gordo, perspectiva cuando el concepto es de conjunto, en la línea de SF Symbols (referencias: pila de tarjetas redondeadas, `rectangle.on.rectangle.angled`, libro cerrado).
+
+**Sistema técnico**
+- Rejilla 24×24 (`viewBox="0 0 24 24"`), dibujo dentro de 2–22, aire mínimo entre trazos de ~1 unidad.
+- Un solo trazo de **2,2**, `stroke-linecap="round"`, `stroke-linejoin="round"`, `fill="none"`. Sin esquinas vivas.
+- Radios: 3,5–4,5 en tarjetas, cajas y casas; 2–2,5 solo en libros cerrados.
+- Solo `currentColor`: ningún color fijo. Todos llevan `aria-hidden="true"` y `focusable="false"`; el nombre accesible lo pone el botón. Zona táctil ≥ 44×44 px la da el botón, no el icono.
+- Legibles a 20 px; comprobar también a 16 px. El icono acompaña al texto cuando hay espacio; va solo en controles circulares y filas de acciones.
+- Formas macizas solo como glifo: `quote`, puntos de `more`, triángulo de `practice`.
+
+**Perspectiva y composición**
+- Pila recta (tarjeta delantera y las de detrás asomando por arriba): conceptos de baraja y colección (`deck`, `new-deck`, `finish-deck`, `cardcase`).
+- Dos tarjetas en ángulo: notas y repaso (`take-note`, `practice`). La pila recta y las tarjetas en ángulo no se mezclan: así se distingue una baraja de una nota.
+- Acciones y controles son planos (`close`, `back`, `check`, `share`, …).
+- **Altas con `+`, ediciones con lápiz**, con el mismo marco: tarjeta abajo a la izquierda e insignia arriba a la derecha. `take-note` = dos tarjetas en ángulo con «+»; `edit` = una tarjeta con lápiz; `new-deck` = pila con «+».
+- Un concepto, un icono: una sola aspa para cerrar, una sola familia para volver/anterior/siguiente, un solo marcapáginas (guardar tarjeta). Los libros de estado de lectura son siempre libro, nunca marcapáginas.
+
+**Estados**
+- Activo, una sola lógica: mismo contorno con relleno suave `fill="currentColor"` y `fill-opacity=".28"`. En `practice-active` cubre las dos tarjetas en un solo trazado. Nunca relleno sólido del mismo color que el borde, salvo glifos macizos.
+- Excepción `quote`: glifo macizo; `quote-active` = núcleo macizo con contorno suave al .28, mismo tono que `idea-active`. Si no se distingue a 16 px, basta `quote` en ambos estados.
+- Solo los iconos que alternan estado tienen variante `-active` (pestañas, tipo de tarjeta, guardar, valorar).
+
+**Nombres**
+- ids en kebab-case en inglés, con el término del glosario: `bookstore` (Librería), `library` (Biblioteca), `shelf` (Estantería), `cardcase` (Tarjetero), `deck`, `practice` (Repaso; nunca `review`), `take-note`, `place-under`. Variantes: `-active`, `-alt` (alternativas descartadas no se versionan en el repo).
+
+**Para añadir un icono nuevo**
+1. Comprobar que no existe ya el concepto en el catálogo; reutilizar antes que crear.
+2. Dibujarlo con este sistema y revisarlo junto a sus vecinos de familia (`take-note`, `edit`, `deck`, `new-deck`, `practice` se comparan siempre a la vez).
+3. Verificar legibilidad a 16 y 20 px, en claro y sobre verde oscuro.
+4. Añadir el SVG a `app/assets/icons/ui2/` y su fila al `README.md`.
+5. Si sustituye a uno antiguo, borrar el antiguo.
+
+**Fuera de esta familia** (se mantienen tal cual): banderas de idioma, mascotas, Hoja, Pétalo, racha, arte de marca y emojis de intereses.
+
+**Pendiente de integrar:** `reading-guide` (portada de libro con «i») y la portada de libro sin el ribete interior, aprobados en la propuesta v5 pero aún no copiados a `app/assets/icons/ui2/`; confirmar con el dueño qué borde del libro se quita. Cuando la interfaz nueva reemplace a la vieja, esta carpeta pasa a ser el único conjunto y se borran los iconos antiguos.
+
 ## Modo Repasar
 
 - Conservar el patrón vegetal del reverso en `app/assets/brand/card-back.svg`: aprobado como recurso visual reutilizable en otras superficies. El motivo central usa la mascota oficial estática y sin sombra, ampliada y girada 12° a la izquierda, sobresaliendo de un círculo claro. El marco exterior es crema, del mismo color que el círculo; dos brotes con tallo verticales adornan arriba y abajo. El patrón conserva su posición original y una opacidad del 17 %.

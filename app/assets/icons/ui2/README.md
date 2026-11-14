@@ -1,8 +1,6 @@
-# Familia de iconos · propuesta v4
+# Familia de iconos · interfaz nueva
 
-Previsualización: `index.html`. Generador: `../icons-build-v4.py`. Versiones anteriores intactas en `../icons-proposal-v1/`, `-v2/` y `-v3/`.
-
-`final/` contiene solo los SVG elegidos (principales y sus estados `-active`), con nombre `id.svg`, sin alternativas, listos para copiar a `app/assets/`.
+Catálogo de los iconos de la interfaz nueva. Las reglas del estilo están en `docs/frontend/DESIGN.md`, sección «Iconografía de la interfaz nueva». Esta carpeta contiene solo los SVG elegidos (principales y sus estados `-active`), con nombre `id.svg`, sin alternativas.
 
 ## Sistema
 
