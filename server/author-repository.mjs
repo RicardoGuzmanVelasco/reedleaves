@@ -265,6 +265,42 @@ async function takeNoteInNewDeck(db,session,input) {
   });
 }
 
+// Places a note under another note, or at the root when parentId is null, inside its own personal deck.
+// Allowed after the deck is finished: only the order of notes changes, never their text. It is
+// appended last among its new siblings, and the old siblings close the gap (positions stay 1..N).
+export async function placeNote(db,session,input) {
+  const {cardId,parentId}=input ?? {};
+  const validId=value=>typeof value === "string" && value.length > 0 && value.length <= 256;
+  if (!validId(cardId) || parentId !== null && !validId(parentId)) throw new ApiError(400,"invalidRequest");
+  return transaction(db,async()=>{
+    await lockReaderAccount(db,session.user_id);
+    const found=await db.prepare("SELECT deck_id FROM cards WHERE id=?").get(cardId);
+    if (!found) throw new ApiError(404,"cardUnavailable");
+    // Same deck lock as takeNote and finishDeck, so placing, adding and finishing cannot race.
+    const deck=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db) ? " FOR UPDATE OF d" : ""}`).get(found.deck_id);
+    // Personal decks of the caller only; shared decks keep their order for now.
+    if (!deck || deck.creator_user_id !== session.user_id || deck.contribution_policy !== "owner") throw new ApiError(404,"cardUnavailable");
+    const card=await db.prepare("SELECT id,parent_id,position FROM cards WHERE id=?").get(cardId);
+    if (!card) throw new ApiError(404,"cardUnavailable");
+    if (card.parent_id === parentId) return {deckId:deck.id,cardId,parentId};
+    if (parentId !== null) {
+      if (parentId === cardId || !await db.prepare("SELECT 1 FROM cards WHERE id=? AND deck_id=?").get(parentId,deck.id)) throw new ApiError(400,"invalidParent");
+      const underCard=await db.prepare(`WITH RECURSIVE below(id) AS (
+          SELECT id FROM cards WHERE parent_id=? AND deck_id=?
+          UNION SELECT c.id FROM cards c JOIN below b ON c.parent_id=b.id WHERE c.deck_id=?
+        ) SELECT 1 FROM below WHERE id=?`).get(cardId,deck.id,deck.id,parentId);
+      if (underCard) throw new ApiError(400,"invalidParent");
+    }
+    const siblings="deck_id=? AND (parent_id=? OR (parent_id IS NULL AND CAST(? AS TEXT) IS NULL))";
+    const {position}=await db.prepare(`SELECT COALESCE(MAX(position),0)+1 AS position FROM cards WHERE ${siblings}`).get(deck.id,parentId,parentId);
+    await db.prepare("UPDATE cards SET parent_id=?,position=? WHERE id=?").run(parentId,position,cardId);
+    // Close the gap one step at a time, in order, so the unique order indexes never collide.
+    const gap=await db.prepare(`SELECT id FROM cards WHERE ${siblings} AND position>? ORDER BY position`).all(deck.id,card.parent_id,card.parent_id,card.position);
+    for (const [index,row] of gap.entries()) await db.prepare("UPDATE cards SET position=? WHERE id=?").run(card.position+index,row.id);
+    return {deckId:deck.id,cardId,parentId};
+  });
+}
+
 // Finishing freezes this deck. Existing database triggers enforce immutability.
 export async function finishDeck(db,session,input) {
   if (typeof input.deckId !== "string" || !input.deckId || input.deckId.length > 256) throw new ApiError(400,"invalidRequest");
