@@ -58,6 +58,16 @@ Medido en móvil: el árbol empieza al 73 % de la pantalla, tras ocho bloques. Q
 
 Hacerlo sobre la vista ya fusionada, no antes.
 
+## Interfaz nueva (`?ui=2`)
+
+Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockups (flujo D, alternativa A: esquema de notas con hoja de acciones; una sola pantalla de baraja). Las pantallas nuevas conviven con las viejas tras un parámetro de URL (`?ui=2`); no hay endpoints `/api` nuevos, solo vistas.
+
+- Iconos nuevos: inventario de los actuales y propuesta por icono. Estilo: muy redondeado, trazo grueso, perspectiva cuando proceda (referencias: pila de tarjetas redondeadas y el símbolo `rectangle.on.rectangle.angled` de SF Symbols, con rectángulos superpuestos en ángulo).
+- Familia de iconos aprobada (45 SVG en `app/assets/icons/ui2/`, con su README): `+` para toda alta, lápiz para toda edición, pilas rectas para barajas y tarjetas en ángulo para notas y repaso, activo con contorno más relleno suave, términos del glosario (`practice`, no `review`). Al terminar el cambio de interfaz, esa carpeta pasa a ser el conjunto único.
+- Condición de cierre: cuando estén todas las pantallas nuevas, se activan para todos y se borra de una vez todo lo viejo (vistas, CSS, pruebas, reglas de `DESIGN.md`, el parámetro). Sin variantes sin fecha.
+- Fuera del interruptor, y por decidir una a una: quitar «Seleccionadas» con límite por colaborador, idea del día como opción explícita al terminar, repasar una instantánea de barajas ajenas en borrador, no cobrar hoja por la baraja propia, etiqueta para «terminada».
+- Las fases 1–2 (servidor) no dependen de la interfaz y pueden avanzar en paralelo.
+
 ## Fase 1 — Reorganizar dentro de la baraja
 
 - Cambiar padre y orden. No toca votos, XP, moderación ni idiomas.
