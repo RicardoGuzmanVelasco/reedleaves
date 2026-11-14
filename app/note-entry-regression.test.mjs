@@ -54,3 +54,38 @@ test("Tomar nota desde la ficha de libro abre el editor",()=>{
   assert.equal(opened.options.noteReturn.scrollY,36);
   assert.equal(opened.options.noteReturn.dialogScrollTop,12);
 });
+
+// Un re-render reconstruye los campos del formulario; el cursor debe quedar donde estaba.
+function fakeField(name,{start=0,end=0,scrollTop=0,inForm=true}={}) {
+  const field={
+    name,selectionStart:start,selectionEnd:end,selectionDirection:"forward",scrollTop,focused:false,selection:null,
+    matches:selector=>selector==="input,textarea,select",
+    closest:selector=>selector==="[data-author-form]"&&inForm?{}:null,
+    focus(){this.focused=true;},
+    setSelectionRange(from,to,direction){this.selection=[from,to,direction];}
+  };
+  return field;
+}
+
+test("Un re-render con el formulario abierto devuelve el cursor al cuerpo, no al título",()=>{
+  const oldBody=fakeField("body",{start:12,end:12,scrollTop:40});
+  const main={contains:node=>node===oldBody};
+  const capture=handlerWith("captureAuthorFieldFocus","restoreAuthorFieldFocus",{authorForm:{kind:"idea"},document:{activeElement:oldBody},main});
+  const restore=handlerWith("restoreAuthorFieldFocus","render",{});
+  const saved=capture();
+  assert.equal(saved?.name,"body");
+  const title=fakeField("title"),newBody=fakeField("body");
+  const dialog={querySelectorAll:()=>[title,newBody]};
+  assert.equal(restore(dialog,saved),true);
+  assert.equal(newBody.focused,true);
+  assert.equal(title.focused,false);
+  assert.deepEqual(newBody.selection.slice(0,2),[12,12]);
+  assert.equal(newBody.scrollTop,40);
+});
+
+test("Sin campo del formulario enfocado no se restaura nada y se usa el foco inicial",()=>{
+  const outside=fakeField("search",{inForm:false});
+  const context={authorForm:{kind:"idea"},document:{activeElement:outside},main:{contains:()=>true}};
+  assert.equal(handlerWith("captureAuthorFieldFocus","restoreAuthorFieldFocus",context)(),null);
+  assert.equal(handlerWith("restoreAuthorFieldFocus","render",{})({querySelectorAll:()=>[fakeField("title")]},null),false);
+});

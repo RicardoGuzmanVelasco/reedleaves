@@ -490,7 +490,23 @@ export function startReader({createCardFeatures} = {}) {
     }
     main.innerHTML=markup;
   }
+  // A re-render replaces the form's fields. Remember which one was being typed in so it keeps the caret.
+  function captureAuthorFieldFocus() {
+    const field=document.activeElement;
+    if(!authorForm||!field?.matches?.("input,textarea,select")||!field.name||!field.closest("[data-author-form]")||!main.contains(field))return null;
+    const text=typeof field.selectionStart==="number";
+    return {name:field.name,start:text?field.selectionStart:null,end:text?field.selectionEnd:null,direction:text?field.selectionDirection:null,scrollTop:field.scrollTop};
+  }
+  function restoreAuthorFieldFocus(dialog,saved) {
+    const field=saved&&[...dialog.querySelectorAll("[data-author-form] [name]")].find(item=>item.name===saved.name);
+    if(!field)return false;
+    field.focus({preventScroll:true});
+    if(saved.start!==null&&typeof field.setSelectionRange==="function")try{field.setSelectionRange(saved.start,saved.end,saved.direction||"none");}catch{}
+    field.scrollTop=saved.scrollTop;
+    return true;
+  }
   function render({focus = false} = {}) {
+    const authorFieldFocus=captureAuthorFieldFocus();
     if(!busy&&(busyOverlay||busyMarked||busyOverlayTimer))clearBusyFeedback();
     disposeBookLists();
     disposeDeckPresentation();
@@ -589,7 +605,7 @@ export function startReader({createCardFeatures} = {}) {
       if (isNoteDestination) { positionNoteDestination();dialog.querySelector("button")?.focus({preventScroll:true}); }
       if (authorForm) {
         syncBookFormValidity(dialog.querySelector("[data-author-form]"));
-        dialog.querySelector(authorForm.preview ? "#author-dialog-title" : authorForm.bookId ? '[data-action="autofill-book"]' : "input,textarea")?.focus();
+        if(!restoreAuthorFieldFocus(dialog,authorFieldFocus))dialog.querySelector(authorForm.preview ? "#author-dialog-title" : authorForm.bookId ? '[data-action="autofill-book"]' : "input,textarea")?.focus();
       }
       dialog.addEventListener("cancel",event=>{ event.preventDefault(); close(); });
       dialog.addEventListener("click",event=>{
@@ -1881,8 +1897,9 @@ export function startReader({createCardFeatures} = {}) {
       const sameUser=snapshot.user?.id===state.user?.id;
       const changed = JSON.stringify(state) !== JSON.stringify(snapshot) || (updatedCatalog !== catalog && ["books","decks","cards"].some(key=>JSON.stringify(updatedCatalog?.[key]) !== JSON.stringify(catalog?.[key]))); catalog = updatedCatalog; applyState(state); syncError = null;
       if (sameUser && main.querySelector(".exclusive-card-modal")) {header();updateCardFeatures()}
+      else if (authorForm) header();
       else if (changed || force) { if (["profile","public-library"].includes(mode)) profileData=null; route(false); }
-    } catch(error) { if (generation === syncGeneration) { syncError = error.code;if(main.querySelector(".exclusive-card-modal"))header();else render(); } }
+    } catch(error) { if (generation === syncGeneration) { syncError = error.code;if(main.querySelector(".exclusive-card-modal")||authorForm)header();else render(); } }
   }
   async function load() {
     failed = false; ready = false; render();
