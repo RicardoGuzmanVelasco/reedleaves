@@ -5,20 +5,20 @@ import {imageUrl} from "../image-url.mjs";
 import {icon} from "./icons.mjs";
 import {headerMarkup} from "./shell.mjs";
 
-const REGULAR_COST=3,DISCOUNTED_COST=2;
-// `mode`: practice mode the server starts today; `legacy`: destination in the old interface while the server has no session for it;
-// neither: not available yet (shown dashed, not pressable). `streak`: counts for the daily streak.
+const REGULAR_COST=3;
+// Topic ids are the server's (GET /api/reader/practice/topics). `streak`: counts for the daily streak.
 export const TOPICS={
-  practice:[{id:"mixed",mode:"mixed",icon:"book-stack",streak:true},{id:"reading",mode:"reading"},{id:"read",mode:"read"},{id:"saved",mode:"saved"}],
-  discover:[{id:"dailyDeck",legacy:"#daily-idea",icon:"calendar",streak:true,free:true},{id:"interests",mode:"discover"},{id:"novelties",icon:"new-gift"},{id:"teamPicks",icon:"team-pick"}]
+  practice:[{id:"mixed",icon:"book-stack",streak:true},{id:"reading"},{id:"read"},{id:"saved"}],
+  discover:[{id:"dailyDeck",icon:"calendar",streak:true},{id:"interests"},{id:"novelties",icon:"new-gift"},{id:"teamPicks",icon:"team-pick"}]
 };
 const labelKey={mixed:"practiceMode_mixed",reading:"practiceMode_reading",read:"practiceMode_read",saved:"practiceMode_saved",dailyDeck:"ui2TopicDailyDeck",interests:"ui2TopicInterests",novelties:"ui2TopicNovelties",teamPicks:"ui2TopicTeamPicks"};
 
 // Pure: what the screen shows from the reader state and the streak response (null when it could not be loaded).
-export function repasoData({state,streak}){
+// `topics`: the server's per-topic state ({id,cost,discounted,cards,required,available}), null when it could not be loaded.
+export function repasoData({state,streak,topics=null}){
   const known=!!streak,mixedDone=!!streak?.mixedDoneToday,dailyDeckSeen=!!streak?.dailyCardSeenToday;
   return {userId:state.user?.id,avatarStage:state.readerProgression?.stage||"sprout",wallet:{leaves:state.wallet?.balance??0,petals:state.petals??0},
-    today:state.today,discountMode:state.practiceDiscountMode||null,
+    today:state.today,topics:new Map((topics||[]).map(topic=>[topic.id,topic])),
     streak:{days:streak?.days??0,mixedDone,dailyDeckSeen,completedDays:streak?.completedDays??[],known,pending:known&&!(mixedDone&&dailyDeckSeen)}};
 }
 // The Practice tab shows its badge while today's streak is still available.
@@ -35,17 +35,16 @@ function streakRow(data,c){
     +`<span class="ui2-go" aria-hidden="true">${icon("forward")}</span></button>`;
 }
 
-function price(topic,data,c){
-  if(topic.free||!topic.mode)return "";
-  const discounted=topic.mode===data.discountMode,cost=discounted?DISCOUNTED_COST:REGULAR_COST;
-  return priceTag({amount:cost,icon:"petal",label:c.practicePrice(cost),...(discounted?{originalAmount:REGULAR_COST}:{})});
+function price(info,c){
+  const cost=info?.cost??REGULAR_COST;
+  return priceTag({amount:cost,icon:"petal",label:c.practicePrice(cost),...(info?.discounted?{originalAmount:REGULAR_COST}:{})});
 }
 function topicMarkup(topic,data,c){
-  const name=c[labelKey[topic.id]],available=!!(topic.mode||topic.legacy),owed=topic.streak&&data.streak.known&&!stepState(topic.id,data);
-  const glyph=topic.icon?`<span class="ui2-icon practice-mode-icon" data-icon="${topic.icon}" aria-hidden="true"></span>`:practiceDeckIcon(topic.mode);
-  const attrs=available?` data-ui2="${topic.mode?"practice-start":"practice-legacy"}" data-mode="${esc(topic.mode||"")}" data-href="${esc(topic.legacy||"")}"`:' aria-disabled="true"';
-  const aria=owed?`${name}, ${c.ui2PendingForStreak}`:name;
-  return `<button type="button" class="practice-mode practice-mode--${topic.id}" aria-label="${esc(aria)}"${attrs}><span class="ui2-pack" aria-hidden="true"><span class="practice-mode-pack"><span class="practice-mode-card practice-mode-card--left"></span><span class="practice-mode-card practice-mode-card--right"></span><span class="practice-mode-card practice-mode-card--cover">${glyph}</span></span>${owed?'<span class="navigation-new-badge"></span>':""}</span><span class="practice-mode-label">${esc(name)}</span>${available?price(topic,data,c):""}</button>`;
+  const name=c[labelKey[topic.id]],info=data.topics.get(topic.id),available=info?info.available:true,owed=available&&topic.streak&&data.streak.known&&!stepState(topic.id,data);
+  const glyph=topic.icon?`<span class="ui2-icon practice-mode-icon" data-icon="${topic.icon}" aria-hidden="true"></span>`:practiceDeckIcon(topic.id==="interests"?"discover":topic.id);
+  const attrs=available?` data-ui2="practice-start" data-mode="${topic.id}" data-cost="${info?.cost??REGULAR_COST}"`:' aria-disabled="true"';
+  const aria=!available?`${name}, ${c.practiceNeedMoreCards(info.cards,info.required)}`:owed?`${name}, ${c.ui2PendingForStreak}`:name;
+  return `<button type="button" class="practice-mode practice-mode--${topic.id}" aria-label="${esc(aria)}"${attrs}><span class="ui2-pack" aria-hidden="true"><span class="practice-mode-pack"><span class="practice-mode-card practice-mode-card--left"></span><span class="practice-mode-card practice-mode-card--right"></span><span class="practice-mode-card practice-mode-card--cover">${glyph}</span></span>${owed?'<span class="navigation-new-badge"></span>':""}</span><span class="practice-mode-label">${esc(name)}</span>${available?price(info,c):""}</button>`;
 }
 const box=(kind,title,topics,data,c)=>`<section class="ui2-rp-box ui2-rp-box--${kind}" aria-labelledby="ui2-rp-${kind}"><h2 id="ui2-rp-${kind}">${esc(title)}</h2><div class="ui2-modes">${topics.map(topic=>topicMarkup(topic,data,c)).join("")}</div></section>`;
 

@@ -8,8 +8,9 @@ import {errorModalMarkup} from "./markup.mjs";
 
 const state=(extra={})=>({user:{id:"me"},today:"2026-11-15",wallet:{balance:12},petals:7,practiceDiscountMode:"read",...extra});
 const streak=(extra={})=>({days:5,dailyCardSeenToday:false,mixedDoneToday:false,completedDays:["2026-11-13","2026-11-14"],...extra});
-const render=(language,s,st=state())=>{
-  const c={...words[language],legacy:"/app/"},data=repasoData({state:st,streak:s});
+const topicState=(over={})=>["mixed","reading","read","saved","dailyDeck","interests","novelties","teamPicks"].map(id=>({id,cost:id==="read"?2:3,discounted:id==="read",cards:10,required:5,available:true,...(over[id]||{})}));
+const render=(language,s,st=state(),topics=topicState())=>{
+  const c={...words[language],legacy:"/app/"},data=repasoData({state:st,streak:s,topics});
   return repasoMarkup({data,c,nav:navMarkup({active:"practice",practicePending:streakPending(s),c}),month:"2026-11",language});
 };
 
@@ -32,8 +33,7 @@ for(const language of ["es","en"])test(`Repaso: streak row, two containers, eigh
   assert.match(html,/pricetag--discounted/);                                   // Read is today's offer
   assert.ok(html.includes(c.practicePrice(3)));
   assert.match(html,/practice-mode--dailyDeck[\s\S]*?<\/button>/);
-  assert.doesNotMatch(html.match(/<button[^>]*practice-mode--dailyDeck[\s\S]*?<\/button>/)[0],/pricetag/);   // the deck of the day is free
-  assert.equal(html.match(/aria-disabled="true"/g).length,3);                   // novelties, team picks, and the disabled Social piece
+  assert.equal(html.match(/aria-disabled="true"/g).length,1);                   // only the Social piece: every topic is available here
   assert.doesNotMatch(html,/ui2-empty|practice-choice-mascot/);
 });
 
@@ -47,10 +47,17 @@ test("Repaso: done parts become checks and drop their badges; cold streak is dim
   assert.match(render("es",streak({days:0})),/ui2-rp-streak is-cold/);
 });
 
-test("Topics start the server session for modes the server has, link the old daily deck, and leave the rest disabled",()=>{
+test("Every topic starts the server session with the cost the server announced; unavailable ones are dimmed with the reason",()=>{
   const html=render("es",streak());
-  for(const mode of ["mixed","reading","read","saved","discover"])assert.match(html,new RegExp(`data-ui2="practice-start" data-mode="${mode}"`));
-  assert.match(html,/data-ui2="practice-legacy" data-mode="" data-href="#daily-idea"/);
+  for(const id of ["mixed","reading","read","saved","dailyDeck","interests","novelties","teamPicks"])assert.match(html,new RegExp(`data-ui2="practice-start" data-mode="${id}" data-cost="${id==="read"?2:3}"`));
+  assert.doesNotMatch(html,/practice-legacy/);
+  const dimmed=render("es",streak(),state(),topicState({novelties:{available:false,cards:1,required:5},dailyDeck:{available:false,cards:0,required:5}}));
+  const novelties=dimmed.match(/<button[^>]*practice-mode--novelties[\s\S]*?<\/button>/)[0];
+  assert.match(novelties,/aria-disabled="true"/);assert.doesNotMatch(novelties,/data-ui2|pricetag/);
+  assert.ok(novelties.includes(words.es.practiceNeedMoreCards(1,5)));
+  assert.equal(dimmed.match(/navigation-new-badge/g).length,2);                   // an unavailable topic carries no badge; mixed + the tab remain
+  const unknown=render("es",streak(),state(),null);                                // endpoint down: nothing is blocked, regular price
+  assert.equal(unknown.match(/data-ui2="practice-start"/g).length,8);
 });
 
 for(const language of ["es","en"])test(`Calendar marks the days the server lists and cannot go past the current month (${language})`,()=>{

@@ -22,7 +22,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // `legacy`: URL of the old interface, for destinations not built yet.
   const c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let session,reader,catalog,sheetState=null,form=null,failure=null,busy=false,practicePending=false,streak=null,calendarMonth=null,toast=null,toastTimer=null;
+  let session,reader,catalog,sheetState=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null;
   const drafts=createNoteDrafts(store),observeXp=createReaderXpTracker();
   let xpFeedback=null;
   try{xpFeedback=mountReaderXpFeedback(doc,()=>language,dialog=>dialog.showModal());}catch{xpFeedback=null;}
@@ -110,7 +110,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(form){paint(formScreen());return;}
     if(where.name==="library"){paint(withError(shellMarkup({body:deckListMarkup({decks:ownDecks(catalog,session.user.id),c,titleOf}),nav:navMarkup({active:"library",practicePending,c})})));return;}
     if(where.name==="practice"){
-      const data=repasoData({state:reader,streak}),month=calendarMonth||(reader.today||"").slice(0,7);
+      const data=repasoData({state:reader,streak,topics}),month=calendarMonth||(reader.today||"").slice(0,7);
       let html=repasoMarkup({data,c,nav:navMarkup({active:"practice",practicePending,c}),month,language});
       if(sheetState?.type==="calendar")html+=calendarSheetMarkup({data,month,c,language});
       paint(withError(html));return;
@@ -136,7 +136,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   // The Practice badge shows while today's streak is still available; the rule is the server's (GET /api/progress/streak).
   const loadStreak=()=>api.request("/api/progress/streak").then(result=>{streak=result;practicePending=streakPending(result);},()=>{streak=null;practicePending=false;});
-  async function reload(){[catalog,reader]=await Promise.all([loadCatalog(),api.request("/api/reader/state")]);await loadStreak();}
+  const loadTopics=()=>api.request("/api/reader/practice/topics").then(result=>{topics=result.topics;},()=>{topics=null;});
+  async function reload(){[catalog,reader]=await Promise.all([loadCatalog(),api.request("/api/reader/state")]);await Promise.all([loadStreak(),loadTopics()]);}
   async function run(task){
     if(busy)return;busy=true;failure=null;
     try{await task();}catch(caught){failure=caught?.code?caught:{code:"connectionError"};}
@@ -145,8 +146,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   const leaveForm=back=>{form=null;failure=null;if(back&&win.location.hash!==back)win.location.hash=back;else render();};
 
   // The server starts the session; the old interface restores it and shows it (the new session screen is pending).
-  function startPractice(mode){
-    const cost=mode===reader.practiceDiscountMode?2:3;
+  function startPractice(mode,cost){
     run(async()=>{
       let result;
       try{result=await api.request("/api/reader/practice/start",{practiceMode:mode,sessionId:reader.activePracticeSession?.id||null,expectedCost:cost});}
@@ -202,8 +202,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(action==="calendar-open"){sheetState={type:"calendar"};render();}
     else if(action==="calendar-month"){calendarMonth=target.dataset.month;render();}
     else if(action==="sheet-close"){main.querySelector("dialog")?.close();}
-    else if(action==="practice-legacy"){win.location.assign(`${c.legacy}${target.dataset.href}`);}
-    else if(action==="practice-start"){startPractice(target.dataset.mode);}
+    else if(action==="practice-start"){startPractice(target.dataset.mode,Number(target.dataset.cost)||3);}
     else if(action==="retry"){failure=null;submit();}
     else if(action==="home-note"){win.location.hash=target.dataset.deck?`#deck/${encodeURIComponent(target.dataset.deck)}/note`:`#book/${encodeURIComponent(target.dataset.book)}/note`;}
     else if(action==="toast-deck"){toast=null;win.location.hash=`#deck/${encodeURIComponent(target.dataset.deck)}`;}
@@ -234,10 +233,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     sheetState=null;form=null;failure=null;
     if(toast&&!["","#home"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
     render();
-    if(route().name==="practice")Promise.all([loadStreak(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{if(route().name==="practice"&&!form)render();});
+    if(route().name==="practice")Promise.all([loadStreak(),loadTopics(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{if(route().name==="practice"&&!form)render();});
   });
 
-  try{session=await api.request("/api/session");catalog=await loadCatalog();if(session.user){reader=await api.request("/api/reader/state");await loadStreak();}}
+  try{session=await api.request("/api/session");catalog=await loadCatalog();if(session.user){reader=await api.request("/api/reader/state");await Promise.all([loadStreak(),loadTopics()]);}}
   catch{main.innerHTML=`<p class="ui2-msg" role="alert">${c.connectionError}</p>`;return;}
   render();
 }
