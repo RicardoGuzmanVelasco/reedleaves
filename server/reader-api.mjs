@@ -4,6 +4,7 @@ import {readProfile,readProfileBookshelf,recordCardView} from "./profile-reposit
 import {ApiError} from "./errors.mjs";
 import {readCardContexts} from "./catalog-repository.mjs";
 import {readReaderState,readReaderBalances,readReaderHomeBooks,openDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeBookStatus,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
+import {readDailyStreak} from "./daily-streak.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 
 import {createBook,createDeck,addDeckContributors,changeDeckLanguage,changeDeckTitle,takeNote,placeNote,editNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
@@ -54,6 +55,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       ["/api/reader/book-knowledge/visit",["POST"]],
       ["/api/reader/interests/knowledge/snapshot",["POST"]],["/api/reader/interests/knowledge/recognize",["POST"]],
       ["/api/reader/open",["POST"]],["/api/reader/book-status",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily-idea",["POST"]],["/api/reader/daily-idea-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]]]);
+    routes.set("/api/progress/streak",["GET","HEAD"]);
     routes.set("/api/reader/guides",["POST"]);
     routes.set("/api/reader/guide-reviews",["GET","HEAD"]);
     routes.set("/api/reader/guide-reviews/count",["GET","HEAD"]);
@@ -117,6 +119,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       if (path === "/api/reader/practice/discover-availability" && ["GET","HEAD"].includes(request.method)) {
         send(200,await readDiscoverPracticeAvailability(db,session)); return true;
       }
+      if (path === "/api/progress/streak") { send(200,await readDailyStreak(db,session,time)); return true; }
       if (path === "/api/reader/daily-idea-status") { send(200,await dailyIdeaStatus(db,session,time)); return true; }
       if (cardVotesMatch) { send(200,await readCardVotes(db,session,decodeURIComponent(cardVotesMatch[1]))); return true; }
       if (cardActionsMatch) { send(200,await readCardActions(db,session,decodeURIComponent(cardActionsMatch[1]))); return true; }

@@ -133,6 +133,14 @@ test("Practice start distinguishes legacy retry, canceled identity, and an expli
   assert.equal(db.prepare("SELECT count(*) AS n FROM practice_sessions WHERE user_id=?").get(userId).n,2);
   assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,10-explicit.body.session.cost);
 });
+test("Daily streak endpoint is private and returns the streak contract",async t=>{
+  const {call,register}=await fixture(t);
+  assert.equal((await call("/api/progress/streak")).status,401);
+  const {headers}=await register("streak.reader");
+  const result=await call("/api/progress/streak",undefined,headers);
+  assert.equal(result.status,200);
+  assert.deepEqual(result.body,{days:0,ideaSeenToday:false,mixedDoneToday:false,completedDays:[]});
+});
 test("Daily idea status is private and never assigns the day's card",async t=>{
   const {call,register,db}=await fixture(t);
   assert.equal((await call("/api/reader/daily-idea-status")).status,401);
