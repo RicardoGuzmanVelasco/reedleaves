@@ -356,7 +356,7 @@ CREATE TABLE practice_answers (
 CREATE TABLE practice_sessions (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
-  practice_mode TEXT NOT NULL CHECK(practice_mode IN ('reading','read','saved','mixed','discover')),
+  practice_mode TEXT NOT NULL CHECK(practice_mode IN ('reading','read','saved','mixed','dailyDeck','interests','novelties','teamPicks')),
   card_ids TEXT NOT NULL,
   card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
   cost INTEGER NOT NULL CHECK(cost IN (2,3)),
@@ -410,4 +410,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 67;
+PRAGMA user_version = 68;

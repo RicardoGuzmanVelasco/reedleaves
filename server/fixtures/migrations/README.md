@@ -49,3 +49,5 @@ Fixtures v55/v47: extraídos de `163480b`, con las constantes de aplicación res
 Fixtures v60 (SQLite) y v52 (PostgreSQL): esquemas anteriores a la migración del vocabulario terminado (`finished`), copiados del esquema vigente antes de cambiarlo, con las constantes de aplicación resueltas.
 
 Fixtures v66 (SQLite) y v58 (PostgreSQL): esquemas anteriores al renombrado de `decks.status` `draft` a `in_progress`, copiados del esquema vigente (7b30667) antes de cambiarlo, con las constantes de aplicación resueltas.
+
+Fixtures v67 (SQLite) y v59 (PostgreSQL): esquemas anteriores a los topics de Repaso (`practice_mode` pasa a `reading, read, saved, mixed, dailyDeck, interests, novelties, teamPicks`; `discover` se renombra `interests`), copiados del esquema vigente antes de cambiarlo, con las constantes de aplicación resueltas.

@@ -13,11 +13,12 @@ import {readerLanguagePreferencesInside} from "./reader-language-preferences.mjs
 import {practiceDeckIds} from "./practice-card-access.mjs";
 import {discoverPracticeCandidateContext,selectDiscoverPracticeForReader} from "./discover-practice.mjs";
 
-import {PRACTICE_ENABLED_MODES} from "../app/practice-modes.mjs";
-
-export const PRACTICE_SCHEMA_MODES=["reading","read","saved","mixed","discover"];
-export {PRACTICE_ENABLED_MODES} from "../app/practice-modes.mjs";
-// Keep the existing name for discount selection and callers that enumerate active modes.
+import {dailyCardCandidates,ensureDailyCardInside,dailyDeckCardIds,recordDailyCardViewInside,DAILY_DECK_SIZE} from "./daily-deck.mjs";
+// Stable Repaso topic ids, stored in practice_sessions.practice_mode. "discover" is the
+// legacy id of "interests" and is still accepted when starting a session.
+export const PRACTICE_TOPICS=Object.freeze(["mixed","reading","read","saved","dailyDeck","interests","novelties","teamPicks"]);
+export const PRACTICE_ENABLED_MODES=PRACTICE_TOPICS;
+const LEGACY_TOPICS={discover:"interests"};
 export const PRACTICE_BASE_COST=3;
 export const PRACTICE_DISCOUNT_COST=2;
 export const PRACTICE_SESSION_SIZE=5;
@@ -26,7 +27,7 @@ const COMPLETED_PRACTICE_XP=25;
 const timestampText=value=>value instanceof Date?value.toISOString():String(value||"");
 export function practiceDiscountMode(userId,seedTimestamp) {
   const hash=createHash("sha256").update(`${userId}\0${timestampText(seedTimestamp)}`).digest();
-  return PRACTICE_ENABLED_MODES[hash.readUInt32BE(0)%PRACTICE_ENABLED_MODES.length];
+  return PRACTICE_TOPICS[hash.readUInt32BE(0)%PRACTICE_TOPICS.length];
 }
 
 async function currentDiscount(db,userId) {
@@ -44,19 +45,50 @@ function sessionFromRow(row) {
     languageSnapshot,startedAt:timestampText(row.started_at),completedAt:row.completed_at?timestampText(row.completed_at):null};
 }
 
-async function availableCards(db,userId,practiceMode,languages=null) {
-  if(practiceMode==="discover") return (await discoverPracticeCandidateContext(db,userId,languages)).cards;
+async function practiceContext(db,userId) {
   const catalog=prepareCatalog(await readCatalog(db,userId));
-  const statuses=new Map((await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(row=>[row.book_id,row.status]));
-  const cardcaseDeckIds=new Set((await db.prepare("SELECT deck_id FROM cardcase_decks WHERE user_id=?").all(userId)).map(row=>row.deck_id));
-  const saved=new Set((await db.prepare("SELECT card_id FROM card_saves WHERE user_id=?").all(userId)).map(row=>row.card_id));
-  const access=await practiceDeckIds(db,userId);
+  const [statusRows,cardcaseRows,savedRows,knownRows,access]=await Promise.all([
+    db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId),
+    db.prepare("SELECT deck_id FROM cardcase_decks WHERE user_id=?").all(userId),
+    db.prepare("SELECT card_id FROM card_saves WHERE user_id=?").all(userId),
+    db.prepare("SELECT book_id FROM reader_known_books WHERE user_id=?").all(userId),
+    practiceDeckIds(db,userId)
+  ]);
+  return {catalog,access,statuses:new Map(statusRows.map(row=>[row.book_id,row.status])),cardcaseDeckIds:new Set(cardcaseRows.map(row=>row.deck_id)),
+    saved:new Set(savedRows.map(row=>row.card_id)),knownBookIds:new Set(knownRows.map(row=>row.book_id))};
+}
+
+// Candidate cards of the topics drawn from the reader's own state or the catalog.
+// "dailyDeck" and "interests" have their own composition and are not handled here.
+function topicCards(context,topic,languages=null) {
+  const {catalog,access,statuses,cardcaseDeckIds,saved,knownBookIds}=context;
   return catalog.allCards.filter(card=>{
     if(card.isReadingGuide||!access.has(card.deckId)||languages&&!languages.includes(effectiveCardLanguage(card))) return false;
+    if(topic==="novelties") return !knownBookIds.has(card.bookId);
+    if(topic==="teamPicks") return !!catalog.decksById.get(card.deckId)?.isRecommended;
     const status=statuses.get(card.bookId)||"unread",isSaved=saved.has(card.id);
     const inCardcase=cardcaseDeckIds.has(card.deckId),isReadingBook=inCardcase&&status==="reading",isReadBook=inCardcase&&status==="read";
-    return practiceMode==="reading"?isReadingBook:practiceMode==="read"?isReadBook:practiceMode==="saved"?isSaved:isReadingBook||isReadBook||isSaved;
+    return topic==="reading"?isReadingBook:topic==="read"?isReadBook:topic==="saved"?isSaved:isReadingBook||isReadBook||isSaved;
   });
+}
+
+async function availableCards(db,userId,topic,languages=null) {
+  if(topic==="interests") return (await discoverPracticeCandidateContext(db,userId,languages)).cards;
+  return topicCards(await practiceContext(db,userId),topic,languages);
+}
+
+// Cards and counts of a topic. The caller owns the account lock and the transaction.
+async function selectTopic(db,userId,topic,{languages,answers,day,context}) {
+  if(topic==="dailyDeck") {
+    const {ids,todayCardId}=await dailyDeckCardIds(db,day);
+    return {cardIds:ids,available:ids.length,required:1,todayCardId};
+  }
+  if(topic==="interests") {
+    const discovery=await selectDiscoverPracticeForReader(db,userId,{languages,answers,count:PRACTICE_SESSION_SIZE});
+    return {cardIds:discovery.selected.map(card=>card.id),available:discovery.available,required:PRACTICE_SESSION_SIZE};
+  }
+  const cards=topicCards(context||await practiceContext(db,userId),topic,languages);
+  return {cardIds:cards.length>=PRACTICE_SESSION_SIZE?selectPracticeCards(cards,answers,PRACTICE_SESSION_SIZE).map(card=>card.id):[],available:cards.length,required:PRACTICE_SESSION_SIZE};
 }
 
 async function refundCancelledSession(db,userId,cost,now) {
@@ -95,9 +127,11 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
     session.languageSnapshot=snapshot;
     await db.prepare("UPDATE practice_sessions SET language_snapshot=? WHERE id=? AND language_snapshot IS NULL").run(JSON.stringify(snapshot),active.id);
   }
+  // Only the daily deck may be shorter than five cards (young history).
+  const size=session.practiceMode==="dailyDeck"&&Array.isArray(cardIds)&&cardIds.length>=1&&cardIds.length<=PRACTICE_SESSION_SIZE?cardIds.length:PRACTICE_SESSION_SIZE;
   const prefix=Array.isArray(cardIds)?cardIds.slice(0,session.index):[];
   // Never rewrite the answered prefix. A malformed prefix cannot safely be repaired.
-  if(!Array.isArray(cardIds)||cardIds.length!==PRACTICE_SESSION_SIZE||session.index<0||session.index>=PRACTICE_SESSION_SIZE||
+  if(!Array.isArray(cardIds)||cardIds.length!==size||session.index<0||session.index>=size||
     prefix.length!==session.index||prefix.some((id,index)=>typeof id!=="string"||cardByPosition.get(index)?.card_id!==id)) {
     const cancelled=await db.prepare("UPDATE practice_sessions SET cancelled_at=? WHERE id=? AND cancelled_at IS NULL").run(now.toISOString(),active.id);
     if(cancelled.changes!==1) throw new Error("Practice session cancellation lost its lock");
@@ -105,9 +139,9 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
     return {session:null,recovery:"cancelled",sessionId:active.id,practiceMode:active.practice_mode};
   }
 
-  const seen=new Set(prefix),pending=new Array(PRACTICE_SESSION_SIZE-session.index).fill(null);
-  let changed=rows.some(row=>Number(row.position)>=PRACTICE_SESSION_SIZE);
-  for(let position=session.index;position<PRACTICE_SESSION_SIZE;position++) {
+  const seen=new Set(prefix),pending=new Array(size-session.index).fill(null);
+  let changed=rows.some(row=>Number(row.position)>=size);
+  for(let position=session.index;position<size;position++) {
     const id=cardIds[position],row=cardByPosition.get(position);
     // Purchased cards survive Cardcase and deck-state changes.
     const valid=row?.card_id===id&&row.existing_card_id===id&&row.existing_deck_id&&!row.is_reading_guide&&!seen.has(id);
@@ -117,7 +151,8 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   if(!changed) return {session,recovery:null};
 
   let replacementIds;
-  if(session.practiceMode==="discover") {
+  if(session.practiceMode==="dailyDeck") replacementIds=[];
+  else if(session.practiceMode==="interests") {
     const answers=Object.fromEntries((await db.prepare("SELECT card_id,answer FROM practice_answers WHERE user_id=?").all(userId)).map(row=>[row.card_id,row.answer]));
     const missing=pending.filter(id=>id===null).length;
     replacementIds=(await selectDiscoverPracticeForReader(db,userId,{languages:session.languageSnapshot,answers,count:missing,excludeCardIds:[...seen]})).selected.map(card=>card.id);
@@ -141,17 +176,17 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
 
   const repairedIds=[...prefix,...pending];
   await db.prepare("DELETE FROM practice_session_cards WHERE session_id=? AND position>=?").run(active.id,session.index);
-  for(let position=session.index;position<PRACTICE_SESSION_SIZE;position++) {
+  for(let position=session.index;position<size;position++) {
     await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)").run(active.id,repairedIds[position],position);
   }
   await db.prepare("UPDATE practice_sessions SET card_ids=? WHERE id=?").run(JSON.stringify(repairedIds),active.id);
   return {session:{...session,cardIds:repairedIds},recovery:"repaired",sessionId:active.id};
 }
 
-export async function startPracticeSession(db,session,practiceMode,now=new Date(),expectedSessionId,expectedCost) {
-  if(!PRACTICE_SCHEMA_MODES.includes(practiceMode)||(expectedSessionId!==undefined&&expectedSessionId!==null&&(typeof expectedSessionId!=="string"||!expectedSessionId))) throw new ApiError(400,"invalidRequest");
+export async function startPracticeSession(db,session,requestedMode,now=new Date(),expectedSessionId,expectedCost) {
+  const practiceMode=LEGACY_TOPICS[requestedMode]||requestedMode;
+  if(!PRACTICE_TOPICS.includes(practiceMode)||(expectedSessionId!==undefined&&expectedSessionId!==null&&(typeof expectedSessionId!=="string"||!expectedSessionId))) throw new ApiError(400,"invalidRequest");
   if(expectedCost!==undefined&&![PRACTICE_BASE_COST,PRACTICE_DISCOUNT_COST].includes(expectedCost)) throw new ApiError(400,"invalidRequest");
-  if(!PRACTICE_ENABLED_MODES.includes(practiceMode)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     const userId=session.user_id;
     await lockReaderAccount(db,userId);
@@ -173,23 +208,25 @@ export async function startPracticeSession(db,session,practiceMode,now=new Date(
 
     const preferences=await readerLanguagePreferencesInside(db,userId),languages=preferences.languages;
     const answers=Object.fromEntries((await db.prepare("SELECT card_id,answer FROM practice_answers WHERE user_id=?").all(userId)).map(row=>[row.card_id,row.answer]));
-    const discovery=practiceMode==="discover"?await selectDiscoverPracticeForReader(db,userId,{languages,answers,count:PRACTICE_SESSION_SIZE}):null;
-    const cards=discovery?[]:await availableCards(db,userId,practiceMode,languages),available=discovery?discovery.available:cards.length;
-    if(available<PRACTICE_SESSION_SIZE) return {reason:"notEnoughCards",practiceMode,available,required:PRACTICE_SESSION_SIZE,balance:wallet.balance};
+    const day=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea);
+    if(practiceMode==="dailyDeck") await ensureDailyCardInside(db,userId,day);
+    const topic=await selectTopic(db,userId,practiceMode,{languages,answers,day}),available=topic.available;
+    if(available<topic.required) return {reason:"notEnoughCards",practiceMode,available,required:topic.required,balance:wallet.balance};
     const discountMode=await currentDiscount(db,userId),cost=practiceMode===discountMode?PRACTICE_DISCOUNT_COST:PRACTICE_BASE_COST;
     if(expectedCost!==undefined&&expectedCost!==cost) return {reason:"practicePriceChanged",practiceMode,cost,discountMode,balance:wallet.balance};
     if(wallet.balance<cost) return {reason:"insufficientPetals",practiceMode,cost,balance:wallet.balance};
-    const selected=discovery?discovery.selected:selectPracticeCards(cards,answers,PRACTICE_SESSION_SIZE);
     const spent=await db.prepare("UPDATE petal_wallets SET balance=balance-? WHERE user_id=? AND balance>=?").run(cost,userId,cost);
     if(spent.changes!==1) throw new ApiError(409,"insufficientPetals");
-    const id=randomUUID(),startedAt=now.toISOString(),cardIds=selected.map(card=>card.id);
+    const id=randomUUID(),startedAt=now.toISOString(),cardIds=topic.cardIds;
     await db.prepare("INSERT INTO practice_sessions(id,user_id,practice_mode,card_ids,card_index,cost,started_at,language_snapshot) VALUES (?,?,?,?,0,?,?,?)")
       .run(id,userId,practiceMode,JSON.stringify(cardIds),cost,startedAt,JSON.stringify(languages));
     for (const [position,cardId] of cardIds.entries()) {
       await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)")
         .run(id,cardId,position);
     }
-    return {session:{id,practiceMode,cardIds,index:0,cost,startedAt,completedAt:null,languageSnapshot:languages},discountMode,balance:wallet.balance-cost};
+    // Showing today's card first marks the daily card as seen.
+    const xpReward=topic.todayCardId?await recordDailyCardViewInside(db,userId,topic.todayCardId,day):null;
+    return {session:{id,practiceMode,cardIds,index:0,cost,startedAt,completedAt:null,languageSnapshot:languages},discountMode,balance:wallet.balance-cost,...(xpReward?{xpReward}:{})};
   });
 }
 
@@ -212,7 +249,7 @@ export async function answerPracticeSession(db,session,input,now=new Date()) {
     if(input.index!==current.index||current.cardIds[current.index]!==input.cardId) return {
       session:current,practiceRecovery:{status:"repaired",practiceMode:current.practiceMode},sessionId:current.id
     };
-    const answeredAt=now.toISOString(),nextIndex=current.index+1,completedAt=nextIndex===PRACTICE_SESSION_SIZE?answeredAt:null;
+    const answeredAt=now.toISOString(),nextIndex=current.index+1,completedAt=nextIndex===current.cardIds.length?answeredAt:null;
     const account=completedAt ? await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id) : null;
     const completedLocalDay=account ? dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.mascotGrowth) : null;
     await db.prepare(`INSERT INTO practice_answers(user_id,card_id,answer,answered_at) VALUES (?,?,?,?)
@@ -224,5 +261,29 @@ export async function answerPracticeSession(db,session,input,now=new Date()) {
       eventKey:`practice_session:${input.sessionId}`,rewardType:"practice_session",amount:COMPLETED_PRACTICE_XP
     }) : null;
     return {session:{...current,index:nextIndex,completedAt},...(reward?.awarded?{xpReward:{amount:reward.awarded,balance:reward.balance}}:{})};
+  });
+}
+
+// Read-only state of the eight Repaso topics: price with the daily offer applied and availability.
+export async function readPracticeTopics(db,session) {
+  if(!session?.user_id) throw new ApiError(401,"signInRequired");
+  return transaction(db,async()=>{
+    const userId=session.user_id;
+    await lockReaderAccount(db,userId);
+    const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(userId);
+    if(!account) throw new ApiError(401,"signInRequired");
+    const languages=(await readerLanguagePreferencesInside(db,userId)).languages,discountMode=await currentDiscount(db,userId);
+    const context=await practiceContext(db,userId),day=dailyCycleDay(account.time_zone,new Date(),DAILY_CYCLE_STARTS.dailyIdea);
+    const topics=[];
+    for(const id of PRACTICE_TOPICS) {
+      const result=id==="interests"
+        ?{available:(await selectDiscoverPracticeForReader(db,userId,{languages,count:0})).available,required:PRACTICE_SESSION_SIZE}
+        :await selectTopic(db,userId,id,{languages,answers:{},day,context});
+      // Today's card is assigned when the daily deck starts, so count it here too.
+      if(id==="dailyDeck"&&!result.todayCardId&&result.available<DAILY_DECK_SIZE&&dailyCardCandidates(context.catalog).length) result.available++;
+      const discounted=id===discountMode;
+      topics.push({id,cost:discounted?PRACTICE_DISCOUNT_COST:PRACTICE_BASE_COST,discounted,cards:result.available,required:result.required,available:result.available>=result.required});
+    }
+    return {topics,discountTopic:discountMode};
   });
 }

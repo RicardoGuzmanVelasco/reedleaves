@@ -221,14 +221,14 @@ test("Discover exposes authenticated availability and starts an enabled session 
   assert.equal(availability.required,5);
   assert.ok(availability.available>=availability.required);
   const userId=state.user.id,walletBefore=db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance;
-  const expectedCost=state.practiceDiscountMode==="discover"?2:3;
+  const expectedCost=state.practiceDiscountMode==="interests"?2:3;
   const changed=await fetch(base+"/api/reader/practice/start",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify({practiceMode:"discover",expectedCost:expectedCost===2?3:2})});
   assert.equal(changed.status,200);const quote=await changed.json();assert.equal(quote.reason,"practicePriceChanged");
   assert.equal(quote.state.practiceDiscountMode,state.practiceDiscountMode);
   assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,walletBefore);
   const purchased=await fetch(base+"/api/reader/practice/start",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify({practiceMode:"discover",expectedCost})});
   assert.equal(purchased.status,200);
-  const bought=await purchased.json();assert.equal(bought.session.practiceMode,"discover");assert.equal(bought.session.cardIds.length,5);
+  const bought=await purchased.json();assert.equal(bought.session.practiceMode,"interests");assert.equal(bought.session.cardIds.length,5);
   // The cards arrive with their books and decks, so the screen does not need the catalog.
   assert.deepEqual(bought.context.cards.map(card=>card.id),bought.session.cardIds);
   assert.ok(bought.context.cards.every(card=>bought.context.books.some(book=>book.id===card.bookId)&&bought.context.decks.some(deck=>deck.id===card.deckId)));
@@ -418,7 +418,7 @@ test("An unfinished practice can be resumed without the catalog: only the reader
   const base=`http://127.0.0.1:${server.address().port}`;
   const registered=await fetch(base+"/api/auth/register",{method:"POST",headers:{Origin:base,"Content-Type":"application/json"},body:JSON.stringify({username:"resume.reader",password:"a local resume test phrase",language:"es",timeZone:"Europe/Madrid"})});
   const state=await registered.json(),cookie=registered.headers.get("set-cookie").split(";")[0],headers={Cookie:cookie,"X-CSRF-Token":state.csrfToken};
-  const started=await (await fetch(base+"/api/reader/practice/start",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify({practiceMode:"discover",expectedCost:state.practiceDiscountMode==="discover"?2:3})})).json();
+  const started=await (await fetch(base+"/api/reader/practice/start",{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify({practiceMode:"discover",expectedCost:state.practiceDiscountMode==="interests"?2:3})})).json();
   const cardIds=started.session.cardIds;
   // The client leaves the screen and comes back (or reloads): the session is still open on the server.
   // /api/session (the startup call) does not carry it, so the practice screens must load /api/reader/state,

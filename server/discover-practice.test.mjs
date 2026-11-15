@@ -6,7 +6,7 @@ import {seedCatalog} from "./seed.mjs";
 import {historicalDatabase,historicalReader} from "../test-support/historical-database.mjs";
 import {readReaderState} from "./reader-repository.mjs";
 import {readDiscoverPracticeAvailability,selectDiscoverPracticeForReader} from "./discover-practice.mjs";
-import {startPracticeSession,PRACTICE_ENABLED_MODES,PRACTICE_SCHEMA_MODES} from "./practice-economy.mjs";
+import {startPracticeSession,PRACTICE_ENABLED_MODES} from "./practice-economy.mjs";
 
 for(const [dialect,version] of [["sqlite",51],["postgres",43]]) {
   test(`${dialect} v${version} migration enables the discover schema practiceMode and preserves existing sessions`,async t=>{
@@ -26,10 +26,10 @@ for(const [dialect,version] of [["sqlite",51],["postgres",43]]) {
       completed_at:existing.completed_at instanceof Date?existing.completed_at.toISOString():existing.completed_at},
     {practice_mode:"mixed",card_ids:JSON.stringify(ids),card_index:5,cost:2,started_at:startedAt,completed_at:"2026-10-28T10:05:00.000Z"});
     assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM practice_session_cards WHERE session_id=?").get("existing-session")).n,5);
-    assert.ok(PRACTICE_SCHEMA_MODES.includes("discover"));
-    assert.equal(PRACTICE_ENABLED_MODES.includes("discover"),true);
+    assert.ok(PRACTICE_ENABLED_MODES.includes("interests"));
+    
     await db.prepare(`INSERT INTO practice_sessions(id,user_id,practice_mode,card_ids,card_index,cost,started_at)
-      VALUES ('schema-discover',?,'discover',?,0,3,?)`).run(session.user_id,JSON.stringify(ids),startedAt);
+      VALUES ('schema-discover',?,'interests',?,0,3,?)`).run(session.user_id,JSON.stringify(ids),startedAt);
     const invalidPracticeMode=()=>db.prepare(`INSERT INTO practice_sessions(id,user_id,practice_mode,card_ids,card_index,cost,started_at)
       VALUES ('schema-invalid',?,'other',?,0,3,?)`).run(session.user_id,JSON.stringify(ids),startedAt);
     if(dialect==="sqlite") assert.throws(invalidPracticeMode,/CHECK constraint/);
@@ -80,12 +80,12 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM practice_sessions WHERE user_id=?").get(session.user_id)).n,0);
     assert.equal((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance,1);
     await db.prepare("UPDATE petal_wallets SET balance=? WHERE user_id=?").run(walletBefore,session.user_id);
-    const cost=(await readReaderState(db,session,now)).practiceDiscountMode==="discover"?2:3;
+    const cost=(await readReaderState(db,session,now)).practiceDiscountMode==="interests"?2:3;
     const price=await startPracticeSession(db,session,"discover",now,null,cost===2?3:2);
     assert.equal(price.reason,"practicePriceChanged");assert.equal(price.cost,cost);
     assert.equal((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance,walletBefore);
     const bought=await startPracticeSession(db,session,"discover",now,null,cost);
-    assert.equal(bought.session.practiceMode,"discover");assert.equal(new Set(bought.session.cardIds).size,5);
+    assert.equal(bought.session.practiceMode,"interests");assert.equal(new Set(bought.session.cardIds).size,5);
     const resumed=await startPracticeSession(db,session,"mixed",now,bought.session.id,2);
     assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM cardcase_decks WHERE user_id=?").get(session.user_id)).n,0,"Discover does not add decks");
     assert.equal(resumed.resumed,true);assert.deepEqual(resumed.session.cardIds,bought.session.cardIds);assert.equal(resumed.session.cost,bought.session.cost);

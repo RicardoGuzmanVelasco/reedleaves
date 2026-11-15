@@ -1,9 +1,8 @@
 import {pendingNewBookCount} from "./book-knowledge-repository.mjs";
-import {randomInt} from "node:crypto";
 import {isPostgres,transaction} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
 import {serverDay} from "./auth.mjs";
-import {dailyCycleDay,DAILY_CYCLE_STARTS,previousCalendarDay} from "./daily-cycle.mjs";
+import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
 import {accrueLeafWallet} from "./leaf-wallet-repository.mjs";
 import {DECK_ADD_COST} from "../app/wallet.mjs";
 import {readCatalog} from "./catalog-repository.mjs";
@@ -19,6 +18,7 @@ import {lockReaderAccount} from "./reader-account-lock.mjs";
 import {validBookSortOrder} from "../app/book-sort.mjs";
 import {requireBookInterestConfirmation,BOOK_INTEREST_CONFIRMATION_ENABLED} from "./book-interest-confirmation.mjs";
 import {readReaderProgression} from "./reader-xp-repository.mjs";
+import {ensureDailyCardInside,dailyCardCandidates} from "./daily-deck.mjs";
 import {readerRoles} from "./reader-roles.mjs";
 
 export async function readReaderState(db,session,now=new Date()) {
@@ -241,34 +241,13 @@ export async function changePreferences(db,session,input,now=new Date()) {
     return stateInside(db,session,now);
   });
 }
-// The idea of the day is shared by everyone, so it only comes from public content:
-// root cards of finished decks, never reading guides.
-function dailyIdeaCandidates(catalog) {
-  return catalog.allCards.filter(card=>card.parentId===null && !card.isReadingGuide && catalog.decksById.get(card.deckId)?.status==="finished");
-}
 export async function dailyIdea(db,session,now=new Date()) {
   return transaction(db,async()=>{
     await lockReaderAccount(db,session.user_id);
     const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id);
     if(!account) throw new ApiError(401,"signInRequired");
     const day=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea);
-    const existing=await db.prepare("SELECT 1 FROM daily_ideas WHERE day=?").get(day);
-    if(existing) return stateInside(db,session,now);
-    // Serialize assignments across account-local dates so concurrent first requests cannot
-    // pick the same unused card on PostgreSQL.
-    if(isPostgres(db)) await db.prepare("SELECT pg_advisory_xact_lock(731942, 1)").get();
-    const raced=await db.prepare("SELECT 1 FROM daily_ideas WHERE day=?").get(day);
-    if(raced) return stateInside(db,session,now);
-    const catalog=prepareCatalog(await readCatalog(db,session.user_id));
-    const candidates=dailyIdeaCandidates(catalog);
-    if(candidates.length) {
-      const seen=new Set((await db.prepare("SELECT DISTINCT card_id FROM daily_ideas").all()).map(row=>row.card_id));
-      const unused=candidates.filter(card=>!seen.has(card.id));
-      const previous=await db.prepare("SELECT card_id FROM daily_ideas WHERE day=?").get(previousCalendarDay(day));
-      const cycle=unused.length ? unused : candidates.filter(card=>candidates.length===1 || card.id!==previous?.card_id);
-      const selected=cycle[randomInt(cycle.length)];
-      await db.prepare("INSERT INTO daily_ideas(day,card_id) VALUES (?,?) ON CONFLICT(day) DO NOTHING").run(day,selected.id);
-    }
+    await ensureDailyCardInside(db,session.user_id,day);
     return stateInside(db,session,now);
   });
 }
@@ -282,6 +261,6 @@ export async function dailyIdeaStatus(db,session,now=new Date()) {
   if(seen) return {day,unseen:false};
   if(await db.prepare("SELECT 1 FROM daily_ideas WHERE day=?").get(day)) return {day,unseen:true};
   const catalog=prepareCatalog(await readCatalog(db,session.user_id));
-  const available=dailyIdeaCandidates(catalog).length>0;
+  const available=dailyCardCandidates(catalog).length>0;
   return {day,unseen:available};
 }

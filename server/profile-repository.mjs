@@ -6,10 +6,10 @@ import {prepareCatalog} from "../app/catalog.mjs";
 import {mascotStages,currentMascotStage} from "../app/mascot-progress.mjs";
 import {bookshelfBooks} from "../app/bookshelf.mjs";
 import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
+import {recordDailyCardViewInside} from "./daily-deck.mjs";
 import {distinguishedBookIds} from "./book-reading.mjs";
-import {readReaderProgression,grantReaderXpInside} from "./reader-xp-repository.mjs";
+import {readReaderProgression} from "./reader-xp-repository.mjs";
 
-const DAILY_IDEA_XP=20;
 
 export async function insertCardView(db,userId,cardId) {
   await db.prepare("INSERT INTO card_views(user_id,card_id) VALUES (?,?) ON CONFLICT(user_id,card_id) DO NOTHING").run(userId,cardId);
@@ -42,11 +42,7 @@ export async function recordCardView(db,session,{cardId,context,day:requestedDay
       const day=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea);
       const current=await db.prepare("SELECT 1 FROM daily_ideas WHERE day=? AND card_id=?").get(day,cardId);
       if(current && (requestedDay === undefined || requestedDay === day)) {
-        const firstView=await db.prepare("INSERT INTO daily_idea_views(user_id,day) VALUES (?,?) ON CONFLICT(user_id,day) DO NOTHING").run(session.user_id,day);
-        if (firstView.changes) {
-          const reward=await grantReaderXpInside(db,session.user_id,{eventKey:`daily_idea:${cardId}`,rewardType:"daily_idea",amount:DAILY_IDEA_XP});
-          if (reward.awarded) xpReward={amount:reward.awarded,balance:reward.balance};
-        }
+        xpReward=await recordDailyCardViewInside(db,session.user_id,cardId,day)||undefined;
         seenCurrentDay=true;
       }
     }

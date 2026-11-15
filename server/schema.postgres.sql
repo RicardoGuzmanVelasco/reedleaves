@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 59));
-INSERT INTO reed_schema VALUES (59);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 60));
+INSERT INTO reed_schema VALUES (60);
 
 CREATE TABLE interests(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '',
@@ -326,7 +326,7 @@ CREATE TABLE practice_answers(
 ALTER TABLE practice_answers ENABLE ROW LEVEL SECURITY;
 CREATE TABLE practice_sessions(
   id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
-  practice_mode TEXT NOT NULL CHECK(practice_mode IN ('reading','read','saved','mixed','discover')),
+  practice_mode TEXT NOT NULL CHECK(practice_mode IN ('reading','read','saved','mixed','dailyDeck','interests','novelties','teamPicks')),
   card_ids TEXT NOT NULL, card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
   cost INTEGER NOT NULL CHECK(cost IN (2,3)), started_at TIMESTAMPTZ NOT NULL, completed_at TIMESTAMPTZ,
   completed_local_day TEXT CHECK(completed_local_day IS NULL OR (completed_local_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(completed_local_day,'YYYY-MM-DD'),'YYYY-MM-DD') = completed_local_day)),
