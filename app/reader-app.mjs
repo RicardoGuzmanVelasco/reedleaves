@@ -51,6 +51,11 @@ import {createInitialInterestCompletion} from "./initial-interest-completion.mjs
 import {createReaderXpTracker,mountReaderXpFeedback,syncReaderProgressionState} from "./reader-xp-feedback.mjs?v=level-up-polish-2";
 
 export function startReader({createCardFeatures} = {}) {
+  if(new URLSearchParams(location.search).get("ui")==="2"){
+    const api=createAccountClient();
+    import("./ui2/index.mjs").then(({mountUi2})=>mountUi2({main:document.getElementById("main"),api,loadCatalog,language:restoreLanguage(createBrowserStore().read(keys.language))}));
+    return;
+  }
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
   function fitOneLineLabel(container) {
     const label=container.querySelector("bdi");
