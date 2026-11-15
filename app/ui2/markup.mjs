@@ -18,12 +18,12 @@ export function deckListMarkup({decks,c,titleOf}){
 }
 
 export function deckScreenMarkup({deckTitle,bookTitle,author,status,count,max,languageName,outline,caps,c,backHref="#"}){
-  const draft=status==="draft";
+  const inProgress=status==="in_progress";
   const groups=[outline.tree.length?`<ul class="ui2-tree">${outline.tree.map(item=>noteItem(item,c)).join("")}</ul>`:"",
     outline.unsorted.length?`<ul class="ui2-tree">${outline.unsorted.map(item=>noteItem(item,c)).join("")}</ul>`:""].join("");
   return `<header class="ui2-top"><a class="ui2-ib" href="${esc(backHref)}" aria-label="${esc(c.back)}">${icon("back")}</a>
 <div class="ui2-titles"><h1>${esc(bookTitle)}</h1>${author?`<span class="ui2-sub">${esc(author)}</span>`:""}</div></header>
-<div class="ui2-body"><div class="ui2-meta">${draft?`<span class="ui2-chip is-draft">${esc(c.deckInProgressShort)}</span>`:""}<span>${esc(c.ui2NoteCount(count,max))}</span><span aria-hidden="true">·</span><span>${esc(deckTitle)}</span><span aria-hidden="true">·</span><span>${esc(languageName)}</span></div>${groups}</div>
+<div class="ui2-body"><div class="ui2-meta">${inProgress?`<span class="ui2-chip is-in-progress">${esc(c.deckInProgressShort)}</span>`:""}<span>${esc(c.ui2NoteCount(count,max))}</span><span aria-hidden="true">·</span><span>${esc(deckTitle)}</span><span aria-hidden="true">·</span><span>${esc(languageName)}</span></div>${groups}</div>
 ${caps.takeBelow?`<div class="ui2-sticky"><button type="button" class="ui2-btn" data-ui2="take-note" data-parent="">${icon("take-note")}${esc(c.takeNote)}</button></div>`:""}`;
 }
 
@@ -50,7 +50,7 @@ export function noteFormMarkup({form,bookTitle,deck,parentTitle,canPlace,canSave
   const full=!!deck&&deck.count>=deck.max;
   const notices=[
     form.recovered?callout({variant:"warning",width:"fill",main:c.noteDraftRecovered,actions:`<button type="button" class="text-button" data-ui2="discard-draft">${esc(c.ui2Discard)}</button>`}):"",
-    create&&deck?(full?callout({variant:"warning",width:"fill",main:c.deckCardLimitReached}):callout({variant:"info",width:"fill",main:`${c.ui2DraftHint} · ${deck.title} · ${deck.count}/${deck.max}`})):""
+    create&&deck?(full?callout({variant:"warning",width:"fill",main:c.deckCardLimitReached}):callout({variant:"info",width:"fill",main:`${c.ui2AddedTo(deck.title,deck.count,deck.max)}`})):""
   ].join("");
   const kindButton=(kind,label,on)=>`<button type="button" aria-pressed="${on}" data-ui2="kind" data-kind="${kind}">${icon(kind)}<span>${esc(label)}</span></button>`;
   return `<div class="ui2-capture"><header class="ui2-top ui2-top--form"><div class="ui2-titles"><h1>${esc(create?c.takeNote:c.ui2Correct)}</h1></div>

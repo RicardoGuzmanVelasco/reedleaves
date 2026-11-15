@@ -44,7 +44,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const deckInfo=catalog.decks.find(deck=>deck.id===saved.deckId),card=catalog.cards.find(card=>card.id===saved.cardId);
     assert.equal(catalog.decks.length,counts.decks+1);assert.equal(catalog.cards.length,counts.cards+1);
     assert.equal(deck.creator.userId,session.user_id);assert.equal(deck.language,"es");
-    assert.equal(deckInfo.title.es,"Notas de lectura");assert.equal(deckInfo.status,"draft");
+    assert.equal(deckInfo.title.es,"Notas de lectura");assert.equal(deckInfo.status,"in_progress");
     assert.equal(card.body.es,input.body);assert.equal(card.parentId,null);
     const after=await readReaderState(db,session);
     assert.deepEqual(after.wallet,before.wallet);
@@ -83,7 +83,7 @@ for (const dialect of ["sqlite","postgres"]) {
     const catalog=prepareCatalog(await readCatalog(db));
     assert.equal(catalog.decksById.get(full.deckId).status,"finished");
     assert.equal(catalog.decksById.has(empty.deckId),false);
-    assert.equal(catalog.decksById.get(foreign.deckId).status,"draft");
+    assert.equal(catalog.decksById.get(foreign.deckId).status,"in_progress");
     assert.equal(catalog.cardsById.get(note.requestId).body.es,note.body);
     assert.ok(!featuredDecks(catalog,bookId).some(choice=>choice.deck.id===empty.deckId));
     await assert.rejects(takeNote(db,session,{...note,requestId:randomUUID()}),{code:"deckReadOnly"});
@@ -95,8 +95,8 @@ for (const dialect of ["sqlite","postgres"]) {
     const {db,session,other}=await fixture(t,dialect),bookId="seven-habits";
     const shared=await createDeck(db,session,{requestId:randomUUID(),bookId,title:"Compartida",language:"es",contributionPolicy:"open"});
     await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run(other.user_id,shared.deckId);
-    assert.deepEqual(await finishNoteDecks(db,session,{bookId,decks:[{deckId:shared.deckId,cardCount:0}]}),{bookId,decks:[{deckId:shared.deckId,status:"draft"}]});
-    assert.equal((await db.prepare("SELECT status FROM decks WHERE id=?").get(shared.deckId)).status,"draft");
+    assert.deepEqual(await finishNoteDecks(db,session,{bookId,decks:[{deckId:shared.deckId,cardCount:0}]}),{bookId,decks:[{deckId:shared.deckId,status:"in_progress"}]});
+    assert.equal((await db.prepare("SELECT status FROM decks WHERE id=?").get(shared.deckId)).status,"in_progress");
     await assert.rejects(takeNote(db,session,{requestId:randomUUID(),deckId:null,bookId,language:"es",title:"x",body:"y",isQuote:false,parentId:null}),{code:"invalidRequest"});
   });
 

@@ -5,7 +5,7 @@ import {readerState,emptyCatalog} from "../test-support/reader-state.mjs";
 
 function fixture() {
   return readerState({...emptyCatalog(),books:[{id:"reading"},{id:"writing"},{id:"finished"}],
-    decks:[{id:"own",bookId:"writing",creator:{userId:"reader"},status:"draft",title:{es:"Own"},language:"es"},{id:"foreign",bookId:"finished",creator:{userId:"other"},status:"draft",title:{es:"Foreign"},language:"es"}],
+    decks:[{id:"own",bookId:"writing",creator:{userId:"reader"},status:"in_progress",title:{es:"Own"},language:"es"},{id:"foreign",bookId:"finished",creator:{userId:"other"},status:"in_progress",title:{es:"Foreign"},language:"es"}],
     },
   {userId:"reader",statuses:{reading:"reading",writing:"read",finished:"read"}});
 }
@@ -34,7 +34,7 @@ test("Home orders by latest note date and preserves catalog order on ties and ab
 
 test("Recent note destinations exclude foreign and finished decks and stop at two",()=>{
   const s=fixture();
-  for (const [deckId,userId,status] of [["older","reader","draft"],["third","reader","draft"],["foreign-write","other","draft"],["finished","reader","finished"]]) {
+  for (const [deckId,userId,status] of [["older","reader","in_progress"],["third","reader","in_progress"],["foreign-write","other","in_progress"],["finished","reader","finished"]]) {
     s.catalog.decks.push({id:deckId,bookId:"writing",creator:{userId},status,title:{es:deckId},language:"es"});
   }
   const activity={own:"2026-10-15",older:"2026-10-14",third:"2026-10-13","foreign-write":"2026-10-16",finished:"2026-10-16"};

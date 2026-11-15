@@ -201,7 +201,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         }
         const interests=await db.prepare("SELECT g.id,t.name FROM interests g JOIN interest_translations t ON t.interest_id=g.id WHERE t.language='en' ORDER BY g.id").all();
         const preview=await bookAutofill(active.user_id,search,interests);
-        // Search can outlive a session: don't return private drafts after logout.
+        // Search can outlive a session: don't return private in-progress decks after logout.
         const stillActive=await readSession(db,request,now());
         if (!stillActive) throw new ApiError(401,"signInRequired");
         checkCsrf(stillActive,request.headers["x-csrf-token"]);

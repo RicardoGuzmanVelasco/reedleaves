@@ -36,6 +36,7 @@ for(const [dialect,version] of [["sqlite",37],["postgres",29]]) {
       deckText:await db.prepare("SELECT * FROM deck_translations ORDER BY deck_id,language").all()
     });
     const before=await snapshot();
+    for(const deck of before.decks)if(deck.status==="draft")deck.status="in_progress";
     for(const book of before.books)if(book.id === "reality")book.author="Vadim Zeland";
     await initializeDatabase(db);await initializeDatabase(db);
     assert.deepEqual(await snapshot(),before);

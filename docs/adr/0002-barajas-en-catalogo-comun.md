@@ -6,7 +6,7 @@
 ## Decisión vigente
 
 Crear una baraja la incorpora al catálogo común. Sus tarjetas se comparten al
-guardarlas. El estado `draft` conserva la capacidad de edición de su creador;
+guardarlas. El estado `draft` (hoy `in_progress`, «En curso») conserva la capacidad de edición de su creador;
 la visibilidad no concede permisos de autoría. Las cuentas pueden encontrar,
 abrir y añadir barajas compartidas a Decks.
 
@@ -19,7 +19,7 @@ o la tarjeta correspondiente. La eliminación de tarjetas publicadas sigue
 protegida por las reglas existentes.
 
 El estado editorial `draft`, `published` o `archived` pertenece a la baraja.
-La interfaz muestra `draft` como **Borrador / Draft** y `published` como
+La interfaz muestra `draft` (hoy `in_progress`) como **En curso / In progress** y `published` como
 **Terminada / Finished**. Terminar una baraja cambia su estado, pero no crea una
 copia. Las reglas de edición y cierre siguen aplicándose al estado y al
 propietario.

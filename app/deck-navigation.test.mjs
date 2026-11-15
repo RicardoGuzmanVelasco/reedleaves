@@ -36,7 +36,7 @@ test('One deck page handles discovery, collection and ownership while clean read
       assert.ok(page.includes(c.readDeckCards));assert.match(page,/data-action="preview-deck"/);
       assert.match(page,/data-action="share-deck"/);assert.ok(page.includes(c.deckInformation));
       assert.equal(page.includes('data-action="add-deck-to-cardcase"'),true);
-      assert.equal(page.includes('data-action="take-deck-note"'),userId===deck.creator.userId&&deck.status==='draft');
+      assert.equal(page.includes('data-action="take-deck-note"'),userId===deck.creator.userId&&deck.status==='in_progress');
     }
     const collected=deckPageView({...base,userId:'visitor',cardcaseDeckIds:[deck.id]});
     assert.doesNotMatch(collected,/data-action="add-deck-to-cardcase"/);assert.match(collected,/data-action="remove-cardcase-deck"/);assert.ok(collected.includes(c.removeDeckFromCardcase));

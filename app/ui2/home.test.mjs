@@ -10,7 +10,7 @@ const book=(id,title)=>({id,author:"Autor",title:{es:title},popularTitle:title,p
 function fixture(overrides={}) {
   const books=[book("reading","Leyendo ahora"),book("quiet","Sin notas"),book("old","Libro viejo"),book("done","Ya leído")];
   const cards=[{id:"c1",bookId:"reading",deckId:"d1",deckLanguage:"es",language:"es",parentId:null,order:1,isQuote:false,title:{es:"Uno"},body:{es:"Texto"}}];
-  const deck=(id,bookId,extra={})=>({id,bookId,language:"es",status:"draft",contributionPolicy:"owner",creator:{userId:"me"},title:{es:"Notas"},cardCount:0,...extra});
+  const deck=(id,bookId,extra={})=>({id,bookId,language:"es",status:"in_progress",contributionPolicy:"owner",creator:{userId:"me"},title:{es:"Notas"},cardCount:0,...extra});
   const decks=[deck("d1","reading",{cardCount:1}),deck("d3","old",{cardCount:2}),deck("other","quiet",{creator:{userId:"x"}})];
   const catalog={...emptyCatalog(),books,decks,allCards:cards};
   catalog.booksById=new Map(books.map(b=>[b.id,b]));catalog.decksById=new Map(decks.map(d=>[d.id,d]));
@@ -41,7 +41,7 @@ for(const language of ["es","en"])test(`Home markup: covers with one take-note b
   assert.match(html,/data-ui2="home-note" data-book="quiet" data-deck=""/);
   assert.match(html,/class="book-tile"[^>]*data-book="reading"/);
   assert.match(html,new RegExp(`<span>[^<]*(<svg.*?</svg>)?${c.readingStatus}</span>`));
-  assert.doesNotMatch(html,/ui2-chip|ui2-icard|ui2-deckrow|Borrador|Draft/);
+  assert.doesNotMatch(html,/ui2-chip|ui2-icard|ui2-deckrow|Borrador|Draft|En curso|In progress/);
   assert.match(html,/class="ui2-wallet" role="group"/);
   assert.match(html,/role="img" aria-label="[^"]*: 12"/);
   assert.match(html,/class="ui2-avatar[^"]*" href="\/app\/#profile\/me"/);

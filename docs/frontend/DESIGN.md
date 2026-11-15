@@ -97,7 +97,7 @@ Fuente de verdad del estilo de iconos de la interfaz nueva (`?ui=2`). Los SVG vi
 
 ## Chips informativos
 
-- Los chips informativos no llevan borde ni sombra propia. Mantener un estilo compartido para los que aparecen juntos: fondo, radio, tipografía y espaciado. El chip «Borrador» comparte estilo con el del ojo. Esta regla también se aplica a los chips de estado e idioma del detalle de baraja.
+- Los chips informativos no llevan borde ni sombra propia. Mantener un estilo compartido para los que aparecen juntos: fondo, radio, tipografía y espaciado. El chip «En curso» comparte estilo con el del ojo. Esta regla también se aplica a los chips de estado e idioma del detalle de baraja.
 
 ## Selectores de cápsula
 
@@ -117,8 +117,8 @@ Fuente de verdad del estilo de iconos de la interfaz nueva (`?ui=2`). Los SVG vi
 - Después de cambiar un libro a «Leyendo» o «Leído» desde Librería, la ficha abierta ofrece una sugerencia temporal para «Tomar nota». El atajo abre el editor o el selector de baraja que corresponda y regresar conserva la misma ficha.
 - Al marcar un libro como «Leído», si la persona aún no ha aportado su propia guía, ofrecer escribirla desde la ficha. La acción abre el editor de guías de ese libro; «Ahora no» cierra la sugerencia. No repetirla si ya tiene una guía.
 - Idioma, estado de creación y progreso de repaso se muestran en el contexto de cada baraja. La ficha del libro no repite el número ni muestra idiomas o un resumen agregado de repaso como filas independientes.
-- Marcar «Leído» guarda la lectura y, si quedan barajas propias en borrador, abre un diálogo flotante para cerrarlas juntas. Cada fila muestra nombre y número de tarjetas, o «Vacía (se descartará)». «Confirmar» termina las que tienen contenido y descarta las vacías; «Mantener en borrador», Escape o cerrar conserva sus estados. La advertencia de congelación se muestra antes de confirmar, sin otro diálogo encadenado.
-- Un libro leído con notas pendientes permite recuperar ese diálogo desde «Barajas en borrador», junto al estado de lectura. El cierre devuelve al contexto de origen sin abrir un repaso. Los borradores locales deben guardarse o cancelarse antes de terminar sus barajas.
+- Marcar «Leído» guarda la lectura y, si quedan barajas propias en curso, abre un diálogo flotante para cerrarlas juntas. Cada fila muestra nombre y número de tarjetas, o «Vacía (se descartará)». «Confirmar» termina las que tienen contenido y descarta las vacías; «Mantener en borrador», Escape o cerrar conserva sus estados. La advertencia de congelación se muestra antes de confirmar, sin otro diálogo encadenado.
+- Un libro leído con notas pendientes permite recuperar ese diálogo desde «Barajas en curso», junto al estado de lectura. El cierre devuelve al contexto de origen sin abrir un repaso. Los borradores locales deben guardarse o cancelarse antes de terminar sus barajas.
 
 ## Guías de lectura
 
@@ -135,14 +135,14 @@ Fuente de verdad del estilo de iconos de la interfaz nueva (`?ui=2`). Los SVG vi
 - Las barajas de guías de lectura muestran siempre el distintivo «Destacada / Featured», con medalla de dos cintas y el mismo papel dorado de la recomendación. Incluir «Destacada / Featured» en su nombre accesible.
 - Las distinciones de comunidad se conservan en datos y ordenación, pero siguen ocultas; el detalle no añade distintivos. No mostrar una etiqueta de relleno para barajas sin recomendación. Dar prioridad visual al título, con mayor tamaño que la autoría y todo el ancho disponible. Sus 26 px de margen superior dejan espacio al distintivo sin solapar el título.
 - El idioma se representa con un chip después del ojo y antes del estado de creación. Para español e inglés, usar las banderas suavizadas y redondeadas de `app/assets/icons/languages/`; no mostrar texto de código en esos chips. Para otros idiomas, usar el globo circular y mostrar el código. Conservar el nombre localizado del idioma en el nombre accesible y el tooltip de apertura. El selector de Ajustes usa esas mismas banderas junto a Español e English, centradas y sin etiqueta visible; conservar su nombre accesible.
-- En la página de una baraja, el dueño de su propia baraja personal en borrador no ve chip ni frase de estado: «Terminar baraja» ya indica que sigue abierta. Título, idioma y colaboradores se editan dentro de «Información de la baraja / Deck information». El número de tarjetas es solo «N tarjetas» hasta acercarse al tope. El alternador Árbol/Previsualización y el filtro de citas aparecen desde 6 tarjetas, o mientras alguno esté activo.
-- Las barajas terminadas no muestran un indicador de estado en ninguna vista. Las barajas `draft` muestran «Borrador / Draft» después del chip de idioma. Conservar «Baraja en borrador / Draft deck» en el nombre accesible. En una baraja aún no añadida al Tarjetero / cardcase, indicar que puede previsualizarse y que hay que añadirla para repasarla. La fila de chips puede envolver en móvil estrecho.
+- En la página de una baraja, el dueño de su propia baraja personal en curso no ve chip ni frase de estado: «Terminar baraja» ya indica que sigue abierta. Título, idioma y colaboradores se editan dentro de «Información de la baraja / Deck information». El número de tarjetas es solo «N tarjetas» hasta acercarse al tope. El alternador Árbol/Previsualización y el filtro de citas aparecen desde 6 tarjetas, o mientras alguno esté activo.
+- Las barajas terminadas no muestran un indicador de estado en ninguna vista. Las barajas `in_progress` muestran «En curso / In progress» después del chip de idioma. Conservar «Baraja en curso / Deck in progress» en el nombre accesible. En una baraja aún no añadida al Tarjetero / cardcase, indicar que puede previsualizarse y que hay que añadirla para repasarla. La fila de chips puede envolver en móvil estrecho.
 - Mostrar el número de tarjetas y el número de citas (incluso si es cero) en la vista previa y en la información de la baraja. Sustituir el dato de niveles por el de citas. Reutilizar el icono de tarjetas y el icono de cita existente. Si hay más citas que ideas normales, usar los tonos azules en las fichas de baraja del selector y del Tarjetero.
 
 ## Vista exclusiva de tarjetas
 
 - La valoración («Me gusta» / «No me gusta») y las acciones «Guardar tarjeta» / «Quitar de guardadas» aparecen en la vista exclusiva y en las tarjetas completas del modo presentación, tanto en lista como en carrusel. Las miniaturas y la preview del calendario no incluyen estas acciones. Las tarjetas completas se ajustan al contenido; las atribuciones de libro, autor y usuario se agrupan de forma compacta.
-- Si la baraja de la tarjeta está en borrador, mostrar «Baraja en borrador / Draft deck» como chip informativo en su vista exclusiva.
+- Si la baraja de la tarjeta está en curso, mostrar «Baraja en curso / Deck in progress» como chip informativo en su vista exclusiva.
 - Al pulsar la tarjeta compacta de la idea del día, se abre su vista exclusiva. Las acciones de valoración y guardado viven dentro de esa vista.
 
 ## Enlaces de atribución
@@ -176,9 +176,10 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 | Libros de la colección personal | Estantería | Shelf |
 | Barajas de la colección personal | Tarjetero | Cardcase |
 | Conjunto de repaso | Baraja | Deck |
-| Creación abierta (`status=draft`) | Borrador / Baraja en borrador | Draft / Draft deck |
-| Creación cerrada (`status=finished`) | Sin etiqueta de estado | No status label |
+| Baraja que aún se escribe (`status=in_progress`) | En curso / Baraja en curso | In progress / Deck in progress |
+| Baraja cerrada a cambios (`status=finished`) | Terminada (sin etiqueta de estado en la interfaz) | Finished (no status label in the interface) |
 | Contenido pendiente del editor | Nota sin guardar | Unsaved note |
+| Texto sin guardar (el nombre «borrador» queda reservado para esto) | Borrador | Draft |
 | Aprendizaje activo | Barajas en repaso | Decks being practiced |
 | Tipo de selección de tarjetas de una sesión de repaso (`practiceMode`: leyendo, leídos, guardadas, mezcla, Descubrir) | Modo de repaso | Practice mode |
 | Baraja que el equipo recomienda en un libro (una por libro) | Baraja recomendada | Recommended deck |
@@ -201,11 +202,11 @@ Para iniciar la captura de una idea o cita, usar siempre **Tomar nota / Take a n
 
 «Tomar nota» abre el editor directamente cuando la baraja ya está determinada. Guardar o cancelar devuelve al punto de partida, conservando vista, filtros, posición y foco. No hay pantalla de gestión aparte: la página de la baraja (`#deck/<id>`) sirve a todos. Quien puede aportar ve «Tomar nota»; el dueño de una baraja en borrador ve además «Terminar baraja» y los ajustes. «Tomar nota» dentro de una nota se hace desde la hoja de esa nota, no desde botones por nodo. `#author/<id>` redirige a `#deck/<id>`.
 
-Si el «+» de Inicio no tiene una baraja propia en borrador, abre el editor de nota directamente. Se avisa de que se creará «Notas de lectura» / «Reading notes». La baraja nace al guardar la primera nota, con el idioma elegido para la app al abrir el editor, independiente del idioma del título popular del libro. No se pide configurar nombre o idioma. Cancelar no crea una baraja vacía.
+Si el «+» de Inicio no tiene una baraja propia en curso, abre el editor de nota directamente. Se avisa de que se creará «Notas de lectura» / «Reading notes». La baraja nace al guardar la primera nota, con el idioma elegido para la app al abrir el editor, independiente del idioma del título popular del libro. No se pide configurar nombre o idioma. Cancelar no crea una baraja vacía.
 
-Borrador describe creación y no privacidad. Guardar comparte el contenido con quienes tienen acceso al catálogo; terminar cierra cambios, no lo hace visible por primera vez. El estado editorial `draft/reviewed` es independiente de `status`. Los nombres internos `deckInProgress` y `notesInProgress` conservan su contrato, pero su copy de creación usa Borrador. Las notas sin guardar solo se recuperan en el navegador y dispositivo donde se conservaron.
+«En curso» describe creación y no privacidad. Guardar comparte el contenido con quienes tienen acceso al catálogo; terminar cierra cambios, no lo hace visible por primera vez. El estado editorial `draft/reviewed` es independiente de `status`. Los nombres internos `deckInProgress` y `notesInProgress` conservan su contrato, pero su copy de creación usa Borrador. Las notas sin guardar solo se recuperan en el navegador y dispositivo donde se conservaron.
 
-En la página de la baraja, su creador puede corregir el título y el idioma mientras esté en borrador. Cambiar idioma conserva las traducciones ya existentes y actualiza el idioma del texto original cuando no hay traducción de destino.
+En la página de la baraja, su creador puede corregir el título y el idioma mientras esté en curso. Cambiar idioma conserva las traducciones ya existentes y actualiza el idioma del texto original cuando no hay traducción de destino.
 
 ## Cómo usarla
 

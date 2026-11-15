@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 58));
-INSERT INTO reed_schema VALUES (58);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 59));
+INSERT INTO reed_schema VALUES (59);
 
 CREATE TABLE interests(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '',
@@ -201,7 +201,7 @@ CREATE TABLE auth_limits(bucket TEXT PRIMARY KEY, attempts INTEGER NOT NULL, res
 CREATE TABLE decks(
   id TEXT PRIMARY KEY, book_id TEXT NOT NULL REFERENCES books(id), creator_user_id TEXT NOT NULL REFERENCES users(id),
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35), is_recommended SMALLINT NOT NULL DEFAULT 0 CHECK(is_recommended IN (0,1)),
-  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','finished')),
+  status TEXT NOT NULL DEFAULT 'in_progress' CHECK(status IN ('in_progress','finished')),
   quote_source_url TEXT CHECK(quote_source_url IS NULL OR (quote_source_url LIKE 'https://%' AND length(btrim(quote_source_url)) BETWEEN 9 AND 2048)),
   contribution_policy TEXT NOT NULL DEFAULT 'owner' CHECK(contribution_policy IN ('owner','open','selected')),
   max_cards_per_contributor INTEGER CHECK(max_cards_per_contributor IS NULL OR max_cards_per_contributor > 0),
@@ -276,7 +276,7 @@ DECLARE target_deck TEXT; deck_status TEXT;
 BEGIN
   target_deck := CASE WHEN TG_OP='DELETE' THEN OLD.deck_id ELSE NEW.deck_id END;
   SELECT status INTO deck_status FROM decks WHERE id=target_deck;
-  IF deck_status <> 'draft' THEN RAISE EXCEPTION 'Finished contributor list is immutable'; END IF;
+  IF deck_status <> 'in_progress' THEN RAISE EXCEPTION 'Finished contributor list is immutable'; END IF;
   IF TG_OP='DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
 END $$;
 CREATE TRIGGER freeze_collective_contributors BEFORE INSERT OR UPDATE OR DELETE ON deck_contributors
@@ -371,7 +371,7 @@ BEGIN
     OLD.creator_user_id='reed-team' AND OLD.status='finished'
   )) OR (NEW.book_id IS DISTINCT FROM OLD.book_id AND NOT EXISTS (
     SELECT 1 FROM book_merge_operations m WHERE m.source_book_id=OLD.book_id AND m.target_book_id=NEW.book_id
-  )) OR (NEW.language IS DISTINCT FROM OLD.language AND OLD.status <> 'draft') THEN
+  )) OR (NEW.language IS DISTINCT FROM OLD.language AND OLD.status <> 'in_progress') THEN
     RAISE EXCEPTION 'Deck ownership is immutable';
   END IF;
   RETURN NEW;
@@ -379,7 +379,7 @@ END $$;
 CREATE TRIGGER keep_deck_owner BEFORE UPDATE ON decks FOR EACH ROW EXECUTE FUNCTION reed_keep_deck_owner();
 CREATE FUNCTION reed_keep_finished_deck() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF OLD.status <> 'draft' THEN RAISE EXCEPTION 'Finished deck cannot be deleted'; END IF;
+  IF OLD.status <> 'in_progress' THEN RAISE EXCEPTION 'Finished deck cannot be deleted'; END IF;
   RETURN OLD;
 END $$;
 CREATE TRIGGER keep_finished_deck BEFORE DELETE ON decks FOR EACH ROW EXECUTE FUNCTION reed_keep_finished_deck();
@@ -399,7 +399,7 @@ CREATE TRIGGER no_card_cycles_update BEFORE UPDATE OF parent_id ON cards FOR EAC
 
 CREATE FUNCTION reed_keep_finished_card() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft' THEN RAISE EXCEPTION 'Finished content is immutable; cards cannot be deleted'; END IF;
+  IF (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'in_progress' THEN RAISE EXCEPTION 'Finished content is immutable; cards cannot be deleted'; END IF;
   RETURN OLD;
 END $$;
 CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards FOR EACH ROW EXECUTE FUNCTION reed_keep_finished_card();
@@ -407,13 +407,13 @@ CREATE FUNCTION reed_keep_finished_card_translation() RETURNS trigger LANGUAGE p
 DECLARE deck_status TEXT;
 BEGIN
   SELECT d.status INTO deck_status FROM decks d JOIN cards c ON c.deck_id=d.id WHERE c.id=OLD.card_id;
-  IF deck_status <> 'draft' THEN RAISE EXCEPTION 'Finished content is immutable; card translations cannot be deleted'; END IF;
+  IF deck_status <> 'in_progress' THEN RAISE EXCEPTION 'Finished content is immutable; card translations cannot be deleted'; END IF;
   RETURN OLD;
 END $$;
 CREATE TRIGGER freeze_card_translation_delete BEFORE DELETE ON card_translations FOR EACH ROW EXECUTE FUNCTION reed_keep_finished_card_translation();
 CREATE FUNCTION reed_keep_finished_deck_translation() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft' THEN RAISE EXCEPTION 'Finished content is immutable; deck translations cannot be deleted'; END IF;
+  IF (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'in_progress' THEN RAISE EXCEPTION 'Finished content is immutable; deck translations cannot be deleted'; END IF;
   RETURN OLD;
 END $$;
 CREATE TRIGGER freeze_deck_translation_delete BEFORE DELETE ON deck_translations FOR EACH ROW EXECUTE FUNCTION reed_keep_finished_deck_translation();

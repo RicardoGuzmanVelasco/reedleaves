@@ -5,7 +5,7 @@ import {bookTitle,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,MAX_CARDS_PER_DECK} from
 import {deckOutline,placementTargets,deckCapabilities,noteCount,parentOf,ownDecks} from "./outline.mjs";
 import {submitEdit} from "./edit-note.mjs";
 import {installIconStyles} from "./icons.mjs";
-import {homeData,homeMarkup,draftDeck} from "./home.mjs";
+import {homeData,homeMarkup,inProgressDeck} from "./home.mjs";
 import {navMarkup,shellMarkup} from "./shell.mjs";
 import {errorInfo} from "./errors.mjs";
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
@@ -48,7 +48,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   const persistDraft=()=>{if(form?.mode==="create")drafts.save(draftOf(form));};
   // A note being written: for a book with a draft deck of mine it goes there, otherwise the server creates the deck.
   function openForm({bookId,deckId:wanted=null,parentId=null,origin="deck"}){
-    const deck=wanted?catalog.decksById.get(wanted):draftDeck(catalog,bookId,session.user.id);
+    const deck=wanted?catalog.decksById.get(wanted):inProgressDeck(catalog,bookId,session.user.id);
     const next={mode:"create",bookId,deckId:deck?.id??null,origin,parentId,isQuote:false,title:"",body:"",requestId:crypto.randomUUID(),recovered:false};
     if(!parentId){
       const model=deck&&catalog.deckModels.get(deck.id);
@@ -105,7 +105,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const where=route(),view=current(),shell=where.name==="home"||where.name==="library";
     doc.body.classList.toggle("has-bottom-navigation",shell&&!form);
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
-    if(!form&&where.note&&view?.deck.status==="draft")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
+    if(!form&&where.note&&view?.deck.status==="in_progress")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
     if(form){paint(formScreen());return;}
     if(where.name==="library"){paint(withError(shellMarkup({body:deckListMarkup({decks:ownDecks(catalog,session.user.id),c,titleOf}),nav:navMarkup({active:"library",practicePending,c})})));return;}
     if(!view){

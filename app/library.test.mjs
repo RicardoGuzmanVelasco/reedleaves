@@ -112,7 +112,7 @@ test("Collection groups, empty states, book details and origin navigation transl
 test("Cardcase tab groups owned and Cardcase decks by their book's reading status",async()=>{
   const s=await fixture(),ownDeck=s.catalog.decksById.get("atomic-habits-editorial");
   ownDeck.creator.userId=s.userId;
-  s.catalog.decksById.get("atomic-habits-editorial").status="draft";
+  s.catalog.decksById.get("atomic-habits-editorial").status="in_progress";
   const inCardcase="seven-habits-editorial";
   const render=(statuses,toReadBookIds=[])=>libraryView({...s,libraryTab:"cardcase",cardcaseDeckIds:[inCardcase,ownDeck.id],statuses,toReadBookIds});
   for (const language of ["es","en"]) {
@@ -151,7 +151,7 @@ test("Deck details distinguish adding to the cardcase from starting practice",as
 
 test("Own empty drafts remain pending, while completed books stay out of simplified Home",async()=>{
   const s=await fixture();
-  const version=s.catalog.decks.find(v=>v.bookId==="atomic-habits"); version.status="draft"; version.cardCount=0;
+  const version=s.catalog.decks.find(v=>v.bookId==="atomic-habits"); version.status="in_progress"; version.cardCount=0;
   s.cardcaseDeckIds=[version.id];
   assert.equal(bookshelfBooks(s)[0].reading,"to_read");
   s.cardcaseDeckIds=[];

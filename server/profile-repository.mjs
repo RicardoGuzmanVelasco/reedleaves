@@ -26,7 +26,7 @@ export async function recordCardView(db,session,{cardId,context,day:requestedDay
       WHERE c.id=?`).get(cardId);
     if (!card) throw new ApiError(404,"cardUnavailable");
     let allowed=false;
-    if (context === "author") allowed=card.creator_user_id === session.user_id && card.status === "draft";
+    if (context === "author") allowed=card.creator_user_id === session.user_id && card.status === "in_progress";
     if (context === "practice") allowed=true;
     if (context === "saved") allowed=!!await db.prepare("SELECT 1 FROM card_saves WHERE user_id=? AND card_id=?").get(session.user_id,cardId);
     if (context === "daily-idea") {

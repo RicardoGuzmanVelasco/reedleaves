@@ -7,7 +7,7 @@ import {currentMascotStage} from "../mascot-progress.mjs";
 import {icon} from "./icons.mjs";
 import {headerMarkup} from "./shell.mjs";
 
-export const draftDeck=(catalog,bookId,userId)=>editableNoteDecks(catalog,bookId,userId).find(deck=>deck.contributionPolicy==="owner")||null;
+export const inProgressDeck=(catalog,bookId,userId)=>editableNoteDecks(catalog,bookId,userId).find(deck=>deck.contributionPolicy==="owner")||null;
 
 // Pure: everything Home shows, from the catalog and the reader state.
 export function homeData({catalog,state,language}){
@@ -15,7 +15,7 @@ export function homeData({catalog,state,language}){
   const books=homeBooks(catalog,statuses,state.noteActivity||{},userId).map(book=>{
     const title=bookCoverTitle(book,language);
     return {id:book.id,title:title.text,titleLanguage:title.language,author:book.author||"",status:statuses[book.id]||"unread",
-      deckId:draftDeck(catalog,book.id,userId)?.id??null,stage:currentMascotStage(state.growth?.[book.id]||{added:false,practiceDays:0})};
+      deckId:inProgressDeck(catalog,book.id,userId)?.id??null,stage:currentMascotStage(state.growth?.[book.id]||{added:false,practiceDays:0})};
   });
   return {books,userId,avatarStage:state.readerProgression?.stage||"sprout",wallet:{leaves:state.wallet?.balance??0,petals:state.petals??0}};
 }

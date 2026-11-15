@@ -3,7 +3,7 @@ import {MAX_CARDS_PER_DECK} from "./core.mjs";
 // Writing destinations are independent of paid practice sessions.
 export function editableNoteDecks(catalog,bookId,userId) {
   if (!userId) return [];
-  return catalog.decks.filter(deck=>deck.bookId === bookId && deck.creator.userId === userId && deck.status === "draft");
+  return catalog.decks.filter(deck=>deck.bookId === bookId && deck.creator.userId === userId && deck.status === "in_progress");
 }
 
 export function noteDecksWithSpace(catalog,bookId,userId) {

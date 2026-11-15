@@ -73,7 +73,7 @@ export function validateSeed(seed) {
   const decks = new Map(), recommended = new Map();
   for (const d of seed.decks) {
     if (!slug(d.id) || !books.has(d.book_id) ||
-        !["draft", "finished"].includes(d.status) ||
+        !["in_progress", "finished"].includes(d.status) ||
         !["0","1"].includes(d.is_recommended) || !locale(d.language) ||
         !users.has(d.creator_user_id)) throw new Error("Invalid deck");
     if (d.is_recommended === "1") {

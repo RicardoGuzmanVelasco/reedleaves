@@ -45,10 +45,10 @@ for(const dialect of ["sqlite","postgres"]) {
   test(`${dialect}: reviewable decks are open to every reader whatever the contribution policy`,async t=>{
     const {db,session}=await fixture(t,dialect);
     const cases=[
-      ["seven-habits-editorial","selected","draft"],
-      ["seven-habits-inside-out","selected","draft"],
-      ["atomic-habits-editorial","open","draft"],
-      ["rich-dad-poor-dad-editorial","selected","draft"]
+      ["seven-habits-editorial","selected","in_progress"],
+      ["seven-habits-inside-out","selected","in_progress"],
+      ["atomic-habits-editorial","open","in_progress"],
+      ["rich-dad-poor-dad-editorial","selected","in_progress"]
     ];
     for(const [deckId,policy,status] of cases) {
       await db.prepare(`UPDATE decks SET contribution_policy=?,
@@ -65,10 +65,10 @@ for(const dialect of ["sqlite","postgres"]) {
   test(`${dialect}: language options stay fixed and selected cards come from decks of every contribution policy`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     const cases=[
-      {policy:"selected",status:"draft",language:"it",userId:"reed-team",expected:true,label:"owner"},
-      {policy:"selected",status:"draft",language:"fr-CA",userId:session.user_id,expected:true,label:"invited"},
-      {policy:"open",status:"draft",language:"de",userId:session.user_id,expected:true,label:"open"},
-      {policy:"selected",status:"draft",language:"ja",userId:session.user_id,expected:true,label:"selected-not-invited"}
+      {policy:"selected",status:"in_progress",language:"it",userId:"reed-team",expected:true,label:"owner"},
+      {policy:"selected",status:"in_progress",language:"fr-CA",userId:session.user_id,expected:true,label:"invited"},
+      {policy:"open",status:"in_progress",language:"de",userId:session.user_id,expected:true,label:"open"},
+      {policy:"selected",status:"in_progress",language:"ja",userId:session.user_id,expected:true,label:"selected-not-invited"}
     ];
     await db.prepare("INSERT INTO accounts(user_id,username,password_hash,time_zone,language) VALUES (?,?,?,?,?)")
       .run("reed-team","team.access","hash","Europe/Madrid","es");

@@ -139,7 +139,7 @@ test("One optional vote and independent book reading / Cardcase membership", asy
   assert.equal(db.prepare("SELECT language FROM decks WHERE id = 'allowed'").get().language,"en");
   db.prepare("UPDATE decks SET status = 'finished' WHERE id = 'allowed'").run();
   assert.throws(() => db.prepare("UPDATE decks SET language = 'fr' WHERE id = 'allowed'").run(),/immutable/);
-  db.prepare("UPDATE decks SET status = 'draft' WHERE id = 'allowed'").run();
+  db.prepare("UPDATE decks SET status = 'in_progress' WHERE id = 'allowed'").run();
   db.prepare("DELETE FROM decks WHERE id = 'allowed'").run();
   db.prepare("INSERT INTO book_reading VALUES ('test-reader','seven-habits','read')").run();
   db.prepare("INSERT INTO deck_votes(user_id,deck_id,value) VALUES ('test-reader','seven-habits-editorial',1)").run();
@@ -172,7 +172,7 @@ test("Finished decks accept in-place content corrections while preserving card i
   assert.equal(db.prepare("SELECT count(*) AS n FROM cards WHERE id IN ('habit-1','habit-2')").get().n,2);
   assert.throws(() => db.prepare("DELETE FROM card_translations WHERE card_id = 'habit-1'").run(),/immutable/);
   assert.equal(db.prepare("UPDATE deck_translations SET description = 'changed' WHERE deck_id = 'seven-habits-editorial'").run().changes,1);
-  assert.equal(db.prepare("UPDATE decks SET status = 'draft' WHERE id = 'seven-habits-editorial'").run().changes,1);
+  assert.equal(db.prepare("UPDATE decks SET status = 'in_progress' WHERE id = 'seven-habits-editorial'").run().changes,1);
   const stats = (await readCatalog(db)).decks.find(d => d.id === "seven-habits-editorial").metrics;
   assert.equal("startedBy" in stats,false); assert.equal("completedBy" in stats,false);
 });

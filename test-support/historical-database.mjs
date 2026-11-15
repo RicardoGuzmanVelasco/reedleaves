@@ -8,7 +8,7 @@ import {seedCatalog as seedPrePopularCatalog} from "./pre-popular-title-seed.mjs
 import {seedCatalog as seedLatestCatalog} from "./pre-finished-vocabulary-seed.mjs";
 
 // Load a real released schema, never a current schema with its version lowered.
-export async function historicalDatabase(t,dialect,version) {
+export async function historicalDatabase(t,dialect,version,{seed=true}={}) {
   let db;
   if (dialect === "postgres") {
     const engine=new PGlite();
@@ -24,6 +24,7 @@ export async function historicalDatabase(t,dialect,version) {
   assert.equal(actual,version,"The fixture must start at the advertised historical version");
   // The seed's current catalog validator needs this column. Add it only while
   // seeding editorial books (all NULL), then restore the exact old table shape.
+  if (!seed) return db;
   const beforePersonalBooks=version < (dialect === "postgres" ? 3 : 11);
   if (beforePersonalBooks) await db.exec("ALTER TABLE books ADD COLUMN creator_user_id TEXT REFERENCES users(id);");
   if(version >= (dialect==="postgres"?43:51)) await seedLatestCatalog(db);
@@ -52,6 +53,7 @@ export function normalizeRetiredRow(table,row) {
   delete value.editorial_status;delete value.can_create_decks;
   if (table === "decks") delete value.kind;
   if (table === "decks" && value.status === "published") value.status="finished";
+  if (table === "decks" && value.status === "draft") value.status="in_progress";
   if (Object.hasOwn(value,"topic")) { value.practice_mode=value.topic;delete value.topic; }
   return value;
 }
@@ -128,8 +130,8 @@ export async function migrationData(db) {
   }
   const flattened=await has("deck_versions");
   result.deckStatus=flattened
-    ? await db.prepare("SELECT deck_id,CASE status WHEN 'published' THEN 'finished' ELSE status END AS status FROM deck_versions ORDER BY deck_id").all()
-    : await db.prepare("SELECT id AS deck_id,CASE status WHEN 'published' THEN 'finished' ELSE status END AS status FROM decks ORDER BY id").all();
+    ? await db.prepare("SELECT deck_id,CASE status WHEN 'published' THEN 'finished' WHEN 'draft' THEN 'in_progress' ELSE status END AS status FROM deck_versions ORDER BY deck_id").all()
+    : await db.prepare("SELECT id AS deck_id,CASE status WHEN 'published' THEN 'finished' WHEN 'draft' THEN 'in_progress' ELSE status END AS status FROM decks ORDER BY id").all();
   result.deckTranslations=flattened
     ? await db.prepare(`SELECT v.deck_id,t.language,t.title,t.description,t.editorial_note FROM deck_version_translations t
         JOIN deck_versions v ON v.id=t.version_id ORDER BY v.deck_id,t.language`).all()

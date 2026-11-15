@@ -1361,7 +1361,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   function openDeckNote(targetDeckId,trigger,parentId=null) {
     const deck=catalog.decksById.get(targetDeckId);
-    if (busy || !snapshot.user || !(deck?.canContribute ?? deck?.creator.userId === snapshot.user.id) || deck?.status !== "draft") return;
+    if (busy || !snapshot.user || !(deck?.canContribute ?? deck?.creator.userId === snapshot.user.id) || deck?.status !== "in_progress") return;
     const model=catalog.deckModels.get(targetDeckId);
     if (parentId && !model?.byId.has(parentId)) return;
     const noteReturn={hash:location.hash,openDeckId,openBookId,notesCompletion,scrollY:setModalPageLock.scrollY(),dialogScrollTop:trigger.closest("dialog")?.scrollTop || 0,
@@ -1436,7 +1436,7 @@ export function startReader({createCardFeatures} = {}) {
         Object.assign(authorForm,draft,{draftRecovered:true});
         if (forceParentId) authorForm.parentId=formOptions.parentId;
         if (formOptions.noteReturn) authorForm.noteReturn=formOptions.noteReturn;
-        authorForm.draftDestinationUnavailable=!draft.createNoteDeck&&(()=>{const target=catalog.decksById.get(draft.noteDeckId);return !target||target.bookId!==draft.noteBookId||target.status!=="draft"||!(target.canContribute??target.creator.userId===snapshot.user.id);})();
+        authorForm.draftDestinationUnavailable=!draft.createNoteDeck&&(()=>{const target=catalog.decksById.get(draft.noteDeckId);return !target||target.bookId!==draft.noteBookId||target.status!=="in_progress"||!(target.canContribute??target.creator.userId===snapshot.user.id);})();
       }
       authorForm.draftStorageUnavailable=!store.available;
     }
@@ -1448,13 +1448,13 @@ export function startReader({createCardFeatures} = {}) {
   }
   function openDeckCompletion() {
     const deck=catalog.decksById.get(deckId);
-    if (busy || mode !== "deck" || !snapshot.user || deck?.creator.userId !== snapshot.user.id || deck?.status !== "draft" || !deck.cardCount) return;
+    if (busy || mode !== "deck" || !snapshot.user || deck?.creator.userId !== snapshot.user.id || deck?.status !== "in_progress" || !deck.cardCount) return;
     if (findNoteDraft(bookId,deckId)) {render();return;}
     deckCompletion={deckId};render();
   }
   function editDeckTitle() {
     const deck=catalog.decksById.get(deckId);
-    if (busy || mode !== "deck" || deck?.status !== "draft" || deck.creator.userId !== snapshot.user?.id) return;
+    if (busy || mode !== "deck" || deck?.status !== "in_progress" || deck.creator.userId !== snapshot.user?.id) return;
     deckTitleEdit={title:deck.title[deck.language],previousTitle:deck.title[deck.language]};
     render();main.querySelector("#deck-title")?.focus();
   }
@@ -1476,7 +1476,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function saveDeckLanguage(nextLanguage) {
     const deck=catalog?.decksById.get(deckId);
-    if (busy || mode !== "deck" || deck?.status !== "draft" || deck.creator.userId !== snapshot.user?.id || !["es","en"].includes(nextLanguage)) return;
+    if (busy || mode !== "deck" || deck?.status !== "in_progress" || deck.creator.userId !== snapshot.user?.id || !["es","en"].includes(nextLanguage)) return;
     if(nextLanguage===deck.language)return;
     busy=true;syncGeneration++;deckLanguageError=null;lockControls("Updating");
     try {
@@ -1489,7 +1489,7 @@ export function startReader({createCardFeatures} = {}) {
   }
   async function saveDeckContributors(usernames,focusSelector="#deck-contributor-username") {
     const deck=catalog?.decksById.get(deckId);
-    if(busy||mode!=="deck"||deck?.status!=="draft"||deck.creator.userId!==snapshot.user?.id||deck.contributionPolicy!=="selected")return;
+    if(busy||mode!=="deck"||deck?.status!=="in_progress"||deck.creator.userId!==snapshot.user?.id||deck.contributionPolicy!=="selected")return;
     busy=true;syncGeneration++;deckContributorError=null;lockControls("Updating");
     try {
       const result=await api.request("/api/author/decks/contributors",{deckId,usernames});
@@ -1874,7 +1874,7 @@ export function startReader({createCardFeatures} = {}) {
     albumPosition={deckId:activeDeck,mode:"deck",scrollY:savedScrollY};
     const target=catalog.decksById.get(activeDeck);
     // Writers of a draft deck inspect its notes without the cardcase side effects of reading.
-    const writes=!!snapshot.user&&target?.status==="draft"&&!!(target.canContribute??target.creator.userId===snapshot.user.id);
+    const writes=!!snapshot.user&&target?.status==="in_progress"&&!!(target.canContribute??target.creator.userId===snapshot.user.id);
     if (!snapshot.user || writes) { requestedId=id;scrollToCard=true;navigate("#deck/"+activeDeck+"/"+id);return; }
     await mutation("/api/reader/open",{deckId:activeDeck,cardId:id},()=>{
       requestedId = id; scrollToCard = true; navigate("#deck/"+activeDeck+"/"+id);

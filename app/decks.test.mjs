@@ -79,7 +79,7 @@ test("Reading guide authoring shows only its styled editor; community guides sta
 
 test("Collective draft review UI lets invited contributors add cards without exposing deck management",async()=>{
   const catalog=await fixture(),deck=catalog.decks.find(item=>item.bookId==="seven-habits"),userId="contributor";
-  deck.contributionPolicy="selected";deck.status="draft";deck.canContribute=true;
+  deck.contributionPolicy="selected";deck.status="in_progress";deck.canContribute=true;
   const state=readerState(catalog,{userId,deckId:deck.id,bookId:deck.bookId,language:"en"});
   const html=deckPageView(state);
   assert.match(html,/data-action="take-deck-note"/);
@@ -120,7 +120,7 @@ test("Reading navigation offers an alternative control at deck boundaries",async
 
 test("Deck tiles only label ongoing creation and retain the change warning in their details, in both languages",async()=>{
   const catalog=await fixture(),choices=featuredDecks(catalog,"seven-habits");
-  const deckChoices=choices.slice(0,2).map((item,i)=>({...item,deck:{...item.deck,status:i ? "finished" : "draft"}}));
+  const deckChoices=choices.slice(0,2).map((item,i)=>({...item,deck:{...item.deck,status:i ? "finished" : "in_progress"}}));
   for (const language of ["es","en"]) {
     const c=words[language],state=readerState(catalog,{language,bookId:"seven-habits",deckChoices});
     for (const choice of deckChoices) {
@@ -147,7 +147,7 @@ test("Deck tiles only label ongoing creation and retain the change warning in th
       assert.ok(html.includes(c.noteCardsCount(deck.cardCount)),"Every tile shows its card count");
       assert.ok(html.includes(`title="${c.noteCardsCount(deck.cardCount)}"`),"The card count chip has a localized title");
       assert.equal(html.includes('class="deck-tile deck-tile--quote-dominant"'),quoteCount>deck.cardCount-quoteCount,"Quote dominant decks use blue tones");
-      if (deck.status === "draft") {
+      if (deck.status === "in_progress") {
         assert.ok(label.includes(c.deckInProgress));
         assert.ok(html.replace(/<[^>]*>/g,"").includes(c.deckInProgressShort),"The tile has a short visible ongoing label");
       } else {
@@ -234,7 +234,7 @@ test("Deck albums show cards without per-deck progress",async()=>{
 
 test("Writers take a note inside a card from its sheet, never from the tree or grid",async()=>{
   const catalog=await fixture(),deck=catalog.decksById.get(deckId),parent=catalog.deckModels.get(deckId).roots[0];
-  deck.status="draft";
+  deck.status="in_progress";
   const state={catalog,language:"es",deckId,bookId:deck.bookId,storageAvailable:true,mode:"deck",userId:deck.creator.userId};
   assert.doesNotMatch(deckPageView(state),/data-action="take-child-note"/);
   assert.doesNotMatch(deckPageView({...state,deckPreview:true}),/data-action="take-child-note"/);
@@ -243,14 +243,14 @@ test("Writers take a note inside a card from its sheet, never from the tree or g
   assert.doesNotMatch(deckPageView({...state,requestedId:parent.id,userId:"another-reader"}),/data-action="take-child-note"/);
   deck.status="finished";
   assert.doesNotMatch(deckPageView({...state,requestedId:parent.id}),/data-action="take-child-note"/);
-  deck.status="draft";
+  deck.status="in_progress";
   const form=authorFormView({...state,authorForm:{kind:"idea",requestId:"child-note",noteBookId:deck.bookId,noteDeckId:deck.id,parentId:parent.id,title:"",body:"",language:deck.language}});
   assert.match(form,new RegExp(`<option value="${parent.id}" selected>`),"The parent selected from a card action is preselected in the note form");
 });
 
 test("Draft deck owner can edit its name and language from the deck page",async()=>{
   const catalog=await fixture(),deck=catalog.decksById.get(deckId);
-  deck.status="draft";
+  deck.status="in_progress";
   for(const language of ["es","en"]) {
     const state=readerState(catalog,{language,deckId,bookId:deck.bookId,userId:deck.creator.userId,mode:"deck"});
     const html=deckPageView(state);
@@ -263,7 +263,7 @@ test("Draft deck owner can edit its name and language from the deck page",async(
     assert.doesNotMatch(deckPageView({...state,userId:"other"}),/data-action="edit-deck-title"|data-deck-language/);
     deck.status="finished";
     assert.doesNotMatch(deckPageView(state),/data-action="edit-deck-title"|data-deck-language/);
-    deck.status="draft";
+    deck.status="in_progress";
   }
 });
 
@@ -337,15 +337,15 @@ test("Practice prices show one discounted practiceMode, the wallet cap, and usef
 
 test("Draft creation status stays distinct from practice sessions across deck surfaces",async()=>{
   const catalog=await fixture(),deck=catalog.decksById.get(deckId);
-  deck.status="draft";
+  deck.status="in_progress";
   for(const language of ["es","en"]){
     const c=words[language],base=readerState(catalog,{language,bookId:deck.bookId,deckId,today:"2026-10-17",deckChoices:featuredDecks(catalog,deck.bookId)});
     for(const userId of [deck.creator.userId,"another-reader"]){
-      const state={...base,userId},explanation=userId===deck.creator.userId?c.deckDraftOwnerExplanation:c.deckMayChangeUnadded;
+      const state={...base,userId},explanation=userId===deck.creator.userId?c.deckInProgressOwnerExplanation:c.deckMayChangeUnadded;
       const surfaces=[deckPageView(state)];
-      const ownPersonalDraft=userId===deck.creator.userId&&deck.contributionPolicy==="owner";
+      const ownPersonalInProgress=userId===deck.creator.userId&&deck.contributionPolicy==="owner";
       for(const html of surfaces){
-        if(ownPersonalDraft){
+        if(ownPersonalInProgress){
           // The owner's own personal draft carries no status chip; finishing it is already offered.
           assert.ok(!html.includes(explanation));
           assert.match(html,/data-action="finish-deck"/);
@@ -353,7 +353,7 @@ test("Draft creation status stays distinct from practice sessions across deck su
           assert.ok(html.includes(c.deckInProgress));
           assert.ok(html.includes(explanation));
         }
-        assert.ok(!html.includes(userId===deck.creator.userId?c.deckMayChangeUnadded:c.deckDraftOwnerExplanation));
+        assert.ok(!html.includes(userId===deck.creator.userId?c.deckMayChangeUnadded:c.deckInProgressOwnerExplanation));
       }
       assert.ok(deckPageView(state).includes(`data-action="share-deck"`));
       assert.doesNotMatch(deckPageView(state),/Repaso completo|Practice complete/);
@@ -363,9 +363,9 @@ test("Draft creation status stays distinct from practice sessions across deck su
     assert.ok(html.includes(`data-action="share-deck"`));
     assert.ok(deckPageView({...base,userId:"another-reader"}).includes(`data-action="share-deck"`));
     assert.doesNotMatch(html,/Terminada|Finished/);
-    assert.ok(!html.includes(c.deckDraftOwnerExplanation));
+    assert.ok(!html.includes(c.deckInProgressOwnerExplanation));
     assert.ok(!html.includes(c.deckMayChange));
-    deck.status="draft";
+    deck.status="in_progress";
   }
 });
 
@@ -374,7 +374,7 @@ test("Only the explicit team recommendation gets the translated visible and acce
   const catalog=await fixture(),choice=featuredDecks(catalog,"seven-habits")[0];
   for(const language of ["es","en"]){
     const c=words[language];
-    for(const status of ["draft","finished"]){
+    for(const status of ["in_progress","finished"]){
       for(const recommended of [true,false]){
         const item={...choice,deck:{...choice.deck,isRecommended:recommended,status},tags:["recommended","popular","preferred"]};
         const html=deckView(readerState(catalog,{language,bookId:"seven-habits",deckChoices:[item]}));

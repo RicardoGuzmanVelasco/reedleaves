@@ -8,7 +8,7 @@
       "interface": {
         "displayName": "Reedleaves",
         "shortDescription": "Create and finish team decks",
-        "longDescription": "Find books in the Reedleaves catalog, save finished decks attributed to Equipo Reedleaves and finish older team drafts.",
+        "longDescription": "Find books in the Reedleaves catalog, save finished decks attributed to Equipo Reedleaves and finish older in-progress team decks.",
         "developerName": "Reedleaves",
         "category": "Productivity",
         "capabilities": ["Read", "Write"],

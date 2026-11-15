@@ -35,7 +35,7 @@ for (const [dialect,version] of [["sqlite",60],["postgres",52]]) {
     const schemaVersion=dialect==="sqlite"?db.prepare("PRAGMA user_version").get().user_version:(await db.prepare("SELECT version FROM reed_schema").get()).version;
     assert.equal(schemaVersion,dialect==="sqlite"?SQLITE_SCHEMA_VERSION:POSTGRES_SCHEMA_VERSION);
     assert.equal((await db.prepare("SELECT status FROM decks WHERE id='seven-habits-editorial'").get()).status,"finished");
-    assert.deepEqual((await db.prepare("SELECT id FROM decks WHERE status='draft' ORDER BY id").all()).map(row=>row.id),draftIds.filter(id=>id!=="empty-archived"));
+    assert.deepEqual((await db.prepare("SELECT id FROM decks WHERE status='in_progress' ORDER BY id").all()).map(row=>row.id),draftIds.filter(id=>id!=="empty-archived"));
     assert.equal(await db.prepare("SELECT 1 FROM decks WHERE id='empty-archived'").get(),undefined);
     for (const table of ["deck_translations","cardcase_decks","deck_votes"]) {
       assert.equal(await db.prepare(`SELECT 1 FROM ${table} WHERE deck_id='empty-archived'`).get(),undefined,`${table} rows of the deleted deck are removed`);
@@ -61,7 +61,7 @@ for (const [dialect,version] of [["sqlite",60],["postgres",52]]) {
     await assert.rejects(async()=>db.prepare("DELETE FROM cards WHERE id='habit-1'").run(),/immutable/);
     await db.prepare("DELETE FROM decks WHERE id='reader-deck'").run();
     await checkCatalog(db);
-    assert.ok((await readCatalog(db)).decks.every(deck=>["draft","finished"].includes(deck.status)));
+    assert.ok((await readCatalog(db)).decks.every(deck=>["in_progress","finished"].includes(deck.status)));
     if (dialect==="sqlite") {
       assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(),[]);
       assert.equal(db.prepare("PRAGMA foreign_keys").get().foreign_keys,1);

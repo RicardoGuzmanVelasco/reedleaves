@@ -37,18 +37,18 @@ Hecho en código: `authorView`, la acción `author-deck`/`inspect-card` y los bo
 
 - Una sola pantalla de baraja (`#deck/<id>`), sin modo de gestión. Desaparecen `authorView` y `#author`, que redirige a `#deck` (sin alias). Cinco puntos de entrada a `#author` en `app/reader-app.mjs` y sus pruebas deben migrarse.
 - Tocar una nota abre la hoja de la nota. Quien puede editar esa nota ve además sus acciones: tomar nota dentro; después cambiar de padre y editar (fases 1–2). Los botones «+ hija» por nodo desaparecen.
-- Acciones solo para quien corresponde: dueño en borrador → ajustes plegados (título, idioma, colaboradores) y «Terminar baraja»; quien puede aportar → «Tomar nota» con texto.
+- Acciones solo para quien corresponde: dueño con baraja en curso → ajustes plegados (título, idioma, colaboradores) y «Terminar baraja»; quien puede aportar → «Tomar nota» con texto.
 - Los permisos los decide el servidor; la interfaz solo los refleja.
 - Sin copy nuevo salvo aprobación.
 
 ### 0c — Quitar información de la vista de baraja
 
-Hecho (1, 2, 3, 4, 5, 6, 8): idioma, título y colaboradores dentro de «Información de la baraja»; sin chip de estado en la baraja personal propia en borrador; contador «N tarjetas» hasta cerca del tope; alternador y filtro desde 6 tarjetas. Pendiente: el punto 7 (atribución en la hoja) y ver el resultado en la app.
+Hecho (1, 2, 3, 4, 5, 6, 8): idioma, título y colaboradores dentro de «Información de la baraja»; sin chip de estado en la baraja personal propia en curso; contador «N tarjetas» hasta cerca del tope; alternador y filtro desde 6 tarjetas. Pendiente: el punto 7 (atribución en la hoja) y ver el resultado en la app.
 
 Medido en móvil: el árbol empieza al 73 % de la pantalla, tras ocho bloques. Quitar o mover, en este orden:
 
 1. Selector «Idioma de la baraja» (ya sale en el meta): a los ajustes plegados.
-2. Chip «Baraja en borrador» y su frase explicativa, en las propias.
+2. Chip «Baraja en curso» y su frase explicativa, en las propias.
 3. «Cambiar nombre de la baraja» como texto grande: a los ajustes.
 4. «Ver baraja →»: desaparece con la fusión.
 5. Contador «N de 25 tarjetas», salvo en colectivas.
@@ -66,7 +66,7 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 - Familia de iconos aprobada (47 SVG en `app/assets/icons/ui2/`, con su README): `+` para toda alta, lápiz para toda edición, pilas rectas para barajas y tarjetas en ángulo para notas y repaso, activo con contorno más relleno suave, términos del glosario (`practice`, no `review`). Al terminar el cambio de interfaz, esa carpeta pasa a ser el conjunto único.
 - Condición de cierre: cuando estén todas las pantallas nuevas, se activan para todos y se borra de una vez todo lo viejo (vistas, CSS, pruebas, reglas de `DESIGN.md`, el parámetro). Sin variantes sin fecha.
 - Renombrado en el mismo cierre: `app/ui2/` pasa a ser el módulo normal; las claves `ui2…` de `app/i18n.mjs`, las clases `.ui2-…`, el atributo `data-ui2-*` y `app/assets/icons/ui2/` pierden el prefijo. «ui2» no puede sobrevivir al cierre.
-- Fuera del interruptor, y por decidir una a una: quitar «Seleccionadas» con límite por colaborador, idea del día como opción explícita al terminar, repasar una instantánea de barajas ajenas en borrador, no cobrar hoja por la baraja propia, etiqueta para «terminada».
+- Fuera del interruptor, y por decidir una a una: quitar «Seleccionadas» con límite por colaborador, idea del día como opción explícita al terminar, repasar una instantánea de barajas ajenas en curso, no cobrar hoja por la baraja propia, etiqueta para «terminada».
 - Las fases 1–2 (servidor) no dependen de la interfaz y pueden avanzar en paralelo.
 
 ## Fase 1 — Reorganizar dentro de la baraja

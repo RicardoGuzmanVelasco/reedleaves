@@ -160,7 +160,7 @@ test("The daily idea only comes from root cards of finished decks",async t=>{
     assert.equal(card.parentId,null); assert.equal(card.isReadingGuide,false); assert.equal(deck.status,"finished");
     picked.add(id);
   }
-  assert.ok(catalog.cards.some(card=>catalog.decks.find(item=>item.id===card.deckId).status==="draft"),"the fixture has cards in draft decks to exclude");
+  assert.ok(catalog.cards.some(card=>catalog.decks.find(item=>item.id===card.deckId).status==="in_progress"),"the fixture has cards in draft decks to exclude");
   assert.ok(picked.size>1);
 });
 test("One daily idea is shared and daily assignment does not create a card view",async t=>{

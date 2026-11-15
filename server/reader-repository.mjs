@@ -50,11 +50,11 @@ export async function readReaderHomeBooks(db,session) {
     const userId=session.user_id;await lockReaderAccount(db,userId);
     const books=await db.prepare(`WITH active_books AS (
         SELECT book_id FROM book_reading WHERE user_id=? AND status='reading'
-        UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='draft'
+        UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='in_progress'
       ), home_book_summaries AS (
       SELECT b.id,b.author,b.popular_title,b.popular_language,b.creator_user_id,b.position,
         COALESCE(br.status,'unread') AS status,
-        (SELECT COUNT(*) FROM decks owned WHERE owned.book_id=b.id AND owned.creator_user_id=? AND owned.status='draft') AS note_deck_count,
+        (SELECT COUNT(*) FROM decks owned WHERE owned.book_id=b.id AND owned.creator_user_id=? AND owned.status='in_progress') AS note_deck_count,
         (SELECT MAX(c.created_at) FROM decks owned JOIN cards c ON c.deck_id=owned.id
           WHERE owned.book_id=b.id AND owned.creator_user_id=?) AS last_note_at
       FROM active_books active JOIN books b ON b.id=active.book_id
@@ -64,18 +64,18 @@ export async function readReaderHomeBooks(db,session) {
     const translations=await db.prepare(`SELECT bt.book_id,bt.language,bt.title,bt.description,b.popular_title
       FROM book_translations bt JOIN (
         SELECT book_id FROM book_reading WHERE user_id=? AND status='reading'
-        UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='draft'
+        UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='in_progress'
       ) active ON active.book_id=bt.book_id JOIN books b ON b.id=bt.book_id`).all(userId,userId);
     const interests=await db.prepare(`SELECT bg.book_id,bg.interest_id FROM book_interests bg JOIN (
         SELECT book_id FROM book_reading WHERE user_id=? AND status='reading'
-        UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='draft'
+        UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='in_progress'
       ) active ON active.book_id=bg.book_id ORDER BY bg.position`).all(userId,userId);
     const practiceDays=await db.prepare(`SELECT d.book_id,COUNT(DISTINCT ps.completed_local_day) AS review_days
       FROM practice_sessions ps JOIN practice_session_cards psc ON psc.session_id=ps.id
       JOIN cards c ON c.id=psc.card_id JOIN decks d ON d.id=c.deck_id
       WHERE ps.user_id=? AND ps.completed_at IS NOT NULL AND ps.completed_local_day IS NOT NULL
         AND d.book_id IN (SELECT book_id FROM book_reading WHERE user_id=? AND status='reading'
-          UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='draft') GROUP BY d.book_id`).all(userId,userId,userId);
+          UNION SELECT book_id FROM decks WHERE creator_user_id=? AND status='in_progress') GROUP BY d.book_id`).all(userId,userId,userId);
     const translationsByBook=new Map(),interestsByBook=new Map(),growthByBook=new Map();
     for(const row of translations){const translated=translationsByBook.get(row.book_id)||{title:{},description:{}};if(row.title.trim()!==row.popular_title.trim())translated.title[row.language]=row.title;translated.description[row.language]=row.description;translationsByBook.set(row.book_id,translated);}
     for(const row of interests){const values=interestsByBook.get(row.book_id)||[];values.push(row.interest_id);interestsByBook.set(row.book_id,values);}

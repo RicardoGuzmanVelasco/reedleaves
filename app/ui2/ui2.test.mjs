@@ -14,7 +14,7 @@ function fixture() {
   const cards=[card("a",null,1),card("b1",null,2),card("a1",null,1),card("q",null,3,true)];
   cards[2].parentId="a";cards.push({...card("a2","a1",1)});
   const model=validateCards(cards,"b");
-  const deck={id:"d",bookId:"b",language:"es",status:"draft",contributionPolicy:"owner",creator:{userId:"me"},title:{es:"Notas"}};
+  const deck={id:"d",bookId:"b",language:"es",status:"in_progress",contributionPolicy:"owner",creator:{userId:"me"},title:{es:"Notas"}};
   const catalog={...emptyCatalog(),decks:[deck,{...deck,id:"other",creator:{userId:"x"}},{...deck,id:"shared",contributionPolicy:"open"}]};
   return {model,deck,state:readerState(catalog,{userId:"me"})};
 }
@@ -50,7 +50,7 @@ test("Only the author of a personal deck can correct or place; taking notes need
 
 for(const language of ["es","en"])test(`Screens expose named controls and sheets in ${language}`,()=>{
   const c=words[language],{model,deck}=fixture(),outline=deckOutline(model,"es"),caps=deckCapabilities(deck,"me");
-  const screen=deckScreenMarkup({deckTitle:"Notas",bookTitle:"Libro",author:"Autor",status:"draft",count:5,max:25,languageName:"es",outline,caps,c});
+  const screen=deckScreenMarkup({deckTitle:"Notas",bookTitle:"Libro",author:"Autor",status:"in_progress",count:5,max:25,languageName:"es",outline,caps,c});
   assert.match(screen,/data-ui2="open-note"[^>]*aria-label="T a"/);
   assert.match(screen,/aria-label="Cita: Texto q"|aria-label="[^"]*Texto q"/);
   assert.match(screen,/data-ui2="take-note"/);
@@ -99,7 +99,7 @@ for(const language of ["es","en"])test(`Capture screen: close on the right, book
   assert.match(empty,/segmented-selector note-type-selector[\s\S]*data-icon="idea"[\s\S]*data-icon="quote"/);
   assert.doesNotMatch(empty,/ui2-pick|callout/);
   const withDeck=noteFormMarkup({...base,form:{mode:"create",isQuote:false,title:"",body:""},deck:{title:"Notas",count:8,max:25},canPlace:true,parentTitle:null,canSave:false});
-  assert.match(withDeck,new RegExp(`callout--info[\\s\\S]*${c.ui2DraftHint} · Notas · 8/25`));
+  assert.match(withDeck,new RegExp(`callout--info[\\s\\S]*${c.ui2AddedTo("Notas",8,25).replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}`));
   assert.match(withDeck,/data-ui2="form-place"/);
   const full=noteFormMarkup({...base,form:{mode:"create",isQuote:false,title:"a",body:"b"},deck:{title:"Notas",count:25,max:25},canPlace:true,canSave:false});
   assert.match(full,/callout--warning/);assert.doesNotMatch(full,/callout--info/);

@@ -92,13 +92,13 @@ export async function readCatalog(db, userId) {
         likes:votes.get(`${row.id}:1`)||0,
         dislikes:votes.get(`${row.id}:-1`)||0
       }});
-    if (userId === row.creator_user_id && row.status === "draft" && row.contribution_policy === "selected") {
+    if (userId === row.creator_user_id && row.status === "in_progress" && row.contribution_policy === "selected") {
       decks.at(-1).contributors=await db.prepare(`SELECT c.user_id AS userId,a.username,u.display_name AS name FROM deck_contributors c
         JOIN accounts a ON a.user_id=c.user_id JOIN users u ON u.id=c.user_id WHERE c.deck_id=? ORDER BY a.username`).all(row.id);
     }
     if (userId) {
       const member=memberDeckIds.has(row.id);
-      decks.at(-1).canContribute=row.status==="draft"&&(row.creator_user_id===userId||row.contribution_policy!=="owner"&&(row.contribution_policy==="open"||member));
+      decks.at(-1).canContribute=row.status==="in_progress"&&(row.creator_user_id===userId||row.contribution_policy!=="owner"&&(row.contribution_policy==="open"||member));
       decks.at(-1).myCardCount=myCardCounts.get(row.id)||0;
     }
   }
@@ -106,7 +106,7 @@ export async function readCatalog(db, userId) {
   const decksById=new Map(decks.map(deck=>[deck.id,deck])),cardsByDeck=new Map();
   for(const card of cards) { if(!cardsByDeck.has(card.deckId)) cardsByDeck.set(card.deckId,[]); cardsByDeck.get(card.deckId).push(card); }
   for (const row of await db.prepare("SELECT * FROM decks ORDER BY book_id,id").all()) {
-    const model = validateCards(cardsByDeck.get(row.id)||[],row.book_id,{allowEmpty:row.status==="draft"});
+    const model = validateCards(cardsByDeck.get(row.id)||[],row.book_id,{allowEmpty:row.status==="in_progress"});
     let depth=0;
     for (const card of model.cards) { let level=1,parent=card.parentId; while(parent!==null){level++;parent=model.byId.get(parent).parentId;} depth=Math.max(depth,level); }
     const deck = decksById.get(row.id);

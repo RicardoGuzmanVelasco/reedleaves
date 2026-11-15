@@ -39,8 +39,8 @@ export function placementTargets(model,cardId,language){
 // Personal decks of the signed-in reader: the only ones the server lets them correct or reorder.
 export function deckCapabilities(deck,userId){
   const personal=!!userId&&deck?.creator?.userId===userId&&(deck.contributionPolicy||"owner")==="owner";
-  const draft=deck?.status==="draft";
-  return {correct:personal,place:personal,takeBelow:personal&&draft};
+  const inProgress=deck?.status==="in_progress";
+  return {correct:personal,place:personal,takeBelow:personal&&inProgress};
 }
 
 export function noteCount(model){return {count:model.cards.length,max:MAX_CARDS_PER_DECK};}
@@ -51,5 +51,5 @@ export function parentOf(model,cardId){
 }
 
 export function ownDecks(catalog,userId){
-  return catalog.decks.filter(deck=>deckCapabilities(deck,userId).place&&["draft","finished"].includes(deck.status));
+  return catalog.decks.filter(deck=>deckCapabilities(deck,userId).place&&["in_progress","finished"].includes(deck.status));
 }

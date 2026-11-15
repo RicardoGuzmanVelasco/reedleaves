@@ -179,7 +179,7 @@ CREATE TABLE decks (
   creator_user_id TEXT NOT NULL REFERENCES users(id),
   language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
   is_recommended INTEGER NOT NULL DEFAULT 0 CHECK(is_recommended IN (0,1)),
-  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','finished')),
+  status TEXT NOT NULL DEFAULT 'in_progress' CHECK(status IN ('in_progress','finished')),
   quote_source_url TEXT CHECK(quote_source_url IS NULL OR (quote_source_url LIKE 'https://%' AND length(trim(quote_source_url)) BETWEEN 9 AND 2048)),
   contribution_policy TEXT NOT NULL DEFAULT 'owner' CHECK(contribution_policy IN ('owner','open','selected')),
   max_cards_per_contributor INTEGER CHECK(max_cards_per_contributor IS NULL OR max_cards_per_contributor > 0),
@@ -201,9 +201,9 @@ WHEN (NEW.creator_user_id IS NOT OLD.creator_user_id AND NOT (
   OLD.creator_user_id='reed-team' AND OLD.status='finished'
 )) OR (NEW.book_id <> OLD.book_id AND NOT EXISTS (
   SELECT 1 FROM book_merge_operations m WHERE m.source_book_id=OLD.book_id AND m.target_book_id=NEW.book_id
-)) OR (NEW.language <> OLD.language AND OLD.status <> 'draft')
+)) OR (NEW.language <> OLD.language AND OLD.status <> 'in_progress')
 BEGIN SELECT RAISE(ABORT,'Deck ownership is immutable'); END;
-CREATE TRIGGER keep_finished_deck BEFORE DELETE ON decks WHEN OLD.status <> 'draft'
+CREATE TRIGGER keep_finished_deck BEFORE DELETE ON decks WHEN OLD.status <> 'in_progress'
 BEGIN SELECT RAISE(ABORT,'Finished deck cannot be deleted'); END;
 
 CREATE TABLE deck_translations (
@@ -258,13 +258,13 @@ CREATE TABLE deck_contributors (
 CREATE INDEX deck_contributors_by_user ON deck_contributors(user_id,deck_id);
 
 CREATE TRIGGER freeze_collective_contributors_insert BEFORE INSERT ON deck_contributors
-WHEN (SELECT status FROM decks WHERE id=NEW.deck_id) <> 'draft'
+WHEN (SELECT status FROM decks WHERE id=NEW.deck_id) <> 'in_progress'
 BEGIN SELECT RAISE(ABORT,'Finished contributor list is immutable'); END;
 CREATE TRIGGER freeze_collective_contributors_update BEFORE UPDATE ON deck_contributors
-WHEN (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft'
+WHEN (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'in_progress'
 BEGIN SELECT RAISE(ABORT,'Finished contributor list is immutable'); END;
 CREATE TRIGGER freeze_collective_contributors_delete BEFORE DELETE ON deck_contributors
-WHEN (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'draft'
+WHEN (SELECT status FROM decks WHERE id=OLD.deck_id) <> 'in_progress'
 BEGIN SELECT RAISE(ABORT,'Finished contributor list is immutable'); END;
 CREATE TABLE card_translations (
   card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
@@ -292,13 +292,13 @@ CREATE TRIGGER no_card_cycles_update BEFORE UPDATE OF parent_id ON cards WHEN NE
 END;
 
 CREATE TRIGGER freeze_cards_delete BEFORE DELETE ON cards
-WHEN (SELECT status FROM decks WHERE id = OLD.deck_id) <> 'draft'
+WHEN (SELECT status FROM decks WHERE id = OLD.deck_id) <> 'in_progress'
 BEGIN SELECT RAISE(ABORT,'Finished content is immutable; cards cannot be deleted'); END;
 CREATE TRIGGER freeze_card_translations_delete BEFORE DELETE ON card_translations
-WHEN (SELECT status FROM decks WHERE id = (SELECT deck_id FROM cards WHERE id = OLD.card_id)) <> 'draft'
+WHEN (SELECT status FROM decks WHERE id = (SELECT deck_id FROM cards WHERE id = OLD.card_id)) <> 'in_progress'
 BEGIN SELECT RAISE(ABORT,'Finished content is immutable; card translations cannot be deleted'); END;
 CREATE TRIGGER freeze_deck_translations_delete BEFORE DELETE ON deck_translations
-WHEN (SELECT status FROM decks WHERE id = OLD.deck_id) <> 'draft'
+WHEN (SELECT status FROM decks WHERE id = OLD.deck_id) <> 'in_progress'
 BEGIN SELECT RAISE(ABORT,'Finished content is immutable; deck translations cannot be deleted'); END;
 
 CREATE TABLE deck_votes (
@@ -410,4 +410,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 66;
+PRAGMA user_version = 67;

@@ -264,7 +264,7 @@ function deckTileMarkup(s,deck,{book,action="open-deck"}={}) {
     : `<img class="deck-language-icon" src="${imageUrl("/app/assets/icons/languages/globe.svg")}" width="16" height="16" alt=""><span>${esc(deck.language)}</span>`;
   const recommended=deck.isRecommended,isQuote=quoteDominant(s,deck,quoteCount),quoteClass=isQuote ? " deck-tile--quote-dominant" : "";
   const bookTitle=book ? displayedBookTitle(s,book,true) : null;
-  const name=[contentText(deck.title,s.language,deck.language),`${c.by} ${deck.creator.name}`,bookTitle?.text,c.noteCardsCount(deck.cardCount),c.quoteCount(quoteCount),language,deck.status === "draft" ? c.deckInProgress : null,recommended ? c.teamRecommendationShort : null].filter(Boolean).join(", ");
+  const name=[contentText(deck.title,s.language,deck.language),`${c.by} ${deck.creator.name}`,bookTitle?.text,c.noteCardsCount(deck.cardCount),c.quoteCount(quoteCount),language,deck.status === "in_progress" ? c.deckInProgress : null,recommended ? c.teamRecommendationShort : null].filter(Boolean).join(", ");
   return `<article class="deck-tile${quoteClass}${book ? " deck-tile--cardcase" : ""}"${book ? ' role="listitem"' : ""}>${deckTileWatermark(cardTypeFor({isQuote}))}<button class="deck-tile-open" type="button" data-action="${action}" data-deck="${esc(deck.id)}" ${action === "open-deck" ? 'aria-haspopup="dialog"' : ""} title="${esc(language)}${recommended ? ` · ${esc(c.recommended)}` : ""}" aria-label="${esc(name)}">${recommended ? deckDistinctionMarkup(c) : ""}</button>
     <span class="deck-tile-copy"><strong lang="${esc(contentLocale(deck.title,s.language,deck.language))}" dir="auto">${esc(contentText(deck.title,s.language,deck.language))}</strong>${bookTitle ? `<span class="deck-tile-book" lang="${esc(bookTitle.language)}" dir="auto">${esc(bookTitle.text)}</span>` : ""}<span class="deck-creator deck-tile-creator">${deckCreator(deck)}</span>
     <span class="deck-tile-metadata"><span class="deck-tile-count deck-tile-card-count" aria-hidden="true" title="${esc(c.noteCardsCount(deck.cardCount))}">${cardsIconMarkup}<span>${deck.cardCount}</span></span>${quoteCount>0?`<span class="deck-tile-count deck-tile-quote-count" aria-hidden="true" title="${esc(c.quoteCount(quoteCount))}">${quoteMarkMarkup}<span>${quoteCount}</span></span>`:""}<span class="deck-tile-count deck-tile-language" aria-hidden="true" title="${esc(language)}">${languageIndicator}</span>${deckStatusMarkup(s,deck,{compact:true})}</span></span></article>`;
@@ -424,7 +424,7 @@ function nameLink({icon,name,language=null,href=null}) {
   return href ? `<a class="card-attribution-row" href="${esc(href)}">${contents}</a>` : `<span class="card-attribution-row">${contents}</span>`;
 }
 
-function cardAttribution(s,card,book,{compact=false,linkBook=true,showDraftStatus=false}={}) {
+function cardAttribution(s,card,book,{compact=false,linkBook=true,showInProgressStatus=false}={}) {
   const deck=s.catalog.decksById?.get(card.deckId);
   const creator=card.isReadingGuide&&card.creatorUserId ? {userId:card.creatorUserId,name:card.creatorName} : deck?.creator;
   const title=displayedBookTitle(s,book,true);
@@ -434,7 +434,7 @@ function cardAttribution(s,card,book,{compact=false,linkBook=true,showDraftStatu
     ["deck",deck ? contentText(deck.title,s.language,deck.language) : "",deck ? contentLocale(deck.title,s.language,deck.language) : null,deck ? (isReadingGuideDeck(s.catalog,deck) ? `#guides/${encodeURIComponent(book.id)}` : `#deck/${encodeURIComponent(deck.id)}`) : null],
     ["user",creator?.name,null,creator ? `#profile/${encodeURIComponent(creator.userId)}` : null]
   ];
-  const draftStatus=showDraftStatus && deck?.status === "draft" ? `<span class="deck-writing-badge exclusive-card-draft-badge">${esc(words[s.language].deckInProgress)}</span>` : "";
+  const draftStatus=showInProgressStatus && deck?.status === "in_progress" ? `<span class="deck-writing-badge exclusive-card-in-progress-badge">${esc(words[s.language].deckInProgress)}</span>` : "";
   const guideLanguage=card.isReadingGuide?(()=>{try{return new Intl.DisplayNames([s.language],{type:"language"}).of(card.language)||card.language;}catch{return card.language;}})():"";
   const guideReviewStatus=card.isReadingGuide&&["pending","rejected"].includes(card.reviewStatus)?`<span class="deck-writing-badge reading-guide-review-badge" data-review-status="${card.reviewStatus}">${esc(card.reviewStatus==="pending"?words[s.language].readingGuideReviewPending:words[s.language].readingGuideReviewRejected)}</span>`:"";
   return `<div class="card-source">${draftStatus}${(compact ? rows.slice(0,1) : rows).map(([icon,name,language,href])=>nameLink({icon,name,language,href:icon==="book"&&!linkBook?null:href})).join("")}${card.isReadingGuide?`<span class="reading-guide-language" lang="${esc(card.language)}">${esc(words[s.language].readingGuideLanguage)} · ${esc(guideLanguage)}</span>${guideReviewStatus}`:""}</div>`;
@@ -462,7 +462,7 @@ function cardMarkup(s, card, heading = "h2", {exclusive = false, actions = exclu
   const type=cardTypeFor(card),bodyTag=type.bodyTag;
   const contentId=idPrefix ? `${idPrefix}-idea-content` : "idea-content",focusTarget=focusable || idPrefix ? ` id="${esc(contentId)}"${focusable ? ' tabindex="-1"' : ""}` : "";
   return `<div class="reading-stage reading-stage--${type.id}${layerClass ? ` ${layerClass}` : ""}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${decorative ? ' aria-hidden="true" inert' : ""}><article class="idea-card${type.className ? ' '+type.className : ''}"><span class="card-header-icon${type.id !== "idea" ? ` card-header-icon--${type.id}` : ""}" aria-hidden="true">${type.headerIcon === "reading-guide" ? readingGuideIconMarkup(26) : type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto"${focusTarget}>${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : focusTarget}>${esc(body)}</${bodyTag}></div>
-    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book,{compact,linkBook,showDraftStatus:exclusive})}</div>${actions ? `${cardActionsHost(card)}<button class="primary card-share" type="button" data-action="share-card" data-card="${esc(card.id)}" aria-label="${esc(words[s.language].shareDeck)}" title="${esc(words[s.language].shareDeck)}">${shareIconMarkup}</button>` : ""}</footer></article></div>`;
+    <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book,{compact,linkBook,showInProgressStatus:exclusive})}</div>${actions ? `${cardActionsHost(card)}<button class="primary card-share" type="button" data-action="share-card" data-card="${esc(card.id)}" aria-label="${esc(words[s.language].shareDeck)}" title="${esc(words[s.language].shareDeck)}">${shareIconMarkup}</button>` : ""}</footer></article></div>`;
 }
 
 // childNote: {deckId,disabled} adds «Tomar nota» under the card so a note can be taken inside it.
@@ -549,12 +549,12 @@ function deckDistinctionMarkup(c,{featured=false}={}) {
 }
 
 function deckStatusMarkup(s,deck,{compact=false,canPractice:canPracticeState}={}) {
-  if (deck.status !== "draft") return "";
-  const c=words[s.language],inProgress=deck.status === "draft";
+  if (deck.status !== "in_progress") return "";
+  const c=words[s.language],inProgress=deck.status === "in_progress";
   const owner=s.userId && s.userId === deck.creator?.userId;
   const canPractice=canPracticeState ?? (!!s.userId && ((s.cardcaseDeckIds || []).includes(deck.id) || owner));
   if (compact) return inProgress ? `<span class="deck-writing-badge deck-writing-badge--compact" aria-hidden="true" title="${esc(c.deckInProgress)}">${esc(c.deckInProgressShort)}</span>` : "";
-  return `<div class="deck-writing-status"><span class="deck-writing-badge">${c.deckInProgress}</span><p>${owner ? c.deckDraftOwnerExplanation : canPractice ? c.deckMayChange : c.deckMayChangeUnadded}</p></div>`;
+  return `<div class="deck-writing-status"><span class="deck-writing-badge">${c.deckInProgress}</span><p>${owner ? c.deckInProgressOwnerExplanation : canPractice ? c.deckMayChange : c.deckMayChangeUnadded}</p></div>`;
 }
 
 export function deckCompletionView(s) {
@@ -612,7 +612,7 @@ export function bookInterestWarningView(s) {
 }
 
 function deckCanWrite(s,deck) {
-  return !!s.userId && deck.status === "draft" && !!(deck.canContribute ?? s.userId === deck.creator.userId);
+  return !!s.userId && deck.status === "in_progress" && !!(deck.canContribute ?? s.userId === deck.creator.userId);
 }
 
 function deckNoteLimitReached(s,deck) {
@@ -639,7 +639,7 @@ function deckFinishHint(s,deck) {
 }
 
 function deckContributorManager(s,deck) {
-  if (deck.contributionPolicy!=="selected" || deck.status!=="draft" || deck.creator.userId!==s.userId) return "";
+  if (deck.contributionPolicy!=="selected" || deck.status!=="in_progress" || deck.creator.userId!==s.userId) return "";
   const c=words[s.language];
   return `<section class="deck-contributor-manager" aria-labelledby="deck-contributors-title"><h2 id="deck-contributors-title">${c.deckContributors}</h2><p>${c.deckContributorsHelp}</p><ul>${(deck.contributors||[]).map(person=>`<li><span><bdi>@${esc(person.username)}</bdi></span><button class="text-button" type="button" data-action="remove-deck-contributor" data-user-id="${esc(person.userId)}" aria-label="${esc(c.removeContributor(person.username))}">${esc(c.removeContributor(person.username))}</button></li>`).join("")}</ul><form data-contributor-form><label for="deck-contributor-username">${c.contributorUsername}</label><div class="deck-contributor-add"><input id="deck-contributor-username" name="username" value="${esc(s.deckContributorInput||"")}" maxlength="${USERNAME_MAX_LENGTH+1}" autocomplete="off" required><button class="secondary" type="submit">${c.addContributor}</button></div></form><p class="account-error" role="alert" ${s.deckContributorError?"":"hidden"}>${esc(c[s.deckContributorError]||c.connectionError)}</p></section>`;
 }
@@ -754,22 +754,22 @@ function treeMapMarkup(s,model,deck) {
 function albumSummary(s,deck,model,mascot="",management=false) {
   const c=words[s.language],book=s.catalog.booksById.get(deck.bookId);
   const language=new Intl.DisplayNames([s.language],{type:"language"}).of(deck.language) || deck.language;
-  const editable=management && deck.status === "draft" && deck.creator.userId === s.userId;
+  const editable=management && deck.status === "in_progress" && deck.creator.userId === s.userId;
   const title=contentText(deck.title,s.language,deck.language),titleLanguage=contentLocale(deck.title,s.language,deck.language);
   const titleMarkup=editable && s.deckTitleEdit ? `<form class="deck-title-editor" data-deck-title-form><label class="sr-only" for="deck-title">${esc(c.editDeckTitle)}</label><input id="deck-title" name="title" value="${esc(s.deckTitleEdit.title)}" maxlength="160" required aria-describedby="deck-title-error"><p id="deck-title-error" class="deck-edit-error" role="alert" ${s.deckTitleEdit.error ? "" : "hidden"}>${esc(c[s.deckTitleEdit.error] || c.deckTitleSaveError)}</p><div class="deck-title-editor-actions"><button class="primary" type="submit">${esc(c.save)}</button><button class="text-button" type="button" data-action="cancel-deck-title">${esc(c.cancel)}</button></div></form>`
     : `<div class="deck-title-row"><h1 tabindex="-1" lang="${esc(titleLanguage)}" dir="auto">${esc(title)}</h1></div>`;
   // The owner's own personal draft needs no status chip: «Terminar baraja» already says it is open.
-  const ownPersonalDraft=deck.status === "draft" && deck.contributionPolicy === "owner" && deck.creator.userId === s.userId;
+  const ownPersonalInProgress=deck.status === "in_progress" && deck.contributionPolicy === "owner" && deck.creator.userId === s.userId;
   // The cap only matters near it; the plain count is enough before that.
   const count=deck.contributionPolicy === "owner" && model.cards.length >= MAX_CARDS_PER_DECK-5 ? c.deckCardCount(model.cards.length) : c.noteCardsCount(model.cards.length);
   return `<header class="album-heading${mascot ? " album-heading--mascot" : ""}"><div class="album-heading-copy"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>
     ${titleMarkup}
-    <p class="deck-creator">${deckCreator(deck)}</p><p class="album-meta">${esc(language)} · ${esc(count)}</p>${ownPersonalDraft ? "" : deckStatusMarkup(s,deck)}</div>${mascot}</header>`;
+    <p class="deck-creator">${deckCreator(deck)}</p><p class="album-meta">${esc(language)} · ${esc(count)}</p>${ownPersonalInProgress ? "" : deckStatusMarkup(s,deck)}</div>${mascot}</header>`;
 }
 
 // Owner-only settings of a draft deck, folded inside «Información de la baraja».
 function deckSettingsMarkup(s,deck) {
-  if (deck.status !== "draft" || deck.creator.userId !== s.userId) return "";
+  if (deck.status !== "in_progress" || deck.creator.userId !== s.userId) return "";
   const c=words[s.language];
   const languageName=tag=>new Intl.DisplayNames([s.language],{type:"language"}).of(tag);
   const title=s.deckTitleEdit ? "" : `<button class="text-button deck-title-edit" type="button" data-action="edit-deck-title">${esc(c.editDeckTitle)}</button>`;

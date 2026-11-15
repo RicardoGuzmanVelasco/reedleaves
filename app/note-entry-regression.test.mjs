@@ -20,7 +20,7 @@ for(const {name,action,parentId,withinDialog} of [
   {name:"la hoja de una tarjeta",action:"take-child-note",parentId:"card-1",withinDialog:true}
 ]) test(`Tomar nota desde ${name} abre el editor`,()=>{
   let opened=null;
-  const deck={id:"deck-1",bookId:"book-1",creator:{userId:"reader"},status:"draft"};
+  const deck={id:"deck-1",bookId:"book-1",creator:{userId:"reader"},status:"in_progress"};
   const context={
     catalog:{decksById:new Map([[deck.id,deck]]),deckModels:new Map([[deck.id,{byId:new Map([["card-1",{}]])}]])},
     snapshot:{user:{id:"reader"}},busy:false,location:{hash:"#deck/deck-1"},
