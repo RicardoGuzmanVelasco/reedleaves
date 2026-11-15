@@ -3,8 +3,8 @@ import {dailyCycleDay,DAILY_CYCLE_STARTS,previousCalendarDay} from "./daily-cycl
 
 const CALENDAR_DAYS=60;
 
-// A day counts when a "mixed" practice session was completed AND the daily idea
-// was seen. Days follow the daily idea cycle, the same one used to key
+// A day counts when a "mixed" practice session was completed AND the daily card
+// was seen. Days follow the daily card cycle, the same one used to key
 // daily_idea_views. Computed from existing tables; nothing is stored.
 export async function readDailyStreak(db,session,now=new Date()) {
   const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id);
@@ -18,5 +18,5 @@ export async function readDailyStreak(db,session,now=new Date()) {
   while(counts(day)) { days++;day=previousCalendarDay(day); }
   const completedDays=[];
   for(let day=today,i=0;i<CALENDAR_DAYS;i++,day=previousCalendarDay(day)) if(counts(day)) completedDays.unshift(day);
-  return {days,ideaSeenToday:seen.has(today),mixedDoneToday:mixed.has(today),completedDays};
+  return {days,dailyCardSeenToday:seen.has(today),mixedDoneToday:mixed.has(today),completedDays};
 }
