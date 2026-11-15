@@ -111,3 +111,40 @@ body.ui2 main{width:100%;max-width:560px;margin:0 auto;padding:0;display:flex;fl
   .ui2-nav .bottom-navigation-label{top:48px;font-size:12px}
   .ui2-nav .bottom-navigation-link[aria-current=page] .navigation-new-badge{top:-8px}
 }
+
+/* ---- Captura de nota (flujos B y C) ---- */
+.ui2-capture{flex:1;display:flex;flex-direction:column;min-height:100dvh}
+.ui2-top--form{padding:0 14px 0 18px}
+.dialog-close .ui2-icon{width:19px;height:19px}
+.ui2-bookline{display:flex;align-items:center;justify-content:center;gap:9px;margin:0;padding:0 22px 6px;font-size:21px;color:var(--ui2-muted);font-weight:850;letter-spacing:-.035em;line-height:1.2;text-align:center;flex:none}
+.ui2-bookline span{min-width:0;overflow-wrap:anywhere}
+.ui2-bookline .attribution-icon{width:24px;height:24px;flex:none;fill:rgb(0 0 0 / 30%)}
+.ui2-notices{display:flex;flex-direction:column;gap:8px;padding:2px 18px 8px;flex:none}
+.ui2-notices .callout{font-size:12.5px;font-weight:700}
+.ui2-cap-body{flex:1;display:flex;flex-direction:column;padding-bottom:0}
+.ui2-typewrap{display:flex;justify-content:center;margin:2px 0}
+.ui2-typewrap .note-type-selector{align-self:center;margin-bottom:0}
+.ui2-typewrap .ui2-icon{width:18px;height:18px}
+.ui2-grow-field{flex:1 0 auto}
+.ui2-grow-field textarea{flex:1;min-height:104px;resize:none}
+.ui2-pick{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:0 12px;border:1.5px solid var(--ui2-sage);border-radius:14px;background:var(--ui2-card);box-shadow:0 2px 0 var(--ui2-card-shadow);font:inherit;font-weight:800;font-size:14px;color:inherit;cursor:pointer;text-align:left}
+.ui2-pick span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ui2-cap-body .ui2-sticky{margin:0 -18px}
+/* Aviso «Nota guardada»: sobre la barra inferior; sube cuando hay aviso de XP (ver layoutToast) */
+.ui2-toast{position:fixed;z-index:21;left:14px;right:14px;max-width:532px;margin:0 auto;bottom:calc(100px + env(safe-area-inset-bottom) + var(--ui2-toast-lift,0px) + 8px);display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px;padding:8px 6px 8px 16px;border-radius:16px;background:var(--ui2-ink);color:var(--ui2-paper);font-size:14px;font-weight:700;transition:bottom .2s ease}
+.ui2-toast button{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border:0;background:transparent;color:var(--ui2-light);font:inherit;font-weight:900;cursor:pointer}
+.ui2-toast .ui2-icon{width:18px;height:18px}
+@media(min-width:900px){.ui2-toast{left:calc(50% + 64px);right:auto;width:min(420px,calc(100% - 160px));margin:0;transform:translateX(-50%);bottom:calc(24px + var(--ui2-toast-lift,0px))}}
+/* Modal de error al guardar */
+.ui2-errdialog{padding:0;border:0;background:transparent;overflow:visible;max-width:none;width:min(420px,calc(100% - 44px));color:var(--ui2-ink)}
+.ui2-errdialog::backdrop{background:rgba(23,61,44,.5)}
+.ui2-errshell{position:relative;padding-top:53px}
+.ui2-errshell>.dialog-close{position:absolute;top:0;right:0;z-index:2}
+.ui2-errpanel{background:var(--ui2-card);border:2px solid var(--ui2-sage);border-radius:26px;box-shadow:0 6px 0 var(--ui2-card-shadow);padding:22px 20px 16px;text-align:center}
+.ui2-errtitle{justify-content:center}
+.ui2-errtitle h2{display:flex;align-items:center;justify-content:center;gap:8px;margin:0;font-size:20px;letter-spacing:-.03em;line-height:1.2;color:var(--ui2-error)}
+.ui2-errtitle .ui2-icon{width:22px;height:22px}
+.ui2-errdetail{margin:8px 0 0;font-size:14.5px;line-height:1.45;color:var(--ui2-muted)}
+.ui2-errcode{display:inline-block;margin-top:8px;padding:2px 8px;border-radius:7px;background:#f1ede1;color:#6b6f66;font:600 11.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere}
+.ui2-erractions{display:flex;flex-direction:column;margin-top:18px}
+body.ui2.has-bottom-navigation main{padding-bottom:0}

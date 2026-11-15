@@ -7,7 +7,7 @@ import {currentMascotStage} from "../mascot-progress.mjs";
 import {icon} from "./icons.mjs";
 import {headerMarkup} from "./shell.mjs";
 
-const draftDeck=(catalog,bookId,userId)=>editableNoteDecks(catalog,bookId,userId).find(deck=>deck.contributionPolicy==="owner")||null;
+export const draftDeck=(catalog,bookId,userId)=>editableNoteDecks(catalog,bookId,userId).find(deck=>deck.contributionPolicy==="owner")||null;
 
 // Pure: everything Home shows, from the catalog and the reader state.
 export function homeData({catalog,state,language}){
@@ -29,9 +29,9 @@ function coverMarkup(book,c){
     +`<button type="button" class="book-note-add" data-ui2="home-note" data-book="${esc(book.id)}" data-deck="${esc(book.deckId||"")}" aria-label="${esc(noteLabel)}" title="${esc(noteLabel)}">${icon("take-note")}</button></div>`;
 }
 
-export function homeMarkup({data,c,nav}){
+export function homeMarkup({data,c,nav,toast=""}){
   const body=data.books.length
     ?`<div class="ui2-body"><h1 class="sr-only" tabindex="-1">${esc(c.home)}</h1><div class="book-tiles book-grid" role="group" aria-label="${esc(c.reading)}">${data.books.map(book=>coverMarkup(book,c)).join("")}</div></div>`
     :`<div class="ui2-body"><h1 class="sr-only" tabindex="-1">${esc(c.home)}</h1><div class="ui2-empty">${mascotArt("tumbleweed","",{animation:"tumble"})}<h2>${esc(c.ui2NotReading)}</h2></div></div>`;
-  return `<div class="ui2-shell">${headerMarkup({userId:data.userId,stage:data.avatarStage,wallet:data.wallet,c})}${body}${nav}</div>`;
+  return `<div class="ui2-shell">${headerMarkup({userId:data.userId,stage:data.avatarStage,wallet:data.wallet,c})}${body}${nav}${toast}</div>`;
 }

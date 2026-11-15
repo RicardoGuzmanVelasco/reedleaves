@@ -4,7 +4,8 @@ import {validateCards} from "../core.mjs";
 import {words} from "../i18n.mjs";
 import {readerState,emptyCatalog} from "../../test-support/reader-state.mjs";
 import {deckOutline,placementTargets,deckCapabilities,ownDecks,parentOf} from "./outline.mjs";
-import {deckScreenMarkup,noteSheetMarkup,placeSheetMarkup,noteFormMarkup} from "./markup.mjs";
+import {deckScreenMarkup,noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMarkup} from "./markup.mjs";
+import {errorInfo} from "./errors.mjs";
 import {ui2Enabled} from "./index.mjs";
 
 const card=(id,parentId,order,isQuote=false)=>({id,bookId:"b",deckId:"d",deckLanguage:"es",language:"es",parentId,order,isQuote,
@@ -65,13 +66,13 @@ for(const language of ["es","en"])test(`Screens expose named controls and sheets
 });
 
 test("Note form: quotes have no title, text is escaped",()=>{
-  const c=words.es,base={titleMax:72,bodyMax:300,deckTitle:"N",bookTitle:"L",error:null,c};
+  const c=words.es,base={titleMax:72,bodyMax:300,bookTitle:"L",deck:null,canPlace:false,c};
   const create=noteFormMarkup({...base,form:{mode:"create",isQuote:true,title:"",body:"<b>x</b>"},canSave:true});
   assert.doesNotMatch(create,/name="title"/);
   assert.match(create,/&lt;b&gt;x&lt;\/b&gt;/);
   const edit=noteFormMarkup({...base,form:{mode:"edit",isQuote:false,title:"T",body:"B"},canSave:false});
   assert.match(edit,/<button[^>]*type="submit"[^>]*\sdisabled/);
-  assert.doesNotMatch(edit,/role="tablist"/);
+  assert.doesNotMatch(edit,/note-type-selector/);
 });
 
 import {editPayload,submitEdit} from "./edit-note.mjs";
@@ -88,4 +89,44 @@ test("Correct sends the trimmed text with the text it was based on, and rebases 
   const other={request:async()=>{throw Object.assign(new Error("cardUnavailable"),{code:"cardUnavailable"});}};
   await assert.rejects(submitEdit(other,form,async()=>assert.fail("only conflicts refresh")),{code:"cardUnavailable"});
   for(const language of ["es","en"])assert.ok(words[language].noteConflict&&words[language].cardUnavailable);
+});
+
+for(const language of ["es","en"])test(`Capture screen: close on the right, book line, type chip, placement only with ideas, callouts (${language})`,()=>{
+  const c=words[language],base={titleMax:72,bodyMax:300,bookTitle:"Libro",c};
+  const empty=noteFormMarkup({...base,form:{mode:"create",isQuote:false,title:"",body:""},deck:null,canPlace:false,canSave:false});
+  assert.match(empty,/<h1>[^<]+<\/h1>[\s\S]*class="dialog-close"/);
+  assert.match(empty,/class="ui2-bookline"[\s\S]*Libro/);
+  assert.match(empty,/segmented-selector note-type-selector[\s\S]*data-icon="idea"[\s\S]*data-icon="quote"/);
+  assert.doesNotMatch(empty,/ui2-pick|callout/);
+  const withDeck=noteFormMarkup({...base,form:{mode:"create",isQuote:false,title:"",body:""},deck:{title:"Notas",count:8,max:25},canPlace:true,parentTitle:null,canSave:false});
+  assert.match(withDeck,new RegExp(`callout--info[\\s\\S]*${c.ui2DraftHint} · Notas · 8/25`));
+  assert.match(withDeck,/data-ui2="form-place"/);
+  const full=noteFormMarkup({...base,form:{mode:"create",isQuote:false,title:"a",body:"b"},deck:{title:"Notas",count:25,max:25},canPlace:true,canSave:false});
+  assert.match(full,/callout--warning/);assert.doesNotMatch(full,/callout--info/);
+  const recovered=noteFormMarkup({...base,form:{mode:"create",isQuote:false,title:"a",body:"b",recovered:true},deck:null,canPlace:false,canSave:true});
+  assert.match(recovered,/data-ui2="discard-draft"/);assert.ok(recovered.includes(c.noteDraftRecovered));
+});
+
+test("Save errors: detail, technical code and whether the modal offers Retry",()=>{
+  const c=words.es,info=(code,status)=>errorInfo({code,status},c);
+  assert.deepEqual([info("connectionError",0).code,info("connectionError",0).retry,info("connectionError",0).detail],["connectionError",true,c.connectionError]);
+  assert.deepEqual([info("x",500).code,info("x",500).retry,info("x",500).detail],["HTTP 500",true,c.ui2ServerError]);
+  assert.deepEqual([info("tryLater",429).code,info("tryLater",429).retry],["tryLater · 429",false]);
+  for(const code of ["sessionExpired","signInRequired"])assert.equal(info(code,401).detail,c.sessionExpired);
+  assert.equal(info("invalidRequest",400).retry,true);
+  for(const code of ["deckCardLimitReached","contributorCardLimitReached","deckReadOnly","deckUnavailable","bookUnavailable","invalidParent"]){
+    const result=info(code,409);assert.equal(result.retry,false);assert.equal(result.detail,c[code]);assert.ok(result.detail);
+  }
+  assert.ok(words.en.contributorCardLimitReached&&words.en.ui2ServerError);
+  assert.equal(errorInfo({code:"connectionError",status:0,reference:"r"},c).reference,"r");
+});
+
+for(const language of ["es","en"])test(`Error modal is an alertdialog with title, detail, code and one clear action (${language})`,()=>{
+  const c=words[language],retry=errorModalMarkup({info:errorInfo({code:"connectionError"},c),retry:true,c});
+  assert.match(retry,/role="alertdialog"[^>]*aria-labelledby="ui2-err-title"[^>]*aria-describedby="ui2-err-detail"/);
+  assert.ok(retry.includes(c.ui2SaveError));assert.match(retry,/<code class="ui2-errcode">connectionError<\/code>/);
+  assert.match(retry,/data-ui2="retry"/);
+  const closeOnly=errorModalMarkup({info:errorInfo({code:"deckReadOnly",status:409},c),retry:true,c});
+  assert.doesNotMatch(closeOnly,/data-ui2="retry"/);assert.match(closeOnly,/data-ui2="error-close"/);
+  assert.match(toastMarkup({deckId:"d",c}),new RegExp(`role="status"[\\s\\S]*${c.ui2NoteSaved}[\\s\\S]*data-icon="deck"[\\s\\S]*${c.viewDeck}`));
 });

@@ -1,4 +1,5 @@
-import {escapeHtml as esc} from "../views.mjs";
+import {escapeHtml as esc,attributionIcon} from "../views.mjs";
+import {callout} from "../callout.mjs";
 import {icon} from "./icons.mjs";
 
 const clip=(text,length=32)=>text.length>length?text.slice(0,length):text;
@@ -35,23 +36,41 @@ export function noteSheetMarkup({note,parentTitle,caps,c}){
 <h2 id="ui2-sheet-title">${esc(note.isQuote?c.ui2Note:note.title)}</h2><p class="ui2-full">${esc(note.body)}</p>${rows}</dialog>`;
 }
 
-export function placeSheetMarkup({note,targets,currentParentId,c}){
-  const row=(id,label,depth,current)=>`<button type="button" class="ui2-row" data-ui2="place-to" data-parent="${esc(id??"")}" data-depth="${Math.min(depth,8)}"${current?' aria-current="true"':""}><span class="ui2-grow">${esc(label)}</span>${current?icon("check"):""}</button>`;
+export function placeSheetMarkup({note,targets,currentParentId,c,action="place-to"}){
+  const row=(id,label,depth,current)=>`<button type="button" class="ui2-row" data-ui2="${action}" data-parent="${esc(id??"")}" data-depth="${Math.min(depth,8)}"${current?' aria-current="true"':""}><span class="ui2-grow">${esc(label)}</span>${current?icon("check"):""}</button>`;
   return `<dialog class="ui2-sheet" data-ui2-sheet aria-labelledby="ui2-sheet-title"><div class="ui2-grab" aria-hidden="true"></div>
 <h2 id="ui2-sheet-title">${esc(c.ui2PlaceUnderTitle)}</h2><p class="ui2-lead">${esc(note.title||note.body)}</p>
 ${row(null,c.ui2NoParent,0,currentParentId===null)}${targets.map(target=>row(target.id,target.title,target.depth+1,target.id===currentParentId)).join("")}</dialog>`;
 }
 
-// mode "create" saves through /api/author/notes; mode "edit" waits for the edit-text endpoint (see index.mjs).
-export function noteFormMarkup({form,deckTitle,bookTitle,titleMax,bodyMax,canSave,error,c}){
-  const idea=!form.isQuote;
-  return `<header class="ui2-top"><button type="button" class="ui2-ib" data-ui2="form-close" aria-label="${esc(c.ui2Close)}">${icon("close")}</button>
-<div class="ui2-titles"><h1>${esc(form.mode==="edit"?c.ui2Correct:c.takeNote)}</h1></div></header>
-<p class="ui2-sub ui2-form-context">${esc([bookTitle,deckTitle].filter(Boolean).join(" · "))}</p>
-<form class="ui2-body" data-ui2-form novalidate>
-${form.mode==="create"?`<div class="ui2-seg" role="tablist" aria-label="${esc(c.ui2NoteKind)}"><button type="button" role="tab" aria-selected="${idea}" class="${idea?"is-on":""}" data-ui2="kind" data-kind="idea">${icon("idea")}${esc(c.ui2Idea)}</button><button type="button" role="tab" aria-selected="${!idea}" class="${idea?"":"is-on"}" data-ui2="kind" data-kind="quote">${icon("quote")}${esc(c.ui2Quote)}</button></div>`:""}
+// One capture screen for every way of taking a note (and for correcting one):
+// title + close, book line, optional callouts, type, title, text, optional placement, Save.
+export function noteFormMarkup({form,bookTitle,deck,parentTitle,canPlace,canSave,titleMax,bodyMax,c}){
+  const idea=!form.isQuote,create=form.mode==="create";
+  const full=!!deck&&deck.count>=deck.max;
+  const notices=[
+    form.recovered?callout({variant:"warning",width:"fill",main:c.noteDraftRecovered,actions:`<button type="button" class="text-button" data-ui2="discard-draft">${esc(c.ui2Discard)}</button>`}):"",
+    create&&deck?(full?callout({variant:"warning",width:"fill",main:c.deckCardLimitReached}):callout({variant:"info",width:"fill",main:`${c.ui2DraftHint} · ${deck.title} · ${deck.count}/${deck.max}`})):""
+  ].join("");
+  const kindButton=(kind,label,on)=>`<button type="button" aria-pressed="${on}" data-ui2="kind" data-kind="${kind}">${icon(kind)}<span>${esc(label)}</span></button>`;
+  return `<div class="ui2-capture"><header class="ui2-top ui2-top--form"><div class="ui2-titles"><h1>${esc(create?c.takeNote:c.ui2Correct)}</h1></div>
+<button type="button" class="dialog-close" data-ui2="form-close" aria-label="${esc(c.ui2Close)}">${icon("close")}</button></header>
+<p class="ui2-bookline">${attributionIcon("book")}<span>${esc(bookTitle)}</span></p>${notices?`<div class="ui2-notices">${notices}</div>`:""}
+<form class="ui2-body ui2-cap-body" data-ui2-form novalidate>
+${create?`<div class="ui2-typewrap"><div class="segmented-selector note-type-selector" role="group" aria-label="${esc(c.ui2NoteKind)}">${kindButton("idea",c.ui2Idea,idea)}${kindButton("quote",c.ui2Quote,!idea)}</div></div>`:""}
 ${idea?`<div class="ui2-field"><label for="ui2-title">${esc(c.ui2NoteTitle)}</label><input id="ui2-title" name="title" maxlength="${titleMax}" value="${esc(form.title)}" autocomplete="off"><div class="ui2-count">${form.title.length}/${titleMax}</div></div>`:""}
-<div class="ui2-field"><label for="ui2-body">${esc(c.ui2NoteText)}</label><textarea id="ui2-body" name="body" maxlength="${bodyMax}" rows="5">${esc(form.body)}</textarea><div class="ui2-count">${form.body.length}/${bodyMax}</div></div>
-${error?`<p class="ui2-msg" role="alert">${icon("alert")}${esc(error)}</p>`:""}
-<div class="ui2-sticky"><button type="submit" class="ui2-btn"${canSave?"":" disabled"}>${esc(c.save)}</button></div></form>`;
+<div class="ui2-field ui2-grow-field"><label for="ui2-body">${esc(c.ui2NoteText)}</label><textarea id="ui2-body" name="body" maxlength="${bodyMax}">${esc(form.body)}</textarea><div class="ui2-count">${form.body.length}/${bodyMax}</div></div>
+${create&&canPlace?`<div class="ui2-field"><label id="ui2-place-label">${esc(c.ui2PlaceUnderTitle)}</label><button type="button" class="ui2-pick" data-ui2="form-place" aria-labelledby="ui2-place-label ui2-place-value"><span id="ui2-place-value">${esc(parentTitle??c.ui2NoParent)}</span>${icon("forward")}</button></div>`:""}
+<div class="ui2-sticky"><button type="submit" class="ui2-btn"${canSave?"":" disabled"}>${esc(c.save)}</button></div></form></div>`;
 }
+
+// Modal for a failed save: the typed text stays in the form behind it.
+export function errorModalMarkup({info,retry,c}){
+  return `<dialog class="ui2-errdialog" data-ui2-modal role="alertdialog" aria-labelledby="ui2-err-title" aria-describedby="ui2-err-detail">
+<div class="ui2-errshell"><button type="button" class="dialog-close" data-ui2="error-close" aria-label="${esc(c.ui2Close)}">${icon("close")}</button>
+<div class="ui2-errpanel">${callout({variant:"error",width:"fill",role:"status",className:"ui2-errtitle",content:`<h2 id="ui2-err-title">${icon("alert")}<span>${esc(c.ui2SaveError)}</span></h2>`})}
+<p class="ui2-errdetail" id="ui2-err-detail">${esc(info.detail)}</p><code class="ui2-errcode">${esc(info.reference?`${info.code} · ${info.reference}`:info.code)}</code>
+<div class="ui2-erractions">${retry&&info.retry?`<button type="button" class="ui2-btn" data-ui2="retry">${esc(c.retry)}</button>`:`<button type="button" class="ui2-btn" data-ui2="error-close">${esc(c.ui2Close)}</button>`}</div></div></div></dialog>`;
+}
+
+export const toastMarkup=({deckId,c})=>`<div class="ui2-toast" role="status"><span>${esc(c.ui2NoteSaved)}</span><button type="button" data-ui2="toast-deck" data-deck="${esc(deckId)}">${icon("deck")}${esc(c.viewDeck)}</button></div>`;
