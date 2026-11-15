@@ -7,7 +7,8 @@ import {submitEdit} from "./edit-note.mjs";
 import {installIconStyles} from "./icons.mjs";
 import {homeData,homeMarkup,inProgressDeck} from "./home.mjs";
 import {navMarkup,shellMarkup} from "./shell.mjs";
-import {errorInfo} from "./errors.mjs";
+import {errorInfo,practiceStartDetail} from "./errors.mjs";
+import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending} from "./repaso.mjs";
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {createNoteDrafts} from "../note-drafts.mjs";
 import {createBrowserStore} from "../storage.mjs";
@@ -21,7 +22,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // `legacy`: URL of the old interface, for destinations not built yet.
   const c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let session,reader,catalog,sheetState=null,form=null,failure=null,busy=false,practicePending=false,toast=null,toastTimer=null;
+  let session,reader,catalog,sheetState=null,form=null,failure=null,busy=false,practicePending=false,streak=null,calendarMonth=null,toast=null,toastTimer=null;
   const drafts=createNoteDrafts(store),observeXp=createReaderXpTracker();
   let xpFeedback=null;
   try{xpFeedback=mountReaderXpFeedback(doc,()=>language,dialog=>dialog.showModal());}catch{xpFeedback=null;}
@@ -31,7 +32,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const hash=win.location.hash,deckMatch=hash.match(/^#deck\/([^/]+)(\/note)?$/),bookMatch=hash.match(/^#book\/([^/]+)\/note$/);
     if(deckMatch)return {name:"deck",id:decode(deckMatch[1]),note:!!deckMatch[2]};
     if(bookMatch)return {name:"book-note",id:decode(bookMatch[1])};
-    return {name:hash==="#library"?"library":"home"};
+    return {name:hash==="#library"?"library":hash==="#practice"?"practice":"home"};
   };
   const deckId=()=>{const r=route();return r.name==="deck"?r.id:null;};
   const titleOf=deck=>{const book=catalog.booksById.get(deck.bookId);return book?bookTitle(book,language).text:deck.id;};
@@ -86,7 +87,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     clearTimeout(toastTimer);toast={deckId:deck};
     toastTimer=setTimeout(()=>{toast=null;main.querySelector(".ui2-toast")?.remove();},TOAST_MS);
   }
-  const withError=html=>failure?html+errorModalMarkup({info:errorInfo(failure,c),retry:!!form,c}):html;
+  const withError=html=>failure?html+errorModalMarkup({info:errorInfo(failure,c),retry:!!form,title:failure.title,c}):html;
 
   function formScreen(){
     const deck=formDeck(),model=deck&&catalog.deckModels.get(deck.id);
@@ -102,12 +103,18 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   function render(){
     if(!session?.user){main.innerHTML=`<div class="ui2-body"><a class="ui2-btn" href="${win.location.pathname}">${c.signIn}</a></div>`;return;}
-    const where=route(),view=current(),shell=where.name==="home"||where.name==="library";
+    const where=route(),view=current(),shell=where.name==="home"||where.name==="library"||where.name==="practice";
     doc.body.classList.toggle("has-bottom-navigation",shell&&!form);
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
     if(!form&&where.note&&view?.deck.status==="in_progress")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
     if(form){paint(formScreen());return;}
     if(where.name==="library"){paint(withError(shellMarkup({body:deckListMarkup({decks:ownDecks(catalog,session.user.id),c,titleOf}),nav:navMarkup({active:"library",practicePending,c})})));return;}
+    if(where.name==="practice"){
+      const data=repasoData({state:reader,streak}),month=calendarMonth||(reader.today||"").slice(0,7);
+      let html=repasoMarkup({data,c,nav:navMarkup({active:"practice",practicePending,c}),month,language});
+      if(sheetState?.type==="calendar")html+=calendarSheetMarkup({data,month,c,language});
+      paint(withError(html));return;
+    }
     if(!view){
       paint(withError(homeMarkup({data:homeData({catalog,state:reader,language}),c,nav:navMarkup({active:"home",practicePending,c}),toast:toast?toastMarkup({deckId:toast.deckId,c}):""})));return;
     }
@@ -127,15 +134,27 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const view=current(),note=view?.model.byId.get(saved.cardId);
     if(note){saved.baseTitle=note.title?.[view.deck.language]||"";saved.baseBody=note.body?.[view.deck.language]||"";}
   }
-  // Today's streak is still available while the daily idea is unseen (same endpoint as the old badge).
-  const loadPracticePending=()=>api.request("/api/reader/daily-idea-status").then(result=>!!result.unseen,()=>false);
-  async function reload(){[catalog,reader,practicePending]=await Promise.all([loadCatalog(),api.request("/api/reader/state"),loadPracticePending()]);}
+  // The Practice badge shows while today's streak is still available; the rule is the server's (GET /api/progress/streak).
+  const loadStreak=()=>api.request("/api/progress/streak").then(result=>{streak=result;practicePending=streakPending(result);},()=>{streak=null;practicePending=false;});
+  async function reload(){[catalog,reader]=await Promise.all([loadCatalog(),api.request("/api/reader/state")]);await loadStreak();}
   async function run(task){
     if(busy)return;busy=true;failure=null;
     try{await task();}catch(caught){failure=caught?.code?caught:{code:"connectionError"};}
     busy=false;render();
   }
   const leaveForm=back=>{form=null;failure=null;if(back&&win.location.hash!==back)win.location.hash=back;else render();};
+
+  // The server starts the session; the old interface restores it and shows it (the new session screen is pending).
+  function startPractice(mode){
+    const cost=mode===reader.practiceDiscountMode?2:3;
+    run(async()=>{
+      let result;
+      try{result=await api.request("/api/reader/practice/start",{practiceMode:mode,sessionId:reader.activePracticeSession?.id||null,expectedCost:cost});}
+      catch(caught){throw Object.assign(caught,{title:c.ui2PracticeError});}
+      if(result?.reason)throw {code:result.reason,title:c.ui2PracticeError,detail:practiceStartDetail(result,cost,c)};
+      win.location.assign(`${c.legacy}#practice/session`);
+    });
+  }
 
   function submit(){
     const saved=form;if(!saved||busy)return;
@@ -180,6 +199,11 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       form.parentId=target.dataset.parent||null;persistDraft();render();
     }
     else if(action==="error-close"){failure=null;render();}
+    else if(action==="calendar-open"){sheetState={type:"calendar"};render();}
+    else if(action==="calendar-month"){calendarMonth=target.dataset.month;render();}
+    else if(action==="sheet-close"){main.querySelector("dialog")?.close();}
+    else if(action==="practice-legacy"){win.location.assign(`${c.legacy}${target.dataset.href}`);}
+    else if(action==="practice-start"){startPractice(target.dataset.mode);}
     else if(action==="retry"){failure=null;submit();}
     else if(action==="home-note"){win.location.hash=target.dataset.deck?`#deck/${encodeURIComponent(target.dataset.deck)}/note`:`#book/${encodeURIComponent(target.dataset.book)}/note`;}
     else if(action==="toast-deck"){toast=null;win.location.hash=`#deck/${encodeURIComponent(target.dataset.deck)}`;}
@@ -210,9 +234,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     sheetState=null;form=null;failure=null;
     if(toast&&!["","#home"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
     render();
+    if(route().name==="practice")Promise.all([loadStreak(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{if(route().name==="practice"&&!form)render();});
   });
 
-  try{session=await api.request("/api/session");catalog=await loadCatalog();if(session.user)[reader,practicePending]=await Promise.all([api.request("/api/reader/state"),loadPracticePending()]);}
+  try{session=await api.request("/api/session");catalog=await loadCatalog();if(session.user){reader=await api.request("/api/reader/state");await loadStreak();}}
   catch{main.innerHTML=`<p class="ui2-msg" role="alert">${c.connectionError}</p>`;return;}
   render();
 }

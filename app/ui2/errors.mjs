@@ -11,5 +11,14 @@ export function errorInfo(failure,c){
   else if(code==="invalidRequest"){detail=c.invalidRequest;retry=true;}
   else if(SERVER_ONLY.has(code)&&typeof c[code]==="string")detail=c[code];
   else{detail=c.invalidRequest;retry=true;}
-  return {code:label,reference:failure?.reference||null,detail,retry};
+  return {code:label,reference:failure?.reference||null,detail:failure?.detail||detail,retry};
+}
+
+// Starting a practice answers 200 with a `reason` when it cannot start (no cards, not enough petals, price changed…).
+export function practiceStartDetail(result,cost,c){
+  const reason=result?.reason;
+  if(reason==="notEnoughCards")return c.practiceNeedMoreCards(result.available??0,result.required??0);
+  if(reason==="insufficientPetals")return c.practiceInsufficientPetals(result.cost??cost,result.balance??0);
+  if(reason==="practicePriceChanged"||reason==="practiceSessionCancelled"||reason==="practiceSessionUnavailable")return c[reason];
+  return c.practiceNoCards;
 }

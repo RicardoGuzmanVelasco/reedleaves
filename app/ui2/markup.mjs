@@ -65,10 +65,10 @@ ${create&&canPlace?`<div class="ui2-field"><label id="ui2-place-label">${esc(c.u
 }
 
 // Modal for a failed save: the typed text stays in the form behind it.
-export function errorModalMarkup({info,retry,c}){
+export function errorModalMarkup({info,retry,title,c}){
   return `<dialog class="ui2-errdialog" data-ui2-modal role="alertdialog" aria-labelledby="ui2-err-title" aria-describedby="ui2-err-detail">
 <div class="ui2-errshell"><button type="button" class="dialog-close" data-ui2="error-close" aria-label="${esc(c.ui2Close)}">${icon("close")}</button>
-<div class="ui2-errpanel">${callout({variant:"error",width:"fill",role:"status",className:"ui2-errtitle",content:`<h2 id="ui2-err-title">${icon("alert")}<span>${esc(c.ui2SaveError)}</span></h2>`})}
+<div class="ui2-errpanel">${callout({variant:"error",width:"fill",role:"status",className:"ui2-errtitle",content:`<h2 id="ui2-err-title">${icon("alert")}<span>${esc(title||c.ui2SaveError)}</span></h2>`})}
 <p class="ui2-errdetail" id="ui2-err-detail">${esc(info.detail)}</p><code class="ui2-errcode">${esc(info.reference?`${info.code} · ${info.reference}`:info.code)}</code>
 <div class="ui2-erractions">${retry&&info.retry?`<button type="button" class="ui2-btn" data-ui2="retry">${esc(c.retry)}</button>`:`<button type="button" class="ui2-btn" data-ui2="error-close">${esc(c.ui2Close)}</button>`}</div></div></div></dialog>`;
 }

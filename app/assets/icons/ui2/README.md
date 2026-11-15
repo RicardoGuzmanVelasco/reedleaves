@@ -16,7 +16,7 @@ Catálogo de los iconos de la interfaz nueva. Las reglas del estilo están en `d
 - **Altas con `+`, ediciones con lápiz**, mismo marco (tarjeta abajo a la izquierda, insignia arriba a la derecha): `take-note` = dos tarjetas en ángulo + «+»; `edit` = una tarjeta + lápiz; `new-deck` = pila con «+» dentro.
 - El icono acompaña al texto; va solo en controles circulares y en la fila de acciones. Zona táctil ≥ 44×44 px la da el botón.
 
-## Iconos de `final/` (35 conceptos + 12 estados activos = 47 SVG)
+## Iconos de `final/` (39 conceptos + 12 estados activos = 51 SVG)
 
 | id | Significado | Dónde se usa en la UI nueva |
 |---|---|---|
@@ -51,7 +51,11 @@ Catálogo de los iconos de la interfaz nueva. Las reglas del estilo están en `d
 | `expand` | Desplegar | Chip de estado; selector |
 | `add`, `remove` | Más / menos | Contador de límite de notas |
 | `more` | Más opciones | Cabecera de baraja |
-| `check` | Elegido / hecho | Opción elegida; «En tu Tarjetero» |
+| `check` | Elegido / hecho | Opción elegida; «En tu Tarjetero»; racha cumplida en Repaso |
+| `book-stack` | Pila de libros (único apilado de libros) | Repaso: «Un poco de todo» en la fila de racha y en su tema |
+| `calendar` | Calendario | Repaso: «La baraja del día» en la fila de racha y en su tema |
+| `new-gift` | Paquete con lazo: algo nuevo por abrir | Repaso: «Entre las novedades» |
+| `team-pick` | Escarapela con visto: selección del equipo | Repaso: «Elegidas por el equipo» |
 | `alert` | Aviso o error | Mensajes |
 
 ## Elecciones abiertas (fuera de `final/`)

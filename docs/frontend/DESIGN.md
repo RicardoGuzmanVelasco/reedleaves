@@ -62,6 +62,7 @@ Fuente de verdad del estilo de iconos de la interfaz nueva (`?ui=2`). Los SVG vi
 - Pila recta (tarjeta delantera y las de detrás asomando por arriba): conceptos de baraja y colección (`deck`, `new-deck`, `finish-deck`, `cardcase`).
 - Dos tarjetas en ángulo: notas y repaso (`take-note`, `practice`). La pila recta y las tarjetas en ángulo no se mezclan: así se distingue una baraja de una nota.
 - Acciones y controles son planos (`close`, `back`, `check`, `share`, …).
+- Pila de libros: `book-stack` es el único apilado de libros (perspectiva oblicua única, lomos con el mismo radio y cara lateral con el canto de cada libro). Los iconos de tema de Repaso son `book-stack` (Un poco de todo), `calendar` (La baraja del día), `new-gift` (Entre las novedades) y `team-pick` (Elegidas por el equipo).
 - **Altas con `+`, ediciones con lápiz**, con el mismo marco: tarjeta abajo a la izquierda e insignia arriba a la derecha. `take-note` = dos tarjetas en ángulo con «+»; `edit` = una tarjeta con lápiz; `new-deck` = pila con «+».
 - Un concepto, un icono: una sola aspa para cerrar, una sola familia para volver/anterior/siguiente, un solo marcapáginas (guardar tarjeta). Los libros de estado de lectura son siempre libro, nunca marcapáginas.
 
