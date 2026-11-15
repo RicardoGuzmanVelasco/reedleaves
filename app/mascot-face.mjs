@@ -4,6 +4,7 @@ import {imageUrl} from "./image-url.mjs";
 // One uniform transform preserves the canonical eye spacing and mouth proportions.
 export const mascotFacePlacement = Object.freeze(Object.fromEntries(Object.entries({
   pot: {x:81,y:70,rotation:0,scale:1.1},
+  tumbleweed: {x:81,y:78,rotation:3,scale:.72},
   soil: {x:80,y:95,rotation:0,scale:.86},
   seed: {x:82,y:82,rotation:8.5,scale:.9,eyeOffsets:{left:{x:2.5,y:0},right:{x:-1,y:0}}},
   root: {x:94,y:65.5,rotation:16.5,scale:.82,eyeOffsets:{left:{x:10.5,y:-2},right:{x:-10.5,y:-4.5}}},

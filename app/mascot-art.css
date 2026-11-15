@@ -168,3 +168,36 @@
 @keyframes mascot-shadow-sob{0%,40%,100%{transform:scaleX(1)}8%,24%{transform:scaleX(1.06)}16%{transform:scaleX(1.02)}32%{transform:scaleX(1)}}
 @keyframes mascot-tear-fall{0%,30%{opacity:0;translate:0 0;scale:.6}38%{opacity:.9;translate:0 0;scale:1}92%{opacity:0;translate:0 320%;scale:1}100%{opacity:0;translate:0 320%}}
 @media(prefers-reduced-motion:reduce){.mascot-tear{animation:none!important;opacity:0}}
+
+.mascot-tumble-track { display:block; width: 100%; text-align:center; --mascot-tumble-size: 120px; --mascot-tumble-duration: 4625ms; container-type: inline-size; overflow: hidden; padding-top: calc(var(--mascot-tumble-size) * .55); }
+.mascot-art[data-idle="tumble"] { width: var(--mascot-tumble-size); height: var(--mascot-tumble-size); --mascot-shadow-width: 61%; --mascot-shadow-height: 9%; }
+.mascot-art[data-idle="tumble"] .mascot-art-motion, .mascot-art[data-idle="tumble"]::before { animation: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .mascot-art[data-idle="tumble"] { animation: mascot-tumble-travel var(--mascot-tumble-duration) ease-out infinite; }
+  .mascot-art[data-idle="tumble"] .mascot-art-placement { animation: mascot-tumble-bounce var(--mascot-tumble-duration) ease-out infinite; }
+  .mascot-art[data-idle="tumble"] .mascot-art-motion { transform-origin: center; animation: mascot-tumble-roll var(--mascot-tumble-duration) ease-out infinite; }
+  .mascot-art[data-idle="tumble"]::before { animation: mascot-tumble-ground var(--mascot-tumble-duration) ease-out infinite; }
+}
+@keyframes mascot-tumble-travel {
+  0% { translate: calc(-50cqw - 55%) 0; animation-timing-function: cubic-bezier(.25,.55,.45,1); }
+  40%, 58% { translate: 0 0; animation-timing-function: ease-in; }
+  95%, 100% { translate: calc(50cqw + 55%) 0; }
+}
+@keyframes mascot-tumble-roll {
+  0% { rotate: -420deg; animation-timing-function: cubic-bezier(.25,.55,.45,1); }
+  40%, 58% { rotate: 0deg; animation-timing-function: ease-in; }
+  95%, 100% { rotate: 330deg; }
+}
+/* The original 1850ms entry occupies the first 40% of this loop. */
+@keyframes mascot-tumble-bounce {
+  0%, 18.4%, 30.8%, 40%, 100% { translate: 0 0; }
+  9.2% { translate: 0 -46%; animation-timing-function: ease-in; }
+  24.4% { translate: 0 -24%; animation-timing-function: ease-in; }
+  35.2% { translate: 0 -9%; animation-timing-function: ease-in; }
+}
+@keyframes mascot-tumble-ground {
+  0%, 18.4%, 30.8%, 40%, 100% { scale: 1; opacity: 1; }
+  9.2% { scale: .56 .69; opacity: .49; animation-timing-function: ease-in; }
+  24.4% { scale: .75 .85; opacity: .72; animation-timing-function: ease-in; }
+  35.2% { scale: .9 .95; opacity: .86; animation-timing-function: ease-in; }
+}

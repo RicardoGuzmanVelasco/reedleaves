@@ -53,11 +53,11 @@ test("The avatar shows the mascot of the reader's level",()=>{
   assert.match(headerMarkup({userId:"me",stage:"root",wallet:{leaves:1,petals:2},c:{...words.es,legacy:"/app/"}}),/data-mascot="root"/);
 });
 
-for(const language of ["es","en"])test(`Home without books shows the sad mascot and the text only, in ${language}`,()=>{
+for(const language of ["es","en"])test(`Home without books shows the rolling tumbleweed and empty-state text, in ${language}`,()=>{
   const fx=fixture({statuses:{}});fx.catalog.decks=[];
   const c={...words[language],legacy:"/app/"},html=homeMarkup({data:view(fx,language),c,nav:nav(language)});
   assert.doesNotMatch(html,/data-ui2="home-note"|class="book-tile"/);
-  assert.match(html,/data-idle="sob"/);
+  assert.match(html,/data-mascot="tumbleweed" data-idle="tumble"/);
   assert.ok(html.includes(c.ui2NotReading));
   assert.ok(words.en.ui2NotReading==="You’re not reading any book");
 });
