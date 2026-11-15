@@ -64,7 +64,7 @@ for(const language of ["es","en"])test(`Screens expose named controls and sheets
   assert.doesNotMatch(place,/data-parent="a2"/);
 });
 
-test("Note form: quotes have no title, edit cannot save without an endpoint, text is escaped",()=>{
+test("Note form: quotes have no title, text is escaped",()=>{
   const c=words.es,base={titleMax:72,bodyMax:300,deckTitle:"N",bookTitle:"L",error:null,c};
   const create=noteFormMarkup({...base,form:{mode:"create",isQuote:true,title:"",body:"<b>x</b>"},canSave:true});
   assert.doesNotMatch(create,/name="title"/);
@@ -72,4 +72,20 @@ test("Note form: quotes have no title, edit cannot save without an endpoint, tex
   const edit=noteFormMarkup({...base,form:{mode:"edit",isQuote:false,title:"T",body:"B"},canSave:false});
   assert.match(edit,/<button[^>]*type="submit"[^>]*\sdisabled/);
   assert.doesNotMatch(edit,/role="tablist"/);
+});
+
+import {editPayload,submitEdit} from "./edit-note.mjs";
+test("Correct sends the trimmed text with the text it was based on, and rebases on conflict keeping the typed text",async()=>{
+  const form={cardId:"c",title:" Nuevo ",body:" Texto ",baseTitle:"Viejo",baseBody:"Texto viejo"};
+  assert.deepEqual(editPayload(form),{cardId:"c",title:"Nuevo",body:"Texto",baseTitle:"Viejo",baseBody:"Texto viejo"});
+  const calls=[],ok={request:async(path,input)=>{calls.push([path,input]);return {cardId:"c"};}};
+  await submitEdit(ok,form,async()=>assert.fail("no refresh without conflict"));
+  assert.equal(calls[0][0],"/api/author/notes/edit");
+  const conflict={request:async()=>{throw Object.assign(new Error("noteConflict"),{code:"noteConflict"});}};
+  let refreshed=null;
+  await assert.rejects(submitEdit(conflict,form,async f=>{refreshed=f;f.baseBody="Otro";}),{code:"noteConflict"});
+  assert.equal(refreshed,form);assert.equal(form.body," Texto ");assert.equal(form.baseBody,"Otro");
+  const other={request:async()=>{throw Object.assign(new Error("cardUnavailable"),{code:"cardUnavailable"});}};
+  await assert.rejects(submitEdit(other,form,async()=>assert.fail("only conflicts refresh")),{code:"cardUnavailable"});
+  for(const language of ["es","en"])assert.ok(words[language].noteConflict&&words[language].cardUnavailable);
 });

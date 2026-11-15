@@ -3,14 +3,13 @@
 import {words} from "../i18n.mjs";
 import {bookTitle,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,MAX_CARDS_PER_DECK} from "../core.mjs";
 import {deckOutline,placementTargets,deckCapabilities,noteCount,parentOf,ownDecks} from "./outline.mjs";
+import {submitEdit} from "./edit-note.mjs";
 import {installIconStyles} from "./icons.mjs";
 import {deckListMarkup,deckScreenMarkup,noteSheetMarkup,placeSheetMarkup,noteFormMarkup} from "./markup.mjs";
 
 export const ui2Enabled=search=>new URLSearchParams(search).get("ui")==="2";
 
-// Saving a correction needs the edit-text endpoint, which another session is building.
-// Until it exists the form opens but cannot save. Pass `saveEdit({cardId,title,body})` to enable it.
-export async function mountUi2({main,api,loadCatalog,language,saveEdit=null,doc=document,win=window}){
+export async function mountUi2({main,api,loadCatalog,language,doc=document,win=window}){
   const c=words[language]||words.es;
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
   let session,catalog,sheetState=null,form=null,error=null,busy=false;
@@ -36,7 +35,7 @@ export async function mountUi2({main,api,loadCatalog,language,saveEdit=null,doc=
     const {deck,model,book}=view,caps=deckCapabilities(deck,session.user.id);
     const context={deckTitle:deckName(deck),bookTitle:titleOf(deck)};
     if(form){
-      const canSave=!busy&&(form.isQuote||form.title.trim())&&form.body.trim()&&(form.mode==="create"||!!saveEdit);
+      const canSave=!busy&&(form.isQuote||form.title.trim())&&form.body.trim();
       paint(noteFormMarkup({form,...context,titleMax:TITLE_MAX_LENGTH,bodyMax:CARD_BODY_MAX_LENGTH,canSave:!!canSave,error,c}));return;
     }
     const {count,max}=noteCount(model);
@@ -48,6 +47,10 @@ export async function mountUi2({main,api,loadCatalog,language,saveEdit=null,doc=
       else html+=placeSheetMarkup({note:item,targets:placementTargets(model,note.id,deck.language),currentParentId:note.parentId,c});
     }
     paint(html);
+  }
+  function rebase(saved){
+    const view=current(),note=view?.model.byId.get(saved.cardId);
+    if(note){saved.baseTitle=note.title?.[view.deck.language]||"";saved.baseBody=note.body?.[view.deck.language]||"";}
   }
   async function reload(){catalog=await loadCatalog();}
   async function run(task){
@@ -63,7 +66,8 @@ export async function mountUi2({main,api,loadCatalog,language,saveEdit=null,doc=
     else if(action==="place"){sheetState={type:"place",id:target.dataset.id};render();}
     else if(action==="correct"&&view){
       const note=view.model.byId.get(target.dataset.id),lang=view.deck.language;
-      form={mode:"edit",cardId:note.id,isQuote:note.isQuote,title:note.title?.[lang]||"",body:note.body?.[lang]||""};sheetState=null;render();
+      const title=note.title?.[lang]||"",body=note.body?.[lang]||"";
+      form={mode:"edit",cardId:note.id,isQuote:note.isQuote,title,body,baseTitle:title,baseBody:body};sheetState=null;render();
     }
     else if(action==="take-note"||action==="take-note-under"){
       form={mode:"create",parentId:target.dataset.parent??target.dataset.id??null,isQuote:false,title:"",body:"",requestId:crypto.randomUUID()};
@@ -83,7 +87,7 @@ export async function mountUi2({main,api,loadCatalog,language,saveEdit=null,doc=
     if(!form||!event.target.name)return;
     form[event.target.name]=event.target.value;
     const submit=main.querySelector("[type=submit]");
-    if(submit)submit.disabled=!((form.isQuote||form.title.trim())&&form.body.trim()&&(form.mode==="create"||!!saveEdit));
+    if(submit)submit.disabled=!((form.isQuote||form.title.trim())&&form.body.trim()&&true);
     const counters=main.querySelectorAll(".ui2-count");
     if(event.target.name==="title"&&counters[0])counters[0].textContent=`${form.title.length}/${TITLE_MAX_LENGTH}`;
     if(event.target.name==="body"){const counter=counters[counters.length-1];if(counter)counter.textContent=`${form.body.length}/${CARD_BODY_MAX_LENGTH}`;}
@@ -97,7 +101,10 @@ export async function mountUi2({main,api,loadCatalog,language,saveEdit=null,doc=
         await api.request("/api/author/notes",{deckId:view.deck.id,parentId:saved.parentId||null,isQuote:saved.isQuote,title:saved.isQuote?"":saved.title.trim(),body:saved.body.trim(),requestId:saved.requestId});
         await reload();form=null;
       });
-    }else if(saveEdit)run(async()=>{await saveEdit({cardId:saved.cardId,title:saved.title.trim(),body:saved.body.trim()});await reload();form=null;});
+    }else run(async()=>{
+      await submitEdit(api,saved,async()=>{await reload();rebase(saved);});
+      await reload();form=null;
+    });
   });
   win.addEventListener("hashchange",()=>{sheetState=null;form=null;error=null;render();});
 
