@@ -144,5 +144,5 @@ Object.assign(words.es,{noteConflict:"La nota ha cambiado desde que la abriste. 
 Object.assign(words.en,{noteConflict:"The note changed since you opened it. Review it and save again."});
 
 // Inicio de la interfaz nueva (?ui=2). [PROPUESTO] = copy pendiente de aprobación.
-Object.assign(words.es,{ui2TabPractice:"Repaso",ui2Drafts:"Borradores",ui2Notes:n=>`${n} ${n===1?"nota":"notas"}`,ui2DraftNotes:n=>`Borrador · ${n} ${n===1?"nota":"notas"}`,ui2NoNotes:"Sin notas",ui2SeeNotes:title=>`Ver notas de ${title}`,ui2Streak:"Racha",ui2Leaves:"Hojas",ui2Petals:"Pétalos",ui2NotReading:"No estás leyendo ningún libro"});
-Object.assign(words.en,{ui2TabPractice:"Practice",ui2Drafts:"Drafts",ui2Notes:n=>`${n} ${n===1?"note":"notes"}`,ui2DraftNotes:n=>`Draft · ${n} ${n===1?"note":"notes"}`,ui2NoNotes:"No notes",ui2SeeNotes:title=>`See notes of ${title}`,ui2Streak:"Streak",ui2Leaves:"Leaves",ui2Petals:"Petals",ui2NotReading:"You aren't reading any book"});
+Object.assign(words.es,{ui2TabPractice:"Repaso",ui2TabSocial:"Social",ui2PracticePending:"Repaso, racha de hoy pendiente",ui2Balances:"Saldos",ui2Leaves:"Hojas",ui2Petals:"Pétalos",ui2NotReading:"No estás leyendo ningún libro"});
+Object.assign(words.en,{ui2TabPractice:"Practice",ui2TabSocial:"Social",ui2PracticePending:"Practice, today's streak pending",ui2Balances:"Balances",ui2Leaves:"Leaves",ui2Petals:"Petals",ui2NotReading:"You’re not reading any book"});

@@ -1,18 +1,33 @@
-// Frame shared by the top-level screens: header with avatar menu, bottom tab bar.
+// Frame shared by the top-level screens: avatar + balances header, wooden tab bar (bottom on mobile, side ribbon on desktop).
 import {escapeHtml as esc} from "../views.mjs";
+import {mascotArt} from "../mascot-art.mjs?v=evergreen-2";
+import {imageUrl} from "../image-url.mjs";
 import {icon} from "./icons.mjs";
 
-export function headerMarkup({initial,pills="",c}){
-  return `<header class="ui2-top ui2-top--home"><button type="button" class="ui2-avatar" data-ui2="avatar" aria-haspopup="dialog" aria-label="${esc(`${c.profile} / ${c.settings}`)}">${esc(initial)}</button>${pills}</header>`;
-}
+const bookmark=(side,path)=>`<svg class="bottom-navigation-bookmark${side?" bottom-navigation-bookmark--side":""}" viewBox="0 0 ${side?"134 100":"100 134"}" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path class="depth" d="${path}" transform="translate(0 5)"/><path class="face" d="${path}"/></svg>`;
+const BOTTOM_MARK="M22 2 Q2 2 2 22 L2 126 L50 118 L98 126 L98 22 Q98 2 78 2 Z";
+const SIDE_MARK="M22 2 Q2 2 2 22 L2 78 Q2 98 22 98 L126 98 L118 50 L126 2 Z";
+const pieceInner=(iconName,label,extra="")=>`${bookmark(false,BOTTOM_MARK)}${bookmark(true,SIDE_MARK)}<span class="bottom-navigation-icon" aria-hidden="true">${icon(iconName)}</span><span class="bottom-navigation-label">${esc(label)}</span>${extra}`;
 
 // Destinations not built in the new interface yet point at the old one (c.legacy = old app URL).
-export function tabsMarkup({active,c}){
-  const tabs=[["home","#home",c.navHome],["bookstore",`${c.legacy}#bookstore`,c.navBookstore],["library","#library",c.navLibrary],["practice",`${c.legacy}#practice`,c.ui2TabPractice]];
-  return `<nav class="ui2-nav" aria-label="${esc(c.navigation)}">${tabs.map(([id,href,label])=>`<a href="${esc(href)}"${id===active?' aria-current="page" class="is-on"':""}>${icon(id===active?`${id}-active`:id)}<span>${esc(label)}</span></a>`).join("")}</nav>`;
+// Order as in the old bar: Bookstore, Library, Home (centre), Social, Practice.
+export function navMarkup({active,practicePending=false,c}){
+  const link=(id,href,label,extra="",name=label)=>`<a class="bottom-navigation-link" data-nav="${id}" href="${esc(href)}"${name!==label?` aria-label="${esc(name)}"`:""}${id===active?' aria-current="page"':""}>${pieceInner(id===active?`${id}-active`:id,label,extra)}</a>`;
+  const badge='<span class="navigation-new-badge" aria-hidden="true"></span>';
+  return `<nav class="bottom-navigation ui2-nav" aria-label="${esc(c.navigation)}">`
+    +link("bookstore",`${c.legacy}#bookstore`,c.navBookstore)
+    +link("library","#library",c.navLibrary)
+    +link("home","#home",c.navHome)
+    +`<button class="bottom-navigation-link is-disabled" type="button" disabled aria-disabled="true" data-nav="social">${pieceInner("profile",c.ui2TabSocial)}</button>`
+    +link("practice",`${c.legacy}#practice`,c.ui2TabPractice,practicePending?badge:"",practicePending?c.ui2PracticePending:c.ui2TabPractice)
+    +`</nav>`;
 }
 
-export function avatarSheetMarkup({c}){
-  const row=(iconName,label,hash)=>`<a class="ui2-row" href="${esc(c.legacy)}${hash}">${icon(iconName)}<span class="ui2-grow">${esc(label)}</span></a>`;
-  return `<dialog class="ui2-sheet" data-ui2-sheet aria-label="${esc(`${c.profile} / ${c.settings}`)}"><div class="ui2-grab" aria-hidden="true"></div>${row("profile",c.profile,"#profile")}${row("settings",c.settings,"#profile")}</dialog>`;
+const pill=(src,value,label)=>`<span role="img" aria-label="${esc(`${label}: ${value}`)}"><img src="${imageUrl(src)}" alt="" width="20" height="20">${value}</span>`;
+// The avatar is the reader's mascot of their level; it opens their profile (old interface until the new one has it).
+export function headerMarkup({userId,stage,wallet,c}){
+  return `<header class="ui2-top ui2-top--home"><a class="ui2-avatar profile-avatar profile-avatar--reader" href="${esc(`${c.legacy}#profile/${encodeURIComponent(userId)}`)}" aria-label="${esc(c.profile)}">${mascotArt(stage)}</a>`
+    +`<div class="ui2-wallet" role="group" aria-label="${esc(c.ui2Balances)}">${pill("/app/assets/brand/leaf-token.svg",wallet.leaves,c.ui2Leaves)}${pill("/app/assets/brand/petal-token.svg",wallet.petals,c.ui2Petals)}</div></header>`;
 }
+
+export const shellMarkup=({header="",body,nav})=>`<div class="ui2-shell">${header}${body}${nav}</div>`;

@@ -6,16 +6,17 @@ import {deckOutline,placementTargets,deckCapabilities,noteCount,parentOf,ownDeck
 import {submitEdit} from "./edit-note.mjs";
 import {installIconStyles} from "./icons.mjs";
 import {homeData,homeMarkup} from "./home.mjs";
-import {tabsMarkup,avatarSheetMarkup} from "./shell.mjs";
+import {navMarkup,shellMarkup} from "./shell.mjs";
+import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {deckListMarkup,deckScreenMarkup,noteSheetMarkup,placeSheetMarkup,noteFormMarkup} from "./markup.mjs";
 
 export const ui2Enabled=search=>new URLSearchParams(search).get("ui")==="2";
 
-export async function mountUi2({main,api,loadCatalog,language,doc=document,win=window}){
+export async function mountUi2({main,api,loadCatalog,language,tintMode="off",doc=document,win=window}){
   // `legacy`: URL of the old interface, for destinations not built yet.
   const c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let session,reader,catalog,sheetState=null,form=null,error=null,busy=false;
+  let session,reader,catalog,sheetState=null,form=null,error=null,busy=false,practicePending=false;
 
   const decode=value=>{try{return decodeURIComponent(value);}catch{return value;}};
   const route=()=>{
@@ -35,6 +36,7 @@ export async function mountUi2({main,api,loadCatalog,language,doc=document,win=w
   }
   function paint(html){
     main.innerHTML=html;
+    mountBookCoverTints(main,catalog?.books||[],catalog?.interests||[],coverTintMode(tintMode));
     const dialog=main.querySelector("dialog[data-ui2-sheet]");
     if(dialog){dialog.addEventListener("close",()=>{if(sheetState){sheetState=null;}},{once:true});dialog.showModal();}
   }
@@ -46,11 +48,9 @@ export async function mountUi2({main,api,loadCatalog,language,doc=document,win=w
       if(!form)form={mode:"create",bookId:where.id,route:true,parentId:null,isQuote:false,title:"",body:"",requestId:crypto.randomUUID()};
       paint(noteFormMarkup({form,deckTitle:"",bookTitle:book?bookTitle(book,language).text:"",titleMax:TITLE_MAX_LENGTH,bodyMax:CARD_BODY_MAX_LENGTH,canSave:canSave(),error,c}));return;
     }
-    if(where.name==="library"){paint(deckListMarkup({decks:ownDecks(catalog,session.user.id),c,titleOf})+tabsMarkup({active:"library",c}));return;}
+    if(where.name==="library"){paint(shellMarkup({body:deckListMarkup({decks:ownDecks(catalog,session.user.id),c,titleOf}),nav:navMarkup({active:"library",practicePending,c})}));return;}
     if(!view){
-      let html=homeMarkup({data:homeData({catalog,state:reader,language}),c})+tabsMarkup({active:"home",c});
-      if(sheetState?.type==="avatar")html+=avatarSheetMarkup({c});
-      paint(html);return;
+      paint(homeMarkup({data:homeData({catalog,state:reader,language}),c,nav:navMarkup({active:"home",practicePending,c})}));return;
     }
     if(where.note&&!form&&view.deck.status==="draft")form={mode:"create",route:true,parentId:null,isQuote:false,title:"",body:"",requestId:crypto.randomUUID()};
     const {deck,model,book}=view,caps=deckCapabilities(deck,session.user.id);
@@ -73,7 +73,9 @@ export async function mountUi2({main,api,loadCatalog,language,doc=document,win=w
     const view=current(),note=view?.model.byId.get(saved.cardId);
     if(note){saved.baseTitle=note.title?.[view.deck.language]||"";saved.baseBody=note.body?.[view.deck.language]||"";}
   }
-  async function reload(){[catalog,reader]=await Promise.all([loadCatalog(),api.request("/api/reader/state")]);}
+  // Today's streak is still available while the daily idea is unseen (same endpoint as the old badge).
+  const loadPracticePending=()=>api.request("/api/reader/daily-idea-status").then(result=>!!result.unseen,()=>false);
+  async function reload(){[catalog,reader,practicePending]=await Promise.all([loadCatalog(),api.request("/api/reader/state"),loadPracticePending()]);}
   async function run(task){
     if(busy)return;busy=true;error=null;
     try{await task();}catch(failure){error=words[language][failure.code]||c.connectionError;}
@@ -99,7 +101,6 @@ export async function mountUi2({main,api,loadCatalog,language,doc=document,win=w
       const back=form?.route?(form.bookId?"#home":`#deck/${encodeURIComponent(view.deck.id)}`):null;
       form=null;error=null;if(back&&win.location.hash!==back)win.location.hash=back;else render();
     }
-    else if(action==="avatar"){sheetState={type:"avatar"};render();}
     else if(action==="home-note"){win.location.hash=target.dataset.deck?`#deck/${encodeURIComponent(target.dataset.deck)}/note`:`#book/${encodeURIComponent(target.dataset.book)}/note`;}
     else if(action==="place-to"&&sheetState&&view){
       const cardId=sheetState.id,parentId=target.dataset.parent||null;
@@ -144,7 +145,7 @@ export async function mountUi2({main,api,loadCatalog,language,doc=document,win=w
   });
   win.addEventListener("hashchange",()=>{sheetState=null;form=null;error=null;render();});
 
-  try{session=await api.request("/api/session");catalog=await loadCatalog();if(session.user)reader=await api.request("/api/reader/state");}
+  try{session=await api.request("/api/session");catalog=await loadCatalog();if(session.user)[reader,practicePending]=await Promise.all([api.request("/api/reader/state"),loadPracticePending()]);}
   catch{main.innerHTML=`<p class="ui2-msg" role="alert">${c.connectionError}</p>`;return;}
   render();
 }

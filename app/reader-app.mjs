@@ -53,7 +53,7 @@ import {createReaderXpTracker,mountReaderXpFeedback,syncReaderProgressionState} 
 export function startReader({createCardFeatures} = {}) {
   if(new URLSearchParams(location.search).get("ui")==="2"){
     const api=createAccountClient();
-    import("./ui2/index.mjs").then(({mountUi2})=>mountUi2({main:document.getElementById("main"),api,loadCatalog,language:restoreLanguage(createBrowserStore().read(keys.language))}));
+    import("./ui2/index.mjs").then(({mountUi2})=>mountUi2({main:document.getElementById("main"),api,loadCatalog,language:restoreLanguage(createBrowserStore().read(keys.language)),tintMode:createBrowserStore().read(keys.coverTint)}));
     return;
   }
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
