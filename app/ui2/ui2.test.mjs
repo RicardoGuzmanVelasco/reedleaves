@@ -23,7 +23,7 @@ test("?ui=2 is the only switch for the new interface",()=>{
   for(const search of ["","?ui=1","?ui=","?x=2"])assert.equal(ui2Enabled(search),false);
 });
 
-test("Outline keeps the hierarchy and moves root quotes to their own group",()=>{
+test("Outline keeps the hierarchy and moves root quotes after the ideas",()=>{
   const {model}=fixture(),outline=deckOutline(model,"es");
   assert.deepEqual(outline.tree.map(n=>n.id),["a","b1"]);
   assert.deepEqual(outline.tree[0].children[0].children.map(n=>n.id),["a2"]);

@@ -19,8 +19,6 @@ body.ui2 main{max-width:560px;margin:0 auto;padding:0;display:flex;flex-directio
 .ui2-note-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12.5px;color:var(--ui2-muted);margin-top:3px;line-height:1.4}
 .ui2-note.is-quote{background:var(--ui2-quote);border-color:var(--ui2-quote-edge)}
 .ui2-note.is-quote .ui2-note-text{color:var(--ui2-ink);margin-top:0;font-style:italic;-webkit-line-clamp:3}
-.ui2-group{display:flex;align-items:center;gap:6px;margin:16px 0 6px;font-size:13px;font-weight:850;color:var(--ui2-muted)}
-.ui2-group .ui2-icon{width:18px;height:18px}
 .ui2-sticky{position:sticky;bottom:0;padding:8px 18px 14px;background:linear-gradient(to top,var(--ui2-paper) 78%,transparent)}
 .ui2-btn{display:flex;width:100%;min-height:50px;align-items:center;justify-content:center;gap:8px;padding:10px 20px;border:2px solid var(--ui2-shadow);border-radius:17px;background:var(--ui2-green);box-shadow:0 5px 0 var(--ui2-shadow);color:var(--ui2-ink);font:inherit;font-weight:850;font-size:15px;text-decoration:none;cursor:pointer}
 .ui2-btn:disabled{opacity:.45;box-shadow:none;cursor:default}

@@ -19,7 +19,7 @@ export function deckListMarkup({decks,c,titleOf}){
 export function deckScreenMarkup({deckTitle,bookTitle,author,status,count,max,languageName,outline,caps,c,backHref="#"}){
   const draft=status==="draft";
   const groups=[outline.tree.length?`<ul class="ui2-tree">${outline.tree.map(item=>noteItem(item,c)).join("")}</ul>`:"",
-    outline.unsorted.length?`<h2 class="ui2-group">${icon("quote")}${esc(c.ui2Unsorted)}</h2><ul class="ui2-tree">${outline.unsorted.map(item=>noteItem(item,c)).join("")}</ul>`:""].join("");
+    outline.unsorted.length?`<ul class="ui2-tree">${outline.unsorted.map(item=>noteItem(item,c)).join("")}</ul>`:""].join("");
   return `<header class="ui2-top"><a class="ui2-ib" href="${esc(backHref)}" aria-label="${esc(c.back)}">${icon("back")}</a>
 <div class="ui2-titles"><h1>${esc(bookTitle)}</h1>${author?`<span class="ui2-sub">${esc(author)}</span>`:""}</div></header>
 <div class="ui2-body"><div class="ui2-meta">${draft?`<span class="ui2-chip is-draft">${esc(c.deckInProgressShort)}</span>`:""}<span>${esc(c.ui2NoteCount(count,max))}</span><span aria-hidden="true">·</span><span>${esc(deckTitle)}</span><span aria-hidden="true">·</span><span>${esc(languageName)}</span></div>${groups}</div>
