@@ -142,3 +142,7 @@ Object.assign(words.es,{ui2NoteCount:(n,max)=>`${n}/${max} notas`,ui2Correct:"Co
 Object.assign(words.en,{ui2NoteCount:(n,max)=>`${n}/${max} notes`,ui2Correct:"Correct",ui2PlaceUnder:"Place under…",ui2PlaceUnderTitle:"Place under",ui2PlaceNow:title=>`Now: ${title}`,ui2TakeNoteUnder:"Take a note under this one",ui2NoParent:"None (root note)",ui2Idea:"Idea",ui2Quote:"Quote",ui2QuoteOf:text=>`Quote: ${text}`,ui2NoteTitle:"Title",ui2NoteText:"Text",ui2NoteKind:"Note type",ui2Note:"Note",ui2Close:"Close",ui2Current:"Current"});
 Object.assign(words.es,{noteConflict:"La nota ha cambiado desde que la abriste. Revisa y vuelve a guardar."});
 Object.assign(words.en,{noteConflict:"The note changed since you opened it. Review it and save again."});
+
+// Inicio de la interfaz nueva (?ui=2). [PROPUESTO] = copy pendiente de aprobación.
+Object.assign(words.es,{ui2TabPractice:"Repaso",ui2Drafts:"Borradores",ui2Notes:n=>`${n} ${n===1?"nota":"notas"}`,ui2DraftNotes:n=>`Borrador · ${n} ${n===1?"nota":"notas"}`,ui2NoNotes:"Sin notas",ui2SeeNotes:title=>`Ver notas de ${title}`,ui2Streak:"Racha",ui2Leaves:"Hojas",ui2Petals:"Pétalos",ui2NotReading:"No estás leyendo ningún libro"});
+Object.assign(words.en,{ui2TabPractice:"Practice",ui2Drafts:"Drafts",ui2Notes:n=>`${n} ${n===1?"note":"notes"}`,ui2DraftNotes:n=>`Draft · ${n} ${n===1?"note":"notes"}`,ui2NoNotes:"No notes",ui2SeeNotes:title=>`See notes of ${title}`,ui2Streak:"Streak",ui2Leaves:"Leaves",ui2Petals:"Petals",ui2NotReading:"You aren't reading any book"});

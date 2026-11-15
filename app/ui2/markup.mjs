@@ -47,7 +47,7 @@ export function noteFormMarkup({form,deckTitle,bookTitle,titleMax,bodyMax,canSav
   const idea=!form.isQuote;
   return `<header class="ui2-top"><button type="button" class="ui2-ib" data-ui2="form-close" aria-label="${esc(c.ui2Close)}">${icon("close")}</button>
 <div class="ui2-titles"><h1>${esc(form.mode==="edit"?c.ui2Correct:c.takeNote)}</h1></div></header>
-<p class="ui2-sub ui2-form-context">${esc(bookTitle)} · ${esc(deckTitle)}</p>
+<p class="ui2-sub ui2-form-context">${esc([bookTitle,deckTitle].filter(Boolean).join(" · "))}</p>
 <form class="ui2-body" data-ui2-form novalidate>
 ${form.mode==="create"?`<div class="ui2-seg" role="tablist" aria-label="${esc(c.ui2NoteKind)}"><button type="button" role="tab" aria-selected="${idea}" class="${idea?"is-on":""}" data-ui2="kind" data-kind="idea">${icon("idea")}${esc(c.ui2Idea)}</button><button type="button" role="tab" aria-selected="${!idea}" class="${idea?"":"is-on"}" data-ui2="kind" data-kind="quote">${icon("quote")}${esc(c.ui2Quote)}</button></div>`:""}
 ${idea?`<div class="ui2-field"><label for="ui2-title">${esc(c.ui2NoteTitle)}</label><input id="ui2-title" name="title" maxlength="${titleMax}" value="${esc(form.title)}" autocomplete="off"><div class="ui2-count">${form.title.length}/${titleMax}</div></div>`:""}
