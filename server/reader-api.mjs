@@ -6,7 +6,7 @@ import {readCardContexts} from "./catalog-repository.mjs";
 import {readReaderState,readReaderBalances,readReaderHomeBooks,openDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeBookStatus,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
 import {startPracticeSession,answerPracticeSession} from "./practice-economy.mjs";
 
-import {createBook,createDeck,addDeckContributors,changeDeckLanguage,changeDeckTitle,takeNote,placeNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
+import {createBook,createDeck,addDeckContributors,changeDeckLanguage,changeDeckTitle,takeNote,placeNote,editNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
 import {createBookAutofill} from "./book-autofill.mjs";
 import {MAX_BOOK_INTERESTS} from "../app/book-interests.mjs";
 import {readCardVotes,setCardVote} from "./card-votes.mjs";
@@ -65,6 +65,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
     routes.set("/api/author/decks/title",["POST"]);
     routes.set("/api/author/notes",["POST"]);
     routes.set("/api/author/notes/place",["POST"]);
+    routes.set("/api/author/notes/edit",["POST"]);
     const profileMatch=path.match(/^\/api\/profiles\/([^/]+)$/);
     const profileBookshelfMatch=path.match(/^\/api\/profiles\/([^/]+)\/bookshelf$/);
     const profileInterestsMatch=path.match(/^\/api\/profiles\/([^/]+)\/interests$/);
@@ -217,7 +218,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
           const result=await (path.endsWith("title") ? changeDeckTitle : changeDeckLanguage)(db,active,input);
           send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
         }
-        const result = path === "/api/author/notes" ? await takeNote(db,active,input) : path === "/api/author/notes/place" ? await placeNote(db,active,input) : path === "/api/author/decks/finish-notes" ? await finishNoteDecks(db,active,input) : path === "/api/author/decks/contributors" ? await addDeckContributors(db,active,input) : path === "/api/author/decks/finish" ? await finishDeck(db,active,input) : path.endsWith("complete") ? await completeBook(db,active,input) : path.endsWith("books") ? await createBook(db,active,input) : await createDeck(db,active,input);
+        const result = path === "/api/author/notes" ? await takeNote(db,active,input) : path === "/api/author/notes/place" ? await placeNote(db,active,input) : path === "/api/author/notes/edit" ? await editNote(db,active,input) : path === "/api/author/decks/finish-notes" ? await finishNoteDecks(db,active,input) : path === "/api/author/decks/contributors" ? await addDeckContributors(db,active,input) : path === "/api/author/decks/finish" ? await finishDeck(db,active,input) : path.endsWith("complete") ? await completeBook(db,active,input) : path.endsWith("books") ? await createBook(db,active,input) : await createDeck(db,active,input);
         send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
       const result = path === "/api/reader/cardcase/add" ? await addDeckToCardcase(db,active,input.deckId,currentTime,{confirmation:input.confirmation,confirmationEnabled:bookInterestConfirmationEnabled}) :

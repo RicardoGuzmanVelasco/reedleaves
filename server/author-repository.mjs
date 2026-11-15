@@ -301,6 +301,39 @@ export async function placeNote(db,session,input) {
   });
 }
 
+// Corrects the text of a note in the caller's own personal deck, also after the deck is finished.
+// Only title/body change; id, position, parent and creation date stay. No schema column: the
+// catalog ETag already hashes the response, so it changes with the text. Concurrency is optimistic:
+// the client sends the text it started from (baseTitle/baseBody; quotes only baseBody) and gets
+// 409 noteConflict if the stored text is neither that nor the new one. Retrying a saved edit is a no-op.
+export async function editNote(db,session,input) {
+  const {cardId}=input ?? {};
+  if (typeof cardId !== "string" || !cardId || cardId.length > 256) throw new ApiError(400,"invalidRequest");
+  const body=text(input.body,CARD_BODY_MAX_LENGTH);
+  if (typeof input.baseBody !== "string") throw new ApiError(400,"invalidRequest");
+  return transaction(db,async()=>{
+    await lockReaderAccount(db,session.user_id);
+    const found=await db.prepare("SELECT deck_id FROM cards WHERE id=?").get(cardId);
+    if (!found) throw new ApiError(404,"cardUnavailable");
+    const deck=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db) ? " FOR UPDATE OF d" : ""}`).get(found.deck_id);
+    if (!deck || deck.creator_user_id !== session.user_id || deck.contribution_policy !== "owner") throw new ApiError(404,"cardUnavailable");
+    const card=await db.prepare("SELECT id,is_quote FROM cards WHERE id=?").get(cardId);
+    const saved=await db.prepare("SELECT title,body FROM card_translations WHERE card_id=? AND language=?").get(cardId,deck.language);
+    if (!card || !saved) throw new ApiError(404,"cardUnavailable");
+    const isQuote=!!card.is_quote;
+    let title,baseTitle;
+    if (isQuote) title=quoteExcerpt(body);
+    else {
+      if (typeof input.baseTitle !== "string") throw new ApiError(400,"invalidRequest");
+      title=text(input.title,TITLE_MAX_LENGTH); baseTitle=input.baseTitle.trim();
+    }
+    if (saved.title === title && saved.body === body) return {deckId:deck.id,cardId};
+    if (saved.body !== input.baseBody.trim() || !isQuote && saved.title !== baseTitle) throw new ApiError(409,"noteConflict");
+    await db.prepare("UPDATE card_translations SET title=?,body=? WHERE card_id=? AND language=?").run(title,body,cardId,deck.language);
+    return {deckId:deck.id,cardId};
+  });
+}
+
 // Finishing freezes this deck. Existing database triggers enforce immutability.
 export async function finishDeck(db,session,input) {
   if (typeof input.deckId !== "string" || !input.deckId || input.deckId.length > 256) throw new ApiError(400,"invalidRequest");
