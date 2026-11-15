@@ -82,7 +82,7 @@ Fuente de verdad del estilo de iconos de la interfaz nueva (`?ui=2`). Los SVG vi
 
 **Fuera de esta familia** (se mantienen tal cual): banderas de idioma, mascotas, Hoja, Pétalo, racha, arte de marca y emojis de intereses.
 
-**Pendiente de integrar:** `reading-guide` (portada de libro con «i») y la portada de libro sin el ribete interior, aprobados en la propuesta v5 pero aún no copiados a `app/assets/icons/ui2/`; confirmar con el dueño qué borde del libro se quita. Cuando la interfaz nueva reemplace a la vieja, esta carpeta pasa a ser el único conjunto y se borran los iconos antiguos.
+**Libros:** la portada va sin el ribete del lado del lomo (izquierda) para dar aire al contenido; `reading-guide` es la portada con una «i».
 
 ## Modo Repasar
 

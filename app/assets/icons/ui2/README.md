@@ -16,7 +16,7 @@ Catálogo de los iconos de la interfaz nueva. Las reglas del estilo están en `d
 - **Altas con `+`, ediciones con lápiz**, mismo marco (tarjeta abajo a la izquierda, insignia arriba a la derecha): `take-note` = dos tarjetas en ángulo + «+»; `edit` = una tarjeta + lápiz; `new-deck` = pila con «+» dentro.
 - El icono acompaña al texto; va solo en controles circulares y en la fila de acciones. Zona táctil ≥ 44×44 px la da el botón.
 
-## Iconos de `final/` (34 conceptos + 11 estados activos = 45 SVG)
+## Iconos de `final/` (35 conceptos + 12 estados activos = 47 SVG)
 
 | id | Significado | Dónde se usa en la UI nueva |
 |---|---|---|
@@ -41,6 +41,7 @@ Catálogo de los iconos de la interfaz nueva. Las reglas del estilo están en `d
 | `like`, `like-active` | Me gusta | Fila de acciones |
 | `dislike`, `dislike-active` | No me gusta | Fila de acciones |
 | `share` | Compartir | Fila de acciones |
+| `reading-guide`, `reading-guide-active` | Guía de lectura | Acceso a la guía del libro |
 | `book-unread` | Libro sin leer | Estado del libro |
 | `book-to-read` | Libro por leer | Estado del libro |
 | `book-reading` | Leyendo | Estado del libro; chip de estado |
@@ -72,4 +73,4 @@ Catálogo de los iconos de la interfaz nueva. Las reglas del estilo están en `d
 
 Mantener tal cual, no se rediseñan: banderas de idioma (`es`, `en`), mascotas, Hoja (`leaf-token`), Pétalo (`petal-token`), racha (`streak-flame`), arte de marca y emojis de intereses.
 
-Sin sustituto porque no salen en la UI nueva: reading-guide y T08 (guía de lectura), I05 (calendario), I02 (reloj), I07 e I08 (libro y pluma de procedencia), I09 e I10 (flechas de enlace), I11 (filtro), I12 (lupa), I24–I28 (vistas de baraja y presentación), view-covers / view-shelf / view-stack, I34 (oferta), I35 (medalla), I36 (estrella), globe, deck-badge-shape e I42 (formas), I43 (marcapáginas de pestaña), I44 e I45 (barra Junco), plataformas Amazon y Goodreads. Los códigos son los del inventario de la UI actual. Si la Librería nueva mantiene búsqueda o filtros, faltarán `search` y `filter`.
+Sin sustituto porque no salen en la UI nueva: I05 (calendario), I02 (reloj), I07 e I08 (libro y pluma de procedencia), I09 e I10 (flechas de enlace), I11 (filtro), I12 (lupa), I24–I28 (vistas de baraja y presentación), view-covers / view-shelf / view-stack, I34 (oferta), I35 (medalla), I36 (estrella), globe, deck-badge-shape e I42 (formas), I43 (marcapáginas de pestaña), I44 e I45 (barra Junco), plataformas Amazon y Goodreads. Los códigos son los del inventario de la UI actual. Si la Librería nueva mantiene búsqueda o filtros, faltarán `search` y `filter`.
