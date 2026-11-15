@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import {historicalDatabase,historicalReader,normalizeRetiredRow} from "../test-support/historical-database.mjs";
 import {initializeDatabase} from "./database.mjs";
 import {checkCatalog,readCatalog} from "./catalog-repository.mjs";
-import {readSeed} from "./seed.mjs";
+import {readFileSync} from "node:fs";
+import {parseCsv} from "./csv.mjs";
 import {saveInitialReaderInterestPreferences} from "./reader-interest-preferences.mjs";
 
 async function snapshot(db,dialect){
@@ -31,9 +32,10 @@ for(const [dialect,version] of [["sqlite",54],["postgres",46]])test(`${dialect}:
   // Current code reads the renamed interest tables, so private preference rows are written after migrating.
   const saved=await saveInitialReaderInterestPreferences(db,session,{interested:["finance","software","personal-growth"],notInterested:["mindfulness"],revision:0});
   assert.deepEqual(saved.newlyGranted.map(({currency,amount})=>({currency,amount})),[{currency:"leaves",amount:3},{currency:"petals",amount:2}]);
-  const catalog=await readCatalog(db),seed=readSeed();
-  for(const expected of seed.interests){const actual=catalog.interests.find(g=>g.id===expected.id);assert.equal(actual.chipColor,expected.chip_color);assert.equal(actual.bookColor,expected.book_color);assert.equal(actual.emoji,expected.emoji);}
-  assert.equal(new Set(seed.interests.map(g=>g.chip_color)).size,10);
+  const catalog=await readCatalog(db);
+  const releasedInterests=parseCsv(readFileSync(new URL("./fixtures/migrations/catalog-v54/genres.csv",import.meta.url),"utf8"));
+  for(const expected of releasedInterests){const actual=catalog.interests.find(g=>g.id===expected.id);assert.equal(actual.chipColor,expected.chip_color);assert.equal(actual.bookColor,expected.book_color);assert.equal(actual.emoji,expected.emoji);}
+  assert.equal(new Set(releasedInterests.map(g=>g.chip_color)).size,10);
   assert.equal(catalog.interests.find(g=>g.id==="future-interest").chipColor,"#123456");
   assert.equal(catalog.interests.find(g=>g.id==="mindfulness").emoji,"🧘‍♀️");
   await checkCatalog(db);
