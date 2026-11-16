@@ -32,6 +32,6 @@ function coverMarkup(book,c){
 export function homeMarkup({data,c,nav,toast=""}){
   const body=data.books.length
     ?`<div class="ui2-body"><h1 class="sr-only" tabindex="-1">${esc(c.home)}</h1><div class="book-tiles book-grid" role="group" aria-label="${esc(c.reading)}">${data.books.map(book=>coverMarkup(book,c)).join("")}</div></div>`
-    :`<div class="ui2-body"><h1 class="sr-only" tabindex="-1">${esc(c.home)}</h1><div class="ui2-empty">${mascotArt("tumbleweed","",{animation:"tumble"})}<h2>${esc(c.ui2NotReading)}</h2></div></div>`;
+    :`<div class="ui2-body ui2-home-empty-body"><h1 class="sr-only" tabindex="-1">${esc(c.home)}</h1><div class="ui2-empty">${mascotArt("tumbleweed","",{animation:"tumble"})}<h2>${esc(c.ui2NotReading)}</h2></div></div>`;
   return `<div class="ui2-shell">${headerMarkup({userId:data.userId,stage:data.avatarStage,wallet:data.wallet,c})}${body}${nav}${toast}</div>`;
 }

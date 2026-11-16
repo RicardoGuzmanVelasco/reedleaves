@@ -69,8 +69,9 @@ body.ui2 main{width:100%;max-width:560px;margin:0 auto;padding:0;display:flex;fl
 .ui2-shell .book-note-add:hover:not(:disabled),.ui2-shell .book-tile-entry--notes:hover>.book-note-add{box-shadow:0 5px 0 var(--ui2-shadow)}
 .ui2-shell .book-note-add:active:not(:disabled){box-shadow:0 1px 0 var(--ui2-shadow)}
 .ui2-shell .book-note-add .ui2-icon{width:22px;height:22px}
-.ui2-empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:55px 15px 30px;gap:22px}
-.ui2-empty h2{margin:0;font-size:27px;letter-spacing:-.045em;line-height:1.15}
+.ui2-shell .ui2-home-empty-body{padding-inline:0}
+.ui2-empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:55px 0 30px;gap:22px}
+.ui2-empty h2{margin:0;padding-inline:15px;font-size:27px;letter-spacing:-.045em;line-height:1.15}
 .ui2-empty .mascot-art{width:120px;height:120px}
 /* Barra de pestañas de madera (reader.css) con iconos ui2 y etiquetas siempre visibles */
 .ui2-nav .ui2-icon{display:block;width:34px;height:34px;transition:width .3s ease,height .3s ease}
@@ -98,6 +99,7 @@ body.ui2 main{width:100%;max-width:560px;margin:0 auto;padding:0;display:flex;fl
   .ui2-top--home{justify-content:flex-end;min-height:70px;padding:0 28px;border-bottom:1px solid var(--ui2-line)}
   .ui2-wallet{margin-left:0}
   .ui2-shell .ui2-body{width:100%;max-width:680px;margin:0 auto;padding:18px 4px 60px}
+  .ui2-shell .ui2-home-empty-body{grid-column:1/-1;grid-row:2;max-width:none;padding-inline:0}
   .ui2-shell .book-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
   .ui2-avatar{position:fixed;z-index:8;top:22px;left:20px;width:88px;height:88px;border-width:2.5px;box-shadow:0 4px 0 #c9d9ae}
   .ui2-nav{grid-column:1;grid-row:1/span 2;position:sticky;top:0;align-self:start;height:100dvh;left:auto;bottom:auto;transform:none;width:auto;grid-template-columns:1fr;grid-auto-rows:74px;align-content:start;gap:16px;padding:136px 22px 22px 18px;border-right:1px solid var(--ui2-line)}
