@@ -1912,7 +1912,7 @@ export function startReader({createCardFeatures} = {}) {
     const previewFinished=openingPreview&&!matchMedia("(prefers-reduced-motion: reduce)").matches?new Promise(resolve=>setTimeout(resolve,5600)):Promise.resolve();
     try {
       const session=await api.request("/api/session");
-      snapshot=session;language=restoreLanguage(session.language||language);
+      snapshot=session;inviteRequired=session.inviteRequired === true;language=restoreLanguage(session.language||language);
       if(session.user)store.save(keys.language,language);
       const homeRoute=!location.hash||location.hash==="#home";
       if(session.user&&opensWithoutFullCatalog())await ensureHomeData();
