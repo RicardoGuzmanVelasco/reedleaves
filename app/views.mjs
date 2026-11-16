@@ -540,7 +540,7 @@ export function accountView(s) {
       <label for="account-password">${c.password}</label><input id="account-password" name="password" type="password" autocomplete="${signup ? "new-password" : "current-password"}" required minlength="${PASSWORD_MIN_LENGTH}" maxlength="${PASSWORD_MAX_LENGTH}" aria-describedby="password-hint"><small id="password-hint">${c.passwordHint}</small>
       <p class="account-error" id="auth-error" role="alert" hidden></p><button class="primary" type="submit">${signup ? c.signUp : c.signIn}</button>
     </form><button class="text-button account-switch" type="button" data-action="toggle-auth">${signup ? c.switchToSignIn : c.switchToSignUp}</button>
-    ${s.inviteRequired ? "" : `<button class="text-button account-explore" type="button" data-action="bookstore">${c.exploreBooks} →</button>`}
+    <button class="text-button account-explore" type="button" data-action="bookstore">${c.exploreBooks} →</button>
     </section>`;
 }
 
