@@ -18,9 +18,10 @@ export function shelfData({catalog,state,language}){
 }
 export const viewOf=(section,views)=>selectedBookView(views?.[section.key],section.view);
 
+// Shelf / Cardcase selector: the unified chip, one segment pressed.
 export function libraryTabsMarkup({active,c}){
-  const tab=(id,href,label)=>`<a href="${href}"${id===active?' aria-current="page"':""}>${icon(id)}${esc(label)}</a>`;
-  return `<nav class="library-tabs" aria-label="${esc(c.library)}">${tab("shelf","#library",c.shelf)}${tab("cardcase","#library/cardcase",c.cardcase)}</nav>`;
+  const tab=(id,label)=>`<button type="button" data-ui2="lib-tab" data-tab="${id}" aria-pressed="${id===active}">${icon(id)}<span>${esc(label)}</span></button>`;
+  return `<div class="lib-switch"><div class="segmented-selector library-switch" role="group" aria-label="${esc(c.library)}">${tab("shelf",c.shelf)}${tab("cardcase",c.cardcase)}</div></div>`;
 }
 
 function viewChip(section,view,title,c){

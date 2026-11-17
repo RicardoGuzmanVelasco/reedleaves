@@ -47,8 +47,8 @@ for(const language of ["es","en"])test(`Sections: loose icon, title, view chip w
 
 test("Tabs: Shelf and Cardcase with their icons, Library piece active in the bar",()=>{
   const c={...words.es,legacy:"/app/"},tabs=libraryTabsMarkup({active:"shelf",c});
-  assert.match(tabs,/href="#library" aria-current="page"><span class="ui2-icon" data-icon="shelf"/);
-  assert.match(tabs,/href="#library\/cardcase"><span class="ui2-icon" data-icon="cardcase"/);
+  assert.match(tabs,/segmented-selector[\s\S]*data-tab="shelf" aria-pressed="true"><span class="ui2-icon" data-icon="shelf"/);
+  assert.match(tabs,/data-tab="cardcase" aria-pressed="false"><span class="ui2-icon" data-icon="cardcase"/);
   assert.match(render("es"),/data-nav="library" href="#library" aria-current="page"/);
 });
 

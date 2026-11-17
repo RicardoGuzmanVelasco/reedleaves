@@ -12,6 +12,8 @@ import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending} from "./repas
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
 import {shelfData,shelfMarkup,libraryTabsMarkup} from "./biblioteca.mjs";
+import {bookSheetData,bookSheetMarkup,finishData,finishTiles,finishDialogMarkup} from "./book-sheet.mjs";
+import {coverTintGradients} from "../book-cover-tint.mjs";
 import {createNoteDrafts} from "../note-drafts.mjs";
 import {createBrowserStore,storageKeys} from "../storage.mjs";
 import {createReaderXpTracker,mountReaderXpFeedback} from "../reader-xp-feedback.mjs?v=level-up-polish-2";
@@ -24,7 +26,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // `legacy`: URL of the old interface, for destinations not built yet.
   const c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let session,reader,catalog,sheetState=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null;
+  let session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null;
   const drafts=createNoteDrafts(store),observeXp=createReaderXpTracker();
   let shelfViews=(()=>{const saved=store.read(storageKeys.shelfViews);return saved&&typeof saved==="object"?saved:{};})(),disposeLists=()=>{};
   let xpFeedback=null;
@@ -78,6 +80,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     main.innerHTML=html;
     disposeLists=mountBookLists(main);
     mountBookCoverTints(main,catalog?.books||[],catalog?.interests||[],coverTintMode(tintMode));
+    for(const thumb of main.querySelectorAll(".sheet-thumb[data-book]")){
+      const tint=coverTintGradients(catalog?.booksById.get(thumb.dataset.book),catalog?.interests||[],coverTintMode(tintMode));
+      if(tint){thumb.dataset.tintedCover="true";thumb.style.setProperty("--tinted-cover",tint.cover);thumb.style.setProperty("--tinted-spine",tint.dark);}
+    }
     const dialog=main.querySelector("dialog[data-ui2-modal]")||main.querySelector("dialog[data-ui2-sheet]");
     if(dialog)dialog.showModal();
     layoutToast();
@@ -113,7 +119,17 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
     if(!form&&where.note&&view?.deck.status==="in_progress")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
     if(form){paint(formScreen());return;}
-    if(where.name==="library"){paint(withError(shelfMarkup({data:shelfData({catalog,state:{...reader,catalog},language}),views:shelfViews,c,nav:navMarkup({active:"library",practicePending,c})})));return;}
+    if(where.name==="library"){
+      const state={...reader,catalog};
+      let html=shelfMarkup({data:shelfData({catalog,state,language}),views:shelfViews,c,nav:navMarkup({active:"library",practicePending,c})});
+      if(finish&&!failure){
+        const pending=drafts.list(session.user.id,finish.bookId).some(saved=>finish.decks.some(entry=>entry.deckId===saved.noteDeckId));
+        const cardCounts=new Map(finish.decks.map(entry=>[entry.deckId,entry.cardCount]));
+        html+=finishDialogMarkup({decks:finishTiles({catalog,entries:finish.decks,language}).map(tile=>({...tile,cardCount:cardCounts.get(tile.id)})),pending,c});
+      }
+      else if(sheetState?.type==="book"){const data=bookSheetData({catalog,state,language,bookId:sheetState.id});if(data)html+=bookSheetMarkup({data,c});}
+      paint(withError(html));return;
+    }
     if(where.name==="cardcase"){
       const data=shelfData({catalog,state:{...reader,catalog},language});
       paint(withError(shellMarkup({header:headerMarkup({userId:data.userId,stage:data.avatarStage,wallet:data.wallet,c}),
@@ -188,6 +204,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
 
   main.addEventListener("click",event=>{
+    const bookLink=event.target.closest("a[data-book]");
+    if(bookLink&&route().name==="library"&&!event.target.closest("[data-ui2]")){event.preventDefault();sheetState={type:"book",id:bookLink.dataset.book};render();return;}
     const target=event.target.closest("[data-ui2]");if(!target)return;
     const action=target.dataset.ui2,view=current();
     if(action==="open-note"){sheetState={type:"note",id:target.dataset.id};render();}
@@ -213,6 +231,25 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       shelfViews={...shelfViews,[target.dataset.section]:target.dataset.view};store.save(storageKeys.shelfViews,shelfViews);render();
       main.querySelector(`[data-ui2="set-view"][data-section="${target.dataset.section}"][data-view="${target.dataset.view}"]`)?.focus({preventScroll:true});
     }
+    else if(action==="lib-tab"){win.location.hash=target.dataset.tab==="cardcase"?"#library/cardcase":"#library";}
+    else if(action==="book-status"){
+      const bookId=target.dataset.book,status=target.dataset.status;
+      if((reader.statuses?.[bookId]||"unread")===status)return;
+      run(async()=>{
+        const result=await api.request("/api/reader/book-status",{bookId,status});
+        // The server asks for a confirmation the new interface does not show yet: the old book page handles it.
+        if(result?.confirmationRequired){win.location.href=`${c.legacy}#book/${encodeURIComponent(bookId)}`;return;}
+        await reload();
+        const entries=status==="read"?finishData({catalog,bookId,userId:session.user.id}):[];
+        if(entries.length)finish={bookId,decks:entries};
+      });
+    }
+    else if(action==="finish-keep"){finish=null;render();}
+    else if(action==="finish-confirm"&&finish){
+      const done=finish;
+      if(drafts.list(session.user.id,done.bookId).some(saved=>done.decks.some(entry=>entry.deckId===saved.noteDeckId)))return;
+      run(async()=>{await api.request("/api/author/decks/finish-notes",{bookId:done.bookId,decks:done.decks});finish=null;await reload();});
+    }
     else if(action==="calendar-open"){sheetState={type:"calendar"};render();}
     else if(action==="calendar-month"){calendarMonth=target.dataset.month;render();}
     else if(action==="sheet-close"){main.querySelector("dialog")?.close();}
@@ -229,6 +266,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   });
   main.addEventListener("close",event=>{
     if(event.target.matches?.("dialog[data-ui2-modal]")&&failure){failure=null;render();}
+    else if(event.target.matches?.(".ui2-finishdialog")&&finish){finish=null;render();}
     else if(event.target.matches?.("dialog[data-ui2-sheet]")&&sheetState){sheetState=null;render();}
   },true);
   main.addEventListener("input",event=>{
@@ -244,7 +282,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   });
   main.addEventListener("submit",event=>{event.preventDefault();submit();});
   win.addEventListener("hashchange",()=>{
-    sheetState=null;form=null;failure=null;
+    sheetState=null;finish=null;form=null;failure=null;
     if(toast&&!["","#home"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
     render();
     if(route().name==="practice")Promise.all([loadStreak(),loadTopics(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{if(route().name==="practice"&&!form)render();});

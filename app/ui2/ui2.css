@@ -203,7 +203,6 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 
 /* ---- Biblioteca · Estantería ---- */
 .ui2-lib{padding:6px 15px 28px}
-.ui2-lib .library-tabs{margin:0 0 4px}
 .ui2-lib .ui2-decks{margin-top:12px}
 .shelf-section{margin-top:30px}
 .shelf-groups>.shelf-section:first-child{margin-top:14px}
@@ -218,3 +217,45 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .shelf-section .book-spines--stack{margin:4px 0 6px}
 .shelf-section .book-spines--shelf{margin:0}
 .shelf-section .book-tiles{padding-bottom:7px}
+
+/* ---- Biblioteca · selector Estantería/Tarjetero ---- */
+.lib-switch{display:flex;justify-content:center;margin:4px 0 8px}
+.library-switch>button{gap:7px;min-height:42px;padding:6px 18px;font-size:14px;font-weight:800;color:#000;white-space:nowrap}
+.library-switch>button[aria-pressed=true]{color:#fff}
+.library-switch .ui2-icon{width:22px;height:22px;flex:none}
+
+/* ---- Hoja del libro ---- */
+.ui2-sheet.ui2-book-sheet{overflow:visible;padding-bottom:22px}
+.dialog-close--float{position:absolute;top:-22px;right:12px;z-index:3}
+.ui2-book-sheet .sheet-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.sheet-thumb{flex:none;width:40px;height:56px;border:1px solid #000;border-radius:7px 5px 5px 7px;background:var(--tinted-cover,#e9eedf);box-shadow:1px 2px 0 #000;position:relative;overflow:hidden}
+.sheet-thumb::after{content:"";position:absolute;top:0;bottom:0;left:0;width:6px;background:var(--tinted-spine,#cdd8bd);border-right:1px solid rgb(0 0 0 / 35%)}
+.ui2-book-sheet .sheet-head h2{margin:0;font-size:19px;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ui2-sheet-author{margin:2px 0 0;font-size:14px;color:var(--ui2-muted)}
+.ui2-book-sheet .sheet-note{margin:0 0 14px}
+.ui2-book-sheet .sel-wrap{display:flex;justify-content:center;margin:0 0 6px}
+.sheet-sub{margin:16px 2px 8px;font-size:15px;font-weight:850}
+.sheet-sub--icon{display:flex;align-items:center;gap:7px}
+.sheet-sub--icon .ui2-icon{width:22px;height:22px;flex:none;color:var(--ui2-shadow)}
+.ui2-btn.secondary--subtle{border-color:var(--ui2-sage);background:var(--control-surface,#eef3e3);color:var(--ui2-ink);box-shadow:0 3px 0 #c9d7b8}
+.sheet-all{margin-top:12px;min-height:48px;font-size:14px}
+.sheet-all .ui2-icon{width:20px;height:20px}
+.sheet-warn{margin-top:12px}
+.mini-decks{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:18px;margin:-8px -18px 0;padding:20px 18px 12px;scrollbar-width:none}
+.mini-decks::-webkit-scrollbar{display:none}
+.mini-decks .deck-tile{flex:0 0 132px;min-height:118px;padding:20px 10px 10px;border-radius:16px;scroll-snap-align:start}
+.mini-decks .deck-tile-copy strong{font-size:14.5px;padding-right:0;line-height:1.15}
+.mini-decks .deck-creator{font-size:11px}
+.mini-decks .deck-tile-metadata{gap:4px}
+.mini-decks .deck-tile-open{display:block}
+.mini-decks.mini-decks--static{margin:0;padding:8px 0 4px;overflow:visible}
+.deck-writing-badge--compact .ui2-icon{width:11px;height:11px;flex:none}
+.deck-writing-badge--compact{display:inline-flex;align-items:center}
+
+/* ---- Diálogo de terminar barajas ---- */
+.ui2-finishpanel{text-align:left}
+.ui2-finishpanel h2{margin:0 0 12px;font-size:20px;letter-spacing:-.03em;line-height:1.2;text-align:center}
+.ui2-finishpanel .callout{margin-bottom:6px}
+.ui2-finishpanel .fn-group .sheet-sub{margin:12px 2px 4px}
+.ui2-finishpanel .actions-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.ui2-finishpanel .actions-row .ui2-btn{line-height:1.15}

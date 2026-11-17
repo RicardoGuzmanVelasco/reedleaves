@@ -1,0 +1,70 @@
+// Library: the sheet of one book (tap a cover) and the dialog that finishes decks when the book is marked as read.
+import {escapeHtml as esc,attributionIcon,bookReadingIcon} from "../views.mjs";
+import {callout} from "../callout.mjs";
+import {imageUrl} from "../image-url.mjs";
+import {contentText,contentLocale} from "../core.mjs";
+import {cardTypeFor} from "../card-types.mjs";
+import {availableDecks} from "../decks.mjs";
+import {editableNoteDecks} from "../notes.mjs";
+import {icon} from "./icons.mjs";
+import {bookEntry} from "./home.mjs";
+
+const tileOf=(catalog,deck,language)=>{
+  const quotes=catalog.deckModels.get(deck.id)?.cards.filter(card=>card.isQuote).length||0;
+  return {id:deck.id,title:contentText(deck.title,language,deck.language),titleLanguage:contentLocale(deck.title,language,deck.language),
+    creator:deck.creator?.name||"",deckLanguage:deck.language,open:deck.status==="in_progress",quote:quotes>deck.cardCount-quotes,cardCount:deck.cardCount};
+};
+
+// Pure: the book, my decks of it (mine or added to my Cardcase) and whether the Bookstore has others.
+export function bookSheetData({catalog,state,language,bookId}){
+  const book=catalog.booksById.get(bookId);
+  if(!book)return null;
+  const userId=state.user?.id,added=new Set(state.cardcaseDeckIds||[]);
+  return {entry:bookEntry({catalog,state,language,book}),anyDecks:availableDecks(catalog,bookId).length>0,
+    decks:catalog.decks.filter(deck=>deck.bookId===bookId&&(added.has(deck.id)||deck.creator?.userId===userId)).map(deck=>tileOf(catalog,deck,language))};
+}
+
+// Pure: my decks in progress of the book, as the finish endpoint takes them (non-empty ones are finished, empty ones deleted).
+export const finishData=({catalog,bookId,userId})=>editableNoteDecks(catalog,bookId,userId).map(deck=>({deckId:deck.id,cardCount:deck.cardCount}));
+export const finishTiles=({catalog,entries,language})=>entries.map(entry=>catalog.decksById.get(entry.deckId)).filter(Boolean).map(deck=>tileOf(catalog,deck,language));
+
+const watermark=quote=>{const type=cardTypeFor({isQuote:quote});return `<span class="deck-tile-watermark" aria-hidden="true"><svg class="deck-tile-watermark-symbol deck-tile-watermark-symbol--${type.id}" viewBox="${type.watermark.viewBox}" focusable="false">${type.watermark.paths}</svg></span>`;};
+const flag=code=>["es","en"].includes(code)
+  ?`<img class="deck-language-flag" src="${imageUrl(`/app/assets/icons/languages/${code}.svg`)}" width="16" height="12" alt="">`
+  :`<img class="deck-language-icon" src="${imageUrl("/app/assets/icons/languages/globe.svg")}" width="16" height="16" alt=""><span>${esc(code)}</span>`;
+
+// Small deck tile. Never a distinctive badge; the lock chip is icon only (open = In progress, closed = Closed).
+export function miniDeckTile(deck,c,{link=true}={}){
+  const state=deck.open?c.deckInProgressShort:c.ui2DeckClosed;
+  const label=[deck.title,deck.creator?`${c.by} ${deck.creator}`:"",state].filter(Boolean).join(", ");
+  return `<article class="deck-tile deck-tile--cardcase${deck.quote?" deck-tile--quote-dominant":""}" role="listitem">${watermark(deck.quote)}`
+    +(link?`<a class="deck-tile-open" href="#deck/${encodeURIComponent(deck.id)}" aria-label="${esc(label)}"></a>`:"")
+    +`<span class="deck-tile-copy"><strong lang="${esc(deck.titleLanguage)}" dir="auto">${esc(deck.title)}</strong>`
+    +`<span class="deck-creator deck-tile-creator"><span class="card-attribution-row">${attributionIcon("user")}<bdi>${esc(deck.creator)}</bdi></span></span>`
+    +`<span class="deck-tile-metadata"><span class="deck-tile-count deck-tile-language" aria-hidden="true">${flag(deck.deckLanguage)}</span>`
+    +`<span class="deck-writing-badge deck-writing-badge--compact" role="img" aria-label="${esc(state)}" title="${esc(state)}">${icon(deck.open?"lock-open":"lock")}</span></span></span></article>`;
+}
+
+export function bookSheetMarkup({data,c}){
+  const {entry,decks,anyDecks}=data;
+  const statuses=[["unread",c.unread],["to_read",c.toRead],["reading",c.readingStatus],["read",c.readStatus]];
+  const selector=`<div class="sel-wrap"><div class="segmented-selector book-reading-selector" role="group" aria-label="${esc(c.ui2BookReading)}">${statuses.map(([value,label])=>`<button type="button" data-ui2="book-status" data-book="${esc(entry.id)}" data-status="${value}" aria-pressed="${entry.status===value}">${bookReadingIcon(value)}<span>${esc(label)}</span></button>`).join("")}</div></div>`;
+  const all=`<a class="ui2-btn secondary--subtle sheet-all" href="${esc(`${c.legacy}#book/${encodeURIComponent(entry.id)}`)}"><span>${esc(c.ui2SeeAllDecks)}</span>${icon("forward")}</a>`;
+  const cardcase=decks.length?`<section class="sheet-cardcase" aria-labelledby="ui2-bs-cc"><h3 class="sheet-sub sheet-sub--icon" id="ui2-bs-cc">${icon("cardcase")}<span>${esc(c.ui2InCardcase)}</span></h3><div class="mini-decks" role="list" aria-label="${esc(c.ui2InCardcase)}">${decks.map(deck=>miniDeckTile(deck,c)).join("")}</div></section>`:"";
+  const tail=decks.length||anyDecks?all:callout({variant:"warning",width:"fill",className:"sheet-warn",main:c.ui2NoDecksOfBook});
+  return `<dialog class="ui2-sheet ui2-book-sheet" data-ui2-sheet aria-labelledby="ui2-bs-title"><button type="button" class="dialog-close dialog-close--float" data-ui2="sheet-close" aria-label="${esc(c.ui2CloseBook)}">${icon("close")}</button><div class="ui2-grab" aria-hidden="true"></div>`
+    +`<div class="sheet-head"><span class="sheet-thumb" aria-hidden="true" data-book="${esc(entry.id)}"></span><div class="ui2-grow"><h2 id="ui2-bs-title" lang="${esc(entry.titleLanguage)}" dir="auto">${esc(entry.title)}</h2>${entry.author?`<p class="ui2-sheet-author">${esc(entry.author)}</p>`:""}</div></div>`
+    +`<button type="button" class="ui2-btn sheet-note" data-ui2="home-note" data-book="${esc(entry.id)}" data-deck="${esc(entry.deckId||"")}">${icon("take-note")}${esc(c.takeNote)}</button>${selector}${cardcase}${tail}</dialog>`;
+}
+
+// B5: marking a book as read with decks in progress. `decks` come from the catalog with their titles.
+export function finishDialogMarkup({decks,pending,c}){
+  const finish=decks.filter(deck=>deck.cardCount>0),discard=decks.filter(deck=>deck.cardCount===0);
+  const group=(iconName,title,list)=>list.length?`<section class="fn-group"><h3 class="sheet-sub sheet-sub--icon">${icon(iconName)}<span>${esc(title)}</span></h3><div class="mini-decks mini-decks--static" role="list">${list.map(deck=>miniDeckTile(deck,c,{link:false})).join("")}</div></section>`:"";
+  return `<dialog class="ui2-errdialog ui2-finishdialog" data-ui2-modal role="alertdialog" aria-labelledby="ui2-fn-title"><div class="ui2-errshell"><button type="button" class="dialog-close" data-ui2="finish-keep" aria-label="${esc(c.ui2Close)}">${icon("close")}</button>`
+    +`<div class="ui2-errpanel ui2-finishpanel"><h2 id="ui2-fn-title">${esc(c.finishNotesTitle)}</h2>`
+    +callout({variant:"warning",width:"fill",role:"status",className:"ui2-finish-warning",main:c.ui2FinishWarning})
+    +(pending?callout({variant:"error",width:"fill",main:c.pendingNotesBeforeFinish}):"")
+    +group("lock",c.ui2WillFinish,finish)+group("trash",c.ui2WillDelete,discard)
+    +`<div class="actions-row"><button type="button" class="ui2-btn secondary--subtle" data-ui2="finish-keep">${esc(c.keepNoteDecks).replace(" ","<br>")}</button><button type="button" class="ui2-btn" data-ui2="finish-confirm"${pending?" disabled":""}>${esc(c.confirmNoteDecks)}</button></div></div></div></dialog>`;
+}
