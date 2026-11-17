@@ -27,7 +27,7 @@ export const bookstoreCoverMarkup=(book,c)=>`<div class="book-tile-entry"><a cla
 
 function sectionMarkup(section,views,c){
   const view=selectedBookView(views?.[section.key],section.view),title=c[section.title];
-  const list=bookListMarkup({books:section.books.map(book=>({id:book.id,title:book.title,language:book.titleLanguage,author:book.author,href:`${c.legacy}#book/${encodeURIComponent(book.id)}`})),
+  const list=bookListMarkup({books:section.books.map(book=>({id:book.id,title:book.title,language:book.titleLanguage,author:book.author,href:`#book/${encodeURIComponent(book.id)}`})),
     view,label:title,cover:entry=>bookstoreCoverMarkup(section.books.find(book=>book.id===entry.id),c)});
   return `<section class="shelf-section lb-section lb-section--${section.key}" data-section="${section.key}" aria-labelledby="ui2-lb-${section.key}"><header class="shelf-head">${section.icon?`<span class="sh-ic" aria-hidden="true">${icon(section.icon)}</span>`:""}<h2 id="ui2-lb-${section.key}"><span class="lb-title">${esc(title)}</span></h2>${viewChip(section,view,title,c)}</header>${list}</section>`;
 }

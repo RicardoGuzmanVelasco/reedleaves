@@ -12,8 +12,9 @@ import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending} from "./repas
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
 import {shelfData,shelfMarkup,libraryTabsMarkup,emptyMarkup} from "./biblioteca.mjs";
-import {bookSheetData,bookstoreSheetData,bookSheetMarkup,finishData,finishTiles,finishDialogMarkup,cardcaseTiles,cardcaseGridMarkup,removeDeckDialogMarkup} from "./book-sheet.mjs";
+import {bookSheetData,bookstoreSheetData,bookSheetMarkup,bookPageData,bookPageMarkup,finishData,finishTiles,finishDialogMarkup,cardcaseTiles,cardcaseGridMarkup,removeDeckDialogMarkup} from "./book-sheet.mjs";
 import {libreriaData,libreriaMarkup,libreriaResultsMarkup,searchingMarkup} from "./libreria.mjs";
+import {mountInterests} from "../interests.mjs";
 import {bookstoreFiltersMarkup} from "../views.mjs";
 import {bookstoreDefaults} from "../book-search.mjs";
 import {validBookstoreSortOrder} from "../book-sort.mjs";
@@ -43,9 +44,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
 
   const decode=value=>{try{return decodeURIComponent(value);}catch{return value;}};
   const route=()=>{
-    const hash=win.location.hash,deckMatch=hash.match(/^#deck\/([^/]+)(\/note)?$/),bookMatch=hash.match(/^#book\/([^/]+)\/note$/);
+    const hash=win.location.hash,deckMatch=hash.match(/^#deck\/([^/]+)(\/note)?$/),bookMatch=hash.match(/^#book\/([^/]+)\/note$/),pageMatch=hash.match(/^#book\/([^/]+)$/);
     if(deckMatch)return {name:"deck",id:decode(deckMatch[1]),note:!!deckMatch[2]};
     if(bookMatch)return {name:"book-note",id:decode(bookMatch[1])};
+    if(pageMatch)return {name:"book",id:decode(pageMatch[1])};
     return {name:hash==="#bookstore"?"bookstore":hash==="#library"?"library":hash==="#library/cardcase"?"cardcase":hash==="#practice"?"practice":"home"};
   };
   const deckId=()=>{const r=route();return r.name==="deck"?r.id:null;};
@@ -87,7 +89,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   function paint(html){
     disposeLists();
     main.innerHTML=html;
-    disposeLists=mountBookLists(main);
+    disposeLists=mountBookLists(main);mountInterests(main);
     mountBookCoverTints(main,catalog?.books||[],catalog?.interests||[],coverTintMode(tintMode));
     for(const thumb of main.querySelectorAll(".sheet-thumb[data-book]")){
       const tint=coverTintGradients(catalog?.booksById.get(thumb.dataset.book),catalog?.interests||[],coverTintMode(tintMode));
@@ -123,7 +125,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   function render(){
     if(!session?.user){main.innerHTML=`<div class="ui2-body"><a class="ui2-btn" href="${win.location.pathname}">${c.signIn}</a></div>`;return;}
-    const where=route(),view=current(),shell=where.name==="home"||where.name==="bookstore"||where.name==="library"||where.name==="cardcase"||where.name==="practice";
+    const where=route(),view=current(),shell=where.name==="home"||where.name==="bookstore"||where.name==="library"||where.name==="cardcase"||where.name==="practice"||where.name==="book";
     doc.body.classList.toggle("has-bottom-navigation",shell&&!form);
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
     if(!form&&where.note&&view?.deck.status==="in_progress")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
@@ -135,6 +137,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       let html=libreriaMarkup({data,views:shelfViews,c,nav:navFor("bookstore"),searching:lb.searching,filtersMarkup:lb.open?bookstoreFiltersMarkup({catalog,language,bookstoreFiltersOpen:true,bookstoreFilterDraft:lb.draft,bookstoreSortDraft:lb.sortDraft,bookstoreFilters:lb.filters,bookstoreSortOrder:lb.sort}):""});
       if(sheetState?.type==="book"){const sheet=bookstoreSheetData({catalog,state,language,bookId:sheetState.id});if(sheet)html+=bookSheetMarkup({data:sheet,c});}
       paint(withError(html));return;
+    }
+    if(where.name==="book"){
+      const data=bookPageData({catalog,state:{...reader,catalog},language,bookId:where.id}),list=libreriaData({catalog,state:{...reader,catalog},language});
+      if(data){paint(withError(shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),body:`<div class="ui2-body ui2-lib">${bookPageMarkup({data,c})}</div>`,nav:navFor("bookstore")})));main.querySelector(".bp-meta h1")?.focus({preventScroll:true});return;}
     }
     if(where.name==="library"){
       const state={...reader,catalog};
@@ -302,6 +308,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       refreshResults();
     }
     else if(action==="reset-filters"){clearTimeout(lb.timer);lb.query="";lb.filters={...bookstoreDefaults};lb.searching=false;render();}
+    else if(action==="page-back"){if(win.history.length>1)win.history.back();else win.location.hash="#bookstore";}
     else if(action==="lib-tab"){win.location.hash=target.dataset.tab==="cardcase"?"#library/cardcase":"#library";}
     else if(action==="book-status"){
       const bookId=target.dataset.book,status=target.dataset.status;

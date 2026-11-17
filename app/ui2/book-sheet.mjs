@@ -7,6 +7,7 @@ import {cardTypeFor} from "../card-types.mjs";
 import {availableDecks,sortDecks} from "../decks.mjs";
 import {editableNoteDecks} from "../notes.mjs";
 import {DECK_ADD_COST} from "../wallet.mjs";
+import {interestIcon,interestColor} from "../interests.mjs";
 import {icon} from "./icons.mjs";
 import {bookEntry} from "./home.mjs";
 
@@ -30,7 +31,7 @@ export function bookSheetData({catalog,state,language,bookId}){
 export function bookstoreSheetData({catalog,state,language,bookId}){
   const data=bookSheetData({catalog,state,language,bookId});
   if(!data)return null;
-  const decks=sortDecks(catalog,availableDecks(catalog,bookId),{userId:state.user?.id,language}).map(deck=>tileOf(catalog,deck,language));
+  const decks=sortDecks(catalog,availableDecks(catalog,bookId).map(({deck})=>deck),{userId:state.user?.id,language}).map(deck=>tileOf(catalog,deck,language));
   return {...data,decks,store:true};
 }
 
@@ -59,11 +60,10 @@ export function miniDeckTile(deck,c,{link=true,remove=false,book=false,href=`#de
 
 export function bookSheetMarkup({data,c}){
   const {entry,decks,anyDecks,store}=data;
-  const bookHref=`${c.legacy}#book/${encodeURIComponent(entry.id)}`;
   const statuses=[["unread",c.unread],["to_read",c.toRead],["reading",c.readingStatus],["read",c.readStatus]];
   const selector=`<div class="sel-wrap"><div class="segmented-selector book-reading-selector" role="group" aria-label="${esc(c.ui2BookReading)}">${statuses.map(([value,label])=>`<button type="button" data-ui2="book-status" data-book="${esc(entry.id)}" data-status="${value}" aria-pressed="${entry.status===value}">${bookReadingIcon(value)}<span>${esc(label)}</span></button>`).join("")}</div></div>`;
-  const all=`<a class="ui2-btn secondary--subtle sheet-all" href="${esc(`${c.legacy}#book/${encodeURIComponent(entry.id)}`)}"><span>${esc(c.ui2SeeAllDecks)}</span>${icon("forward")}</a>`;
-  const cardcase=store?(decks.length?`<section class="sheet-cardcase" aria-label="${esc(c.viewDecks)}"><div class="mini-decks" role="list" aria-label="${esc(c.viewDecks)}">${decks.map(deck=>miniDeckTile(deck,c,{href:bookHref})).join("")}</div></section>`:""):decks.length?`<section class="sheet-cardcase" aria-labelledby="ui2-bs-cc"><h3 class="sheet-sub sheet-sub--icon" id="ui2-bs-cc">${icon("cardcase")}<span>${esc(c.ui2InCardcase)}</span></h3><div class="mini-decks" role="list" aria-label="${esc(c.ui2InCardcase)}">${decks.map(deck=>miniDeckTile(deck,c)).join("")}</div></section>`:"";
+  const all=`<a class="ui2-btn secondary--subtle sheet-all" href="#book/${encodeURIComponent(entry.id)}"><span>${esc(c.ui2SeeAllDecks)}</span>${icon("forward")}</a>`;
+  const cardcase=store?(decks.length?`<section class="sheet-cardcase" aria-label="${esc(c.viewDecks)}"><div class="mini-decks" role="list" aria-label="${esc(c.viewDecks)}">${decks.map(deck=>miniDeckTile(deck,c,{href:`${c.legacy}#deck/${encodeURIComponent(deck.id)}`})).join("")}</div></section>`:""):decks.length?`<section class="sheet-cardcase" aria-labelledby="ui2-bs-cc"><h3 class="sheet-sub sheet-sub--icon" id="ui2-bs-cc">${icon("cardcase")}<span>${esc(c.ui2InCardcase)}</span></h3><div class="mini-decks" role="list" aria-label="${esc(c.ui2InCardcase)}">${decks.map(deck=>miniDeckTile(deck,c)).join("")}</div></section>`:"";
   const tail=decks.length||anyDecks?all:callout({variant:"warning",width:"fill",className:"sheet-warn",main:c.ui2NoDecksOfBook});
   return `<dialog class="ui2-sheet ui2-book-sheet" data-ui2-sheet aria-labelledby="ui2-bs-title"><button type="button" class="dialog-close dialog-close--float" data-ui2="sheet-close" aria-label="${esc(c.ui2CloseBook)}">${icon("close")}</button><div class="ui2-grab" aria-hidden="true"></div>`
     +`<div class="sheet-head"><span class="sheet-thumb" aria-hidden="true" data-book="${esc(entry.id)}"></span><div class="ui2-grow"><h2 id="ui2-bs-title" lang="${esc(entry.titleLanguage)}" dir="auto">${esc(entry.title)}</h2>${entry.author?`<p class="ui2-sheet-author">${esc(entry.author)}</p>`:""}</div></div>`
@@ -99,4 +99,28 @@ export function removeDeckDialogMarkup({deck,userId,c}){
     +`<div class="ui2-errpanel ui2-finishpanel"><h2 id="ui2-rm-title">${esc(c.confirmRemoveDeck)}</h2><p class="ui2-lead" lang="${esc(deck.titleLanguage)}" dir="auto">${esc(deck.title)}</p>`
     +(deck.creatorId&&deck.creatorId===userId?"":callout({variant:"warning",width:"fill",role:"status",main:c.ui2ReAddCost(DECK_ADD_COST)}))
     +`<div class="actions-row"><button type="button" class="ui2-btn secondary--subtle" data-ui2="remove-cancel">${esc(c.cancel)}</button><button type="button" class="ui2-btn danger" data-ui2="remove-confirm" data-deck="${esc(deck.id)}">${esc(c.removeDeckFromCardcase)}</button></div></div></div></dialog>`;
+}
+
+// Pure: the book page: description, interests, who added it and every deck of the book (recommended first).
+export function bookPageData({catalog,state,language,bookId}){
+  const book=catalog.booksById.get(bookId);
+  if(!book)return null;
+  const entry=bookEntry({catalog,state,language,book}),description=contentText(book.description,language,book.popularLanguage);
+  return {id:book.id,title:entry.title,titleLanguage:entry.titleLanguage,author:entry.author,
+    description,descriptionLanguage:description?contentLocale(book.description,language,book.popularLanguage):language,
+    interests:(book.interests||[]).map(id=>catalog.interests?.find(interest=>interest.id===id)).filter(interest=>interest?.name?.[language]).map(interest=>({interest,name:interest.name[language]})),
+    creator:book.creatorName?{name:book.creatorName,id:book.creatorProfileUserId||book.creatorUserId||null}:null,
+    decks:sortDecks(catalog,availableDecks(catalog,bookId).map(({deck})=>deck),{userId:state.user?.id,language}).map(deck=>tileOf(catalog,deck,language))};
+}
+
+export function bookPageMarkup({data,c}){
+  const chips=data.interests.map(({interest,name})=>`<span class="int-chip"${interestColor(interest)}>${interestIcon(interest)}${esc(name)}</span>`).join("");
+  const added=data.creator?`<p class="bp-added"><span>${esc(c.bookAddedBy)}</span> `+(data.creator.id
+    ?`<a class="card-attribution-row" href="${esc(`${c.legacy}#profile/${encodeURIComponent(data.creator.id)}`)}">${attributionIcon("user")}<bdi>${esc(data.creator.name)}</bdi></a>`
+    :`<span class="card-attribution-row">${attributionIcon("user")}<bdi>${esc(data.creator.name)}</bdi></span>`)+`</p>`:"";
+  const decks=data.decks.length?`<h2 class="bp-h2">${esc(c.chooseDeck)}</h2><div class="deck-grid" role="list" aria-label="${esc(c.chooseDeck)}">${data.decks.map(deck=>miniDeckTile(deck,c,{href:`${c.legacy}#deck/${encodeURIComponent(deck.id)}`})).join("")}</div>`
+    :callout({variant:"warning",width:"fill",className:"sheet-warn",main:c.ui2NoDecksOfBook});
+  return `<section class="book-page"><div class="bp-head"><button type="button" class="ui2-ib bp-back" data-ui2="page-back" aria-label="${esc(c.back)}">${icon("back")}</button>`
+    +`<div class="bp-meta"><h1 tabindex="-1" lang="${esc(data.titleLanguage)}" dir="auto">${esc(data.title)}</h1>${data.author?`<p class="bp-author">${esc(data.author)}</p>`:""}${chips?`<div class="bp-chips">${chips}</div>`:""}</div></div>`
+    +(data.description?`<p class="bp-desc" lang="${esc(data.descriptionLanguage)}" dir="auto">${esc(data.description)}</p>`:"")+added+decks+`</section>`;
 }
