@@ -2,6 +2,7 @@ import { validateBook, validateCards, LANGUAGES } from "../app/core.mjs";
 import { validateBookLinks } from "../app/book-links.mjs";
 import {validInterestAppearance} from "../app/interests.mjs";
 import { isPostgres } from "./database.mjs";
+import {orderInterests} from "./interest-order.mjs";
 
 // Related rows are read once per table and grouped in memory: one query per parent row
 // costs a network round trip each against PostgreSQL.
@@ -22,7 +23,7 @@ export async function readInterests(db) {
     if(!validInterestAppearance(interest)||LANGUAGES.some(language=>!interest.name[language]?.trim()))throw new Error("Invalid interest catalog");
     interests.push(interest);
   }
-  return {interests};
+  return {interests:orderInterests(interests)};
 }
 
 async function hasGuideReviews(db) {

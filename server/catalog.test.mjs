@@ -5,7 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openDatabase, initializeDatabase, backupDatabase ,SQLITE_SCHEMA_VERSION} from "./database.mjs";
 import { seedCatalog, readSeed } from "./seed.mjs";
-import { readCatalog, checkCatalog } from "./catalog-repository.mjs";
+import { readCatalog, readInterests, checkCatalog } from "./catalog-repository.mjs";
+import {orderInterests} from "./interest-order.mjs";
 import { parseCsv } from "./csv.mjs";
 import {readLeafWallet} from "./leaf-wallet-repository.mjs";
 
@@ -49,6 +50,15 @@ test("Real SQLite schema: five books, six authored decks and 42 single-language 
   assert.equal(catalog.books.every(book=>book.incorporatedAt&&Number.isSafeInteger(book.incorporationOrder)),true);
   const columns = db.prepare("SELECT type FROM pragma_table_info('cards')").all();
   assert.equal(columns.some(c => c.type === "JSON"), false);
+});
+test("Catalog and interests endpoint share the app's interest order", async t => {
+  const db=await fixture(t);
+  const expected=["personal-growth","communication","society","leadership","productivity","software","finance","psychology","health","mindfulness","metaphysics"];
+  assert.deepEqual((await readInterests(db)).interests.map(item=>item.id),expected);
+  assert.deepEqual((await readCatalog(db)).interests.map(item=>item.id),expected);
+  const future=[{id:"future-b"},{id:"finance"},{id:"future-a"}];
+  assert.deepEqual(orderInterests(future).map(item=>item.id),["finance","future-b","future-a"]);
+  assert.equal(future[0].id,"future-b");
 });
 test("Schema initialization and seed are repeatable without duplicating data", async t => {
   const db = await fixture(t);

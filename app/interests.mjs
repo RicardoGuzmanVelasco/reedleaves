@@ -52,12 +52,10 @@ export function mountInterests(root) {
 }
 
 // Shared by the compact profile editor and the expressive initial selection.
-const choiceOrder=["personal-growth","communication","society","leadership","productivity","software","finance","psychology","health","mindfulness","metaphysics"];
-const choiceRank=new Map(choiceOrder.map((id,index)=>[id,index]));
 export function readerInterestSelector({catalog,language,c,kind,selected,prefix="profile",expressive=false,disabled=false,allowReplacement=false,choice=false,locked=[]}) {
   const scope=`${prefix}-interest-${kind}`;
   const title=c[choice?(kind==="interested"?"interestChoiceQuestion":"interestChoiceNegative"):(kind==="interested"?"profileSelectInterested":"profileSelectNotInterested")];
-  const interests=choice?[...catalog.interests].sort((a,b)=>(choiceRank.get(a.id)??choiceOrder.length)-(choiceRank.get(b.id)??choiceOrder.length)):catalog.interests;
+  const interests=catalog.interests;
   return `<fieldset class="profile-interest-selector${expressive?" initial-interest-selector":""}" ${disabled?"disabled":""}><legend${expressive?' class="sr-only"':""}>${esc(title)}</legend>${choice?"":`<p id="${scope}-help">${esc(c[kind==="interested"?"profileInterestedHelp":"profileNotInterestedHelp"])}</p>`}<div class="reader-interest-options">${interests.map((interest,index)=>{const position=selected.indexOf(interest.id)+1,blocked=locked.includes(interest.id),other=kind==="interested"?"notInterested":"interested",description=blocked?c[other==="interested"?"interestChoiceLockedInterested":"interestChoiceLockedNotInterested"]:position?c.profileInterestPosition(position):"";return `<label class="interest-option profile-interest-option"${blocked?` data-interest-locked="${other}" title="${esc(description)}"`:""}${interestColor(interest)}><input type="checkbox" data-${prefix}-interest="${kind}" value="${esc(interest.id)}" aria-labelledby="${scope}-name-${index}" aria-describedby="${choice?"":`${scope}-help `}${scope}-position-${index}" aria-disabled="${blocked||!allowReplacement&&!position&&selected.length>=5}" ${blocked?"disabled":""} ${position?"checked":""}><span class="interest-option-content">${interestIcon(interest)}<span class="interest-name" id="${scope}-name-${index}">${esc(interest.name[language])}</span></span><span class="profile-interest-mark profile-interest-mark--${kind}" aria-hidden="true">${blocked?(other==="interested"?"✓":"×"):position?(kind==="interested"?"✓":"×"):""}</span><span class="interest-order" aria-hidden="true">${position||""}</span><span class="sr-only interest-order-description" id="${scope}-position-${index}">${esc(description)}</span></label>`;}).join("")}</div></fieldset>`;
 }
 

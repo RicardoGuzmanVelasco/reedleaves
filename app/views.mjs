@@ -933,7 +933,7 @@ export function profilePendingView(s) {
 export function initialInterestsView(s) {
   const c=words[s.language],flow=s.initialInterests,draft=flow.draft,second=draft.step===2,kind=second?"notInterested":"interested",selected=draft[kind];
   const view=interestChoicePresentation(flow,c),editing=flow.mode==="edit";
-  const catalog={...s.catalog,interests:[...s.catalog.interests].sort((a,b)=>Number(b.id==="personal-growth")-Number(a.id==="personal-growth"))};
+  const catalog=s.catalog;
   return `<dialog class="initial-interests-modal interest-choice-modal" closedby="none" aria-labelledby="initial-interests-title">${editing?`<button type="button" class="dialog-close initial-interest-close" data-initial-action="cancel" aria-label="${esc(c.cancel)}" ${flow.saving?"disabled":""}>${closeIconMarkup}</button>`:""}<form data-initial-interest-form aria-busy="${!!flow.saving}">
     <div class="initial-interest-content"><div class="initial-interest-progress" aria-label="${esc(c.initialInterestStep(draft.step))}"><span class="${second?"is-complete":"is-current"}" aria-hidden="true">1</span><span class="initial-interest-progress-line" aria-hidden="true"></span><span class="${second?"is-current":""}" aria-hidden="true">2</span></div>
     <h1 id="initial-interests-title" tabindex="-1" autofocus>${esc(view.title)}</h1>
