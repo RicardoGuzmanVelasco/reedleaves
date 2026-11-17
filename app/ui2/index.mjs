@@ -2,7 +2,7 @@
 // the old interface is untouched. Only existing /api endpoints are used.
 import {words} from "../i18n.mjs";
 import {bookTitle,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,MAX_CARDS_PER_DECK} from "../core.mjs";
-import {deckOutline,placementTargets,deckCapabilities,noteCount,parentOf,ownDecks} from "./outline.mjs";
+import {deckOutline,placementTargets,deckCapabilities,noteCount,parentOf} from "./outline.mjs";
 import {submitEdit} from "./edit-note.mjs";
 import {installIconStyles} from "./icons.mjs";
 import {homeData,homeMarkup,inProgressDeck} from "./home.mjs";
@@ -11,13 +11,13 @@ import {errorInfo,practiceStartDetail} from "./errors.mjs";
 import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending} from "./repaso.mjs";
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
-import {shelfData,shelfMarkup,libraryTabsMarkup} from "./biblioteca.mjs";
-import {bookSheetData,bookSheetMarkup,finishData,finishTiles,finishDialogMarkup} from "./book-sheet.mjs";
+import {shelfData,shelfMarkup,libraryTabsMarkup,emptyMarkup} from "./biblioteca.mjs";
+import {bookSheetData,bookSheetMarkup,finishData,finishTiles,finishDialogMarkup,cardcaseTiles,cardcaseGridMarkup,removeDeckDialogMarkup} from "./book-sheet.mjs";
 import {coverTintGradients} from "../book-cover-tint.mjs";
 import {createNoteDrafts} from "../note-drafts.mjs";
 import {createBrowserStore,storageKeys} from "../storage.mjs";
 import {createReaderXpTracker,mountReaderXpFeedback} from "../reader-xp-feedback.mjs?v=level-up-polish-2";
-import {deckListMarkup,deckScreenMarkup,noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMarkup} from "./markup.mjs";
+import {deckScreenMarkup,noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMarkup} from "./markup.mjs";
 
 export const ui2Enabled=search=>new URLSearchParams(search).get("ui")==="2";
 const TOAST_MS=6500;
@@ -26,7 +26,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // `legacy`: URL of the old interface, for destinations not built yet.
   const c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null;
+  let removing=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null;
+  const navFor=active=>navMarkup({active,practicePending,c,wallet:{leaves:reader?.wallet?.balance??0,petals:reader?.petals??0}});
   const drafts=createNoteDrafts(store),observeXp=createReaderXpTracker();
   let shelfViews=(()=>{const saved=store.read(storageKeys.shelfViews);return saved&&typeof saved==="object"?saved:{};})(),disposeLists=()=>{};
   let xpFeedback=null;
@@ -94,8 +95,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   const panel=doc.querySelector("#reader-xp-feedback .xp-feedback-panel");
   if(panel&&typeof MutationObserver==="function")new MutationObserver(layoutToast).observe(panel,{attributes:true,attributeFilter:["hidden"]});
-  function showToast(deck){
-    clearTimeout(toastTimer);toast={deckId:deck};
+  function showToast(message,deck=""){
+    clearTimeout(toastTimer);toast={message,deckId:deck};
     toastTimer=setTimeout(()=>{toast=null;main.querySelector(".ui2-toast")?.remove();},TOAST_MS);
   }
   const withError=html=>failure?html+errorModalMarkup({info:errorInfo(failure,c),retry:!!form,title:failure.title,c}):html;
@@ -121,7 +122,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(form){paint(formScreen());return;}
     if(where.name==="library"){
       const state={...reader,catalog};
-      let html=shelfMarkup({data:shelfData({catalog,state,language}),views:shelfViews,c,nav:navMarkup({active:"library",practicePending,c})});
+      let html=shelfMarkup({data:shelfData({catalog,state,language}),views:shelfViews,c,nav:navFor("library")});
       if(finish&&!failure){
         const pending=drafts.list(session.user.id,finish.bookId).some(saved=>finish.decks.some(entry=>entry.deckId===saved.noteDeckId));
         const cardCounts=new Map(finish.decks.map(entry=>[entry.deckId,entry.cardCount]));
@@ -132,17 +133,20 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     }
     if(where.name==="cardcase"){
       const data=shelfData({catalog,state:{...reader,catalog},language});
+      const tiles=cardcaseTiles({catalog,state:reader,language}),removed=removing&&tiles.find(tile=>tile.id===removing);
+      const body=tiles.length?cardcaseGridMarkup({tiles,c}):emptyMarkup(c.emptyCardcase,c);
       paint(withError(shellMarkup({header:headerMarkup({userId:data.userId,stage:data.avatarStage,wallet:data.wallet,c}),
-        body:`<div class="ui2-body ui2-lib"><h1 class="sr-only" tabindex="-1">${c.library}</h1>${libraryTabsMarkup({active:"cardcase",c})}${deckListMarkup({decks:ownDecks(catalog,session.user.id),c,titleOf})}</div>`,nav:navMarkup({active:"library",practicePending,c})})));return;
+        body:`<div class="ui2-body ui2-lib${tiles.length?"":" ui2-lib--empty"}"><h1 class="sr-only" tabindex="-1">${c.library}</h1>${libraryTabsMarkup({active:"cardcase",c})}${body}</div>`,nav:navFor("library")})
+        +(removed?removeDeckDialogMarkup({deck:removed,c}):"")+(toast?toastMarkup({...toast,c}):"")));return;
     }
     if(where.name==="practice"){
       const data=repasoData({state:reader,streak,topics}),month=calendarMonth||(reader.today||"").slice(0,7);
-      let html=repasoMarkup({data,c,nav:navMarkup({active:"practice",practicePending,c}),month,language});
+      let html=repasoMarkup({data,c,nav:navFor("practice"),month,language});
       if(sheetState?.type==="calendar")html+=calendarSheetMarkup({data,month,c,language});
       paint(withError(html));return;
     }
     if(!view){
-      paint(withError(homeMarkup({data:homeData({catalog,state:reader,language}),c,nav:navMarkup({active:"home",practicePending,c}),toast:toast?toastMarkup({deckId:toast.deckId,c}):""})));return;
+      paint(withError(homeMarkup({data:homeData({catalog,state:reader,language}),c,nav:navFor("home"),toast:toast?toastMarkup({...toast,c}):""})));return;
     }
     const {deck,model,book}=view,caps=deckCapabilities(deck,session.user.id);
     const context={deckTitle:deckName(deck),bookTitle:titleOf(deck)};
@@ -198,7 +202,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       const gain=observeXp(session.user.id,undefined,result.xpReward);
       if(gain)xpFeedback?.present(gain);
       await reload();form=null;
-      if(saved.origin==="home"){showToast(result.deckId);win.location.hash="#home";}
+      if(saved.origin==="home"){showToast(c.ui2NoteSaved,result.deckId);win.location.hash="#home";}
       else if(!deck)win.location.hash=`#deck/${encodeURIComponent(result.deckId)}`;
     });
   }
@@ -244,6 +248,13 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
         if(entries.length)finish={bookId,decks:entries};
       });
     }
+    else if(action==="cardcase-remove"){removing=target.dataset.deck;render();}
+    else if(action==="remove-cancel"){main.querySelector("dialog")?.close();}
+    else if(action==="remove-confirm"){
+      const id=target.dataset.deck;
+      main.querySelector("dialog")?.close();removing=null;
+      run(async()=>{await api.request("/api/reader/cardcase/remove",{deckId:id});await reload();showToast(c.deckRemovedFromCardcase);});
+    }
     else if(action==="finish-keep"){finish=null;render();}
     else if(action==="finish-confirm"&&finish){
       const done=finish;
@@ -267,6 +278,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   main.addEventListener("close",event=>{
     if(event.target.matches?.("dialog[data-ui2-modal]")&&failure){failure=null;render();}
     else if(event.target.matches?.(".ui2-finishdialog")&&finish){finish=null;render();}
+    else if(event.target.matches?.(".ui2-removedialog")&&removing){removing=null;render();}
     else if(event.target.matches?.("dialog[data-ui2-sheet]")&&sheetState){sheetState=null;render();}
   },true);
   main.addEventListener("input",event=>{
@@ -282,8 +294,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   });
   main.addEventListener("submit",event=>{event.preventDefault();submit();});
   win.addEventListener("hashchange",()=>{
-    sheetState=null;finish=null;form=null;failure=null;
-    if(toast&&!["","#home"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
+    sheetState=null;finish=null;removing=null;form=null;failure=null;
+    if(toast&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
     render();
     if(route().name==="practice")Promise.all([loadStreak(),loadTopics(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{if(route().name==="practice"&&!form)render();});
   });

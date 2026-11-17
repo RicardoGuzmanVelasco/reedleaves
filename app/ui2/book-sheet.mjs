@@ -2,17 +2,18 @@
 import {escapeHtml as esc,attributionIcon,bookReadingIcon} from "../views.mjs";
 import {callout} from "../callout.mjs";
 import {imageUrl} from "../image-url.mjs";
-import {contentText,contentLocale} from "../core.mjs";
+import {contentText,contentLocale,bookTitle} from "../core.mjs";
 import {cardTypeFor} from "../card-types.mjs";
 import {availableDecks} from "../decks.mjs";
 import {editableNoteDecks} from "../notes.mjs";
 import {icon} from "./icons.mjs";
 import {bookEntry} from "./home.mjs";
 
-const tileOf=(catalog,deck,language)=>{
+export const tileOf=(catalog,deck,language)=>{
+  const book=catalog.booksById.get(deck.bookId),title=book?bookTitle(book,language):null;
   const quotes=catalog.deckModels.get(deck.id)?.cards.filter(card=>card.isQuote).length||0;
   return {id:deck.id,title:contentText(deck.title,language,deck.language),titleLanguage:contentLocale(deck.title,language,deck.language),
-    creator:deck.creator?.name||"",deckLanguage:deck.language,open:deck.status==="in_progress",quote:quotes>deck.cardCount-quotes,cardCount:deck.cardCount};
+    creator:deck.creator?.name||"",bookTitle:title?.text||"",bookTitleLanguage:title?.language||language,deckLanguage:deck.language,open:deck.status==="in_progress",quote:quotes>deck.cardCount-quotes,cardCount:deck.cardCount};
 };
 
 // Pure: the book, my decks of it (mine or added to my Cardcase) and whether the Bookstore has others.
@@ -34,12 +35,14 @@ const flag=code=>["es","en"].includes(code)
   :`<img class="deck-language-icon" src="${imageUrl("/app/assets/icons/languages/globe.svg")}" width="16" height="16" alt=""><span>${esc(code)}</span>`;
 
 // Small deck tile. Never a distinctive badge; the lock chip is icon only (open = In progress, closed = Closed).
-export function miniDeckTile(deck,c,{link=true}={}){
+export function miniDeckTile(deck,c,{link=true,remove=false,book=false}={}){
   const state=deck.open?c.deckInProgressShort:c.ui2DeckClosed;
   const label=[deck.title,deck.creator?`${c.by} ${deck.creator}`:"",state].filter(Boolean).join(", ");
   return `<article class="deck-tile deck-tile--cardcase${deck.quote?" deck-tile--quote-dominant":""}" role="listitem">${watermark(deck.quote)}`
     +(link?`<a class="deck-tile-open" href="#deck/${encodeURIComponent(deck.id)}" aria-label="${esc(label)}"></a>`:"")
+    +(remove?`<button type="button" class="ui2-btn tile-remove" data-ui2="cardcase-remove" data-deck="${esc(deck.id)}" aria-haspopup="dialog" aria-label="${esc(`${c.removeDeckFromCardcase}: ${deck.title}`)}" title="${esc(c.removeDeckFromCardcase)}">${icon("remove-from-cardcase")}</button>`:"")
     +`<span class="deck-tile-copy"><strong lang="${esc(deck.titleLanguage)}" dir="auto">${esc(deck.title)}</strong>`
+    +(book&&deck.bookTitle?`<span class="deck-tile-book" lang="${esc(deck.bookTitleLanguage)}" dir="auto">${esc(deck.bookTitle)}</span>`:"")
     +`<span class="deck-creator deck-tile-creator"><span class="card-attribution-row">${attributionIcon("user")}<bdi>${esc(deck.creator)}</bdi></span></span>`
     +`<span class="deck-tile-metadata"><span class="deck-tile-count deck-tile-language" aria-hidden="true">${flag(deck.deckLanguage)}</span>`
     +`<span class="deck-writing-badge deck-writing-badge--compact" role="img" aria-label="${esc(state)}" title="${esc(state)}">${icon(deck.open?"lock-open":"lock")}</span></span></span></article>`;
@@ -67,4 +70,17 @@ export function finishDialogMarkup({decks,pending,c}){
     +(pending?callout({variant:"error",width:"fill",main:c.pendingNotesBeforeFinish}):"")
     +group("lock",c.ui2WillFinish,finish)+group("trash",c.ui2WillDelete,discard)
     +`<div class="actions-row"><button type="button" class="ui2-btn secondary--subtle" data-ui2="finish-keep">${esc(c.keepNoteDecks).replace(" ","<br>")}</button><button type="button" class="ui2-btn" data-ui2="finish-confirm"${pending?" disabled":""}>${esc(c.confirmNoteDecks)}</button></div></div></div></dialog>`;
+}
+
+// B6: the Cardcase, decks as tiles. B7: confirmation before removing one.
+export const cardcaseTiles=({catalog,state,language})=>(state.cardcaseDeckIds||[]).map(id=>catalog.decksById.get(id)).filter(deck=>deck&&catalog.booksById.has(deck.bookId)).map(deck=>tileOf(catalog,deck,language));
+
+export function cardcaseGridMarkup({tiles,c}){
+  return `<div class="deck-grid cardcase-decks ui2-cardcase" role="list" aria-label="${esc(c.cardcase)}">${tiles.map(deck=>miniDeckTile(deck,c,{remove:true,book:true})).join("")}</div>`;
+}
+
+export function removeDeckDialogMarkup({deck,c}){
+  return `<dialog class="ui2-errdialog ui2-removedialog" data-ui2-modal role="alertdialog" aria-labelledby="ui2-rm-title"><div class="ui2-errshell"><button type="button" class="dialog-close" data-ui2="remove-cancel" aria-label="${esc(c.cancel)}">${icon("close")}</button>`
+    +`<div class="ui2-errpanel ui2-finishpanel"><h2 id="ui2-rm-title">${esc(c.confirmRemoveDeck)}</h2><p class="ui2-lead" lang="${esc(deck.titleLanguage)}" dir="auto">${esc(deck.title)}</p>`
+    +`<div class="actions-row"><button type="button" class="ui2-btn secondary--subtle" data-ui2="remove-cancel">${esc(c.cancel)}</button><button type="button" class="ui2-btn danger" data-ui2="remove-confirm" data-deck="${esc(deck.id)}">${esc(c.removeDeckFromCardcase)}</button></div></div></div></dialog>`;
 }

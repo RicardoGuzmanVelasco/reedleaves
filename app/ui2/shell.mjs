@@ -11,10 +11,11 @@ const pieceInner=(iconName,label,extra="")=>`${bookmark(false,BOTTOM_MARK)}${boo
 
 // Destinations not built in the new interface yet point at the old one (c.legacy = old app URL).
 // Order as in the old bar: Bookstore, Library, Home (centre), Social, Practice.
-export function navMarkup({active,practicePending=false,c}){
+export function navMarkup({active,practicePending=false,c,wallet=null}){
   const link=(id,href,label,extra="",name=label)=>`<a class="bottom-navigation-link" data-nav="${id}" href="${esc(href)}"${name!==label?` aria-label="${esc(name)}"`:""}${id===active?' aria-current="page"':""}>${pieceInner(id===active?`${id}-active`:id,label,extra)}</a>`;
   const badge='<span class="navigation-new-badge" aria-hidden="true"></span>';
   return `<nav class="bottom-navigation ui2-nav" aria-label="${esc(c.navigation)}">`
+    +(wallet?walletMarkup(wallet,c,"ui2-wallet--rail"):"")
     +link("bookstore",`${c.legacy}#bookstore`,c.navBookstore)
     +link("library","#library",c.navLibrary)
     +link("home","#home",c.navHome)
@@ -24,10 +25,11 @@ export function navMarkup({active,practicePending=false,c}){
 }
 
 const pill=(src,value,label)=>`<span role="img" aria-label="${esc(`${label}: ${value}`)}"><img src="${imageUrl(src)}" alt="" width="20" height="20">${value}</span>`;
+const walletMarkup=(wallet,c,className="")=>`<div class="ui2-wallet${className?` ${className}`:""}" role="group" aria-label="${esc(c.ui2Balances)}">${pill("/app/assets/brand/leaf-token.svg",wallet.leaves,c.ui2Leaves)}${pill("/app/assets/brand/petal-token.svg",wallet.petals,c.ui2Petals)}</div>`;
 // The avatar is the reader's mascot of their level; it opens their profile (old interface until the new one has it).
 export function headerMarkup({userId,stage,wallet,c}){
   return `<header class="ui2-top ui2-top--home"><a class="ui2-avatar profile-avatar profile-avatar--reader" href="${esc(`${c.legacy}#profile/${encodeURIComponent(userId)}`)}" aria-label="${esc(c.profile)}">${mascotArt(stage,"",{idle:false})}</a>`
-    +`<div class="ui2-wallet" role="group" aria-label="${esc(c.ui2Balances)}">${pill("/app/assets/brand/leaf-token.svg",wallet.leaves,c.ui2Leaves)}${pill("/app/assets/brand/petal-token.svg",wallet.petals,c.ui2Petals)}</div></header>`;
+    +walletMarkup(wallet,c)+`</header>`;
 }
 
 export const shellMarkup=({header="",body,nav})=>`<div class="ui2-shell">${header}${body}${nav}</div>`;

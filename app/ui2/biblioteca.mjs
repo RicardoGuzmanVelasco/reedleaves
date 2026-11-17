@@ -5,6 +5,7 @@ import {bookListMarkup,BOOK_VIEWS,selectedBookView} from "../book-list.mjs";
 import {icon} from "./icons.mjs";
 import {headerMarkup} from "./shell.mjs";
 import {bookEntry,coverMarkup} from "./home.mjs";
+import {mascotArt} from "../mascot-art.mjs?v=tumbleweed";
 
 export const SECTIONS=[{key:"reading",icon:"book-reading",view:"covers"},{key:"to_read",icon:"book-to-read",view:"stack"},{key:"read",icon:"book-read",view:"shelf"}];
 const titleKey={reading:"readingStatus",to_read:"toRead",read:"ui2ReadBooks"};
@@ -35,7 +36,10 @@ function sectionMarkup(section,views,c){
   return `<section class="shelf-section" data-section="${section.key}" aria-labelledby="ui2-shelf-${section.key}"><header class="shelf-head"><span class="sh-ic" aria-hidden="true">${icon(section.icon)}</span><h2 id="ui2-shelf-${section.key}">${esc(title)}</h2>${viewChip(section,view,title,c)}</header>${list}</section>`;
 }
 
+// B9 / B10: the rolling tumbleweed of the empty Home, the sentence and the way to the Bookstore.
+export const emptyMarkup=(text,c)=>`<div class="ui2-empty">${mascotArt("tumbleweed","",{animation:"tumble"})}<h2>${esc(text)}</h2><a class="ui2-btn ui2-explore" href="${esc(`${c.legacy}#bookstore`)}">${icon("bookstore")}<span>${esc(c.ui2ExploreBookstore)}</span></a></div>`;
+
 export function shelfMarkup({data,views,c,nav}){
-  const body=data.sections.length?`<div class="shelf-groups">${data.sections.map(section=>sectionMarkup(section,views,c)).join("")}</div>`:`<div class="empty-state"><p>${esc(c.emptyBookshelf)}</p></div>`;
-  return `<div class="ui2-shell">${headerMarkup({userId:data.userId,stage:data.avatarStage,wallet:data.wallet,c})}<div class="ui2-body ui2-lib"><h1 class="sr-only" tabindex="-1">${esc(c.library)}</h1>${libraryTabsMarkup({active:"shelf",c})}${body}</div>${nav}</div>`;
+  const body=data.sections.length?`<div class="shelf-groups">${data.sections.map(section=>sectionMarkup(section,views,c)).join("")}</div>`:emptyMarkup(c.emptyBookshelf,c);
+  return `<div class="ui2-shell">${headerMarkup({userId:data.userId,stage:data.avatarStage,wallet:data.wallet,c})}<div class="ui2-body ui2-lib${data.sections.length?"":" ui2-lib--empty"}"><h1 class="sr-only" tabindex="-1">${esc(c.library)}</h1>${libraryTabsMarkup({active:"shelf",c})}${body}</div>${nav}</div>`;
 }
