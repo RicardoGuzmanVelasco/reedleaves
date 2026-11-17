@@ -5,9 +5,19 @@ import {createBrowserStore,storageKeys} from "./storage.mjs";
 import {initialInterestsView} from "./views.mjs";
 import {readerState,emptyCatalog} from "../test-support/reader-state.mjs";
 import {words} from "./i18n.mjs";
+import {readerInterestSelector} from "./interests.mjs";
 
 const catalog={...emptyCatalog(),interests:Array.from({length:12},(_,i)=>({id:`interest-${i}`,emoji:"🌱",name:{es:`Interés ${i}`,en:`Interest ${i}`}}))};
 const preferences={revision:0,configured:false,initialOpportunityClosed:false};
+test("Interest choice follows the editorial order in both languages and steps",()=>{
+  const order=["personal-growth","communication","society","leadership","productivity","software","finance","psychology","health","mindfulness","metaphysics","future-interest"];
+  const interests=[...order].reverse().map(id=>({id,name:{es:id,en:id}}));
+  for(const language of ["es","en"]) for(const kind of ["interested","notInterested"]) {
+    const html=readerInterestSelector({catalog:{interests},language,c:words[language],kind,selected:[],choice:true});
+    assert.deepEqual([...html.matchAll(/type="checkbox"[^>]*value="([^"]+)"/g)].map(match=>match[1]),order);
+  }
+  assert.equal(interests[0].id,"future-interest");
+});
 function setup(request=async()=>({state:{configured:true},newlyGranted:[]})) {
   const values=new Map(),store=createBrowserStore(()=>({getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)})),completed=[];
   const flow=createInitialInterestFlow({store,request,onComplete:(...args)=>completed.push(args)});
