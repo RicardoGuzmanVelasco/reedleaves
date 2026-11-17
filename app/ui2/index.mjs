@@ -12,7 +12,12 @@ import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending} from "./repas
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
 import {shelfData,shelfMarkup,libraryTabsMarkup,emptyMarkup} from "./biblioteca.mjs";
-import {bookSheetData,bookSheetMarkup,finishData,finishTiles,finishDialogMarkup,cardcaseTiles,cardcaseGridMarkup,removeDeckDialogMarkup} from "./book-sheet.mjs";
+import {bookSheetData,bookstoreSheetData,bookSheetMarkup,finishData,finishTiles,finishDialogMarkup,cardcaseTiles,cardcaseGridMarkup,removeDeckDialogMarkup} from "./book-sheet.mjs";
+import {libreriaData,libreriaMarkup,libreriaResultsMarkup,searchingMarkup} from "./libreria.mjs";
+import {bookstoreFiltersMarkup} from "../views.mjs";
+import {bookstoreDefaults} from "../book-search.mjs";
+import {validBookstoreSortOrder} from "../book-sort.mjs";
+import {createBookKnowledgeVisitId} from "../book-knowledge.mjs";
 import {coverTintGradients} from "../book-cover-tint.mjs";
 import {createNoteDrafts} from "../note-drafts.mjs";
 import {createBrowserStore,storageKeys} from "../storage.mjs";
@@ -30,6 +35,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   const navFor=active=>navMarkup({active,practicePending,c,wallet:{leaves:reader?.wallet?.balance??0,petals:reader?.petals??0}});
   const drafts=createNoteDrafts(store),observeXp=createReaderXpTracker();
   let shelfViews=(()=>{const saved=store.read(storageKeys.shelfViews);return saved&&typeof saved==="object"?saved:{};})(),disposeLists=()=>{};
+  // Librería: search, filters, order, books new to the reader in this visit, and the debounced "Buscando" wait.
+  const SEARCH_DEBOUNCE_MS=400;
+  const lb={query:"",filters:{...bookstoreDefaults},sort:"recent",prefs:null,newIds:[],visitId:null,open:false,draft:{...bookstoreDefaults},sortDraft:"recent",searching:false,timer:null};
   let xpFeedback=null;
   try{xpFeedback=mountReaderXpFeedback(doc,()=>language,dialog=>dialog.showModal());}catch{xpFeedback=null;}
 
@@ -38,7 +46,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const hash=win.location.hash,deckMatch=hash.match(/^#deck\/([^/]+)(\/note)?$/),bookMatch=hash.match(/^#book\/([^/]+)\/note$/);
     if(deckMatch)return {name:"deck",id:decode(deckMatch[1]),note:!!deckMatch[2]};
     if(bookMatch)return {name:"book-note",id:decode(bookMatch[1])};
-    return {name:hash==="#library"?"library":hash==="#library/cardcase"?"cardcase":hash==="#practice"?"practice":"home"};
+    return {name:hash==="#bookstore"?"bookstore":hash==="#library"?"library":hash==="#library/cardcase"?"cardcase":hash==="#practice"?"practice":"home"};
   };
   const deckId=()=>{const r=route();return r.name==="deck"?r.id:null;};
   const titleOf=deck=>{const book=catalog.booksById.get(deck.bookId);return book?bookTitle(book,language).text:deck.id;};
@@ -85,7 +93,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       const tint=coverTintGradients(catalog?.booksById.get(thumb.dataset.book),catalog?.interests||[],coverTintMode(tintMode));
       if(tint){thumb.dataset.tintedCover="true";thumb.style.setProperty("--tinted-cover",tint.cover);thumb.style.setProperty("--tinted-spine",tint.dark);}
     }
-    const dialog=main.querySelector("dialog[data-ui2-modal]")||main.querySelector("dialog[data-ui2-sheet]");
+    const dialog=main.querySelector("dialog[data-ui2-modal]")||main.querySelector("dialog[data-ui2-sheet]")||main.querySelector("dialog.bookstore-filter-modal");
     if(dialog)dialog.showModal();
     layoutToast();
   }
@@ -115,11 +123,19 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   function render(){
     if(!session?.user){main.innerHTML=`<div class="ui2-body"><a class="ui2-btn" href="${win.location.pathname}">${c.signIn}</a></div>`;return;}
-    const where=route(),view=current(),shell=where.name==="home"||where.name==="library"||where.name==="cardcase"||where.name==="practice";
+    const where=route(),view=current(),shell=where.name==="home"||where.name==="bookstore"||where.name==="library"||where.name==="cardcase"||where.name==="practice";
     doc.body.classList.toggle("has-bottom-navigation",shell&&!form);
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
     if(!form&&where.note&&view?.deck.status==="in_progress")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
     if(form){paint(formScreen());return;}
+    if(where.name==="bookstore"){
+      if(!lb.visitId)startBookstoreVisit();
+      const state={...reader,catalog};
+      const data=libreriaData({catalog,state,language,query:lb.query,filters:lb.filters,sortOrder:lb.sort,interestPreferences:lb.prefs,newBookIds:lb.newIds});
+      let html=libreriaMarkup({data,views:shelfViews,c,nav:navFor("bookstore"),searching:lb.searching,filtersMarkup:lb.open?bookstoreFiltersMarkup({catalog,language,bookstoreFiltersOpen:true,bookstoreFilterDraft:lb.draft,bookstoreSortDraft:lb.sortDraft,bookstoreFilters:lb.filters,bookstoreSortOrder:lb.sort}):""});
+      if(sheetState?.type==="book"){const sheet=bookstoreSheetData({catalog,state,language,bookId:sheetState.id});if(sheet)html+=bookSheetMarkup({data:sheet,c});}
+      paint(withError(html));return;
+    }
     if(where.name==="library"){
       const state={...reader,catalog};
       let html=shelfMarkup({data:shelfData({catalog,state,language}),views:shelfViews,c,nav:navFor("library")});
@@ -159,6 +175,46 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       else html+=placeSheetMarkup({note:item,targets:placementTargets(model,note.id,deck.language),currentParentId:note.parentId,c});
     }
     paint(withError(html));
+  }
+  const libreriaState=()=>({...reader,catalog});
+  const libreriaBooks=()=>libreriaData({catalog,state:libreriaState(),language,query:lb.query,filters:lb.filters,sortOrder:lb.sort,interestPreferences:lb.prefs,newBookIds:lb.newIds});
+  // Only the results change while searching, so the input keeps its focus.
+  function refreshResults(){
+    const box=main.querySelector("#ui2-lb-results");if(!box)return;
+    disposeLists();
+    box.innerHTML=lb.searching?searchingMarkup(c):libreriaResultsMarkup({data:libreriaBooks(),views:shelfViews,c});
+    disposeLists=mountBookLists(main);
+    mountBookCoverTints(main,catalog?.books||[],catalog?.interests||[],coverTintMode(tintMode));
+    const clear=main.querySelector('[data-ui2="clear-search"]');if(clear)clear.hidden=!lb.query;
+  }
+  const settleSearch=()=>{clearTimeout(lb.timer);if(lb.searching){lb.searching=false;refreshResults();}};
+  async function startBookstoreVisit(){
+    const visitId=createBookKnowledgeVisitId();lb.visitId=visitId;
+    try{
+      const result=await api.request("/api/reader/book-knowledge/visit",{visitId,bookIds:catalog.books.map(book=>book.id)});
+      if(lb.visitId!==visitId||!Array.isArray(result.newBookIds))return;
+      lb.newIds=result.newBookIds.filter(id=>catalog.booksById.has(id));
+      if(route().name==="bookstore")refreshResults();
+    }catch{/* A failed visit is retried at the next one. */}
+  }
+  function loadInterestPreferences(){
+    const userId=session.user.id;
+    return api.request("/api/reader/interests/preferences").then(result=>{lb.prefs={...result,userId};if(route().name==="bookstore")refreshResults();},()=>{});
+  }
+  const focusFilterButton=()=>main.querySelector('[data-action="open-bookstore-filters"]')?.focus({preventScroll:true});
+  function bookstoreAction(target){
+    const action=target.dataset.action;
+    if(action==="open-bookstore-filters"){lb.draft={...lb.filters};lb.sortDraft=lb.sort;lb.open=true;render();}
+    else if(action==="close-bookstore-filters"){lb.open=false;render();focusFilterButton();}
+    else if(action==="reset-bookstore-filter-draft"){lb.draft={...bookstoreDefaults};lb.sortDraft="recent";render();}
+    else if(action==="select-bookstore-sort"&&validBookstoreSortOrder(target.dataset.sort)){lb.sortDraft=target.dataset.sort;render();main.querySelector(`[data-action="select-bookstore-sort"][data-sort="${lb.sortDraft}"]`)?.focus({preventScroll:true});}
+    else if(action==="apply-bookstore-filters"){
+      lb.filters={...lb.draft};lb.sort=lb.sortDraft;lb.open=false;
+      if(lb.sort==="interests"&&!lb.prefs)loadInterestPreferences();
+      render();focusFilterButton();
+    }
+    else return false;
+    return true;
   }
   function rebase(saved){
     const view=current(),note=view?.model.byId.get(saved.cardId);
@@ -209,7 +265,12 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
 
   main.addEventListener("click",event=>{
     const bookLink=event.target.closest("a[data-book]");
-    if(bookLink&&route().name==="library"&&!event.target.closest("[data-ui2]")){event.preventDefault();sheetState={type:"book",id:bookLink.dataset.book};render();return;}
+    if(route().name==="bookstore"){
+      if(event.target.matches(".bookstore-filter-modal")){lb.open=false;render();return;}
+      const act=event.target.closest("[data-action]");
+      if(act&&bookstoreAction(act))return;
+    }
+    if(bookLink&&["library","bookstore"].includes(route().name)&&!event.target.closest("[data-ui2]")){event.preventDefault();sheetState={type:"book",id:bookLink.dataset.book};render();return;}
     const target=event.target.closest("[data-ui2]");if(!target)return;
     const action=target.dataset.ui2,view=current();
     if(action==="open-note"){sheetState={type:"note",id:target.dataset.id};render();}
@@ -235,6 +296,12 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       shelfViews={...shelfViews,[target.dataset.section]:target.dataset.view};store.save(storageKeys.shelfViews,shelfViews);render();
       main.querySelector(`[data-ui2="set-view"][data-section="${target.dataset.section}"][data-view="${target.dataset.view}"]`)?.focus({preventScroll:true});
     }
+    else if(action==="clear-search"){
+      clearTimeout(lb.timer);lb.query="";lb.searching=false;
+      const input=main.querySelector("#ui2-search");if(input){input.value="";input.focus();}
+      refreshResults();
+    }
+    else if(action==="reset-filters"){clearTimeout(lb.timer);lb.query="";lb.filters={...bookstoreDefaults};lb.searching=false;render();}
     else if(action==="lib-tab"){win.location.hash=target.dataset.tab==="cardcase"?"#library/cardcase":"#library";}
     else if(action==="book-status"){
       const bookId=target.dataset.book,status=target.dataset.status;
@@ -279,9 +346,15 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(event.target.matches?.("dialog[data-ui2-modal]")&&failure){failure=null;render();}
     else if(event.target.matches?.(".ui2-finishdialog")&&finish){finish=null;render();}
     else if(event.target.matches?.(".ui2-removedialog")&&removing){removing=null;render();}
+    else if(event.target.matches?.(".bookstore-filter-modal")&&lb.open){lb.open=false;render();focusFilterButton();}
     else if(event.target.matches?.("dialog[data-ui2-sheet]")&&sheetState){sheetState=null;render();}
   },true);
   main.addEventListener("input",event=>{
+    if(event.target.id==="ui2-search"){
+      lb.query=event.target.value;lb.searching=true;clearTimeout(lb.timer);
+      lb.timer=setTimeout(()=>{lb.searching=false;refreshResults();},SEARCH_DEBOUNCE_MS);
+      refreshResults();return;
+    }
     if(!form||!event.target.name)return;
     form[event.target.name]=event.target.value;
     if(form.recovered&&!form.title&&!form.body)form.recovered=false;
@@ -292,9 +365,15 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(event.target.name==="title"&&counters[0])counters[0].textContent=`${form.title.length}/${TITLE_MAX_LENGTH}`;
     if(event.target.name==="body"){const counter=counters[counters.length-1];if(counter)counter.textContent=`${form.body.length}/${CARD_BODY_MAX_LENGTH}`;}
   });
-  main.addEventListener("submit",event=>{event.preventDefault();submit();});
+  main.addEventListener("change",event=>{
+    const key=event.target.dataset?.bookstoreFilter;
+    if(key&&key in lb.draft)lb.draft[key]=event.target.value;
+  });
+  main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-search]")){settleSearch();return;}submit();});
   win.addEventListener("hashchange",()=>{
     sheetState=null;finish=null;removing=null;form=null;failure=null;
+    clearTimeout(lb.timer);lb.searching=false;lb.open=false;
+    if(route().name!=="bookstore"){lb.visitId=null;lb.newIds=[];}
     if(toast&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
     render();
     if(route().name==="practice")Promise.all([loadStreak(),loadTopics(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{if(route().name==="practice"&&!form)render();});

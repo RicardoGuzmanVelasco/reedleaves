@@ -25,7 +25,7 @@ export function libraryTabsMarkup({active,c}){
   return `<div class="lib-switch"><div class="segmented-selector library-switch" role="group" aria-label="${esc(c.library)}">${tab("shelf",c.shelf)}${tab("cardcase",c.cardcase)}</div></div>`;
 }
 
-function viewChip(section,view,title,c){
+export function viewChip(section,view,title,c){
   const labels={covers:c.ui2ViewCovers,shelf:c.ui2ViewShelf,stack:c.ui2ViewStack};
   return `<div class="segmented-selector book-view-selector view-chip" role="group" aria-label="${esc(`${c.ui2BookView}: ${title}`)}">${BOOK_VIEWS.map(value=>`<button type="button" data-ui2="set-view" data-section="${section.key}" data-view="${value}" aria-pressed="${view===value}" aria-label="${esc(labels[value])}" title="${esc(labels[value])}"><span class="book-view-icon book-view-icon--${value}" aria-hidden="true"></span></button>`).join("")}</div>`;
 }
@@ -37,7 +37,7 @@ function sectionMarkup(section,views,c){
 }
 
 // B9 / B10: the rolling tumbleweed of the empty Home, the sentence and the way to the Bookstore.
-export const emptyMarkup=(text,c)=>`<div class="ui2-empty">${mascotArt("tumbleweed","",{animation:"tumble"})}<h2>${esc(text)}</h2><a class="ui2-btn ui2-explore" href="${esc(`${c.legacy}#bookstore`)}">${icon("bookstore")}<span>${esc(c.ui2ExploreBookstore)}</span></a></div>`;
+export const emptyMarkup=(text,c)=>`<div class="ui2-empty">${mascotArt("tumbleweed","",{animation:"tumble"})}<h2>${esc(text)}</h2><a class="ui2-btn ui2-explore" href="#bookstore">${icon("bookstore")}<span>${esc(c.ui2ExploreBookstore)}</span></a></div>`;
 
 export function shelfMarkup({data,views,c,nav}){
   const body=data.sections.length?`<div class="shelf-groups">${data.sections.map(section=>sectionMarkup(section,views,c)).join("")}</div>`:emptyMarkup(c.emptyBookshelf,c);

@@ -280,3 +280,19 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .ui2-lib--empty .lib-switch{padding-inline:18px}
 .ui2-explore{width:auto;min-height:48px}
 .ui2-explore .ui2-icon{width:22px;height:22px}
+
+/* Librería */
+.lb-tools{display:flex;align-items:flex-start;gap:10px;margin-bottom:22px}
+.lb-tools .lb-search{flex:1;min-width:0;margin-bottom:0}
+.lb-tools .lb-filter{width:52px;height:52px;border-radius:17px;border:2px solid var(--ui2-sage);background:var(--control-surface,#eef3e3);box-shadow:0 3px 0 #c9d7b8}
+.lb-tools .lb-filter svg{width:22px;height:22px}
+.lb-tools .lb-filter.is-active{background:var(--ui2-green);border-color:var(--ui2-shadow);box-shadow:0 3px 0 var(--ui2-shadow)}
+.lb-section--new .sh-ic .ui2-icon{width:28px;height:28px}
+.lb-section--new .lb-title{background:linear-gradient(100deg,currentColor 42%,#e9a93c 50%,currentColor 58%) 150% 0/250% 100% no-repeat;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:lb-shimmer 6s ease-in-out infinite}
+@keyframes lb-shimmer{0%,65%{background-position:150% 0}100%{background-position:-50% 0}}
+@media (prefers-reduced-motion:reduce){.lb-section--new .lb-title{animation:none;background:none;-webkit-text-fill-color:currentColor}}
+.lb-searching .loading-placeholder{min-height:42vh}
+.lb-catalog{width:fit-content;margin:26px auto 0}
+.lb-catalog .ui2-icon{width:24px;height:24px}
+.lb-empty{padding-top:30px}
+.lb-empty .ui2-btn{width:fit-content}

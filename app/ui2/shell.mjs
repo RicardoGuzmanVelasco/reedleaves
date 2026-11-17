@@ -16,7 +16,7 @@ export function navMarkup({active,practicePending=false,c,wallet=null}){
   const badge='<span class="navigation-new-badge" aria-hidden="true"></span>';
   return `<nav class="bottom-navigation ui2-nav" aria-label="${esc(c.navigation)}">`
     +(wallet?walletMarkup(wallet,c,"ui2-wallet--rail"):"")
-    +link("bookstore",`${c.legacy}#bookstore`,c.navBookstore)
+    +link("bookstore","#bookstore",c.navBookstore)
     +link("library","#library",c.navLibrary)
     +link("home","#home",c.navHome)
     +`<button class="bottom-navigation-link is-disabled" type="button" disabled aria-disabled="true" data-nav="social">${pieceInner("profile",c.ui2TabSocial)}</button>`

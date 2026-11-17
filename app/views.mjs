@@ -54,7 +54,7 @@ const pageHeaderTitleMarkup = (icon,title) => `<span class="header-screen-title"
 const injectPageHeaderTitle = (s,icon,title) => s.injectHeaderLeading?.(pageHeaderTitleMarkup(icon,title));
 const readingGuideIconMarkup = (size=24) => `<span class="reading-guide-icon" style="--reading-guide-icon-size:${size}px" aria-hidden="true"></span>`;
 export const priceTag = ({amount,icon,label,originalAmount}) => `<span class="pricetag${originalAmount!==undefined?" pricetag--discounted":""}" role="img" aria-label="${esc(label)}"><svg class="pricetag-paper" viewBox="0 0 160 32" preserveAspectRatio="none" aria-hidden="true"><path d="M17 4C47 8 83-1 139 3C150 4 156 9 153 17C151 25 146 28 135 27C89 23 53 32 18 28C8 27 2 23 3 16C4 8 8 3 17 4Z" fill="currentColor"/></svg><img src="${esc(imageUrl(`/app/assets/brand/${icon}-token.svg`))}" alt="" width="20" height="20">${originalAmount!==undefined?`<span class="pricetag-discount-numbers" aria-hidden="true"><span class="pricetag-previous">${esc(originalAmount)}<svg class="pricetag-cross" viewBox="0 0 16 20" aria-hidden="true"><path d="m2 4 12 12M14 4 2 16"/></svg></span><strong>${esc(amount)}</strong></span><svg class="pricetag-offer-icon" viewBox="0 0 32 32" aria-hidden="true"><path fill-rule="evenodd" d="M7 6 16 5c1-.1 2 .3 2.8 1.1L29 16.4c1.3 1.3 1.3 3.4 0 4.7l-8 8c-1.3 1.3-3.4 1.3-4.7 0L6.1 18.8A3.6 3.6 0 0 1 5 16L6 8a2 2 0 0 1 1-2Z M9.5 7.7a2.3 2.3 0 1 0 0 4.6a2.3 2.3 0 1 0 0-4.6Z M16.2 11.1 20 27l1.5-.4-3.8-15.9Z M14 15.9a2.1 2.1 0 1 0 0 4.2a2.1 2.1 0 1 0 0-4.2Z M23 17.9a2.1 2.1 0 1 0 0 4.2a2.1 2.1 0 1 0 0-4.2Z"/><path d="m9.4 8.8 1-6.9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>`:`<span>${esc(amount)}</span>`}</span>`;
-const filterIconMarkup = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6.5 7.2v5.1l-3 1.7v-6.8L4 5Z"/></svg>';
+export const filterIconMarkup = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6.5 7.2v5.1l-3 1.7v-6.8L4 5Z"/></svg>';
 const deckCreator = deck => nameLink({icon:"user",name:deck.creator?.name,href:deck.creator?.userId ? `#profile/${encodeURIComponent(deck.creator.userId)}` : null});
 const deckQuoteCount = (s,deck) => s.catalog.deckModels.get(deck.id)?.cards.filter(card=>card.isQuote).length || 0;
 const quoteDominant = (s,deck,count=deckQuoteCount(s,deck)) => count > deck.cardCount - count;
@@ -214,7 +214,7 @@ function bookNoteDestinationMarkup(s,book) {
   }).join("")}</div>${all ? "" : `<button type="button" class="note-destination-all" data-action="all-note-decks">${esc(c.viewAllNoteDecks)}<span aria-hidden="true">→</span></button>`}</div>`;
 }
 
-function bookstoreFiltersMarkup(s) {
+export function bookstoreFiltersMarkup(s) {
   const c=words[s.language], filters=s.bookstoreFilterDraft || s.bookstoreFilters || bookstoreDefaults;
   const selectedSort=s.bookstoreSortDraft||s.bookstoreSortOrder||s.bookSortOrder||"recent";
   if(!s.bookstoreFiltersOpen)return "";
@@ -544,7 +544,7 @@ export function accountView(s) {
     </section>`;
 }
 
-function deckDistinctionMarkup(c,{featured=false}={}) {
+export function deckDistinctionMarkup(c,{featured=false}={}) {
   return `<span class="team-recommendation" aria-hidden="true"><span class="team-recommendation-paper"></span><svg class="team-recommendation-outline" viewBox="0 0 160 32" preserveAspectRatio="none" aria-hidden="true"><use href="${imageUrl("/app/assets/icons/sections/deck-badge.svg")}#deck-badge-shape"/></svg><span class="team-recommendation-content">${featured ? '<svg class="deck-distinction-medal" viewBox="0 0 24 28" aria-hidden="true"><path d="m6 14-3 12 5-2 3 3 2-11m5-2 3 12-5-2-3 3-2-11" fill="currentColor"/><circle cx="12" cy="10" r="8" fill="currentColor"/><circle cx="12" cy="10" r="5" fill="none" stroke="#f9dd80" stroke-width="1.3"/></svg>' : `<svg class="team-recommendation-star" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.1 3.5Q12 1.5 12.9 3.5L15 8Q15.2 8.5 15.9 8.6L20.4 9Q22.7 9.2 20.9 10.8L17.5 13.9Q17 14.3 17.2 15L18.1 19.5Q18.6 21.7 16.6 20.5L12.5 18.1Q12 17.8 11.4 18.1L7.4 20.5Q5.3 21.7 5.9 19.4L6.9 15Q7.1 14.3 6.6 13.9L3.1 10.8Q1.3 9.2 3.6 9L8.2 8.6Q8.8 8.5 9.1 7.9Z"/></svg>`}<span>${esc(featured ? c.featuredDeck : c.teamRecommendationShort)}</span></span></span>`;
 }
 
