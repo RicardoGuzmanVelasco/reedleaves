@@ -6,12 +6,14 @@ import {deckOutline,placementTargets,deckCapabilities,noteCount,parentOf,ownDeck
 import {submitEdit} from "./edit-note.mjs";
 import {installIconStyles} from "./icons.mjs";
 import {homeData,homeMarkup,inProgressDeck} from "./home.mjs";
-import {navMarkup,shellMarkup} from "./shell.mjs";
+import {navMarkup,shellMarkup,headerMarkup} from "./shell.mjs";
 import {errorInfo,practiceStartDetail} from "./errors.mjs";
 import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending} from "./repaso.mjs";
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
+import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
+import {shelfData,shelfMarkup,libraryTabsMarkup} from "./biblioteca.mjs";
 import {createNoteDrafts} from "../note-drafts.mjs";
-import {createBrowserStore} from "../storage.mjs";
+import {createBrowserStore,storageKeys} from "../storage.mjs";
 import {createReaderXpTracker,mountReaderXpFeedback} from "../reader-xp-feedback.mjs?v=level-up-polish-2";
 import {deckListMarkup,deckScreenMarkup,noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMarkup} from "./markup.mjs";
 
@@ -24,6 +26,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
   let session,reader,catalog,sheetState=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null;
   const drafts=createNoteDrafts(store),observeXp=createReaderXpTracker();
+  let shelfViews=(()=>{const saved=store.read(storageKeys.shelfViews);return saved&&typeof saved==="object"?saved:{};})(),disposeLists=()=>{};
   let xpFeedback=null;
   try{xpFeedback=mountReaderXpFeedback(doc,()=>language,dialog=>dialog.showModal());}catch{xpFeedback=null;}
 
@@ -32,7 +35,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const hash=win.location.hash,deckMatch=hash.match(/^#deck\/([^/]+)(\/note)?$/),bookMatch=hash.match(/^#book\/([^/]+)\/note$/);
     if(deckMatch)return {name:"deck",id:decode(deckMatch[1]),note:!!deckMatch[2]};
     if(bookMatch)return {name:"book-note",id:decode(bookMatch[1])};
-    return {name:hash==="#library"?"library":hash==="#practice"?"practice":"home"};
+    return {name:hash==="#library"?"library":hash==="#library/cardcase"?"cardcase":hash==="#practice"?"practice":"home"};
   };
   const deckId=()=>{const r=route();return r.name==="deck"?r.id:null;};
   const titleOf=deck=>{const book=catalog.booksById.get(deck.bookId);return book?bookTitle(book,language).text:deck.id;};
@@ -71,7 +74,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   };
 
   function paint(html){
+    disposeLists();
     main.innerHTML=html;
+    disposeLists=mountBookLists(main);
     mountBookCoverTints(main,catalog?.books||[],catalog?.interests||[],coverTintMode(tintMode));
     const dialog=main.querySelector("dialog[data-ui2-modal]")||main.querySelector("dialog[data-ui2-sheet]");
     if(dialog)dialog.showModal();
@@ -103,12 +108,17 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   function render(){
     if(!session?.user){main.innerHTML=`<div class="ui2-body"><a class="ui2-btn" href="${win.location.pathname}">${c.signIn}</a></div>`;return;}
-    const where=route(),view=current(),shell=where.name==="home"||where.name==="library"||where.name==="practice";
+    const where=route(),view=current(),shell=where.name==="home"||where.name==="library"||where.name==="cardcase"||where.name==="practice";
     doc.body.classList.toggle("has-bottom-navigation",shell&&!form);
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
     if(!form&&where.note&&view?.deck.status==="in_progress")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
     if(form){paint(formScreen());return;}
-    if(where.name==="library"){paint(withError(shellMarkup({body:deckListMarkup({decks:ownDecks(catalog,session.user.id),c,titleOf}),nav:navMarkup({active:"library",practicePending,c})})));return;}
+    if(where.name==="library"){paint(withError(shelfMarkup({data:shelfData({catalog,state:{...reader,catalog},language}),views:shelfViews,c,nav:navMarkup({active:"library",practicePending,c})})));return;}
+    if(where.name==="cardcase"){
+      const data=shelfData({catalog,state:{...reader,catalog},language});
+      paint(withError(shellMarkup({header:headerMarkup({userId:data.userId,stage:data.avatarStage,wallet:data.wallet,c}),
+        body:`<div class="ui2-body ui2-lib"><h1 class="sr-only" tabindex="-1">${c.library}</h1>${libraryTabsMarkup({active:"cardcase",c})}${deckListMarkup({decks:ownDecks(catalog,session.user.id),c,titleOf})}</div>`,nav:navMarkup({active:"library",practicePending,c})})));return;
+    }
     if(where.name==="practice"){
       const data=repasoData({state:reader,streak,topics}),month=calendarMonth||(reader.today||"").slice(0,7);
       let html=repasoMarkup({data,c,nav:navMarkup({active:"practice",practicePending,c}),month,language});
@@ -199,6 +209,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       form.parentId=target.dataset.parent||null;persistDraft();render();
     }
     else if(action==="error-close"){failure=null;render();}
+    else if(action==="set-view"&&BOOK_VIEWS.includes(target.dataset.view)){
+      shelfViews={...shelfViews,[target.dataset.section]:target.dataset.view};store.save(storageKeys.shelfViews,shelfViews);render();
+      main.querySelector(`[data-ui2="set-view"][data-section="${target.dataset.section}"][data-view="${target.dataset.view}"]`)?.focus({preventScroll:true});
+    }
     else if(action==="calendar-open"){sheetState={type:"calendar"};render();}
     else if(action==="calendar-month"){calendarMonth=target.dataset.month;render();}
     else if(action==="sheet-close"){main.querySelector("dialog")?.close();}

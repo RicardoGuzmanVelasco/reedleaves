@@ -6,6 +6,7 @@ export const storageKeys = {
   editInterests: userId => `leaf-reader:edit-interests:v1:${encodeURIComponent(userId)}`,
   initialInterests: userId => `leaf-reader:initial-interests:v1:${encodeURIComponent(userId)}`,
   noteDrafts: (userId,bookId) => `leaf-reader:note-drafts:v1:${encodeURIComponent(userId)}:${encodeURIComponent(bookId)}`,
+  shelfViews: "leaf-reader:shelf-views:v1",
   knownBooks: "leaf-reader:known-books:v1"
 };
 

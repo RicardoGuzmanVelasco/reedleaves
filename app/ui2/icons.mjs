@@ -2,7 +2,7 @@ import {imageUrl} from "../image-url.mjs";
 
 // Only icons of app/assets/icons/ui2/. A mask keeps them on currentColor, as the icon bible requires.
 // The CSP forbids inline styles, so the (content-hashed) URLs are installed through the CSSOM.
-export const ICONS=["home","home-active","bookstore","bookstore-active","library","library-active","practice","practice-active","profile","settings","alert","back","close","take-note","edit","place-under","check","deck","idea","quote","forward","book-stack","new-gift","team-pick","calendar"];
+export const ICONS=["home","home-active","bookstore","bookstore-active","library","library-active","practice","practice-active","profile","settings","alert","back","close","take-note","edit","place-under","check","deck","idea","quote","forward","book-stack","new-gift","team-pick","calendar","shelf","cardcase","book-reading","book-to-read","book-read"];
 export const iconUrl=name=>imageUrl(`/app/assets/icons/ui2/${name}.svg`);
 export const icon=name=>`<span class="ui2-icon" data-icon="${name}" aria-hidden="true"></span>`;
 export function installIconStyles(doc=document){

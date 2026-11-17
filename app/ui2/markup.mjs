@@ -13,8 +13,7 @@ function noteButton(item,c){
 const noteItem=(item,c)=>`<li>${noteButton(item,c)}</li>`;
 
 export function deckListMarkup({decks,c,titleOf}){
-  return `<header class="ui2-top"><div class="ui2-titles"><h1>${esc(c.library)}</h1></div></header>
-<div class="ui2-body"><ul class="ui2-decks">${decks.map(deck=>`<li><a class="ui2-deck-link" href="#deck/${encodeURIComponent(deck.id)}">${icon("deck")}<span>${esc(titleOf(deck))}</span>${icon("forward")}</a></li>`).join("")}</ul></div>`;
+  return `<ul class="ui2-decks">${decks.map(deck=>`<li><a class="ui2-deck-link" href="#deck/${encodeURIComponent(deck.id)}">${icon("deck")}<span>${esc(titleOf(deck))}</span>${icon("forward")}</a></li>`).join("")}</ul>`;
 }
 
 export function deckScreenMarkup({deckTitle,bookTitle,author,status,count,max,languageName,outline,caps,c,backHref="#"}){

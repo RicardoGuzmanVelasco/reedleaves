@@ -149,3 +149,6 @@ Object.assign(words.en,{ui2TabPractice:"Practice",ui2TabSocial:"Social",ui2Pract
 // Repaso de la interfaz nueva (?ui=2). «Repasar» y «Descubrir» reutilizan practice y practiceMode_discover.
 Object.assign(words.es,{ui2TopicDailyDeck:"La baraja del día",ui2TopicInterests:"Según mis intereses",ui2TopicNovelties:"Entre las novedades",ui2TopicTeamPicks:"Elegidas por el equipo",ui2Pending:"pendiente",ui2Done:"hecho",ui2PendingForStreak:"pendiente para la racha",ui2SeeCalendar:"Ver calendario",ui2PracticeError:"No se pudo empezar el repaso"});
 Object.assign(words.en,{ui2TopicDailyDeck:"Today’s deck",ui2TopicInterests:"By my interests",ui2TopicNovelties:"Among the new arrivals",ui2TopicTeamPicks:"Picked by the team",ui2Pending:"pending",ui2Done:"done",ui2PendingForStreak:"pending for the streak",ui2SeeCalendar:"See calendar",ui2PracticeError:"Couldn’t start the practice"});
+// Biblioteca de la interfaz nueva (?ui=2), pestaña Estantería.
+Object.assign(words.es,{ui2ReadBooks:"Leídos",ui2BookView:"Vista de libros",ui2ViewCovers:"Portadas",ui2ViewShelf:"Estantería densa",ui2ViewStack:"Libros apilados"});
+Object.assign(words.en,{ui2ReadBooks:"Read",ui2BookView:"Book view",ui2ViewCovers:"Covers",ui2ViewShelf:"Dense shelf",ui2ViewStack:"Stacked books"});

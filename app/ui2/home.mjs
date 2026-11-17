@@ -9,19 +9,22 @@ import {headerMarkup} from "./shell.mjs";
 
 export const inProgressDeck=(catalog,bookId,userId)=>editableNoteDecks(catalog,bookId,userId).find(deck=>deck.contributionPolicy==="owner")||null;
 
+// One book as the lists show it (Home and Library).
+export function bookEntry({catalog,state,language,book}){
+  const title=bookCoverTitle(book,language),userId=state.user?.id;
+  return {id:book.id,title:title.text,titleLanguage:title.language,author:book.author||"",status:state.statuses?.[book.id]||"unread",
+    deckId:inProgressDeck(catalog,book.id,userId)?.id??null,stage:currentMascotStage(state.growth?.[book.id]||{added:false,practiceDays:0})};
+}
+
 // Pure: everything Home shows, from the catalog and the reader state.
 export function homeData({catalog,state,language}){
   const userId=state.user?.id,statuses=state.statuses||{};
-  const books=homeBooks(catalog,statuses,state.noteActivity||{},userId).map(book=>{
-    const title=bookCoverTitle(book,language);
-    return {id:book.id,title:title.text,titleLanguage:title.language,author:book.author||"",status:statuses[book.id]||"unread",
-      deckId:inProgressDeck(catalog,book.id,userId)?.id??null,stage:currentMascotStage(state.growth?.[book.id]||{added:false,practiceDays:0})};
-  });
+  const books=homeBooks(catalog,statuses,state.noteActivity||{},userId).map(book=>bookEntry({catalog,state,language,book}));
   return {books,userId,avatarStage:state.readerProgression?.stage||"sprout",wallet:{leaves:state.wallet?.balance??0,petals:state.petals??0}};
 }
 
 const statusLabel=(status,c)=>status==="reading"?c.readingStatus:status==="read"?c.readStatus:c.unread;
-function coverMarkup(book,c){
+export function coverMarkup(book,c){
   const info=`${c.bookInfo}: ${book.title}, ${book.author}`,noteLabel=`${c.takeNote}: ${book.title}`,stateId=`ui2-state-${esc(book.id)}`;
   return `<div class="book-tile-entry book-tile-entry--notes"><a class="book-tile" href="${esc(`${c.legacy}#book/${encodeURIComponent(book.id)}`)}" data-book="${esc(book.id)}" title="${esc(`${book.title}, ${book.author}`)}" aria-describedby="${stateId}" aria-label="${esc(info)}">`
     +`<span class="book-tile-cover"><strong class="book-tile-cover-title" lang="${esc(book.titleLanguage)}" dir="auto" title="${esc(book.title)}">${esc(book.title)}</strong><span class="book-tile-author" title="${esc(book.author)}">${esc(book.author)}</span>${mascotIcon(book.stage,"book-tile-mark")}`
