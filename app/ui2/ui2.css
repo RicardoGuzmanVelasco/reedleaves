@@ -265,7 +265,10 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .ui2-finishpanel .actions-row .ui2-btn{line-height:1.15}
 
 /* ---- Tarjetero, quitar baraja, vacíos ---- */
-.ui2-cardcase{padding:10px 2px 6px}
+.ui2-cardcase{padding:0 2px 6px}
+.ui2-lib .bookshelf-group{margin-top:18px}
+.ui2-lib .bookshelf-group-heading{margin-bottom:12px}
+.ui2-lib .bookshelf-group-heading h2{margin:0;font-size:22px;font-weight:900;letter-spacing:-.045em}
 .ui2-cardcase .deck-tile-creator{font-size:11px;min-width:0}
 .ui2-cardcase .card-attribution-row{min-width:0}
 .ui2-cardcase .card-attribution-row bdi{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

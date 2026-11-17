@@ -6,13 +6,14 @@ import {contentText,contentLocale,bookTitle} from "../core.mjs";
 import {cardTypeFor} from "../card-types.mjs";
 import {availableDecks} from "../decks.mjs";
 import {editableNoteDecks} from "../notes.mjs";
+import {DECK_ADD_COST} from "../wallet.mjs";
 import {icon} from "./icons.mjs";
 import {bookEntry} from "./home.mjs";
 
 export const tileOf=(catalog,deck,language)=>{
   const book=catalog.booksById.get(deck.bookId),title=book?bookTitle(book,language):null;
   const quotes=catalog.deckModels.get(deck.id)?.cards.filter(card=>card.isQuote).length||0;
-  return {id:deck.id,title:contentText(deck.title,language,deck.language),titleLanguage:contentLocale(deck.title,language,deck.language),
+  return {id:deck.id,bookId:deck.bookId,creatorId:deck.creator?.userId||null,title:contentText(deck.title,language,deck.language),titleLanguage:contentLocale(deck.title,language,deck.language),
     creator:deck.creator?.name||"",bookTitle:title?.text||"",bookTitleLanguage:title?.language||language,deckLanguage:deck.language,open:deck.status==="in_progress",quote:quotes>deck.cardCount-quotes,cardCount:deck.cardCount};
 };
 
@@ -75,12 +76,19 @@ export function finishDialogMarkup({decks,pending,c}){
 // B6: the Cardcase, decks as tiles. B7: confirmation before removing one.
 export const cardcaseTiles=({catalog,state,language})=>(state.cardcaseDeckIds||[]).map(id=>catalog.decksById.get(id)).filter(deck=>deck&&catalog.booksById.has(deck.bookId)).map(deck=>tileOf(catalog,deck,language));
 
-export function cardcaseGridMarkup({tiles,c}){
-  return `<div class="deck-grid cardcase-decks ui2-cardcase" role="list" aria-label="${esc(c.cardcase)}">${tiles.map(deck=>miniDeckTile(deck,c,{remove:true,book:true})).join("")}</div>`;
+export function cardcaseGridMarkup({tiles,statuses={},c}){
+  const groups=[["reading",c.readingStatus],["to_read",c.toRead],["read",c.readStatus]];
+  const groupFor=bookId=>statuses[bookId]&&statuses[bookId]!=="unread"?statuses[bookId]:"to_read";
+  return groups.map(([key,title])=>{
+    const items=tiles.filter(tile=>groupFor(tile.bookId)===key);
+    return items.length?`<section class="bookshelf-group" aria-labelledby="ui2-cc-${key}"><div class="bookshelf-group-heading"><h2 id="ui2-cc-${key}">${esc(title)}</h2></div><div class="deck-grid cardcase-decks ui2-cardcase" role="list" aria-label="${esc(title)}">${items.map(deck=>miniDeckTile(deck,c,{remove:true,book:true})).join("")}</div></section>`:"";
+  }).join("");
 }
 
-export function removeDeckDialogMarkup({deck,c}){
+export function removeDeckDialogMarkup({deck,userId,c}){
   return `<dialog class="ui2-errdialog ui2-removedialog" data-ui2-modal role="alertdialog" aria-labelledby="ui2-rm-title"><div class="ui2-errshell"><button type="button" class="dialog-close" data-ui2="remove-cancel" aria-label="${esc(c.cancel)}">${icon("close")}</button>`
     +`<div class="ui2-errpanel ui2-finishpanel"><h2 id="ui2-rm-title">${esc(c.confirmRemoveDeck)}</h2><p class="ui2-lead" lang="${esc(deck.titleLanguage)}" dir="auto">${esc(deck.title)}</p>`
+    +(deck.creatorId&&deck.creatorId===userId?"":callout({variant:"warning",width:"fill",role:"status",main:c.ui2ReAddCost(DECK_ADD_COST)}))
+    +`
     +`<div class="actions-row"><button type="button" class="ui2-btn secondary--subtle" data-ui2="remove-cancel">${esc(c.cancel)}</button><button type="button" class="ui2-btn danger" data-ui2="remove-confirm" data-deck="${esc(deck.id)}">${esc(c.removeDeckFromCardcase)}</button></div></div></div></dialog>`;
 }

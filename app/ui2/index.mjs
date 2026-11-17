@@ -134,10 +134,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(where.name==="cardcase"){
       const data=shelfData({catalog,state:{...reader,catalog},language});
       const tiles=cardcaseTiles({catalog,state:reader,language}),removed=removing&&tiles.find(tile=>tile.id===removing);
-      const body=tiles.length?cardcaseGridMarkup({tiles,c}):emptyMarkup(c.emptyCardcase,c);
+      const body=tiles.length?cardcaseGridMarkup({tiles,statuses:reader.statuses||{},c}):emptyMarkup(c.emptyCardcase,c);
       paint(withError(shellMarkup({header:headerMarkup({userId:data.userId,stage:data.avatarStage,wallet:data.wallet,c}),
         body:`<div class="ui2-body ui2-lib${tiles.length?"":" ui2-lib--empty"}"><h1 class="sr-only" tabindex="-1">${c.library}</h1>${libraryTabsMarkup({active:"cardcase",c})}${body}</div>`,nav:navFor("library")})
-        +(removed?removeDeckDialogMarkup({deck:removed,c}):"")+(toast?toastMarkup({...toast,c}):"")));return;
+        +(removed?removeDeckDialogMarkup({deck:removed,userId:session.user.id,c}):"")+(toast?toastMarkup({...toast,c}):"")));return;
     }
     if(where.name==="practice"){
       const data=repasoData({state:reader,streak,topics}),month=calendarMonth||(reader.today||"").slice(0,7);
