@@ -182,9 +182,7 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .ui2-modes .practice-mode-label{max-width:68px;margin:0 auto;font-size:10.5px;line-height:1.15;font-weight:850;text-wrap:balance}
 .ui2-modes .ui2-price-tag{margin-top:6px}
 .ui2-modes .practice-mode-icon{opacity:.78}
-.ui2-modes .ui2-icon.practice-mode-icon{width:122px;height:122px;min-width:0;min-height:0;transform:translate(var(--icon-x),var(--icon-y)) rotate(-8deg) scale(var(--icon-scale));-webkit-mask-size:68%;mask-size:68%}
-.practice-mode--dailyDeck,.practice-mode--novelties,.practice-mode--teamPicks{--icon-x:-6px;--icon-y:-2px;--icon-scale:.95}
-.practice-mode--interests{--icon-x:-8px;--icon-y:0px;--icon-scale:1}
+.ui2-modes .practice-mode{--icon-x:-8px;--icon-y:0px;--icon-scale:1}
 .ui2-rp-box--discover .practice-mode-card{border-color:#6f97aa;background:#e7f2f7;box-shadow:0 3px 0 #a9c8d6}
 .ui2-rp-box--discover .practice-mode-card--left{background:#d9ebf3}.ui2-rp-box--discover .practice-mode-card--right{background:#bfdcea}
 .ui2-rp-box--discover .practice-mode-card--cover{background:linear-gradient(145deg,#fdfeff,#dcecf3)}

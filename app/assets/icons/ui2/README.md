@@ -55,7 +55,7 @@ Catálogo de los iconos de la interfaz nueva. Las reglas del estilo están en `d
 | `book-stack` | Pila de libros (único apilado de libros) | Repaso: «Un poco de todo» en la fila de racha y en su tema |
 | `calendar` | Calendario | Repaso: «La baraja del día» en la fila de racha y en su tema |
 | `new-gift` | Paquete con lazo: algo nuevo por abrir | Repaso: «Entre las novedades» |
-| `team-pick` | Escarapela con visto: selección del equipo | Repaso: «Elegidas por el equipo» |
+| `team-pick` | Escarapela: selección del equipo | Repaso: «Elegidas por el equipo» |
 | `alert` | Aviso o error | Mensajes |
 
 ## Iconos de divisa (con color)
