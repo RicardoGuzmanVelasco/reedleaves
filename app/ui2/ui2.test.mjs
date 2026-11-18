@@ -4,7 +4,7 @@ import {validateCards} from "../core.mjs";
 import {words} from "../i18n.mjs";
 import {readerState,emptyCatalog} from "../../test-support/reader-state.mjs";
 import {deckOutline,placementTargets,deckCapabilities,ownDecks,parentOf} from "./outline.mjs";
-import {deckScreenMarkup,noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMarkup} from "./markup.mjs";
+import {outlineMarkup,noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMarkup} from "./markup.mjs";
 import {errorInfo} from "./errors.mjs";
 import {ui2Enabled} from "./index.mjs";
 
@@ -50,11 +50,9 @@ test("Only the author of a personal deck can correct or place; taking notes need
 
 for(const language of ["es","en"])test(`Screens expose named controls and sheets in ${language}`,()=>{
   const c=words[language],{model,deck}=fixture(),outline=deckOutline(model,"es"),caps=deckCapabilities(deck,"me");
-  const screen=deckScreenMarkup({deckTitle:"Notas",bookTitle:"Libro",author:"Autor",status:"in_progress",count:5,max:25,languageName:"es",outline,caps,c});
+  const screen=outlineMarkup(outline,c);
   assert.match(screen,/data-ui2="open-note"[^>]*aria-label="T a"/);
   assert.match(screen,/aria-label="Cita: Texto q"|aria-label="[^"]*Texto q"/);
-  assert.match(screen,/data-ui2="take-note"/);
-  assert.doesNotMatch(deckScreenMarkup({deckTitle:"N",bookTitle:"L",status:"finished",count:1,max:25,languageName:"es",outline,caps:{...caps,takeBelow:false},c}),/data-ui2="take-note"/);
   const note={id:"a1",isQuote:false,title:"T a1",body:"Texto a1"};
   const sheet=noteSheetMarkup({note,parentTitle:"T a",caps,c});
   for(const action of ["correct","place","take-note-under"])assert.match(sheet,new RegExp(`data-ui2="${action}"`));

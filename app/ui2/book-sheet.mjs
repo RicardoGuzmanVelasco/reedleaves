@@ -6,7 +6,6 @@ import {contentText,contentLocale,bookTitle} from "../core.mjs";
 import {cardTypeFor} from "../card-types.mjs";
 import {availableDecks,sortDecks} from "../decks.mjs";
 import {editableNoteDecks} from "../notes.mjs";
-import {DECK_ADD_COST} from "../wallet.mjs";
 import {interestIcon,interestColor} from "../interests.mjs";
 import {icon} from "./icons.mjs";
 import {bookEntry} from "./home.mjs";
@@ -40,7 +39,7 @@ export const finishData=({catalog,bookId,userId})=>editableNoteDecks(catalog,boo
 export const finishTiles=({catalog,entries,language})=>entries.map(entry=>catalog.decksById.get(entry.deckId)).filter(Boolean).map(deck=>tileOf(catalog,deck,language));
 
 const watermark=quote=>{const type=cardTypeFor({isQuote:quote});return `<span class="deck-tile-watermark" aria-hidden="true"><svg class="deck-tile-watermark-symbol deck-tile-watermark-symbol--${type.id}" viewBox="${type.watermark.viewBox}" focusable="false">${type.watermark.paths}</svg></span>`;};
-const flag=code=>["es","en"].includes(code)
+export const flag=code=>["es","en"].includes(code)
   ?`<img class="deck-language-flag" src="${imageUrl(`/app/assets/icons/languages/${code}.svg`)}" width="16" height="12" alt="">`
   :`<img class="deck-language-icon" src="${imageUrl("/app/assets/icons/languages/globe.svg")}" width="16" height="16" alt=""><span>${esc(code)}</span>`;
 
@@ -63,7 +62,7 @@ export function bookSheetMarkup({data,c}){
   const statuses=[["unread",c.unread],["to_read",c.toRead],["reading",c.readingStatus],["read",c.readStatus]];
   const selector=`<div class="sel-wrap"><div class="segmented-selector book-reading-selector" role="group" aria-label="${esc(c.ui2BookReading)}">${statuses.map(([value,label])=>`<button type="button" data-ui2="book-status" data-book="${esc(entry.id)}" data-status="${value}" aria-pressed="${entry.status===value}">${bookReadingIcon(value)}<span>${esc(label)}</span></button>`).join("")}</div></div>`;
   const all=`<a class="ui2-btn secondary--subtle sheet-all" href="#book/${encodeURIComponent(entry.id)}"><span>${esc(c.ui2SeeAllDecks)}</span>${icon("forward")}</a>`;
-  const cardcase=store?(decks.length?`<section class="sheet-cardcase" aria-label="${esc(c.viewDecks)}"><div class="mini-decks" role="list" aria-label="${esc(c.viewDecks)}">${decks.map(deck=>miniDeckTile(deck,c,{href:`${c.legacy}#deck/${encodeURIComponent(deck.id)}`})).join("")}</div></section>`:""):decks.length?`<section class="sheet-cardcase" aria-labelledby="ui2-bs-cc"><h3 class="sheet-sub sheet-sub--icon" id="ui2-bs-cc">${icon("cardcase")}<span>${esc(c.ui2InCardcase)}</span></h3><div class="mini-decks" role="list" aria-label="${esc(c.ui2InCardcase)}">${decks.map(deck=>miniDeckTile(deck,c)).join("")}</div></section>`:"";
+  const cardcase=store?(decks.length?`<section class="sheet-cardcase" aria-label="${esc(c.viewDecks)}"><div class="mini-decks" role="list" aria-label="${esc(c.viewDecks)}">${decks.map(deck=>miniDeckTile(deck,c,{})).join("")}</div></section>`:""):decks.length?`<section class="sheet-cardcase" aria-labelledby="ui2-bs-cc"><h3 class="sheet-sub sheet-sub--icon" id="ui2-bs-cc">${icon("cardcase")}<span>${esc(c.ui2InCardcase)}</span></h3><div class="mini-decks" role="list" aria-label="${esc(c.ui2InCardcase)}">${decks.map(deck=>miniDeckTile(deck,c)).join("")}</div></section>`:"";
   const tail=decks.length||anyDecks?all:callout({variant:"warning",width:"fill",className:"sheet-warn",main:c.ui2NoDecksOfBook});
   return `<dialog class="ui2-sheet ui2-book-sheet" data-ui2-sheet aria-labelledby="ui2-bs-title"><button type="button" class="dialog-close dialog-close--float" data-ui2="sheet-close" aria-label="${esc(c.ui2CloseBook)}">${icon("close")}</button><div class="ui2-grab" aria-hidden="true"></div>`
     +`<div class="sheet-head"><span class="sheet-thumb" aria-hidden="true" data-book="${esc(entry.id)}"></span><div class="ui2-grow"><h2 id="ui2-bs-title" lang="${esc(entry.titleLanguage)}" dir="auto">${esc(entry.title)}</h2>${entry.author?`<p class="ui2-sheet-author">${esc(entry.author)}</p>`:""}</div></div>`
@@ -95,9 +94,10 @@ export function cardcaseGridMarkup({tiles,statuses={},c}){
 }
 
 export function removeDeckDialogMarkup({deck,userId,c}){
+  const own=!!deck.creatorId&&deck.creatorId===userId;
   return `<dialog class="ui2-errdialog ui2-removedialog" data-ui2-modal role="alertdialog" aria-labelledby="ui2-rm-title"><div class="ui2-errshell"><button type="button" class="dialog-close" data-ui2="remove-cancel" aria-label="${esc(c.cancel)}">${icon("close")}</button>`
-    +`<div class="ui2-errpanel ui2-finishpanel"><h2 id="ui2-rm-title">${esc(c.confirmRemoveDeck)}</h2><p class="ui2-lead" lang="${esc(deck.titleLanguage)}" dir="auto">${esc(deck.title)}</p>`
-    +(deck.creatorId&&deck.creatorId===userId?"":callout({variant:"warning",width:"fill",role:"status",main:c.ui2ReAddCost(DECK_ADD_COST)}))
+    +`<div class="ui2-errpanel ui2-finishpanel"><h2 id="ui2-rm-title">${esc(c.confirmRemoveDeck)}</h2>`
+    +callout({variant:own?"warning":"info",width:"fill",role:"status",main:own?c.ui2RemoveOwnDeck:c.ui2RemoveDeckInfo})
     +`<div class="actions-row"><button type="button" class="ui2-btn secondary--subtle" data-ui2="remove-cancel">${esc(c.cancel)}</button><button type="button" class="ui2-btn danger" data-ui2="remove-confirm" data-deck="${esc(deck.id)}">${esc(c.removeDeckFromCardcase)}</button></div></div></div></dialog>`;
 }
 
@@ -118,7 +118,7 @@ export function bookPageMarkup({data,c}){
   const added=data.creator?`<p class="bp-added"><span>${esc(c.bookAddedBy)}</span> `+(data.creator.id
     ?`<a class="card-attribution-row" href="${esc(`${c.legacy}#profile/${encodeURIComponent(data.creator.id)}`)}">${attributionIcon("user")}<bdi>${esc(data.creator.name)}</bdi></a>`
     :`<span class="card-attribution-row">${attributionIcon("user")}<bdi>${esc(data.creator.name)}</bdi></span>`)+`</p>`:"";
-  const decks=data.decks.length?`<h2 class="bp-h2">${esc(c.chooseDeck)}</h2><div class="deck-grid" role="list" aria-label="${esc(c.chooseDeck)}">${data.decks.map(deck=>miniDeckTile(deck,c,{href:`${c.legacy}#deck/${encodeURIComponent(deck.id)}`})).join("")}</div>`
+  const decks=data.decks.length?`<h2 class="bp-h2">${esc(c.chooseDeck)}</h2><div class="deck-grid" role="list" aria-label="${esc(c.chooseDeck)}">${data.decks.map(deck=>miniDeckTile(deck,c,{})).join("")}</div>`
     :callout({variant:"warning",width:"fill",className:"sheet-warn",main:c.ui2NoDecksOfBook});
   return `<section class="book-page"><div class="bp-head"><button type="button" class="ui2-ib bp-back" data-ui2="page-back" aria-label="${esc(c.back)}">${icon("back")}</button>`
     +`<div class="bp-meta"><h1 tabindex="-1" lang="${esc(data.titleLanguage)}" dir="auto">${esc(data.title)}</h1>${data.author?`<p class="bp-author">${esc(data.author)}</p>`:""}${chips?`<div class="bp-chips">${chips}</div>`:""}</div></div>`

@@ -12,7 +12,9 @@ import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending} from "./repas
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
 import {shelfData,shelfMarkup,libraryTabsMarkup,emptyMarkup} from "./biblioteca.mjs";
-import {bookSheetData,bookstoreSheetData,bookSheetMarkup,bookPageData,bookPageMarkup,finishData,finishTiles,finishDialogMarkup,cardcaseTiles,cardcaseGridMarkup,removeDeckDialogMarkup} from "./book-sheet.mjs";
+import {bookSheetData,bookstoreSheetData,bookSheetMarkup,bookPageData,bookPageMarkup,tileOf,finishData,finishTiles,finishDialogMarkup,cardcaseTiles,cardcaseGridMarkup,removeDeckDialogMarkup} from "./book-sheet.mjs";
+import {deckPageData,deckPageMarkup} from "./deck-page.mjs";
+import {deckShareUrl} from "../deck-navigation.mjs";
 import {libreriaData,libreriaMarkup,libreriaResultsMarkup,searchingMarkup} from "./libreria.mjs";
 import {mountInterests} from "../interests.mjs";
 import {bookstoreFiltersMarkup} from "../views.mjs";
@@ -23,7 +25,7 @@ import {coverTintGradients} from "../book-cover-tint.mjs";
 import {createNoteDrafts} from "../note-drafts.mjs";
 import {createBrowserStore,storageKeys} from "../storage.mjs";
 import {createReaderXpTracker,mountReaderXpFeedback} from "../reader-xp-feedback.mjs?v=level-up-polish-2";
-import {deckScreenMarkup,noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMarkup} from "./markup.mjs";
+import {noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMarkup} from "./markup.mjs";
 
 export const ui2Enabled=search=>new URLSearchParams(search).get("ui")==="2";
 const TOAST_MS=6500;
@@ -51,6 +53,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     return {name:hash==="#bookstore"?"bookstore":hash==="#library"?"library":hash==="#library/cardcase"?"cardcase":hash==="#practice"?"practice":"home"};
   };
   const deckId=()=>{const r=route();return r.name==="deck"?r.id:null;};
+  const hasDeckDraft=deck=>drafts.list(session.user.id,deck.bookId).some(saved=>saved.noteDeckId===deck.id);
   const titleOf=deck=>{const book=catalog.booksById.get(deck.bookId);return book?bookTitle(book,language).text:deck.id;};
   const deckName=deck=>deck.title?.[deck.language]||deck.title?.[language]||titleOf(deck);
   const languageName=code=>{try{return new Intl.DisplayNames([language],{type:"language"}).of(code)||code;}catch{return code;}};
@@ -125,7 +128,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   function render(){
     if(!session?.user){main.innerHTML=`<div class="ui2-body"><a class="ui2-btn" href="${win.location.pathname}">${c.signIn}</a></div>`;return;}
-    const where=route(),view=current(),shell=where.name==="home"||where.name==="bookstore"||where.name==="library"||where.name==="cardcase"||where.name==="practice"||where.name==="book";
+    const where=route(),view=current(),shell=where.name==="home"||where.name==="bookstore"||where.name==="library"||where.name==="cardcase"||where.name==="practice"||where.name==="book"||(where.name==="deck"&&!!view);
     doc.body.classList.toggle("has-bottom-navigation",shell&&!form);
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
     if(!form&&where.note&&view?.deck.status==="in_progress")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
@@ -170,16 +173,20 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(!view){
       paint(withError(homeMarkup({data:homeData({catalog,state:reader,language}),c,nav:navFor("home"),toast:toast?toastMarkup({...toast,c}):""})));return;
     }
-    const {deck,model,book}=view,caps=deckCapabilities(deck,session.user.id);
-    const context={deckTitle:deckName(deck),bookTitle:titleOf(deck)};
-    const {count,max}=noteCount(model);
-    let html=deckScreenMarkup({...context,author:book?.author,status:deck.status,count,max,languageName:languageName(deck.language),outline:deckOutline(model,deck.language),caps,c});
+    const {deck,model}=view,caps=deckCapabilities(deck,session.user.id);
+    const state={...reader,catalog},page=deckPageData({catalog,state,language,deckId:deck.id,hasDraft:hasDeckDraft(deck)}),list=libreriaData({catalog,state,language});
+    let html=shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),
+      body:`<div class="ui2-body ui2-lib">${deckPageMarkup({page,outline:deckOutline(model,deck.language),languageName:languageName(deck.language),legacy:c.legacy,c})}</div>`,nav:navFor(page.inCardcase||page.owner?"library":"bookstore")});
     const note=sheetState&&model.byId.get(sheetState.id);
     if(note){
       const item={id:note.id,isQuote:note.isQuote,title:note.title?.[deck.language]||"",body:note.body?.[deck.language]||""};
       if(sheetState.type==="note"){const parent=parentOf(model,note.id);html+=noteSheetMarkup({note:item,parentTitle:parent?.title?.[deck.language]??null,caps,c});}
       else html+=placeSheetMarkup({note:item,targets:placementTargets(model,note.id,deck.language),currentParentId:note.parentId,c});
     }
+    if(finish&&!failure)html+=finishDialogMarkup({decks:finishTiles({catalog,entries:finish.decks,language}).map(tile=>({...tile,cardCount:finish.decks[0].cardCount})),pending:hasDeckDraft(deck),c});
+    const removedDeck=removing===deck.id?tileOf(catalog,deck,language):null;
+    if(removedDeck)html+=removeDeckDialogMarkup({deck:removedDeck,userId:session.user.id,c});
+    if(toast)html+=toastMarkup({...toast,c});
     paint(withError(html));
   }
   const libreriaState=()=>({...reader,catalog});
@@ -229,6 +236,16 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // The Practice badge shows while today's streak is still available; the rule is the server's (GET /api/progress/streak).
   const loadStreak=()=>api.request("/api/progress/streak").then(result=>{streak=result;practicePending=streakPending(result);},()=>{streak=null;practicePending=false;});
   const loadTopics=()=>api.request("/api/reader/practice/topics").then(result=>{topics=result.topics;},()=>{topics=null;});
+  async function shareDeck(deck){
+    const url=deckShareUrl(win.location.href,deck.id),bookName=titleOf(deck),text=c.deckShareText(bookName,deckName(deck));
+    try{
+      if(typeof win.navigator.share==="function"){
+        try{await win.navigator.share({text:`${text} ${url}`});return;}catch(error){if(error?.name==="AbortError")return;}
+      }
+      await win.navigator.clipboard.writeText(`${text}\n${url}`);showToast(c.deckLinkCopied);
+    }catch{showToast(c.deckShareError);}
+    render();
+  }
   async function reload(){[catalog,reader]=await Promise.all([loadCatalog(),api.request("/api/reader/state")]);await Promise.all([loadStreak(),loadTopics()]);}
   async function run(task){
     if(busy)return;busy=true;failure=null;
@@ -308,7 +325,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       refreshResults();
     }
     else if(action==="reset-filters"){clearTimeout(lb.timer);lb.query="";lb.filters={...bookstoreDefaults};lb.searching=false;render();}
-    else if(action==="page-back"){if(win.history.length>1)win.history.back();else win.location.hash="#bookstore";}
+    else if(action==="page-back"){if(win.history.length>1)win.history.back();else win.location.hash=route().name==="deck"?"#library":"#bookstore";}
     else if(action==="lib-tab"){win.location.hash=target.dataset.tab==="cardcase"?"#library/cardcase":"#library";}
     else if(action==="book-status"){
       const bookId=target.dataset.book,status=target.dataset.status;
@@ -321,6 +338,20 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
         const entries=status==="read"?finishData({catalog,bookId,userId:session.user.id}):[];
         if(entries.length)finish={bookId,decks:entries};
       });
+    }
+    else if(action==="add-deck"){
+      const id=target.dataset.deck;
+      run(async()=>{
+        const result=await api.request("/api/reader/cardcase/add",{deckId:id});
+        // The server asks for a confirmation the new interface does not show yet: the old page handles it.
+        if(result?.confirmationRequired){win.location.href=`${c.legacy}#deck/${encodeURIComponent(id)}`;return;}
+        await reload();showToast(c.deckAddedToCardcase);
+      });
+    }
+    else if(action==="share-deck"&&view)shareDeck(view.deck);
+    else if(action==="finish-deck"&&view){
+      if(target.getAttribute("aria-disabled")==="true")return;
+      finish={bookId:view.deck.bookId,decks:[{deckId:view.deck.id,cardCount:view.deck.cardCount}]};render();
     }
     else if(action==="cardcase-remove"){removing=target.dataset.deck;render();}
     else if(action==="remove-cancel"){main.querySelector("dialog")?.close();}

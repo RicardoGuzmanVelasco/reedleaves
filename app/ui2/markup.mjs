@@ -12,14 +12,8 @@ function noteButton(item,c){
 }
 const noteItem=(item,c)=>`<li>${noteButton(item,c)}</li>`;
 
-export function deckScreenMarkup({deckTitle,bookTitle,author,status,count,max,languageName,outline,caps,c,backHref="#"}){
-  const inProgress=status==="in_progress";
-  const groups=[outline.tree.length?`<ul class="ui2-tree">${outline.tree.map(item=>noteItem(item,c)).join("")}</ul>`:"",
-    outline.unsorted.length?`<ul class="ui2-tree">${outline.unsorted.map(item=>noteItem(item,c)).join("")}</ul>`:""].join("");
-  return `<header class="ui2-top"><a class="ui2-ib" href="${esc(backHref)}" aria-label="${esc(c.back)}">${icon("back")}</a>
-<div class="ui2-titles"><h1>${esc(bookTitle)}</h1>${author?`<span class="ui2-sub">${esc(author)}</span>`:""}</div></header>
-<div class="ui2-body"><div class="ui2-meta">${inProgress?`<span class="ui2-chip is-in-progress">${esc(c.deckInProgressShort)}</span>`:""}<span>${esc(c.ui2NoteCount(count,max))}</span><span aria-hidden="true">·</span><span>${esc(deckTitle)}</span><span aria-hidden="true">·</span><span>${esc(languageName)}</span></div>${groups}</div>
-${caps.takeBelow?`<div class="ui2-sticky"><button type="button" class="ui2-btn" data-ui2="take-note" data-parent="">${icon("take-note")}${esc(c.takeNote)}</button></div>`:""}`;
+export function outlineMarkup(outline,c){
+  return [outline.tree,outline.unsorted].filter(list=>list.length).map(list=>`<ul class="ui2-tree">${list.map(item=>noteItem(item,c)).join("")}</ul>`).join("");
 }
 
 export function noteSheetMarkup({note,parentTitle,caps,c}){
