@@ -114,7 +114,8 @@ test("Interest warning: title, warning and buttons, without the book",()=>{
 
 for(const language of ["es","en"])test(`Insufficient balance: one error callout and Understood (${language})`,()=>{
   const c=words[language];
-  assert.ok(INSUFFICIENT_BALANCE.has("insufficientLeaves")&&INSUFFICIENT_BALANCE.has("insufficientPetals"));
+  assert.ok(["insufficientLeaves","insufficientPetals","insufficientPracticeLeaves"].every(code=>INSUFFICIENT_BALANCE.has(code)));
+  assert.equal(balanceMessage({code:"insufficientPracticeLeaves",detail:"x"},{c}),"x");
   const message=balanceMessage({code:"insufficientLeaves"},{leaves:1,cost:2,c});
   assert.equal(message,c.ui2InsufficientLeaves(2,1));
   assert.equal(balanceMessage({code:"insufficientPetals",detail:c.practiceInsufficientPetals(3,1)},{c}),c.practiceInsufficientPetals(3,1));

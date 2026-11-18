@@ -146,9 +146,11 @@ export function interestWarningMarkup({prompt,c}){
 }
 
 // S1/S2: not enough leaves or petals. Replaces the business error modal for these two codes.
-export const INSUFFICIENT_BALANCE=new Set(["insufficientLeaves","insufficientPetals"]);
+export const INSUFFICIENT_BALANCE=new Set(["insufficientLeaves","insufficientPetals","insufficientPracticeLeaves"]);
 export function balanceMessage(failure,{leaves=0,cost=2,c}){
+  // Practice explains its own price (petals or leaves) in `detail`; adding a deck costs leaves.
   if(failure?.code==="insufficientPetals")return failure.detail||c.practiceInsufficientPetals(3,0);
+  if(failure?.code==="insufficientPracticeLeaves"&&failure.detail)return failure.detail;
   return c.ui2InsufficientLeaves(cost,leaves);
 }
 export function balanceModalMarkup({message,c}){
