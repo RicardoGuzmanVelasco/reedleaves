@@ -122,12 +122,14 @@ test("Card language preferences are private to the owner and enforce one selecte
     const html=profileView({language,profileData,userId:"test-user",catalog,profileLanguages:preferences});
     assert.match(html,new RegExp(words[language].profileLanguages));
     assert.match(html,/english, spanish|inglés, español/i);
+    assert.match(html,new RegExp(`href="/app/\\?ui=2"[^>]*>${words[language].tryNewUi}`));
     const editor=profileView({language,profileData,userId:"test-user",catalog,profileLanguages:{...preferences,editing:true,draft:["en"]}});
     assert.match(editor,/data-profile-language value="fr-CA"/);
     assert.match(editor,/data-action="save-profile-languages"/);
     assert.match(editor,new RegExp(words[language].profileLanguageChoose));
     assert.match(editor,new RegExp(words[language].profileLanguageRequired));
     const visitor=profileView({language,profileData,userId:"visitor",catalog,profileLanguages:null});
+    assert.doesNotMatch(visitor,/ui=2/);
     assert.doesNotMatch(visitor,/data-action="edit-profile-languages"|Card languages|Idiomas de las tarjetas/);
   }
 });
