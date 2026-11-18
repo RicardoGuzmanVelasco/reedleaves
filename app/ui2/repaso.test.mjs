@@ -8,7 +8,7 @@ import {errorModalMarkup} from "./markup.mjs";
 
 const state=(extra={})=>({user:{id:"me",timeZone:"Europe/Madrid"},today:"2026-11-15",wallet:{balance:12},petals:7,practiceDiscountMode:"read",...extra});
 const streak=(extra={})=>({days:5,dailyCardSeenToday:false,mixedDoneToday:false,completedDays:["2026-11-13","2026-11-14"],...extra});
-const topicState=(over={})=>["mixed","reading","read","saved","dailyDeck","interests","novelties","teamPicks"].map(id=>({id,cost:id==="read"?2:3,discounted:id==="read",cards:10,required:5,available:true,...(over[id]||{})}));
+const topicState=(over={})=>["mixed","reading","read","saved","dailyDeck","interests","novelties","teamPicks"].map(id=>({id,cost:id==="read"?3:id==="saved"?10:5,currency:id==="saved"?"leaf":"petal",discounted:id==="read",cards:10,required:5,available:true,...(over[id]||{})}));
 const NOW=new Date("2026-11-15T10:30:00Z");                                       // 11:30 in Madrid: next streak day at 06:00, in 18 h 30 min
 const render=(language,s,st=state(),topics=topicState())=>{
   const c={...words[language],legacy:"/app/"},data=repasoData({state:st,streak:s,topics});
@@ -24,18 +24,20 @@ test("Streak pending depends only on the server response: both parts needed",()=
 
 for(const language of ["es","en"])test(`Repaso: streak row, two containers, eight topics with prices, badges while pending (${language})`,()=>{
   const c=words[language],html=render(language,streak());
-  assert.match(html,/class="ui2-rp-streak"[^>]*data-ui2="calendar-open"[^>]*aria-haspopup="dialog"/);
+  assert.match(html,/class="ui2-rp-streak is-cold"[^>]*data-ui2="calendar-open"[^>]*aria-haspopup="dialog"/);
   assert.ok(html.includes(c.dailyIdeaStreakDays(5)));
   assert.equal(html.match(/practice-mode practice-mode--/g).length,8);
   assert.equal(TOPICS.practice.length+TOPICS.discover.length,8);
   assert.match(html,/id="ui2-rp-practice"[^>]*>[^<]*</);assert.ok(html.includes(c.practice)&&html.includes(c.practiceMode_discover));
   assert.equal(html.match(/navigation-new-badge/g).length,1);                  // the tab
   assert.equal(html.match(/ui2-flame-badge"/g).length,2);                       // the two streak topics, still pending
-  assert.match(html,new RegExp(`aria-label="${c.practiceMode_mixed}, ${c.ui2PendingForStreak}"`));
+  assert.match(html,new RegExp(`aria-label="${c.practiceMode_mixed}, ${c.ui2PendingForStreak}\.`));
   assert.match(html,/ui2-price-tag--discount/);                                   // Read is today's offer
-  assert.ok(html.includes(c.practicePrice(3)));
+  assert.ok(html.includes(c.ui2PriceCost(5,"petal")));
+  assert.match(html,/ui2-price-tag--leaf/);
+  assert.match(html,/data-mode="saved" data-cost="10"/);
   assert.match(html,/practice-mode--dailyDeck[\s\S]*?<\/button>/);
-  assert.equal(html.match(/aria-disabled="true"/g).length,1);                   // only the Social piece: every topic is available here
+  assert.equal((html.match(/aria-disabled="true"/g)||[]).length,1);                   // only the Social piece: every topic is available here
   assert.doesNotMatch(html,/ui2-empty|practice-choice-mascot/);
 });
 
@@ -47,7 +49,7 @@ test("Repaso: each done part lights its flame badge; the row counts parts and, w
   const some=render("es",streak({dailyCardSeenToday:true}));
   assert.equal(some.match(/ui2-flame-badge is-done/g).length,1);
   assert.match(some.match(/<button[^>]*practice-mode--dailyDeck[\s\S]*?<\/button>/)[0],/ui2-flame-badge is-done/);
-  assert.match(some,new RegExp(`aria-label="${c.ui2TopicDailyDeck}, ${c.ui2DoneForStreak}"`));
+  assert.match(some,new RegExp(`aria-label="${c.ui2TopicDailyDeck}, ${c.ui2DoneForStreak}\.`));
   assert.ok(some.includes("1/2"));assert.match(some,/ui2-rp-streak is-cold/);
   const all=render("es",streak({dailyCardSeenToday:true,mixedDoneToday:true}));
   assert.equal(all.match(/ui2-flame-badge is-done/g).length,2);
@@ -70,7 +72,7 @@ test("Next streak day follows the daily idea cycle in the reader's time zone",()
 
 test("Every topic starts the server session with the cost the server announced; unavailable ones are dimmed with the reason",()=>{
   const html=render("es",streak());
-  for(const id of ["mixed","reading","read","saved","dailyDeck","interests","novelties","teamPicks"])assert.match(html,new RegExp(`data-ui2="practice-start" data-mode="${id}" data-cost="${id==="read"?2:3}"`));
+  for(const id of ["mixed","reading","read","saved","dailyDeck","interests","novelties","teamPicks"])assert.match(html,new RegExp(`data-ui2="practice-start" data-mode="${id}" data-cost="${id==="read"?3:id==="saved"?10:5}"`));
   assert.doesNotMatch(html,/practice-legacy/);
   const dimmed=render("es",streak(),state(),topicState({novelties:{available:false,cards:1,required:5},dailyDeck:{available:false,cards:0,required:5}}));
   const novelties=dimmed.match(/<button[^>]*practice-mode--novelties[\s\S]*?<\/button>/)[0];

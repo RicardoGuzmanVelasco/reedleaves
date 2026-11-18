@@ -282,6 +282,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       let result;
       try{result=await api.request("/api/reader/practice/start",{practiceMode:mode,sessionId:reader.activePracticeSession?.id||null,expectedCost:cost});}
       catch(caught){throw Object.assign(caught,{title:c.ui2PracticeError});}
+      if(result?.practiceRecovery?.status==="finished"){win.location.assign(`${c.legacy}#practice/done`);return;}
       if(result?.reason)throw {code:result.reason,title:c.ui2PracticeError,detail:practiceStartDetail(result,cost,c)};
       win.location.assign(`${c.legacy}#practice/session`);
     });

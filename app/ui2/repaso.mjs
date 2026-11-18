@@ -1,13 +1,13 @@
 // Practice (Repaso): streak row, two topic containers, streak calendar. The streak rule lives in the server
 // (GET /api/progress/streak); nothing here computes it.
 import {escapeHtml as esc,practiceDeckIcon} from "../views.mjs";
-import {priceTagMarkup} from "./price-tag.mjs";
+import {priceTagMarkup,priceTagLabel} from "./price-tag.mjs";
 import {imageUrl} from "../image-url.mjs";
 import {icon} from "./icons.mjs";
 import {headerMarkup} from "./shell.mjs";
 import {nextDailyCycleBoundary,DAILY_CYCLE_STARTS} from "../daily-cycle.mjs";
 
-const REGULAR_COST=3;
+const REGULAR_COST=5;
 // Topic ids are the server's (GET /api/reader/practice/topics). `streak`: counts for the daily streak.
 export const TOPICS={
   practice:[{id:"mixed",streak:true},{id:"reading"},{id:"read"},{id:"saved"}],
@@ -62,8 +62,8 @@ export function tickStreakCountdown(root,data,c,now=new Date()){
 
 function price(info,data,c){
   const cost=info?.cost??REGULAR_COST;
-  const petals=data.wallet?.petals;
-  return priceTagMarkup({amount:cost,currency:"petal",size:"sm",soft:true,...(info?.discounted?{original:REGULAR_COST}:{}),state:Number.isFinite(petals)&&petals<cost?"insufficient":"normal",c});
+  const currency=info?.currency||"petal",balance=currency==="leaf"?data.wallet?.leaves:data.wallet?.petals;
+  return priceTagMarkup({amount:cost,currency,size:"sm",soft:true,...(info?.discounted?{original:REGULAR_COST}:{}),state:Number.isFinite(balance)&&balance<cost?"insufficient":"normal",c});
 }
 // Same recipe for every glyph: viewBox 24, content inside 2-22, one stroke, no tick except "read".
 const ICON_PATHS={
@@ -79,7 +79,8 @@ function topicMarkup(topic,data,c){
   const done=topic.streak&&data.streak.known&&stepState(topic.id,data),owed=available&&topic.streak&&data.streak.known&&!done;
   const glyph=modeGlyph(topic.id);
   const attrs=available?` data-ui2="practice-start" data-mode="${topic.id}" data-cost="${info?.cost??REGULAR_COST}"`:' aria-disabled="true"';
-  const aria=!available?`${name}, ${c.practiceNeedMoreCards(info.cards,info.required)}`:owed?`${name}, ${c.ui2PendingForStreak}`:done?`${name}, ${c.ui2DoneForStreak}`:name;
+  const baseAria=!available?`${name}, ${c.practiceNeedMoreCards(info.cards,info.required)}`:owed?`${name}, ${c.ui2PendingForStreak}`:done?`${name}, ${c.ui2DoneForStreak}`:name;
+  const aria=available?`${baseAria}. ${priceTagLabel(c,{amount:info?.cost??REGULAR_COST,currency:info?.currency||"petal",original:info?.discounted?REGULAR_COST:null})}`:baseAria;
   const badge=owed||done?`<span class="ui2-flame-badge${done?" is-done":""}">${flame(done)}</span>`:"";
   return `<button type="button" class="practice-mode practice-mode--${topic.id}" aria-label="${esc(aria)}"${attrs}><span class="ui2-pack" aria-hidden="true"><span class="practice-mode-pack"><span class="practice-mode-card practice-mode-card--left"></span><span class="practice-mode-card practice-mode-card--right"></span><span class="practice-mode-card practice-mode-card--cover">${glyph}</span></span>${badge}</span><span class="practice-mode-label">${esc(name)}</span>${available?price(info,data,c):""}</button>`;
 }

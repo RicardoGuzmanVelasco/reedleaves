@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase,initializeDatabase} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
+import {readReaderState} from "./reader-repository.mjs";
 import {startPracticeSession} from "./practice-economy.mjs";
 import {accruePetalWallet} from "./petal-wallet-repository.mjs";
 
@@ -46,9 +47,11 @@ for(const dialect of ["sqlite","postgres"]) {
 
   test(`${dialect}: practice sessions can spend from a balance above the refill threshold`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
-    const result=await startPracticeSession(db,session,"reading",now);
+    await db.prepare("UPDATE petal_wallets SET balance=25 WHERE user_id=?").run(session.user_id);
+    const state=await readReaderState(db,session,now),mode=state.practiceLeafMode==="reading"?"mixed":"reading";
+    const result=await startPracticeSession(db,session,mode,now);
     assert.ok(result.session);
-    assert.equal(result.balance,20-result.session.cost);
+    assert.equal(result.balance,25-result.session.cost);
     assert.ok(result.balance>15);
     assert.equal((await accruePetalWallet(db,"reader","2026-10-07")).balance,result.balance);
   });

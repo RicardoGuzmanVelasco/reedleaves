@@ -31,7 +31,7 @@ async function createReader(db,label) {
   await db.prepare("INSERT INTO users(id,display_name,created_at) VALUES (?,?,?)").run(id,"Practice test",now.toISOString());
   await db.prepare("INSERT INTO accounts(user_id,username,password_hash,time_zone,language) VALUES (?,?,?,?,?)").run(id,username,"test-hash","Europe/Madrid","en");
   await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run(id,10,refillDay);
-  await db.prepare("INSERT INTO leaf_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run(id,5,refillDay);
+  await db.prepare("INSERT INTO leaf_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run(id,100,refillDay);
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'reading')").run(id,"seven-habits");
   await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run(id,"seven-habits-editorial");
   const session=sessionFor(id);
@@ -53,7 +53,7 @@ async function swapSessionCard(db,started,position,cardId) {
   await db.prepare("UPDATE practice_sessions SET card_ids=? WHERE id=?").run(JSON.stringify(ids),started.session.id);
 }
 
-postgresTest("real PostgreSQL serializes recovery, refunds once, and preserves reader lock order",{timeout:25000},async t=>{
+postgresTest("real PostgreSQL serializes recovery, awards XP once, and preserves reader lock order",{timeout:25000},async t=>{
   process.env.PG_POOL_SIZE=process.env.PG_POOL_SIZE||"8";
   if(Number(process.env.PG_POOL_SIZE)<2) throw new Error("REED_TEST_POSTGRES_URL needs PG_POOL_SIZE of at least 2");
   const db=new PostgresDatabase(testUrl.href);
@@ -112,14 +112,7 @@ postgresTest("real PostgreSQL serializes recovery, refunds once, and preserves r
   await swapSessionCard(db,cancelledStart,2,cancelGuide.cardId);
   for(const id of savedCards) await setCardSave(db,cancelReader.session,{cardId:id,saved:false},now);
   const beforeRefund=Number((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(cancelReader.id)).balance);
-  await db.exec(`CREATE FUNCTION reed_test_fail_refund() RETURNS trigger LANGUAGE plpgsql AS $$
-    BEGIN IF NEW.user_id='${cancelReader.id}' AND NEW.balance>OLD.balance THEN RAISE EXCEPTION 'forced practice refund failure'; END IF; RETURN NEW; END $$`);
-  await db.exec("CREATE TRIGGER reed_test_fail_refund BEFORE UPDATE ON petal_wallets FOR EACH ROW EXECUTE FUNCTION reed_test_fail_refund()");
-  await assert.rejects(readReaderState(db,cancelReader.session,now),/forced practice refund failure/);
-  const rolledBackRefund=await db.prepare("SELECT cancelled_at FROM practice_sessions WHERE id=?").get(cancelledStart.session.id);
-  assert.equal(rolledBackRefund.cancelled_at,null);
-  assert.equal(Number((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(cancelReader.id)).balance),beforeRefund);
-  await db.exec("DROP TRIGGER reed_test_fail_refund ON petal_wallets; DROP FUNCTION reed_test_fail_refund()");
+  const beforeXp=Number((await db.prepare("SELECT xp FROM reader_xp_balances WHERE user_id=?").get(cancelReader.id)).xp);
   const [cancelRead,cancelStart,cancelAnswer]=await Promise.all([
     readReaderState(db,cancelReader.session,now),
     startPracticeSession(db,cancelReader.session,"mixed",now,cancelledStart.session.id),
@@ -127,11 +120,12 @@ postgresTest("real PostgreSQL serializes recovery, refunds once, and preserves r
   ]);
   const afterCancel=await readReaderState(db,cancelReader.session,now);
   assert.equal(afterCancel.activePracticeSession,null);
-  assert.equal(afterCancel.petals,beforeRefund+cancelledStart.session.cost);
+  assert.equal(afterCancel.petals,beforeRefund);
   assert.equal((await db.prepare("SELECT count(*) AS n FROM practice_sessions WHERE user_id=?").get(cancelReader.id)).n,1,"cancelled start race does not buy another session");
-  assert.ok(cancelRead.practiceRecovery?.status==="cancelled"||cancelStart.practiceRecovery?.status==="cancelled"||cancelAnswer.practiceRecovery?.status==="cancelled");
+  assert.ok(cancelRead.practiceRecovery?.status==="finished"||cancelStart.practiceRecovery?.status==="finished"||cancelAnswer.practiceRecovery?.status==="finished");
   const cancelledRow=await db.prepare("SELECT completed_at,completed_local_day,cancelled_at FROM practice_sessions WHERE id=?").get(cancelledStart.session.id);
-  assert.equal(cancelledRow.completed_at,null);assert.equal(cancelledRow.completed_local_day,null);assert.ok(cancelledRow.cancelled_at);
+  assert.ok(cancelledRow.completed_at);assert.equal(cancelledRow.completed_local_day,"2026-10-28");assert.equal(cancelledRow.cancelled_at,null);
+  assert.equal(afterCancel.readerProgression.xp,beforeXp+25);
   assert.equal(afterCancel.practiceDiscountMode,(await readReaderState(db,cancelReader.session,now)).practiceDiscountMode);
 
   const lockReader=await createReader(db,"lock-order");

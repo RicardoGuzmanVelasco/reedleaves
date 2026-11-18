@@ -359,7 +359,7 @@ CREATE TABLE practice_sessions (
   practice_mode TEXT NOT NULL CHECK(practice_mode IN ('reading','read','saved','mixed','dailyDeck','interests','novelties','teamPicks')),
   card_ids TEXT NOT NULL,
   card_index INTEGER NOT NULL DEFAULT 0 CHECK(card_index BETWEEN 0 AND 5),
-  cost INTEGER NOT NULL CHECK(cost IN (2,3)),
+  cost INTEGER NOT NULL CHECK(cost IN (2,3,5,10)),
   started_at TEXT NOT NULL,
   completed_at TEXT,
   completed_local_day TEXT CHECK(completed_local_day IS NULL OR (completed_local_day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(completed_local_day,'+0 days') IS completed_local_day)),
@@ -410,4 +410,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 68;
+PRAGMA user_version = 69;

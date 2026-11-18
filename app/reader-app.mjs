@@ -1,4 +1,4 @@
-import {PRACTICE_ENABLED_MODES} from "./practice-modes.mjs";
+import {PRACTICE_ENABLED_MODES,practicePrice} from "./practice-modes.mjs";
 import {prepareOpeningFlight} from "./opening-flight.mjs";
 import {createDiscoverAvailability} from "./discover-availability.mjs";
 import {startBottomNavigationBehavior} from "./bottom-navigation-behavior.mjs";
@@ -569,7 +569,7 @@ export function startReader({createCardFeatures} = {}) {
     const pendingNoteDeckIds=notesCompletion ? notesCompletion.decks.filter(entry=>findNoteDraft(notesCompletion.bookId,entry.deckId)).map(entry=>entry.deckId) : [];
     const selectedDailyIdea=dailyIdeaHistory.find(item=>item.day===selectedDailyIdeaDay)||dailyIdea;
     if(mode==="practice"&&practiceStage==="choose"&&!snapshot.activePracticeSession&&snapshot.user&&discoverAvailability.state.status==="idle")void discoverAvailability.load();
-    const state = {discoverAvailability:discoverAvailability.state,practiceStarting:practiceStartRequest?.practiceMode||null,presentationLayout,presentationIndex,bookViews,userId:snapshot.user?.id,user:snapshot.user,guideReviewPendingCount,guideReviewQueue,guideReviewLoading,guideReviewError,guideReviewRejectingId,guideReviewExpandedId,guideReviewReason,guideReviewNotice,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,deckContributorError,deckContributorInput,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,interests:catalog?.interests||homeCoverInterests,homeBooks:homeBooksData,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},dailyIdea:selectedDailyIdea,dailyIdeaToday:dailyIdea,dailyIdeaHistory,dailyIdeaStatus,dailyIdeaLoading,selectedDailyIdeaDay,dailyIdeaCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountMode:snapshot.practiceDiscountMode,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
+    const state = {discoverAvailability:discoverAvailability.state,practiceStarting:practiceStartRequest?.practiceMode||null,presentationLayout,presentationIndex,bookViews,userId:snapshot.user?.id,user:snapshot.user,guideReviewPendingCount,guideReviewQueue,guideReviewLoading,guideReviewError,guideReviewRejectingId,guideReviewExpandedId,guideReviewReason,guideReviewNotice,authorForm,noteDestination,deckCompletion,notesCompletion,pendingNoteDeckIds,bookStatusError,deckLanguageError,deckTitleEdit,deckContributorError,deckContributorInput,hasPendingNoteDraft:mode === "author" && !!findNoteDraft(bookId,deckId),quotesOnly,deckPreview,previewColumns,language,catalog,interests:catalog?.interests||homeCoverInterests,homeBooks:homeBooksData,budget,preferences,statuses,shelfBookIds:snapshot.shelfBookIds||[],noteActivity:snapshot.noteActivity||{},noteDeckActivity:snapshot.noteDeckActivity||{},growth:snapshot.growth||{},dailyIdea:selectedDailyIdea,dailyIdeaToday:dailyIdea,dailyIdeaHistory,dailyIdeaStatus,dailyIdeaLoading,selectedDailyIdeaDay,dailyIdeaCardId,calendarMonth,practiceStage,practiceUnavailable,practiceAnswers:snapshot.practiceAnswers||{},practiceDiscountMode:snapshot.practiceDiscountMode,practiceLeafMode:snapshot.practiceLeafMode,activePracticeSession:snapshot.activePracticeSession,petals:snapshot.petals||0,petalMaximum:snapshot.petalMaximum||15,bookId,deckId,requestedId:authorForm ? null : requestedId,cardSaves:snapshot.cardSaves||[],
       sharedContentLanguage:mode === "shared-card" ? sharedContentLanguage : null,deckChoices:mode === "book" ? choicesForBook() : [],openDeckId,openBookId,noteNudgeBookId,readingGuidePromptBookId,readingGuideError,readingGuideDraft,bookstoreQuery,bookstoreFilters,bookstoreFiltersOpen,bookstoreFilterDraft,bookstoreSortDraft,bookSortOrder,bookstoreSortOrder,interestPreferences,bookstoreInterestSortPending,bookstoreInterestSortError,libraryTab,bookOrigin,bookstoreOrigin,sourcesOpen,cardcaseDeckIds,
       profileData,profileError,profileInterests,profileLanguages,homeInterestPreferences,bookInterestPrompt,readOnly:mode === "public-library",storageAvailable:!!snapshot.user,today:snapshot.today || localDay(),mode,authMode,inviteRequired,accountLearningNotice,accountInterestSortNotice,bookstoreNewBookIds,injectHeaderLeading:setHeaderLeading,profileReturnHash,showProfileBack:snapshot.user&&usefulProfileReturnHash(profileReturnHash)};
     state.catalog=viewCatalog()||state.catalog;
@@ -811,7 +811,9 @@ export function startReader({createCardFeatures} = {}) {
       if(first === "session") {
         practiceSession=restorePracticeSession(snapshot.activePracticeSession);
         if(practiceSession) { practiceStage="session";practiceUnavailable=null; }
-        else if(snapshot.practiceRecovery?.status==="cancelled") {
+        else if(snapshot.practiceRecovery?.status==="finished") {
+          practiceStage="done";practiceUnavailable=null;
+        } else if(snapshot.practiceRecovery?.status==="cancelled") {
           practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",practiceMode:snapshot.practiceRecovery.practiceMode};
           history.replaceState(history.state,"","#practice");
         } else {
@@ -820,6 +822,7 @@ export function startReader({createCardFeatures} = {}) {
         }
       }
       else if(first === "empty") { practiceStage="empty";practiceSession=null; }
+      else if(first === "done") { practiceStage="done";practiceSession=null; }
       else { practiceStage="choose";practiceSession=null;practiceUnavailable=null; }
       mode="practice";requestedId=null;openDeckId=null;
     } else {
@@ -1072,7 +1075,9 @@ export function startReader({createCardFeatures} = {}) {
         practiceSession=restored;practiceStage="session";practiceUnavailable=null;
       } else if(!state.activePracticeSession) {
         practiceSession=null;
-        if(state.practiceRecovery?.status==="cancelled") {
+        if(state.practiceRecovery?.status==="finished") {
+          practiceStage="done";practiceUnavailable=null;
+        } else if(state.practiceRecovery?.status==="cancelled") {
           practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",practiceMode:state.practiceRecovery.practiceMode||previousPracticeMode};
           if(hash==="#practice/session")history.replaceState(history.state,"","#practice");
         } else { practiceStage="choose";practiceUnavailable=null; }
@@ -1107,7 +1112,7 @@ export function startReader({createCardFeatures} = {}) {
     practiceStartRequest=requestTicket;
     render();
     try {
-      const result=await api.request("/api/reader/practice/start",{practiceMode,sessionId:snapshot.activePracticeSession?.id||null,expectedCost:practiceMode===snapshot.practiceDiscountMode?2:3});
+      const result=await api.request("/api/reader/practice/start",{practiceMode,sessionId:snapshot.activePracticeSession?.id||null,expectedCost:practicePrice(practiceMode,snapshot.practiceDiscountMode,snapshot.practiceLeafMode)});
       if(!canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration})) {
         if(snapshot.user?.id===userId)void recoverPracticeSession();
         return;
@@ -1116,6 +1121,9 @@ export function startReader({createCardFeatures} = {}) {
       applyState(result.state);practiceStateUserId=userId;
       const active=result.state.activePracticeSession;
       if(active&&!catalogIsFull){if(result.context)practiceCatalog=partialCatalog(result.context);else await ensurePracticeCards(active.cardIds);}
+      if(result.practiceRecovery?.status==="finished") {
+        practiceSession=null;practiceStage="done";practiceUnavailable=null;render({focus:true});return;
+      }
       if(result.practiceRecovery?.status==="cancelled") {
         practiceSession=null;practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",practiceMode};
         history.replaceState(history.state,"","#practice");render({focus:true});return;
@@ -1139,7 +1147,7 @@ export function startReader({createCardFeatures} = {}) {
     } catch(error) {
       if(!canApplyPracticeRecovery(requestTicket,{userId:snapshot.user?.id,generation:practiceRecoveryGeneration,stateRevision:authoritativeStateGeneration}))return;
       syncError=error.code||"connectionError";
-      practiceUnavailable={reason:error.code||"connectionError",practiceMode,cost:practiceMode===snapshot.practiceDiscountMode?2:3,balance:snapshot.petals||0};practiceStage="empty";navigate("#practice/empty");
+      practiceUnavailable={reason:error.code||"connectionError",practiceMode,cost:practicePrice(practiceMode,snapshot.practiceDiscountMode,snapshot.practiceLeafMode),balance:snapshot.petals||0};practiceStage="empty";navigate("#practice/empty");
     } finally {if(practiceStartRequest===requestTicket){practiceStartRequest=null;if(mode==="practice"&&practiceStage==="choose")render();}}
   }
   async function answerPractice(answer,{swipeX=0,cardWidth=1,rotation=0}={}) {
@@ -1198,6 +1206,8 @@ export function startReader({createCardFeatures} = {}) {
       practiceSession=null;practiceStage="done";practiceUnavailable=null;
     } else if(activePracticeSession) {
       practiceSession=null;practiceStage="choose";practiceUnavailable=null;history.replaceState(history.state,"","#practice");render({focus:true});void recoverPracticeSession();return;
+    } else if(result.practiceRecovery?.status==="finished") {
+      practiceSession=null;practiceStage="done";practiceUnavailable=null;
     } else if(result.practiceRecovery?.status==="cancelled") {
       practiceSession=null;practiceStage="choose";practiceUnavailable={reason:"practiceSessionCancelled",practiceMode:session.practiceMode};
       history.replaceState(history.state,"","#practice");render({focus:true});return;

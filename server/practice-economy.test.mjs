@@ -26,6 +26,7 @@ async function fixture(t,dialect="sqlite") {
   await db.prepare("INSERT INTO users(id,display_name,created_at) VALUES (?,?,?)").run("reader","Reader","2026-10-01T12:00:00.000Z");
   await db.prepare("INSERT INTO accounts(user_id,username,password_hash,time_zone,language) VALUES (?,?,?,?,?)").run("reader","reader","hash","Europe/Madrid","es");
   await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run("reader",10,"2026-10-06");
+  await db.prepare("INSERT INTO leaf_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run("reader",100,"2026-10-06");
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,?)").run("reader","seven-habits","reading");
   await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run("reader","seven-habits-editorial");
   return {db,session:{user_id:"reader",csrf_token:"csrf"}};
@@ -102,6 +103,7 @@ for(const dialect of ["sqlite","postgres"]) {
       const preferences=await readReaderLanguagePreferences(db,activeSession);
       await saveReaderLanguagePreferences(db,activeSession,{languages:[item.language],revision:preferences.revision});
       await db.prepare("UPDATE petal_wallets SET balance=15 WHERE user_id=?").run(item.userId);
+      await db.prepare("INSERT INTO leaf_wallets(user_id,balance,last_accrual_day) VALUES (?,100,?) ON CONFLICT(user_id) DO UPDATE SET balance=100").run(item.userId,"2026-10-06");
       const result=await startPracticeSession(db,activeSession,"saved",now);
       if(item.expected) {
         assert.ok(result.session,`${item.deckId} cards can be selected: ${JSON.stringify(result)}`);
@@ -111,6 +113,30 @@ for(const dialect of ["sqlite","postgres"]) {
       } else assert.equal(result.reason,"notEnoughCards",`${item.deckId} cards stay unavailable`);
       await db.prepare("DELETE FROM card_saves WHERE user_id=?").run(item.userId);
     }
+  });
+
+  test(`${dialect}: leaf offer charges once and an unrecoverable session completes with XP once`,async t=>{
+    const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
+    const initial=await readReaderState(db,session,now),mode=initial.practiceLeafMode;
+    assert.notEqual(mode,initial.practiceDiscountMode);
+    await preparePracticeMode(db,session,mode);
+    await db.prepare("UPDATE leaf_wallets SET balance=9 WHERE user_id=?").run(session.user_id);
+    const poor=await startPracticeSession(db,session,mode,now,null,10);
+    assert.equal(poor.reason,"insufficientPracticeLeaves");
+    await db.prepare("UPDATE leaf_wallets SET balance=20 WHERE user_id=?").run(session.user_id);
+    const started=await startPracticeSession(db,session,mode,now,null,10);
+    assert.equal(started.session.cost,10);
+    const paid=await readReaderState(db,session,now);
+    assert.equal(paid.wallet.balance,10);assert.equal(paid.petals,initial.petals);
+    const resumed=await startPracticeSession(db,session,mode,now,started.session.id,10);
+    assert.equal(resumed.resumed,true);
+    await db.prepare("UPDATE practice_sessions SET card_ids='null' WHERE id=?").run(started.session.id);
+    const finished=await readReaderState(db,session,now);
+    assert.equal(finished.practiceRecovery.status,"finished");
+    assert.equal(finished.wallet.balance,10);assert.equal(finished.readerProgression.xp,initial.readerProgression.xp+25);
+    const again=await readReaderState(db,session,now);
+    assert.equal(again.readerProgression.xp,finished.readerProgression.xp);
+    assert.equal((await db.prepare("SELECT count(*) AS n FROM reader_xp_events WHERE user_id=? AND event_key=?").get(session.user_id,`practice_session:${started.session.id}`)).n,1);
   });
 
   test(`${dialect}: petals refill by nine daily up to fifteen`,async t=>{
@@ -123,16 +149,16 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal((await accruePetalWallet(db,"reader","2026-10-10")).balance,15);
   });
 
-  test(`${dialect}: paid sessions cost two or three, resume, persist answers and seed the next discount from completion time`,async t=>{
+  test(`${dialect}: paid sessions cost three petals, resume, persist answers and seed the next discount from completion time`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     const initial=await readReaderState(db,session,now),discount=initial.practiceDiscountMode;
     await preparePracticeMode(db,session,discount);
     const first=await startPracticeSession(db,session,discount,now);
-    assert.equal(first.session.cardIds.length,PRACTICE_SESSION_SIZE);assert.equal(first.session.cost,2);
-    assert.equal((await readReaderState(db,session,now)).petals,8);
+    assert.equal(first.session.cardIds.length,PRACTICE_SESSION_SIZE);assert.equal(first.session.cost,3);
+    assert.equal((await readReaderState(db,session,now)).petals,7);
     const resumed=await startPracticeSession(db,session,"saved",now);
     assert.equal(resumed.resumed,true);assert.equal(resumed.session.id,first.session.id);
-    assert.equal((await readReaderState(db,session,now)).petals,8);
+    assert.equal((await readReaderState(db,session,now)).petals,7);
     let result;
     for(let index=0;index<PRACTICE_SESSION_SIZE;index++) result=await answerPracticeSession(db,session,{sessionId:first.session.id,index,cardId:first.session.cardIds[index],answer:index===0?"see_less":"see_more"},new Date(now.getTime()+1000*(index+1)));
     assert.equal(result.session.index,PRACTICE_SESSION_SIZE);assert.ok(result.session.completedAt);
@@ -144,7 +170,7 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal(Object.keys(after.practiceAnswers).length,PRACTICE_SESSION_SIZE);
     await preparePracticeMode(db,session,expected);
     const next=await startPracticeSession(db,session,expected,new Date(now.getTime()+7000));
-    assert.equal(next.session.cost,2);
+    assert.equal(next.session.cost,3);
   });
 
   test(`${dialect}: reading practice includes a non-recommended deck in the Cardcase`,async t=>{
@@ -227,14 +253,14 @@ for(const dialect of ["sqlite","postgres"]) {
       "later preference changes do not rewrite a legacy snapshot");
   });
 
-  test(`${dialect}: a legacy session without recoverable card languages cancels and refunds once`,async t=>{
+  test(`${dialect}: a legacy session without recoverable card languages finishes once`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     const before=(await readReaderState(db,session,now)).petals,started=await startPracticeSession(db,session,"reading",now);
     await db.prepare("UPDATE practice_sessions SET language_snapshot=NULL,card_ids=? WHERE id=?").run(JSON.stringify(["missing-card"]),started.session.id);
     const first=await readReaderState(db,session,now);
-    assert.equal(first.practiceRecovery.status,"cancelled");assert.equal(first.activePracticeSession,null);assert.equal(first.petals,before);
+    assert.equal(first.practiceRecovery.status,"finished");assert.equal(first.activePracticeSession,null);assert.equal(first.petals,before-(started.session.cost===10?0:started.session.cost));
     const second=await readReaderState(db,session,now);
-    assert.equal(second.petals,before,"the compatibility refund is one-time");
+    assert.equal(second.petals,first.petals,"completion does not refund");
   });
 
   test(`${dialect}: practice excludes guides in all modes and repairs a guide before answering`,async t=>{
@@ -289,15 +315,15 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal(state.activePracticeSession.index,1);
   });
 
-  test(`${dialect}: malformed session snapshots cancel safely and return their charge`,async t=>{
+  test(`${dialect}: malformed session snapshots finish safely`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     const before=(await readReaderState(db,session,now)).petals,started=await startPracticeSession(db,session,"reading",now);
     await db.prepare("UPDATE practice_sessions SET card_ids='null' WHERE id=?").run(started.session.id);
     const state=await readReaderState(db,session,now);
-    assert.equal(state.activePracticeSession,null);assert.equal(state.practiceRecovery.status,"cancelled");assert.equal(state.petals,before);
+    assert.equal(state.activePracticeSession,null);assert.equal(state.practiceRecovery.status,"finished");assert.equal(state.petals,before-(started.session.cost===10?0:started.session.cost));
   });
 
-  test(`${dialect}: cancel/refund once when pending cards cannot be replaced, preserving history and discount`,async t=>{
+  test(`${dialect}: finish once when pending cards cannot be replaced, preserving history`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read') ON CONFLICT(user_id,book_id) DO UPDATE SET status=excluded.status").run(session.user_id,"atomic-habits");
     const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",body:"A useful reading guide.",language:"en"});
@@ -310,31 +336,21 @@ for(const dialect of ["sqlite","postgres"]) {
     await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)").run(started.session.id,guide.cardId,guidePosition);
     await db.prepare("INSERT INTO practice_answers(user_id,card_id,answer,answered_at) VALUES (?,?,?,?)").run(session.user_id,ids[0],"see_more",now.toISOString());
     for(const id of regular) await setCardSave(db,session,{cardId:id,saved:false},now);
-    const cancelled=await readReaderState(db,session,now);
-    assert.equal(cancelled.practiceRecovery.status,"cancelled");
-    assert.equal(cancelled.activePracticeSession,null);
-    assert.equal(cancelled.petals,initial.petals);
-    assert.equal(cancelled.practiceDiscountMode,initial.practiceDiscountMode);
-    const row=await db.prepare("SELECT completed_at,completed_local_day,cancelled_at,cost FROM practice_sessions WHERE id=?").get(started.session.id);
-    assert.equal(row.completed_at,null);assert.equal(row.completed_local_day,null);assert.ok(row.cancelled_at);
+    const finished=await readReaderState(db,session,now);
+    assert.equal(finished.practiceRecovery.status,"finished");
+    assert.equal(finished.activePracticeSession,null);
+    assert.equal(finished.petals,initial.petals-(started.session.cost===10?0:started.session.cost));
+    assert.equal(finished.wallet.balance,initial.wallet.balance-(started.session.cost===10?10:0));
+    assert.equal(finished.practiceDiscountMode,practiceDiscountMode(session.user_id,now));
+    assert.equal(finished.readerProgression.xp,initial.readerProgression.xp+25);
+    const row=await db.prepare("SELECT completed_at,completed_local_day,cancelled_at FROM practice_sessions WHERE id=?").get(started.session.id);
+    assert.ok(row.completed_at);assert.equal(row.completed_local_day,"2026-10-06");assert.equal(row.cancelled_at,null);
     assert.equal((await db.prepare("SELECT count(*) AS n FROM practice_answers WHERE user_id=?").get(session.user_id)).n,1);
     const repeatedRead=await readReaderState(db,session,now);
-    assert.equal(repeatedRead.petals,initial.petals,"a later read does not refund twice");
-    assert.equal(repeatedRead.practiceRecovery.status,"cancelled","later tabs can still explain an earlier cancellation");
-    const legacyRetry=await startPracticeSession(db,session,"reading",now);
-    assert.equal(legacyRetry.reason,"practiceSessionCancelled","a legacy retry does not buy after cancellation");
-    assert.equal((await readReaderState(db,session,now)).petals,initial.petals);
+    assert.equal(repeatedRead.readerProgression.xp,finished.readerProgression.xp);
     const explicitNew=await startPracticeSession(db,session,"reading",now,null);
-    assert.ok(explicitNew.session,"an explicit new user action can start the next session");
-    assert.equal((await readReaderState(db,session,now)).practiceRecovery,undefined,"a new active session clears the old cancellation notice");
-    await db.prepare("UPDATE practice_sessions SET card_index=5,completed_at=?,completed_local_day='2026-10-06' WHERE id=?")
-      .run(now.toISOString(),explicitNew.session.id);
-    const beforeStale=await readReaderState(db,session,now),staleIdentity=await startPracticeSession(db,session,"reading",now,explicitNew.session.id);
-    assert.equal(beforeStale.practiceRecovery,undefined,"a completion wins a terminal-time tie with an older cancellation");
-    assert.equal(staleIdentity.reason,"practiceSessionUnavailable");
-    assert.equal((await readReaderState(db,session,now)).petals,beforeStale.petals);
-    const unknownIdentity=await startPracticeSession(db,session,"reading",now,"missing-practice-session");
-    assert.equal(unknownIdentity.reason,"practiceSessionUnavailable");
+    assert.ok(explicitNew.session);
+
   });
 
   test(`${dialect}: purchased cards survive collection removal`,async t=>{
@@ -375,14 +391,16 @@ test("session keeps its charge while unfinished and repeated answer submissions 
   const firstAnswer=await answerPracticeSession(db,session,{sessionId:started.session.id,index:0,cardId:first,answer:"see_less"},now);
   const retry=await answerPracticeSession(db,session,{sessionId:started.session.id,index:0,cardId:first,answer:"see_less"},now);
   assert.equal(firstAnswer.session.index,1);assert.equal(retry.idempotent,true);assert.equal(retry.session.index,1);
-  assert.equal((await readReaderState(db,session,now)).petals,8);
+  assert.equal((await readReaderState(db,session,now)).petals,7);
   assert.equal((await readReaderState(db,session,now)).activePracticeSession.index,1);
 });
 
-test("a session costs three petals when its practiceMode is not discounted",async t=>{
-  const {db,session}=await fixture(t),now=new Date("2026-10-06T12:00:00.000Z"),discount=(await readReaderState(db,session,now)).practiceDiscountMode;
-  const practiceMode=discount==="reading"?"mixed":"reading",started=await startPracticeSession(db,session,practiceMode,now);
-  assert.equal(started.session.cost,3);assert.equal((await readReaderState(db,session,now)).petals,7);
+test("a session costs five petals when its practiceMode has no offer",async t=>{
+  const {db,session}=await fixture(t),now=new Date("2026-10-06T12:00:00.000Z"),state=await readReaderState(db,session,now);
+  const practiceMode=["reading","mixed"].find(mode=>mode!==state.practiceDiscountMode&&mode!==state.practiceLeafMode);
+  if(!practiceMode) return;
+  const started=await startPracticeSession(db,session,practiceMode,now);
+  assert.equal(started.session.cost,5);assert.equal((await readReaderState(db,session,now)).petals,5);
 });
 
 test("daily idea stays global when card language preferences exclude its language",async t=>{

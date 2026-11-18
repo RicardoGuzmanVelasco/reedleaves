@@ -1,3 +1,4 @@
+import {practicePrice,PRACTICE_BASE_COST} from "./practice-modes.mjs";
 import {imageUrl} from "./image-url.mjs";
 import {PRACTICE_ENABLED_MODES} from "./practice-modes.mjs";
 import {callout} from "./callout.mjs";
@@ -345,7 +346,7 @@ export function practiceView(s,session) {
   if(s.practiceStage === "done") return `<section class="practice-screen practice-done">${back}<div class="practice-done-mascot">${mascotArt("sprout")}</div><h1 tabindex="-1">${esc(c.practiceDone)}</h1><button class="practice-response practice-response--see-more" type="button" data-action="practice-again">${esc(c.practiceAgain)}</button></section>`;
   if(s.practiceStage === "empty") {
     const failure=s.practiceUnavailable,practiceMode=failure?.practiceMode,reason=failure?.reason;
-    const message=reason==="insufficientPetals"?c.practiceInsufficientPetals(failure.cost,failure.balance):reason==="notEnoughCards"?c.practiceNeedMoreCards(failure.available,failure.required):reason==="practiceSessionCancelled"?c.practiceSessionCancelled:reason==="connectionError"?c.connectionError:c.practiceNoCards;
+    const message=reason==="insufficientPracticeLeaves"?c.practiceInsufficientLeaves(failure.cost,failure.balance):reason==="insufficientPetals"?c.practiceInsufficientPetals(failure.cost,failure.balance):reason==="notEnoughCards"?c.practiceNeedMoreCards(failure.available,failure.required):reason==="practiceSessionCancelled"?c.practiceSessionCancelled:reason==="connectionError"?c.connectionError:c.practiceNoCards;
     const links=[];
     if(["reading","read","mixed"].includes(practiceMode))links.push(`<a class="practice-empty-link" href="#library/cardcase">${esc(c.practiceAddDecks)} <span aria-hidden="true">→</span></a>`);
     if(["saved","mixed","discover"].includes(practiceMode))links.push(`<a class="practice-empty-link" href="#bookstore">${esc(c.practiceFindCards)} <span aria-hidden="true">→</span></a>`);
@@ -356,7 +357,7 @@ export function practiceView(s,session) {
   const recoveryReason=s.practiceUnavailable?.reason;
   const recoveryNotice=["practiceSessionCancelled","practiceSessionUnavailable","practicePriceChanged"].includes(recoveryReason)?`<p class="practice-recovery-message" role="status">${esc(recoveryReason==="practiceSessionCancelled"?c.practiceSessionCancelled:recoveryReason==="practicePriceChanged"?c.practicePriceChanged:c.practiceSessionUnavailable)}</p>`:"";
   return `<section class="practice-screen practice-choose">${back}<div class="practice-choice-mascot">${mascotArt("sprout")}</div><div class="practice-question-row"><h1 tabindex="-1">${esc(c.practiceQuestion)}</h1><button class="practice-help-trigger" type="button" data-action="open-practice-help" aria-label="${esc(c.practiceHelp)}" aria-haspopup="dialog" title="${esc(c.practiceHelp)}"><span aria-hidden="true">i</span></button></div>${recoveryNotice}<div class="practice-modes">${practiceModes.map(practiceMode=>{
-    const discounted=practiceMode===s.practiceDiscountMode,cost=discounted?2:3;
+    const topic=practiceMode==="discover"?"interests":practiceMode,discounted=topic===s.practiceDiscountMode,leaf=topic===s.practiceLeafMode,cost=practicePrice(practiceMode,s.practiceDiscountMode,s.practiceLeafMode);
     const availability=s.discoverAvailability||{status:"loading"},discover=practiceMode==="discover";
     const notEnough=availability.status==="ready"&&availability.available<availability.required;
     const unavailable=discover&&(availability.status!=="ready"||notEnough);
@@ -364,7 +365,7 @@ export function practiceView(s,session) {
     const pending=!!s.practiceStarting;
     const notice=status?`<span class="practice-mode-status" id="discover-status" role="status">${esc(status)}</span>`:"";
     const retry=discover&&availability.status==="error"?`<button class="practice-discover-retry" type="button" data-action="retry-discover">${esc(c.practiceDiscoverRetry)}</button>`:"";
-    return `<div class="practice-mode-option${discover?" practice-mode-option--discover":""}"><button class="practice-mode practice-mode--${practiceMode}" type="button" data-action="practice-mode" data-practice-mode="${practiceMode}"${unavailable||pending?" disabled":""}${status?' aria-describedby="discover-status"':""}${s.practiceStarting===practiceMode?' aria-busy="true"':""}><span class="practice-mode-pack" aria-hidden="true"><span class="practice-mode-card practice-mode-card--left"></span><span class="practice-mode-card practice-mode-card--right"></span><span class="practice-mode-card practice-mode-card--cover">${practiceDeckIcon(practiceMode)}</span></span><span class="practice-mode-label">${esc(c[`practiceMode_${practiceMode}`])}</span>${priceTag({amount:cost,icon:"petal",label:c.practicePrice(cost),...(discounted?{originalAmount:3}:{})})}</button>${notice}${retry}</div>`;
+    return `<div class="practice-mode-option${discover?" practice-mode-option--discover":""}"><button class="practice-mode practice-mode--${practiceMode}" type="button" data-action="practice-mode" data-practice-mode="${practiceMode}"${unavailable||pending?" disabled":""}${status?' aria-describedby="discover-status"':""}${s.practiceStarting===practiceMode?' aria-busy="true"':""}><span class="practice-mode-pack" aria-hidden="true"><span class="practice-mode-card practice-mode-card--left"></span><span class="practice-mode-card practice-mode-card--right"></span><span class="practice-mode-card practice-mode-card--cover">${practiceDeckIcon(practiceMode)}</span></span><span class="practice-mode-label">${esc(c[`practiceMode_${practiceMode}`])}</span>${priceTag({amount:cost,icon:leaf?"leaf":"petal",label:leaf?c.deckAddCost(cost):c.practicePrice(cost),...(discounted?{originalAmount:PRACTICE_BASE_COST}:{})})}</button>${notice}${retry}</div>`;
   }).join("")}</div>${s.practiceStarting?`<p class="practice-start-status" role="status">${esc(c.practiceStarting)}</p>`:""}${help}</section>`;
 }
 

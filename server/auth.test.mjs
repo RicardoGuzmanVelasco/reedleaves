@@ -110,6 +110,7 @@ test("Practice start distinguishes legacy retry, canceled identity, and an expli
   const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",language:"en",body:"A saved practice guide."});
   const normal=(await db.prepare("SELECT id FROM cards WHERE deck_id=? AND is_reading_guide=0 ORDER BY position LIMIT 5").all("seven-habits-editorial")).map(row=>row.id);
   for(const id of normal) await setCardSave(db,session,{cardId:id,saved:true},now);
+  await db.prepare("UPDATE leaf_wallets SET balance=100 WHERE user_id=?").run(userId);
   const started=await startPracticeSession(db,session,"saved",now,null),cardIds=[...started.session.cardIds];
   cardIds[2]=guide.cardId;
   await db.prepare("DELETE FROM practice_session_cards WHERE session_id=? AND position=2").run(started.session.id);
@@ -119,19 +120,19 @@ test("Practice start distinguishes legacy retry, canceled identity, and an expli
   const start=(input)=>call("/api/reader/practice/start",input,headers);
 
   const legacy=await start({practiceMode:"reading"});
-  assert.equal(legacy.status,200);assert.equal(legacy.body.practiceRecovery.status,"cancelled");
+  assert.equal(legacy.status,200);assert.equal(legacy.body.practiceRecovery.status,"finished");
   assert.equal(legacy.body.state.activePracticeSession,null);
-  assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,10);
+  assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,10-(started.session.cost===10?0:started.session.cost));
   const legacyRetry=await start({practiceMode:"reading"});
-  assert.equal(legacyRetry.body.practiceRecovery.status,"cancelled");
+  assert.equal(legacyRetry.body.practiceRecovery.status,"finished");
   const canceledIdentity=await start({practiceMode:"reading",sessionId:started.session.id});
-  assert.equal(canceledIdentity.body.practiceRecovery.status,"cancelled");
+  assert.equal(canceledIdentity.body.practiceRecovery.status,"finished");
   assert.equal(db.prepare("SELECT count(*) AS n FROM practice_sessions WHERE user_id=?").get(userId).n,1);
 
   const explicit=await start({practiceMode:"reading",sessionId:null});
   assert.equal(explicit.status,200);assert.ok(explicit.body.session);
   assert.equal(db.prepare("SELECT count(*) AS n FROM practice_sessions WHERE user_id=?").get(userId).n,2);
-  assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,10-explicit.body.session.cost);
+  assert.equal(db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(userId).balance,10-(started.session.cost===10?0:started.session.cost)-(explicit.body.session.cost===10?0:explicit.body.session.cost));
 });
 test("Daily streak endpoint is private and returns the streak contract",async t=>{
   const {call,register}=await fixture(t);

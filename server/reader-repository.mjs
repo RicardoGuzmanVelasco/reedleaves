@@ -13,7 +13,7 @@ import {insertCardView} from "./profile-repository.mjs";
 import {cardSavesInside} from "./card-saves.mjs";
 import {distinguishedBookIds,ensureBookToRead} from "./book-reading.mjs";
 import {accruePetalWallet,MAX_PETALS} from "./petal-wallet-repository.mjs";
-import {practiceDiscountMode,reconcilePracticeSessionInside} from "./practice-economy.mjs";
+import {practiceDiscountMode,practiceLeafMode,reconcilePracticeSessionInside} from "./practice-economy.mjs";
 import {lockReaderAccount} from "./reader-account-lock.mjs";
 import {validBookSortOrder} from "../app/book-sort.mjs";
 import {requireBookInterestConfirmation,BOOK_INTEREST_CONFIRMATION_ENABLED} from "./book-interest-confirmation.mjs";
@@ -131,7 +131,7 @@ async function stateInside(db,session,now) {
     noteDeckActivity[row.deck_id]=date;
     if (!noteActivity[row.book_id] || date > noteActivity[row.book_id]) noteActivity[row.book_id]=date;
   }
-  return {user:{id:userId,username:account.username,timeZone:account.time_zone,roles:await readerRoles(db,userId)},csrfToken:session.csrf_token,language:account.language,bookSortOrder:validBookSortOrder(bookSort?.sort_order)?bookSort.sort_order:"recent",today,wallet,petals:petalWallet.balance,petalMaximum:MAX_PETALS,practiceDiscountMode:discountMode,activePracticeSession,practiceAnswers,growth,readerProgression:await readReaderProgression(db,userId),cardSaves:await cardSavesInside(db,userId),
+  return {user:{id:userId,username:account.username,timeZone:account.time_zone,roles:await readerRoles(db,userId)},csrfToken:session.csrf_token,language:account.language,bookSortOrder:validBookSortOrder(bookSort?.sort_order)?bookSort.sort_order:"recent",today,wallet,petals:petalWallet.balance,petalMaximum:MAX_PETALS,practiceDiscountMode:discountMode,practiceLeafMode:practiceLeafMode(userId,lastPractice?.seed),activePracticeSession,practiceAnswers,growth,readerProgression:await readReaderProgression(db,userId),cardSaves:await cardSavesInside(db,userId),
     noteActivity,noteDeckActivity,shelfBookIds:[...addedBooks],pendingNewBookCount:await pendingNewBookCount(db,userId),
     statuses:Object.fromEntries([...distinguished.map(id=>[id,"to_read"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id = ?").all(userId)).map(r=>[r.book_id,r.status])]),
     cardcaseDeckIds:(await db.prepare("SELECT deck_id FROM cardcase_decks WHERE user_id = ? ORDER BY rowid").all(userId)).map(r=>r.deck_id),

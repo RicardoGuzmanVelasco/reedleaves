@@ -25,8 +25,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 68;
-export const POSTGRES_SCHEMA_VERSION = 60;
+export const SQLITE_SCHEMA_VERSION = 69;
+export const POSTGRES_SCHEMA_VERSION = 61;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -113,6 +113,24 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 68) {
+    db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
+    try {
+      const triggers=db.prepare("SELECT name,sql FROM sqlite_master WHERE type='trigger' AND tbl_name='practice_sessions'").all();
+      for(const trigger of triggers) db.exec(`DROP TRIGGER "${trigger.name.replaceAll('"','""')}"`);
+      const sql=db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='practice_sessions'").get().sql;
+      db.exec(sql.replace(/CREATE TABLE (?:"practice_sessions"|practice_sessions)/i, "CREATE TABLE practice_sessions_new").replace("cost IN (2,3)","cost IN (2,3,5,10)"));
+      db.exec(`INSERT INTO practice_sessions_new SELECT * FROM practice_sessions; DROP TABLE practice_sessions;
+        ALTER TABLE practice_sessions_new RENAME TO practice_sessions;
+        CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WHERE completed_at IS NULL AND cancelled_at IS NULL;
+        PRAGMA user_version=69;`);
+      for(const trigger of triggers) db.exec(trigger.sql);
+      if(db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("Practice price migration broke references");
+      db.exec("COMMIT");
+    } catch(error) { db.exec("ROLLBACK"); throw error; }
+    finally { db.exec("PRAGMA foreign_keys=ON"); }
+    return initializeDatabase(db);
+  }
   if (version === 67) {
     migrateSqliteToPracticeTopics(db);
     return initializeDatabase(db);
@@ -1036,6 +1054,14 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 60) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,practice_sessions IN ACCESS EXCLUSIVE MODE");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 61) return;
+          await db.exec("ALTER TABLE practice_sessions DROP CONSTRAINT practice_sessions_cost_check; ALTER TABLE practice_sessions ADD CONSTRAINT practice_sessions_cost_check CHECK(cost IN (2,3,5,10)); ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=61; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=61)");
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 59) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,practice_sessions IN ACCESS EXCLUSIVE MODE;");

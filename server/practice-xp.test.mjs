@@ -21,7 +21,8 @@ async function fixture(t,dialect) {
   await initializeDatabase(db);await seedCatalog(db);
   await db.prepare("INSERT INTO users(id,display_name,created_at) VALUES ('practice-xp-reader','Practice XP reader',?)").run(now.toISOString());
   await db.prepare("INSERT INTO accounts(user_id,username,password_hash,time_zone,language) VALUES ('practice-xp-reader','practice-xp-reader','fixture','Europe/Madrid','es')").run();
-  await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES ('practice-xp-reader',10,'2026-10-06')").run();
+  await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES ('practice-xp-reader',30,'2026-10-06')").run();
+  await db.prepare("INSERT INTO leaf_wallets(user_id,balance,last_accrual_day) VALUES ('practice-xp-reader',100,'2026-10-06')").run();
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES ('practice-xp-reader','seven-habits','reading')").run();
   await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES ('practice-xp-reader','seven-habits-editorial')").run();
   return {db,reader:{user_id:"practice-xp-reader",csrf_token:"test"}};
@@ -67,15 +68,15 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal((await events(db)).length,2);
   });
 
-  test(`${dialect}: cancelled and repaired sessions grant no XP`,async t=>{
+  test(`${dialect}: unrecoverable sessions grant XP once`,async t=>{
     const {db,reader}=await fixture(t,dialect);
     const cancelled=await startPracticeSession(db,reader,"reading",now);
     await db.prepare("UPDATE practice_sessions SET card_ids='[]' WHERE id=?").run(cancelled.session.id);
     const result=await answer(db,reader,cancelled,0);
-    assert.equal(result.practiceRecovery.status,"cancelled");
+    assert.equal(result.practiceRecovery.status,"finished");
     assert.equal("xpReward" in result,false);
-    assert.equal(await xp(db),0);
-    assert.deepEqual(await events(db),[]);
+    assert.equal(await xp(db),25);
+    assert.equal((await events(db)).length,1);
   });
 
   test(`${dialect}: repairing a pending card does not grant XP`,async t=>{

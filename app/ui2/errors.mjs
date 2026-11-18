@@ -21,6 +21,7 @@ export const blockingFailure=failure=>!failure?.code||failure.code==="connection
 export function practiceStartDetail(result,cost,c){
   const reason=result?.reason;
   if(reason==="notEnoughCards")return c.practiceNeedMoreCards(result.available??0,result.required??0);
+  if(reason==="insufficientPracticeLeaves")return c.practiceInsufficientLeaves(result.cost??cost,result.balance??0);
   if(reason==="insufficientPetals")return c.practiceInsufficientPetals(result.cost??cost,result.balance??0);
   if(reason==="practicePriceChanged"||reason==="practiceSessionCancelled"||reason==="practiceSessionUnavailable")return c[reason];
   return c.practiceNoCards;

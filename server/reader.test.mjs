@@ -92,6 +92,8 @@ test("Mascot growth counts distinct days with completed paid practices, not card
   await readReaderState(db,a,date("2026-10-06"));
   await changeBookStatus(db,a,"seven-habits","reading",date("2026-10-06"));
   const practice=async now=>{
+    db.prepare("UPDATE leaf_wallets SET balance=100 WHERE user_id=?").run(a.user_id);
+    db.prepare("UPDATE petal_wallets SET balance=30 WHERE user_id=?").run(a.user_id);
     const started=await startPracticeSession(db,a,"reading",now); assert.ok(started.session);
     let result;
     for(let index=0;index<started.session.cardIds.length;index++) result=await answerPracticeSession(db,a,{

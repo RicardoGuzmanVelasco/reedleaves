@@ -300,7 +300,7 @@ test("Practice exposes only the active card, enables writing and keeps the pile 
 });
 
 test("Practice prices show one discounted practiceMode, the wallet cap, and useful empty-session paths",async()=>{
-  const catalog=await fixture(),state=readerState(catalog,{practiceStage:"choose",practiceDiscountMode:"saved",petals:10,petalMaximum:15});
+  const catalog=await fixture(),state=readerState(catalog,{practiceStage:"choose",practiceDiscountMode:"saved",practiceLeafMode:"reading",petals:10,petalMaximum:15});
   const choice=practiceView(state,null);
   assert.match(choice,/data-action="open-practice-help"[^>]*aria-haspopup="dialog"/);
   assert.match(choice,/class="practice-help-modal" aria-labelledby="practice-help-title"/);
@@ -314,12 +314,14 @@ test("Practice prices show one discounted practiceMode, the wallet cap, and usef
   assert.match(englishChoice,/class="dialog-close practice-help-close" type="button" data-action="close-practice-help" aria-label="Close help"/);
   assert.equal(state.petalMaximum,15);
   assert.equal((choice.match(/class="pricetag(?: pricetag--discounted)?"/g)||[]).length,5);
-  assert.match(choice,/aria-label="2 pétalos"/);
   assert.match(choice,/aria-label="3 pétalos"/);
+  assert.match(choice,/aria-label="5 pétalos"/);
+  assert.match(choice,/aria-label="Cuesta 10 hojas"/);
+  assert.match(choice,/leaf-token\.svg/);
   assert.match(choice,/petal-token\.svg/);
-  assert.match(choice,/class="pricetag pricetag--discounted"[^>]*aria-label="2 pétalos"/);
-  assert.match(choice,/<span class="pricetag-previous">3<svg class="pricetag-cross"/);
-  assert.match(choice,/<strong>2<\/strong>/);
+  assert.match(choice,/class="pricetag pricetag--discounted"[^>]*aria-label="3 pétalos"/);
+  assert.match(choice,/<span class="pricetag-previous">5<svg class="pricetag-cross"/);
+  assert.match(choice,/<strong>3<\/strong>/);
   assert.match(choice,/class="pricetag-offer-icon"/);
   assert.doesNotMatch(choice,/practice-mode-cost/);
   const recovered=practiceView({...state,practiceUnavailable:{reason:"practiceSessionCancelled",practiceMode:"reading"}},null);
@@ -408,13 +410,13 @@ test('Book and collection deck lists prioritize the current viewer’s contribut
 test("Discover explains availability, retry, discount and resume in both interface languages",async()=>{
   const catalog=await fixture();
   for(const language of ["es","en"]) {
-    const c=words[language],state=readerState(catalog,{language,practiceStage:"choose",practiceDiscountMode:"discover"});
+    const c=words[language],state=readerState(catalog,{language,practiceStage:"choose",practiceDiscountMode:"interests"});
     for(const availability of [{status:"loading"},{status:"error"},{status:"ready",available:4,required:5},{status:"ready",available:5,required:5}]) {
       const html=practiceView({...state,discoverAvailability:availability},null);
       const button=html.match(/<button[^>]*data-practice-mode="discover"[^>]*>/)[0];
       assert.equal(button.includes(" disabled"),availability.status!=="ready"||availability.available<5);
       assert.ok(html.includes(c.practiceMode_discover));assert.ok(html.includes(c.practiceHelpDiscover));
-      assert.match(html,/pricetag--discounted[^>]*aria-label="2 /);
+      assert.match(html,/pricetag--discounted[^>]*aria-label="3 /);
       assert.equal(html.includes('data-action="retry-discover"'),availability.status==="error");
       if(button.includes(" disabled"))assert.match(button,/aria-describedby="discover-status"/);
     }

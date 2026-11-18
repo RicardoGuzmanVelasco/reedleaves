@@ -1,3 +1,4 @@
+import {practicePrice} from "../app/practice-modes.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {PGlite} from "@electric-sql/pglite";
@@ -75,13 +76,15 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM practice_sessions WHERE user_id=?").get(session.user_id)).n,0);
     await db.prepare("UPDATE reader_language_preferences SET languages='[\"es\",\"en\"]' WHERE user_id=?").run(session.user_id);
     await db.prepare("UPDATE petal_wallets SET balance=1 WHERE user_id=?").run(session.user_id);
+    await db.prepare("UPDATE leaf_wallets SET balance=1 WHERE user_id=?").run(session.user_id);
     const poor=await startPracticeSession(db,session,"discover",now,null);
-    assert.equal(poor.reason,"insufficientPetals");
+    assert.ok(["insufficientPetals","insufficientPracticeLeaves"].includes(poor.reason));
     assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM practice_sessions WHERE user_id=?").get(session.user_id)).n,0);
     assert.equal((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance,1);
     await db.prepare("UPDATE petal_wallets SET balance=? WHERE user_id=?").run(walletBefore,session.user_id);
-    const cost=(await readReaderState(db,session,now)).practiceDiscountMode==="interests"?2:3;
-    const price=await startPracticeSession(db,session,"discover",now,null,cost===2?3:2);
+    await db.prepare("UPDATE leaf_wallets SET balance=20 WHERE user_id=?").run(session.user_id);
+    const offers=await readReaderState(db,session,now),cost=practicePrice("interests",offers.practiceDiscountMode,offers.practiceLeafMode);
+    const price=await startPracticeSession(db,session,"discover",now,null,cost===3?5:3);
     assert.equal(price.reason,"practicePriceChanged");assert.equal(price.cost,cost);
     assert.equal((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance,walletBefore);
     const bought=await startPracticeSession(db,session,"discover",now,null,cost);
@@ -89,6 +92,6 @@ for(const dialect of ["sqlite","postgres"]) {
     const resumed=await startPracticeSession(db,session,"mixed",now,bought.session.id,2);
     assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM cardcase_decks WHERE user_id=?").get(session.user_id)).n,0,"Discover does not add decks");
     assert.equal(resumed.resumed,true);assert.deepEqual(resumed.session.cardIds,bought.session.cardIds);assert.equal(resumed.session.cost,bought.session.cost);
-    assert.equal((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance,walletBefore-bought.session.cost);
+    assert.equal((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance,walletBefore-(cost===10?0:cost));
   });
 }

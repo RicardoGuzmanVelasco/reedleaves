@@ -23,6 +23,7 @@ async function fixture(t,dialect) {
   await db.prepare("INSERT INTO users(id,display_name,created_at) VALUES (?,?,?)").run("topic-reader","Topic reader","2026-10-01T12:00:00.000Z");
   await db.prepare("INSERT INTO accounts(user_id,username,password_hash,time_zone,language) VALUES (?,?,?,?,?)").run("topic-reader","topic.reader","hash","Europe/Madrid","es");
   await db.prepare("INSERT INTO petal_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run("topic-reader",20,"2026-10-10");
+  await db.prepare("INSERT INTO leaf_wallets(user_id,balance,last_accrual_day) VALUES (?,?,?)").run("topic-reader",100,"2026-10-10");
   return {db,session:{user_id:"topic-reader",csrf_token:"test"}};
 }
 const rootCards=async(db,count)=>(await db.prepare("SELECT c.id FROM cards c JOIN decks d ON d.id=c.deck_id WHERE c.parent_id IS NULL AND c.is_reading_guide=0 AND d.status='finished' ORDER BY c.id").all()).slice(0,count).map(row=>row.id);
@@ -71,8 +72,8 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.deepEqual(started.session.cardIds,[cards[4],cards[3],cards[2],cards[1],cards[0]]);
     assert.equal(started.session.practiceMode,"dailyDeck");
     assert.equal((await readDailyStreak(db,session,NOW)).dailyCardSeenToday,true);
-    assert.equal(started.session.cost,started.discountMode==="dailyDeck"?2:3);
-    assert.equal(started.balance,20-started.session.cost);
+    assert.ok([3,5,10].includes(started.session.cost));
+    assert.equal(started.balance,(started.session.cost===10?100:20)-started.session.cost);
     assert.equal((await db.prepare("SELECT count(*) AS n FROM practice_session_cards WHERE session_id=?").get(started.session.id)).n,5);
   });
 
@@ -112,17 +113,18 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.deepEqual(state.topics.map(topic=>topic.id),[...PRACTICE_TOPICS]);
     assert.equal(state.topics.filter(topic=>topic.discounted).length,1);
     assert.equal(state.topics.find(topic=>topic.discounted).id,state.discountTopic);
-    for(const topic of state.topics) assert.equal(topic.cost,topic.discounted?2:3);
+    assert.equal(state.topics.filter(topic=>topic.currency==="leaf").length,1);
+    for(const topic of state.topics) assert.equal(topic.cost,topic.currency==="leaf"?10:topic.discounted?3:5);
     const by=Object.fromEntries(state.topics.map(topic=>[topic.id,topic]));
     assert.equal(by.saved.available,false);assert.equal(by.reading.available,false);assert.equal(by.mixed.available,false);
     assert.equal(by.novelties.available,true);assert.equal(by.interests.available,true);
     assert.equal(by.teamPicks.available,(await db.prepare("SELECT count(*) AS n FROM decks WHERE is_recommended=1").get()).n>0&&by.teamPicks.cards>=5);
 
-    const topic=by.novelties,wrong=await startPracticeSession(db,session,"novelties",NOW,null,topic.cost===2?3:2);
+    const topic=by.novelties,wrong=await startPracticeSession(db,session,"novelties",NOW,null,topic.cost===3?5:3);
     assert.equal(wrong.reason,"practicePriceChanged");
     const bought=await startPracticeSession(db,session,"novelties",NOW,null,topic.cost);
     assert.equal(bought.session.practiceMode,"novelties");assert.equal(bought.session.cost,topic.cost);
-    assert.equal(bought.balance,20-topic.cost);
+    assert.equal(bought.balance,(topic.currency==="leaf"?100:20)-topic.cost);
     const unknown=new Set((await db.prepare("SELECT id FROM books WHERE id NOT IN (SELECT book_id FROM reader_known_books WHERE user_id=?)").all(session.user_id)).map(row=>row.id));
     const books=(await db.prepare(`SELECT book_id FROM cards WHERE id IN (${bought.session.cardIds.map(()=>"?").join(",")})`).all(...bought.session.cardIds)).map(row=>row.book_id);
     assert.ok(books.every(id=>unknown.has(id)));
