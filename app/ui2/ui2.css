@@ -186,7 +186,7 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .ui2-rp-box--discover .practice-mode-card--left{background:#d9ebf3}.ui2-rp-box--discover .practice-mode-card--right{background:#bfdcea}
 .ui2-rp-box--discover .practice-mode-card--cover{background:linear-gradient(145deg,#fdfeff,#dcecf3)}
 .ui2-rp-box--discover .practice-mode-icon{color:#86b3c7}.ui2-rp-box--discover .practice-mode-icon-fill{fill:#cfe5ef}
-.ui2-flame-badge{position:absolute;top:-7px;right:-4px;z-index:6;display:grid;place-items:center;width:26px;height:26px;border:1.5px solid #d6d1bf;border-radius:50%;background:#fffdf6;color:#9c9786;box-shadow:0 2px 0 #173d2c1f;pointer-events:none}
+.ui2-flame-badge{position:absolute;top:-7px;right:-4px;z-index:6;display:grid;place-items:center;width:26px;height:26px;border:1.5px solid #d4564b;border-radius:50%;background:#fde8e4;color:#c4382d;box-shadow:0 2px 0 #d4564b40;pointer-events:none}
 .ui2-flame-badge .ui2-icon{width:16px;height:16px}
 .ui2-flame-badge:not(.is-done)::after{content:"";position:absolute;inset:-2px;border:2px solid #a9322e;border-radius:50%;opacity:0;animation:navigation-badge-wave 3s ease-out infinite}
 @media (prefers-reduced-motion:reduce){.ui2-flame-badge::after{display:none}}
