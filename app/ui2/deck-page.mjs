@@ -49,7 +49,7 @@ export function deckPageMarkup({page,outline,languageName,legacy,c}){
   const take=`<button type="button" class="ui2-btn dp-grow" data-ui2="take-note" data-parent="">${icon("take-note")}<span>${esc(c.takeNote)}</span></button>`;
   const finish=`<button type="button" class="ui2-btn secondary--subtle dp-grow${page.cannotFinish?" is-disabled":""}" data-ui2="finish-deck"${page.cannotFinish?' aria-disabled="true"':""}>${icon("finish-deck")}<span>${esc(c.finishDeck)}</span></button>`;
   const remove=`<button type="button" class="ui2-btn secondary--subtle dp-grow" data-ui2="cardcase-remove" data-deck="${esc(page.id)}" aria-haspopup="dialog">${icon("remove-from-cardcase")}<span>${esc(c.removeDeckFromCardcase)}</span></button>`;
-  const add=`<button type="button" class="ui2-btn dp-grow" data-ui2="add-deck" data-deck="${esc(page.id)}">${icon("add-to-cardcase")}<span>${esc(c.addDeckToCardcase)}</span>${page.addCost?priceTagMarkup({amount:page.addCost,currency:"leaf",size:"sm",state:page.canAfford===false?"insufficient":"normal",c}):""}</button>`;
+  const add=`<button type="button" class="ui2-btn dp-grow" data-ui2="add-deck" data-deck="${esc(page.id)}">${icon("add-to-cardcase")}<span>${esc(c.addDeckToCardcase)}</span>${page.addCost?priceTagMarkup({amount:page.addCost,state:page.canAfford===false?"insufficient":"normal",c}):""}</button>`;
   const actions=page.write?row(take,finish):row(page.inCardcase?remove:add);
   const notice=!page.owner&&page.open?callout({variant:"info",width:"fill",className:"dp-msg",main:c.ui2DeckStillWriting}):"";
   const body=page.count?outlineMarkup(outline,c):`<div class="ui2-empty dp-empty">${mascotArt("tumbleweed","",{animation:"tumble"})}<h2>${esc(c.ui2DeckEmpty)}</h2></div>`;
