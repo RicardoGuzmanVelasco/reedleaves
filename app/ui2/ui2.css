@@ -177,6 +177,9 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .ui2-modes .practice-mode{min-height:0;display:flex;justify-content:flex-start;padding:6px 2px;border-radius:16px;font:inherit;cursor:pointer}
 .ui2-pack{position:relative;width:65px;height:70px;margin:0 auto 4px;transition:transform .12s}
 .ui2-modes .practice-mode:active .ui2-pack{transform:translateY(2px)}
+.ui2-modes .practice-mode:hover:not(:active):not([aria-disabled=true]) .ui2-pack{transform:translateY(-2px)}
+/* The legacy hover/pressed rules replace the pack's transform and would drop its scale(.5): keep the scale, move the lift to the wrapper. */
+.ui2-modes .practice-mode:is(:hover,:active,.is-pressed) .ui2-pack .practice-mode-pack{transform:scale(.5)!important}
 .ui2-pack .practice-mode-pack{position:absolute;left:0;top:0;width:129px;height:139px;margin:0;transform:scale(.5);transform-origin:top left}
 .ui2-modes .practice-mode-label{max-width:68px;margin:0 auto;font-size:10.5px;line-height:1.15;font-weight:850;text-wrap:balance}
 .ui2-modes .ui2-price-tag{margin-top:6px}
