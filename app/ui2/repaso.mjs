@@ -45,7 +45,7 @@ export function streakLabel(data,c,minutes=null){
 function streakRow(data,c,now){
   const {streak}=data,until=streak.doneToday?nextStreakDay(data.timeZone,now)?.getTime()??null:null,minutes=until===null?null:minutesUntil(until,now);
   const today=!streak.known?"":minutes!==null
-    ?`<span class="ui2-rp-today is-done" data-streak-countdown="${until}" aria-hidden="true">${esc(countdownText(minutes,c))}</span>`
+    ?`<span class="ui2-rp-today is-done" data-streak-countdown="${until}" aria-hidden="true"><svg class="ui2-rp-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg><span data-streak-countdown-text>${esc(countdownText(minutes,c))}</span></span>`
     :`<span class="ui2-rp-today${streak.doneToday?" is-done":""}" aria-hidden="true">${flame(streak.doneToday)}<span>${streak.doneSteps}/2</span></span>`;
   return `<button type="button" class="ui2-rp-streak${streak.doneToday?"":" is-cold"}" data-ui2="calendar-open" aria-haspopup="dialog" aria-label="${esc(streakLabel(data,c,minutes))}"><img src="${imageUrl("/app/assets/brand/streak-flame.svg")}" alt="" width="34" height="34"><strong>${esc(c.dailyIdeaStreakDays(streak.days))}</strong>`
     +today+`<span class="ui2-go" aria-hidden="true">${icon("forward")}</span></button>`;
@@ -56,7 +56,7 @@ export function tickStreakCountdown(root,data,c,now=new Date()){
   if(!node||!row)return true;
   const minutes=minutesUntil(Number(node.getAttribute("data-streak-countdown")),now);
   if(!minutes)return false;
-  node.textContent=countdownText(minutes,c);row.setAttribute("aria-label",streakLabel(data,c,minutes));
+  (node.querySelector?.("[data-streak-countdown-text]")??node).textContent=countdownText(minutes,c);row.setAttribute("aria-label",streakLabel(data,c,minutes));
   return true;
 }
 
