@@ -68,6 +68,10 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 - Renombrado en el mismo cierre: `app/ui2/` pasa a ser el módulo normal; las claves `ui2…` de `app/i18n.mjs`, las clases `.ui2-…`, el atributo `data-ui2-*` y `app/assets/icons/ui2/` pierden el prefijo. «ui2» no puede sobrevivir al cierre.
 - Fuera del interruptor, y por decidir una a una: quitar «Seleccionadas» con límite por colaborador, idea del día como opción explícita al terminar, repasar una instantánea de barajas ajenas en curso, no cobrar hoja por la baraja propia, etiqueta para «terminada».
 - Las fases 1–2 (servidor) no dependen de la interfaz y pueden avanzar en paralelo.
+- Por evaluar al terminar todas las pantallas (transversal): subir a la cabecera de la app lo que se está viendo (nombre del libro o de la baraja), sustituyendo temporalmente la chapa del perfil. El hueco de la cabecera está muerto en la mayoría de pantallas y el perfil se visita poco.
+- Principio de las pantallas de baraja y tarjeta: pesa más el libro que la baraja (título del libro prominente; enlaces de libro y autor con estilo propio, como el enlace de usuario).
+- Por explorar: quitar del tarjetero una baraja propia (hoy no está pensado).
+- Pendientes de la página de baraja ui2 (diseño aparte): vista de tarjetas (D6/D7, delegada a su propio diseño), pantalla «Editar baraja» (lápiz de la cabecera; ahí vive «Guardar», idioma, colaboradores, título) y price tags nuevos (propuestas en `pricetags-v1`, por decidir).
 
 ## Fase 1 — Reorganizar dentro de la baraja
 
