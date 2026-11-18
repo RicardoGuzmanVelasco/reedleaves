@@ -1,17 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {words} from "../i18n.mjs";
-import {repasoData,repasoMarkup,calendarMarkup,calendarSheetMarkup,streakPending,TOPICS} from "./repaso.mjs";
+import {repasoData,repasoMarkup,calendarMarkup,calendarSheetMarkup,streakPending,nextStreakDay,tickStreakCountdown,TOPICS} from "./repaso.mjs";
 import {navMarkup} from "./shell.mjs";
 import {errorInfo,practiceStartDetail} from "./errors.mjs";
 import {errorModalMarkup} from "./markup.mjs";
 
-const state=(extra={})=>({user:{id:"me"},today:"2026-11-15",wallet:{balance:12},petals:7,practiceDiscountMode:"read",...extra});
+const state=(extra={})=>({user:{id:"me",timeZone:"Europe/Madrid"},today:"2026-11-15",wallet:{balance:12},petals:7,practiceDiscountMode:"read",...extra});
 const streak=(extra={})=>({days:5,dailyCardSeenToday:false,mixedDoneToday:false,completedDays:["2026-11-13","2026-11-14"],...extra});
 const topicState=(over={})=>["mixed","reading","read","saved","dailyDeck","interests","novelties","teamPicks"].map(id=>({id,cost:id==="read"?2:3,discounted:id==="read",cards:10,required:5,available:true,...(over[id]||{})}));
+const NOW=new Date("2026-11-15T10:30:00Z");                                       // 11:30 in Madrid: next streak day at 06:00, in 18 h 30 min
 const render=(language,s,st=state(),topics=topicState())=>{
   const c={...words[language],legacy:"/app/"},data=repasoData({state:st,streak:s,topics});
-  return repasoMarkup({data,c,nav:navMarkup({active:"practice",practicePending:streakPending(s),c}),month:"2026-11",language});
+  return repasoMarkup({data,c,nav:navMarkup({active:"practice",practicePending:streakPending(s),c}),month:"2026-11",language,now:NOW});
 };
 
 test("Streak pending depends only on the server response: both parts needed",()=>{
@@ -28,7 +29,8 @@ for(const language of ["es","en"])test(`Repaso: streak row, two containers, eigh
   assert.equal(html.match(/practice-mode practice-mode--/g).length,8);
   assert.equal(TOPICS.practice.length+TOPICS.discover.length,8);
   assert.match(html,/id="ui2-rp-practice"[^>]*>[^<]*</);assert.ok(html.includes(c.practice)&&html.includes(c.practiceMode_discover));
-  assert.equal(html.match(/navigation-new-badge/g).length,3);                  // two topics + the tab
+  assert.equal(html.match(/navigation-new-badge/g).length,1);                  // the tab
+  assert.equal(html.match(/ui2-flame-badge"/g).length,2);                       // the two streak topics, still pending
   assert.match(html,new RegExp(`aria-label="${c.practiceMode_mixed}, ${c.ui2PendingForStreak}"`));
   assert.match(html,/ui2-price-tag--discount/);                                   // Read is today's offer
   assert.ok(html.includes(c.practicePrice(3)));
@@ -37,14 +39,33 @@ for(const language of ["es","en"])test(`Repaso: streak row, two containers, eigh
   assert.doesNotMatch(html,/ui2-empty|practice-choice-mascot/);
 });
 
-test("Repaso: done parts become checks and drop their badges; cold streak is dimmed",()=>{
+test("Repaso: each done part lights its flame badge; the row counts parts and, with both, waits for the next streak day",()=>{
+  const c=words.es,label=html=>html.match(/class="ui2-rp-streak[^"]*"[^>]*aria-label="([^"]*)"/)[1];
+  const none=render("es",streak());
+  assert.match(none,/ui2-rp-streak is-cold/);assert.ok(none.includes("0/2"));
+  assert.ok(label(none).includes(`${c.ui2TopicDailyDeck}: ${c.ui2Pending}`));
   const some=render("es",streak({dailyCardSeenToday:true}));
-  assert.equal(some.match(/ui2-step ui2-step--dailyDeck is-done/g).length,1);
-  assert.doesNotMatch(some,/ui2-step--mixed is-done/);
-  assert.equal(some.match(/navigation-new-badge/g).length,2);
+  assert.equal(some.match(/ui2-flame-badge is-done/g).length,1);
+  assert.match(some.match(/<button[^>]*practice-mode--dailyDeck[\s\S]*?<\/button>/)[0],/ui2-flame-badge is-done/);
+  assert.match(some,new RegExp(`aria-label="${c.ui2TopicDailyDeck}, ${c.ui2DoneForStreak}"`));
+  assert.ok(some.includes("1/2"));assert.match(some,/ui2-rp-streak is-cold/);
   const all=render("es",streak({dailyCardSeenToday:true,mixedDoneToday:true}));
-  assert.doesNotMatch(all,/navigation-new-badge/);assert.equal(all.match(/is-done/g).length,2);
-  assert.match(render("es",streak({days:0})),/ui2-rp-streak is-cold/);
+  assert.equal(all.match(/ui2-flame-badge is-done/g).length,2);
+  assert.doesNotMatch(all,/ui2-rp-streak is-cold/);assert.doesNotMatch(all,/2\/2/);
+  assert.ok(all.includes(c.currencyCountdown(18,30)));
+  assert.ok(label(all).includes(c.ui2NextStreakDay(c.currencyCountdown(18,30))));
+  assert.doesNotMatch(render("es",null),/ui2-flame-badge|\/2</);                // streak unknown: no badges, no count
+});
+
+test("Next streak day follows the daily idea cycle in the reader's time zone",()=>{
+  assert.equal(nextStreakDay("Europe/Madrid",NOW).toISOString(),"2026-11-16T05:00:00.000Z");
+  assert.equal(nextStreakDay(undefined,NOW),null);
+  const c=words.es,data=repasoData({state:state(),streak:streak({dailyCardSeenToday:true,mixedDoneToday:true})});
+  const until=String(Date.parse("2026-11-16T05:00:00Z")),node={textContent:"",getAttribute:()=>until},row={setAttribute(name,value){this[name]=value;}};
+  const root={querySelector:selector=>selector==="[data-streak-countdown]"?node:row};
+  assert.equal(tickStreakCountdown(root,data,c,new Date("2026-11-16T04:00:00Z")),true);
+  assert.equal(node.textContent,c.currencyCountdown(1,0));assert.ok(row["aria-label"].includes(node.textContent));
+  assert.equal(tickStreakCountdown(root,data,c,new Date("2026-11-16T05:00:00Z")),false);   // the new day opened: reload the streak
 });
 
 test("Every topic starts the server session with the cost the server announced; unavailable ones are dimmed with the reason",()=>{
@@ -55,7 +76,7 @@ test("Every topic starts the server session with the cost the server announced; 
   const novelties=dimmed.match(/<button[^>]*practice-mode--novelties[\s\S]*?<\/button>/)[0];
   assert.match(novelties,/aria-disabled="true"/);assert.doesNotMatch(novelties,/data-ui2|price-tag/);
   assert.ok(novelties.includes(words.es.practiceNeedMoreCards(1,5)));
-  assert.equal(dimmed.match(/navigation-new-badge/g).length,2);                   // an unavailable topic carries no badge; mixed + the tab remain
+  assert.equal(dimmed.match(/ui2-flame-badge"/g).length,1);                       // an unavailable topic carries no pending badge; mixed keeps its own
   const unknown=render("es",streak(),state(),null);                                // endpoint down: nothing is blocked, regular price
   assert.equal(unknown.match(/data-ui2="practice-start"/g).length,8);
 });

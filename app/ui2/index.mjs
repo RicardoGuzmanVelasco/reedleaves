@@ -8,7 +8,7 @@ import {installIconStyles} from "./icons.mjs";
 import {homeData,homeMarkup,inProgressDeck} from "./home.mjs";
 import {navMarkup,shellMarkup,headerMarkup} from "./shell.mjs";
 import {errorInfo,practiceStartDetail} from "./errors.mjs";
-import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending} from "./repaso.mjs";
+import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending,tickStreakCountdown} from "./repaso.mjs";
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
 import {shelfData,shelfMarkup,libraryTabsMarkup,emptyMarkup} from "./biblioteca.mjs";
@@ -34,7 +34,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // `legacy`: URL of the old interface, for destinations not built yet.
   const c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let removing=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null;
+  let removing=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
   const navFor=active=>navMarkup({active,practicePending,c,wallet:{leaves:reader?.wallet?.balance??0,petals:reader?.petals??0}});
   const drafts=createNoteDrafts(store),observeXp=createReaderXpTracker();
   let shelfViews=(()=>{const saved=store.read(storageKeys.shelfViews);return saved&&typeof saved==="object"?saved:{};})(),disposeLists=()=>{};
@@ -127,6 +127,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     return withError(html);
   }
   function render(){
+    clearInterval(streakTimer);streakTimer=null;
     if(!session?.user){main.innerHTML=`<div class="ui2-body"><a class="ui2-btn" href="${win.location.pathname}">${c.signIn}</a></div>`;return;}
     const where=route(),view=current(),shell=where.name==="home"||where.name==="bookstore"||where.name==="library"||where.name==="cardcase"||where.name==="practice"||where.name==="book"||(where.name==="deck"&&!!view);
     doc.body.classList.toggle("has-bottom-navigation",shell&&!form);
@@ -168,7 +169,14 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       const data=repasoData({state:reader,streak,topics}),month=calendarMonth||(reader.today||"").slice(0,7);
       let html=repasoMarkup({data,c,nav:navFor("practice"),month,language});
       if(sheetState?.type==="calendar")html+=calendarSheetMarkup({data,month,c,language});
-      paint(withError(html));return;
+      paint(withError(html));
+      // Once today counts, the row counts down to the next streak day; when it opens, the server's streak is read again.
+      if(data.streak.doneToday)streakTimer=setInterval(()=>{
+        if(tickStreakCountdown(main,data,c))return;
+        clearInterval(streakTimer);streakTimer=null;
+        loadStreak().then(()=>{if(route().name==="practice"&&!form)render();});
+      },15000);
+      return;
     }
     if(!view){
       paint(withError(homeMarkup({data:homeData({catalog,state:reader,language}),c,nav:navFor("home"),toast:toast?toastMarkup({...toast,c}):""})));return;

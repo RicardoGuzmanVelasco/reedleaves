@@ -26,7 +26,8 @@ export function nextDailyCycleBoundary(timeZone, now = new Date(), cycleStart = 
     const middle=Math.floor((low+high)/2);
     if(dailyCycleDay(timeZone,new Date(middle),cycleStart)===currentCycleDay)low=middle;else high=middle;
   }
-  return new Date(high);
+  // Cycle starts fall on whole minutes, so the boundary is the whole second inside (low, high].
+  return new Date(Math.floor(high/1000)*1000);
 }
 
 export function previousCalendarDay(day) {

@@ -164,12 +164,9 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .ui2-rp-streak img{width:34px;height:34px;flex:none}
 .ui2-rp-streak.is-cold img{filter:grayscale(1);opacity:.55}
 .ui2-rp-streak strong{flex:1;min-width:0;white-space:nowrap;font-size:17px;letter-spacing:-.03em;line-height:1.15}
-.ui2-step{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;flex:none}
-.ui2-step .ui2-icon{width:20px;height:20px}
-.ui2-step--mixed{background:#eaf3df;color:#4d8a3f;opacity:.55;filter:saturate(.6)}
-.ui2-step--dailyDeck{background:#e6f1f6;color:#2f7393;opacity:.55;filter:saturate(.6)}
-.ui2-step.is-done{background:#58be59;color:#fff;opacity:1;filter:none;box-shadow:0 2px 0 #1e4c2e}
-.ui2-step.is-done .ui2-icon{width:24px;height:24px}
+.ui2-rp-today{display:flex;align-items:center;gap:4px;flex:none;min-height:34px;padding:0 11px 0 8px;border-radius:17px;background:#f1eee2;color:#8a8574;font-size:15px;font-weight:850;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ui2-rp-today .ui2-icon{width:18px;height:18px}
+.ui2-rp-today.is-done{padding:0 12px;background:#fff1d6;color:#9a5a00}
 .ui2-go{color:var(--ui2-muted);flex:none}
 .ui2-rp-box{padding:2px 8px 10px;border:1px solid #a7bd8d;border-radius:23px;background:radial-gradient(ellipse at 85% 0%,#f2f6e8,transparent 80%),#dcecc6;box-shadow:0 4px 0 #aac78a,0 10px 20px rgb(23 61 44 / 8%)}
 .ui2-rp-box--discover{border-color:#8fb7c9;background:radial-gradient(ellipse at 85% 0%,#f2f9fc,transparent 80%),#d3eaf4;box-shadow:0 4px 0 #93bfd2,0 10px 20px rgb(23 61 44 / 8%)}
@@ -187,7 +184,9 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .ui2-rp-box--discover .practice-mode-card--left{background:#d9ebf3}.ui2-rp-box--discover .practice-mode-card--right{background:#bfdcea}
 .ui2-rp-box--discover .practice-mode-card--cover{background:linear-gradient(145deg,#fdfeff,#dcecf3)}
 .ui2-rp-box--discover .practice-mode-icon{color:#86b3c7}.ui2-rp-box--discover .practice-mode-icon-fill{fill:#cfe5ef}
-.ui2-pack .navigation-new-badge{position:absolute;top:-6px;right:-2px;z-index:6}
+.ui2-flame-badge{position:absolute;top:-7px;right:-4px;z-index:6;display:grid;place-items:center;width:26px;height:26px;border:1.5px solid #d6d1bf;border-radius:50%;background:#fffdf6;color:#9c9786;box-shadow:0 2px 0 #173d2c1f;pointer-events:none}
+.ui2-flame-badge .ui2-icon{width:16px;height:16px}
+.ui2-flame-badge.is-done{border-color:#c97a12;background:#f2a83b;color:#fff;box-shadow:0 2px 0 #b8670a}
 .ui2-modes .practice-mode[aria-disabled=true]{cursor:default}
 .ui2-modes .practice-mode[aria-disabled=true] .ui2-pack{opacity:.45;filter:grayscale(.4)}
 .ui2-modes .practice-mode[aria-disabled=true] .practice-mode-card{border-style:dashed;box-shadow:none}
