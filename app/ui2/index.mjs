@@ -8,7 +8,9 @@ import {installIconStyles} from "./icons.mjs";
 import {homeData,homeMarkup,inProgressDeck} from "./home.mjs";
 import {navMarkup,shellMarkup,headerMarkup} from "./shell.mjs";
 import {errorInfo,practiceStartDetail,blockingFailure} from "./errors.mjs";
-import {showErrorScreen,raiseErrorScreen} from "./error-screen.mjs";
+import {showErrorScreen,hideErrorScreen,raiseErrorScreen} from "./error-screen.mjs";
+import {newBookForm,newDeckForm,bookFormErrors,deckFormErrors,visibleErrors,toggleInterest,bookDuplicates,canSubmitBook,autofillInput,applyAutofill,bookCreateInput,deckCreateInput,bookFormMarkup,deckFormMarkup,duplicatesMarkup,syncFieldError,interestWarningMarkup,INSUFFICIENT_BALANCE,balanceMessage,balanceModalMarkup} from "./forms.mjs";
+import {DECK_ADD_COST} from "../wallet.mjs";
 import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending,tickStreakCountdown} from "./repaso.mjs";
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
@@ -35,7 +37,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // `legacy`: URL of the old interface, for destinations not built yet.
   const c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let removing=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
+  let removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
   const navFor=active=>navMarkup({active,practicePending,c,wallet:{leaves:reader?.wallet?.balance??0,petals:reader?.petals??0}});
   const drafts=createNoteDrafts(store),observeXp=createReaderXpTracker();
   let shelfViews=(()=>{const saved=store.read(storageKeys.shelfViews);return saved&&typeof saved==="object"?saved:{};})(),disposeLists=()=>{};
@@ -90,17 +92,23 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     return !(form.mode==="create"&&deck&&(catalog.deckModels.get(deck.id)?.cards.length??0)>=MAX_CARDS_PER_DECK);
   };
 
-  function paint(html){
-    disposeLists();
-    main.innerHTML=html;
-    disposeLists=mountBookLists(main);mountInterests(main);
-    mountBookCoverTints(main,catalog?.books||[],catalog?.interests||[],coverTintMode(tintMode));
-    for(const thumb of main.querySelectorAll(".sheet-thumb[data-book]")){
+  function tintThumbs(root){
+    for(const thumb of root.querySelectorAll(".sheet-thumb[data-book]")){
       const tint=coverTintGradients(catalog?.booksById.get(thumb.dataset.book),catalog?.interests||[],coverTintMode(tintMode));
       if(tint){thumb.dataset.tintedCover="true";thumb.style.setProperty("--tinted-cover",tint.cover);thumb.style.setProperty("--tinted-spine",tint.dark);}
     }
-    const dialog=main.querySelector("dialog[data-ui2-modal]")||main.querySelector("dialog[data-ui2-sheet]")||main.querySelector("dialog.bookstore-filter-modal");
-    if(dialog)dialog.showModal();
+  }
+  function paint(html){
+    disposeLists();
+    // A form sheet keeps its scroll when it is painted again (choosing an interest, a language…).
+    const scrolled=main.querySelector(".ui2-fsheet-body")?.scrollTop||0;
+    main.innerHTML=html;
+    disposeLists=mountBookLists(main);mountInterests(main);
+    mountBookCoverTints(main,catalog?.books||[],catalog?.interests||[],coverTintMode(tintMode));
+    tintThumbs(main);
+    // Sheets first, modals over them: a warning or error keeps its context visible behind.
+    for(const dialog of [...main.querySelectorAll("dialog[data-ui2-sheet],dialog.bookstore-filter-modal"),...main.querySelectorAll("dialog[data-ui2-modal]")])if(!dialog.open)dialog.showModal();
+    const body=main.querySelector(".ui2-fsheet-body");if(body)body.scrollTop=scrolled;
     raiseErrorScreen(doc);
     layoutToast();
   }
@@ -114,7 +122,18 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     clearTimeout(toastTimer);toast={message,deckId:deck};
     toastTimer=setTimeout(()=>{toast=null;main.querySelector(".ui2-toast")?.remove();},TOAST_MS);
   }
-  const withError=html=>failure?html+errorModalMarkup({info:errorInfo(failure,c),retry:!!form,title:failure.title,c}):html;
+  // The interest warning and, over everything, the business error (not enough balance has its own modal).
+  function withError(html){
+    if(prompt)html+=interestWarningMarkup({prompt,c});
+    if(!failure)return html;
+    if(INSUFFICIENT_BALANCE.has(failure.code))return html+balanceModalMarkup({message:balanceMessage(failure,{leaves:reader?.wallet?.balance??0,cost:DECK_ADD_COST,c}),c});
+    return html+errorModalMarkup({info:errorInfo(failure,c),retry:!!form,title:failure.title,c});
+  }
+  function authoringMarkup(){
+    if(!authoring)return "";
+    if(authoring.kind==="deck")return deckFormMarkup({form:authoring,c});
+    return bookFormMarkup({form:authoring,interests:catalog.interests||[],duplicates:bookDuplicates({form:authoring,catalog,language}),language,c});
+  }
 
   function formScreen(){
     const deck=formDeck(),model=deck&&catalog.deckModels.get(deck.id);
@@ -142,11 +161,11 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       const data=libreriaData({catalog,state,language,query:lb.query,filters:lb.filters,sortOrder:lb.sort,interestPreferences:lb.prefs,newBookIds:lb.newIds});
       let html=libreriaMarkup({data,views:shelfViews,c,nav:navFor("bookstore"),searching:lb.searching,filtersMarkup:lb.open?bookstoreFiltersMarkup({catalog,language,bookstoreFiltersOpen:true,bookstoreFilterDraft:lb.draft,bookstoreSortDraft:lb.sortDraft,bookstoreFilters:lb.filters,bookstoreSortOrder:lb.sort}):""});
       if(sheetState?.type==="book"){const sheet=bookstoreSheetData({catalog,state,language,bookId:sheetState.id});if(sheet)html+=bookSheetMarkup({data:sheet,c});}
-      paint(withError(html));return;
+      paint(withError(html+authoringMarkup()));return;
     }
     if(where.name==="book"){
       const data=bookPageData({catalog,state:{...reader,catalog},language,bookId:where.id}),list=libreriaData({catalog,state:{...reader,catalog},language});
-      if(data){paint(withError(shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),body:`<div class="ui2-body ui2-lib">${bookPageMarkup({data,c})}</div>`,nav:navFor("bookstore")})));main.querySelector(".bp-meta h1")?.focus({preventScroll:true});return;}
+      if(data){paint(withError(shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),body:`<div class="ui2-body ui2-lib">${bookPageMarkup({data,c})}</div>`,nav:navFor("bookstore")})+authoringMarkup()));if(!authoring)main.querySelector(".bp-meta h1")?.focus({preventScroll:true});return;}
     }
     if(where.name==="library"){
       const state={...reader,catalog};
@@ -274,6 +293,104 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       busy=false;render();
     }});
   }
+  // A change the server may ask to confirm (a book with an interest the reader rejected): the warning shows,
+  // Continue resends it with the server's confirmation and `done` runs once it is saved.
+  function confirmable(path,input,done){
+    run(async()=>{
+      const result=await api.request(path,input);
+      if(result?.confirmationRequired){prompt={path,input,result,done};return;}
+      await done(result);
+    });
+  }
+  function continuePrompt(){
+    const pending=prompt;if(!pending)return;
+    run(async()=>{
+      let result;
+      try{result=await api.request(pending.path,{...pending.input,confirmation:pending.result.confirmation});}
+      catch(caught){
+        // Not saved: a connection or server error keeps the warning behind the error screen.
+        const failed=asFailure(caught);
+        if(!blockingFailure(failed))prompt=null;
+        else if(pending.path==="/api/reader/book-status")failed.detail=c.bookInterestConfirmError;
+        throw failed;
+      }
+      if(result?.confirmationRequired){prompt={...pending,result};return;}
+      prompt=null;await pending.done(result);
+    });
+  }
+
+  // ---- catalog a new book / create a deck ----
+  const aiMessage=failed=>/^ai/.test(failed.code||"")?(typeof c[failed.code]==="string"?c[failed.code]:c.aiError):errorInfo(failed,c).detail;
+  // AI errors go to the error screen; Retry closes it and searches again with the form intact.
+  async function runAi(task){
+    if(busy)return;busy=true;failure=null;
+    try{await task();}
+    catch(caught){
+      const failed=asFailure(caught);
+      busy=false;
+      if(failed.status===401||failed.code==="sessionExpired"||failed.code==="signInRequired"){failure=failed;render();return;}
+      render();
+      showErrorScreen({message:aiMessage(failed),c,doc,onRetry:()=>{hideErrorScreen(doc);runAi(task);}});
+      return;
+    }
+    busy=false;render();
+  }
+  function autofillBook(){
+    const draft=authoring;
+    if(!draft||draft.kind!=="book"||busy||draft.searching)return;
+    if(!draft.title.trim()){draft.touched={...draft.touched,title:true};render();main.querySelector("#ui2-bk-title")?.focus({preventScroll:true});return;}
+    runAi(async()=>{
+      if(authoring!==draft)return;
+      draft.searching=true;render();
+      try{const result=await api.request("/api/author/books/autofill",autofillInput(draft));Object.assign(draft,applyAutofill(draft,result));}
+      finally{draft.searching=false;}
+    });
+  }
+  function refreshAuthoring(name){
+    const draft=authoring,sheet=main.querySelector("[data-ui2-authoring]");if(!draft||!sheet)return;
+    const submit=sheet.querySelector("[type=submit]");
+    if(draft.kind==="deck"){
+      syncFieldError(sheet,{id:"ui2-dk-title",code:visibleErrors(draft,deckFormErrors(draft)).title,c});
+      if(submit)submit.disabled=!draft.title.trim();
+      const count=sheet.querySelector('[data-field="description"] .ui2-fcount');if(count)count.textContent=`${draft.description.length}/${count.textContent.split("/")[1]}`;
+      return;
+    }
+    const shown=visibleErrors(draft,bookFormErrors(draft)),duplicates=bookDuplicates({form:draft,catalog,language});
+    syncFieldError(sheet,{id:name==="author"?"ui2-bk-author":"ui2-bk-title",code:shown[name==="author"?"author":"title"],c});
+    const host=sheet.querySelector("[data-ui2-duplicates]");
+    if(host&&name==="title"){host.innerHTML=duplicatesMarkup({duplicates,c});tintThumbs(host);}
+    if(submit)submit.disabled=!canSubmitBook(draft,duplicates);
+  }
+  function openAuthoring(next,focus){
+    authoring=next;sheetState=null;render();
+    const input=main.querySelector(focus);
+    if(input){input.focus({preventScroll:true});input.setSelectionRange?.(input.value.length,input.value.length);}
+  }
+  function submitAuthoring(){
+    const draft=authoring;if(!draft||busy||draft.searching)return;
+    if(draft.kind==="deck"){
+      if(!draft.title.trim()){draft.touched={...draft.touched,title:true};render();return;}
+      run(async()=>{
+        let result;
+        try{result=await api.request("/api/author/decks",deckCreateInput(draft));}
+        catch(caught){throw Object.assign(asFailure(caught),{title:c.ui2ErrorTitle});}
+        await reload();authoring=null;win.location.hash=`#deck/${encodeURIComponent(result.deckId)}`;
+      });
+      return;
+    }
+    if(!canSubmitBook(draft,bookDuplicates({form:draft,catalog,language}))){draft.touched={title:true,author:true,interests:true};render();return;}
+    run(async()=>{
+      let result;
+      try{result=await api.request("/api/author/books",bookCreateInput(draft,language));}
+      catch(caught){
+        if(caught?.code==="bookAlreadyExists"){draft.error="bookAlreadyExists";return;}
+        throw Object.assign(asFailure(caught),{title:c.ui2ErrorTitle});
+      }
+      const gain=observeXp(session.user.id,undefined,result.xpReward);
+      if(gain)xpFeedback?.present(gain);
+      await reload();authoring=null;lb.query="";win.location.hash=`#book/${encodeURIComponent(result.bookId)}`;
+    });
+  }
   const leaveForm=back=>{form=null;failure=null;if(back&&win.location.hash!==back)win.location.hash=back;else render();};
 
   // The server starts the session; the old interface restores it and shows it (the new session screen is pending).
@@ -353,10 +470,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(action==="book-status"){
       const bookId=target.dataset.book,status=target.dataset.status;
       if((reader.statuses?.[bookId]||"unread")===status)return;
-      run(async()=>{
-        const result=await api.request("/api/reader/book-status",{bookId,status});
-        // The server asks for a confirmation the new interface does not show yet: the old book page handles it.
-        if(result?.confirmationRequired){win.location.href=`${c.legacy}#book/${encodeURIComponent(bookId)}`;return;}
+      confirmable("/api/reader/book-status",{bookId,status},async()=>{
         await reload();
         const entries=status==="read"?finishData({catalog,bookId,userId:session.user.id}):[];
         if(entries.length)finish={bookId,decks:entries};
@@ -364,13 +478,23 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     }
     else if(action==="add-deck"){
       const id=target.dataset.deck;
-      run(async()=>{
-        const result=await api.request("/api/reader/cardcase/add",{deckId:id});
-        // The server asks for a confirmation the new interface does not show yet: the old page handles it.
-        if(result?.confirmationRequired){win.location.href=`${c.legacy}#deck/${encodeURIComponent(id)}`;return;}
-        await reload();showToast(c.deckAddedToCardcase);
-      });
+      confirmable("/api/reader/cardcase/add",{deckId:id},async()=>{await reload();showToast(c.deckAddedToCardcase);});
     }
+    else if(action==="interest-cancel"){prompt=null;render();}
+    else if(action==="interest-continue")continuePrompt();
+    else if(action==="catalog-book")openAuthoring(newBookForm({title:lb.query.trim(),requestId:crypto.randomUUID()}),"#ui2-bk-title");
+    else if(action==="create-deck")openAuthoring(newDeckForm({bookId:target.dataset.book,language,requestId:crypto.randomUUID()}),"#ui2-dk-title");
+    else if(action==="authoring-close"){if(!authoring?.searching){authoring=null;render();}}
+    else if(action==="autofill-book")autofillBook();
+    else if(action==="pick-interest"&&authoring?.kind==="book"&&!authoring.searching){
+      authoring=toggleInterest(authoring,target.dataset.interest);render();
+      main.querySelector(`[data-ui2="pick-interest"][data-interest="${CSS.escape(target.dataset.interest)}"]`)?.focus({preventScroll:true});
+    }
+    else if(action==="deck-language"&&authoring?.kind==="deck"){
+      authoring.language=target.dataset.language;render();
+      main.querySelector(`[data-ui2="deck-language"][data-language="${CSS.escape(authoring.language)}"]`)?.focus({preventScroll:true});
+    }
+    else if(action==="dup-view"){authoring=null;sheetState={type:"book",id:target.dataset.book};render();}
     else if(action==="share-deck"&&view)shareDeck(view.deck);
     else if(action==="finish-deck"&&view){
       if(target.getAttribute("aria-disabled")==="true")return;
@@ -403,8 +527,12 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       run(async()=>{await api.request("/api/author/notes/place",{cardId,parentId});await reload();});
     }
   });
+  // While the AI searches, the form sheet cannot be dismissed with Esc.
+  main.addEventListener("cancel",event=>{if(event.target.matches?.("[data-ui2-authoring-sheet]")&&authoring?.searching)event.preventDefault();},true);
   main.addEventListener("close",event=>{
-    if(event.target.matches?.("dialog[data-ui2-modal]")&&failure){failure=null;render();}
+    if(event.target.matches?.("[data-ui2-authoring-sheet]")){if(authoring&&!authoring.searching)authoring=null;render();}
+    else if(event.target.matches?.(".ui2-interestdialog")){if(prompt){prompt=null;render();}}
+    else if(event.target.matches?.("dialog[data-ui2-modal]")&&failure){failure=null;render();}
     else if(event.target.matches?.(".ui2-finishdialog")&&finish){finish=null;render();}
     else if(event.target.matches?.(".ui2-removedialog")&&removing){removing=null;render();}
     else if(event.target.matches?.(".bookstore-filter-modal")&&lb.open){lb.open=false;render();focusFilterButton();}
@@ -416,6 +544,13 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       lb.timer=setTimeout(()=>{lb.searching=false;refreshResults();},SEARCH_DEBOUNCE_MS);
       refreshResults();return;
     }
+    if(authoring&&event.target.closest?.("[data-ui2-authoring]")){
+      const name=event.target.name;
+      if(!["title","author","description"].includes(name))return;
+      authoring[name]=event.target.value;
+      if(name==="title"&&authoring.kind==="book")authoring.error=null;
+      refreshAuthoring(name);return;
+    }
     if(!form||!event.target.name)return;
     form[event.target.name]=event.target.value;
     if(form.recovered&&!form.title&&!form.body)form.recovered=false;
@@ -426,13 +561,20 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(event.target.name==="title"&&counters[0])counters[0].textContent=`${form.title.length}/${TITLE_MAX_LENGTH}`;
     if(event.target.name==="body"){const counter=counters[counters.length-1];if(counter)counter.textContent=`${form.body.length}/${CARD_BODY_MAX_LENGTH}`;}
   });
+  // A field shows its error once the reader leaves it.
+  main.addEventListener("focusout",event=>{
+    const name=event.target.name;
+    if(!authoring||!["title","author"].includes(name)||!event.target.closest?.("[data-ui2-authoring]"))return;
+    authoring.touched={...authoring.touched,[name]:true};refreshAuthoring(name);
+  });
   main.addEventListener("change",event=>{
+    if(authoring?.kind==="deck"&&event.target.name==="contributionMode"){authoring.contributionMode=event.target.value;return;}
     const key=event.target.dataset?.bookstoreFilter;
     if(key&&key in lb.draft)lb.draft[key]=event.target.value;
   });
-  main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-search]")){settleSearch();return;}submit();});
+  main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-search]")){settleSearch();return;}if(event.target.matches("[data-ui2-authoring]")){submitAuthoring();return;}submit();});
   win.addEventListener("hashchange",()=>{
-    sheetState=null;finish=null;removing=null;form=null;failure=null;
+    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;
     clearTimeout(lb.timer);lb.searching=false;lb.open=false;
     if(route().name!=="bookstore"){lb.visitId=null;lb.newIds=[];}
     if(toast&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}

@@ -57,6 +57,7 @@ Catálogo de los iconos de la interfaz nueva. Las reglas del estilo están en `d
 | `calendar` | Calendario | Repaso: tema «La baraja del día» |
 | `new-gift` | Paquete con lazo: algo nuevo por abrir | Repaso: «Entre las novedades» |
 | `team-pick` | Medalla con dos cintas por detrás: selección del equipo | Repaso: «Elegidas por el equipo» |
+| `ai-sparkles` | Destello grande con dos pequeños: ayuda de la IA | Catalogar nuevo libro: «Rellenar con IA» |
 | `alert` | Aviso o error | Mensajes |
 
 ## Iconos de divisa (con color)

@@ -123,5 +123,6 @@ export function bookPageMarkup({data,c}){
     :callout({variant:"warning",width:"fill",className:"sheet-warn",main:c.ui2NoDecksOfBook});
   return `<section class="book-page"><div class="bp-head"><button type="button" class="ui2-ib bp-back" data-ui2="page-back" aria-label="${esc(c.back)}">${icon("back")}</button>`
     +`<div class="bp-meta"><h1 tabindex="-1" lang="${esc(data.titleLanguage)}" dir="auto">${esc(data.title)}</h1>${data.author?`<p class="bp-author">${esc(data.author)}</p>`:""}${chips?`<div class="bp-chips">${chips}</div>`:""}</div></div>`
-    +(data.description?`<p class="bp-desc" lang="${esc(data.descriptionLanguage)}" dir="auto">${esc(data.description)}</p>`:"")+added+decks+`</section>`;
+    +(data.description?`<p class="bp-desc" lang="${esc(data.descriptionLanguage)}" dir="auto">${esc(data.description)}</p>`:"")+added+decks
+    +`<button type="button" class="ui2-btn secondary--subtle bp-new-deck" data-ui2="create-deck" data-book="${esc(data.id)}" aria-haspopup="dialog">${icon("new-deck")}<span>${esc(c.createDeck)}</span></button></section>`;
 }

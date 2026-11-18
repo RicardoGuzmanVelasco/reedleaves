@@ -34,7 +34,7 @@ function sectionMarkup(section,views,c){
 
 export const searchingMarkup=c=>`<div class="lb-searching">${loadingPlaceholder(c.ui2Searching,{visible:true})}</div>`;
 
-const catalogButton=(c,userId)=>userId?`<a class="ui2-btn lb-catalog" href="${esc(`${c.legacy}#bookstore`)}">${icon("book-add")}<span>${esc(c.ui2CatalogNewBook)}</span></a>`:"";
+const catalogButton=(c,userId)=>userId?`<button type="button" class="ui2-btn lb-catalog" data-ui2="catalog-book" aria-haspopup="dialog">${icon("book-add")}<span>${esc(c.ui2CatalogNewBook)}</span></button>`:"";
 
 // The part that changes while searching: sections, or the empty state.
 export function libreriaResultsMarkup({data,views,c}){
