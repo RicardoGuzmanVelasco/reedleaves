@@ -99,3 +99,10 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 ## Fase 4 — Borrar
 
 - Fuera del plan por ahora: referencias en cascada y sesiones de repaso a medias. Nadie lo ha pedido.
+
+## Estado de la interfaz nueva (2026-11-18)
+
+- En `Staging` con `?ui=2`: Home, Tomar nota (B y C), Repaso, Biblioteca (Estantería, Tarjetero, hoja del libro, «Leído», vacíos), Librería y ficha del libro, página de baraja, componente de price tag (`app/ui2/price-tag.mjs`, V1+).
+- Diseñadas sin implementar (mockups en el scratchpad de la sesión; no versionados): Perfil y Ajustes, Sesión de práctica, Acceso y onboarding, Formularios y diálogos (aviso de interés, Catalogar nuevo libro, Crear baraja, saldo, red), Terminar baraja y «Leído» (flujo E), Barajas ajenas, perfil ajeno y Social (flujo F).
+- Por diseñar: vista de tarjetas (D6/D7), pantalla «Editar baraja», Social (si entra en el producto).
+- Pendiente técnico: «Catalogar nuevo libro» y «Leer tarjetas» aún abren la UI vieja; el toast «Baraja añadida al tarjetero.» no cruza esa navegación; aviso de interés (`confirmationRequired`) sin diálogo ui2.
