@@ -14,6 +14,9 @@ export function errorInfo(failure,c){
   return {code:label,reference:failure?.reference||null,detail:failure?.detail||detail,retry};
 }
 
+// No connection or a server error: the full-screen error with Retry (error-screen.mjs), not the modal.
+export const blockingFailure=failure=>!failure?.code||failure.code==="connectionError"||Number(failure.status)>=500;
+
 // Starting a practice answers 200 with a `reason` when it cannot start (no cards, not enough petals, price changed…).
 export function practiceStartDetail(result,cost,c){
   const reason=result?.reason;

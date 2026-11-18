@@ -7,7 +7,8 @@ import {submitEdit} from "./edit-note.mjs";
 import {installIconStyles} from "./icons.mjs";
 import {homeData,homeMarkup,inProgressDeck} from "./home.mjs";
 import {navMarkup,shellMarkup,headerMarkup} from "./shell.mjs";
-import {errorInfo,practiceStartDetail} from "./errors.mjs";
+import {errorInfo,practiceStartDetail,blockingFailure} from "./errors.mjs";
+import {showErrorScreen,raiseErrorScreen} from "./error-screen.mjs";
 import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending,tickStreakCountdown} from "./repaso.mjs";
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
@@ -100,6 +101,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     }
     const dialog=main.querySelector("dialog[data-ui2-modal]")||main.querySelector("dialog[data-ui2-sheet]")||main.querySelector("dialog.bookstore-filter-modal");
     if(dialog)dialog.showModal();
+    raiseErrorScreen(doc);
     layoutToast();
   }
   function layoutToast(){
@@ -255,10 +257,22 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     render();
   }
   async function reload(){[catalog,reader]=await Promise.all([loadCatalog(),api.request("/api/reader/state")]);await Promise.all([loadStreak(),loadTopics()]);}
+  const asFailure=caught=>caught?.code?caught:{code:"connectionError"};
   async function run(task){
     if(busy)return;busy=true;failure=null;
-    try{await task();}catch(caught){failure=caught?.code?caught:{code:"connectionError"};}
-    busy=false;render();
+    try{await task();}catch(caught){failure=asFailure(caught);}
+    busy=false;
+    // No connection or a server error: the full-screen error, whose Retry runs the same task again.
+    if(failure&&blockingFailure(failure)){const lost=failure;failure=null;offerRetry(lost,task);}
+    render();
+  }
+  function offerRetry(lost,task){
+    showErrorScreen({message:errorInfo(lost,c).detail,c,doc,onRetry:async()=>{
+      busy=true;
+      try{await task();}
+      catch(caught){const next=asFailure(caught);if(blockingFailure(next))offerRetry(next,task);else failure=next;}
+      busy=false;render();
+    }});
   }
   const leaveForm=back=>{form=null;failure=null;if(back&&win.location.hash!==back)win.location.hash=back;else render();};
 
@@ -425,7 +439,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(route().name==="practice")Promise.all([loadStreak(),loadTopics(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{if(route().name==="practice"&&!form)render();});
   });
 
-  try{session=await api.request("/api/session");catalog=await loadCatalog();if(session.user){reader=await api.request("/api/reader/state");await Promise.all([loadStreak(),loadTopics()]);}}
-  catch{main.innerHTML=`<p class="ui2-msg" role="alert">${c.connectionError}</p>`;return;}
+  async function start(){session=await api.request("/api/session");catalog=await loadCatalog();if(session.user){reader=await api.request("/api/reader/state");await Promise.all([loadStreak(),loadTopics()]);}}
+  try{await start();}
+  catch(caught){showErrorScreen({message:errorInfo(asFailure(caught),c).detail,c,doc,onRetry:async()=>{await start();render();}});return;}
   render();
 }
