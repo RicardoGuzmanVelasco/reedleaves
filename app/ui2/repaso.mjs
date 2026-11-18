@@ -43,7 +43,7 @@ function price(info,data,c){
 }
 // Same recipe for every glyph: viewBox 24, content inside 2-22, one stroke, no tick except "read".
 const ICON_PATHS={
-  mixed:'<circle class="practice-mode-icon-fill" cx="6.8" cy="6.8" r="3.8"/><path class="practice-mode-icon-fill" d="M17.2 3.2 21 10.4H13.4Z"/><rect class="practice-mode-icon-fill" x="3" y="13.4" width="7.6" height="7.6" rx="2"/><path class="practice-mode-icon-fill" d="M17.2 13.3 18.3 15.9 21.1 16.1 19.0 18.0 19.6 20.7 17.2 19.2 14.8 20.7 15.4 18.0 13.3 16.1 16.1 15.9Z"/>',
+  mixed:'<rect class="practice-mode-icon-fill" x="3.5" y="3.5" width="13" height="6" rx="1.8"/><path d="M7 3.5v6"/><rect class="practice-mode-icon-fill" x="5" y="9.5" width="16" height="6" rx="1.8"/><path d="M17.5 9.5v6"/><rect class="practice-mode-icon-fill" x="2.5" y="15.5" width="18" height="6" rx="1.8"/><path d="M6 15.5v6"/>',
   dailyDeck:'<rect class="practice-mode-icon-fill" x="3" y="5" width="18" height="16" rx="3.5"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/>',
   novelties:'<rect class="practice-mode-icon-fill" x="4" y="10.2" width="16" height="10.3" rx="3"/><rect x="3" y="6.8" width="18" height="3.4" rx="1.5"/><path d="M12 6.8v13.7"/><path d="M12 6.8c-1.2-3-4.6-3.4-4.6-1.2 0 1.3 2.2 1.2 4.6 1.2Zm0 0c1.2-3 4.6-3.4 4.6-1.2 0 1.3-2.2 1.2-4.6 1.2Z"/>',
   teamPicks:'<path d="M8.6 14.5 7 21.4l3.2-1.4L12 22l1.8-2 3.2 1.4-1.6-6.9"/><circle class="practice-mode-icon-fill" cx="12" cy="9" r="6.5"/>',
