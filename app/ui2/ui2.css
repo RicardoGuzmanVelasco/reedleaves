@@ -166,6 +166,8 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .ui2-rp-streak strong{flex:1;min-width:0;white-space:nowrap;font-size:17px;letter-spacing:-.03em;line-height:1.15}
 .ui2-rp-today{display:flex;align-items:center;gap:4px;flex:none;min-height:34px;padding:0 11px 0 8px;border-radius:17px;background:#f1eee2;color:#8a8574;font-size:15px;font-weight:850;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
 .ui2-rp-today .ui2-icon,.ui2-rp-today .ui2-rp-clock{width:18px;height:18px;flex:none}
+.ui2-rp-today[data-streak-countdown]{min-height:28px;padding:0 10px 0 7px;gap:3px;border-radius:14px;font-size:13px}
+.ui2-rp-today[data-streak-countdown] .ui2-rp-clock{width:15px;height:15px}
 .ui2-rp-today.is-done{padding:0 12px;background:#fff1d6;color:#9a5a00}
 .ui2-go{color:var(--ui2-muted);flex:none}
 .ui2-rp-box{padding:2px 8px 10px;border:1px solid #a7bd8d;border-radius:23px;background:radial-gradient(ellipse at 85% 0%,#f2f6e8,transparent 80%),#dcecc6;box-shadow:0 4px 0 #aac78a,0 10px 20px rgb(23 61 44 / 8%)}
