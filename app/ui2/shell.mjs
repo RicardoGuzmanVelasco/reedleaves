@@ -25,7 +25,7 @@ export function navMarkup({active,practicePending=false,c,wallet=null}){
 }
 
 const pill=(src,value,label)=>`<span role="img" aria-label="${esc(`${label}: ${value}`)}"><img src="${imageUrl(src)}" alt="" width="20" height="20">${value}</span>`;
-const walletMarkup=(wallet,c,className="")=>`<div class="ui2-wallet${className?` ${className}`:""}" role="group" aria-label="${esc(c.ui2Balances)}">${pill("/app/assets/brand/leaf-token.svg",wallet.leaves,c.ui2Leaves)}${pill("/app/assets/brand/petal-token.svg",wallet.petals,c.ui2Petals)}</div>`;
+const walletMarkup=(wallet,c,className="")=>`<div class="ui2-wallet${className?` ${className}`:""}" role="group" aria-label="${esc(c.ui2Balances)}">${pill("/app/assets/icons/ui2/leaf-token.svg",wallet.leaves,c.ui2Leaves)}${pill("/app/assets/icons/ui2/petal-token.svg",wallet.petals,c.ui2Petals)}</div>`;
 // The avatar is the reader's mascot of their level; it opens their profile (old interface until the new one has it).
 export function headerMarkup({userId,stage,wallet,c}){
   return `<header class="ui2-top ui2-top--home"><a class="ui2-avatar profile-avatar profile-avatar--reader" href="${esc(`${c.legacy}#profile/${encodeURIComponent(userId)}`)}" aria-label="${esc(c.profile)}">${mascotArt(stage,"",{idle:false})}</a>`

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <clipPath id="petal-shape">
+      <path d="M18 88C12 61 23 31 44 16C59 5 74 7 82 17C95 35 74 55 51 67C36 75 25 78 18 88Z"/>
+    </clipPath>
+  </defs>
+  <path d="M18 88C12 61 23 31 44 16C59 5 74 7 82 17C95 35 74 55 51 67C36 75 25 78 18 88Z" fill="#F4A6A0"/>
+  <g clip-path="url(#petal-shape)">
+    <path d="M18 88C32 64 57 50 68 33C73 25 76 15 75 4H105V105H0Z" fill="#FAD7CE"/>
+  </g>
+  <path d="M18 88C12 61 23 31 44 16C59 5 74 7 82 17C95 35 74 55 51 67C36 75 25 78 18 88Z" stroke="#4B7D5A" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>

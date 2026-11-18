@@ -58,6 +58,10 @@ Catálogo de los iconos de la interfaz nueva. Las reglas del estilo están en `d
 | `team-pick` | Escarapela con visto: selección del equipo | Repaso: «Elegidas por el equipo» |
 | `alert` | Aviso o error | Mensajes |
 
+## Iconos de divisa (con color)
+
+`leaf-token` y `petal-token` (Hoja y Pétalo) son copias de producción de los de `brand/`; llevan color propio, no `currentColor`, y no pasan por `icons.mjs`. Las variantes `-soft` tienen el mismo dibujo con el contorno más fino y verde suave (`#4b7d5a`); las usa la etiqueta de precio suave (`soft:true`).
+
 ## Elecciones abiertas (fuera de `final/`)
 
 - `book-unread-alt`, `book-to-read-alt`, `book-read-alt`: base cerrada con la curva hacia fuera. La principal cierra con la curva hacia dentro.
