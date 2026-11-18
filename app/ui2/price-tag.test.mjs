@@ -10,6 +10,10 @@ for(const lang of ["es","en"]){
     assert.match(tag({amount:1,currency:"petal"}),new RegExp(c.ui2PriceCost(1,"petal")));
     assert.notEqual(c.ui2PriceCost(1,"leaf"),c.ui2PriceCost(2,"leaf"));
   });
+  test(`Price tag soft variant is opt-in (${lang})`,()=>{
+    assert.doesNotMatch(tag({amount:3,currency:"petal"}),/--soft/);
+    assert.match(tag({amount:3,currency:"petal",soft:true}),/--soft/);
+  });
   test(`Price tag states (${lang})`,()=>{
     assert.doesNotMatch(tag({amount:3,currency:"petal"}),/insufficient|discount|<s /);
     assert.match(tag({amount:3,currency:"petal",state:"insufficient"}),/insufficient/);

@@ -39,7 +39,7 @@ function streakRow(data,c){
 function price(info,data,c){
   const cost=info?.cost??REGULAR_COST;
   const petals=data.wallet?.petals;
-  return priceTagMarkup({amount:cost,currency:"petal",size:"sm",...(info?.discounted?{original:REGULAR_COST}:{}),state:Number.isFinite(petals)&&petals<cost?"insufficient":"normal",c});
+  return priceTagMarkup({amount:cost,currency:"petal",size:"sm",soft:true,...(info?.discounted?{original:REGULAR_COST}:{}),state:Number.isFinite(petals)&&petals<cost?"insufficient":"normal",c});
 }
 function topicMarkup(topic,data,c){
   const name=c[labelKey[topic.id]],info=data.topics.get(topic.id),available=info?info.available:true,owed=available&&topic.streak&&data.streak.known&&!stepState(topic.id,data);
