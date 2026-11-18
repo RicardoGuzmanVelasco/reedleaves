@@ -1,6 +1,7 @@
 // Practice (Repaso): streak row, two topic containers, streak calendar. The streak rule lives in the server
 // (GET /api/progress/streak); nothing here computes it.
-import {escapeHtml as esc,priceTag,practiceDeckIcon} from "../views.mjs";
+import {escapeHtml as esc,practiceDeckIcon} from "../views.mjs";
+import {priceTagMarkup} from "./price-tag.mjs";
 import {imageUrl} from "../image-url.mjs";
 import {icon} from "./icons.mjs";
 import {headerMarkup} from "./shell.mjs";
@@ -35,16 +36,17 @@ function streakRow(data,c){
     +`<span class="ui2-go" aria-hidden="true">${icon("forward")}</span></button>`;
 }
 
-function price(info,c){
+function price(info,data,c){
   const cost=info?.cost??REGULAR_COST;
-  return priceTag({amount:cost,icon:"petal",label:c.practicePrice(cost),...(info?.discounted?{originalAmount:REGULAR_COST}:{})});
+  const petals=data.wallet?.petals;
+  return priceTagMarkup({amount:cost,currency:"petal",size:"sm",...(info?.discounted?{original:REGULAR_COST}:{}),state:Number.isFinite(petals)&&petals<cost?"insufficient":"normal",c});
 }
 function topicMarkup(topic,data,c){
   const name=c[labelKey[topic.id]],info=data.topics.get(topic.id),available=info?info.available:true,owed=available&&topic.streak&&data.streak.known&&!stepState(topic.id,data);
   const glyph=topic.icon?`<span class="ui2-icon practice-mode-icon" data-icon="${topic.icon}" aria-hidden="true"></span>`:practiceDeckIcon(topic.id==="interests"?"discover":topic.id);
   const attrs=available?` data-ui2="practice-start" data-mode="${topic.id}" data-cost="${info?.cost??REGULAR_COST}"`:' aria-disabled="true"';
   const aria=!available?`${name}, ${c.practiceNeedMoreCards(info.cards,info.required)}`:owed?`${name}, ${c.ui2PendingForStreak}`:name;
-  return `<button type="button" class="practice-mode practice-mode--${topic.id}" aria-label="${esc(aria)}"${attrs}><span class="ui2-pack" aria-hidden="true"><span class="practice-mode-pack"><span class="practice-mode-card practice-mode-card--left"></span><span class="practice-mode-card practice-mode-card--right"></span><span class="practice-mode-card practice-mode-card--cover">${glyph}</span></span>${owed?'<span class="navigation-new-badge"></span>':""}</span><span class="practice-mode-label">${esc(name)}</span>${available?price(info,c):""}</button>`;
+  return `<button type="button" class="practice-mode practice-mode--${topic.id}" aria-label="${esc(aria)}"${attrs}><span class="ui2-pack" aria-hidden="true"><span class="practice-mode-pack"><span class="practice-mode-card practice-mode-card--left"></span><span class="practice-mode-card practice-mode-card--right"></span><span class="practice-mode-card practice-mode-card--cover">${glyph}</span></span>${owed?'<span class="navigation-new-badge"></span>':""}</span><span class="practice-mode-label">${esc(name)}</span>${available?price(info,data,c):""}</button>`;
 }
 const box=(kind,title,topics,data,c)=>`<section class="ui2-rp-box ui2-rp-box--${kind}" aria-labelledby="ui2-rp-${kind}"><h2 id="ui2-rp-${kind}">${esc(title)}</h2><div class="ui2-modes">${topics.map(topic=>topicMarkup(topic,data,c)).join("")}</div></section>`;
 

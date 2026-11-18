@@ -30,7 +30,7 @@ for(const language of ["es","en"])test(`Repaso: streak row, two containers, eigh
   assert.match(html,/id="ui2-rp-practice"[^>]*>[^<]*</);assert.ok(html.includes(c.practice)&&html.includes(c.practiceMode_discover));
   assert.equal(html.match(/navigation-new-badge/g).length,3);                  // two topics + the tab
   assert.match(html,new RegExp(`aria-label="${c.practiceMode_mixed}, ${c.ui2PendingForStreak}"`));
-  assert.match(html,/pricetag--discounted/);                                   // Read is today's offer
+  assert.match(html,/ui2-price-tag--discount/);                                   // Read is today's offer
   assert.ok(html.includes(c.practicePrice(3)));
   assert.match(html,/practice-mode--dailyDeck[\s\S]*?<\/button>/);
   assert.equal(html.match(/aria-disabled="true"/g).length,1);                   // only the Social piece: every topic is available here
@@ -53,7 +53,7 @@ test("Every topic starts the server session with the cost the server announced; 
   assert.doesNotMatch(html,/practice-legacy/);
   const dimmed=render("es",streak(),state(),topicState({novelties:{available:false,cards:1,required:5},dailyDeck:{available:false,cards:0,required:5}}));
   const novelties=dimmed.match(/<button[^>]*practice-mode--novelties[\s\S]*?<\/button>/)[0];
-  assert.match(novelties,/aria-disabled="true"/);assert.doesNotMatch(novelties,/data-ui2|pricetag/);
+  assert.match(novelties,/aria-disabled="true"/);assert.doesNotMatch(novelties,/data-ui2|price-tag/);
   assert.ok(novelties.includes(words.es.practiceNeedMoreCards(1,5)));
   assert.equal(dimmed.match(/navigation-new-badge/g).length,2);                   // an unavailable topic carries no badge; mixed + the tab remain
   const unknown=render("es",streak(),state(),null);                                // endpoint down: nothing is blocked, regular price

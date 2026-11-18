@@ -180,7 +180,7 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .ui2-modes .practice-mode:active .ui2-pack{transform:translateY(2px)}
 .ui2-pack .practice-mode-pack{position:absolute;left:0;top:0;width:129px;height:139px;margin:0;transform:scale(.5);transform-origin:top left}
 .ui2-modes .practice-mode-label{max-width:68px;margin:0 auto;font-size:10.5px;line-height:1.15;font-weight:850;text-wrap:balance}
-.ui2-modes .pricetag{transform:scale(.82);transform-origin:top center;margin-top:3px}
+.ui2-modes .ui2-price-tag{margin-top:6px}
 .ui2-modes .practice-mode-icon{opacity:.78}
 .ui2-modes .ui2-icon.practice-mode-icon{width:122px;height:122px;min-width:0;min-height:0;transform:translate(var(--icon-x),var(--icon-y)) rotate(-8deg) scale(var(--icon-scale));-webkit-mask-size:68%;mask-size:68%}
 .practice-mode--dailyDeck,.practice-mode--novelties,.practice-mode--teamPicks{--icon-x:-6px;--icon-y:-2px;--icon-scale:.95}
@@ -345,3 +345,25 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .dp-msg{margin-top:2px}
 .dp-empty{padding-top:30px}
 @media(min-width:900px){.dp-actions{max-width:420px}}
+
+/* Price tag (price-tag.mjs): tag with a rounded tip on the right, solid eyelet and a looped cord */
+.ui2-price-tag{--p:14px;--fill:#ffe9a8;--edge:#173d2c;--disc:#f8c48e;position:relative;isolation:isolate;display:inline-flex;flex:none;align-items:center;gap:4px;height:28px;margin:0 6px 0 10px;padding:0 calc(var(--p) + 9px) 0 28px;border-radius:14px 0 0 14px;color:var(--edge);font-size:15px;font-weight:850;line-height:1;white-space:nowrap}
+.ui2-price-tag--insufficient{--fill:#fce1dc;--edge:#a63a2e}
+.ui2-price-tag--discount{--fill:var(--disc)}.ui2-price-tag--discount.ui2-price-tag--insufficient{--fill:#fce1dc}
+.ui2-price-tag:before,.ui2-price-tag:after{content:"";position:absolute;z-index:-1}
+.ui2-price-tag:before{inset:0;background:var(--edge);border-radius:inherit;clip-path:polygon(0 0,calc(100% - var(--p)) 0,calc(100% - var(--p)*.22) 39%,calc(100% - var(--p)*.08) 44%,calc(100% - var(--p)*.01) 47%,100% 50%,calc(100% - var(--p)*.01) 53%,calc(100% - var(--p)*.08) 56%,calc(100% - var(--p)*.22) 61%,calc(100% - var(--p)) 100%,0 100%)}
+.ui2-price-tag:after{inset:2px;background:var(--fill);border-radius:12px 0 0 12px;clip-path:polygon(0 0,calc(100% - var(--p) + 1.2px) 0,calc(100% - var(--p)*.22 + 1px) 39%,calc(100% - var(--p)*.08 + .4px) 44%,calc(100% - var(--p)*.01) 47%,calc(100% - .6px) 50%,calc(100% - var(--p)*.01) 53%,calc(100% - var(--p)*.08 + .4px) 56%,calc(100% - var(--p)*.22 + 1px) 61%,calc(100% - var(--p) + 1.2px) 100%,0 100%)}
+.ui2-price-tag__icon{position:absolute;left:-10px;top:50%;width:34px;height:34px;translate:0 -50%}
+.ui2-price-tag__old{position:relative;margin-right:2px;font-weight:800;opacity:.72;text-decoration:none}
+.ui2-price-tag__old:after{content:"";position:absolute;left:-3px;right:-3px;top:50%;height:2.5px;margin-top:-1px;border-radius:2px;background:#a84938;opacity:.85;rotate:-18deg}
+.ui2-price-tag__n{font-weight:850;font-variant-numeric:tabular-nums}
+.ui2-price-tag__n--free{min-width:1.45em;padding:0 4px;border:2px solid #173d2c;border-radius:999px;background:#58be59;color:#fff;text-align:center;line-height:1.1}
+.ui2-price-tag__eyelet{position:absolute;right:12px;top:50%;z-index:2;width:7px;height:7px;translate:50% -50%;border-radius:50%;background:var(--edge)}
+.ui2-price-tag__cord{position:absolute;left:calc(100% - 12px);top:50%;z-index:1;width:22px;height:16px;translate:0 -50%;color:var(--edge);overflow:visible;pointer-events:none}
+.ui2-price-tag__sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ui2-price-tag--sm{--p:12px;height:24px;font-size:13.5px;padding-right:calc(var(--p) + 7px);margin-right:3px;border-radius:12px 0 0 12px}
+.ui2-price-tag--sm:after{border-radius:10px 0 0 10px}
+.ui2-price-tag--sm .ui2-price-tag__icon{width:30px;height:30px}
+.ui2-price-tag--sm .ui2-price-tag__eyelet{right:9px;width:6px;height:6px}
+.ui2-price-tag--sm .ui2-price-tag__cord{left:calc(100% - 9px);width:16px;height:12px}
+.ui2-btn .ui2-price-tag{margin-left:10px}
