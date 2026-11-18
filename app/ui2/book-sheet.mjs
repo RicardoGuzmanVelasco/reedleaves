@@ -117,7 +117,7 @@ export function bookPageData({catalog,state,language,bookId}){
 export function bookPageMarkup({data,c}){
   const chips=data.interests.map(({interest,name})=>`<span class="int-chip"${interestColor(interest)}>${interestIcon(interest)}${esc(name)}</span>`).join("");
   const added=data.creator?`<p class="bp-added"><span>${esc(c.bookAddedBy)}</span> `+(data.creator.id
-    ?`<a class="card-attribution-row" href="${esc(`${c.legacy}#profile/${encodeURIComponent(data.creator.id)}`)}">${attributionIcon("user")}<bdi>${esc(data.creator.name)}</bdi></a>`
+    ?`<a class="card-attribution-row" href="${esc(`#profile/${encodeURIComponent(data.creator.id)}`)}">${attributionIcon("user")}<bdi>${esc(data.creator.name)}</bdi></a>`
     :`<span class="card-attribution-row">${attributionIcon("user")}<bdi>${esc(data.creator.name)}</bdi></span>`)+`</p>`:"";
   const decks=data.decks.length?`<h2 class="bp-h2">${esc(c.chooseDeck)}</h2><div class="deck-grid" role="list" aria-label="${esc(c.chooseDeck)}">${data.decks.map(deck=>miniDeckTile(deck,c,{})).join("")}</div>`
     :callout({variant:"warning",width:"fill",className:"sheet-warn",main:c.ui2NoDecksOfBook});

@@ -17,9 +17,11 @@ import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
 import {shelfData,shelfMarkup,libraryTabsMarkup,emptyMarkup} from "./biblioteca.mjs";
 import {bookSheetData,bookstoreSheetData,bookSheetMarkup,bookPageData,bookPageMarkup,tileOf,finishData,finishTiles,finishDialogMarkup,cardcaseTiles,cardcaseGridMarkup,removeDeckDialogMarkup} from "./book-sheet.mjs";
 import {deckPageData,deckPageMarkup} from "./deck-page.mjs";
+import {perfilData,perfilMarkup,perfilUnavailableMarkup,mountPerfil} from "./perfil.mjs";
 import {deckShareUrl} from "../deck-navigation.mjs";
 import {libreriaData,libreriaMarkup,libreriaResultsMarkup,searchingMarkup} from "./libreria.mjs";
 import {mountInterests} from "../interests.mjs";
+import {loadingPlaceholder} from "../loading-placeholder.mjs";
 import {bookstoreFiltersMarkup} from "../views.mjs";
 import {bookstoreDefaults} from "../book-search.mjs";
 import {validBookstoreSortOrder} from "../book-sort.mjs";
@@ -37,7 +39,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // `legacy`: URL of the old interface, for destinations not built yet.
   const c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
+  let profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
   const navFor=active=>navMarkup({active,practicePending,c,wallet:{leaves:reader?.wallet?.balance??0,petals:reader?.petals??0}});
   const drafts=createNoteDrafts(store),observeXp=createReaderXpTracker();
   let shelfViews=(()=>{const saved=store.read(storageKeys.shelfViews);return saved&&typeof saved==="object"?saved:{};})(),disposeLists=()=>{};
@@ -53,6 +55,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(deckMatch)return {name:"deck",id:decode(deckMatch[1]),note:!!deckMatch[2]};
     if(bookMatch)return {name:"book-note",id:decode(bookMatch[1])};
     if(pageMatch)return {name:"book",id:decode(pageMatch[1])};
+    const profileMatch=hash.match(/^#profile(?:\/([^/]+))?$/);
+    if(profileMatch)return {name:"profile",id:profileMatch[1]?decode(profileMatch[1]):session?.user?.id};
     return {name:hash==="#bookstore"?"bookstore":hash==="#library"?"library":hash==="#library/cardcase"?"cardcase":hash==="#practice"?"practice":"home"};
   };
   const deckId=()=>{const r=route();return r.name==="deck"?r.id:null;};
@@ -103,7 +107,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     // A form sheet keeps its scroll when it is painted again (choosing an interest, a language…).
     const scrolled=main.querySelector(".ui2-fsheet-body")?.scrollTop||0;
     main.innerHTML=html;
-    disposeLists=mountBookLists(main);mountInterests(main);
+    disposeLists=mountBookLists(main);mountInterests(main);mountPerfil(main);
     mountBookCoverTints(main,catalog?.books||[],catalog?.interests||[],coverTintMode(tintMode));
     tintThumbs(main);
     // Sheets first, modals over them: a warning or error keeps its context visible behind.
@@ -150,11 +154,15 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   function render(){
     clearInterval(streakTimer);streakTimer=null;
     if(!session?.user){main.innerHTML=`<div class="ui2-body"><a class="ui2-btn" href="${win.location.pathname}">${c.signIn}</a></div>`;return;}
-    const where=route(),view=current(),shell=where.name==="home"||where.name==="bookstore"||where.name==="library"||where.name==="cardcase"||where.name==="practice"||where.name==="book"||(where.name==="deck"&&!!view);
+    const where=route(),view=current(),shell=where.name==="home"||where.name==="bookstore"||where.name==="library"||where.name==="cardcase"||where.name==="practice"||where.name==="book"||where.name==="profile"||(where.name==="deck"&&!!view);
     doc.body.classList.toggle("has-bottom-navigation",shell&&!form);
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
     if(!form&&where.note&&view?.deck.status==="in_progress")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
     if(form){paint(formScreen());return;}
+    if(where.name==="profile"){
+      if(profileAttempt!==where.id){profileAttempt=where.id;queueMicrotask(()=>{if(busy)profileAttempt=null;else run(()=>loadProfile(where.id));});}
+      paint(withError(profileScreen(where.id)));return;
+    }
     if(where.name==="bookstore"){
       if(!lb.visitId)startBookstoreVisit();
       const state={...reader,catalog};
@@ -217,6 +225,26 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(removedDeck)html+=removeDeckDialogMarkup({deck:removedDeck,userId:session.user.id,c});
     if(toast)html+=toastMarkup({...toast,c});
     paint(withError(html));
+  }
+  // Perfil: the reader's profile and interest preferences. A reader that does not exist (404) shows its own message;
+  // any other failure goes through run(): connection and server errors to the full-screen error, which retries this same load.
+  async function loadProfile(id){
+    const own=id===session.user.id,path=`/api/profiles/${encodeURIComponent(id)}`;
+    try{
+      const [data,prefs]=await Promise.all([api.request(path),api.request(own?"/api/reader/interests/preferences":`${path}/interests`)]);
+      profile={id,data:data.profile,prefs};
+    }catch(caught){
+      if(asFailure(caught).status!==404)throw caught;
+      profile={id,unavailable:true};
+    }
+  }
+  function profileScreen(id){
+    const list=libreriaData({catalog,state:{...reader,catalog},language});
+    const loaded=profile?.id===id?profile:null;
+    const body=!loaded?`<div class="ui2-empty">${loadingPlaceholder(c.busyOpening,{visible:true})}</div>`
+      :loaded.unavailable?perfilUnavailableMarkup(c)
+      :perfilMarkup({data:perfilData({profile:loaded.data,prefs:loaded.prefs,interests:catalog.interests,viewerId:session.user.id,language}),c,language,legacy:c.legacy});
+    return shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),body:`<div class="ui2-body ui2-lib">${body}</div>`,nav:navFor(null)});
   }
   const libreriaState=()=>({...reader,catalog});
   const libreriaBooks=()=>libreriaData({catalog,state:libreriaState(),language,query:lb.query,filters:lb.filters,sortOrder:lb.sort,interestPreferences:lb.prefs,newBookIds:lb.newIds});
@@ -574,7 +602,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   });
   main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-search]")){settleSearch();return;}if(event.target.matches("[data-ui2-authoring]")){submitAuthoring();return;}submit();});
   win.addEventListener("hashchange",()=>{
-    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;
+    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;profileAttempt=null;
     clearTimeout(lb.timer);lb.searching=false;lb.open=false;
     if(route().name!=="bookstore"){lb.visitId=null;lb.newIds=[];}
     if(toast&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}

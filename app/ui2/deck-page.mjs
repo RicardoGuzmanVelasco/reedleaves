@@ -44,7 +44,7 @@ export function deckPageMarkup({page,outline,languageName,legacy,c}){
   const stack=[ibtn({label:c.shareDeck,iconName:"share",primary:true,attrs:' data-ui2="share-deck"'}),
     page.count?ibtn({tag:"a",label:c.readDeckCards,iconName:"deck-view",attrs:` href="${esc(`${legacy}#preview/${encodeURIComponent(page.id)}/carousel`)}"`}):ibtn({label:c.readDeckCards,iconName:"deck-view",disabled:true}),
     page.write?ibtn({tag:"a",label:c.ui2EditDeck,iconName:"edit",attrs:` href="${esc(`${legacy}#deck/${encodeURIComponent(page.id)}`)}"`}):""].join("");
-  const person=page.creator?(page.creator.id?`<a class="card-attribution-row" href="${esc(`${legacy}#profile/${encodeURIComponent(page.creator.id)}`)}">${attributionIcon("user")}<bdi>${esc(page.creator.name)}</bdi></a>`:`<span class="card-attribution-row">${attributionIcon("user")}<bdi>${esc(page.creator.name)}</bdi></span>`):"";
+  const person=page.creator?(page.creator.id?`<a class="card-attribution-row" href="${esc(`#profile/${encodeURIComponent(page.creator.id)}`)}">${attributionIcon("user")}<bdi>${esc(page.creator.name)}</bdi></a>`:`<span class="card-attribution-row">${attributionIcon("user")}<bdi>${esc(page.creator.name)}</bdi></span>`):"";
   const row=(...buttons)=>`<div class="dp-actions"><div class="dp-row">${buttons.join("")}</div></div>`;
   const take=`<button type="button" class="ui2-btn dp-grow" data-ui2="take-note" data-parent="">${icon("take-note")}<span>${esc(c.takeNote)}</span></button>`;
   const finish=`<button type="button" class="ui2-btn secondary--subtle dp-grow${page.cannotFinish?" is-disabled":""}" data-ui2="finish-deck"${page.cannotFinish?' aria-disabled="true"':""}>${icon("finish-deck")}<span>${esc(c.finishDeck)}</span></button>`;

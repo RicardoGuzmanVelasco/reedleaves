@@ -44,7 +44,7 @@ for(const language of ["es","en"])test(`Home markup: covers with one take-note b
   assert.doesNotMatch(html,/ui2-chip|ui2-icard|ui2-deckrow|Borrador|Draft|En curso|In progress/);
   assert.match(html,/class="ui2-wallet" role="group"/);
   assert.match(html,/role="img" aria-label="[^"]*: 12"/);
-  assert.match(html,/class="ui2-avatar[^"]*" href="\/app\/#profile\/me"/);
+  assert.match(html,/class="ui2-avatar[^"]*" href="#profile\/me"/);
 });
 
 test("The avatar shows the mascot of the reader's level",()=>{

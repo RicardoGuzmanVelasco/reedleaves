@@ -878,6 +878,12 @@ export function authorFormView(s) {
 }
 
 
+// The account creation day, in UTC so it reads the same everywhere. `iso` is the machine-readable day.
+export function memberDate(createdAt,language) {
+  const created=new Date(createdAt.endsWith("Z") || /[+-]\d\d:\d\d$/.test(createdAt) ? createdAt : createdAt.replace(" ","T")+"Z");
+  if (Number.isNaN(created.getTime())) return {iso:"",text:"—"};
+  return {iso:created.toISOString().slice(0,10),text:new Intl.DateTimeFormat(language,{year:"numeric",month:"long",day:"numeric",timeZone:"UTC"}).format(created)};
+}
 export function profileView(s) {
   const c=words[s.language];
   const profileBackLabel=c.back;
@@ -912,9 +918,8 @@ export function profileView(s) {
   const xpBar=showXp?`<div class="profile-xp">
     <div class="profile-xp-labels"><strong>${esc(c.readerTotalXp(format(progression.xp)))}</strong><span id="profile-xp-target">${esc(c.readerXpRemaining(format(progression.xpForNextLevel-progression.xpIntoLevel),format(progression.level+1)))}</span></div>
     <progress class="xp-meter" data-level="${progression.level}" value="${progression.xpIntoLevel}" max="${progression.xpForNextLevel}" aria-label="${esc(c.readerLevelLabel(format(progression.level+1)))}" aria-valuetext="${esc(c.readerXpFraction(format(progression.xpIntoLevel),format(progression.xpForNextLevel)))}" aria-describedby="profile-xp-target"></progress></div>`:"";
-  const created=new Date(p.createdAt.endsWith("Z") || /[+-]\d\d:\d\d$/.test(p.createdAt) ? p.createdAt : p.createdAt.replace(" ","T")+"Z");
-  const date=Number.isNaN(created.getTime()) ? "—" : new Intl.DateTimeFormat(s.language,{year:"numeric",month:"long",day:"numeric",timeZone:"UTC"}).format(created);
-  return `<section class="profile-screen"><header class="profile-heading"><div class="profile-avatar${progression?" profile-avatar--reader":""}" aria-hidden="true">${progression?mascotArt(progression.stage):attributionIcon("user")}</div><div class="profile-identity"><h1 tabindex="-1"><bdi>${esc(p.name)}</bdi></h1>${levelLine}${p.username && p.username !== p.name ? `<p class="profile-username"><bdi>@${esc(p.username)}</bdi></p>` : ""}<p class="profile-date">${c.memberSince} <time datetime="${esc(Number.isNaN(created.getTime()) ? "" : created.toISOString().slice(0,10))}">${esc(date)}</time></p></div>${xpBar}</header>
+  const joined=memberDate(p.createdAt,s.language);
+  return `<section class="profile-screen"><header class="profile-heading"><div class="profile-avatar${progression?" profile-avatar--reader":""}" aria-hidden="true">${progression?mascotArt(progression.stage):attributionIcon("user")}</div><div class="profile-identity"><h1 tabindex="-1"><bdi>${esc(p.name)}</bdi></h1>${levelLine}${p.username && p.username !== p.name ? `<p class="profile-username"><bdi>@${esc(p.username)}</bdi></p>` : ""}<p class="profile-date">${c.memberSince} <time datetime="${esc(joined.iso)}">${esc(joined.text)}</time></p></div>${xpBar}</header>
     <section class="profile-section" aria-labelledby="profile-reader"><div class="profile-section-heading"><h2 id="profile-reader">${c.readerSummary}</h2>${shelfAction}</div>
       ${metrics(["booksRead","booksReading","cardsViewed"])}</section>
     <section class="profile-section profile-interests-section" aria-labelledby="profile-interests-heading"><div class="profile-section-heading"><h2 id="profile-interests-heading">${c.profileInterests}</h2>${owner&&!preferences?.loading&&!preferences?.error?`<button class="text-button" type="button" data-action="edit-profile-interests">${c.edit}</button>`:""}</div>${interestEditor()}</section>
