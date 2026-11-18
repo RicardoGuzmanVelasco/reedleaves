@@ -43,10 +43,10 @@ function price(info,data,c){
 }
 // Same recipe for every glyph: viewBox 24, content inside 2-22, one stroke, no tick except "read".
 const ICON_PATHS={
-  mixed:'<path d="M6.2 8.2 9.4 5h10.4l-3.2 3.2"/><path class="practice-mode-icon-fill" d="M16.6 8.2H6.2a2.2 2.2 0 0 0 0 4.4h10.4"/><path d="M16.6 12.6H4.8a2.2 2.2 0 0 0 0 4.4h11.8"/><path d="M16.6 17H5.6a2.2 2.2 0 0 0 0 4.4h11"/><path d="M16.6 8.2v13.2"/><path d="M19.8 5v13.2l-3.2 3.2"/>',
+  mixed:'<circle class="practice-mode-icon-fill" cx="6.8" cy="6.8" r="3.8"/><path class="practice-mode-icon-fill" d="M17.2 3.2 21 10.4H13.4Z"/><rect class="practice-mode-icon-fill" x="3" y="13.4" width="7.6" height="7.6" rx="2"/><path class="practice-mode-icon-fill" d="M17.2 13.3 18.3 15.9 21.1 16.1 19.0 18.0 19.6 20.7 17.2 19.2 14.8 20.7 15.4 18.0 13.3 16.1 16.1 15.9Z"/>',
   dailyDeck:'<rect class="practice-mode-icon-fill" x="3" y="5" width="18" height="16" rx="3.5"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/>',
   novelties:'<rect class="practice-mode-icon-fill" x="4" y="10.2" width="16" height="10.3" rx="3"/><rect x="3" y="6.8" width="18" height="3.4" rx="1.5"/><path d="M12 6.8v13.7"/><path d="M12 6.8c-1.2-3-4.6-3.4-4.6-1.2 0 1.3 2.2 1.2 4.6 1.2Zm0 0c1.2-3 4.6-3.4 4.6-1.2 0 1.3-2.2 1.2-4.6 1.2Z"/>',
-  teamPicks:'<path d="M8 14.6 6.4 21.8l3.6-1.6 2 2.2 2-2.2 3.6 1.6L16 14.6"/><circle class="practice-mode-icon-fill" cx="12" cy="9.5" r="7.5"/>',
+  teamPicks:'<path d="M8.6 14.5 7 21.4l3.2-1.4L12 22l1.8-2 3.2 1.4-1.6-6.9"/><circle class="practice-mode-icon-fill" cx="12" cy="9" r="6.5"/>',
   saved:'<path class="practice-mode-icon-fill" d="M20 21.4l-8-4.7-8 4.7V5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5z"/>'
 };
 const modeGlyph=id=>ICON_PATHS[id]?`<svg class="practice-mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICON_PATHS[id]}</svg>`:practiceDeckIcon(id==="interests"?"discover":id);
