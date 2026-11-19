@@ -1,7 +1,5 @@
 import {isPostgres} from "./database.mjs";
-
-export const MAX_PETALS=15;
-export const DAILY_PETAL_REFILL=9;
+import {MAX_PETALS,DAILY_PETAL_REFILL} from "../app/wallet.mjs";
 
 export async function accruePetalWallet(db,userId,today) {
   const postgres=isPostgres(db),maximum=postgres?"greatest":"max",minimum=postgres?"least":"min";

@@ -2,6 +2,8 @@ export const MAX_LEAVES = 10;
 export const DAILY_LEAF_REFILL = 5;
 export const INITIAL_LEAVES = 5;
 export const DECK_ADD_COST = 2;
+export const MAX_PETALS = 15;
+export const DAILY_PETAL_REFILL = 9;
 
 function dayNumber(day) {
   if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
