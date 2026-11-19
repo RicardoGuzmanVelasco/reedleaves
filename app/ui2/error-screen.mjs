@@ -10,8 +10,8 @@ import {loadingPlaceholder,finishLoadingPlaceholder} from "../loading-placeholde
 export const ERROR_SCREEN_MESSAGE_ID="ui2-errscreen-msg";
 
 // Pure: what the screen shows in each state.
-export function errorScreenContent({message,c,waiting=false}){
-  if(waiting)return `<div class="ui2-errscreen-wait">${loadingPlaceholder(c.ui2Retrying,{visible:true})}</div>`;
+export function errorScreenContent({message,c,waiting=false,label}){
+  if(waiting)return `<div class="ui2-errscreen-wait">${loadingPlaceholder(label||c.ui2Retrying,{visible:true})}</div>`;
   return mascotArt("sprout","ui2-errscreen-mascot",{animation:"sob"})
     +ui2Callout({kind:"error",className:"ui2-errscreen-msg",id:ERROR_SCREEN_MESSAGE_ID,main:message})
     +`<button type="button" class="ui2-btn ui2-errscreen-retry" data-errscreen="retry" autofocus>${esc(c.retry)}</button>`;
@@ -22,8 +22,8 @@ export const errorScreenMarkup=({message,c,waiting=false})=>`<dialog class="ui2-
 const screens=new WeakMap();
 
 function paintScreen(entry){
-  const {dialog,message,c,waiting}=entry;
-  dialog.innerHTML=errorScreenContent({message,c,waiting});
+  const {dialog,message,c,waiting,label}=entry;
+  dialog.innerHTML=errorScreenContent({message,c,waiting,label});
   dialog.dataset.state=waiting?"waiting":"error";
   if(waiting){dialog.setAttribute("aria-busy","true");dialog.removeAttribute("aria-describedby");}
   else{dialog.removeAttribute("aria-busy");dialog.setAttribute("aria-describedby",ERROR_SCREEN_MESSAGE_ID);}
@@ -44,13 +44,13 @@ async function retry(doc){
 export function showErrorScreen({message,onRetry,c,doc=document}){
   let entry=screens.get(doc);
   if(entry){
-    Object.assign(entry,{message,onRetry,c,waiting:false});
+    Object.assign(entry,{message,onRetry,c,waiting:false,label:undefined});
     raiseErrorScreen(doc);
   }
   else{
     const holder=doc.createElement("div");holder.innerHTML=errorScreenMarkup({message,c});
     const dialog=holder.firstElementChild;
-    entry={dialog,message,onRetry,c,waiting:false};screens.set(doc,entry);
+    entry={dialog,message,onRetry,c,waiting:false,label:undefined};screens.set(doc,entry);
     dialog.addEventListener("cancel",event=>event.preventDefault());
     // A cancelled Escape makes no close request: the dialogs below (sheets, forms) do not close either.
     entry.blockEscape=event=>{if(event.key==="Escape")event.preventDefault();};
@@ -83,3 +83,10 @@ export function raiseErrorScreen(doc=document){
 }
 
 export const errorScreenOpen=(doc=document)=>screens.has(doc);
+
+/** The same translucent screen as a plain wait («Terminando…»): sleeping sprout and a label, nothing to press. A later error replaces it. */
+export function showWaitScreen({label,c,doc=document}){
+  showErrorScreen({message:"",c,doc});
+  const entry=screens.get(doc);entry.waiting=true;entry.label=label;paintScreen(entry);
+}
+export const isWaitScreen=(doc=document)=>!!screens.get(doc)?.waiting&&screens.get(doc)?.label!==undefined;

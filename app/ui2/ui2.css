@@ -417,6 +417,7 @@ button.int-chip:disabled{opacity:1}
 .ui2-prize-tag{position:relative;display:inline-flex;flex:none;align-items:center;height:28px;margin:0 0 0 10px;padding:0 12px 0 28px;border:2px solid #173d2c;border-radius:999px;background:#ffe9a8;color:#173d2c;font-size:15px;font-weight:850;line-height:1;white-space:nowrap}
 .ui2-prize-tag__icon{position:absolute;left:-10px;top:50%;width:34px;height:34px;translate:0 -50%}
 .ui2-prize-tag__n{font-variant-numeric:tabular-nums}
+.ui2-prize-tag .ui2-prize-tag__medal{position:absolute;left:-10px;top:50%;translate:0 -50%;margin:0;width:2.15em;height:2.15em;font-size:14px;box-shadow:inset 0 0 0 2px #ffedbd,inset 0 0 0 3.5px #d5a851,0 2px 0 #a47a34}
 .ui2-prize-tag__sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* ---- Formularios en hoja: catalogar libro y crear baraja ---- */

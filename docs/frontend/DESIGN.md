@@ -180,7 +180,7 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 | Conjunto de repaso | Baraja | Deck |
 | Baraja que aún se escribe (`status=in_progress`) | En curso / Baraja en curso | In progress / Deck in progress |
 | Baraja cerrada a cambios (`status=finished`) | Terminada (sin etiqueta de estado en la interfaz) | Finished (no status label in the interface) |
-| Contenido pendiente del editor | Nota sin guardar | Unsaved note |
+| Contenido pendiente del editor | Nota en borrador | Draft note |
 | Texto sin guardar (el nombre «borrador» queda reservado para esto) | Borrador | Draft |
 | Aprendizaje activo | Barajas en repaso | Decks being practiced |
 | Tipo de selección de tarjetas de una sesión de repaso (`practiceMode`: leyendo, leídos, guardadas, mezcla, Descubrir) | Modo de repaso | Practice mode |
@@ -206,7 +206,7 @@ Para iniciar la captura de una idea o cita, usar siempre **Tomar nota / Take a n
 
 Si el «+» de Inicio no tiene una baraja propia en curso, abre el editor de nota directamente. Se avisa de que se creará «Notas de lectura» / «Reading notes». La baraja nace al guardar la primera nota, con el idioma elegido para la app al abrir el editor, independiente del idioma del título popular del libro. No se pide configurar nombre o idioma. Cancelar no crea una baraja vacía.
 
-«En curso» describe creación y no privacidad. Guardar comparte el contenido con quienes tienen acceso al catálogo; terminar cierra cambios, no lo hace visible por primera vez. El estado editorial `draft/reviewed` es independiente de `status`. Los nombres internos `deckInProgress` y `notesInProgress` conservan su contrato, pero su copy de creación usa Borrador. Las notas sin guardar solo se recuperan en el navegador y dispositivo donde se conservaron.
+«En curso» describe creación y no privacidad. Guardar comparte el contenido con quienes tienen acceso al catálogo; terminar cierra cambios, no lo hace visible por primera vez. El estado editorial `draft/reviewed` es independiente de `status`. Los nombres internos `deckInProgress` y `notesInProgress` conservan su contrato, pero su copy de creación usa Borrador. Las notas en borrador solo se recuperan en el navegador y dispositivo donde se conservaron.
 
 En la página de la baraja, su creador puede corregir el título y el idioma mientras esté en curso. Cambiar idioma conserva las traducciones ya existentes y actualiza el idioma del texto original cuando no hay traducción de destino.
 

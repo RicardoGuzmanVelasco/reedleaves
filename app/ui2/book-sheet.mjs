@@ -2,7 +2,7 @@
 import {escapeHtml as esc,attributionIcon,bookReadingIcon,deckDistinctionMarkup} from "../views.mjs";
 import {ui2Callout} from "./callout.mjs";
 import {imageUrl} from "../image-url.mjs";
-import {contentText,contentLocale,bookTitle} from "../core.mjs";
+import {contentText,contentLocale,bookTitle,READING_GUIDE_REWARD_XP} from "../core.mjs";
 import {cardTypeFor} from "../card-types.mjs";
 import {availableDecks,sortDecks} from "../decks.mjs";
 import {editableNoteDecks} from "../notes.mjs";
@@ -10,6 +10,8 @@ import {DECK_ADD_COST} from "../wallet.mjs";
 import {interestChipMarkup} from "./interest-chip.mjs";
 import {icon} from "./icons.mjs";
 import {bookEntry} from "./home.mjs";
+import {hasOwnReadingGuide} from "../reading-guide-prompt.mjs";
+import {prizeTagMarkup} from "./prize-tag.mjs";
 
 export const tileOf=(catalog,deck,language)=>{
   const book=catalog.booksById.get(deck.bookId),title=book?bookTitle(book,language):null;
@@ -23,7 +25,7 @@ export function bookSheetData({catalog,state,language,bookId}){
   const book=catalog.booksById.get(bookId);
   if(!book)return null;
   const userId=state.user?.id,added=new Set(state.cardcaseDeckIds||[]);
-  return {entry:bookEntry({catalog,state,language,book}),anyDecks:availableDecks(catalog,bookId).length>0,
+  return {entry:bookEntry({catalog,state,language,book}),guideOffer:state.statuses?.[bookId]==="read"&&!!userId&&!hasOwnReadingGuide(catalog,bookId,userId),anyDecks:availableDecks(catalog,bookId).length>0,
     decks:catalog.decks.filter(deck=>deck.bookId===bookId&&(added.has(deck.id)||!!userId&&deck.creator?.userId===userId)).map(deck=>tileOf(catalog,deck,language))};
 }
 
@@ -59,7 +61,7 @@ export function miniDeckTile(deck,c,{link=true,remove=false,book=false,href=`#de
 }
 
 export function bookSheetMarkup({data,c}){
-  const {entry,decks,anyDecks,store}=data;
+  const {entry,decks,anyDecks,store,guideOffer}=data;
   const statuses=[["unread",c.unread],["to_read",c.toRead],["reading",c.readingStatus],["read",c.readStatus]];
   const selector=`<div class="sel-wrap"><div class="segmented-selector book-reading-selector" role="group" aria-label="${esc(c.ui2BookReading)}">${statuses.map(([value,label])=>`<button type="button" data-ui2="book-status" data-book="${esc(entry.id)}" data-status="${value}" aria-pressed="${entry.status===value}">${bookReadingIcon(value)}<span>${esc(label)}</span></button>`).join("")}</div></div>`;
   const all=`<a class="ui2-btn secondary--subtle sheet-all" href="#book/${encodeURIComponent(entry.id)}"><span>${esc(c.ui2SeeAllDecks)}</span>${icon("forward")}</a>`;
@@ -67,7 +69,7 @@ export function bookSheetMarkup({data,c}){
   const tail=decks.length||anyDecks?all:ui2Callout({kind:"info",className:"sheet-warn",main:c.ui2NoDecksOfBook});
   return `<dialog class="ui2-sheet ui2-book-sheet" data-ui2-sheet aria-labelledby="ui2-bs-title"><button type="button" class="dialog-close dialog-close--float" data-ui2="sheet-close" aria-label="${esc(c.ui2CloseBook)}">${icon("close")}</button><div class="ui2-grab" aria-hidden="true"></div>`
     +`<div class="sheet-head"><span class="sheet-thumb" aria-hidden="true" data-book="${esc(entry.id)}"></span><div class="ui2-grow"><h2 id="ui2-bs-title" lang="${esc(entry.titleLanguage)}" dir="auto">${esc(entry.title)}</h2>${entry.author?`<p class="ui2-sheet-author">${esc(entry.author)}</p>`:""}</div></div>`
-    +`<button type="button" class="ui2-btn sheet-note" data-ui2="home-note" data-book="${esc(entry.id)}" data-deck="${esc(entry.deckId||"")}">${icon("take-note")}${esc(c.takeNote)}</button>${selector}${cardcase}${tail}</dialog>`;
+    +`<button type="button" class="ui2-btn sheet-note" data-ui2="home-note" data-book="${esc(entry.id)}" data-deck="${esc(entry.deckId||"")}">${icon("take-note")}${esc(c.takeNote)}</button>${selector}${guideOffer?ui2Callout({kind:"tip",className:"sheet-guide",main:c.readingGuideWritePrompt,prize:prizeTagMarkup({amount:READING_GUIDE_REWARD_XP,currency:"xp",c}),action:{label:c.readingGuideWrite,attrs:`data-ui2="write-guide" data-book="${esc(entry.id)}"`}}):""}${cardcase}${tail}</dialog>`;
 }
 
 // B5: marking a book as read with decks in progress. `decks` come from the catalog with their titles.
@@ -80,6 +82,13 @@ export function finishDialogMarkup({decks,pending,c}){
     +(pending?ui2Callout({kind:"error",main:c.pendingNotesBeforeFinish}):"")
     +group("lock",c.ui2WillFinish,finish)+group("trash",c.ui2WillDelete,discard)
     +`<div class="actions-row"><button type="button" class="ui2-btn secondary--subtle" data-ui2="finish-keep">${esc(c.keepNoteDecks).replace(" ","<br>")}</button><button type="button" class="ui2-btn" data-ui2="finish-confirm"${pending?" disabled":""}>${esc(c.confirmNoteDecks)}</button></div></div></div></dialog>`;
+}
+
+// The deck page: finishing one deck needs no context, so only the title, the consequence and the two buttons.
+export function finishDeckDialogMarkup({c}){
+  return `<dialog class="ui2-errdialog ui2-finishdialog" data-ui2-modal role="alertdialog" aria-labelledby="ui2-fn-title"><div class="ui2-errshell"><button type="button" class="dialog-close" data-ui2="finish-keep" aria-label="${esc(c.ui2Close)}">${icon("close")}</button>`
+    +`<div class="ui2-errpanel ui2-finishpanel"><h2 id="ui2-fn-title">${esc(c.finishDeckTitle)}</h2>${ui2Callout({kind:"warning",main:c.finishDeckWarning})}`
+    +`<div class="actions-row"><button type="button" class="ui2-btn secondary--subtle" data-ui2="finish-keep">${esc(c.cancel)}</button><button type="button" class="ui2-btn" data-ui2="finish-confirm">${esc(c.finishDeck)}</button></div></div></div></dialog>`;
 }
 
 // B6: the Cardcase, decks as tiles. B7: confirmation before removing one.

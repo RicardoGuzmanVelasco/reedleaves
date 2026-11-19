@@ -104,7 +104,11 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 
 - En `Staging` con `?ui=2`: Home, Tomar nota (B y C), Repaso, Biblioteca (Estantería, Tarjetero, hoja del libro, «Leído», vacíos), Librería y ficha del libro, página de baraja, componente de price tag (`app/ui2/price-tag.mjs`, V1+), Perfil propio y ajeno (`app/ui2/perfil.mjs`), Ajustes (`app/ui2/ajustes.mjs`: idioma, idiomas de las tarjetas, portadas tintadas, comentarios y cerrar sesión con confirmación), Acceso (`acceso.mjs`: entrar, crear cuenta, consejo de crear cuenta tras credenciales erróneas, sesión caducada), elección de intereses del alta y su edición desde el Perfil (`intereses.mjs`, sobre `initial-interests.mjs`), carga inicial con brote dormido y botón «Echar un vistazo / por la librería» en Inicio vacío.
 - Diseñadas sin implementar (mockups en el scratchpad de la sesión; no versionados): Sesión de práctica, Formularios y diálogos (aviso de interés, Catalogar nuevo libro, Crear baraja, saldo, red), Terminar baraja y «Leído» (flujo E), Barajas ajenas, perfil ajeno y Social (flujo F).
-- Por diseñar: vista de tarjetas (D6/D7), pantalla «Editar baraja», Social (si entra en el producto).
+- Por diseñar: vista de tarjetas (D6/D7), pantalla «Editar baraja». Social se descarta de este plan y se diseñará aparte, completo y nuevo.
+- Copy: «nota sin guardar» queda obsoleto; es «nota en borrador» (glosario actualizado; los textos de `i18n.mjs` con «sin guardar» se normalizan al implementar flujo E).
+- Barajas propias: en curso, el primary es «Editar» (Compartir secundario); al terminar, «Editar» desaparece y Compartir pasa a primary. Chip de idioma: solo bandera, sin etiqueta.
+- Callout de guía de lectura: aparece siempre que un libro leído no tenga guía escrita por la persona, hasta que la escriba. Explorar premio de experiencia: prize tag con medallón de nivel sin número (no hay icono de XP).
+- Revisar después el estilo de booklink y authorlink para unificarlos y comunicar mejor que son enlaces.
 - Sin sesión, «Echar un vistazo por la librería» abre la Librería de la UI vieja (la de ui2 exige sesión); decidir si ui2 tendrá Librería de visitante. Tras guardar los intereses del alta, el saldo se actualiza sin la animación de recibo de la UI vieja.
 - Perfil ajeno: «Ver estantería» aún abre la Estantería de la UI vieja.
 - Pendiente técnico: «Catalogar nuevo libro» y «Leer tarjetas» aún abren la UI vieja; el toast «Baraja añadida al tarjetero.» no cruza esa navegación; aviso de interés (`confirmationRequired`) sin diálogo ui2.

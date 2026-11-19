@@ -1,7 +1,7 @@
 import {randomUUID} from "node:crypto";
 import {transaction,isPostgres} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
-import {LANGUAGES,READING_GUIDE_MAX_LENGTH} from "../app/core.mjs";
+import {LANGUAGES,READING_GUIDE_MAX_LENGTH,READING_GUIDE_REWARD_XP} from "../app/core.mjs";
 import {grantReaderXpInside} from "./reader-xp-repository.mjs";
 import {contentVersion} from "./reader-roles.mjs";
 
@@ -84,7 +84,7 @@ export async function decideReadingGuide(db,cardId,decision,{reason,expectedCont
         throw new ApiError(409,"readingGuideNotPending");
       }
       const reward=await grantReaderXpInside(db,card.creator_user_id,{
-        eventKey:`guide_approved:${cardId}`,rewardType:"reading_guide_approved",amount:30
+        eventKey:`guide_approved:${cardId}`,rewardType:"reading_guide_approved",amount:READING_GUIDE_REWARD_XP
       });
       return {cardId,status:"approved",awarded:reward.awarded,balance:reward.balance};
     }

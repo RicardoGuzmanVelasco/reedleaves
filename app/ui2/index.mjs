@@ -8,14 +8,14 @@ import {installIconStyles} from "./icons.mjs";
 import {homeData,homeMarkup,inProgressDeck} from "./home.mjs";
 import {navMarkup,shellMarkup,headerMarkup} from "./shell.mjs";
 import {errorInfo,practiceStartDetail,blockingFailure,sessionLost} from "./errors.mjs";
-import {showErrorScreen,hideErrorScreen,raiseErrorScreen} from "./error-screen.mjs";
+import {showErrorScreen,hideErrorScreen,raiseErrorScreen,showWaitScreen,isWaitScreen} from "./error-screen.mjs";
 import {newBookForm,newDeckForm,bookFormErrors,deckFormErrors,visibleErrors,toggleInterest,bookDuplicates,canSubmitBook,autofillInput,applyAutofill,bookCreateInput,deckCreateInput,bookFormMarkup,deckFormMarkup,duplicatesMarkup,syncFieldError,interestWarningMarkup,INSUFFICIENT_BALANCE,balanceMessage,balanceModalMarkup} from "./forms.mjs";
 import {DECK_ADD_COST} from "../wallet.mjs";
 import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending,tickStreakCountdown} from "./repaso.mjs";
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
 import {shelfData,shelfMarkup,libraryTabsMarkup,emptyMarkup} from "./biblioteca.mjs";
-import {bookSheetData,bookstoreSheetData,bookSheetMarkup,bookPageData,bookPageMarkup,tileOf,finishData,finishTiles,finishDialogMarkup,cardcaseTiles,cardcaseGridMarkup,removeDeckDialogMarkup} from "./book-sheet.mjs";
+import {bookSheetData,bookstoreSheetData,bookSheetMarkup,bookPageData,bookPageMarkup,tileOf,finishData,finishTiles,finishDialogMarkup,finishDeckDialogMarkup,cardcaseTiles,cardcaseGridMarkup,removeDeckDialogMarkup} from "./book-sheet.mjs";
 import {deckPageData,deckPageMarkup} from "./deck-page.mjs";
 import {settingsMarkup,feedbackMarkup,signOutMarkup,syncCardLanguages} from "./ajustes.mjs";
 import {perfilData,perfilMarkup,perfilUnavailableMarkup,mountPerfil} from "./perfil.mjs";
@@ -240,7 +240,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       if(sheetState.type==="note"){const parent=parentOf(model,note.id);html+=noteSheetMarkup({note:item,parentTitle:parent?.title?.[deck.language]??null,caps,c});}
       else html+=placeSheetMarkup({note:item,targets:placementTargets(model,note.id,deck.language),currentParentId:note.parentId,c});
     }
-    if(finish&&!failure)html+=finishDialogMarkup({decks:finishTiles({catalog,entries:finish.decks,language}).map(tile=>({...tile,cardCount:finish.decks[0].cardCount})),pending:hasDeckDraft(deck),c});
+    if(finish&&!failure)html+=finishDeckDialogMarkup({c});
     const removedDeck=removing===deck.id?tileOf(catalog,deck,language):null;
     if(removedDeck)html+=removeDeckDialogMarkup({deck:removedDeck,userId:viewerId(),c});
     if(toast)html+=toastMarkup({...toast,c});
@@ -687,6 +687,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     }
     else if(action==="dup-view"){authoring=null;sheetState={type:"book",id:target.dataset.book};render();}
     else if(action==="share-deck"&&view)shareDeck(view.deck);
+    else if(action==="write-guide")win.location.assign(`${c.legacy}#guides/${encodeURIComponent(target.dataset.book)}`);
     else if(action==="finish-deck"&&view){
       if(target.getAttribute("aria-disabled")==="true")return;
       finish={bookId:view.deck.bookId,decks:[{deckId:view.deck.id,cardCount:view.deck.cardCount}]};render();
@@ -702,7 +703,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(action==="finish-confirm"&&finish){
       const done=finish;
       if(drafts.list(viewerId(),done.bookId).some(saved=>done.decks.some(entry=>entry.deckId===saved.noteDeckId)))return;
-      run(async()=>{await api.request("/api/author/decks/finish-notes",{bookId:done.bookId,decks:done.decks});finish=null;await reload();});
+      // The sleeping sprout waits over everything; a failure replaces it with the error screen.
+      showWaitScreen({label:c.finishingDeck,c,doc:win.document});
+      run(async()=>{await api.request("/api/author/decks/finish-notes",{bookId:done.bookId,decks:done.decks});finish=null;await reload();}).finally(()=>{if(isWaitScreen(win.document))hideErrorScreen(win.document);});
     }
     else if(action==="calendar-open"){sheetState={type:"calendar"};render();}
     else if(action==="calendar-month"){calendarMonth=target.dataset.month;render();}
