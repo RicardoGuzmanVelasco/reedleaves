@@ -29,7 +29,7 @@ async function fixture(t,dialect) {
   const [owner,actor,other]=sessions;
   const deck=await createDeck(db,owner,{requestId:randomUUID(),bookId:"seven-habits",title:"Personal notes",language:"es"});
   const card=await takeNote(db,owner,{requestId:randomUUID(),deckId:deck.deckId,title:"Idea",body:"Text",isQuote:false,parentId:null});
-  assert.deepEqual(card.xpReward,{amount:15,balance:15});
+  assert.equal("xpReward" in card,false);
   return {db,owner,actor,other,cardId:card.cardId};
 }
 async function xp(db,userId) {return Number((await db.prepare("SELECT xp FROM reader_xp_balances WHERE user_id=?").get(userId)).xp);}
@@ -40,45 +40,45 @@ for(const dialect of ["sqlite","postgres"]) {
     const {db,owner,actor,other,cardId}=await fixture(t,dialect);
     const like=await setCardVote(db,actor,{cardId,value:1});
     assert.equal(like.vote,1);assert.equal("xpReward" in like,false);
-    assert.equal(await xp(db,owner.user_id),20);
+    assert.equal(await xp(db,owner.user_id),5);
     await setCardVote(db,actor,{cardId,value:1});
     await setCardVote(db,actor,{cardId,value:-1});
     await setCardVote(db,actor,{cardId,value:1});
     await setCardVote(db,actor,{cardId,value:0});
     await setCardVote(db,actor,{cardId,value:1});
-    assert.equal(await xp(db,owner.user_id),20);
+    assert.equal(await xp(db,owner.user_id),5);
     const second=await setCardVote(db,other,{cardId,value:1});
     assert.equal("xpReward" in second,false);
-    assert.equal(await xp(db,owner.user_id),25);
+    assert.equal(await xp(db,owner.user_id),10);
     assert.deepEqual(await events(db,owner.user_id,"like_received"),[
-      {reward_type:"like_received",amount:5,balance_after:20},
-      {reward_type:"like_received",amount:5,balance_after:25}
+      {reward_type:"like_received",amount:5,balance_after:5},
+      {reward_type:"like_received",amount:5,balance_after:10}
     ]);
     assert.equal(await xp(db,actor.user_id),0);
     assert.equal(await xp(db,other.user_id),0);
     await assert.rejects(setCardVote(db,owner,{cardId,value:1}),{code:"ownCardVote"});
-    assert.equal(await xp(db,owner.user_id),25);
+    assert.equal(await xp(db,owner.user_id),10);
   });
 
   test(`${dialect}: save rewards once per reader and card, even after remove and resave`,async t=>{
     const {db,owner,actor,other,cardId}=await fixture(t,dialect);
     const first=await setCardSave(db,actor,{cardId,saved:true},now);
     assert.equal(first.saved,true);assert.equal("xpReward" in first,false);
-    assert.equal(await xp(db,owner.user_id),25);
+    assert.equal(await xp(db,owner.user_id),10);
     const repeated=await setCardSave(db,actor,{cardId,saved:true},now);
     assert.equal("xpReward" in repeated,false);
     await setCardSave(db,actor,{cardId,saved:false},now);
     const resaved=await setCardSave(db,actor,{cardId,saved:true},now);
     assert.equal("xpReward" in resaved,false);
-    assert.equal(await xp(db,owner.user_id),25);
+    assert.equal(await xp(db,owner.user_id),10);
     await setCardSave(db,other,{cardId,saved:true},now);
-    assert.equal(await xp(db,owner.user_id),35);
+    assert.equal(await xp(db,owner.user_id),20);
     const ownSave=await setCardSave(db,owner,{cardId,saved:true},now);
     assert.equal("xpReward" in ownSave,false);
-    assert.equal(await xp(db,owner.user_id),35);
+    assert.equal(await xp(db,owner.user_id),20);
     assert.deepEqual(await events(db,owner.user_id,"save_received"),[
-      {reward_type:"save_received",amount:10,balance_after:25},
-      {reward_type:"save_received",amount:10,balance_after:35}
+      {reward_type:"save_received",amount:10,balance_after:10},
+      {reward_type:"save_received",amount:10,balance_after:20}
     ]);
     assert.equal(await xp(db,actor.user_id),0);
     assert.equal(await xp(db,other.user_id),0);
@@ -88,11 +88,11 @@ for(const dialect of ["sqlite","postgres"]) {
     const {db,owner,actor,cardId}=await fixture(t,dialect);
     const deck=await createDeck(db,actor,{requestId:randomUUID(),bookId:"seven-habits",title:"Other notes",language:"es"});
     const actorCard=await takeNote(db,actor,{requestId:randomUUID(),deckId:deck.deckId,title:"Second idea",body:"Other text",isQuote:false,parentId:null});
-    assert.equal(await xp(db,owner.user_id),15);assert.equal(await xp(db,actor.user_id),15);
+    assert.equal(await xp(db,owner.user_id),0);assert.equal(await xp(db,actor.user_id),0);
     await setCardVote(db,actor,{cardId,value:1});
     await setCardSave(db,owner,{cardId:actorCard.cardId,saved:true},now);
-    assert.equal(await xp(db,owner.user_id),20);
-    assert.equal(await xp(db,actor.user_id),25);
+    assert.equal(await xp(db,owner.user_id),5);
+    assert.equal(await xp(db,actor.user_id),10);
     assert.equal((await events(db,owner.user_id,"like_received")).length,1);
     assert.equal((await events(db,actor.user_id,"save_received")).length,1);
   });

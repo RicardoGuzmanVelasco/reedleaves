@@ -99,8 +99,8 @@ export async function readProfile(db,userId,viewerId,{bookshelf=true}={}) {
       booksReading:Object.values(statuses).filter(s=>s==="reading").length,
       cardsViewed:await count("SELECT COUNT(*) AS n FROM card_views WHERE user_id=?",userId),
       decksCreated:await count("SELECT COUNT(*) AS n FROM decks WHERE creator_user_id=?",userId),
-      cardsCreated:await count("SELECT COUNT(*) AS n FROM cards c WHERE c.creator_user_id=?",userId),
-      quotesCreated:await count("SELECT COUNT(*) AS n FROM cards c WHERE c.creator_user_id=? AND c.is_quote=1",userId)
+      cardsCreated:await count("SELECT COUNT(*) AS n FROM cards c WHERE c.creator_user_id=? AND c.deleted_at IS NULL",userId),
+      quotesCreated:await count("SELECT COUNT(*) AS n FROM cards c WHERE c.creator_user_id=? AND c.is_quote=1 AND c.deleted_at IS NULL",userId)
     };
     const progression=await readReaderProgression(db,userId,{allowMissing:true});
     const readerProgression=progression&&(userId===viewerId

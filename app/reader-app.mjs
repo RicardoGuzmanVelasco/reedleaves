@@ -328,6 +328,8 @@ export function startReader({createCardFeatures} = {}) {
   }
   // What the screen reads cards, books and decks from: the catalog once it is full, or the partial one of this view.
   function viewCatalog(){
+    // A deleted note is not in the catalog; its shared link still shows it, from its own context.
+    if(mode==="shared-card"&&sharedCard?.cardsById.get(requestedId)?.deleted)return sharedCard;
     if(catalogIsFull)return catalog;
     return mode==="shared-card"?sharedCard:mode==="practice"?practiceCatalog:catalog;
   }
@@ -699,7 +701,9 @@ export function startReader({createCardFeatures} = {}) {
     endNavigationPending();
     const requestedHome=!location.hash||location.hash==="#home";
     const lightRoute=opensWithoutFullCatalog();
-    const sharedCardId=location.hash.startsWith("#card/")&&!catalogIsFull?(()=>{try{return decodeURIComponent(location.hash.slice(6).split("/")[0]);}catch{return "";}})():null;
+    // With the full catalog, only a card missing from it (a deleted note) needs its own context.
+    const linkedCardId=location.hash.startsWith("#card/")?(()=>{try{return decodeURIComponent(location.hash.slice(6).split("/")[0]);}catch{return "";}})():null;
+    const sharedCardId=linkedCardId!==null&&(!catalogIsFull||!catalog.cardsById.has(linkedCardId))?linkedCardId:null;
     if(ready&&sharedCardId!==null&&sharedCard?.cardId!==sharedCardId){
       const request=ensureSharedCard(sharedCardId);
       showNavigationPending();
@@ -1616,7 +1620,6 @@ export function startReader({createCardFeatures} = {}) {
     try {
       const result = await api.request(savedForm.bookId ? "/api/author/books/complete" : savedForm.kind === "book" ? "/api/author/books" : savedForm.kind === "deck" ? "/api/author/decks" : "/api/author/notes",input);
       if(snapshot.user?.id!==userId)return;
-      if(result.xpReward&&result.state.user?.id===userId)syncReaderXp(userId,result.state.readerProgression?.xp,result.xpReward);
       if (["idea","quote"].includes(savedForm.kind)) noteDrafts.remove(savedForm);
       const updatedCatalog=await loadCatalog();
       if(snapshot.user?.id!==userId)return;

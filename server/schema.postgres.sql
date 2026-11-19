@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 61));
-INSERT INTO reed_schema VALUES (61);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 62));
+INSERT INTO reed_schema VALUES (62);
 
 CREATE TABLE interests(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '',
@@ -236,13 +236,13 @@ CREATE TABLE cards(
   position INTEGER NOT NULL CHECK(position > 0), is_quote INTEGER NOT NULL DEFAULT 0 CHECK(is_quote IN (0,1)),
   is_reading_guide INTEGER NOT NULL DEFAULT 0 CHECK(is_reading_guide IN (0,1)),
   creator_user_id TEXT REFERENCES users(id), language TEXT NOT NULL DEFAULT 'en' CHECK(length(language) BETWEEN 2 AND 35),
-  created_at TIMESTAMPTZ, UNIQUE(id,deck_id),
+  created_at TIMESTAMPTZ, deleted_at TIMESTAMPTZ, UNIQUE(id,deck_id),
   FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id) ON UPDATE CASCADE,
   FOREIGN KEY(parent_id,deck_id) REFERENCES cards(id,deck_id) DEFERRABLE INITIALLY DEFERRED,
   CHECK(parent_id IS NULL OR parent_id <> id)
 );
-CREATE UNIQUE INDEX root_order ON cards(deck_id,position) WHERE parent_id IS NULL;
-CREATE UNIQUE INDEX sibling_order ON cards(deck_id,parent_id,position) WHERE parent_id IS NOT NULL;
+CREATE UNIQUE INDEX root_order ON cards(deck_id,position) WHERE parent_id IS NULL AND deleted_at IS NULL;
+CREATE UNIQUE INDEX sibling_order ON cards(deck_id,parent_id,position) WHERE parent_id IS NOT NULL AND deleted_at IS NULL;
 CREATE INDEX cards_by_deck ON cards(deck_id,parent_id,position);
 CREATE INDEX cards_by_note_date ON cards(deck_id,created_at DESC) WHERE created_at IS NOT NULL;
 CREATE INDEX cards_by_creator ON cards(creator_user_id,deck_id);

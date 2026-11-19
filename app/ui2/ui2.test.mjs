@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {validateCards} from "../core.mjs";
 import {words} from "../i18n.mjs";
 import {readerState,emptyCatalog} from "../../test-support/reader-state.mjs";
-import {deckOutline,placementTargets,deckCapabilities,ownDecks,parentOf} from "./outline.mjs";
+import {deckOutline,placementTargets,deckCapabilities,parentOf,keyboardMove,dropMove,isCurrentPlace} from "./outline.mjs";
 import {outlineMarkup,noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMarkup} from "./markup.mjs";
 import {errorInfo,sessionLost} from "./errors.mjs";
 import {ui2Enabled} from "./index.mjs";
@@ -31,21 +31,44 @@ test("Outline keeps the hierarchy and moves root quotes after the ideas",()=>{
   assert.deepEqual(outline.unsorted.map(n=>n.id),["q"]);
 });
 
-test("Place-under targets exclude the note, its descendants and quotes, so cycles are impossible",()=>{
+test("Place-under targets exclude the note and its descendants (quotes can be parents), so cycles are impossible",()=>{
   const {model}=fixture();
-  assert.deepEqual(placementTargets(model,"a1","es").map(t=>t.id),["a","b1"]);
-  assert.deepEqual(placementTargets(model,"a","es").map(t=>t.id),["b1"]);
+  assert.deepEqual(placementTargets(model,"a1","es").map(t=>t.id),["a","b1","q"]);
+  assert.deepEqual(placementTargets(model,"a","es").map(t=>t.id),["b1","q"]);
+  assert.equal(placementTargets(model,"a","es").find(t=>t.id==="q").title,"Texto q");
   assert.equal(parentOf(model,"a2").id,"a1");
   assert.equal(parentOf(model,"a"),null);
 });
 
-test("Only the author of a personal deck can correct or place; taking notes needs a draft",()=>{
-  const {deck,state}=fixture();
-  assert.deepEqual(deckCapabilities(deck,"me"),{correct:true,place:true,takeBelow:true});
-  assert.deepEqual(deckCapabilities({...deck,status:"finished"},"me"),{correct:true,place:true,takeBelow:false});
-  assert.deepEqual(deckCapabilities(deck,"someone"),{correct:false,place:false,takeBelow:false});
-  assert.deepEqual(deckCapabilities({...deck,contributionPolicy:"open"},"me"),{correct:false,place:false,takeBelow:false});
-  assert.deepEqual(ownDecks(state.catalog,"me").map(d=>d.id),["d"]);
+test("Only the author of a personal deck in progress can change it; a finished deck is closed",()=>{
+  const {deck}=fixture();
+  assert.deepEqual(deckCapabilities(deck,"me"),{edit:true,takeBelow:true});
+  assert.deepEqual(deckCapabilities({...deck,status:"finished"},"me"),{edit:false,takeBelow:false});
+  assert.deepEqual(deckCapabilities(deck,"someone"),{edit:false,takeBelow:false});
+  assert.deepEqual(deckCapabilities({...deck,contributionPolicy:"open"},"me"),{edit:false,takeBelow:false});
+});
+
+test("Keyboard and drop moves give the server's parent and 1-based position among the new siblings",()=>{
+  const {model}=fixture();
+  // Roots: a, b1, q; a1 under a; a2 under a1.
+  assert.deepEqual(keyboardMove(model,"b1","ArrowUp"),{parentId:null,position:1});
+  assert.deepEqual(keyboardMove(model,"b1","ArrowDown"),{parentId:null,position:3});
+  assert.equal(keyboardMove(model,"a","ArrowUp"),null);
+  assert.deepEqual(keyboardMove(model,"b1","ArrowRight"),{parentId:"a",position:2});
+  assert.deepEqual(keyboardMove(model,"a2","ArrowLeft"),{parentId:"a",position:2});
+  assert.equal(keyboardMove(model,"a","ArrowLeft"),null);
+  assert.deepEqual(dropMove(model,"q","a","before"),{parentId:null,position:1});
+  assert.deepEqual(dropMove(model,"a","q","after"),{parentId:null,position:3});
+  assert.deepEqual(dropMove(model,"b1","q","inside"),{parentId:"q",position:1});
+  assert.equal(dropMove(model,"a","a2","inside"),null);
+  assert.equal(dropMove(model,"a","a","before"),null);
+  assert.equal(isCurrentPlace(model,"b1",dropMove(model,"b1","a","after")),true);
+  assert.equal(isCurrentPlace(model,"b1",dropMove(model,"b1","q","after")),false);
+  // Root quotes show after the ideas: the keyboard follows what is on screen (x, z, then the quote y).
+  const mixed=validateCards([card("x",null,1),card("y",null,2,true),card("z",null,3)],"b");
+  assert.deepEqual(keyboardMove(mixed,"z","ArrowUp"),{parentId:null,position:1});
+  assert.deepEqual(keyboardMove(mixed,"z","ArrowRight"),{parentId:"x",position:1});
+  assert.equal(keyboardMove(mixed,"y","ArrowDown"),null);
 });
 
 for(const language of ["es","en"])test(`Screens expose named controls and sheets in ${language}`,()=>{
@@ -54,9 +77,10 @@ for(const language of ["es","en"])test(`Screens expose named controls and sheets
   assert.match(screen,/data-ui2="open-note"[^>]*aria-label="T a"/);
   assert.match(screen,/aria-label="Cita: Texto q"|aria-label="[^"]*Texto q"/);
   const note={id:"a1",isQuote:false,title:"T a1",body:"Texto a1"};
-  const sheet=noteSheetMarkup({note,parentTitle:"T a",caps,c});
-  for(const action of ["correct","place","take-note-under"])assert.match(sheet,new RegExp(`data-ui2="${action}"`));
-  assert.doesNotMatch(noteSheetMarkup({note,parentTitle:null,caps:{correct:false,place:false,takeBelow:false},c}),/data-ui2="(correct|place|take-note-under)"/);
+  // Changing a note lives only in «Editar baraja»: the sheet only takes a note below it.
+  const sheet=noteSheetMarkup({note,caps,c});
+  assert.match(sheet,/data-ui2="take-note-under"/);assert.doesNotMatch(sheet,/data-ui2="(correct|place)"/);
+  assert.doesNotMatch(noteSheetMarkup({note,caps:{edit:false,takeBelow:false},c}),/data-ui2="take-note-under"/);
   const place=placeSheetMarkup({note,targets:placementTargets(model,"a1","es"),currentParentId:"a",c});
   assert.match(place,/data-parent=""/);
   assert.match(place,/data-parent="a"[^>]*aria-current="true"/);
@@ -68,15 +92,29 @@ test("Note form: quotes have no title, text is escaped",()=>{
   const create=noteFormMarkup({...base,form:{mode:"create",isQuote:true,title:"",body:"<b>x</b>"},canSave:true});
   assert.doesNotMatch(create,/name="title"/);
   assert.match(create,/&lt;b&gt;x&lt;\/b&gt;/);
-  const edit=noteFormMarkup({...base,form:{mode:"edit",isQuote:false,title:"T",body:"B"},canSave:false});
+  const edit=noteFormMarkup({...base,deck:{title:"Notas",count:3,max:25},canPlace:true,form:{mode:"edit",isQuote:false,wasQuote:false,title:"T",body:"B"},canSave:false});
   assert.match(edit,/<button[^>]*type="submit"[^>]*\sdisabled/);
-  assert.doesNotMatch(edit,/note-type-selector/);
+  // «Editar nota»: type, placement, deck line, and «Borrar nota» after Save.
+  assert.match(edit,/note-type-selector/);assert.match(edit,/data-ui2="form-place"/);assert.match(edit,/class="ui2-deckline"[\s\S]*Notas/);
+  assert.match(edit,/type="submit"[\s\S]*data-ui2="note-delete"/);
+  assert.doesNotMatch(create,/data-ui2="note-delete"/);
+  const untitled=noteFormMarkup({...base,form:{mode:"edit",isQuote:false,wasQuote:true,title:" ",body:"B"},canSave:false});
+  assert.match(untitled,/ui2-co--error[\s\S]*ui2-field is-error/);
+  const quoted=noteFormMarkup({...base,form:{mode:"edit",isQuote:true,wasQuote:false,title:"T",body:"B"},canSave:true});
+  assert.match(quoted,/ui2-co--warning/);assert.doesNotMatch(quoted,/name="title"/);
+  assert.match(noteFormMarkup({...base,form:{mode:"edit",isQuote:false,wasQuote:false,title:"T",body:"B",conflict:true},canSave:true}),/ui2-co--error/);
 });
 
-import {editPayload,submitEdit} from "./edit-note.mjs";
-test("Correct sends the trimmed text with the text it was based on, and rebases on conflict keeping the typed text",async()=>{
-  const form={cardId:"c",title:" Nuevo ",body:" Texto ",baseTitle:"Viejo",baseBody:"Texto viejo"};
-  assert.deepEqual(editPayload(form),{cardId:"c",title:"Nuevo",body:"Texto",baseTitle:"Viejo",baseBody:"Texto viejo"});
+import {editPayload,editChanged,submitEdit} from "./edit-note.mjs";
+test("Edit sends the trimmed text, type and a changed parent with the text it was based on, and rebases on conflict keeping the typed text",async()=>{
+  const form={cardId:"c",isQuote:false,wasQuote:false,title:" Nuevo ",body:" Texto ",baseTitle:"Viejo",baseBody:"Texto viejo",parentId:"p",baseParentId:"p"};
+  assert.deepEqual(editPayload(form),{cardId:"c",isQuote:false,title:"Nuevo",body:"Texto",baseTitle:"Viejo",baseBody:"Texto viejo"});
+  assert.deepEqual(editPayload({...form,parentId:null}).parentId,null);
+  assert.equal(editPayload({...form,isQuote:true}).title,"");
+  const same={...form,title:"Viejo",body:"Texto viejo"};
+  assert.equal(editChanged(same),false);
+  for(const change of [{title:"Otro"},{body:"Otro"},{isQuote:true},{parentId:null}])assert.equal(editChanged({...same,...change}),true);
+  assert.equal(editChanged({...same,isQuote:true,wasQuote:true,title:"ignorado"}),false);
   const calls=[],ok={request:async(path,input)=>{calls.push([path,input]);return {cardId:"c"};}};
   await submitEdit(ok,form,async()=>assert.fail("no refresh without conflict"));
   assert.equal(calls[0][0],"/api/author/notes/edit");

@@ -26,6 +26,14 @@ export async function readInterests(db) {
   return {interests:orderInterests(interests)};
 }
 
+// Older schemas (read while migrating) have no soft delete of cards.
+async function hasCardDeletion(db) {
+  const columns=isPostgres(db)
+    ? await db.prepare("SELECT column_name AS name FROM information_schema.columns WHERE table_schema='public' AND table_name='cards'").all()
+    : await db.prepare("PRAGMA table_info(cards)").all();
+  return columns.some(column=>column.name==="deleted_at");
+}
+
 async function hasGuideReviews(db) {
   return isPostgres(db)
     ? !!await db.prepare("SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='reading_guide_reviews'").get()
@@ -37,7 +45,7 @@ export async function readCatalog(db, userId) {
     ? await db.prepare("SELECT column_name AS name FROM information_schema.columns WHERE table_schema='public' AND table_name='books'").all()
     : await db.prepare("PRAGMA table_info(books)").all();
   const supportsIncorporation=bookColumns.some(column=>column.name==="incorporated_at");
-  const supportsGuideReviews=await hasGuideReviews(db);
+  const supportsGuideReviews=await hasGuideReviews(db),active=await hasCardDeletion(db)?"c.deleted_at IS NULL":"1=1";
   const {interests}=await readInterests(db);
   const books = [];
   const bookLinks=await rowsBy(db,"SELECT book_id,platform,url FROM book_links ORDER BY platform","book_id");
@@ -68,7 +76,7 @@ export async function readCatalog(db, userId) {
     ${supportsGuideReviews?"guide_review.rejection_reason":"NULL"} AS reading_guide_rejection_reason
     FROM cards c JOIN decks deck ON deck.id=c.deck_id JOIN books b ON b.id=c.book_id
     LEFT JOIN users creator ON creator.id=c.creator_user_id ${supportsGuideReviews?"LEFT JOIN reading_guide_reviews guide_review ON guide_review.card_id=c.id":""}
-    ORDER BY b.position,c.deck_id,c.position,c.id`).all();
+    WHERE ${active} ORDER BY b.position,c.deck_id,c.position,c.id`).all();
   for (const row of cardRows) {
     const card = {id:row.id,bookId:row.book_id,deckId:row.deck_id,deckLanguage:row.deck_language,
       language:row.language || row.deck_language,creatorUserId:row.creator_user_id || null,creatorName:row.creator_name || null,
@@ -85,7 +93,7 @@ export async function readCatalog(db, userId) {
   const votes=new Map();
   for(const row of await db.prepare("SELECT deck_id,value,count(*) AS n FROM deck_votes WHERE value IN (1,-1) GROUP BY deck_id,value").all()) votes.set(`${row.deck_id}:${row.value}`,Number(row.n));
   const memberDeckIds=new Set(userId?(await db.prepare("SELECT deck_id FROM deck_contributors WHERE user_id=?").all(userId)).map(row=>row.deck_id):[]);
-  const myCardCounts=new Map(userId?(await db.prepare("SELECT deck_id,count(*) AS n FROM cards WHERE creator_user_id=? GROUP BY deck_id").all(userId)).map(row=>[row.deck_id,Number(row.n)]):[]);
+  const myCardCounts=new Map(userId?(await db.prepare(`SELECT deck_id,count(*) AS n FROM cards c WHERE creator_user_id=? AND ${active} GROUP BY deck_id`).all(userId)).map(row=>[row.deck_id,Number(row.n)]):[]);
   for (const row of await db.prepare(`SELECT d.*,u.display_name FROM decks d
     JOIN users u ON u.id=d.creator_user_id ORDER BY d.book_id,d.is_recommended DESC,d.id`).all()) {
     decks.push({id:row.id,bookId:row.book_id,language:row.language,contributionPolicy:row.contribution_policy || "owner",maxCardsPerContributor:row.max_cards_per_contributor ?? null,isRecommended:!!row.is_recommended,
@@ -141,13 +149,14 @@ export async function checkCatalog(db) {
 
 // Cards with only what is needed to display them and their attribution: each card, its book and its deck.
 // Same shapes and the same visibility as readCatalog (which returns every card to everyone), without
-// reading or validating the rest of the catalog. Unknown ids are left out.
+// reading or validating the rest of the catalog. Unknown ids are left out. A deleted note is still
+// returned (saves and links keep pointing to it), marked `deleted`.
 export async function readCardContexts(db, cardIds, userId) {
   const ids=[...new Set(cardIds)];
   if(!ids.length) return {cards:[],books:[],decks:[]};
-  const supportsGuideReviews=await hasGuideReviews(db);
+  const supportsGuideReviews=await hasGuideReviews(db),supportsDeletion=await hasCardDeletion(db);
   const marks=values=>values.map(()=>"?").join(",");
-  const rows=await db.prepare(`SELECT c.id,c.book_id,c.deck_id,c.language,c.creator_user_id,c.is_quote,c.is_reading_guide,c.parent_id,c.position,
+  const rows=await db.prepare(`SELECT c.id,c.book_id,c.deck_id,c.language,c.creator_user_id,c.is_quote,c.is_reading_guide,c.parent_id,c.position,${supportsDeletion?"c.deleted_at":"NULL AS deleted_at"},
     deck.language AS deck_language,creator.display_name AS creator_name,
     ${supportsGuideReviews?"guide_review.status":"NULL"} AS reading_guide_review_status,
     ${supportsGuideReviews?"guide_review.rejection_reason":"NULL"} AS reading_guide_rejection_reason
@@ -162,7 +171,7 @@ export async function readCardContexts(db, cardIds, userId) {
       isQuote:!!row.is_quote,isReadingGuide:!!row.is_reading_guide,
       ...(row.is_reading_guide?{reviewStatus:row.reading_guide_review_status||"legacy"}:{}),
       ...(row.is_reading_guide&&row.creator_user_id===userId&&row.reading_guide_rejection_reason?{reviewRejectionReason:row.reading_guide_rejection_reason}:{}),
-      parentId:row.parent_id,order:row.position,title:{},body:{}};
+      parentId:row.parent_id,order:row.position,...(row.deleted_at?{deleted:true}:{}),title:{},body:{}};
     for(const t of translations.get(row.id)) { card.title[t.language]=t.title; card.body[t.language]=t.body; }
     return [row.id,card];
   }));

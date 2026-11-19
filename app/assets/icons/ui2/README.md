@@ -61,6 +61,8 @@ Catálogo de los iconos de la interfaz nueva. Las reglas del estilo están en `d
 | `team-pick` | Medalla con dos cintas por detrás: selección del equipo | Repaso: «Elegidas por el equipo» |
 | `ai-sparkles` | Destello grande con dos pequeños: ayuda de la IA | Catalogar nuevo libro: «Rellenar con IA» |
 | `alert` | Aviso o error | Mensajes |
+| `trash` | Borrar | Editar baraja: «Borrar nota»; tarjeta cuya nota se borró |
+| `drag` | Asa de arrastre: dos líneas horizontales | Editar baraja: mover una nota (arrastre o teclado) |
 
 ## Iconos de divisa (con color)
 

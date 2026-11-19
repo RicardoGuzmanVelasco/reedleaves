@@ -10,9 +10,9 @@ import {findBookTitleMatches} from "../app/book-duplicates.mjs";
 import {catalogBookIncorporationTimestamp} from "../app/catalog-incorporation.mjs";
 import {bookInterestError} from "../app/book-interests.mjs";
 import {lockReaderAccount} from "./reader-account-lock.mjs";
-import {grantReaderXpInside} from "./reader-xp-repository.mjs";
 
-const NEW_NOTE_XP=15;
+// Active sibling group of a deck (parent null = root). Deleted notes are outside every group.
+const SIBLINGS="deck_id=? AND deleted_at IS NULL AND (parent_id=? OR (parent_id IS NULL AND CAST(? AS TEXT) IS NULL))";
 
 async function validateBookInterests(db,ids,options={}) {
   const knownIds=new Set((await db.prepare("SELECT id FROM interests").all()).map(row=>row.id));
@@ -174,10 +174,25 @@ export async function changeDeckTitle(db,session,input) {
     const deck=await db.prepare(`SELECT * FROM decks WHERE id=?${isPostgres(db) ? " FOR UPDATE" : ""}`).get(input.deckId);
     if (!deck || deck.creator_user_id !== session.user_id) throw new ApiError(404,"deckUnavailable");
     if (deck.status !== "in_progress") throw new ApiError(409,"deckReadOnly");
-    const saved=await db.prepare("SELECT title FROM deck_translations WHERE deck_id=? AND language=?").get(deck.id,deck.language);
+    const saved=await db.prepare("SELECT title,description FROM deck_translations WHERE deck_id=? AND language=?").get(deck.id,deck.language);
     if (saved.title === title) return {deckId:deck.id};
     if (saved.title !== previousTitle) throw new ApiError(409,"deckTitleChanged");
-    await db.prepare("UPDATE deck_translations SET title=? WHERE deck_id=? AND language=?").run(title,deck.id,deck.language);
+    // No focus is stored as the title itself: it follows the new name.
+    const description=saved.description === saved.title ? title : saved.description;
+    await db.prepare("UPDATE deck_translations SET title=?,description=? WHERE deck_id=? AND language=?").run(title,description,deck.id,deck.language);
+    return {deckId:deck.id};
+  });
+}
+// The focus (description) of the owner's in-progress deck. Empty means no focus: it is stored as the title.
+export async function changeDeckDescription(db,session,input) {
+  if (typeof input.deckId !== "string" || !input.deckId || input.deckId.length > 256) throw new ApiError(400,"invalidRequest");
+  const description=text(input.description,DESCRIPTION_MAX_LENGTH,false);
+  return transaction(db,async()=>{
+    const deck=await db.prepare(`SELECT * FROM decks WHERE id=?${isPostgres(db) ? " FOR UPDATE" : ""}`).get(input.deckId);
+    if (!deck || deck.creator_user_id !== session.user_id) throw new ApiError(404,"deckUnavailable");
+    if (deck.status !== "in_progress") throw new ApiError(409,"deckReadOnly");
+    const saved=await db.prepare("SELECT title FROM deck_translations WHERE deck_id=? AND language=?").get(deck.id,deck.language);
+    await db.prepare("UPDATE deck_translations SET description=? WHERE deck_id=? AND language=?").run(description || saved.title,deck.id,deck.language);
     return {deckId:deck.id};
   });
 }
@@ -228,22 +243,19 @@ async function writeCard(db,session,input) {
     return {deckId:deck.id,cardId:id};
   }
   if (deck.max_cards_per_contributor !== null) {
-    const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=? AND creator_user_id=?").get(deck.id,session.user_id);
+    const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=? AND creator_user_id=? AND deleted_at IS NULL").get(deck.id,session.user_id);
     if (total>=deck.max_cards_per_contributor) throw new ApiError(409,"contributorCardLimitReached");
   }
   if (deck.contribution_policy === "owner") {
-    const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(deck.id);
+    // Deleted notes free their place under the limit.
+    const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=? AND deleted_at IS NULL").get(deck.id);
     if (total>=MAX_CARDS_PER_DECK) throw new ApiError(409,"deckCardLimitReached");
   }
-  if (input.parentId !== null && !await db.prepare("SELECT 1 FROM cards WHERE id=? AND deck_id=?").get(input.parentId,deck.id)) throw new ApiError(400,"invalidParent");
-  const {position}=await db.prepare("SELECT COALESCE(MAX(position),0)+1 AS position FROM cards WHERE deck_id=? AND (parent_id=? OR (parent_id IS NULL AND CAST(? AS TEXT) IS NULL))").get(deck.id,input.parentId,input.parentId);
+  if (input.parentId !== null && !await db.prepare("SELECT 1 FROM cards WHERE id=? AND deck_id=? AND deleted_at IS NULL").get(input.parentId,deck.id)) throw new ApiError(400,"invalidParent");
+  const {position}=await db.prepare(`SELECT COALESCE(MAX(position),0)+1 AS position FROM cards WHERE ${SIBLINGS}`).get(deck.id,input.parentId,input.parentId);
   await db.prepare("INSERT INTO cards(id,deck_id,book_id,parent_id,position,is_quote,creator_user_id,language,created_at) VALUES (?,?,?,?,?,?,?,?,?)").run(id,deck.id,deck.book_id,input.parentId,position,input.isQuote ? 1 : 0,session.user_id,deck.language,new Date().toISOString());
   await db.prepare("INSERT INTO card_translations(card_id,language,title,body) VALUES (?,?,?,?)").run(id,deck.language,title,body);
-  // Shared and team-authored catalog cards are not personal reader notes.
-  const personal=deck.contribution_policy==="owner" && deck.creator_user_id===session.user_id && session.user_id!=="reed-team"
-    && !!await db.prepare("SELECT 1 FROM accounts WHERE user_id=?").get(session.user_id);
-  const reward=personal ? await grantReaderXpInside(db,session.user_id,{eventKey:`note:${id}`,rewardType:"note",amount:NEW_NOTE_XP}) : null;
-  return {deckId:deck.id,cardId:id,...(reward?.awarded?{xpReward:{amount:reward.awarded,balance:reward.balance}}:{})};
+  return {deckId:deck.id,cardId:id};
 }
 
 async function takeNoteInNewDeck(db,session,input) {
@@ -265,72 +277,115 @@ async function takeNoteInNewDeck(db,session,input) {
   });
 }
 
-// Places a note under another note, or at the root when parentId is null, inside its own personal deck.
-// Allowed after the deck is finished: only the order of notes changes, never their text. It is
-// appended last among its new siblings, and the old siblings close the gap (positions stay 1..N).
-export async function placeNote(db,session,input) {
-  const {cardId,parentId}=input ?? {};
-  const validId=value=>typeof value === "string" && value.length > 0 && value.length <= 256;
-  if (!validId(cardId) || parentId !== null && !validId(parentId)) throw new ApiError(400,"invalidRequest");
+// A note of the caller's own personal deck that is still in progress: the only notes that can be
+// edited, moved or deleted. A finished deck is closed to every change (409 deckReadOnly).
+// Takes the same account and deck locks as takeNote and finishDeck, so they cannot race.
+const validNoteId=value=>typeof value === "string" && value.length > 0 && value.length <= 256;
+async function editableNote(db,session,cardId) {
+  await lockReaderAccount(db,session.user_id);
+  const found=await db.prepare("SELECT deck_id FROM cards WHERE id=? AND deleted_at IS NULL").get(cardId);
+  if (!found) throw new ApiError(404,"cardUnavailable");
+  const deck=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db) ? " FOR UPDATE OF d" : ""}`).get(found.deck_id);
+  // Personal decks of the caller only; shared decks keep their order and text.
+  if (!deck || deck.creator_user_id !== session.user_id || deck.contribution_policy !== "owner") throw new ApiError(404,"cardUnavailable");
+  if (deck.status !== "in_progress") throw new ApiError(409,"deckReadOnly");
+  const card=await db.prepare("SELECT id,parent_id,position,is_quote FROM cards WHERE id=? AND deleted_at IS NULL").get(cardId);
+  if (!card) throw new ApiError(404,"cardUnavailable");
+  return {deck,card};
+}
+
+const siblingIds=async(db,deckId,parentId,exceptId=null)=>(await db.prepare(`SELECT id FROM cards WHERE ${SIBLINGS} AND id<>? ORDER BY position,id`)
+  .all(deckId,parentId,parentId,exceptId ?? "")).map(row=>row.id);
+
+// Gives each listed sibling group the positions 1..N in the listed order (and the listed parent).
+// Every row first passes through a free temporary position above all current ones, so the unique
+// order indexes never collide, whatever the old and new orders are.
+async function renumber(db,deckId,groups) {
+  const {top}=await db.prepare("SELECT COALESCE(MAX(position),0) AS top FROM cards WHERE deck_id=?").get(deckId);
+  let temporary=Number(top)+1;
+  for (const {parentId,ids} of groups) for (const id of ids) await db.prepare("UPDATE cards SET parent_id=?,position=? WHERE id=?").run(parentId,temporary++,id);
+  for (const {ids} of groups) for (const [index,id] of ids.entries()) await db.prepare("UPDATE cards SET position=? WHERE id=?").run(index+1,id);
+}
+
+// Moves a note (with everything below it) under `parentId` (null = root) at `position` among its new
+// siblings (1-based; past the end or undefined = last). Both the old and the new group stay 1..N.
+// The parent must be an active note of the same deck and not the note or one of its descendants.
+async function relocate(db,deck,card,parentId,position) {
+  if (parentId !== null) {
+    if (parentId === card.id || !await db.prepare("SELECT 1 FROM cards WHERE id=? AND deck_id=? AND deleted_at IS NULL").get(parentId,deck.id)) throw new ApiError(400,"invalidParent");
+    const underCard=await db.prepare(`WITH RECURSIVE below(id) AS (
+        SELECT id FROM cards WHERE parent_id=? AND deck_id=?
+        UNION SELECT c.id FROM cards c JOIN below b ON c.parent_id=b.id WHERE c.deck_id=?
+      ) SELECT 1 FROM below WHERE id=?`).get(card.id,deck.id,deck.id,parentId);
+    if (underCard) throw new ApiError(400,"invalidParent");
+  }
+  const same=card.parent_id === parentId;
+  const source=await siblingIds(db,deck.id,card.parent_id,card.id),target=same ? [...source] : await siblingIds(db,deck.id,parentId,card.id);
+  const index=position === undefined ? target.length : Math.min(Math.max(position,1),target.length+1)-1;
+  // Retrying a move that is already saved changes nothing.
+  if (same && index === card.position-1) return index+1;
+  target.splice(index,0,card.id);
+  await renumber(db,deck.id,same ? [{parentId,ids:target}] : [{parentId:card.parent_id,ids:source},{parentId,ids:target}]);
+  return index+1;
+}
+
+export async function moveNote(db,session,input) {
+  const {cardId,parentId,position}=input ?? {};
+  if (!validNoteId(cardId) || parentId !== null && !validNoteId(parentId) || position !== undefined && !(Number.isSafeInteger(position) && position > 0)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
-    await lockReaderAccount(db,session.user_id);
-    const found=await db.prepare("SELECT deck_id FROM cards WHERE id=?").get(cardId);
-    if (!found) throw new ApiError(404,"cardUnavailable");
-    // Same deck lock as takeNote and finishDeck, so placing, adding and finishing cannot race.
-    const deck=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db) ? " FOR UPDATE OF d" : ""}`).get(found.deck_id);
-    // Personal decks of the caller only; shared decks keep their order for now.
-    if (!deck || deck.creator_user_id !== session.user_id || deck.contribution_policy !== "owner") throw new ApiError(404,"cardUnavailable");
-    const card=await db.prepare("SELECT id,parent_id,position FROM cards WHERE id=?").get(cardId);
-    if (!card) throw new ApiError(404,"cardUnavailable");
-    if (card.parent_id === parentId) return {deckId:deck.id,cardId,parentId};
-    if (parentId !== null) {
-      if (parentId === cardId || !await db.prepare("SELECT 1 FROM cards WHERE id=? AND deck_id=?").get(parentId,deck.id)) throw new ApiError(400,"invalidParent");
-      const underCard=await db.prepare(`WITH RECURSIVE below(id) AS (
-          SELECT id FROM cards WHERE parent_id=? AND deck_id=?
-          UNION SELECT c.id FROM cards c JOIN below b ON c.parent_id=b.id WHERE c.deck_id=?
-        ) SELECT 1 FROM below WHERE id=?`).get(cardId,deck.id,deck.id,parentId);
-      if (underCard) throw new ApiError(400,"invalidParent");
-    }
-    const siblings="deck_id=? AND (parent_id=? OR (parent_id IS NULL AND CAST(? AS TEXT) IS NULL))";
-    const {position}=await db.prepare(`SELECT COALESCE(MAX(position),0)+1 AS position FROM cards WHERE ${siblings}`).get(deck.id,parentId,parentId);
-    await db.prepare("UPDATE cards SET parent_id=?,position=? WHERE id=?").run(parentId,position,cardId);
-    // Close the gap one step at a time, in order, so the unique order indexes never collide.
-    const gap=await db.prepare(`SELECT id FROM cards WHERE ${siblings} AND position>? ORDER BY position`).all(deck.id,card.parent_id,card.parent_id,card.position);
-    for (const [index,row] of gap.entries()) await db.prepare("UPDATE cards SET position=? WHERE id=?").run(card.position+index,row.id);
-    return {deckId:deck.id,cardId,parentId};
+    const {deck,card}=await editableNote(db,session,cardId);
+    const placed=await relocate(db,deck,card,parentId,position);
+    return {deckId:deck.id,cardId,parentId,position:placed};
   });
 }
 
-// Corrects the text of a note in the caller's own personal deck, also after the deck is finished.
-// Only title/body change; id, position, parent and creation date stay. No schema column: the
-// catalog ETag already hashes the response, so it changes with the text. Concurrency is optimistic:
-// the client sends the text it started from (baseTitle/baseBody; quotes only baseBody) and gets
-// 409 noteConflict if the stored text is neither that nor the new one. Retrying a saved edit is a no-op.
+// Edits a note of the caller's in-progress personal deck: text, type (idea or quote, also with notes
+// below) and, optionally, its parent (`parentId`; it goes last there), in one transaction. Id, creation
+// date and every reference (saves, votes, practice) stay. Concurrency is optimistic: the client sends
+// the text it started from (baseBody, plus baseTitle when the saved note is an idea) and gets 409
+// noteConflict if the stored text is neither that nor the new one. Retrying a saved edit is a no-op.
 export async function editNote(db,session,input) {
   const {cardId}=input ?? {};
-  if (typeof cardId !== "string" || !cardId || cardId.length > 256) throw new ApiError(400,"invalidRequest");
+  if (!validNoteId(cardId)) throw new ApiError(400,"invalidRequest");
   const body=text(input.body,CARD_BODY_MAX_LENGTH);
-  if (typeof input.baseBody !== "string") throw new ApiError(400,"invalidRequest");
+  if (typeof input.baseBody !== "string" || input.isQuote !== undefined && typeof input.isQuote !== "boolean" ||
+    input.parentId !== undefined && input.parentId !== null && !validNoteId(input.parentId)) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
-    await lockReaderAccount(db,session.user_id);
-    const found=await db.prepare("SELECT deck_id FROM cards WHERE id=?").get(cardId);
-    if (!found) throw new ApiError(404,"cardUnavailable");
-    const deck=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db) ? " FOR UPDATE OF d" : ""}`).get(found.deck_id);
-    if (!deck || deck.creator_user_id !== session.user_id || deck.contribution_policy !== "owner") throw new ApiError(404,"cardUnavailable");
-    const card=await db.prepare("SELECT id,is_quote FROM cards WHERE id=?").get(cardId);
+    const {deck,card}=await editableNote(db,session,cardId);
     const saved=await db.prepare("SELECT title,body FROM card_translations WHERE card_id=? AND language=?").get(cardId,deck.language);
-    if (!card || !saved) throw new ApiError(404,"cardUnavailable");
-    const isQuote=!!card.is_quote;
-    let title,baseTitle;
-    if (isQuote) title=quoteExcerpt(body);
-    else {
-      if (typeof input.baseTitle !== "string") throw new ApiError(400,"invalidRequest");
-      title=text(input.title,TITLE_MAX_LENGTH); baseTitle=input.baseTitle.trim();
+    if (!saved) throw new ApiError(404,"cardUnavailable");
+    const wasQuote=!!card.is_quote,isQuote=input.isQuote ?? wasQuote;
+    if (!wasQuote && typeof input.baseTitle !== "string") throw new ApiError(400,"invalidRequest");
+    const title=isQuote ? quoteExcerpt(body) : text(input.title,TITLE_MAX_LENGTH);
+    const textChanged=saved.title !== title || saved.body !== body;
+    if (textChanged || isQuote !== wasQuote) {
+      if (saved.body !== input.baseBody.trim() || !wasQuote && saved.title !== input.baseTitle.trim()) throw new ApiError(409,"noteConflict");
+      if (textChanged) await db.prepare("UPDATE card_translations SET title=?,body=? WHERE card_id=? AND language=?").run(title,body,cardId,deck.language);
+      if (isQuote !== wasQuote) await db.prepare("UPDATE cards SET is_quote=? WHERE id=?").run(isQuote ? 1 : 0,cardId);
     }
-    if (saved.title === title && saved.body === body) return {deckId:deck.id,cardId};
-    if (saved.body !== input.baseBody.trim() || !isQuote && saved.title !== baseTitle) throw new ApiError(409,"noteConflict");
-    await db.prepare("UPDATE card_translations SET title=?,body=? WHERE card_id=? AND language=?").run(title,body,cardId,deck.language);
+    if (input.parentId !== undefined && input.parentId !== card.parent_id) await relocate(db,deck,card,input.parentId,undefined);
     return {deckId:deck.id,cardId};
+  });
+}
+
+// Soft delete: the note and every note below it are marked deleted, never removed, so saves, votes,
+// views and practice keep their reference. They leave the deck (tree, count, new sessions) and free
+// their place under the card limit; the old siblings close the gap. Retrying is a no-op.
+export async function deleteNote(db,session,input) {
+  const {cardId}=input ?? {};
+  if (!validNoteId(cardId)) throw new ApiError(400,"invalidRequest");
+  return transaction(db,async()=>{
+    const gone=await db.prepare("SELECT c.deck_id,d.creator_user_id,d.contribution_policy FROM cards c JOIN decks d ON d.id=c.deck_id WHERE c.id=? AND c.deleted_at IS NOT NULL").get(cardId);
+    if (gone && gone.creator_user_id === session.user_id && gone.contribution_policy === "owner") return {deckId:gone.deck_id,cardId,deletedCount:0};
+    const {deck,card}=await editableNote(db,session,cardId);
+    const below=(await db.prepare(`WITH RECURSIVE below(id) AS (
+        SELECT id FROM cards WHERE parent_id=? AND deck_id=? AND deleted_at IS NULL
+        UNION SELECT c.id FROM cards c JOIN below b ON c.parent_id=b.id WHERE c.deck_id=? AND c.deleted_at IS NULL
+      ) SELECT id FROM below`).all(card.id,deck.id,deck.id)).map(row=>row.id);
+    const deletedAt=new Date().toISOString();
+    for (const id of [card.id,...below]) await db.prepare("UPDATE cards SET deleted_at=? WHERE id=?").run(deletedAt,id);
+    await renumber(db,deck.id,[{parentId:card.parent_id,ids:await siblingIds(db,deck.id,card.parent_id)}]);
+    return {deckId:deck.id,cardId,deletedCount:1+below.length};
   });
 }
 
@@ -343,7 +398,7 @@ export async function finishDeck(db,session,input) {
     if (!deck || deck.creator_user_id !== session.user_id) throw new ApiError(404,"deckUnavailable");
     if (deck.status === "finished") return {deckId:deck.id,status:"finished"};
     if (deck.status !== "in_progress") throw new ApiError(409,"deckReadOnly");
-    const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(deck.id);
+    const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=? AND deleted_at IS NULL").get(deck.id);
     if (!total) throw new ApiError(409,"emptyDeckCannotFinish");
     await db.prepare("UPDATE decks SET status='finished' WHERE id=? AND status='in_progress'").run(deck.id);
     return {deckId:deck.id,status:"finished"};
@@ -360,7 +415,7 @@ export async function finishTeamDeck(db,input) {
 export async function readTeamDeckInProgress(db,{bookId}={}) {
   if (bookId!==undefined && (typeof bookId!=="string" || !bookId.trim() || bookId.length>240)) throw new ApiError(400,"invalidRequest");
   const rows=await db.prepare(`SELECT d.id AS deck_id,d.book_id,d.language,b.popular_title AS book_title,t.title,
-    (SELECT COUNT(*) FROM cards c WHERE c.deck_id=d.id) AS card_count
+    (SELECT COUNT(*) FROM cards c WHERE c.deck_id=d.id AND c.deleted_at IS NULL) AS card_count
     FROM decks d JOIN books b ON b.id=d.book_id
     JOIN deck_translations t ON t.deck_id=d.id AND t.language=d.language
     WHERE d.creator_user_id='reed-team' AND d.status='in_progress'${bookId===undefined ? "" : " AND d.book_id=?"}
@@ -410,10 +465,12 @@ export async function finishNoteDecks(db,session,input) {
       // An empty deck that an earlier identical request already deleted stays a success, so retries are safe.
       if (!deck && entry.cardCount === 0) { changes.push({deckId:entry.deckId,status:"deleted"}); continue; }
       if (!deck || deck.creator_user_id !== session.user_id || deck.book_id !== bookId) throw new ApiError(404,"deckUnavailable");
-      const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=?").get(deck.id);
+      const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=? AND deleted_at IS NULL").get(deck.id);
       // Other readers may have added an empty collective in-progress deck to their cardcase: keep it for them.
-      const sharedWithOthers=entry.cardCount === 0 && !!await db.prepare("SELECT 1 FROM cardcase_decks WHERE deck_id=? AND user_id<>?").get(deck.id,session.user_id);
-      const status=entry.cardCount ? "finished" : sharedWithOthers ? "in_progress" : "deleted";
+      // Deleted notes keep their rows (saves and practice still point to them), so their deck is kept too.
+      const kept=entry.cardCount === 0 && (!!await db.prepare("SELECT 1 FROM cardcase_decks WHERE deck_id=? AND user_id<>?").get(deck.id,session.user_id)
+        || !!await db.prepare("SELECT 1 FROM cards WHERE deck_id=?").get(deck.id));
+      const status=entry.cardCount ? "finished" : kept ? "in_progress" : "deleted";
       if (total !== entry.cardCount || !(deck.status === "in_progress" || entry.cardCount > 0 && deck.status === "finished")) throw new ApiError(409,"noteDecksChanged");
       changes.push({deckId:deck.id,status});
     }

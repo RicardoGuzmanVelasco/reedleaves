@@ -226,13 +226,14 @@ CREATE TABLE cards (
   creator_user_id TEXT REFERENCES users(id),
   language TEXT NOT NULL DEFAULT 'en' CHECK(length(language) BETWEEN 2 AND 35),
   created_at TEXT,
+  deleted_at TEXT,
   UNIQUE(id,deck_id),
   FOREIGN KEY(deck_id,book_id) REFERENCES decks(id,book_id) ON UPDATE CASCADE,
   FOREIGN KEY(parent_id,deck_id) REFERENCES cards(id,deck_id) DEFERRABLE INITIALLY DEFERRED,
   CHECK(parent_id IS NULL OR parent_id <> id)
 ) STRICT;
-CREATE UNIQUE INDEX root_order ON cards(deck_id,position) WHERE parent_id IS NULL;
-CREATE UNIQUE INDEX sibling_order ON cards(deck_id,parent_id,position) WHERE parent_id IS NOT NULL;
+CREATE UNIQUE INDEX root_order ON cards(deck_id,position) WHERE parent_id IS NULL AND deleted_at IS NULL;
+CREATE UNIQUE INDEX sibling_order ON cards(deck_id,parent_id,position) WHERE parent_id IS NOT NULL AND deleted_at IS NULL;
 CREATE INDEX cards_by_deck ON cards(deck_id,parent_id,position);
 CREATE INDEX cards_by_note_date ON cards(deck_id,created_at DESC) WHERE created_at IS NOT NULL;
 CREATE INDEX cards_by_creator ON cards(creator_user_id,deck_id);
@@ -410,4 +411,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 69;
+PRAGMA user_version = 70;

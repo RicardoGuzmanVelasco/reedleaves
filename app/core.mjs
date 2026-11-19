@@ -15,6 +15,8 @@ export const EDITORIAL_NOTE_MAX_LENGTH = 240;
 export const EDITORIAL_NOTE_PREFERRED_LENGTH = 120;
 export const BOOK_AUTHOR_MAX_LENGTH = 160;
 export const MAX_CARDS_PER_DECK = 25;
+// From this many cards a personal deck warns that it is filling up.
+export const DECK_NEARLY_FULL_CARDS = MAX_CARDS_PER_DECK - 5;
 export const FEEDBACK_MESSAGE_MAX_LENGTH = 5000;
 export const FEEDBACK_PAGE_MAX_LENGTH = 512;
 

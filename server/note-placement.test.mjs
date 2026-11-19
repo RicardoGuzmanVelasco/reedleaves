@@ -5,7 +5,7 @@ import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,initializeDatabase,PostgresDatabase} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
-import {takeNote,placeNote,finishDeck} from "./author-repository.mjs";
+import {takeNote,moveNote,finishDeck} from "./author-repository.mjs";
 import {readCatalog,checkCatalog} from "./catalog-repository.mjs";
 
 async function fixture(t,dialect) {
@@ -22,67 +22,73 @@ async function fixture(t,dialect) {
   return {db,session,other};
 }
 
-// Every sibling group keeps consecutive positions 1..N.
+// Every active sibling group keeps consecutive positions 1..N (deleted notes are outside the groups).
 async function assertConsecutive(db,deckId) {
-  const rows=await db.prepare("SELECT parent_id,position FROM cards WHERE deck_id=? ORDER BY parent_id,position").all(deckId);
+  const rows=await db.prepare("SELECT parent_id,position FROM cards WHERE deck_id=? AND deleted_at IS NULL ORDER BY parent_id,position").all(deckId);
   const groups=new Map();
   for (const row of rows) groups.set(row.parent_id,[...(groups.get(row.parent_id)||[]),row.position]);
   for (const [parent,positions] of groups) assert.deepEqual(positions,positions.map((_,index)=>index+1),`positions under ${parent ?? "root"}`);
 }
 const place=async(db,cardId)=>({...await db.prepare("SELECT parent_id,position FROM cards WHERE id=?").get(cardId)});
+const order=async(db,deckId,parentId)=>(await db.prepare("SELECT id FROM cards WHERE deck_id=? AND deleted_at IS NULL AND (parent_id=? OR (parent_id IS NULL AND CAST(? AS TEXT) IS NULL)) ORDER BY position").all(deckId,parentId,parentId)).map(row=>row.id);
 
 for (const dialect of ["sqlite","postgres"]) {
-  test(`${dialect}: placing a note moves its subtree, keeps positions 1..N and is retry-safe, also after finishing`,async t=>{
+  test(`${dialect}: moving a note reorders siblings and changes parent with its subtree, keeps positions 1..N, is retry-safe and closed once finished`,async t=>{
     const {db,session,other}=await fixture(t,dialect);
     const first=await takeNote(db,session,{requestId:randomUUID(),bookId:"seven-habits",language:"es",isQuote:false,title:"A",body:"Nota A"});
     const deckId=first.deckId,A=first.cardId;
-    const add=async(title,parentId=null)=>(await takeNote(db,session,{requestId:randomUUID(),deckId,isQuote:false,parentId,title,body:`Nota ${title}`})).cardId;
-    const B=await add("B"),C=await add("C"),D=await add("D",B),E=await add("E",B);
+    const add=async(title,parentId=null,isQuote=false)=>(await takeNote(db,session,{requestId:randomUUID(),deckId,isQuote,parentId,title,body:`Nota ${title}`})).cardId;
+    const B=await add("B"),C=await add("C"),D=await add("D",B),E=await add("E",B),Q=await add("Q",null,true);
     const before=(await readCatalog(db)).cards.filter(card=>card.deckId===deckId).map(card=>({id:card.id,title:card.title,body:card.body})).sort((a,b)=>a.id.localeCompare(b.id));
 
-    // C goes under A: A's new child is last, and the old root siblings close the gap.
-    assert.deepEqual(await placeNote(db,session,{cardId:C,parentId:A}),{deckId,cardId:C,parentId:A});
-    assert.deepEqual(await place(db,C),{parent_id:A,position:1});
+    // Reorder among siblings: C to the front, then Q between A and B.
+    assert.deepEqual(await moveNote(db,session,{cardId:C,parentId:null,position:1}),{deckId,cardId:C,parentId:null,position:1});
+    assert.deepEqual(await order(db,deckId,null),[C,A,B,Q]);
+    await moveNote(db,session,{cardId:Q,parentId:null,position:3});
+    assert.deepEqual(await order(db,deckId,null),[C,A,Q,B]);
     await assertConsecutive(db,deckId);
-
-    // B (with D and E below it) goes under A after C.
-    await placeNote(db,session,{cardId:B,parentId:A});
-    assert.deepEqual(await place(db,B),{parent_id:A,position:2});
-    assert.deepEqual(await place(db,D),{parent_id:B,position:1});
-    assert.deepEqual(await place(db,E),{parent_id:B,position:2});
-    await assertConsecutive(db,deckId);
-
     // Retry changes nothing.
-    assert.deepEqual(await placeNote(db,session,{cardId:B,parentId:A}),{deckId,cardId:B,parentId:A});
-    assert.deepEqual(await place(db,B),{parent_id:A,position:2});
+    assert.deepEqual(await moveNote(db,session,{cardId:Q,parentId:null,position:3}),{deckId,cardId:Q,parentId:null,position:3});
+    assert.deepEqual(await order(db,deckId,null),[C,A,Q,B]);
 
-    // No cycles: not under itself or under its own descendants.
-    await assert.rejects(placeNote(db,session,{cardId:A,parentId:A}),{code:"invalidParent"});
-    await assert.rejects(placeNote(db,session,{cardId:A,parentId:D}),{code:"invalidParent"});
-    await assert.rejects(placeNote(db,session,{cardId:B,parentId:E}),{code:"invalidParent"});
+    // New parent at a position: C between D and E; the old root siblings close the gap.
+    await moveNote(db,session,{cardId:C,parentId:B,position:2});
+    assert.deepEqual(await order(db,deckId,B),[D,C,E]);
+    assert.deepEqual(await order(db,deckId,null),[A,Q,B]);
+    await assertConsecutive(db,deckId);
 
-    // Back to the root: it goes last among the roots and the old siblings close the gap.
-    await placeNote(db,session,{cardId:C,parentId:null});
-    assert.deepEqual(await place(db,C),{parent_id:null,position:2});
-    assert.deepEqual(await place(db,B),{parent_id:A,position:1});
+    // Without a position it goes last; a quote can be a parent; the subtree travels.
+    await moveNote(db,session,{cardId:B,parentId:Q});
+    assert.deepEqual(await place(db,B),{parent_id:Q,position:1});
+    assert.deepEqual(await order(db,deckId,B),[D,C,E]);
+    // Past the end means last.
+    await moveNote(db,session,{cardId:A,parentId:Q,position:99});
+    assert.deepEqual(await order(db,deckId,Q),[B,A]);
+    // Back to the root.
+    await moveNote(db,session,{cardId:A,parentId:null,position:1});
+    assert.deepEqual(await order(db,deckId,null),[A,Q]);
     await assertConsecutive(db,deckId);
 
     // Text, titles and ids are untouched.
     const after=(await readCatalog(db)).cards.filter(card=>card.deckId===deckId).map(card=>({id:card.id,title:card.title,body:card.body})).sort((a,b)=>a.id.localeCompare(b.id));
     assert.deepEqual(after,before);
 
-    // Only the author, only inside the same deck, only valid ids.
-    const elsewhere=(await takeNote(db,session,{requestId:randomUUID(),bookId:"seven-habits",language:"es",isQuote:false,title:"Otra",body:"En otra baraja"})).cardId;
-    await assert.rejects(placeNote(db,other,{cardId:C,parentId:null}),{code:"cardUnavailable"});
-    await assert.rejects(placeNote(db,session,{cardId:C,parentId:elsewhere}),{code:"invalidParent"});
-    await assert.rejects(placeNote(db,session,{cardId:randomUUID(),parentId:null}),{code:"cardUnavailable"});
-    for (const input of [{},{cardId:C},{cardId:C,parentId:7},{cardId:"",parentId:null}]) await assert.rejects(placeNote(db,session,input),{code:"invalidRequest"});
+    // No cycles: not under itself or under its own descendants.
+    await assert.rejects(moveNote(db,session,{cardId:Q,parentId:Q}),{code:"invalidParent"});
+    await assert.rejects(moveNote(db,session,{cardId:Q,parentId:D}),{code:"invalidParent"});
+    await assert.rejects(moveNote(db,session,{cardId:B,parentId:E}),{code:"invalidParent"});
 
-    // After finishing, adding is closed but placing still works (it never changes text).
+    // Only the author, only inside the same deck, only valid input.
+    const elsewhere=(await takeNote(db,session,{requestId:randomUUID(),bookId:"seven-habits",language:"es",isQuote:false,title:"Otra",body:"En otra baraja"})).cardId;
+    await assert.rejects(moveNote(db,other,{cardId:C,parentId:null}),{code:"cardUnavailable"});
+    await assert.rejects(moveNote(db,session,{cardId:C,parentId:elsewhere}),{code:"invalidParent"});
+    await assert.rejects(moveNote(db,session,{cardId:randomUUID(),parentId:null}),{code:"cardUnavailable"});
+    for (const input of [{},{cardId:C},{cardId:C,parentId:7},{cardId:"",parentId:null},{cardId:C,parentId:null,position:0},{cardId:C,parentId:null,position:1.5}]) await assert.rejects(moveNote(db,session,input),{code:"invalidRequest"});
+
+    // A finished deck is closed to every change, moving included.
     await finishDeck(db,session,{deckId});
-    await assert.rejects(takeNote(db,session,{requestId:randomUUID(),deckId,isQuote:false,parentId:null,title:"Z",body:"Nota Z"}),{code:"deckReadOnly"});
-    await placeNote(db,session,{cardId:C,parentId:B});
-    assert.deepEqual(await place(db,C),{parent_id:B,position:3});
+    await assert.rejects(moveNote(db,session,{cardId:C,parentId:null}),{code:"deckReadOnly"});
+    assert.deepEqual(await order(db,deckId,B),[D,C,E]);
     await assertConsecutive(db,deckId);
     await checkCatalog(db);
   });

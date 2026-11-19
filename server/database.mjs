@@ -18,6 +18,7 @@ import {CARDCASE_VOCABULARY_SQLITE,CARDCASE_VOCABULARY_POSTGRES} from "./cardcas
 import {INTEREST_TABLE_RENAME_SQLITE,INTEREST_TABLE_RENAME_POSTGRES} from "./interest-table-rename-migration.mjs";
 import {INTEREST_COLOR_MIGRATION_SQLITE,INTEREST_COLOR_MIGRATION_POSTGRES} from "./interest-color-migration.mjs";
 import {PRODUCTIVITY_INTEREST_APPEARANCE_SQL} from "./productivity-interest-appearance-migration.mjs";
+import {CARD_SOFT_DELETE_SQLITE,CARD_SOFT_DELETE_POSTGRES} from "./card-soft-delete-migration.mjs";
 
 import {POPULAR_TITLE_RENAME_SQL,POPULAR_TITLE_UPDATES} from "./popular-title-migration.mjs";
 import {BOOK_INTEREST_ORDER_SQLITE,BOOK_INTEREST_ORDER_POSTGRES} from "./book-interest-order-migration.mjs";
@@ -25,8 +26,8 @@ import {reorderEditorialBookInterestsSqlite,reorderEditorialBookInterestsPostgre
 
 export const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const DEFAULT_DB = resolve(PROJECT_ROOT, "var/catalog.sqlite");
-export const SQLITE_SCHEMA_VERSION = 69;
-export const POSTGRES_SCHEMA_VERSION = 61;
+export const SQLITE_SCHEMA_VERSION = 70;
+export const POSTGRES_SCHEMA_VERSION = 62;
 export const isPostgres = db => db?.dialect === "postgres";
 
 const postgresScope = new AsyncLocalStorage();
@@ -113,6 +114,12 @@ export function initializeDatabase(db) {
   if (isPostgres(db)) return initializePostgresDatabase(db);
   const version = db.prepare("PRAGMA user_version").get().user_version;
   if (version === SQLITE_SCHEMA_VERSION) return;
+  if (version === 69) {
+    db.exec("BEGIN IMMEDIATE");
+    try { db.exec(CARD_SOFT_DELETE_SQLITE); db.exec("PRAGMA user_version=70; COMMIT;"); }
+    catch(error) { db.exec("ROLLBACK"); throw error; }
+    return initializeDatabase(db);
+  }
   if (version === 68) {
     db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;");
     try {
@@ -1054,6 +1061,15 @@ async function initializePostgresDatabase(db) {
     if (tables.length) {
       const version = await db.prepare("SELECT version FROM reed_schema").get().catch(()=>undefined);
       if (version?.version === POSTGRES_SCHEMA_VERSION) return;
+      if (version?.version === 61) {
+        await transaction(db,async()=>{
+          await db.exec("LOCK TABLE reed_schema,cards IN ACCESS EXCLUSIVE MODE");
+          if ((await db.prepare("SELECT version FROM reed_schema").get()).version >= 62) return;
+          await db.exec(CARD_SOFT_DELETE_POSTGRES);
+          await db.exec("ALTER TABLE reed_schema DROP CONSTRAINT reed_schema_version_check; UPDATE reed_schema SET version=62; ALTER TABLE reed_schema ADD CONSTRAINT reed_schema_version_check CHECK(version=62)");
+        });
+        return initializePostgresDatabase(db);
+      }
       if (version?.version === 60) {
         await transaction(db,async()=>{
           await db.exec("LOCK TABLE reed_schema,practice_sessions IN ACCESS EXCLUSIVE MODE");

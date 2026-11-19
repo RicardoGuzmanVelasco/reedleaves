@@ -9,6 +9,7 @@ import {mascotArt} from "../mascot-art.mjs?v=tumbleweed";
 import {icon} from "./icons.mjs";
 import {flag} from "./book-sheet.mjs";
 import {outlineMarkup} from "./markup.mjs";
+import {deckFocus,editRoute} from "./editar-baraja.mjs";
 
 // Pure: everything the page shows, from the catalog and the reader's state.
 export function deckPageData({catalog,state,language,deckId,hasDraft=false}){
@@ -17,7 +18,7 @@ export function deckPageData({catalog,state,language,deckId,hasDraft=false}){
   const userId=state.user?.id,owner=!!userId&&deck.creator?.userId===userId,open=deck.status==="in_progress";
   const personal=owner&&(deck.contributionPolicy||"owner")==="owner";
   const book_=bookTitle(book,language),quotes=model.cards.filter(card=>card.isQuote).length;
-  const focus=contentText(deck.description,language,deck.language);
+  const focus=deckFocus(deck,language);
   return {id:deck.id,bookId:book.id,bookTitle:book_.text,bookTitleLanguage:book_.language,
     title:contentText(deck.title,language,deck.language)||book_.text,titleLanguage:contentLocale(deck.title,language,deck.language),
     creator:deck.creator?.name?{name:deck.creator.name,id:deck.creator.userId||null}:null,
@@ -44,7 +45,7 @@ export function deckPageMarkup({page,outline,languageName,legacy,c}){
   // While the deck is being written the main action is Edit; once finished (no Edit) it is Share.
   const stack=[ibtn({label:c.shareDeck,iconName:"share",primary:!page.write,attrs:' data-ui2="share-deck"'}),
     page.count?ibtn({tag:"a",label:c.readDeckCards,iconName:"deck-view",attrs:` href="${esc(`${legacy}#preview/${encodeURIComponent(page.id)}/carousel`)}"`}):ibtn({label:c.readDeckCards,iconName:"deck-view",disabled:true}),
-    page.write?ibtn({tag:"a",label:c.ui2EditDeck,iconName:"edit",primary:true,attrs:` href="${esc(`${legacy}#deck/${encodeURIComponent(page.id)}`)}"`}):""].join("");
+    page.write?ibtn({tag:"a",label:c.ui2EditDeck,iconName:"edit",primary:true,attrs:` href="${esc(editRoute(page.id))}"`}):""].join("");
   const person=page.creator?(page.creator.id?`<a class="card-attribution-row" href="${esc(`#profile/${encodeURIComponent(page.creator.id)}`)}">${attributionIcon("user")}<bdi>${esc(page.creator.name)}</bdi></a>`:`<span class="card-attribution-row">${attributionIcon("user")}<bdi>${esc(page.creator.name)}</bdi></span>`):"";
   const row=(...buttons)=>`<div class="dp-actions"><div class="dp-row">${buttons.join("")}</div></div>`;
   const take=`<button type="button" class="ui2-btn dp-grow" data-ui2="take-note" data-parent="">${icon("take-note")}<span>${esc(c.takeNote)}</span></button>`;

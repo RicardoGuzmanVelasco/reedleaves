@@ -1,9 +1,11 @@
 // New interface (?ui=2). Mounted by reader-app.mjs only when the parameter is present;
 // the old interface is untouched. Only existing /api endpoints are used.
 import {words} from "../i18n.mjs";
-import {bookTitle,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,MAX_CARDS_PER_DECK,READING_GUIDE_MAX_LENGTH,READING_GUIDE_MIN_LENGTH} from "../core.mjs";
-import {deckOutline,placementTargets,deckCapabilities,noteCount,parentOf} from "./outline.mjs";
-import {submitEdit} from "./edit-note.mjs";
+import {bookTitle,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,MAX_CARDS_PER_DECK,READING_GUIDE_MAX_LENGTH,READING_GUIDE_MIN_LENGTH} from "../core.mjs";
+import {deckOutline,placementTargets,deckCapabilities,noteCount,descendantIds,keyboardMove,dropMove,isCurrentPlace} from "./outline.mjs";
+import {submitEdit,editChanged} from "./edit-note.mjs";
+import {editDeckData,editDeckMarkup,deckFieldModalMarkup,deleteNoteDialogMarkup,deckFocus,editRoute} from "./editar-baraja.mjs";
+import {mountEditDrag} from "./edit-drag.mjs";
 import {installIconStyles} from "./icons.mjs";
 import {homeData,homeMarkup,inProgressDeck} from "./home.mjs";
 import {navMarkup,shellMarkup,headerMarkup} from "./shell.mjs";
@@ -48,7 +50,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // `legacy`: URL of the old interface, for destinations not built yet.
   let c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let guide=null,guideReturn="#library",guideExit=null,auth=newAuth(),resume=null,resumeAfterHash=false,inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
+  let guide=null,guideReturn="#library",guideExit=null,auth=newAuth(),resume=null,resumeAfterHash=false,inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null,editor=null;
   // The reader signed in, or null for a visitor (no session): what the signed-out screens and actions ask before touching personal data.
   const viewer=()=>session?.user??null,viewerId=()=>viewer()?.id??null;
   const navFor=active=>navMarkup({active,practicePending,c,wallet:viewer()?{leaves:reader?.wallet?.balance??0,petals:reader?.petals??0}:null});
@@ -68,17 +70,21 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(deckMatch)return {name:"deck",id:decode(deckMatch[1]),note:!!deckMatch[2]};
     if(bookMatch)return {name:"book-note",id:decode(bookMatch[1])};
     if(pageMatch)return {name:"book",id:decode(pageMatch[1])};
+    const editMatch=hash.match(/^#edit\/([^/]+)$/);
+    if(editMatch)return {name:"edit",id:decode(editMatch[1])};
     const guideMatch=hash.match(/^#guide\/([^/]+)$/);
     if(guideMatch)return {name:"guide",id:decode(guideMatch[1])};
     const profileMatch=hash.match(/^#profile(?:\/([^/]+))?$/);
     if(profileMatch)return {name:"profile",id:profileMatch[1]?decode(profileMatch[1]):viewerId()};
     return {name:hash==="#account"?"account":hash==="#bookstore"?"bookstore":hash==="#library"?"library":hash==="#library/cardcase"?"cardcase":hash==="#practice"?"practice":"home"};
   };
-  const deckId=()=>{const r=route();return r.name==="deck"?r.id:null;};
+  const deckId=()=>{const r=route();return r.name==="deck"||r.name==="edit"?r.id:null;};
   const hasDeckDraft=deck=>!!viewerId()&&drafts.list(viewerId(),deck.bookId).some(saved=>saved.noteDeckId===deck.id);
   const titleOf=deck=>{const book=catalog.booksById.get(deck.bookId);return book?bookTitle(book,language).text:deck.id;};
   const deckName=deck=>deck.title?.[deck.language]||deck.title?.[language]||titleOf(deck);
   const languageName=code=>{try{return new Intl.DisplayNames([language],{type:"language"}).of(code)||code;}catch{return code;}};
+  // A deck language is named in itself (Español, English), as in the language chip-selector of the editor.
+  const ownLanguageName=Object.assign(code=>{try{const name=new Intl.DisplayNames([code],{type:"language"}).of(code)||code;return name.charAt(0).toLocaleUpperCase(code)+name.slice(1);}catch{return code;}},{get label(){return c.deckLanguage;}});
 
   function current(){
     const id=deckId(),deck=id&&catalog.decksById.get(id);
@@ -107,6 +113,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   const formDeck=()=>form?.deckId?catalog.decksById.get(form.deckId):null;
   const canSave=()=>{
     if(busy||!form||!((form.isQuote||form.title.trim())&&form.body.trim()))return false;
+    if(form.mode==="edit")return editChanged(form);
     const deck=formDeck();
     return !(form.mode==="create"&&deck&&(catalog.deckModels.get(deck.id)?.cards.length??0)>=MAX_CARDS_PER_DECK);
   };
@@ -162,12 +169,13 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const deck=formDeck(),model=deck&&catalog.deckModels.get(deck.id);
     const book=catalog.booksById.get(form.bookId||deck?.bookId);
     const edit=form.mode==="edit";
-    const targets=!edit&&model?placementTargets(model,"",deck.language):[];
+    const targets=model?placementTargets(model,edit?form.cardId:"",deck.language):[];
     const parent=form.parentId&&model?.byId.get(form.parentId);
     const info=deck&&model?{title:deckName(deck),count:noteCount(model).count,max:noteCount(model).max}:null;
-    let html=noteFormMarkup({form,bookTitle:book?bookTitle(book,language).text:"",deck:info,parentTitle:parent?parent.title?.[deck.language]:null,
-      canPlace:targets.length>0,canSave:canSave(),titleMax:TITLE_MAX_LENGTH,bodyMax:CARD_BODY_MAX_LENGTH,c});
-    if(sheetState?.type==="form-place")html+=placeSheetMarkup({note:{title:form.title,body:form.body},targets,currentParentId:form.parentId,c,action:"form-parent"});
+    let html=noteFormMarkup({form,bookTitle:book?bookTitle(book,language).text:"",deck:info,parentTitle:parent?(parent.isQuote?parent.body:parent.title)?.[deck.language]:null,
+      canPlace:edit||targets.length>0,canSave:canSave(),titleMax:TITLE_MAX_LENGTH,bodyMax:CARD_BODY_MAX_LENGTH,c});
+    if(sheetState?.type==="form-place")html+=placeSheetMarkup({note:{title:form.title,body:form.body},targets,currentParentId:form.parentId??null,c,action:"form-parent"});
+    if(edit&&editor?.deleting?.cardId===form.cardId)html+=deleteNoteDialogMarkup({below:editor.deleting.below,c});
     return withError(html);
   }
   // ---- reading guide ----
@@ -214,6 +222,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
     if(!form&&where.note&&view?.deck.status==="in_progress")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
     if(form){paint(formScreen());return;}
+    if(where.name==="edit"){editScreen(where.id);return;}
     if(where.name==="guide"){paint(withError(guideScreen(where.id)));return;}
     if(where.name==="profile"){
       if(profileAttempt!==where.id){profileAttempt=where.id;queueMicrotask(()=>{if(busy)profileAttempt=null;else run(()=>loadProfile(where.id));});}
@@ -271,18 +280,103 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const state={...reader,catalog},page=deckPageData({catalog,state,language,deckId:deck.id,hasDraft:hasDeckDraft(deck)}),list=libreriaData({catalog,state,language});
     let html=shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),
       body:`<div class="ui2-body ui2-lib">${deckPageMarkup({page,outline:deckOutline(model,deck.language),languageName:languageName(deck.language),legacy:c.legacy,c})}</div>`,nav:navFor(page.inCardcase||page.owner?"library":"bookstore")});
-    const note=sheetState&&model.byId.get(sheetState.id);
-    if(note){
-      const item={id:note.id,isQuote:note.isQuote,title:note.title?.[deck.language]||"",body:note.body?.[deck.language]||""};
-      if(sheetState.type==="note"){const parent=parentOf(model,note.id);html+=noteSheetMarkup({note:item,parentTitle:parent?.title?.[deck.language]??null,caps,c});}
-      else html+=placeSheetMarkup({note:item,targets:placementTargets(model,note.id,deck.language),currentParentId:note.parentId,c});
-    }
+    const note=sheetState?.type==="note"&&model.byId.get(sheetState.id);
+    if(note)html+=noteSheetMarkup({note:{id:note.id,isQuote:note.isQuote,title:note.title?.[deck.language]||"",body:note.body?.[deck.language]||""},caps,c});
     if(finish&&!failure)html+=finishDeckDialogMarkup({c});
     const removedDeck=removing===deck.id?tileOf(catalog,deck,language):null;
     if(removedDeck)html+=removeDeckDialogMarkup({deck:removedDeck,userId:viewerId(),c});
     if(toast)html+=toastMarkup({...toast,c});
     paint(withError(html));
   }
+  // ---- Editar baraja ----
+  // The owner's deck in progress. A finished (or foreign) deck is not editable: its page opens instead,
+  // unless the server closed it while the editor was open (then it stays, read only, with the callout).
+  function editScreen(id){
+    const deck=catalog.decksById.get(id);
+    if(!deck){win.location.replace("#library");return;}
+    if(editor?.deckId!==id)editor={deckId:id,langOpen:false,modal:null,deleting:null,readOnly:false,flash:null,grabbed:null};
+    const data=editDeckData({catalog,deck,language,userId:viewerId(),readOnly:editor.readOnly});
+    if(!data||data.readOnly&&!editor.readOnly){editor=null;win.location.replace(`#deck/${encodeURIComponent(id)}`);return;}
+    let html=editDeckMarkup({data,c,languageName:ownLanguageName,langOpen:editor.langOpen,flash:editor.flash,grabbed:editor.grabbed});
+    if(editor.modal)html+=deckFieldModalMarkup({modal:editor.modal,max:editor.modal.kind==="title"?TITLE_MAX_LENGTH:DESCRIPTION_MAX_LENGTH,c});
+    if(toast)html+=toastMarkup({...toast,c});
+    paint(withError(html));
+    if(editor.flash){const flashed=editor.flash;editor.flash=null;setTimeout(()=>main.querySelector(`li[data-ed-id="${CSS.escape(flashed)}"]`)?.classList.remove("ed-flash"),1600);}
+    if(editor.grabbed)main.querySelector(`[data-ui2-drag="${CSS.escape(editor.grabbed)}"]`)?.focus({preventScroll:true});
+  }
+  const editorDeck=()=>editor&&catalog.decksById.get(editor.deckId);
+  // Every editor change: the sleeping sprout waits; a deck closed meanwhile turns the editor read only,
+  // a name changed in another session shows in the modal; connection and server errors go to run()'s error screen.
+  const WAIT_AFTER_MS=350;
+  function editorRun(label,task){
+    // The sleeping sprout only when the save takes a moment; a quick one just repaints.
+    const wait=setTimeout(()=>{if(busy)showWaitScreen({label,c,doc:win.document});},WAIT_AFTER_MS);
+    return run(async()=>{
+      try{await task();}
+      catch(caught){
+        const code=caught?.code;
+        if(code==="deckReadOnly"){await reload().catch(()=>{});if(editor){editor.readOnly=true;editor.modal=null;editor.deleting=null;editor.grabbed=null;}form=null;return;}
+        if(code==="deckTitleChanged"&&editor?.modal){await reload().catch(()=>{});editor.modal.conflict=true;return;}
+        if(code==="deckLanguageChanged"){await reload().catch(()=>{});showToast(c.deckLanguageChanged);return;}
+        throw caught;
+      }
+    }).finally(()=>{clearTimeout(wait);if(isWaitScreen(win.document))hideErrorScreen(win.document);});
+  }
+  function saveDeckField(){
+    const deck=editorDeck(),modal=editor?.modal;if(!deck||!modal||busy)return;
+    const value=modal.value.trim();
+    if(modal.kind==="title"&&(!value||value===modal.initial.trim())||modal.kind==="focus"&&value===modal.initial.trim())return;
+    editorRun(c.busySaving,async()=>{
+      if(modal.kind==="title")await api.request("/api/author/decks/title",{deckId:deck.id,title:value,previousTitle:deck.title?.[deck.language]||""});
+      else await api.request("/api/author/decks/description",{deckId:deck.id,description:value});
+      await reload();
+      if(editor)editor.modal=null;
+      showToast(modal.kind==="title"?c.deckTitleSaved:c.ui2FocusSaved);
+    });
+  }
+  function moveEditorNote(cardId,move){
+    const deck=editorDeck(),model=deck&&catalog.deckModels.get(deck.id);
+    if(!model||!move||isCurrentPlace(model,cardId,move))return;
+    editorRun(c.busyUpdating,async()=>{
+      await api.request("/api/author/notes/move",{cardId,parentId:move.parentId,...(move.position?{position:move.position}:{})});
+      await reload();
+      if(editor)editor.flash=cardId;
+    });
+  }
+  function openNoteEdit(cardId){
+    const deck=editorDeck(),note=deck&&catalog.deckModels.get(deck.id)?.byId.get(cardId);if(!note)return;
+    const lang=deck.language,title=note.isQuote?"":note.title?.[lang]||"",body=note.body?.[lang]||"";
+    form={mode:"edit",origin:"edit",cardId,bookId:deck.bookId,deckId:deck.id,isQuote:note.isQuote,wasQuote:note.isQuote,title,body,baseTitle:title,baseBody:body,
+      parentId:note.parentId??null,baseParentId:note.parentId??null,conflict:false};
+    sheetState=null;render();
+  }
+  function deleteEditorNote(){
+    const target=editor?.deleting;if(!target)return;
+    main.querySelector(".ui2-deletedialog")?.close();
+    editorRun(c.busyUpdating,async()=>{
+      await api.request("/api/author/notes/delete",{cardId:target.cardId});
+      await reload();
+      form=null;if(editor)editor.deleting=null;
+      showToast(c.ui2NoteDeleted);
+    });
+  }
+  mountEditDrag(main,{win,
+    canTarget:(cardId,targetId)=>{const model=catalog.deckModels.get(editor?.deckId);return !!model&&targetId!==cardId&&!descendantIds(model,cardId).has(targetId);},
+    onDrop:(cardId,target)=>{
+      const model=catalog.deckModels.get(editor?.deckId);if(!model)return;
+      moveEditorNote(cardId,target.root?{parentId:null}:dropMove(model,cardId,target.targetId,target.where));
+    }});
+  // Keyboard on a drag handle: Space takes or leaves the note; while taken, arrows move it (each step is saved).
+  main.addEventListener("keydown",event=>{
+    const handle=event.target.closest?.("[data-ui2-drag]");if(!handle||!editor)return;
+    const cardId=handle.dataset.ui2Drag;
+    if(event.key===" "||event.key==="Enter"){event.preventDefault();editor.grabbed=editor.grabbed===cardId?null:cardId;for(const other of main.querySelectorAll("[data-ui2-drag]"))other.setAttribute("aria-pressed",String(other===handle&&editor.grabbed===cardId));return;}
+    if(event.key==="Escape"&&editor.grabbed){editor.grabbed=null;handle.setAttribute("aria-pressed","false");return;}
+    if(editor.grabbed!==cardId||!["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.key))return;
+    event.preventDefault();
+    const model=catalog.deckModels.get(editor.deckId);
+    moveEditorNote(cardId,model&&keyboardMove(model,cardId,event.key));
+  });
   // Perfil: the reader's profile and interest preferences. A reader that does not exist (404) shows its own message;
   // any other failure goes through run(): connection and server errors to the full-screen error, which retries this same load.
   async function loadProfile(id){
@@ -414,7 +508,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   function rebase(saved){
     const view=current(),note=view?.model.byId.get(saved.cardId);
-    if(note){saved.baseTitle=note.title?.[view.deck.language]||"";saved.baseBody=note.body?.[view.deck.language]||"";}
+    if(note){saved.baseTitle=note.isQuote?"":note.title?.[view.deck.language]||"";saved.baseBody=note.body?.[view.deck.language]||"";saved.wasQuote=note.isQuote;saved.baseParentId=note.parentId??null;}
   }
   // The Practice badge shows while today's streak is still available; the rule is the server's (GET /api/progress/streak).
   const loadStreak=()=>api.request("/api/progress/streak").then(result=>{streak=result;practicePending=streakPending(result);},()=>{streak=null;practicePending=false;});
@@ -634,7 +728,15 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   function submit(){
     const saved=form;if(!saved||busy)return;
     if(saved.mode==="edit"){
-      run(async()=>{await submitEdit(api,saved,async()=>{await reload();rebase(saved);});await reload();form=null;});
+      if(!canSave())return;
+      saved.conflict=false;
+      editorRun(c.busySaving,async()=>{
+        try{await submitEdit(api,saved,async()=>{await reload();rebase(saved);});}
+        catch(caught){if(caught?.code==="noteConflict"){saved.conflict=true;return;}throw caught;}
+        await reload();form=null;
+        if(editor)editor.flash=saved.cardId;
+        showToast(c.ui2NoteSaved);
+      });
       return;
     }
     const deck=formDeck();
@@ -644,10 +746,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       // First note of a book without a draft: the server creates the deck.
       const result=await api.request("/api/author/notes",deck?{deckId:deck.id,parentId:saved.parentId||null,...text}:{bookId:saved.bookId,language,...text});
       drafts.remove(draftOf(saved));
-      const gain=observeXp(viewerId(),undefined,result.xpReward);
-      if(gain)xpFeedback?.present(gain);
       await reload();form=null;
-      if(saved.origin==="home"){showToast(c.ui2NoteSaved,result.deckId);win.location.hash="#home";}
+      if(saved.origin==="edit"){if(editor)editor.flash=result.cardId;showToast(c.ui2NoteSaved);}
+      else if(saved.origin==="home"){showToast(c.ui2NoteSaved,result.deckId);win.location.hash="#home";}
       else if(!deck)win.location.hash=`#deck/${encodeURIComponent(result.deckId)}`;
     });
   }
@@ -662,13 +763,29 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(bookLink&&["library","bookstore"].includes(route().name)&&!event.target.closest("[data-ui2]")){event.preventDefault();sheetState={type:"book",id:bookLink.dataset.book};render();return;}
     const target=event.target.closest("[data-ui2]");if(!target)return;
     const action=target.dataset.ui2,view=current();
+    if(editor?.langOpen&&action!=="edit-lang"&&action!=="edit-lang-pick"){editor.langOpen=false;if(!action.startsWith("edit-")){render();return;}}
     if(action==="open-note"){sheetState={type:"note",id:target.dataset.id};render();}
-    else if(action==="place"){sheetState={type:"place",id:target.dataset.id};render();}
-    else if(action==="correct"&&view){
-      const note=view.model.byId.get(target.dataset.id),lang=view.deck.language;
-      const title=note.title?.[lang]||"",body=note.body?.[lang]||"";
-      form={mode:"edit",cardId:note.id,bookId:view.deck.bookId,deckId:view.deck.id,isQuote:note.isQuote,title,body,baseTitle:title,baseBody:body};sheetState=null;render();
+    else if(action==="edit-close"){const id=editor?.deckId||route().id;editor=null;win.location.hash=`#deck/${encodeURIComponent(id)}`;}
+    else if((action==="edit-rename"||action==="edit-focus")&&editor){
+      const deck=editorDeck(),kind=action==="edit-rename"?"title":"focus",initial=kind==="title"?deck.title?.[deck.language]||"":deckFocus(deck,deck.language);
+      editor.modal={kind,value:initial,initial,conflict:false};render();
+      const field=main.querySelector("#ui2-edm-value");if(field){field.focus({preventScroll:true});field.setSelectionRange?.(field.value.length,field.value.length);}
     }
+    else if(action==="edit-modal-cancel"&&editor){const kind=editor.modal?.kind;main.querySelector(".ui2-edmodal")?.close();editor.modal=null;render();main.querySelector(`[data-ui2="${kind==="title"?"edit-rename":"edit-focus"}"]`)?.focus({preventScroll:true});}
+    else if(action==="edit-lang"&&editor){editor.langOpen=!editor.langOpen;render();(main.querySelector('.ed-langopt[aria-selected="true"]')||main.querySelector('[data-ui2="edit-lang"]'))?.focus({preventScroll:true});}
+    else if(action==="edit-lang-pick"&&editor){
+      const deck=editorDeck(),next=target.dataset.language;editor.langOpen=false;
+      if(!deck||next===deck.language){render();main.querySelector('[data-ui2="edit-lang"]')?.focus({preventScroll:true});return;}
+      editorRun(c.busySaving,async()=>{await api.request("/api/author/decks/language",{deckId:deck.id,language:next,previousLanguage:deck.language});await reload();showToast(c.deckLanguageSaved);});
+    }
+    else if(action==="edit-take-note"&&editor){const deck=editorDeck();if(deck&&!target.disabled){openForm({bookId:deck.bookId,deckId:deck.id,origin:"edit"});render();}}
+    else if(action==="edit-note"&&editor)openNoteEdit(target.dataset.id);
+    else if(action==="note-delete"&&form?.mode==="edit"&&editor){
+      const model=catalog.deckModels.get(form.deckId);
+      editor.deleting={cardId:form.cardId,below:model?descendantIds(model,form.cardId).size:0};render();
+    }
+    else if(action==="delete-cancel"&&editor){main.querySelector(".ui2-deletedialog")?.close();editor.deleting=null;render();}
+    else if(action==="delete-confirm")deleteEditorNote();
     else if((action==="take-note"||action==="take-note-under")&&view){
       openForm({bookId:view.deck.bookId,deckId:view.deck.id,parentId:action==="take-note"?null:target.dataset.id??null});sheetState=null;render();
     }
@@ -755,12 +872,6 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(action==="retry"){failure=null;submit();}
     else if(action==="home-note"){win.location.hash=target.dataset.deck?`#deck/${encodeURIComponent(target.dataset.deck)}/note`:`#book/${encodeURIComponent(target.dataset.book)}/note`;}
     else if(action==="toast-deck"){toast=null;win.location.hash=`#deck/${encodeURIComponent(target.dataset.deck)}`;}
-    else if(action==="place-to"&&sheetState&&view){
-      const cardId=sheetState.id,parentId=target.dataset.parent||null;
-      main.querySelector("dialog")?.close();sheetState=null;
-      if(parentId===(view.model.byId.get(cardId).parentId??null)){render();return;}
-      run(async()=>{await api.request("/api/author/notes/place",{cardId,parentId});await reload();});
-    }
   });
   main.addEventListener("click",event=>{
     const chip=event.target.closest("[data-ui2-int]");
@@ -777,6 +888,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // The first choice cannot be dismissed; the edit one closes like any sheet. While the AI searches, the form sheet cannot be dismissed with Esc.
   main.addEventListener("cancel",event=>{if(event.target.matches?.("[data-ui2-authoring-sheet]")&&authoring?.searching||event.target.matches?.(".ui2-onb--initial"))event.preventDefault();},true);
   main.addEventListener("close",event=>{
+    if(event.target.matches?.(".ui2-edmodal")){if(editor?.modal){editor.modal=null;render();}return;}
+    if(event.target.matches?.(".ui2-deletedialog")){if(editor?.deleting){editor.deleting=null;render();}return;}
     if(event.target.matches?.(".ui2-settings")&&settings){settings=null;render();}
     else if(event.target.matches?.(".ui2-feedbackdialog")&&settings?.feedback){settings.feedback=null;render();}
     else if(event.target.matches?.(".ui2-signoutdialog")&&settings?.confirmOut){settings.confirmOut=false;render();}
@@ -790,6 +903,13 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(event.target.matches?.("dialog[data-ui2-sheet]")&&sheetState){sheetState=null;render();}
   },true);
   main.addEventListener("input",event=>{
+    if(editor?.modal&&event.target.id==="ui2-edm-value"){
+      const modal=editor.modal;modal.value=event.target.value;
+      const panel=event.target.closest("form"),count=panel.querySelector(".ui2-count"),save=panel.querySelector("[type=submit]");
+      if(count)count.textContent=`${modal.value.length}/${count.textContent.split("/")[1]}`;
+      if(save)save.disabled=modal.value.trim()===modal.initial.trim()||modal.kind==="title"&&!modal.value.trim();
+      return;
+    }
     if(event.target.closest?.("[data-ui2-auth]")){const key={username:"username",password:"password",inviteCode:"invite"}[event.target.name];if(key)auth[key]=event.target.value;return;}
     if(settings?.feedback&&event.target.id==="ui2-fb-message"){
       settings.feedback.message=event.target.value;
@@ -815,7 +935,13 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       return;
     }
     if(!form||!event.target.name)return;
+    const wasMissing=form.mode==="edit"&&!form.isQuote&&!form.title.trim();
     form[event.target.name]=event.target.value;
+    if(form.mode==="edit"&&!form.isQuote&&wasMissing!==!form.title.trim()){
+      const field=event.target,at=field.selectionStart;render();
+      const again=main.querySelector(`[name="${field.name}"]`);if(again){again.focus({preventScroll:true});again.setSelectionRange?.(at,at);}
+      return;
+    }
     if(form.recovered&&!form.title&&!form.body)form.recovered=false;
     persistDraft();
     const submitButton=main.querySelector("[type=submit]");
@@ -841,9 +967,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const key=event.target.dataset?.bookstoreFilter;
     if(key&&key in lb.draft)lb.draft[key]=event.target.value;
   });
-  main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-auth]")){void submitAuth();return;}if(event.target.matches("[data-ui2-interest-form]")){if(interestFlow.state?.draft.step===1)interestFlow.next();else void interestFlow.save();return;}if(event.target.matches("[data-ui2-search]")){settleSearch();return;}if(event.target.matches("[data-ui2-guide-form]")){saveGuide();return;}if(event.target.matches("[data-ui2-feedback]")){sendFeedback();return;}if(event.target.matches("[data-ui2-authoring]")){submitAuthoring();return;}submit();});
+  main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-auth]")){void submitAuth();return;}if(event.target.matches("[data-ui2-interest-form]")){if(interestFlow.state?.draft.step===1)interestFlow.next();else void interestFlow.save();return;}if(event.target.matches("[data-ui2-search]")){settleSearch();return;}if(event.target.matches("[data-ui2-guide-form]")){saveGuide();return;}if(event.target.matches("[data-ui2-feedback]")){sendFeedback();return;}if(event.target.matches("[data-ui2-authoring]")){submitAuthoring();return;}if(event.target.matches("[data-ui2-edmodal]")){saveDeckField();return;}submit();});
   win.addEventListener("hashchange",()=>{
     sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;profileAttempt=null;settings=null;if(route().name!=="guide")guide=null;
+    if(route().name!=="edit"||route().id!==editor?.deckId)editor=null;
     const exit=guideExit;guideExit=null;if(exit)sheetState=exit.sheet;
     if(interestFlow.state?.mode==="edit")interestFlow.dispose();
     clearTimeout(lb.timer);lb.searching=false;lb.open=false;

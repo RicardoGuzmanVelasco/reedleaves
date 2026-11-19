@@ -3,7 +3,7 @@ import {imageUrl} from "./image-url.mjs";
 import {PRACTICE_ENABLED_MODES} from "./practice-modes.mjs";
 import {callout} from "./callout.mjs";
 import {bookListMarkup,bookViewSelector,defaultBookView,selectedBookView,partitionBookstoreBooks} from "./book-list.mjs";
-import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES, INVITE_CODE_MIN_LENGTH, LANGUAGES, USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, CARD_BODY_MAX_LENGTH, READING_GUIDE_MAX_LENGTH, BOOK_AUTHOR_MAX_LENGTH, MAX_CARDS_PER_DECK,languageDisplayName} from "./core.mjs";
+import {bookTitle, bookCoverTitle, CONTENT_LANGUAGES, INVITE_CODE_MIN_LENGTH, LANGUAGES, USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, CARD_BODY_MAX_LENGTH, READING_GUIDE_MAX_LENGTH, BOOK_AUTHOR_MAX_LENGTH, MAX_CARDS_PER_DECK, DECK_NEARLY_FULL_CARDS,languageDisplayName} from "./core.mjs";
 import { availableDecks,isReadingGuideDeck,sortDecks } from "./decks.mjs";
 import {homeBooks,editableNoteDecks,noteDecksWithSpace,recentNoteDecks} from "./notes.mjs";
 import { contentText, contentLocale, quoteExcerpt } from "./core.mjs";
@@ -455,6 +455,8 @@ function noteTypeIcon(kind) {
   return `<svg class="note-type-icon" viewBox="${watermark.viewBox}" aria-hidden="true" focusable="false">${watermark.paths}</svg>`;
 }
 
+// The deleted-note mark of a card (ui2 `trash` icon); provisional until the card view is redesigned.
+const trashIconMarkup='<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 6.6h16"/><path d="M9.5 6.6V5.2a1.7 1.7 0 0 1 1.7-1.7h1.6a1.7 1.7 0 0 1 1.7 1.7v1.4"/><path d="M6 6.6l.8 11.7a2.7 2.7 0 0 0 2.7 2.5h5a2.7 2.7 0 0 0 2.7-2.5L18 6.6"/><path d="M10 11v5.2M14 11v5.2"/></svg>';
 function cardMarkup(s, card, heading = "h2", {exclusive = false, actions = exclusive, compact = false,linkBook=true,focusable=true,idPrefix="",decorative=false,layerClass=""} = {}) {
   const book = s.catalog.booksById.get(card.bookId), deckLanguage = card.language || card.deckLanguage || s.language;
   const contentLanguage=s.sharedContentLanguage || s.language;
@@ -462,7 +464,7 @@ function cardMarkup(s, card, heading = "h2", {exclusive = false, actions = exclu
   const titleLanguage = contentLocale(card.title,contentLanguage,deckLanguage), bodyLanguage = contentLocale(card.body,contentLanguage,deckLanguage);
   const type=cardTypeFor(card),bodyTag=type.bodyTag;
   const contentId=idPrefix ? `${idPrefix}-idea-content` : "idea-content",focusTarget=focusable || idPrefix ? ` id="${esc(contentId)}"${focusable ? ' tabindex="-1"' : ""}` : "";
-  return `<div class="reading-stage reading-stage--${type.id}${layerClass ? ` ${layerClass}` : ""}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${decorative ? ' aria-hidden="true" inert' : ""}><article class="idea-card${type.className ? ' '+type.className : ''}"><span class="card-header-icon${type.id !== "idea" ? ` card-header-icon--${type.id}` : ""}" aria-hidden="true">${type.headerIcon === "reading-guide" ? readingGuideIconMarkup(26) : type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto"${focusTarget}>${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : focusTarget}>${esc(body)}</${bodyTag}></div>
+  return `<div class="reading-stage reading-stage--${type.id}${layerClass ? ` ${layerClass}` : ""}" data-card-type="${type.id}" data-reading-card="${esc(card.id)}"${decorative ? ' aria-hidden="true" inert' : ""}><article class="idea-card${type.className ? ' '+type.className : ''}"><span class="card-header-icon${type.id !== "idea" ? ` card-header-icon--${type.id}` : ""}" aria-hidden="true">${type.headerIcon === "reading-guide" ? readingGuideIconMarkup(26) : type.headerIcon ? esc(type.headerIcon) : ''}</span><div class="reading-content">${cardWatermark(type)}${type.showTitle ? `<${heading} lang="${esc(titleLanguage)}" dir="auto"${focusTarget}>${esc(title)}</${heading}>` : ''}<${bodyTag} lang="${esc(bodyLanguage)}" dir="auto" class="idea-body"${type.showTitle ? '' : focusTarget}>${esc(body)}</${bodyTag}></div>${card.deleted ? `<p class="card-deleted-note">${trashIconMarkup}<span>${esc(words[s.language].cardNoteDeleted)}</span></p>` : ""}
     <footer class="reading-footer"><div class="reading-attribution">${cardAttribution(s,card,book,{compact,linkBook,showInProgressStatus:exclusive})}</div>${actions ? `${cardActionsHost(card)}<button class="primary card-share" type="button" data-action="share-card" data-card="${esc(card.id)}" aria-label="${esc(words[s.language].shareDeck)}" title="${esc(words[s.language].shareDeck)}">${shareIconMarkup}</button>` : ""}</footer></article></div>`;
 }
 
@@ -762,7 +764,7 @@ function albumSummary(s,deck,model,mascot="",management=false) {
   // The owner's own personal draft needs no status chip: «Terminar baraja» already says it is open.
   const ownPersonalInProgress=deck.status === "in_progress" && deck.contributionPolicy === "owner" && deck.creator.userId === s.userId;
   // The cap only matters near it; the plain count is enough before that.
-  const count=deck.contributionPolicy === "owner" && model.cards.length >= MAX_CARDS_PER_DECK-5 ? c.deckCardCount(model.cards.length) : c.noteCardsCount(model.cards.length);
+  const count=deck.contributionPolicy === "owner" && model.cards.length >= DECK_NEARLY_FULL_CARDS ? c.deckCardCount(model.cards.length) : c.noteCardsCount(model.cards.length);
   return `<header class="album-heading${mascot ? " album-heading--mascot" : ""}"><div class="album-heading-copy"><p class="small-book" lang="${esc(displayedBookTitle(s,book,true).language)}" dir="auto">${esc(displayedBookTitle(s,book,true).text)}</p>
     ${titleMarkup}
     <p class="deck-creator">${deckCreator(deck)}</p><p class="album-meta">${esc(language)} · ${esc(count)}</p>${ownPersonalInProgress ? "" : deckStatusMarkup(s,deck)}</div>${mascot}</header>`;
