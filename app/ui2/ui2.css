@@ -419,6 +419,11 @@ button.int-chip:disabled{opacity:1}
 .ui2-price-tag--soft.ui2-price-tag--sm .ui2-price-tag__eyelet{width:4.5px;height:4.5px}
 .ui2-price-tag--soft.ui2-price-tag--sm .ui2-price-tag__cord{width:15px;height:11px}
 .ui2-btn .ui2-price-tag{margin-left:10px}
+/* Prize tag: earned currency, pill with a big icon (price tag A of pricetags-v1) */
+.ui2-prize-tag{position:relative;display:inline-flex;flex:none;align-items:center;height:28px;margin:0 0 0 10px;padding:0 12px 0 28px;border:2px solid #173d2c;border-radius:999px;background:#ffe9a8;color:#173d2c;font-size:15px;font-weight:850;line-height:1;white-space:nowrap}
+.ui2-prize-tag__icon{position:absolute;left:-10px;top:50%;width:34px;height:34px;translate:0 -50%}
+.ui2-prize-tag__n{font-variant-numeric:tabular-nums}
+.ui2-prize-tag__sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* ---- Formularios en hoja: catalogar libro y crear baraja ---- */
 .ui2-sheet.ui2-fsheet{margin:auto auto 0;height:calc(100dvh - 62px);max-height:none;padding:10px 0 0;overflow:visible}

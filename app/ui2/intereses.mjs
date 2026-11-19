@@ -1,11 +1,12 @@
 // Elección de intereses (alta inicial y edición desde el Perfil): dos pasos, «te interesa» y «no te interesa».
 // The state and the rules are the flow of initial-interests.mjs and the copy of interest-choice.mjs; this is only the
 // markup. The advice and the reward share one tip callout. Pure; index.mjs owns the flow and the dialog.
-import {escapeHtml as esc,priceTag} from "../views.mjs";
+import {escapeHtml as esc} from "../views.mjs";
 import {interestChoicePresentation,nextLabel} from "../interest-choice.mjs";
 import {icon} from "./icons.mjs";
 import {interestChipMarkup} from "./interest-chip.mjs";
 import {ui2Callout} from "./callout.mjs";
+import {prizeTagMarkup} from "./prize-tag.mjs";
 
 // What the chips of the current step show: picked (with priority), locked by the other step, or disabled at the limit.
 export function interestChoices({flow,language,c}){
@@ -19,7 +20,7 @@ export function interestChoices({flow,language,c}){
 
 const tipMarkup=(view,{second,c})=>{
   const advice=view.advice?`<p>${esc(view.advice)}</p>`:"";
-  const reward=view.showReward?`<p class="ui2-rw">${esc(view.reward)}${priceTag({amount:second?"+2":"+3",icon:second?"petal":"leaf",label:c[second?"initialInterestPetalReward":"initialInterestLeafReward"]})}</p><p class="ui2-rw-sub">${esc(c.interestChoiceOpportunity)}</p>`:"";
+  const reward=view.showReward?`<p class="ui2-rw">${esc(view.reward)}${prizeTagMarkup({amount:second?2:3,currency:second?"petal":"leaf",label:c[second?"initialInterestPetalReward":"initialInterestLeafReward"],c})}</p><p class="ui2-rw-sub">${esc(c.interestChoiceOpportunity)}</p>`:"";
   return advice||reward?ui2Callout({kind:"tip",role:"status",className:"ui2-onb-tip",html:advice+reward}):"";
 };
 

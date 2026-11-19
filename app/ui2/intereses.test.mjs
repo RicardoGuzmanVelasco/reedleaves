@@ -24,16 +24,16 @@ test("Step 2: the liked interests are locked with ✓, the purpose shows and Bac
   assert.equal(items[0].hint,words.es.interestChoiceLockedInterested);
   const html=render(state);
   assert.match(html,/¿Qué no te interesa en absoluto\?/);assert.ok(html.includes(words.es.initialInterestPurpose));
-  assert.match(html,/data-ui2-int-action="back"/);assert.match(html,/ui2-onb-next">Guardar/);
+  assert.match(html,/data-ui2-int-action="back"/);assert.match(html,/ui2-onb-next[^>]*aria-label="Guardar"/);
 });
 
 test("One tip callout joins the advice and the reward; there is no reward while editing",()=>{
   const html=render(flow({interested:["growth"]}));
   assert.equal(html.match(/class="callout /g).length,1);assert.match(html,/callout--info[^]*data-icon="idea"/);
   assert.ok(html.includes(words.es.interestChoiceOne)&&html.includes(words.es.initialInterestRewardCondition)&&html.includes(words.es.interestChoiceOpportunity));
-  assert.match(html,/pricetag/);
+  assert.match(html,/ui2-prize-tag/);
   const edit=render(flow({interested:["growth"]},{mode:"edit"}));
-  assert.doesNotMatch(edit,/pricetag/);assert.match(edit,/data-ui2-int-action="cancel"/);assert.match(edit,/ui2-onb--edit/);
+  assert.doesNotMatch(edit,/ui2-prize-tag/);assert.match(edit,/data-ui2-int-action="cancel"/);assert.match(edit,/ui2-onb--edit/);
 });
 
 test("Saving, the limit warning and a revision conflict",()=>{
