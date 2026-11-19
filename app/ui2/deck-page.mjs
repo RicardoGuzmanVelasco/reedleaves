@@ -24,7 +24,7 @@ export function deckPageData({catalog,state,language,deckId,hasDraft=false}){
     deckLanguage:deck.language,open,count:model.cards.length,quotes,focus,focusLanguage:focus?contentLocale(deck.description,language,deck.language):deck.language,
     quoteSource:validQuoteSourceUrl(deck.quoteSourceUrl)?deck.quoteSourceUrl:"",
     owner,write:personal&&open,inCardcase:(state.cardcaseDeckIds||[]).includes(deck.id),
-    cannotFinish:!model.cards.length||hasDraft,addCost:owner?0:DECK_ADD_COST,canAfford:(state.wallet?.balance??Infinity)>=DECK_ADD_COST};
+    cannotFinish:!model.cards.length||hasDraft,hasDraft,addCost:owner?0:DECK_ADD_COST,canAfford:(state.wallet?.balance??Infinity)>=DECK_ADD_COST};
 }
 
 const chip=(inner,label="")=>`<span class="dp-chip"${label?` role="img" aria-label="${esc(label)}"`:""}>${inner}</span>`;
@@ -53,6 +53,8 @@ export function deckPageMarkup({page,outline,languageName,legacy,c}){
   const add=`<button type="button" class="ui2-btn dp-grow" data-ui2="add-deck" data-deck="${esc(page.id)}">${icon("add-to-cardcase")}<span>${esc(c.addDeckToCardcase)}</span>${page.addCost?priceTagMarkup({amount:page.addCost,state:page.canAfford===false?"insufficient":"normal",c}):""}</button>`;
   const actions=page.write?row(take,finish):row(page.inCardcase?remove:add);
   const notice=!page.owner&&page.open?ui2Callout({kind:"info",className:"dp-msg",main:c.ui2DeckStillWriting}):"";
+  // Why «Terminar baraja» is off: a note is still a draft, or there is nothing to finish.
+  const why=page.write&&page.cannotFinish?ui2Callout({kind:"info",className:"dp-msg",main:page.hasDraft?c.pendingNoteBeforeFinish:c.emptyDeckCannotFinish}):"";
   const body=page.count?outlineMarkup(outline,c):`<div class="ui2-empty dp-empty">${mascotArt("tumbleweed","",{animation:"tumble"})}<h2>${esc(c.ui2DeckEmpty)}</h2></div>`;
   return `<section class="deck-page"><div class="dp-head"><div class="dp-stack" role="group" aria-label="${esc(c.ui2DeckActions)}">${stack}</div>`
     +`<div class="dp-title"><button type="button" class="ui2-ib dp-back" data-ui2="page-back" aria-label="${esc(c.back)}">${icon("back")}</button><div class="dp-titles"><h1 class="dp-deckname" tabindex="-1" lang="${esc(page.titleLanguage)}" dir="auto">${esc(page.title)}</h1>`
@@ -60,5 +62,5 @@ export function deckPageMarkup({page,outline,languageName,legacy,c}){
     +(person?`<p class="dp-author">${person}</p>`:"")+chipsMarkup(page,c,languageName)
     +(page.focus?`<p class="dp-focus" lang="${esc(page.focusLanguage)}" dir="auto">${esc(page.focus)}</p>`:"")
     +(page.quotes&&page.quoteSource?`<p class="dp-source"><a class="dp-srclink" href="${esc(page.quoteSource)}" target="_blank" rel="noopener noreferrer" title="${esc(c.newTab)}">${esc(c.quoteSource)}</a></p>`:"")
-    +`</div>${notice}${actions}${body}</section>`;
+    +`</div>${notice}${actions}${why}${body}</section>`;
 }

@@ -38,3 +38,11 @@ for(const language of ["es","en"]){
     assert.doesNotMatch(none,/write-guide/);
   });
 }
+
+test("The page says why «Terminar baraja» is off: a draft note or an empty deck",()=>{
+  const c=words.es;
+  const draft=deckPageMarkup({page:page({cannotFinish:true,hasDraft:true,count:0}),outline:[],languageName:"Español",legacy:"/",c});
+  const empty=deckPageMarkup({page:page({cannotFinish:true,hasDraft:false,count:0}),outline:[],languageName:"Español",legacy:"/",c});
+  assert.ok(draft.includes(c.pendingNoteBeforeFinish));assert.ok(empty.includes(c.emptyDeckCannotFinish));
+  assert.doesNotMatch(render(page({count:0}),c),/dp-msg/);
+});

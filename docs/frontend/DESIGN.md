@@ -186,7 +186,6 @@ Usar estos términos de forma consistente en la interfaz y en la documentación 
 | Tipo de selección de tarjetas de una sesión de repaso (`practiceMode`: leyendo, leídos, guardadas, mezcla, Descubrir) | Modo de repaso | Practice mode |
 | Baraja que el equipo recomienda en un libro (una por libro) | Baraja recomendada | Recommended deck |
 | Divisa con la que se repasa | Pétalo | Petal |
-| Coste de añadir una baraja ajena | Una hoja | One leaf |
 | Unidad de contenido | Tarjeta | Card |
 | Texto citado | Cita | Quote |
 | Relación entre tarjetas | Colocar debajo de | Place under |

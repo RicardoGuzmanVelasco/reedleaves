@@ -259,6 +259,7 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .sheet-all{margin-top:12px;min-height:48px;font-size:14px}
 .sheet-all .ui2-icon{width:20px;height:20px}
 .sheet-warn{margin-top:12px}
+.ui2-book-sheet .sheet-pending{margin:12px 0 0;width:100%}
 .mini-decks{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:18px;margin:-8px -18px 0;padding:20px 18px 12px;scrollbar-width:none}
 .mini-decks::-webkit-scrollbar{display:none}
 .mini-decks .deck-tile{flex:0 0 132px;min-height:118px;padding:20px 10px 10px;border-radius:16px;scroll-snap-align:start}
