@@ -105,7 +105,7 @@ test("Interest warning: title, warning and buttons, without the book",()=>{
   const status=interestWarningMarkup({prompt:{path:"/api/reader/book-status",input:{bookId:"b",status:"reading"},result},c});
   assert.match(status,/role="alertdialog"/);
   assert.match(status,new RegExp(c.ui2InterestStatusTitle(c.readingStatus)));
-  assert.match(status,/callout--warning/);assert.match(status,new RegExp(c.bookInterestWarning("Finanzas",c.readingStatus)));
+  assert.match(status,/ui2-co--warning/);assert.match(status,new RegExp(c.bookInterestWarning("Finanzas",c.readingStatus)));
   assert.match(status,/data-ui2="interest-cancel"/);assert.match(status,/data-ui2="interest-continue"/);
   assert.doesNotMatch(status,/sheet-thumb|data-book/);
   const deck=interestWarningMarkup({prompt:{path:"/api/reader/cardcase/add",input:{deckId:"d"},result},c});
@@ -121,7 +121,7 @@ for(const language of ["es","en"])test(`Insufficient balance: one error callout 
   assert.equal(balanceMessage({code:"insufficientPetals",detail:c.practiceInsufficientPetals(3,1)},{c}),c.practiceInsufficientPetals(3,1));
   const html=balanceModalMarkup({message,c});
   assert.match(html,new RegExp(`<h2 id="ui2-bal-title">${c.ui2InsufficientTitle}</h2>`));
-  assert.equal(html.match(/class="callout /g).length,1);assert.match(html,/callout--error/);
+  assert.equal(html.match(/class="ui2-co /g).length,1);assert.match(html,/ui2-co--error[^>]*role="alert"/);
   assert.match(html,new RegExp(`data-ui2="error-close" autofocus>${c.ui2Understood}</button>`));
   assert.doesNotMatch(html,/ui2-errcode|sheet-thumb/);
 });

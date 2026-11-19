@@ -18,18 +18,19 @@ export function interestChoices({flow,language,c}){
   });
 }
 
+// With a reward in reach, its line leads (prize tag on the right) and the opportunity and the advice follow; otherwise the advice alone.
 const tipMarkup=(view,{second,c})=>{
-  const advice=view.advice?`<p>${esc(view.advice)}</p>`:"";
-  const reward=view.showReward?`<p class="ui2-rw">${esc(view.reward)}${prizeTagMarkup({amount:second?2:3,currency:second?"petal":"leaf",label:c[second?"initialInterestPetalReward":"initialInterestLeafReward"],c})}</p><p class="ui2-rw-sub">${esc(c.interestChoiceOpportunity)}</p>`:"";
-  return advice||reward?ui2Callout({kind:"tip",role:"status",className:"ui2-onb-tip",html:advice+reward}):"";
+  if(view.showReward)return ui2Callout({kind:"tip",main:view.reward,sub:[c.interestChoiceOpportunity,view.advice],
+    prize:prizeTagMarkup({amount:second?2:3,currency:second?"petal":"leaf",label:c[second?"initialInterestPetalReward":"initialInterestLeafReward"],c})});
+  return view.advice?ui2Callout({kind:"tip",main:view.advice}):"";
 };
 
 export function interestsMarkup({flow,language,c}){
   const {draft}=flow,second=draft.step===2,editing=flow.mode==="edit",view=interestChoicePresentation(flow,c);
   const chips=interestChoices({flow,language,c}).map(item=>interestChipMarkup({...item,interactive:true,attrs:`data-ui2-int="${item.kind}" data-interest="${esc(item.interest.id)}"`})).join("");
-  const notices=(flow.feedback?ui2Callout({kind:"warning",role:"status",text:c[flow.feedback]}):"")
-    +(flow.storageAvailable===false?ui2Callout({kind:"warning",role:"status",text:c.initialInterestStorageUnavailable}):"")
-    +(flow.conflict?ui2Callout({kind:"error",role:"alert",html:`<p>${esc(c.profileInterestConflict)}</p><button type="button" class="ui2-btn secondary--subtle ui2-co-btn" data-ui2-int-action="recover"${flow.saving?" disabled":""}>${esc(c.profileInterestRecover)}</button>`}):"");
+  const notices=(flow.feedback?ui2Callout({kind:"warning",main:c[flow.feedback]}):"")
+    +(flow.storageAvailable===false?ui2Callout({kind:"warning",main:c.initialInterestStorageUnavailable}):"")
+    +(flow.conflict?ui2Callout({kind:"error",main:c.profileInterestConflict,action:{label:c.profileInterestRecover,attrs:'data-ui2-int-action="recover"',disabled:!!flow.saving}}):"");
   const head=`<div class="ui2-onb-head">${second?`<button type="button" class="ui2-ib ui2-onb-back" data-ui2-int-action="back" aria-label="${esc(c.back)}"${flow.saving?" disabled":""}>${icon("back")}</button>`:""}`
     +`<div class="initial-interest-progress" role="img" aria-label="${esc(c.initialInterestStep(draft.step))}"><span class="${second?"is-complete":"is-current"}" aria-hidden="true">1</span><span class="initial-interest-progress-line" aria-hidden="true"></span><span class="${second?"is-current":""}" aria-hidden="true">2</span></div></div>`;
   const cancel=editing?`<button type="button" class="dialog-close dialog-close--float" data-ui2-int-action="cancel" aria-label="${esc(c.cancel)}"${flow.saving?" disabled":""}>${icon("close")}</button>`:"";

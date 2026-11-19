@@ -2,7 +2,7 @@
 // the interest warning before a confirmed change and the insufficient balance modal.
 // Network, server and AI errors never show here: they go to the error screen (error-screen.mjs).
 import {escapeHtml as esc} from "../views.mjs";
-import {callout} from "../callout.mjs";
+import {ui2Callout,ui2CalloutButton} from "./callout.mjs";
 import {loadingPlaceholder} from "../loading-placeholder.mjs";
 import {MAX_BOOK_INTERESTS,bookInterestError,selectBookInterest} from "../book-interests.mjs";
 import {normalizeBookMetadata} from "../book-metadata.mjs";
@@ -76,16 +76,16 @@ export function interestPickerMarkup({interests,selected,code,language,c}){
       attrs:`data-ui2="pick-interest" data-interest="${esc(interest.id)}"`,hint:position?c.bookInterestPosition(position):""});
   }).join("");
   return `<div class="ui2-field ui2-ints${code?" is-error":""}" role="group" aria-labelledby="ui2-ints-l" aria-describedby="ui2-ints-e" data-field="interests"><span class="ui2-flabel" id="ui2-ints-l"><span>${esc(c.interest)}</span><small class="ui2-fcount" aria-hidden="true">${selected.length}/${MAX_BOOK_INTERESTS}</small></span>`
-    +callout({variant:"warning",width:"fill",role:"status",className:"ui2-ints-hint",main:c.ui2InterestHint})
+    +ui2Callout({kind:"warning",className:"ui2-ints-hint",main:c.ui2InterestHint})
     +`<div class="int-pick">${chips}</div>${errorSlot("ui2-ints",code,c)}</div>`;
 }
 
 export function duplicatesMarkup({duplicates,c}){
   if(!duplicates.books.length&&!duplicates.blocked)return "";
   const rows=duplicates.books.map(book=>`<div class="ui2-dup-row"><span class="sheet-thumb" aria-hidden="true" data-book="${esc(book.id)}"></span><div class="ui2-grow"><strong lang="${esc(book.titleLanguage)}" dir="auto">${esc(book.title)}</strong>${book.author?`<small>${esc(book.author)}</small>`:""}</div>`
-    +`<button type="button" class="ui2-btn secondary--subtle" data-ui2="dup-view" data-book="${esc(book.id)}">${esc(c.bookDuplicateView)}</button></div>`).join("");
-  return callout({variant:duplicates.blocked?"error":"warning",width:"fill",role:duplicates.blocked?"alert":"status",label:c.bookDuplicateQuestion,className:"ui2-dup",
-    content:`<p>${esc(duplicates.blocked?c.bookAlreadyExists:c.bookDuplicateNotice)}</p>${rows?`<p class="ui2-dup-q">${esc(c.bookDuplicateQuestion)}</p>${rows}`:""}`});
+    +ui2CalloutButton({label:c.bookDuplicateView,attrs:`data-ui2="dup-view" data-book="${esc(book.id)}"`,small:true})+`</div>`).join("");
+  return ui2Callout({kind:duplicates.blocked?"error":"warning",label:c.bookDuplicateQuestion,className:"ui2-dup",
+    main:duplicates.blocked?c.bookAlreadyExists:c.bookDuplicateNotice,sub:rows?c.bookDuplicateQuestion:"",extra:rows});
 }
 
 // Full-height sheet with a fixed footer. While the AI searches it has no close button and cannot be dismissed.
@@ -102,7 +102,7 @@ export function bookFormMarkup({form,interests,duplicates,language,c}){
   const foot=cancelButton(c,form.searching)+`<button type="submit" class="ui2-btn"${ok?"":" disabled"}>${esc(c.ui2AddToCatalog)}</button>`;
   const body=form.searching
     ?`<div class="ui2-aiwait">${loadingPlaceholder(c.ui2AiSearching,{visible:true})}</div>`
-    :(form.proposed?callout({variant:"info",width:"fill",role:"status",className:"ui2-ai-proposal",main:c.ui2AiProposal}):"")
+    :(form.proposed?ui2Callout({kind:"info",className:"ui2-ai-proposal",main:c.ui2AiProposal}):"")
       +field({id:"ui2-bk-title",name:"title",label:c.bookTitle,value:form.title,max:TITLE_MAX_LENGTH,code:shown.title,c})
       +`<div data-ui2-duplicates>${duplicatesMarkup({duplicates,c})}</div>`
       +field({id:"ui2-bk-author",name:"author",label:c.bookAuthor,value:form.author,max:BOOK_AUTHOR_MAX_LENGTH,code:shown.author,c})
@@ -141,7 +141,7 @@ export function interestWarningMarkup({prompt,c}){
   const title=deck?c.ui2InterestDeckTitle:c.ui2InterestStatusTitle(statusLabel),text=deck?c.ui2InterestDeckWarning(name,result.price||0):c.bookInterestWarning(name,statusLabel);
   return `<dialog class="ui2-errdialog ui2-interestdialog" data-ui2-modal role="alertdialog" aria-labelledby="ui2-iw-title" aria-describedby="ui2-iw-copy"><div class="ui2-errshell"><button type="button" class="dialog-close" data-ui2="interest-cancel" aria-label="${esc(c.bookInterestCancel)}">${icon("close")}</button>`
     +`<div class="ui2-errpanel ui2-finishpanel"><h2 id="ui2-iw-title">${esc(title)}</h2>`
-    +callout({variant:"warning",width:"fill",role:"status",content:`<p class="callout__main" id="ui2-iw-copy">${esc(text)}</p>`})
+    +ui2Callout({kind:"warning",main:text,id:"ui2-iw-copy"})
     +`<div class="actions-row"><button type="button" class="ui2-btn secondary--subtle" data-ui2="interest-cancel">${esc(c.bookInterestCancel)}</button><button type="button" class="ui2-btn" data-ui2="interest-continue">${esc(c.bookInterestContinue)}</button></div></div></div></dialog>`;
 }
 
@@ -156,6 +156,6 @@ export function balanceMessage(failure,{leaves=0,cost=2,c}){
 export function balanceModalMarkup({message,c}){
   return `<dialog class="ui2-errdialog ui2-balancedialog" data-ui2-modal role="alertdialog" aria-labelledby="ui2-bal-title" aria-describedby="ui2-bal-copy"><div class="ui2-errshell"><button type="button" class="dialog-close" data-ui2="error-close" aria-label="${esc(c.ui2Close)}">${icon("close")}</button>`
     +`<div class="ui2-errpanel ui2-finishpanel"><h2 id="ui2-bal-title">${esc(c.ui2InsufficientTitle)}</h2>`
-    +callout({variant:"error",width:"fill",role:"alert",className:"ui2-balance-msg",content:`<p class="callout__main" id="ui2-bal-copy">${icon("alert")}<span>${esc(message)}</span></p>`})
+    +ui2Callout({kind:"error",main:message,id:"ui2-bal-copy"})
     +`<div class="ui2-erractions"><button type="button" class="ui2-btn secondary--subtle" data-ui2="error-close" autofocus>${esc(c.ui2Understood)}</button></div></div></div></dialog>`;
 }

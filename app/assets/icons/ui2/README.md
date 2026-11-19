@@ -36,6 +36,8 @@ Catálogo de los iconos de la interfaz nueva. Las reglas del estilo están en `d
 | `edit` | Corregir (editar una nota) | Hoja de nota; lector |
 | `place-under` | Colocar debajo de | Hoja de nota; lector |
 | `idea`, `idea-active` | Tarjeta de tipo Idea | Selector de tipo; consecuencia «idea del día» |
+| `warning` | Aviso con consecuencia [PROPUESTO] | Callout warning (triángulo con exclamación; `alert` queda para error) |
+| `info` | Información neutra [PROPUESTO] | Callout info (círculo con «i»; no pide acción) |
 | `quote`, `quote-active` | Tarjeta de tipo Cita | Selector de tipo; citas en el esquema |
 | `bookmark`, `bookmark-active` | Guardar tarjeta / guardada | Fila de acciones |
 | `like`, `like-active` | Me gusta | Fila de acciones |

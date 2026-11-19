@@ -29,7 +29,7 @@ test("Step 2: the liked interests are locked with ✓, the purpose shows and Bac
 
 test("One tip callout joins the advice and the reward; there is no reward while editing",()=>{
   const html=render(flow({interested:["growth"]}));
-  assert.equal(html.match(/class="callout /g).length,1);assert.match(html,/callout--info[^]*data-icon="idea"/);
+  assert.equal(html.match(/class="ui2-co /g).length,1);assert.match(html,/ui2-co--tip[^]*data-icon="idea"/);
   assert.ok(html.includes(words.es.interestChoiceOne)&&html.includes(words.es.initialInterestRewardCondition)&&html.includes(words.es.interestChoiceOpportunity));
   assert.match(html,/ui2-prize-tag/);
   const edit=render(flow({interested:["growth"]},{mode:"edit"}));
@@ -38,7 +38,7 @@ test("One tip callout joins the advice and the reward; there is no reward while 
 
 test("Saving, the limit warning and a revision conflict",()=>{
   assert.match(render(flow({interested:["growth"]},{saving:true})),/ui2-onb-next" disabled>Un momento…/);
-  assert.match(render(flow({interested:["growth"]},{feedback:"profileInterestLimit"})),/callout--warning/);
+  assert.match(render(flow({interested:["growth"]},{feedback:"profileInterestLimit"})),/ui2-co--warning/);
   const conflict=render(flow({interested:["growth"]},{conflict:true}));
-  assert.match(conflict,/callout--error[^]*data-ui2-int-action="recover"/);
+  assert.match(conflict,/ui2-co--error[^>]*role="alert"[^]*data-ui2-int-action="recover"/);
 });

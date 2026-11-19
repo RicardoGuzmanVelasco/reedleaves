@@ -1,5 +1,5 @@
 import {escapeHtml as esc,attributionIcon} from "../views.mjs";
-import {callout} from "../callout.mjs";
+import {ui2Callout} from "./callout.mjs";
 import {icon} from "./icons.mjs";
 
 const clip=(text,length=32)=>text.length>length?text.slice(0,length):text;
@@ -38,8 +38,8 @@ export function noteFormMarkup({form,bookTitle,deck,parentTitle,canPlace,canSave
   const idea=!form.isQuote,create=form.mode==="create";
   const full=!!deck&&deck.count>=deck.max;
   const notices=[
-    form.recovered?callout({variant:"warning",width:"fill",main:c.noteDraftRecovered,actions:`<button type="button" class="text-button" data-ui2="discard-draft">${esc(c.ui2Discard)}</button>`}):"",
-    create&&deck?(full?callout({variant:"warning",width:"fill",main:c.deckCardLimitReached}):callout({variant:"info",width:"fill",main:`${c.ui2AddedTo(deck.title,deck.count,deck.max)}`})):""
+    form.recovered?ui2Callout({kind:"warning",main:c.noteDraftRecovered,action:{label:c.ui2Discard,attrs:'data-ui2="discard-draft"'}}):"",
+    create&&deck?(full?ui2Callout({kind:"error",main:c.deckCardLimitReached}):ui2Callout({kind:"info",main:c.ui2AddedTo(deck.title,deck.count,deck.max)})):""
   ].join("");
   const kindButton=(kind,label,on)=>`<button type="button" aria-pressed="${on}" data-ui2="kind" data-kind="${kind}">${icon(kind)}<span>${esc(label)}</span></button>`;
   return `<div class="ui2-capture"><header class="ui2-top ui2-top--form"><div class="ui2-titles"><h1>${esc(create?c.takeNote:c.ui2Correct)}</h1></div>
@@ -57,7 +57,7 @@ ${create&&canPlace?`<div class="ui2-field"><label id="ui2-place-label">${esc(c.u
 export function errorModalMarkup({info,retry,title,c}){
   return `<dialog class="ui2-errdialog" data-ui2-modal role="alertdialog" aria-labelledby="ui2-err-title" aria-describedby="ui2-err-detail">
 <div class="ui2-errshell"><button type="button" class="dialog-close" data-ui2="error-close" aria-label="${esc(c.ui2Close)}">${icon("close")}</button>
-<div class="ui2-errpanel">${callout({variant:"error",width:"fill",role:"status",className:"ui2-errtitle",content:`<h2 id="ui2-err-title">${icon("alert")}<span>${esc(title||c.ui2SaveError)}</span></h2>`})}
+<div class="ui2-errpanel">${ui2Callout({kind:"error",id:"ui2-err-title",main:title||c.ui2SaveError})}
 <p class="ui2-errdetail" id="ui2-err-detail">${esc(info.detail)}</p><code class="ui2-errcode">${esc(info.reference?`${info.code} · ${info.reference}`:info.code)}</code>
 <div class="ui2-erractions">${retry&&info.retry?`<button type="button" class="ui2-btn" data-ui2="retry">${esc(c.retry)}</button>`:`<button type="button" class="ui2-btn" data-ui2="error-close">${esc(c.ui2Close)}</button>`}</div></div></div></dialog>`;
 }

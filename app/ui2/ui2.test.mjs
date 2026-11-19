@@ -95,12 +95,12 @@ for(const language of ["es","en"])test(`Capture screen: close on the right, book
   assert.match(empty,/<h1>[^<]+<\/h1>[\s\S]*class="dialog-close"/);
   assert.match(empty,/class="ui2-bookline"[\s\S]*Libro/);
   assert.match(empty,/segmented-selector note-type-selector[\s\S]*data-icon="idea"[\s\S]*data-icon="quote"/);
-  assert.doesNotMatch(empty,/ui2-pick|callout/);
+  assert.doesNotMatch(empty,/ui2-pick|class="ui2-co /);
   const withDeck=noteFormMarkup({...base,form:{mode:"create",isQuote:false,title:"",body:""},deck:{title:"Notas",count:8,max:25},canPlace:true,parentTitle:null,canSave:false});
-  assert.match(withDeck,new RegExp(`callout--info[\\s\\S]*${c.ui2AddedTo("Notas",8,25).replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}`));
+  assert.match(withDeck,new RegExp(`ui2-co--info[\\s\\S]*${c.ui2AddedTo("Notas",8,25).replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}`));
   assert.match(withDeck,/data-ui2="form-place"/);
   const full=noteFormMarkup({...base,form:{mode:"create",isQuote:false,title:"a",body:"b"},deck:{title:"Notas",count:25,max:25},canPlace:true,canSave:false});
-  assert.match(full,/callout--warning/);assert.doesNotMatch(full,/callout--info/);
+  assert.match(full,/ui2-co--error/);assert.doesNotMatch(full,/ui2-co--info/);
   const recovered=noteFormMarkup({...base,form:{mode:"create",isQuote:false,title:"a",body:"b",recovered:true},deck:null,canPlace:false,canSave:true});
   assert.match(recovered,/data-ui2="discard-draft"/);assert.ok(recovered.includes(c.noteDraftRecovered));
 });

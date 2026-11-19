@@ -1,7 +1,7 @@
 // The deck page: header (deck > book > user), chips, focus, one row of actions and the notes of the deck.
 import {escapeHtml as esc,attributionIcon} from "../views.mjs";
 import {priceTagMarkup} from "./price-tag.mjs";
-import {callout} from "../callout.mjs";
+import {ui2Callout} from "./callout.mjs";
 import {contentText,contentLocale,bookTitle} from "../core.mjs";
 import {validQuoteSourceUrl} from "../quote-source.mjs";
 import {DECK_ADD_COST} from "../wallet.mjs";
@@ -51,7 +51,7 @@ export function deckPageMarkup({page,outline,languageName,legacy,c}){
   const remove=`<button type="button" class="ui2-btn secondary--subtle dp-grow" data-ui2="cardcase-remove" data-deck="${esc(page.id)}" aria-haspopup="dialog">${icon("remove-from-cardcase")}<span>${esc(c.removeDeckFromCardcase)}</span></button>`;
   const add=`<button type="button" class="ui2-btn dp-grow" data-ui2="add-deck" data-deck="${esc(page.id)}">${icon("add-to-cardcase")}<span>${esc(c.addDeckToCardcase)}</span>${page.addCost?priceTagMarkup({amount:page.addCost,state:page.canAfford===false?"insufficient":"normal",c}):""}</button>`;
   const actions=page.write?row(take,finish):row(page.inCardcase?remove:add);
-  const notice=!page.owner&&page.open?callout({variant:"info",width:"fill",className:"dp-msg",main:c.ui2DeckStillWriting}):"";
+  const notice=!page.owner&&page.open?ui2Callout({kind:"info",className:"dp-msg",main:c.ui2DeckStillWriting}):"";
   const body=page.count?outlineMarkup(outline,c):`<div class="ui2-empty dp-empty">${mascotArt("tumbleweed","",{animation:"tumble"})}<h2>${esc(c.ui2DeckEmpty)}</h2></div>`;
   return `<section class="deck-page"><div class="dp-head"><div class="dp-stack" role="group" aria-label="${esc(c.ui2DeckActions)}">${stack}</div>`
     +`<div class="dp-title"><button type="button" class="ui2-ib dp-back" data-ui2="page-back" aria-label="${esc(c.back)}">${icon("back")}</button><div class="dp-titles"><h1 class="dp-deckname" tabindex="-1" lang="${esc(page.titleLanguage)}" dir="auto">${esc(page.title)}</h1>`

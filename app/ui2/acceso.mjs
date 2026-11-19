@@ -28,10 +28,10 @@ function field({id,name,label,type="text",value="",hint="",invalid=false,attrs="
 export function accesoMarkup({auth,inviteRequired=false,c}){
   const signup=auth.mode==="register",invalid=authErrorField(auth.error);
   const message=auth.error?(typeof c[auth.error]==="string"?c[auth.error]:c.connectionError):"";
-  const callouts=(auth.notice&&typeof c[auth.notice]==="string"?ui2Callout({kind:"tip",role:"status",text:c[auth.notice]}):"")
-    +(auth.error?ui2Callout({kind:auth.error==="sessionExpired"?"warning":"error",role:"alert",text:message}):"")
-    +(auth.suggest?ui2Callout({kind:"tip",role:"status",html:`<p><strong class="ui2-co-title">${esc(c.ui2CreatingAccount)}</strong></p><button type="button" class="ui2-btn ui2-co-btn" data-ui2="auth-create">${esc(c.signUp)}</button>`}):"")
-    +(auth.created?ui2Callout({kind:"tip",role:"status",html:`<p><strong class="ui2-co-title">${esc(c.ui2CompleteFields)}</strong></p>`}):"");
+  const callouts=(auth.notice&&typeof c[auth.notice]==="string"?ui2Callout({kind:"tip",main:c[auth.notice]}):"")
+    +(auth.error?ui2Callout({kind:auth.error==="sessionExpired"?"warning":"error",role:"alert",main:message}):"")
+    +(auth.suggest?ui2Callout({kind:"tip",main:c.ui2CreatingAccount,action:{label:c.signUp,attrs:'data-ui2="auth-create"'}}):"")
+    +(auth.created?ui2Callout({kind:"tip",main:c.ui2CompleteFields}):"");
   const form=`<form class="ui2-auth-form" data-ui2-auth aria-busy="${auth.busy}"><fieldset${auth.busy?" disabled":""}>`
     +field({id:"ui2-au-user",name:"username",label:c.username,value:auth.username,hint:signup?c.usernameRegistrationHint:c.usernameHint,invalid:invalid==="username",
       attrs:`autocomplete="username" autocapitalize="none" spellcheck="false" required minlength="${USERNAME_MIN_LENGTH}" maxlength="${USERNAME_MAX_LENGTH}" pattern="[a-zA-Z0-9][a-zA-Z0-9._\\-]{${USERNAME_MIN_LENGTH-1},${USERNAME_MAX_LENGTH-1}}"`})

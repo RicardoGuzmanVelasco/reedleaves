@@ -3,10 +3,9 @@
 // sleeping sprout waits; a new failure brings the error back, success closes it.
 // Esc does not close it. Field validations never come here.
 import {escapeHtml as esc} from "../views.mjs";
-import {callout} from "../callout.mjs";
+import {ui2Callout} from "./callout.mjs";
 import {mascotArt} from "../mascot-art.mjs?v=tumbleweed";
 import {loadingPlaceholder,finishLoadingPlaceholder} from "../loading-placeholder.mjs";
-import {icon} from "./icons.mjs";
 
 export const ERROR_SCREEN_MESSAGE_ID="ui2-errscreen-msg";
 
@@ -14,7 +13,7 @@ export const ERROR_SCREEN_MESSAGE_ID="ui2-errscreen-msg";
 export function errorScreenContent({message,c,waiting=false}){
   if(waiting)return `<div class="ui2-errscreen-wait">${loadingPlaceholder(c.ui2Retrying,{visible:true})}</div>`;
   return mascotArt("sprout","ui2-errscreen-mascot",{animation:"sob"})
-    +callout({variant:"error",width:"fill",role:"alert",className:"ui2-errscreen-msg",content:`<p class="callout__main" id="${ERROR_SCREEN_MESSAGE_ID}">${icon("alert")}<span>${esc(message)}</span></p>`})
+    +ui2Callout({kind:"error",className:"ui2-errscreen-msg",id:ERROR_SCREEN_MESSAGE_ID,main:message})
     +`<button type="button" class="ui2-btn ui2-errscreen-retry" data-errscreen="retry" autofocus>${esc(c.retry)}</button>`;
 }
 

@@ -11,7 +11,7 @@ for(const language of ["es","en"])test(`Error screen: blocking alertdialog with 
   assert.match(html,new RegExp(`aria-label="${c.ui2ErrorTitle}"`));
   assert.match(html,new RegExp(`aria-describedby="${ERROR_SCREEN_MESSAGE_ID}"`));
   assert.match(html,/data-mascot="sprout"[^>]*data-idle="sob"/);
-  assert.match(html,/callout--error[^>]*role="alert"/);
+  assert.match(html,/ui2-co--error[^>]*role="alert"/);
   assert.match(html,new RegExp(`id="${ERROR_SCREEN_MESSAGE_ID}"[^>]*>.*${c.connectionError}`));
   assert.match(html,new RegExp(`<button type="button"[^>]*data-errscreen="retry"[^>]*autofocus>${c.retry}</button>`));
   assert.ok(c.ui2Retrying&&c.ui2ErrorTitle);

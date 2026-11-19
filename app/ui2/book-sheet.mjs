@@ -1,6 +1,6 @@
 // Library: the sheet of one book (tap a cover) and the dialog that finishes decks when the book is marked as read.
 import {escapeHtml as esc,attributionIcon,bookReadingIcon,deckDistinctionMarkup} from "../views.mjs";
-import {callout} from "../callout.mjs";
+import {ui2Callout} from "./callout.mjs";
 import {imageUrl} from "../image-url.mjs";
 import {contentText,contentLocale,bookTitle} from "../core.mjs";
 import {cardTypeFor} from "../card-types.mjs";
@@ -64,7 +64,7 @@ export function bookSheetMarkup({data,c}){
   const selector=`<div class="sel-wrap"><div class="segmented-selector book-reading-selector" role="group" aria-label="${esc(c.ui2BookReading)}">${statuses.map(([value,label])=>`<button type="button" data-ui2="book-status" data-book="${esc(entry.id)}" data-status="${value}" aria-pressed="${entry.status===value}">${bookReadingIcon(value)}<span>${esc(label)}</span></button>`).join("")}</div></div>`;
   const all=`<a class="ui2-btn secondary--subtle sheet-all" href="#book/${encodeURIComponent(entry.id)}"><span>${esc(c.ui2SeeAllDecks)}</span>${icon("forward")}</a>`;
   const cardcase=store?(decks.length?`<section class="sheet-cardcase" aria-label="${esc(c.viewDecks)}"><div class="mini-decks" role="list" aria-label="${esc(c.viewDecks)}">${decks.map(deck=>miniDeckTile(deck,c,{})).join("")}</div></section>`:""):decks.length?`<section class="sheet-cardcase" aria-labelledby="ui2-bs-cc"><h3 class="sheet-sub sheet-sub--icon" id="ui2-bs-cc">${icon("cardcase")}<span>${esc(c.ui2InCardcase)}</span></h3><div class="mini-decks" role="list" aria-label="${esc(c.ui2InCardcase)}">${decks.map(deck=>miniDeckTile(deck,c)).join("")}</div></section>`:"";
-  const tail=decks.length||anyDecks?all:callout({variant:"warning",width:"fill",className:"sheet-warn",main:c.ui2NoDecksOfBook});
+  const tail=decks.length||anyDecks?all:ui2Callout({kind:"info",className:"sheet-warn",main:c.ui2NoDecksOfBook});
   return `<dialog class="ui2-sheet ui2-book-sheet" data-ui2-sheet aria-labelledby="ui2-bs-title"><button type="button" class="dialog-close dialog-close--float" data-ui2="sheet-close" aria-label="${esc(c.ui2CloseBook)}">${icon("close")}</button><div class="ui2-grab" aria-hidden="true"></div>`
     +`<div class="sheet-head"><span class="sheet-thumb" aria-hidden="true" data-book="${esc(entry.id)}"></span><div class="ui2-grow"><h2 id="ui2-bs-title" lang="${esc(entry.titleLanguage)}" dir="auto">${esc(entry.title)}</h2>${entry.author?`<p class="ui2-sheet-author">${esc(entry.author)}</p>`:""}</div></div>`
     +`<button type="button" class="ui2-btn sheet-note" data-ui2="home-note" data-book="${esc(entry.id)}" data-deck="${esc(entry.deckId||"")}">${icon("take-note")}${esc(c.takeNote)}</button>${selector}${cardcase}${tail}</dialog>`;
@@ -76,8 +76,8 @@ export function finishDialogMarkup({decks,pending,c}){
   const group=(iconName,title,list)=>list.length?`<section class="fn-group"><h3 class="sheet-sub sheet-sub--icon">${icon(iconName)}<span>${esc(title)}</span></h3><div class="mini-decks mini-decks--static" role="list">${list.map(deck=>miniDeckTile(deck,c,{link:false})).join("")}</div></section>`:"";
   return `<dialog class="ui2-errdialog ui2-finishdialog" data-ui2-modal role="alertdialog" aria-labelledby="ui2-fn-title"><div class="ui2-errshell"><button type="button" class="dialog-close" data-ui2="finish-keep" aria-label="${esc(c.ui2Close)}">${icon("close")}</button>`
     +`<div class="ui2-errpanel ui2-finishpanel"><h2 id="ui2-fn-title">${esc(c.finishNotesTitle)}</h2>`
-    +callout({variant:"warning",width:"fill",role:"status",className:"ui2-finish-warning",main:c.ui2FinishWarning})
-    +(pending?callout({variant:"error",width:"fill",main:c.pendingNotesBeforeFinish}):"")
+    +ui2Callout({kind:"warning",main:c.ui2FinishWarning})
+    +(pending?ui2Callout({kind:"error",main:c.pendingNotesBeforeFinish}):"")
     +group("lock",c.ui2WillFinish,finish)+group("trash",c.ui2WillDelete,discard)
     +`<div class="actions-row"><button type="button" class="ui2-btn secondary--subtle" data-ui2="finish-keep">${esc(c.keepNoteDecks).replace(" ","<br>")}</button><button type="button" class="ui2-btn" data-ui2="finish-confirm"${pending?" disabled":""}>${esc(c.confirmNoteDecks)}</button></div></div></div></dialog>`;
 }
@@ -98,7 +98,7 @@ export function removeDeckDialogMarkup({deck,userId,c}){
   const own=!!deck.creatorId&&deck.creatorId===userId;
   return `<dialog class="ui2-errdialog ui2-removedialog" data-ui2-modal role="alertdialog" aria-labelledby="ui2-rm-title"><div class="ui2-errshell"><button type="button" class="dialog-close" data-ui2="remove-cancel" aria-label="${esc(c.cancel)}">${icon("close")}</button>`
     +`<div class="ui2-errpanel ui2-finishpanel"><h2 id="ui2-rm-title">${esc(c.confirmRemoveDeck)}</h2>`
-    +(own?callout({variant:"warning",width:"fill",role:"status",main:c.ui2RemoveOwnDeck}):callout({variant:"info",width:"fill",role:"status",main:c.ui2RemoveDeckInfo})+callout({variant:"warning",width:"fill",role:"status",main:c.ui2ReAddCost(DECK_ADD_COST)}))
+    +(own?ui2Callout({kind:"warning",main:c.ui2RemoveOwnDeck}):ui2Callout({kind:"info",main:c.ui2RemoveDeckInfo})+ui2Callout({kind:"warning",main:c.ui2ReAddCost(DECK_ADD_COST)}))
     +`<div class="actions-row"><button type="button" class="ui2-btn secondary--subtle" data-ui2="remove-cancel">${esc(c.cancel)}</button><button type="button" class="ui2-btn danger" data-ui2="remove-confirm" data-deck="${esc(deck.id)}">${esc(c.removeDeckFromCardcase)}</button></div></div></div></dialog>`;
 }
 
@@ -120,7 +120,7 @@ export function bookPageMarkup({data,c}){
     ?`<a class="card-attribution-row" href="${esc(`#profile/${encodeURIComponent(data.creator.id)}`)}">${attributionIcon("user")}<bdi>${esc(data.creator.name)}</bdi></a>`
     :`<span class="card-attribution-row">${attributionIcon("user")}<bdi>${esc(data.creator.name)}</bdi></span>`)+`</p>`:"";
   const decks=data.decks.length?`<h2 class="bp-h2">${esc(c.chooseDeck)}</h2><div class="deck-grid" role="list" aria-label="${esc(c.chooseDeck)}">${data.decks.map(deck=>miniDeckTile(deck,c,{})).join("")}</div>`
-    :callout({variant:"warning",width:"fill",className:"sheet-warn",main:c.ui2NoDecksOfBook});
+    :ui2Callout({kind:"info",className:"sheet-warn",main:c.ui2NoDecksOfBook});
   return `<section class="book-page"><div class="bp-head"><button type="button" class="ui2-ib bp-back" data-ui2="page-back" aria-label="${esc(c.back)}">${icon("back")}</button>`
     +`<div class="bp-meta"><h1 tabindex="-1" lang="${esc(data.titleLanguage)}" dir="auto">${esc(data.title)}</h1>${data.author?`<p class="bp-author">${esc(data.author)}</p>`:""}${chips?`<div class="bp-chips">${chips}</div>`:""}</div></div>`
     +(data.description?`<p class="bp-desc" lang="${esc(data.descriptionLanguage)}" dir="auto">${esc(data.description)}</p>`:"")+added+decks
