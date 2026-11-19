@@ -485,6 +485,8 @@ button.int-chip:disabled{opacity:1}
 .pf-bar.xp-meter-art{flex:1;width:auto;min-width:0}
 .pf-xp-fraction{margin:0;flex:none;padding-bottom:5px;font-size:11px;font-weight:800;color:var(--ui2-muted);font-variant-numeric:tabular-nums}
 .level-sun{position:relative;display:inline-grid;place-items:center;flex:none;width:34.4px;aspect-ratio:1;container-type:inline-size;color:#66490f;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:normal}
+/* At 3.05em the inner disk is 34.4px, matching the original profile medal. */
+.pf-bar .level-sun{width:3.05em}
 .level-sun svg{position:absolute;inset:50% auto auto 50%;translate:-50% -50%;width:114.8256%;height:auto;overflow:visible;filter:drop-shadow(0 1.5px 1px rgb(132 84 22 / 27%))}
 .level-sun .level-up-number{position:relative;font-size:33.43cqw}
 .level-sun .is-three{font-size:27.62cqw}
