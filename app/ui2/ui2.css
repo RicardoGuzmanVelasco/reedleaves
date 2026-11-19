@@ -512,7 +512,7 @@ button.int-chip:disabled{opacity:1}
 .pf-stats,.pf-growth{display:grid;margin:0;padding:0;list-style:none}
 .pf-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .pf-stat{position:relative;overflow:hidden;isolation:isolate;display:flex;flex-direction:column;justify-content:space-between;gap:6px;min-height:96px;padding:10px;border:1.5px solid var(--ui2-line);border-radius:16px;background:linear-gradient(145deg,#fffef9,#e5efd7);box-shadow:0 3px 0 #e2ddc9}
-.pf-stat--blue{background:linear-gradient(145deg,#fdfeff,#dcecf3)}
+.pf-stat--blue,.pf-growth>.pf-stage:nth-child(n+6){background:linear-gradient(145deg,#fdfeff,#dcecf3)}
 .pf-stat-icon{position:absolute;z-index:-1;right:-14px;bottom:-16px;width:76px;height:76px;background:#a9c88e;opacity:.42;transform:rotate(-8deg);pointer-events:none}
 .pf-stat--blue .pf-stat-icon{background:#86b3c7}
 .pf-stat dt{min-height:2.5em;font-size:12px;line-height:1.25;color:var(--ui2-muted);font-weight:750}
