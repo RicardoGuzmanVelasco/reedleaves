@@ -62,4 +62,4 @@ export function errorModalMarkup({info,retry,title,c}){
 <div class="ui2-erractions">${retry&&info.retry?`<button type="button" class="ui2-btn" data-ui2="retry">${esc(c.retry)}</button>`:`<button type="button" class="ui2-btn" data-ui2="error-close">${esc(c.ui2Close)}</button>`}</div></div></div></dialog>`;
 }
 
-export const toastMarkup=({deckId="",message,c})=>`<div class="ui2-toast" role="status"><span>${esc(message||c.ui2NoteSaved)}</span>${deckId?`<button type="button" data-ui2="toast-deck" data-deck="${esc(deckId)}">${icon("deck")}${esc(c.viewDeck)}</button>`:""}</div>`;
+export const toastMarkup=({deckId="",message,c})=>`<div class="ui2-toast" role="status" popover="manual"><span>${esc(message||c.ui2NoteSaved)}</span>${deckId?`<button type="button" data-ui2="toast-deck" data-deck="${esc(deckId)}">${icon("deck")}${esc(c.viewDeck)}</button>`:""}</div>`;

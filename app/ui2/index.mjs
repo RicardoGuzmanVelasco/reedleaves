@@ -114,6 +114,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     tintThumbs(main);
     // Sheets first, modals over them: a warning or error keeps its context visible behind.
     for(const dialog of [...main.querySelectorAll("dialog[data-ui2-sheet],dialog.bookstore-filter-modal"),...main.querySelectorAll("dialog[data-ui2-modal]")])if(!dialog.open)dialog.showModal();
+    // The toast goes to the top layer too, after the dialogs, so it stays above a modal.
+    const toastNode=main.querySelector(".ui2-toast");if(toastNode?.showPopover&&!toastNode.matches(":popover-open"))try{toastNode.showPopover();}catch{}
     const body=main.querySelector(".ui2-fsheet-body");if(body)body.scrollTop=scrolled;
     raiseErrorScreen(doc);
     layoutToast();
@@ -251,7 +253,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // Ajustes: a sheet over the own Perfil. The card languages are read when it opens; the rest is local or one request.
   const settingsScreen=()=>settings?settingsMarkup({settings,language,tint:coverTintMode(tintMode),c})+(settings.feedback?feedbackMarkup({feedback:settings.feedback,c}):"")+(settings.confirmOut?signOutMarkup(c):""):"";
   function openSettings(){
-    settings={cards:null,edit:null,saved:false,feedback:null,feedbackSent:false,confirmOut:false};render();
+    settings={cards:null,edit:null,feedback:null,confirmOut:false};render();
     run(async()=>{const cards=await api.request("/api/reader/language-preferences");if(settings)settings.cards=cards;});
   }
   function applyLanguage(next){
@@ -260,13 +262,13 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   function sendFeedback(){
     const message=settings?.feedback?.message.trim();if(!message)return;
-    run(async()=>{await api.request("/api/feedback",{message,page:win.location.pathname+win.location.hash,language});settings.feedback=null;settings.feedbackSent=true;});
+    run(async()=>{await api.request("/api/feedback",{message,page:win.location.pathname+win.location.hash,language});settings.feedback=null;showToast(c.feedbackSent);});
   }
   async function saveCardLanguages(){
     const edit=settings.edit;
     try{settings.cards=await api.request("/api/reader/language-preferences",{languages:edit.draft,revision:settings.cards.revision});}
     catch(caught){if(caught?.status===409&&caught.current){edit.conflict=true;edit.current=caught.current;return;}throw caught;}
-    settings.edit=null;settings.saved=true;
+    settings.edit=null;showToast(c.profileLanguagesSaved);
   }
   // The interest editor of the old interface (two steps, same API), mounted outside `main` so repainting does not close it.
   const interestHost=doc.createElement("div");interestHost.id="ui2-interest-host";doc.body.append(interestHost);
@@ -527,11 +529,11 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(action==="open-settings")openSettings();
     else if(action==="settings-close"){settings=null;render();main.querySelector('[data-ui2="open-settings"]')?.focus({preventScroll:true});}
     else if(action==="set-language"&&settings&&target.dataset.language!==language)run(async()=>{await api.request("/api/reader/preferences",{language:target.dataset.language});applyLanguage(target.dataset.language);});
-    else if(action==="edit-languages"&&settings?.cards){settings.saved=false;settings.edit={draft:[...settings.cards.languages],conflict:false,current:null};render();}
+    else if(action==="edit-languages"&&settings?.cards){settings.edit={draft:[...settings.cards.languages],conflict:false,current:null};render();}
     else if(action==="cancel-languages"&&settings){settings.edit=null;render();}
     else if(action==="recover-languages"&&settings?.edit?.current){settings.cards=settings.edit.current;settings.edit={draft:[...settings.cards.languages],conflict:false,current:null};render();}
     else if(action==="save-languages"&&settings?.edit?.draft.length)run(saveCardLanguages);
-    else if(action==="open-feedback"&&settings){settings.feedback={message:""};settings.feedbackSent=false;render();}
+    else if(action==="open-feedback"&&settings){settings.feedback={message:""};render();}
     else if(action==="feedback-close"&&settings){settings.feedback=null;render();}
     else if(action==="open-sign-out"&&settings){settings.confirmOut=true;render();}
     else if(action==="sign-out-cancel"&&settings){settings.confirmOut=false;render();}

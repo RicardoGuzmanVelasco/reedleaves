@@ -4,7 +4,7 @@ import {words} from "../i18n.mjs";
 import {settingsMarkup,signOutMarkup} from "./ajustes.mjs";
 
 const c={...words.es,legacy:"/app/"};
-const settings=(extra={})=>({cards:{languages:["es","en"],options:["es","en"],revision:0},edit:null,saved:false,feedback:null,feedbackSent:false,confirmOut:false,...extra});
+const settings=(extra={})=>({cards:{languages:["es","en"],options:["es","en"],revision:0},edit:null,feedback:null,confirmOut:false,...extra});
 const render=(state,tint="off")=>settingsMarkup({settings:state,language:"es",tint,c});
 
 test("Ajustes has no Intereses block and signs out with the red button",()=>{

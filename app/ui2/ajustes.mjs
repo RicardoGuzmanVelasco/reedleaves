@@ -16,14 +16,14 @@ const languageSwitch=({language,c})=>`<section class="st-sec"><span class="ui2-f
   +DECK_LANGUAGES.map(([code,name])=>`<button type="button" data-ui2="set-language" data-language="${code}" aria-pressed="${language===code}" lang="${code}">${flag(code)}<span>${name}</span></button>`).join("")+`</div></section>`;
 
 // Reading: only flag chips (the name is for assistive technology). Editing: a checkbox per language, with its name.
-function cardLanguages({cards,edit,saved,language,c}){
+function cardLanguages({cards,edit,language,c}){
   const head=action=>`<div class="st-head"><h3 class="ui2-flabel">${esc(c.profileLanguages)}</h3>${action}</div>`;
   if(!cards)return `<section class="st-sec">${head("")}<div class="st-loading">${loadingPlaceholder(c.busyOpening)}</div></section>`;
   if(!edit){
     const chips=cards.languages.map(code=>`<span class="dp-chip" role="img" aria-label="${esc(languageDisplayName(code,language))}">${flag(code)}</span>`).join("");
     return `<section class="st-sec">${head(`<button type="button" class="ui2-btn secondary--subtle st-edit" data-ui2="edit-languages" aria-label="${esc(c.edit)}">${icon("edit")}</button>`)}`
       +`<div class="dp-chips st-flags" role="group" aria-label="${esc(c.profileLanguages)}">${chips}</div>`
-      +(saved?callout({variant:"info",width:"fill",role:"status",main:c.profileLanguagesSaved}):"")+`</section>`;
+      +`</section>`;
   }
   const options=(cards.options||edit.draft).map(code=>`<label class="st-langopt"><input type="checkbox" data-ui2-card-language value="${esc(code)}"${edit.draft.includes(code)?" checked":""}>${flag(code)}<span lang="${esc(code)}">${esc(languageDisplayName(code,language))}</span></label>`).join("");
   const empty=!edit.draft.length;
@@ -45,9 +45,8 @@ const coverTint=({tint,c})=>`<section class="st-sec"><fieldset class="cover-tint
   +`</div><p class="st-hint" id="ui2-st-tint-hint" aria-live="polite">${esc(c[TINT_HINTS[tint]])}</p></fieldset></section>`;
 
 export function settingsMarkup({settings,language,tint,c}){
-  const body=languageSwitch({language,c})+cardLanguages({cards:settings.cards,edit:settings.edit,saved:settings.saved,language,c})+coverTint({tint,c})
+  const body=languageSwitch({language,c})+cardLanguages({cards:settings.cards,edit:settings.edit,language,c})+coverTint({tint,c})
     +`<button type="button" class="ui2-btn secondary--subtle" data-ui2="open-feedback" aria-haspopup="dialog"><span>${esc(c.feedback)}</span></button>`
-    +(settings.feedbackSent?callout({variant:"info",width:"fill",role:"status",main:c.feedbackSent}):"")
     +`<button type="button" class="ui2-btn danger st-out" data-ui2="open-sign-out" aria-haspopup="alertdialog"><span>${esc(c.signOut)}</span></button>`;
   return `<dialog class="ui2-sheet ui2-fsheet ui2-settings" data-ui2-sheet aria-labelledby="ui2-st-title"><button type="button" class="dialog-close dialog-close--float" data-ui2="settings-close" aria-label="${esc(c.closeSettings)}">${icon("close")}</button>`
     +`<div class="ui2-grab" aria-hidden="true"></div><div class="ui2-fsheet-form"><div class="ui2-fsheet-head"><h2 id="ui2-st-title">${esc(c.settings)}</h2></div><div class="ui2-fsheet-body st-body">${body}</div></div></dialog>`;
