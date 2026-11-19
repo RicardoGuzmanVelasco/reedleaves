@@ -108,5 +108,6 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 - Editor de intereses: rediseñar en ui2 (hoy reutiliza el de la UI vieja desde el lápiz del Perfil).
 - Perfil ajeno: «Ver estantería» aún abre la Estantería de la UI vieja.
 - Pendiente técnico: «Catalogar nuevo libro» y «Leer tarjetas» aún abren la UI vieja; el toast «Baraja añadida al tarjetero.» no cruza esa navegación; aviso de interés (`confirmationRequired`) sin diálogo ui2.
+- Transversal: revisar discrepancias de callouts y unificar: mismo icono y color por significado (error, warning, consejo) en toda la app.
 - Por unificar en toda la app: un único estilo de chips de interés (acceso, ficha del libro, formularios, perfil); hoy cada pantalla usa una variante.
 - Errores de conexión, servidor o red: una sola pantalla superpuesta (fondo negro muy translúcido, brote triste grande y centrado, texto del error en callout rojo, botón «Reintentar»; al reintentar vuelve el brote dormido o el estado que toque). Nunca dentro de formularios. Las validaciones por campo se quedan en el campo.
