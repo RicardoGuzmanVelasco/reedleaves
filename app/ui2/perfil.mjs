@@ -5,8 +5,8 @@ import {escapeHtml as esc,memberDate} from "../views.mjs";
 import {mascotArt,mascotIcon} from "../mascot-art.mjs?v=tumbleweed";
 import {mascotStages} from "../mascot-progress.mjs?v=evergreen-2";
 import {readerLevelName} from "../reader-level-name.mjs";
-import {interestIcon,interestColor} from "../interests.mjs";
 import {icon} from "./icons.mjs";
+import {interestChipMarkup} from "./interest-chip.mjs";
 
 const READINGS=[["book-read","booksRead"],["book-reading","booksReading"],["deck-view","cardsViewed"]];
 const CONTRIBUTIONS=[["new-deck","decksCreated"],["take-note","cardsCreated"],["quote","quotesCreated"]];
@@ -14,7 +14,7 @@ const CONTRIBUTIONS=[["new-deck","decksCreated"],["take-note","cardsCreated"],["
 // Pure. `profile`: body of GET /api/profiles/:id; `prefs`: {interested,notInterested} (ids); `interests`: the catalog's.
 export function perfilData({profile,prefs,interests=[],viewerId,language}){
   const progression=profile.readerProgression||null,own=viewerId===profile.id;
-  const chip=id=>{const interest=interests.find(item=>item.id===id);return interest?{id,name:interest.name?.[language]||id,markup:interestIcon(interest),color:interestColor(interest)}:null;};
+  const chip=id=>{const interest=interests.find(item=>item.id===id);return interest?{id,name:interest.name?.[language]||id,interest}:null;};
   const list=ids=>(ids||[]).map(chip).filter(Boolean);
   const hasXp=own&&Number.isSafeInteger(progression?.xp)&&Number.isSafeInteger(progression.xpIntoLevel)&&Number.isSafeInteger(progression.xpForNextLevel)&&progression.xpForNextLevel>0;
   return {id:profile.id,own,name:profile.name,stage:progression?.stage||null,
@@ -48,7 +48,7 @@ function xpBar(data,c,language){
 }
 
 function interestRows(data,c){
-  const row=(kind,items,label)=>items.length?`<div class="pf-int-row"><span class="pf-mark pf-mark--${kind}" role="img" aria-label="${esc(label)}">${icon(kind==="yes"?"check":"close")}</span><ul class="pf-interests" role="list">${items.map(item=>`<li><span class="pf-chip"${item.color} role="img" aria-label="${esc(item.name)}">${item.markup}</span></li>`).join("")}</ul></div>`:"";
+  const row=(kind,items,label)=>items.length?`<div class="pf-int-row"><span class="pf-mark pf-mark--${kind}" role="img" aria-label="${esc(label)}">${icon(kind==="yes"?"check":"close")}</span><ul class="pf-interests" role="list">${items.map(item=>`<li>${interestChipMarkup({interest:item.interest,name:item.name,text:false,rejected:kind==="no",badge:false})}</li>`).join("")}</ul></div>`:"";
   const rows=row("yes",data.interests.yes,c.profileInterested)+row("no",data.interests.no,c.profileNotInterested);
   return rows?`<div class="pf-int-rows">${rows}</div>`:`<p class="pf-empty">${esc(c.profileInterestsEmpty)}</p>`;
 }

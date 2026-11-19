@@ -4,13 +4,13 @@
 import {escapeHtml as esc} from "../views.mjs";
 import {callout} from "../callout.mjs";
 import {loadingPlaceholder} from "../loading-placeholder.mjs";
-import {interestIcon,interestColor} from "../interests.mjs";
 import {MAX_BOOK_INTERESTS,bookInterestError,selectBookInterest} from "../book-interests.mjs";
 import {normalizeBookMetadata} from "../book-metadata.mjs";
 import {findBookTitleMatches} from "../book-duplicates.mjs";
 import {bookTitle,TITLE_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,BOOK_AUTHOR_MAX_LENGTH} from "../core.mjs";
 import {icon} from "./icons.mjs";
 import {flag} from "./book-sheet.mjs";
+import {interestChipMarkup} from "./interest-chip.mjs";
 
 export const DECK_LANGUAGES=[["es","Español"],["en","English"]];
 export const CONTRIBUTION_MODES=[["owner","ownerOnly"],["open","anyoneCanContribute"],["selected","selectedContributors"]];
@@ -71,9 +71,9 @@ function field({id,name,label,value,max,code,c,area=false,placeholder="",count=f
 
 export function interestPickerMarkup({interests,selected,code,language,c}){
   const chips=interests.filter(interest=>interest?.name?.[language]).map(interest=>{
-    const position=selected.indexOf(interest.id)+1,full=!position&&selected.length>=MAX_BOOK_INTERESTS;
-    return `<button type="button" class="int-chip" data-ui2="pick-interest" data-interest="${esc(interest.id)}" aria-pressed="${!!position}"${full?' aria-disabled="true"':""}${interestColor(interest)}>${interestIcon(interest)}<span>${esc(interest.name[language])}</span>`
-      +(position?`<span class="int-n" aria-hidden="true">${position}</span><span class="sr-only">${esc(c.bookInterestPosition(position))}</span>`:"")+`</button>`;
+    const position=selected.indexOf(interest.id)+1;
+    return interestChipMarkup({interest,name:interest.name[language],position,disabled:!position&&selected.length>=MAX_BOOK_INTERESTS,interactive:true,
+      attrs:`data-ui2="pick-interest" data-interest="${esc(interest.id)}"`,hint:position?c.bookInterestPosition(position):""});
   }).join("");
   return `<div class="ui2-field ui2-ints${code?" is-error":""}" role="group" aria-labelledby="ui2-ints-l" aria-describedby="ui2-ints-e" data-field="interests"><span class="ui2-flabel" id="ui2-ints-l"><span>${esc(c.interest)}</span><small class="ui2-fcount" aria-hidden="true">${selected.length}/${MAX_BOOK_INTERESTS}</small></span>`
     +callout({variant:"warning",width:"fill",role:"status",className:"ui2-ints-hint",main:c.ui2InterestHint})

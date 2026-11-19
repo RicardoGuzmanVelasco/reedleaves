@@ -83,7 +83,7 @@ test("While the AI searches: the sleeping sprout with its label, no close button
 test("A chosen interest shows its position; a touched empty field is marked invalid",()=>{
   const c=words.es,form={...newBookForm({requestId:"r"}),interests:["society"],touched:{title:true}};
   const html=bookFormMarkup({form,interests,duplicates:{books:[],blocked:false},language:"es",c});
-  assert.match(html,/data-interest="society" aria-pressed="true"[^>]*>[^]*?<span class="int-n" aria-hidden="true">1<\/span><span class="sr-only">1\. Principal<\/span>/);
+  assert.match(html,/aria-pressed="true" data-ui2="pick-interest" data-interest="society">[^]*?<b class="int-chip-n" aria-hidden="true">1<\/b><span class="sr-only">1\. Principal<\/span>/);
   assert.match(html,/id="ui2-bk-title"[^>]*aria-invalid="true"/);
   assert.match(html,new RegExp(c.aiInputRequired));
 });

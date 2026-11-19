@@ -7,7 +7,7 @@ import {cardTypeFor} from "../card-types.mjs";
 import {availableDecks,sortDecks} from "../decks.mjs";
 import {editableNoteDecks} from "../notes.mjs";
 import {DECK_ADD_COST} from "../wallet.mjs";
-import {interestIcon,interestColor} from "../interests.mjs";
+import {interestChipMarkup} from "./interest-chip.mjs";
 import {icon} from "./icons.mjs";
 import {bookEntry} from "./home.mjs";
 
@@ -115,7 +115,7 @@ export function bookPageData({catalog,state,language,bookId}){
 }
 
 export function bookPageMarkup({data,c}){
-  const chips=data.interests.map(({interest,name})=>`<span class="int-chip"${interestColor(interest)}>${interestIcon(interest)}${esc(name)}</span>`).join("");
+  const chips=data.interests.map(({interest,name})=>interestChipMarkup({interest,name})).join("");
   const added=data.creator?`<p class="bp-added"><span>${esc(c.bookAddedBy)}</span> `+(data.creator.id
     ?`<a class="card-attribution-row" href="${esc(`#profile/${encodeURIComponent(data.creator.id)}`)}">${attributionIcon("user")}<bdi>${esc(data.creator.name)}</bdi></a>`
     :`<span class="card-attribution-row">${attributionIcon("user")}<bdi>${esc(data.creator.name)}</bdi></span>`)+`</p>`:"";
