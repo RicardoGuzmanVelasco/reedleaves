@@ -45,7 +45,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // `legacy`: URL of the old interface, for destinations not built yet.
   let c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let auth=newAuth(),resume=null,inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
+  let auth=newAuth(),resume=null,resumeAfterHash=false,inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
   // The reader signed in, or null for a visitor (no session): what the signed-out screens and actions ask before touching personal data.
   const viewer=()=>session?.user??null,viewerId=()=>viewer()?.id??null;
   const navFor=active=>navMarkup({active,practicePending,c,wallet:viewer()?{leaves:reader?.wallet?.balance??0,petals:reader?.petals??0}:null});
@@ -323,7 +323,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     try{reader=await api.request("/api/reader/state");}catch{/* The balances refresh with the next load. */}
     if(edited)showToast(c.profileInterestSaved);
     render();
-    if(edited)focusInterestEdit();else receipt.present({userId,newlyGranted:result.newlyGranted});
+    if(edited)focusInterestEdit();else{receipt.present({userId,newlyGranted:result.newlyGranted});finishResume();}
   }
   // The first choice is mandatory: it opens while the reader has neither set up nor closed it.
   async function openInterestSetup(){
@@ -403,9 +403,12 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(failure&&blockingFailure(failure)){const lost=failure;failure=null;offerRetry(lost,task);}
     render();finishResume();
   }
+  // The action that asked for the sign-in runs once the reader is back where they were: not before the return's `hashchange`
+  // (it would clear what the action opens), and not while the mandatory first choice of interests is open (it calls this when it ends).
   function finishResume(){
+    if(!resume||resumeAfterHash||busy||interestFlow.state||!viewer()||!reader)return;
     const intent=resume;resume=null;
-    if(intent&&viewer()&&reader)queueMicrotask(()=>personal[intent.kind]?.(intent));
+    queueMicrotask(()=>personal[intent.kind]?.(intent));
   }
   function offerRetry(lost,task){
     showErrorScreen({message:errorInfo(lost,c).detail,c,doc,onRetry:async()=>{
@@ -447,7 +450,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   function lostSession(){
     hideErrorScreen(doc);interestFlow.dispose();
     const username=viewer()?.username||"";
-    session={user:null};reader=null;profile=null;profileAttempt=null;settings=null;failure=null;prompt=null;authoring=null;form=null;finish=null;removing=null;sheetState=null;busy=false;resume=null;
+    session={user:null};reader=null;profile=null;profileAttempt=null;settings=null;failure=null;prompt=null;authoring=null;form=null;finish=null;removing=null;sheetState=null;busy=false;resume=null;resumeAfterHash=false;
     auth=newAuth({username,error:"sessionExpired",...accessRequest({returnHash:win.location.hash})});
     if(win.location.hash!=="#account")win.location.hash="#account";else render();
   }
@@ -497,11 +500,11 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     session=state;inviteRequired=state.inviteRequired===true||inviteRequired;
     // A gated screen opened in place has no return address: the sign-in leaves them on it.
     const {intent}=attempt,returnHash=attempt.returnHash||(route().name==="account"?"#home":win.location.hash||"#home");auth=newAuth();
-    // Back to where they were; the action that asked for the sign-in finishes there, unless the first choice of interests is pending.
+    // Back to where they were; the action that asked for the sign-in finishes there.
     await run(async()=>{
       await enterApp({refreshCatalog:true});
-      resume=interestFlow.state?null:intent;
-      if(win.location.hash!==returnHash)win.location.hash=returnHash;
+      resume=intent;resumeAfterHash=win.location.hash!==returnHash;
+      if(resumeAfterHash)win.location.hash=returnHash;
     });
   }
 
@@ -794,6 +797,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(route().name!=="bookstore"){lb.visitId=null;lb.newIds=[];}
     if(toast&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
     render();
+    resumeAfterHash=false;finishResume();
     if(route().name==="practice"&&viewer())Promise.all([loadStreak(),loadTopics(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{if(route().name==="practice"&&!form)render();});
   });
 
