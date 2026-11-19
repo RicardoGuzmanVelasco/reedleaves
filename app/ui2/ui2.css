@@ -418,7 +418,7 @@ button.int-chip:disabled{opacity:1}
 .ui2-prize-tag{position:relative;display:inline-flex;flex:none;align-items:center;height:28px;margin:0 0 0 10px;padding:0 12px 0 28px;border:2px solid #173d2c;border-radius:999px;background:#ffe9a8;color:#173d2c;font-size:15px;font-weight:850;line-height:1;white-space:nowrap}
 .ui2-prize-tag__icon{position:absolute;left:-10px;top:50%;width:34px;height:34px;translate:0 -50%}
 .ui2-prize-tag__n{font-variant-numeric:tabular-nums}
-.ui2-prize-tag .ui2-prize-tag__medal{position:absolute;left:-10px;top:50%;translate:0 -50%;margin:0;width:2.15em;height:2.15em;font-size:14px;box-shadow:inset 0 0 0 2px #ffedbd,inset 0 0 0 3.5px #d5a851,0 2px 0 #a47a34}
+.ui2-prize-tag .level-sun{position:absolute;left:-10px;top:50%;translate:0 -50%;width:34px}
 .ui2-prize-tag__sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* ---- Formularios en hoja: catalogar libro y crear baraja ---- */
@@ -484,7 +484,18 @@ button.int-chip:disabled{opacity:1}
 .pf-xp{grid-column:1/-1;display:flex;align-items:center;gap:10px}
 .pf-bar.xp-meter-art{flex:1;width:auto;min-width:0}
 .pf-xp-fraction{margin:0;flex:none;padding-bottom:5px;font-size:11px;font-weight:800;color:var(--ui2-muted);font-variant-numeric:tabular-nums}
-.pf-medal{flex:none;margin:0;width:2.15em;height:2.15em;font-size:16px;box-shadow:inset 0 0 0 2px #ffedbd,inset 0 0 0 3.5px #d5a851,0 3px 0 #a47a34,0 5px 8px rgb(104 71 0 / 14%)}
+.level-sun{position:relative;display:inline-grid;place-items:center;flex:none;width:34.4px;aspect-ratio:1;container-type:inline-size;color:#66490f;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:normal}
+.level-sun svg{position:absolute;inset:50% auto auto 50%;translate:-50% -50%;width:114.8256%;height:auto;overflow:visible;filter:drop-shadow(0 1.5px 1px rgb(132 84 22 / 27%))}
+.level-sun .level-up-number{position:relative;font-size:33.43cqw}
+.level-sun .is-three{font-size:27.62cqw}
+.level-sun .is-long{font-size:21cqw}
+.ui2 .xp-feedback-gain{display:inline-flex;align-items:center;gap:4px}
+.ui2 .xp-feedback-gain .level-sun{width:26px}
+.ui2 .level-up-award .level-sun{width:clamp(65px,12.24vmin,101px);margin-top:-.3em}
+@media(prefers-reduced-motion:no-preference){
+  .level-sun.is-earned .level-sun-rays,.is-changing .level-sun-rays{transform-origin:25px 25px;animation:ui2-sun-rays .6s ease-in-out}
+  @keyframes ui2-sun-rays{0%,100%{transform:rotate(0) scale(1)}45%{transform:rotate(14deg) scale(1.07)}}
+}
 .pf-section{margin-top:22px}
 .pf-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--ui2-line)}
 .pf-section-head h2{margin:0;font-size:19px;font-weight:900;letter-spacing:-.04em}

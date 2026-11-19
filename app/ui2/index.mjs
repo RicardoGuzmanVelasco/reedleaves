@@ -36,6 +36,7 @@ import {createBookKnowledgeVisitId,visitVisitorBooks} from "../book-knowledge.mj
 import {coverTintGradients} from "../book-cover-tint.mjs";
 import {createNoteDrafts} from "../note-drafts.mjs";
 import {createBrowserStore,storageKeys} from "../storage.mjs";
+import {mountXpMeterArt} from "../xp-meter-art.mjs";
 import {createReaderXpTracker,mountReaderXpFeedback} from "../reader-xp-feedback.mjs?v=level-up-polish-2";
 import {noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMarkup} from "./markup.mjs";
 
@@ -56,7 +57,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   const SEARCH_DEBOUNCE_MS=400;
   const lb={query:"",filters:{...bookstoreDefaults},sort:"recent",prefs:null,newIds:[],visitId:null,open:false,draft:{...bookstoreDefaults},sortDraft:"recent",searching:false,timer:null};
   let xpFeedback=null;
-  try{xpFeedback=mountReaderXpFeedback(doc,()=>language,dialog=>dialog.showModal());}catch{xpFeedback=null;}
+  try{xpFeedback=mountReaderXpFeedback(doc,()=>language,dialog=>dialog.showModal(),{levelSun:true});}catch{xpFeedback=null;}
+
+  if(xpFeedback)mountXpMeterArt(doc,{showLevels:false});
 
   const decode=value=>{try{return decodeURIComponent(value);}catch{return value;}};
   const route=()=>{

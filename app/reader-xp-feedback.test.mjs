@@ -101,3 +101,11 @@ test("Only the reader's change of stage shows two mascots and the happy landing 
   assert.match(evolving,/data-mascot="seed" data-idle="float"/);
   assert.match(evolving,/data-expression="happy"/);
 });
+
+test("UI 2 names the celebration's sun with the localized level and keeps the XP announcement",()=>{
+  const gain=readerXpMessage({from:40,to:60},"en");
+  const html=levelUpMarkup(gain,"en",{levelSun:true});
+  assert.match(html,/id="level-up-title" role="img" aria-label="Level 2"/);
+  assert.match(html,/>\+20 XP</);
+  assert.doesNotMatch(levelUpMarkup(gain,"en"),/level-sun/);
+});

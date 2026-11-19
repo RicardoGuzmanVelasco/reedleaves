@@ -3,6 +3,7 @@ import {readerLevelName} from "./reader-level-name.mjs";
 import {mascotArt,playMascotJump} from "./mascot-art.mjs?v=level-up-polish-2";
 import {mascotFace} from "./mascot-face.mjs?v=evergreen-2";
 import {words} from "./i18n.mjs?v=evergreen-2";
+import {levelSunMarkup} from "./ui2/level-sun.mjs";
 
 const validXp=value=>Number.isSafeInteger(value)&&value>=0;
 
@@ -50,14 +51,18 @@ export function readerXpMessage({from,to},language) {
   return {kind,gain,label,detail,fraction,before,after};
 }
 
-export function levelUpMarkup({before,after,gain,fraction,kind},language) {
+export function levelUpMarkup({before,after,gain,fraction,kind},language,{levelSun=false}={}) {
   const c=words[language],level=c.readerLevelLabel(after.level.toLocaleString(language)),name=readerLevelName(after,language);
+  const formattedLevel=after.level.toLocaleString(language);
+  const award=levelSun
+    ?levelSunMarkup({number:formattedLevel,label:level,id:"level-up-title"})
+    :`<span class="level-up-medal" id="level-up-title" role="img" aria-label="${level}"><span class="level-up-number">${formattedLevel}</span></span>`;
   return `<form method="dialog" class="exclusive-card-shell level-up-scene">
     <button class="dialog-close level-up-close" aria-label="${c.readerDismissXp}">×</button>
     <div class="level-up-art" aria-hidden="true" data-evolves="${kind==="stage"}">
       ${kind==="stage"?mascotArt(before.stage,"level-up-before")+mascotArt(after.stage,"level-up-after",{expression:"happy"}):mascotArt(after.stage)}
     </div>
-    <div class="level-up-award"><span class="level-up-medal" id="level-up-title" role="img" aria-label="${level}"><span class="level-up-number">${after.level.toLocaleString(language)}</span></span></div>
+    <div class="level-up-award">${award}</div>
     <h1 id="level-up-name" aria-label="${name}">${name}</h1>
     <div class="level-up-progress" id="level-up-progress">
       <span class="sr-only">${gain}</span><strong class="level-up-gain" aria-hidden="true"></strong>
@@ -129,7 +134,7 @@ async function playLevelUp(dialog,{before,after,kind},language) {
   await transferXp(0,after.xpIntoLevel,after.xpForNextLevel,after.xpIntoLevel,550);
 }
 
-export function mountReaderXpFeedback(doc,readLanguage,showModal) {
+export function mountReaderXpFeedback(doc,readLanguage,showModal,{levelSun=false}={}) {
   const host=doc.getElementById("reader-xp-feedback");
   const celebration=doc.getElementById("level-up");
   const panel=host.querySelector(".xp-feedback-panel"),art=panel.querySelector(".xp-feedback-art");
@@ -167,7 +172,7 @@ export function mountReaderXpFeedback(doc,readLanguage,showModal) {
     }
     if(msg.kind!=="gain"){
       clear();
-      celebration.innerHTML=levelUpMarkup(msg,language);
+      celebration.innerHTML=levelUpMarkup(msg,language,{levelSun});
       showModal(celebration);
       void playLevelUp(celebration,msg,language);
       return;
@@ -180,7 +185,10 @@ export function mountReaderXpFeedback(doc,readLanguage,showModal) {
       art.innerHTML=mascotArt(stage);
       art.dataset.stage=stage;
     }
-    gain.textContent=msg.gain;
+    if(levelSun){
+      gain.innerHTML=levelSunMarkup({earned:painted!==pending});
+      gain.append(msg.gain);
+    }else gain.textContent=msg.gain;
     label.textContent=msg.label;
     detail.textContent=msg.detail;
     fraction.textContent=msg.fraction;

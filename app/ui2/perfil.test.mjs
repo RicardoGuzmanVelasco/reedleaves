@@ -21,6 +21,8 @@ test("Perfil shows base info, then Intereses, Lecturas, Contribuciones and Creci
 test("Own profile has the level bar inside the level, Ajustes and no shelf link; another reader's has the shelf link only",()=>{
   const mine=render(own());
   assert.match(mine,/aria-valuenow="80"[^>]*aria-valuemax="240"|aria-valuemax="240"[^>]*aria-valuenow="80"/);
+  assert.match(mine,/role="img" aria-label="Nivel 24"/);
+  assert.match(mine,/role="progressbar" aria-label="Nivel 25"/);
   assert.match(mine,/aria-label="Ajustes"/);
   assert.match(mine,/data-ui2="edit-interests"[^>]*aria-label="Editar"/);
   assert.ok(!mine.includes("Ver estantería"));

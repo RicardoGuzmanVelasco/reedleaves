@@ -5,6 +5,7 @@ import {escapeHtml as esc,memberDate} from "../views.mjs";
 import {mascotArt,mascotIcon} from "../mascot-art.mjs?v=tumbleweed";
 import {mascotStages} from "../mascot-progress.mjs?v=evergreen-2";
 import {readerLevelName} from "../reader-level-name.mjs";
+import {levelSunMarkup} from "./level-sun.mjs";
 import {icon} from "./icons.mjs";
 import {interestChipMarkup} from "./interest-chip.mjs";
 
@@ -42,9 +43,9 @@ const section=(title,inner,action="")=>`<section class="pf-section"><div class="
 function xpBar(data,c,language){
   if(!data.xp||!data.level)return "";
   const {into,next}=data.xp,fraction=`${number(into,language)} / ${number(next,language)}`;
-  return `<div class="pf-xp"><div class="pf-bar xp-meter-art xp-meter-art--liston" role="progressbar" aria-label="${esc(c.readerLevelLabel(number(data.level.number+1,language)))}" aria-valuemin="0" aria-valuemax="${next}" aria-valuenow="${into}" aria-valuetext="${esc(c.readerXpFraction(number(into,language),number(next,language)))}" data-ratio="${into/next}">`
-    +`<span class="level-up-medal pf-medal" role="img" aria-label="${esc(c.readerLevelLabel(number(data.level.number,language)))}"><span class="level-up-number">${number(data.level.number,language)}</span></span>`
-    +`<span class="xp-liston-plank" aria-hidden="true"><span class="xp-liston-paint"></span><span class="xp-liston-ticks"></span></span></div><p class="pf-xp-fraction" aria-hidden="true">${fraction}</p></div>`;
+  return `<div class="pf-xp"><div class="pf-bar xp-meter-art xp-meter-art--liston" data-ratio="${into/next}">`
+    +levelSunMarkup({number:number(data.level.number,language),label:c.readerLevelLabel(number(data.level.number,language))})
+    +`<span class="xp-liston-plank" role="progressbar" aria-label="${esc(c.readerLevelLabel(number(data.level.number+1,language)))}" aria-valuemin="0" aria-valuemax="${next}" aria-valuenow="${into}" aria-valuetext="${esc(c.readerXpFraction(number(into,language),number(next,language)))}"><span class="xp-liston-paint"></span><span class="xp-liston-ticks"></span></span></div><p class="pf-xp-fraction" aria-hidden="true">${fraction}</p></div>`;
 }
 
 function interestRows(data,c){

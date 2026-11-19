@@ -27,9 +27,9 @@ for(const language of ["es","en"]){
     assert.ok(html.includes(c.finishDeckTitle));assert.equal(html.match(/class="ui2-co /g).length,1);
     assert.match(html,/data-ui2="finish-keep"/);assert.match(html,/data-ui2="finish-confirm"/);assert.doesNotMatch(html,/mini-decks/);
   });
-  test(`The guide prize is the real reward on a level medal without number (${language})`,()=>{
+  test(`The guide prize is the real reward on a level sun without a level number (${language})`,()=>{
     const html=prizeTagMarkup({amount:READING_GUIDE_REWARD_XP,currency:"xp",c});
-    assert.match(html,new RegExp(`>\\+${READING_GUIDE_REWARD_XP}<`));assert.match(html,/level-up-medal[^>]*><\/span>/);assert.doesNotMatch(html,/<img/);
+    assert.match(html,new RegExp(`>\\+${READING_GUIDE_REWARD_XP}<`));assert.match(html,/level-sun" aria-hidden="true"/);assert.doesNotMatch(html,/level-up-number/);assert.ok(html.includes(`+${READING_GUIDE_REWARD_XP} XP`));
   });
   test(`A read book without own guide offers the tip callout with the reward (${language})`,()=>{
     const data=guideOffer=>({entry:{id:"b1",title:"Libro",titleLanguage:"es",author:"",status:"read",deckId:null},decks:[],anyDecks:true,store:false,guideOffer});
