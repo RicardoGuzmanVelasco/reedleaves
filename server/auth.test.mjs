@@ -7,6 +7,7 @@ import {createCatalogServer} from "./http.mjs";
 import {readSession,sessionCookie,SESSION_SECONDS,requireProductionInviteCode} from "./auth.mjs";
 import {INVITE_CODE_MIN_LENGTH} from "../app/core.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
+import {READING_GUIDE_MIN_LENGTH} from "../app/core.mjs";
 import {assignRole} from "./reader-roles.mjs";
 import {setCardSave} from "./card-saves.mjs";
 import {startPracticeSession} from "./practice-economy.mjs";
@@ -53,7 +54,7 @@ test("Only Archivists can list and decide guides in the app",async t=>{
   const {headers,result}=await register("guide.archivist");
   const userId=result.body.user.id;
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read')").run(userId,"atomic-habits");
-  const guide=await submitReadingGuide(db,{user_id:userId},{bookId:"atomic-habits",body:"Read this chapter slowly.",language:"en"});
+  const guide=await submitReadingGuide(db,{user_id:userId},{bookId:"atomic-habits",body:"Read this chapter slowly.".padEnd(READING_GUIDE_MIN_LENGTH,"."),language:"en"});
   assert.equal((await call("/api/reader/guide-reviews",undefined,headers)).status,403);
   await assignRole(db,"guide.archivist","archivist","grant");
   const queue=await call("/api/reader/guide-reviews",undefined,headers);
@@ -107,7 +108,7 @@ test("Practice start distinguishes legacy retry, canceled identity, and an expli
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'reading')").run(userId,"seven-habits");
   await db.prepare("INSERT INTO cardcase_decks(user_id,deck_id) VALUES (?,?)").run(userId,"seven-habits-editorial");
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read')").run(userId,"atomic-habits");
-  const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",language:"en",body:"A saved practice guide."});
+  const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",language:"en",body:"A saved practice guide.".padEnd(READING_GUIDE_MIN_LENGTH,".")});
   const normal=(await db.prepare("SELECT id FROM cards WHERE deck_id=? AND is_reading_guide=0 ORDER BY position LIMIT 5").all("seven-habits-editorial")).map(row=>row.id);
   for(const id of normal) await setCardSave(db,session,{cardId:id,saved:true},now);
   await db.prepare("UPDATE leaf_wallets SET balance=100 WHERE user_id=?").run(userId);

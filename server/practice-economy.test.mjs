@@ -8,6 +8,7 @@ import {startPracticeSession,answerPracticeSession,practiceDiscountMode,PRACTICE
 import {readReaderState,dailyIdea} from "./reader-repository.mjs";
 import {accruePetalWallet} from "./petal-wallet-repository.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
+import {READING_GUIDE_MIN_LENGTH} from "../app/core.mjs";
 import {setCardSave} from "./card-saves.mjs";
 import {readReaderLanguagePreferences,saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
 import {practiceDeckIds} from "./practice-card-access.mjs";
@@ -224,7 +225,7 @@ for(const dialect of ["sqlite","postgres"]) {
     await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read') ON CONFLICT(user_id,book_id) DO UPDATE SET status='read'").run(session.user_id,"atomic-habits");
     const started=await startPracticeSession(db,session,"saved",now),ids=[...started.session.cardIds];
     assert.deepEqual(started.session.languageSnapshot,["en"]);
-    const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",body:"A recovery guide.",language:"en"});
+    const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",body:"A recovery guide.".padEnd(READING_GUIDE_MIN_LENGTH,"."),language:"en"});
     ids[2]=guide.cardId;
     await db.prepare("DELETE FROM practice_session_cards WHERE session_id=? AND position=2").run(started.session.id);
     await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,2)").run(started.session.id,guide.cardId);
@@ -266,7 +267,7 @@ for(const dialect of ["sqlite","postgres"]) {
   test(`${dialect}: practice excludes guides in all modes and repairs a guide before answering`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read') ON CONFLICT(user_id,book_id) DO UPDATE SET status=excluded.status").run(session.user_id,"atomic-habits");
-    const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",body:"A useful reading guide.",language:"en"});
+    const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",body:"A useful reading guide.".padEnd(READING_GUIDE_MIN_LENGTH,"."),language:"en"});
     const regular=(await db.prepare("SELECT c.id FROM cards c JOIN decks d ON d.id=c.deck_id WHERE d.id=? AND c.is_reading_guide=0 ORDER BY c.position LIMIT 5").all("seven-habits-editorial")).map(row=>row.id);
     for(const id of regular) await setCardSave(db,session,{cardId:id,saved:true},now);
     await setCardSave(db,session,{cardId:guide.cardId,saved:true},now);
@@ -303,7 +304,7 @@ for(const dialect of ["sqlite","postgres"]) {
   test(`${dialect}: reconciliation keeps a historical guide in the answered prefix`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read') ON CONFLICT(user_id,book_id) DO UPDATE SET status=excluded.status").run(session.user_id,"atomic-habits");
-    const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",body:"Historical guide.",language:"en"});
+    const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",body:"Historical guide.".padEnd(READING_GUIDE_MIN_LENGTH,"."),language:"en"});
     const started=await startPracticeSession(db,session,"reading",now),ids=[...started.session.cardIds];ids[0]=guide.cardId;
     await db.prepare("DELETE FROM practice_session_cards WHERE session_id=? AND position=0").run(started.session.id);
     await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,0)").run(started.session.id,guide.cardId);
@@ -326,7 +327,7 @@ for(const dialect of ["sqlite","postgres"]) {
   test(`${dialect}: finish once when pending cards cannot be replaced, preserving history`,async t=>{
     const {db,session}=await fixture(t,dialect),now=new Date("2026-10-06T12:00:00.000Z");
     await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read') ON CONFLICT(user_id,book_id) DO UPDATE SET status=excluded.status").run(session.user_id,"atomic-habits");
-    const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",body:"A useful reading guide.",language:"en"});
+    const guide=await submitReadingGuide(db,session,{bookId:"atomic-habits",body:"A useful reading guide.".padEnd(READING_GUIDE_MIN_LENGTH,"."),language:"en"});
     const regular=(await db.prepare("SELECT c.id FROM cards c JOIN decks d ON d.id=c.deck_id WHERE d.id=? AND c.is_reading_guide=0 ORDER BY c.position LIMIT 5").all("seven-habits-editorial")).map(row=>row.id);
     for(const id of regular) await setCardSave(db,session,{cardId:id,saved:true},now);
     const initial=await readReaderState(db,session,now),started=await startPracticeSession(db,session,"saved",now),ids=[...started.session.cardIds];

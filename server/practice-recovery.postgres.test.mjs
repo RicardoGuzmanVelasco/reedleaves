@@ -6,6 +6,7 @@ import {seedCatalog} from "./seed.mjs";
 import {startPracticeSession,answerPracticeSession,PRACTICE_SESSION_SIZE} from "./practice-economy.mjs";
 import {readReaderState,addDeckToCardcase,openDeck,changePreferences} from "./reader-repository.mjs";
 import {submitReadingGuide} from "./reading-guides.mjs";
+import {READING_GUIDE_MIN_LENGTH} from "../app/core.mjs";
 import {setCardSave} from "./card-saves.mjs";
 import {saveReaderLanguagePreferences} from "./reader-language-preferences.mjs";
 import {dailyCycleDay,DAILY_CYCLE_STARTS} from "./daily-cycle.mjs";
@@ -43,7 +44,7 @@ async function createReader(db,label) {
 
 async function addGuide(db,reader) {
   await db.prepare("INSERT INTO book_reading(user_id,book_id,status) VALUES (?,?,'read')").run(reader.id,"atomic-habits");
-  return submitReadingGuide(db,reader.session,{bookId:"atomic-habits",language:"en",body:`Useful guide ${reader.id}.`});
+  return submitReadingGuide(db,reader.session,{bookId:"atomic-habits",language:"en",body:`Useful guide ${reader.id}.`.padEnd(READING_GUIDE_MIN_LENGTH,".")});
 }
 
 async function swapSessionCard(db,started,position,cardId) {
