@@ -102,10 +102,10 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 
 ## Estado de la interfaz nueva (2026-11-18)
 
-- En `Staging` con `?ui=2`: Home, Tomar nota (B y C), Repaso, Biblioteca (Estantería, Tarjetero, hoja del libro, «Leído», vacíos), Librería y ficha del libro, página de baraja, componente de price tag (`app/ui2/price-tag.mjs`, V1+), Perfil propio y ajeno (`app/ui2/perfil.mjs`) y Ajustes (`app/ui2/ajustes.mjs`: idioma, idiomas de las tarjetas, portadas tintadas, comentarios y cerrar sesión con confirmación).
-- Diseñadas sin implementar (mockups en el scratchpad de la sesión; no versionados): Sesión de práctica, Acceso y onboarding, Formularios y diálogos (aviso de interés, Catalogar nuevo libro, Crear baraja, saldo, red), Terminar baraja y «Leído» (flujo E), Barajas ajenas, perfil ajeno y Social (flujo F).
+- En `Staging` con `?ui=2`: Home, Tomar nota (B y C), Repaso, Biblioteca (Estantería, Tarjetero, hoja del libro, «Leído», vacíos), Librería y ficha del libro, página de baraja, componente de price tag (`app/ui2/price-tag.mjs`, V1+), Perfil propio y ajeno (`app/ui2/perfil.mjs`), Ajustes (`app/ui2/ajustes.mjs`: idioma, idiomas de las tarjetas, portadas tintadas, comentarios y cerrar sesión con confirmación), Acceso (`acceso.mjs`: entrar, crear cuenta, consejo de crear cuenta tras credenciales erróneas, sesión caducada), elección de intereses del alta y su edición desde el Perfil (`intereses.mjs`, sobre `initial-interests.mjs`), carga inicial con brote dormido y botón «Echar un vistazo / por la librería» en Inicio vacío.
+- Diseñadas sin implementar (mockups en el scratchpad de la sesión; no versionados): Sesión de práctica, Formularios y diálogos (aviso de interés, Catalogar nuevo libro, Crear baraja, saldo, red), Terminar baraja y «Leído» (flujo E), Barajas ajenas, perfil ajeno y Social (flujo F).
 - Por diseñar: vista de tarjetas (D6/D7), pantalla «Editar baraja», Social (si entra en el producto).
-- Editor de intereses: rediseñar en ui2 (hoy reutiliza el de la UI vieja desde el lápiz del Perfil).
+- Sin sesión, «Echar un vistazo por la librería» abre la Librería de la UI vieja (la de ui2 exige sesión); decidir si ui2 tendrá Librería de visitante. Tras guardar los intereses del alta, el saldo se actualiza sin la animación de recibo de la UI vieja.
 - Perfil ajeno: «Ver estantería» aún abre la Estantería de la UI vieja.
 - Pendiente técnico: «Catalogar nuevo libro» y «Leer tarjetas» aún abren la UI vieja; el toast «Baraja añadida al tarjetero.» no cruza esa navegación; aviso de interés (`confirmationRequired`) sin diálogo ui2.
 - Transversal: revisar discrepancias de callouts y unificar: mismo icono y color por significado (error, warning, consejo) en toda la app.

@@ -5,7 +5,7 @@ import {words} from "../i18n.mjs";
 import {readerState,emptyCatalog} from "../../test-support/reader-state.mjs";
 import {deckOutline,placementTargets,deckCapabilities,ownDecks,parentOf} from "./outline.mjs";
 import {outlineMarkup,noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMarkup} from "./markup.mjs";
-import {errorInfo} from "./errors.mjs";
+import {errorInfo,sessionLost} from "./errors.mjs";
 import {ui2Enabled} from "./index.mjs";
 
 const card=(id,parentId,order,isQuote=false)=>({id,bookId:"b",deckId:"d",deckLanguage:"es",language:"es",parentId,order,isQuote,
@@ -127,4 +127,10 @@ for(const language of ["es","en"])test(`Error modal is an alertdialog with title
   const closeOnly=errorModalMarkup({info:errorInfo({code:"deckReadOnly",status:409},c),retry:true,c});
   assert.doesNotMatch(closeOnly,/data-ui2="retry"/);assert.match(closeOnly,/data-ui2="error-close"/);
   assert.match(toastMarkup({deckId:"d",c}),new RegExp(`role="status"[\\s\\S]*${c.ui2NoteSaved}[\\s\\S]*data-icon="deck"[\\s\\S]*${c.viewDeck}`));
+});
+
+test("A 401 or a session code sends the reader back to Acceso; other failures do not",()=>{
+  assert.equal(sessionLost({status:401,code:"x"}),true);
+  assert.equal(sessionLost({code:"sessionExpired"}),true);assert.equal(sessionLost({code:"signInRequired",status:401}),true);
+  assert.equal(sessionLost({code:"connectionError"}),false);assert.equal(sessionLost({code:"noteConflict",status:409}),false);
 });

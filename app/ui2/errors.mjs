@@ -26,3 +26,6 @@ export function practiceStartDetail(result,cost,c){
   if(reason==="practicePriceChanged"||reason==="practiceSessionCancelled"||reason==="practiceSessionUnavailable")return c[reason];
   return c.practiceNoCards;
 }
+
+// The server no longer knows the session (it ended, or it never existed): back to Acceso.
+export const sessionLost=failure=>failure?.status===401||failure?.code==="sessionExpired"||failure?.code==="signInRequired";

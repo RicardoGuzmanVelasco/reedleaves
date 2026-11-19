@@ -7,7 +7,7 @@ import {submitEdit} from "./edit-note.mjs";
 import {installIconStyles} from "./icons.mjs";
 import {homeData,homeMarkup,inProgressDeck} from "./home.mjs";
 import {navMarkup,shellMarkup,headerMarkup} from "./shell.mjs";
-import {errorInfo,practiceStartDetail,blockingFailure} from "./errors.mjs";
+import {errorInfo,practiceStartDetail,blockingFailure,sessionLost} from "./errors.mjs";
 import {showErrorScreen,hideErrorScreen,raiseErrorScreen} from "./error-screen.mjs";
 import {newBookForm,newDeckForm,bookFormErrors,deckFormErrors,visibleErrors,toggleInterest,bookDuplicates,canSubmitBook,autofillInput,applyAutofill,bookCreateInput,deckCreateInput,bookFormMarkup,deckFormMarkup,duplicatesMarkup,syncFieldError,interestWarningMarkup,INSUFFICIENT_BALANCE,balanceMessage,balanceModalMarkup} from "./forms.mjs";
 import {DECK_ADD_COST} from "../wallet.mjs";
@@ -23,7 +23,9 @@ import {deckShareUrl} from "../deck-navigation.mjs";
 import {libreriaData,libreriaMarkup,libreriaResultsMarkup,searchingMarkup} from "./libreria.mjs";
 import {mountInterests} from "../interests.mjs";
 import {loadingPlaceholder} from "../loading-placeholder.mjs";
-import {mountInitialInterests} from "../initial-interests-ui.mjs";
+import {createInitialInterestFlow} from "../initial-interests.mjs";
+import {newAuth,authErrorField,createFromSignIn,toggleMode,accesoMarkup} from "./acceso.mjs";
+import {interestsMarkup} from "./intereses.mjs";
 import {bookstoreFiltersMarkup} from "../views.mjs";
 import {bookstoreDefaults} from "../book-search.mjs";
 import {validBookstoreSortOrder} from "../book-sort.mjs";
@@ -41,7 +43,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // `legacy`: URL of the old interface, for destinations not built yet.
   let c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
+  let auth=newAuth(),inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
   const navFor=active=>navMarkup({active,practicePending,c,wallet:{leaves:reader?.wallet?.balance??0,petals:reader?.petals??0}});
   const drafts=createNoteDrafts(store),observeXp=createReaderXpTracker();
   let shelfViews=(()=>{const saved=store.read(storageKeys.shelfViews);return saved&&typeof saved==="object"?saved:{};})(),disposeLists=()=>{};
@@ -132,6 +134,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   // The interest warning and, over everything, the business error (not enough balance has its own modal).
   function withError(html){
+    if(interestFlow.state)html+=interestsMarkup({flow:interestFlow.state,language,c});
     if(prompt)html+=interestWarningMarkup({prompt,c});
     if(!failure)return html;
     if(INSUFFICIENT_BALANCE.has(failure.code))return html+balanceModalMarkup({message:balanceMessage(failure,{leaves:reader?.wallet?.balance??0,cost:DECK_ADD_COST,c}),c});
@@ -157,7 +160,12 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   function render(){
     clearInterval(streakTimer);streakTimer=null;
-    if(!session?.user){main.innerHTML=`<div class="ui2-body"><a class="ui2-btn" href="${win.location.pathname}">${c.signIn}</a></div>`;return;}
+    if(!session?.user){
+      doc.body.classList.remove("has-bottom-navigation");
+      paint(accesoMarkup({auth,inviteRequired,c,legacy:c.legacy}));
+      return;
+    }
+    if(!reader){paint(`<div class="ui2-center">${loadingPlaceholder(c.busyOpening,{visible:true})}</div>`);return;}
     const where=route(),view=current(),shell=where.name==="home"||where.name==="bookstore"||where.name==="library"||where.name==="cardcase"||where.name==="practice"||where.name==="book"||where.name==="profile"||(where.name==="deck"&&!!view);
     doc.body.classList.toggle("has-bottom-navigation",shell&&!form);
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
@@ -258,7 +266,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   function applyLanguage(next){
     language=next;c={...words[language],legacy:win.location.pathname};store.save(storageKeys.language,language);
-    doc.documentElement.lang=language;interestEditor.setLanguage(language);
+    doc.documentElement.lang=language;
   }
   function sendFeedback(){
     const message=settings?.feedback?.message.trim();if(!message)return;
@@ -270,15 +278,43 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     catch(caught){if(caught?.status===409&&caught.current){edit.conflict=true;edit.current=caught.current;return;}throw caught;}
     settings.edit=null;showToast(c.profileLanguagesSaved);
   }
-  // The interest editor of the old interface (two steps, same API), mounted outside `main` so repainting does not close it.
-  const interestHost=doc.createElement("div");interestHost.id="ui2-interest-host";doc.body.append(interestHost);
+  // Elección de intereses: la del alta (obligatoria, tras crear la cuenta) y la edición del Perfil. Un solo flujo (initial-interests.mjs).
   const focusInterestEdit=()=>main.querySelector('[data-ui2="edit-interests"]')?.focus({preventScroll:true});
-  const interestEditor=mountInitialInterests({host:interestHost,language,store,request:(path,body)=>api.request(path,body),onCancel:focusInterestEdit,
-    onComplete:(result,userId)=>{
-      if(session.user?.id!==userId)return;
-      if(profile?.id===userId&&profile.prefs)profile={...profile,prefs:result.state};
-      showToast(c.profileInterestSaved);render();focusInterestEdit();
-    },onSessionExpired:()=>win.location.reload()});
+  let interestStep=null,interestMode=null,interestErrorShown=false;
+  const interestFlow=createInitialInterestFlow({store,request:(path,body)=>api.request(path,body),
+    onChange:state=>{
+      interestMode=state?.mode||interestMode;
+      if(!state?.error)interestErrorShown=false;
+      else if(!interestErrorShown){interestErrorShown=true;offerInterestRetry(state.error);}
+      render();
+      const step=state?.draft.step??null;
+      if(step&&step!==interestStep)main.querySelector("#ui2-onb-title")?.focus({preventScroll:true});
+      interestStep=step;
+    },
+    onComplete:(result,userId)=>{finishInterests(result,userId);},
+    onSessionExpired:()=>lostSession(),onCancel:focusInterestEdit});
+  // A failed save (connection or server) goes to the error screen; Retry saves again with the same choice.
+  function offerInterestRetry(code){
+    showErrorScreen({message:c[code]||c.connectionError,c,doc,onRetry:async()=>{
+      const result=await interestFlow.save();
+      if(!result.saved&&result.error&&result.error.status!==409&&result.error.status!==401)throw result.error;
+    }});
+  }
+  async function finishInterests(result,userId){
+    if(session?.user?.id!==userId)return;
+    const edited=interestMode==="edit";
+    if(edited&&profile?.id===userId&&profile.prefs)profile={...profile,prefs:result.state};
+    // The reward of the first choice is already in the server's balances.
+    try{reader=await api.request("/api/reader/state");}catch{/* The balances refresh with the next load. */}
+    if(edited)showToast(c.profileInterestSaved);
+    render();
+    if(edited)focusInterestEdit();
+  }
+  // The first choice is mandatory: it opens while the reader has neither set up nor closed it.
+  async function openInterestSetup(){
+    const preferences=await api.request("/api/reader/interests/preferences");
+    if(!preferences.configured&&!preferences.initialOpportunityClosed&&session?.user)interestFlow.open({userId:session.user.id,catalog,preferences});
+  }
   const libreriaState=()=>({...reader,catalog});
   const libreriaBooks=()=>libreriaData({catalog,state:libreriaState(),language,query:lb.query,filters:lb.filters,sortOrder:lb.sort,interestPreferences:lb.prefs,newBookIds:lb.newIds});
   // Only the results change while searching, so the input keeps its focus.
@@ -342,6 +378,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(busy)return;busy=true;failure=null;
     try{await task();}catch(caught){failure=asFailure(caught);}
     busy=false;
+    if(failure&&sessionLost(failure)){failure=null;lostSession();return;}
     // No connection or a server error: the full-screen error, whose Retry runs the same task again.
     if(failure&&blockingFailure(failure)){const lost=failure;failure=null;offerRetry(lost,task);}
     render();
@@ -350,7 +387,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     showErrorScreen({message:errorInfo(lost,c).detail,c,doc,onRetry:async()=>{
       busy=true;
       try{await task();}
-      catch(caught){const next=asFailure(caught);if(blockingFailure(next))offerRetry(next,task);else failure=next;}
+      catch(caught){const next=asFailure(caught);if(blockingFailure(next))offerRetry(next,task);else if(!sessionLost(next))failure=next;else{busy=false;lostSession();return;}}
       busy=false;render();
     }});
   }
@@ -380,6 +417,35 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     });
   }
 
+  // ---- Acceso ----
+  const timeZone=()=>Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // The session ended (401): back to Acceso with the username kept and the warning; the reader returns to where they were.
+  function lostSession(){
+    hideErrorScreen(doc);interestFlow.dispose();
+    const username=session?.user?.username||"";
+    session={user:null};reader=null;profile=null;profileAttempt=null;settings=null;failure=null;prompt=null;authoring=null;form=null;finish=null;removing=null;sheetState=null;busy=false;
+    auth=newAuth({username,error:"sessionExpired"});render();
+  }
+  const focusAuth=name=>main.querySelector({username:"#ui2-au-user",password:"#ui2-au-pass",invite:"#ui2-au-invite"}[name]||".ui2-auth-submit")?.focus({preventScroll:true});
+  // Everything the signed-in screens need; run() shows the error screen with Retry when it fails.
+  const enterApp=async()=>{reader=await api.request("/api/reader/state");await Promise.all([loadStreak(),loadTopics()]);await openInterestSetup();};
+  async function submitAuth(){
+    if(auth.busy)return;
+    const attempt=auth;
+    auth={...attempt,busy:true,error:null,suggest:false,created:false};render();
+    let state;
+    try{state=await api.request(`/api/auth/${attempt.mode}`,{username:attempt.username,password:attempt.password,inviteCode:attempt.mode==="register"?attempt.invite:undefined,language,timeZone:timeZone()});}
+    catch(caught){
+      const failed=asFailure(caught);
+      auth={...attempt,busy:false};
+      if(blockingFailure(failed)){render();showErrorScreen({message:errorInfo(failed,c).detail,c,doc,onRetry:()=>{hideErrorScreen(doc);submitAuth();}});return;}
+      auth={...auth,error:failed.code,suggest:attempt.mode==="login"&&failed.code==="invalidCredentials"};
+      render();focusAuth(authErrorField(failed.code));return;
+    }
+    session=state;inviteRequired=state.inviteRequired===true||inviteRequired;auth=newAuth();
+    await run(enterApp);
+  }
+
   // ---- catalog a new book / create a deck ----
   const aiMessage=failed=>/^ai/.test(failed.code||"")?(typeof c[failed.code]==="string"?c[failed.code]:c.aiError):errorInfo(failed,c).detail;
   // AI errors go to the error screen; Retry closes it and searches again with the form intact.
@@ -389,7 +455,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     catch(caught){
       const failed=asFailure(caught);
       busy=false;
-      if(failed.status===401||failed.code==="sessionExpired"||failed.code==="signInRequired"){failure=failed;render();return;}
+      if(sessionLost(failed)){lostSession();return;}
       render();
       showErrorScreen({message:aiMessage(failed),c,doc,onRetry:()=>{hideErrorScreen(doc);runAi(task);}});
       return;
@@ -526,6 +592,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       refreshResults();
     }
     else if(action==="reset-filters"){clearTimeout(lb.timer);lb.query="";lb.filters={...bookstoreDefaults};lb.searching=false;render();}
+    else if(action==="auth-toggle"&&!auth.busy){auth=toggleMode(auth);render();focusAuth("username");}
+    else if(action==="auth-create"&&!auth.busy){auth=createFromSignIn(auth);render();focusAuth(inviteRequired?"invite":"submit");}
     else if(action==="open-settings")openSettings();
     else if(action==="settings-close"){settings=null;render();main.querySelector('[data-ui2="open-settings"]')?.focus({preventScroll:true});}
     else if(action==="set-language"&&settings&&target.dataset.language!==language)run(async()=>{await api.request("/api/reader/preferences",{language:target.dataset.language});applyLanguage(target.dataset.language);});
@@ -538,7 +606,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(action==="open-sign-out"&&settings){settings.confirmOut=true;render();}
     else if(action==="sign-out-cancel"&&settings){settings.confirmOut=false;render();}
     else if(action==="sign-out-confirm")run(async()=>{await api.request("/api/auth/logout",{});win.location.hash="#home";win.location.reload();});
-    else if(action==="edit-interests"){if(profile?.prefs&&profile.id===session.user.id)interestEditor.open({userId:profile.id,catalog,preferences:profile.prefs,mode:"edit"});}
+    else if(action==="edit-interests"){if(profile?.prefs&&profile.id===session.user.id)interestFlow.open({userId:profile.id,catalog,preferences:profile.prefs,mode:"edit"});}
     else if(action==="page-back"){if(win.history.length>1)win.history.back();else win.location.hash=route().name==="deck"?"#library":"#bookstore";}
     else if(action==="lib-tab"){win.location.hash=target.dataset.tab==="cardcase"?"#library/cardcase":"#library";}
     else if(action==="book-status"){
@@ -601,12 +669,23 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       run(async()=>{await api.request("/api/author/notes/place",{cardId,parentId});await reload();});
     }
   });
-  // While the AI searches, the form sheet cannot be dismissed with Esc.
-  main.addEventListener("cancel",event=>{if(event.target.matches?.("[data-ui2-authoring-sheet]")&&authoring?.searching)event.preventDefault();},true);
+  main.addEventListener("click",event=>{
+    const chip=event.target.closest("[data-ui2-int]");
+    if(chip){
+      interestFlow.toggle(chip.dataset.interest,chip.dataset.ui2Int);
+      main.querySelector(`[data-ui2-int][data-interest="${CSS.escape(chip.dataset.interest)}"]`)?.focus({preventScroll:true});
+      return;
+    }
+    const action=event.target.closest("[data-ui2-int-action]")?.dataset.ui2IntAction;
+    if(action==="back")interestFlow.back();else if(action==="recover")void interestFlow.recover();else if(action==="cancel")interestFlow.cancel();
+  });
+  // The first choice cannot be dismissed; the edit one closes like any sheet. While the AI searches, the form sheet cannot be dismissed with Esc.
+  main.addEventListener("cancel",event=>{if(event.target.matches?.("[data-ui2-authoring-sheet]")&&authoring?.searching||event.target.matches?.(".ui2-onb--initial"))event.preventDefault();},true);
   main.addEventListener("close",event=>{
     if(event.target.matches?.(".ui2-settings")&&settings){settings=null;render();}
     else if(event.target.matches?.(".ui2-feedbackdialog")&&settings?.feedback){settings.feedback=null;render();}
     else if(event.target.matches?.(".ui2-signoutdialog")&&settings?.confirmOut){settings.confirmOut=false;render();}
+    else if(event.target.matches?.(".ui2-onb")){if(interestFlow.state?.mode==="edit")interestFlow.cancel();render();}
     else if(event.target.matches?.("[data-ui2-authoring-sheet]")){if(authoring&&!authoring.searching)authoring=null;render();}
     else if(event.target.matches?.(".ui2-interestdialog")){if(prompt){prompt=null;render();}}
     else if(event.target.matches?.("dialog[data-ui2-modal]")&&failure){failure=null;render();}
@@ -616,6 +695,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(event.target.matches?.("dialog[data-ui2-sheet]")&&sheetState){sheetState=null;render();}
   },true);
   main.addEventListener("input",event=>{
+    if(event.target.closest?.("[data-ui2-auth]")){const key={username:"username",password:"password",inviteCode:"invite"}[event.target.name];if(key)auth[key]=event.target.value;return;}
     if(settings?.feedback&&event.target.id==="ui2-fb-message"){
       settings.feedback.message=event.target.value;
       const send=main.querySelector(".ui2-feedbackdialog [type=submit]");if(send)send.disabled=!event.target.value.trim();return;
@@ -659,9 +739,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const key=event.target.dataset?.bookstoreFilter;
     if(key&&key in lb.draft)lb.draft[key]=event.target.value;
   });
-  main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-search]")){settleSearch();return;}if(event.target.matches("[data-ui2-feedback]")){sendFeedback();return;}if(event.target.matches("[data-ui2-authoring]")){submitAuthoring();return;}submit();});
+  main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-auth]")){void submitAuth();return;}if(event.target.matches("[data-ui2-interest-form]")){if(interestFlow.state?.draft.step===1)interestFlow.next();else void interestFlow.save();return;}if(event.target.matches("[data-ui2-search]")){settleSearch();return;}if(event.target.matches("[data-ui2-feedback]")){sendFeedback();return;}if(event.target.matches("[data-ui2-authoring]")){submitAuthoring();return;}submit();});
   win.addEventListener("hashchange",()=>{
-    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;profileAttempt=null;settings=null;interestEditor.dispose();
+    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;profileAttempt=null;settings=null;if(interestFlow.state?.mode==="edit")interestFlow.dispose();
     clearTimeout(lb.timer);lb.searching=false;lb.open=false;
     if(route().name!=="bookstore"){lb.visitId=null;lb.newIds=[];}
     if(toast&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
@@ -669,7 +749,11 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(route().name==="practice")Promise.all([loadStreak(),loadTopics(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{if(route().name==="practice"&&!form)render();});
   });
 
-  async function start(){session=await api.request("/api/session");catalog=await loadCatalog();if(session.user){reader=await api.request("/api/reader/state");await Promise.all([loadStreak(),loadTopics()]);}}
+  async function start(){
+    session=await api.request("/api/session");inviteRequired=session.inviteRequired===true;catalog=await loadCatalog();
+    if(session.user)await enterApp();
+  }
+  main.innerHTML=`<div class="ui2-center">${loadingPlaceholder(c.busyOpening,{visible:true})}</div>`;
   try{await start();}
   catch(caught){showErrorScreen({message:errorInfo(asFailure(caught),c).detail,c,doc,onRetry:async()=>{await start();render();}});return;}
   render();

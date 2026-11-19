@@ -60,6 +60,7 @@ for(const language of ["es","en"])test(`Home without books shows the rolling tum
   assert.match(html,/data-mascot="tumbleweed" data-idle="tumble"/);
   assert.ok(html.includes(c.ui2NotReading));
   assert.ok(words.en.ui2NotReading==="You’re not reading any book");
+  assert.match(html,/<a class="ui2-btn secondary--subtle ui2-explore" href="#bookstore">[^]*data-icon="bookstore"/);
 });
 
 test("Tab bar: five pieces in the old order, one active, Social disabled",()=>{

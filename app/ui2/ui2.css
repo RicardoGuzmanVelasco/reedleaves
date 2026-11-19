@@ -537,3 +537,41 @@ button.int-chip:disabled{opacity:1}
 .st-actions{display:flex;gap:10px}.st-actions .ui2-btn{flex:1}
 .st-loading{display:flex;justify-content:center;padding:8px 0}
 .st-sec .cover-tint-options{display:flex;width:100%}
+
+/* ---- Callouts estándar (callout.mjs): error rojo y warning naranja con alerta, consejo verde con bombilla ---- */
+.ui2-co .callout__main{display:flex;align-items:flex-start;gap:10px;text-align:left;font-size:13.5px;font-weight:650;line-height:1.4}
+.ui2-co .ui2-icon{width:20px;height:20px;margin-top:0}
+.ui2-co-body{flex:1;min-width:0}
+.ui2-co-body p{margin:0}.ui2-co-body p+p{margin-top:5px}
+.ui2-co-title{font-weight:900;font-size:16px;letter-spacing:-.01em}
+.ui2-co-btn{margin-top:10px;min-height:44px}
+/* ---- Acceso, carga y Librería sin sesión ---- */
+.ui2-center{flex:1;display:grid;place-items:center;padding:0 18px}
+.ui2-center .loading-placeholder{min-height:0}
+.ui2-explore{width:auto;align-self:center;text-align:left;padding:8px 18px;line-height:1.2}
+.ui2-explore .ui2-icon{width:22px;height:22px}
+.ui2-auth{width:100%;max-width:420px;margin:0 auto;padding:12px 18px calc(28px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+.ui2-auth-head{display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px 0 4px}
+.ui2-auth-mascot{display:block;flex:none;width:96px;height:96px}
+.ui2-auth-head h1{margin:0;font-size:30px;letter-spacing:-.045em;line-height:1.1}
+.ui2-auth-form fieldset{display:flex;flex-direction:column;gap:6px;min-width:0;margin:0;padding:0;border:0}
+.ui2-auth-field{margin-top:8px}
+.ui2-auth-field label{font-size:14px;font-weight:850}
+.ui2-auth-field input{min-height:50px;padding:8px 14px;border:2px solid var(--ui2-sage);border-radius:15px;background:var(--ui2-card);box-shadow:0 3px 0 var(--ui2-card-shadow);font-size:16px}
+.ui2-auth-field.is-error input{box-shadow:0 3px 0 #e6b1ab}
+.ui2-auth-field small{font-size:12.5px;color:var(--ui2-muted);line-height:1.35}
+.ui2-auth-submit{margin-top:14px}
+.ui2-auth-switch{align-self:center}
+@media(min-width:900px){.ui2-auth{margin-block:auto;padding:30px 6px}}
+/* ---- Elección de intereses (alta y edición) ---- */
+.ui2-onb--initial .ui2-grab{display:none}
+.ui2-onb-body{align-items:stretch;gap:12px;padding-top:6px}
+.ui2-onb-head{position:relative;display:flex;align-items:center;justify-content:center;min-height:44px}
+.ui2-onb-back{position:absolute;left:-10px;top:0}
+.ui2-onb .initial-interest-progress>span:not(.initial-interest-progress-line){width:28px;height:28px;font-size:13px}
+.ui2-onb-body h1{margin:4px 0 0;font-size:25px;letter-spacing:-.045em;line-height:1.12;text-align:center}
+.ui2-onb-purpose{margin:0;font-size:13.5px;line-height:1.4;color:var(--ui2-muted);text-align:center}
+.ui2-onb-chips{margin:4px 0}
+.ui2-onb-tip .ui2-rw{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ui2-onb-tip .ui2-rw-sub{font-size:12.5px;font-weight:700;opacity:.85}
+@media(max-width:899px){.ui2-sheet.ui2-fsheet.ui2-onb--initial{height:100dvh;margin:0;border-top:0;border-radius:0}}

@@ -164,3 +164,6 @@ Object.assign(words.en,{ui2ProfileReadings:"Readings",ui2ProfileGrowth:"Current 
 // Confirmación de cerrar sesión de la interfaz nueva (?ui=2).
 Object.assign(words.es,{ui2SignOutTitle:"¿Cerrar sesión?",ui2SignOutNote:"Tus datos se conservan; podrás volver a entrar cuando quieras."});
 Object.assign(words.en,{ui2SignOutTitle:"Sign out?",ui2SignOutNote:"Your data is kept; you can sign back in whenever you like."});
+// Acceso y arranque de la interfaz nueva (?ui=2). El botón de la Librería lo aprobó el usuario en español; el resto en inglés es propuesto.
+Object.assign(words.es,{ui2LookAround:"Echar un vistazo\npor la librería",ui2CreatingAccount:"¿Estás creando una cuenta?",ui2CompleteFields:"¡Completa el resto de campos y crea tu cuenta!"});
+Object.assign(words.en,{ui2LookAround:"Have a look around\nthe bookstore",ui2CreatingAccount:"Are you creating an account?",ui2CompleteFields:"Fill in the remaining fields and create your account!"});
