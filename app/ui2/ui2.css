@@ -462,8 +462,8 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .pf-screen{padding-bottom:12px}
 .pf-title{display:flex;align-items:center;gap:4px;margin:2px 0 6px}
 .pf-title h1{flex:1;margin:0;font-size:23px;letter-spacing:-.04em}
-.ui2-btn.pf-gear{width:48px;min-height:44px;padding:0;border-radius:15px;box-shadow:0 3px 0 #c9d7b8;flex:none}
-.ui2-btn.pf-gear .ui2-icon{width:22px;height:22px}
+.ui2-btn.pf-gear,.ui2-btn.pf-edit{width:48px;min-height:44px;padding:0;border-radius:15px;box-shadow:0 3px 0 #c9d7b8;flex:none}
+.ui2-btn.pf-gear .ui2-icon,.ui2-btn.pf-edit .ui2-icon{width:22px;height:22px}
 .pf-heading{display:grid;grid-template-columns:96px 1fr;gap:4px 14px;align-items:center}
 .pf-avatar{width:96px;height:96px;display:grid;place-items:center;border-radius:50%;border:3px solid #b8cd9e;background:radial-gradient(circle at 45% 30%,#fffdf6,#e4efcc 72%);box-shadow:0 4px 0 #c9d9ae}
 .pf-avatar .mascot-art{width:85%;height:85%}

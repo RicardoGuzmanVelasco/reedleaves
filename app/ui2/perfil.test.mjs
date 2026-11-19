@@ -22,9 +22,10 @@ test("Own profile has the level bar inside the level, Ajustes and no shelf link;
   const mine=render(own());
   assert.match(mine,/aria-valuenow="80"[^>]*aria-valuemax="240"|aria-valuemax="240"[^>]*aria-valuenow="80"/);
   assert.match(mine,/aria-label="Ajustes"/);
+  assert.match(mine,/data-ui2="edit-interests"[^>]*aria-label="Editar"/);
   assert.ok(!mine.includes("Ver estantería"));
   const other=render(perfilData({profile:profile({id:"x"}),prefs:{interested:[],notInterested:[]},interests,viewerId:"me",language:"es"}));
-  assert.ok(!other.includes("pf-bar")&&!other.includes('aria-label="Ajustes"'));
+  assert.ok(!other.includes("pf-bar")&&!other.includes('aria-label="Ajustes"')&&!other.includes("edit-interests"));
   assert.match(other,/Ver estantería/);
 });
 

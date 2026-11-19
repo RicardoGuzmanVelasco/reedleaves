@@ -59,11 +59,12 @@ const growthTiles=(data,c,language)=>`<ul class="pf-growth" aria-label="${esc(c.
 export function perfilMarkup({data,c,language,legacy}){
   const gear=data.own?`<a class="ui2-btn secondary--subtle pf-gear" href="${esc(`${legacy}#profile/${encodeURIComponent(data.id)}`)}" aria-label="${esc(c.settings)}">${icon("settings")}</a>`:"";
   const shelf=data.own?"":`<a class="ui2-btn secondary--subtle pf-shelf" href="${esc(`${legacy}#library/${encodeURIComponent(data.id)}`)}">${icon("shelf")}<span>${esc(c.viewShelf)}</span></a>`;
+  const editInterests=data.own?`<button type="button" class="ui2-btn secondary--subtle pf-edit" data-ui2="edit-interests" aria-haspopup="dialog" aria-label="${esc(c.edit)}">${icon("edit")}</button>`:"";
   return `<section class="pf-screen"><div class="pf-title"><button type="button" class="ui2-ib dp-back" data-ui2="page-back" aria-label="${esc(c.back)}">${icon("back")}</button><h1 tabindex="-1">${esc(c.profile)}</h1>${gear}</div>`
     +`<header class="pf-heading"><span class="pf-avatar" aria-hidden="true">${data.stage?mascotArt(data.stage):""}</span><div class="pf-identity"><h2 class="pf-name"><bdi>${esc(data.name)}</bdi></h2>`
     +(data.level?`<p class="pf-level">${esc(data.level.name)}</p>`:"")
     +`<p class="pf-date">${esc(c.memberSince)}<br><time datetime="${esc(data.joined.iso)}">${esc(data.joined.text)}</time></p></div>${xpBar(data,c,language)}</header>`
-    +section(c.profileInterests,interestRows(data,c))
+    +section(c.profileInterests,interestRows(data,c),editInterests)
     +section(c.ui2ProfileReadings,stats(data.readings,"green",c,language),shelf)
     +section(c.archivistSummary,stats(data.contributions,"blue",c,language))
     +section(c.ui2ProfileGrowth,growthTiles(data,c,language))+`</section>`;

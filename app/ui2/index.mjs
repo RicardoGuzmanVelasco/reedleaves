@@ -22,6 +22,7 @@ import {deckShareUrl} from "../deck-navigation.mjs";
 import {libreriaData,libreriaMarkup,libreriaResultsMarkup,searchingMarkup} from "./libreria.mjs";
 import {mountInterests} from "../interests.mjs";
 import {loadingPlaceholder} from "../loading-placeholder.mjs";
+import {mountInitialInterests} from "../initial-interests-ui.mjs";
 import {bookstoreFiltersMarkup} from "../views.mjs";
 import {bookstoreDefaults} from "../book-search.mjs";
 import {validBookstoreSortOrder} from "../book-sort.mjs";
@@ -161,7 +162,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(form){paint(formScreen());return;}
     if(where.name==="profile"){
       if(profileAttempt!==where.id){profileAttempt=where.id;queueMicrotask(()=>{if(busy)profileAttempt=null;else run(()=>loadProfile(where.id));});}
-      paint(withError(profileScreen(where.id)));return;
+      paint(withError(profileScreen(where.id)+(toast?toastMarkup({...toast,c}):"")));return;
     }
     if(where.name==="bookstore"){
       if(!lb.visitId)startBookstoreVisit();
@@ -246,6 +247,15 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       :perfilMarkup({data:perfilData({profile:loaded.data,prefs:loaded.prefs,interests:catalog.interests,viewerId:session.user.id,language}),c,language,legacy:c.legacy});
     return shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),body:`<div class="ui2-body ui2-lib">${body}</div>`,nav:navFor(null)});
   }
+  // The interest editor of the old interface (two steps, same API), mounted outside `main` so repainting does not close it.
+  const interestHost=doc.createElement("div");interestHost.id="ui2-interest-host";doc.body.append(interestHost);
+  const focusInterestEdit=()=>main.querySelector('[data-ui2="edit-interests"]')?.focus({preventScroll:true});
+  const interestEditor=mountInitialInterests({host:interestHost,language,store,request:(path,body)=>api.request(path,body),onCancel:focusInterestEdit,
+    onComplete:(result,userId)=>{
+      if(session.user?.id!==userId)return;
+      if(profile?.id===userId&&profile.prefs)profile={...profile,prefs:result.state};
+      showToast(c.profileInterestSaved);render();focusInterestEdit();
+    },onSessionExpired:()=>win.location.reload()});
   const libreriaState=()=>({...reader,catalog});
   const libreriaBooks=()=>libreriaData({catalog,state:libreriaState(),language,query:lb.query,filters:lb.filters,sortOrder:lb.sort,interestPreferences:lb.prefs,newBookIds:lb.newIds});
   // Only the results change while searching, so the input keeps its focus.
@@ -493,6 +503,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       refreshResults();
     }
     else if(action==="reset-filters"){clearTimeout(lb.timer);lb.query="";lb.filters={...bookstoreDefaults};lb.searching=false;render();}
+    else if(action==="edit-interests"){if(profile?.prefs&&profile.id===session.user.id)interestEditor.open({userId:profile.id,catalog,preferences:profile.prefs,mode:"edit"});}
     else if(action==="page-back"){if(win.history.length>1)win.history.back();else win.location.hash=route().name==="deck"?"#library":"#bookstore";}
     else if(action==="lib-tab"){win.location.hash=target.dataset.tab==="cardcase"?"#library/cardcase":"#library";}
     else if(action==="book-status"){
@@ -602,7 +613,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   });
   main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-search]")){settleSearch();return;}if(event.target.matches("[data-ui2-authoring]")){submitAuthoring();return;}submit();});
   win.addEventListener("hashchange",()=>{
-    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;profileAttempt=null;
+    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;profileAttempt=null;interestEditor.dispose();
     clearTimeout(lb.timer);lb.searching=false;lb.open=false;
     if(route().name!=="bookstore"){lb.visitId=null;lb.newIds=[];}
     if(toast&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
