@@ -1,7 +1,7 @@
 // New interface (?ui=2). Mounted by reader-app.mjs only when the parameter is present;
 // the old interface is untouched. Only existing /api endpoints are used.
 import {words} from "../i18n.mjs";
-import {bookTitle,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,MAX_CARDS_PER_DECK} from "../core.mjs";
+import {bookTitle,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,MAX_CARDS_PER_DECK,READING_GUIDE_MAX_LENGTH,READING_GUIDE_MIN_LENGTH} from "../core.mjs";
 import {deckOutline,placementTargets,deckCapabilities,noteCount,parentOf} from "./outline.mjs";
 import {submitEdit} from "./edit-note.mjs";
 import {installIconStyles} from "./icons.mjs";
@@ -12,6 +12,7 @@ import {showErrorScreen,hideErrorScreen,raiseErrorScreen,showWaitScreen,isWaitSc
 import {newBookForm,newDeckForm,bookFormErrors,deckFormErrors,visibleErrors,toggleInterest,bookDuplicates,canSubmitBook,autofillInput,applyAutofill,bookCreateInput,deckCreateInput,bookFormMarkup,deckFormMarkup,duplicatesMarkup,syncFieldError,interestWarningMarkup,INSUFFICIENT_BALANCE,balanceMessage,balanceModalMarkup} from "./forms.mjs";
 import {DECK_ADD_COST} from "../wallet.mjs";
 import {PRACTICE_BASE_COST} from "../practice-modes.mjs";
+import {guideData,guideMarkup,guideCanSave} from "./guia.mjs";
 import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending,tickStreakCountdown} from "./repaso.mjs";
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
@@ -47,7 +48,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // `legacy`: URL of the old interface, for destinations not built yet.
   let c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let auth=newAuth(),resume=null,resumeAfterHash=false,inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
+  let guide=null,guideReturn="#library",guideExit=null,auth=newAuth(),resume=null,resumeAfterHash=false,inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
   // The reader signed in, or null for a visitor (no session): what the signed-out screens and actions ask before touching personal data.
   const viewer=()=>session?.user??null,viewerId=()=>viewer()?.id??null;
   const navFor=active=>navMarkup({active,practicePending,c,wallet:viewer()?{leaves:reader?.wallet?.balance??0,petals:reader?.petals??0}:null});
@@ -67,6 +68,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(deckMatch)return {name:"deck",id:decode(deckMatch[1]),note:!!deckMatch[2]};
     if(bookMatch)return {name:"book-note",id:decode(bookMatch[1])};
     if(pageMatch)return {name:"book",id:decode(pageMatch[1])};
+    const guideMatch=hash.match(/^#guide\/([^/]+)$/);
+    if(guideMatch)return {name:"guide",id:decode(guideMatch[1])};
     const profileMatch=hash.match(/^#profile(?:\/([^/]+))?$/);
     if(profileMatch)return {name:"profile",id:profileMatch[1]?decode(profileMatch[1]):viewerId()};
     return {name:hash==="#account"?"account":hash==="#bookstore"?"bookstore":hash==="#library"?"library":hash==="#library/cardcase"?"cardcase":hash==="#practice"?"practice":"home"};
@@ -167,6 +170,34 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(sheetState?.type==="form-place")html+=placeSheetMarkup({note:{title:form.title,body:form.body},targets,currentParentId:form.parentId,c,action:"form-parent"});
     return withError(html);
   }
+  // ---- reading guide ----
+  function guideScreen(bookId){
+    const data=guideData({catalog,state:{...reader,catalog},language,bookId});
+    if(!data){queueMicrotask(()=>{win.location.hash="#home";});return "";}
+    if(!guide||guide.bookId!==bookId)guide={bookId,body:data.ownText,language:data.ownLanguage||data.defaultLanguage,error:""};
+    return guideMarkup({data,draft:guide,error:guide.error,c});
+  }
+  const guideNow=()=>guide&&guideData({catalog,state:{...reader,catalog},language,bookId:guide.bookId});
+  // Back to the book's sheet where the reader came from; a saved guide says so with the toast.
+  function leaveGuide(saved){
+    const bookId=guide.bookId;guide=null;guideExit={sheet:{type:"book",id:bookId}};
+    if(saved)showToast(c.readingGuideSaved);
+    win.location.hash=guideReturn;
+  }
+  function saveGuide(){
+    const data=guideNow();if(!data||busy||!guideCanSave(data,guide))return;
+    const input={bookId:guide.bookId,body:guide.body.trim(),language:guide.language,...(data.ownId?{cardId:data.ownId}:{})};
+    showWaitScreen({label:c.busySaving,c,doc:win.document});
+    run(async()=>{
+      try{await api.request("/api/reader/guides",input);}
+      catch(caught){
+        const failed=asFailure(caught);
+        if(failed.status!==409)throw caught;
+        await reload().catch(()=>{});guide.error=c[failed.code]||c.readingGuideSaveError;return;
+      }
+      await reload();leaveGuide(true);
+    }).finally(()=>{if(isWaitScreen(win.document))hideErrorScreen(win.document);});
+  }
   function render(){
     clearInterval(streakTimer);streakTimer=null;
     const where=route(),view=current();
@@ -183,6 +214,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
     if(!form&&where.note&&view?.deck.status==="in_progress")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
     if(form){paint(formScreen());return;}
+    if(where.name==="guide"){paint(withError(guideScreen(where.id)));return;}
     if(where.name==="profile"){
       if(profileAttempt!==where.id){profileAttempt=where.id;queueMicrotask(()=>{if(busy)profileAttempt=null;else run(()=>loadProfile(where.id));});}
       paint(withError(profileScreen(where.id)+settingsScreen()+(toast?toastMarkup({...toast,c}):"")));return;
@@ -193,7 +225,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       const data=libreriaData({catalog,state,language,query:lb.query,filters:lb.filters,sortOrder:lb.sort,interestPreferences:lb.prefs,newBookIds:lb.newIds});
       let html=libreriaMarkup({data,views:shelfViews,c,nav:navFor("bookstore"),searching:lb.searching,filtersMarkup:lb.open?bookstoreFiltersMarkup({catalog,language,bookstoreFiltersOpen:true,bookstoreFilterDraft:lb.draft,bookstoreSortDraft:lb.sortDraft,bookstoreFilters:lb.filters,bookstoreSortOrder:lb.sort}):""});
       if(sheetState?.type==="book"){const sheet=bookstoreSheetData({catalog,state,language,bookId:sheetState.id});if(sheet)html+=bookSheetMarkup({data:sheet,c});}
-      paint(withError(html+authoringMarkup()));return;
+      paint(withError(html+authoringMarkup()+(toast?toastMarkup({...toast,c}):"")));return;
     }
     if(where.name==="book"){
       const data=bookPageData({catalog,state:{...reader,catalog},language,bookId:where.id}),list=libreriaData({catalog,state:{...reader,catalog},language});
@@ -208,6 +240,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
         html+=finishDialogMarkup({decks:finishTiles({catalog,entries:finish.decks,language}).map(tile=>({...tile,cardCount:cardCounts.get(tile.id)})),pending,c});
       }
       else if(sheetState?.type==="book"){const data=bookSheetData({catalog,state,language,bookId:sheetState.id});if(data)html+=bookSheetMarkup({data,c});}
+      if(toast)html+=toastMarkup({...toast,c});
       paint(withError(html));return;
     }
     if(where.name==="cardcase"){
@@ -691,8 +724,11 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     }
     else if(action==="dup-view"){authoring=null;sheetState={type:"book",id:target.dataset.book};render();}
     else if(action==="share-deck"&&view)shareDeck(view.deck);
+    else if(action==="guide-close"&&guide){const bookId=guide.bookId;guide=null;guideExit={sheet:{type:"book",id:bookId}};win.location.hash=guideReturn;}
+    else if(action==="guide-language"&&guide){guide.language=target.dataset.language;render();}
+    else if(action==="guide-examples")win.location.assign(`${c.legacy}#preview/${encodeURIComponent(target.dataset.deck)}/carousel`);
     else if(action==="finish-pending"){const entries=finishData({catalog,bookId:target.dataset.book,userId:viewerId()});if(entries.length){finish={bookId:target.dataset.book,decks:entries};render();}}
-    else if(action==="write-guide")win.location.assign(`${c.legacy}#guides/${encodeURIComponent(target.dataset.book)}`);
+    else if(action==="write-guide"){guideReturn=win.location.hash||"#library";guide=null;win.location.hash=`#guide/${encodeURIComponent(target.dataset.book)}`;}
     else if(action==="finish-deck"&&view){
       if(target.getAttribute("aria-disabled")==="true")return;
       finish={bookId:view.deck.bookId,decks:[{deckId:view.deck.id,cardCount:view.deck.cardCount}]};render();
@@ -771,6 +807,13 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       if(name==="title"&&authoring.kind==="book")authoring.error=null;
       refreshAuthoring(name);return;
     }
+    if(guide&&event.target.name==="body"){
+      guide.body=event.target.value;
+      const data=guideNow(),submitButton=main.querySelector("[data-ui2-guide-form] [type=submit]"),counter=main.querySelector(".ui2-count");
+      if(submitButton&&data)submitButton.disabled=!guideCanSave(data,guide);
+      if(counter){counter.textContent=`${guide.body.length}/${READING_GUIDE_MAX_LENGTH}`;counter.classList.toggle("is-short",guide.body.length<READING_GUIDE_MIN_LENGTH);}
+      return;
+    }
     if(!form||!event.target.name)return;
     form[event.target.name]=event.target.value;
     if(form.recovered&&!form.title&&!form.body)form.recovered=false;
@@ -798,12 +841,14 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const key=event.target.dataset?.bookstoreFilter;
     if(key&&key in lb.draft)lb.draft[key]=event.target.value;
   });
-  main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-auth]")){void submitAuth();return;}if(event.target.matches("[data-ui2-interest-form]")){if(interestFlow.state?.draft.step===1)interestFlow.next();else void interestFlow.save();return;}if(event.target.matches("[data-ui2-search]")){settleSearch();return;}if(event.target.matches("[data-ui2-feedback]")){sendFeedback();return;}if(event.target.matches("[data-ui2-authoring]")){submitAuthoring();return;}submit();});
+  main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-auth]")){void submitAuth();return;}if(event.target.matches("[data-ui2-interest-form]")){if(interestFlow.state?.draft.step===1)interestFlow.next();else void interestFlow.save();return;}if(event.target.matches("[data-ui2-search]")){settleSearch();return;}if(event.target.matches("[data-ui2-guide-form]")){saveGuide();return;}if(event.target.matches("[data-ui2-feedback]")){sendFeedback();return;}if(event.target.matches("[data-ui2-authoring]")){submitAuthoring();return;}submit();});
   win.addEventListener("hashchange",()=>{
-    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;profileAttempt=null;settings=null;if(interestFlow.state?.mode==="edit")interestFlow.dispose();
+    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;profileAttempt=null;settings=null;if(route().name!=="guide")guide=null;
+    const exit=guideExit;guideExit=null;if(exit)sheetState=exit.sheet;
+    if(interestFlow.state?.mode==="edit")interestFlow.dispose();
     clearTimeout(lb.timer);lb.searching=false;lb.open=false;
     if(route().name!=="bookstore"){lb.visitId=null;lb.newIds=[];}
-    if(toast&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
+    if(toast&&!exit&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
     render();
     resumeAfterHash=false;finishResume();
     if(route().name==="practice"&&viewer())Promise.all([loadStreak(),loadTopics(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{if(route().name==="practice"&&!form)render();});

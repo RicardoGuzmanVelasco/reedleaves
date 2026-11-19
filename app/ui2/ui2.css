@@ -259,6 +259,15 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .sheet-all{margin-top:12px;min-height:48px;font-size:14px}
 .sheet-all .ui2-icon{width:20px;height:20px}
 .sheet-warn{margin-top:12px}
+.ui2-field label.ui2-sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ui2-guide-lang{display:flex;justify-content:center}
+.ui2-guide-lang .segmented-selector{width:auto}
+.ui2-count.is-short{color:#c0392b;font-weight:800}
+.ui2-co-sub--apart{margin-top:10px;padding-top:10px;border-top:1.5px solid color-mix(in srgb,var(--co-edge) 55%,transparent)}
+.ui2-guide-done{display:flex;flex-direction:column;align-items:center;gap:14px;padding:6px 18px 90px}
+.ui2-guide-mascot{width:150px;height:150px}
+.ui2-guide-text{display:flex;gap:10px;align-items:flex-start;margin:0;width:100%;padding:14px;border:2px solid var(--ui2-ink,#173d2c);border-radius:16px;background:#fff;font-size:15px;line-height:1.5}
+.ui2-guide-text p{margin:0;white-space:pre-wrap}
 .ui2-book-sheet .sheet-pending{margin:12px 0 0;width:100%}
 .mini-decks{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:18px;margin:-8px -18px 0;padding:20px 18px 12px;scrollbar-width:none}
 .mini-decks::-webkit-scrollbar{display:none}

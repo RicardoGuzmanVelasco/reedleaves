@@ -1,7 +1,7 @@
 import {randomUUID} from "node:crypto";
 import {transaction,isPostgres} from "./database.mjs";
 import {ApiError} from "./errors.mjs";
-import {LANGUAGES,READING_GUIDE_MAX_LENGTH,READING_GUIDE_REWARD_XP} from "../app/core.mjs";
+import {LANGUAGES,READING_GUIDE_MAX_LENGTH,READING_GUIDE_MIN_LENGTH,READING_GUIDE_REWARD_XP} from "../app/core.mjs";
 import {grantReaderXpInside} from "./reader-xp-repository.mjs";
 import {contentVersion} from "./reader-roles.mjs";
 
@@ -9,7 +9,7 @@ const deckIdFor=bookId=>`reading-guides:${bookId}`;
 
 export async function submitReadingGuide(db,session,input={}) {
   const bookId=input.bookId,language=input.language,body=typeof input.body==="string"?input.body.trim():"";
-  if(typeof bookId!=="string"||!bookId.trim()||bookId.length>240||!LANGUAGES.includes(language)||!body||body.length>READING_GUIDE_MAX_LENGTH) throw new ApiError(400,"invalidRequest");
+  if(typeof bookId!=="string"||!bookId.trim()||bookId.length>240||!LANGUAGES.includes(language)||body.length<READING_GUIDE_MIN_LENGTH||body.length>READING_GUIDE_MAX_LENGTH) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     if(!await db.prepare("SELECT 1 FROM books WHERE id=?").get(bookId)) throw new ApiError(404,"bookUnavailable");
     const reading=await db.prepare("SELECT status FROM book_reading WHERE user_id=? AND book_id=?").get(session.user_id,bookId);

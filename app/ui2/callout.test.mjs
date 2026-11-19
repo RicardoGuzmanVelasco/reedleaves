@@ -18,8 +18,9 @@ test("Main text, sub texts, own content and one action; the text is escaped and 
   assert.equal(html.match(/<button/g).length,1);
 });
 
-test("Only a tip carries the prize tag, in the row of the main text",()=>{
+test("Only a tip or an info carries the prize tag, in the row of the main text",()=>{
   const prize='<span class="ui2-prize-tag">+3</span>';
   assert.match(ui2Callout({kind:"tip",main:"Premio",prize}),/ui2-co-row[^]*Premio[^]*ui2-prize-tag/);
-  for(const kind of ["error","warning","info"])assert.doesNotMatch(ui2Callout({kind,main:"x",prize}),/ui2-prize-tag/);
+  assert.match(ui2Callout({kind:"info",main:"Pendiente",prize}),/ui2-co-row[^]*Pendiente[^]*ui2-prize-tag/);
+  for(const kind of ["error","warning"])assert.doesNotMatch(ui2Callout({kind,main:"x",prize}),/ui2-prize-tag/);
 });

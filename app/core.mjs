@@ -8,6 +8,7 @@ export const PASSWORD_MAX_LENGTH = 128;
 export const TITLE_MAX_LENGTH = 72;
 export const CARD_BODY_MAX_LENGTH = 300;
 export const READING_GUIDE_MAX_LENGTH = 1200;
+export const READING_GUIDE_MIN_LENGTH = 120;
 export const READING_GUIDE_REWARD_XP = 30;
 export const DESCRIPTION_MAX_LENGTH = 240;
 export const EDITORIAL_NOTE_MAX_LENGTH = 240;
