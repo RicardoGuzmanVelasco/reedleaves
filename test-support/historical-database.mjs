@@ -53,6 +53,8 @@ export async function historicalDatabase(t,dialect,version,{seed=true}={}) {
 export function normalizeRetiredRow(table,row) {
   const value={...row};
   delete value.editorial_status;delete value.can_create_decks;
+  // Additive column from the soft-delete migration: not part of what older migrations must preserve.
+  if (table === "cards") delete value.deleted_at;
   if (table === "decks") delete value.kind;
   if (table === "decks" && value.status === "published") value.status="finished";
   if (table === "decks" && value.status === "draft") value.status="in_progress";
