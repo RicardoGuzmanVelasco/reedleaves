@@ -102,9 +102,11 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 
 ## Estado de la interfaz nueva (2026-11-18)
 
-- En `Staging` con `?ui=2`: Home, Tomar nota (B y C), Repaso, Biblioteca (Estantería, Tarjetero, hoja del libro, «Leído», vacíos), Librería y ficha del libro, página de baraja, componente de price tag (`app/ui2/price-tag.mjs`, V1+).
-- Diseñadas sin implementar (mockups en el scratchpad de la sesión; no versionados): Perfil y Ajustes, Sesión de práctica, Acceso y onboarding, Formularios y diálogos (aviso de interés, Catalogar nuevo libro, Crear baraja, saldo, red), Terminar baraja y «Leído» (flujo E), Barajas ajenas, perfil ajeno y Social (flujo F).
+- En `Staging` con `?ui=2`: Home, Tomar nota (B y C), Repaso, Biblioteca (Estantería, Tarjetero, hoja del libro, «Leído», vacíos), Librería y ficha del libro, página de baraja, componente de price tag (`app/ui2/price-tag.mjs`, V1+), Perfil propio y ajeno (`app/ui2/perfil.mjs`) y Ajustes (`app/ui2/ajustes.mjs`: idioma, idiomas de las tarjetas, portadas tintadas, comentarios y cerrar sesión con confirmación).
+- Diseñadas sin implementar (mockups en el scratchpad de la sesión; no versionados): Sesión de práctica, Acceso y onboarding, Formularios y diálogos (aviso de interés, Catalogar nuevo libro, Crear baraja, saldo, red), Terminar baraja y «Leído» (flujo E), Barajas ajenas, perfil ajeno y Social (flujo F).
 - Por diseñar: vista de tarjetas (D6/D7), pantalla «Editar baraja», Social (si entra en el producto).
+- Editor de intereses: rediseñar en ui2 (hoy reutiliza el de la UI vieja desde el lápiz del Perfil).
+- Perfil ajeno: «Ver estantería» aún abre la Estantería de la UI vieja.
 - Pendiente técnico: «Catalogar nuevo libro» y «Leer tarjetas» aún abren la UI vieja; el toast «Baraja añadida al tarjetero.» no cruza esa navegación; aviso de interés (`confirmationRequired`) sin diálogo ui2.
 - Por unificar en toda la app: un único estilo de chips de interés (acceso, ficha del libro, formularios, perfil); hoy cada pantalla usa una variante.
 - Errores de conexión, servidor o red: una sola pantalla superpuesta (fondo negro muy translúcido, brote triste grande y centrado, texto del error en callout rojo, botón «Reintentar»; al reintentar vuelve el brote dormido o el estado que toque). Nunca dentro de formularios. Las validaciones por campo se quedan en el campo.

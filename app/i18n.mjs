@@ -161,3 +161,6 @@ Object.assign(words.en,{ui2InterestHint:"Choose one main interest. Add more only
 // Perfil de la interfaz nueva (?ui=2).
 Object.assign(words.es,{ui2ProfileReadings:"Lecturas",ui2ProfileGrowth:"Crecimiento actual"});
 Object.assign(words.en,{ui2ProfileReadings:"Readings",ui2ProfileGrowth:"Current growth"});
+// Confirmación de cerrar sesión de la interfaz nueva (?ui=2).
+Object.assign(words.es,{ui2SignOutTitle:"¿Cerrar sesión?",ui2SignOutNote:"Tus datos se conservan; podrás volver a entrar cuando quieras."});
+Object.assign(words.en,{ui2SignOutTitle:"Sign out?",ui2SignOutNote:"Your data is kept; you can sign back in whenever you like."});

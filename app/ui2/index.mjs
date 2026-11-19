@@ -17,6 +17,7 @@ import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
 import {shelfData,shelfMarkup,libraryTabsMarkup,emptyMarkup} from "./biblioteca.mjs";
 import {bookSheetData,bookstoreSheetData,bookSheetMarkup,bookPageData,bookPageMarkup,tileOf,finishData,finishTiles,finishDialogMarkup,cardcaseTiles,cardcaseGridMarkup,removeDeckDialogMarkup} from "./book-sheet.mjs";
 import {deckPageData,deckPageMarkup} from "./deck-page.mjs";
+import {settingsMarkup,feedbackMarkup,signOutMarkup,syncCardLanguages} from "./ajustes.mjs";
 import {perfilData,perfilMarkup,perfilUnavailableMarkup,mountPerfil} from "./perfil.mjs";
 import {deckShareUrl} from "../deck-navigation.mjs";
 import {libreriaData,libreriaMarkup,libreriaResultsMarkup,searchingMarkup} from "./libreria.mjs";
@@ -38,9 +39,9 @@ const TOAST_MS=6500;
 
 export async function mountUi2({main,api,loadCatalog,language,tintMode="off",store=createBrowserStore(),doc=document,win=window}){
   // `legacy`: URL of the old interface, for destinations not built yet.
-  const c={...(words[language]||words.es),legacy:win.location.pathname};
+  let c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
+  let settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
   const navFor=active=>navMarkup({active,practicePending,c,wallet:{leaves:reader?.wallet?.balance??0,petals:reader?.petals??0}});
   const drafts=createNoteDrafts(store),observeXp=createReaderXpTracker();
   let shelfViews=(()=>{const saved=store.read(storageKeys.shelfViews);return saved&&typeof saved==="object"?saved:{};})(),disposeLists=()=>{};
@@ -162,7 +163,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(form){paint(formScreen());return;}
     if(where.name==="profile"){
       if(profileAttempt!==where.id){profileAttempt=where.id;queueMicrotask(()=>{if(busy)profileAttempt=null;else run(()=>loadProfile(where.id));});}
-      paint(withError(profileScreen(where.id)+(toast?toastMarkup({...toast,c}):"")));return;
+      paint(withError(profileScreen(where.id)+settingsScreen()+(toast?toastMarkup({...toast,c}):"")));return;
     }
     if(where.name==="bookstore"){
       if(!lb.visitId)startBookstoreVisit();
@@ -246,6 +247,26 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       :loaded.unavailable?perfilUnavailableMarkup(c)
       :perfilMarkup({data:perfilData({profile:loaded.data,prefs:loaded.prefs,interests:catalog.interests,viewerId:session.user.id,language}),c,language,legacy:c.legacy});
     return shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),body:`<div class="ui2-body ui2-lib">${body}</div>`,nav:navFor(null)});
+  }
+  // Ajustes: a sheet over the own Perfil. The card languages are read when it opens; the rest is local or one request.
+  const settingsScreen=()=>settings?settingsMarkup({settings,language,tint:coverTintMode(tintMode),c})+(settings.feedback?feedbackMarkup({feedback:settings.feedback,c}):"")+(settings.confirmOut?signOutMarkup(c):""):"";
+  function openSettings(){
+    settings={cards:null,edit:null,saved:false,feedback:null,feedbackSent:false,confirmOut:false};render();
+    run(async()=>{const cards=await api.request("/api/reader/language-preferences");if(settings)settings.cards=cards;});
+  }
+  function applyLanguage(next){
+    language=next;c={...words[language],legacy:win.location.pathname};store.save(storageKeys.language,language);
+    doc.documentElement.lang=language;interestEditor.setLanguage(language);
+  }
+  function sendFeedback(){
+    const message=settings?.feedback?.message.trim();if(!message)return;
+    run(async()=>{await api.request("/api/feedback",{message,page:win.location.pathname+win.location.hash,language});settings.feedback=null;settings.feedbackSent=true;});
+  }
+  async function saveCardLanguages(){
+    const edit=settings.edit;
+    try{settings.cards=await api.request("/api/reader/language-preferences",{languages:edit.draft,revision:settings.cards.revision});}
+    catch(caught){if(caught?.status===409&&caught.current){edit.conflict=true;edit.current=caught.current;return;}throw caught;}
+    settings.edit=null;settings.saved=true;
   }
   // The interest editor of the old interface (two steps, same API), mounted outside `main` so repainting does not close it.
   const interestHost=doc.createElement("div");interestHost.id="ui2-interest-host";doc.body.append(interestHost);
@@ -503,6 +524,18 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       refreshResults();
     }
     else if(action==="reset-filters"){clearTimeout(lb.timer);lb.query="";lb.filters={...bookstoreDefaults};lb.searching=false;render();}
+    else if(action==="open-settings")openSettings();
+    else if(action==="settings-close"){settings=null;render();main.querySelector('[data-ui2="open-settings"]')?.focus({preventScroll:true});}
+    else if(action==="set-language"&&settings&&target.dataset.language!==language)run(async()=>{await api.request("/api/reader/preferences",{language:target.dataset.language});applyLanguage(target.dataset.language);});
+    else if(action==="edit-languages"&&settings?.cards){settings.saved=false;settings.edit={draft:[...settings.cards.languages],conflict:false,current:null};render();}
+    else if(action==="cancel-languages"&&settings){settings.edit=null;render();}
+    else if(action==="recover-languages"&&settings?.edit?.current){settings.cards=settings.edit.current;settings.edit={draft:[...settings.cards.languages],conflict:false,current:null};render();}
+    else if(action==="save-languages"&&settings?.edit?.draft.length)run(saveCardLanguages);
+    else if(action==="open-feedback"&&settings){settings.feedback={message:""};settings.feedbackSent=false;render();}
+    else if(action==="feedback-close"&&settings){settings.feedback=null;render();}
+    else if(action==="open-sign-out"&&settings){settings.confirmOut=true;render();}
+    else if(action==="sign-out-cancel"&&settings){settings.confirmOut=false;render();}
+    else if(action==="sign-out-confirm")run(async()=>{await api.request("/api/auth/logout",{});win.location.hash="#home";win.location.reload();});
     else if(action==="edit-interests"){if(profile?.prefs&&profile.id===session.user.id)interestEditor.open({userId:profile.id,catalog,preferences:profile.prefs,mode:"edit"});}
     else if(action==="page-back"){if(win.history.length>1)win.history.back();else win.location.hash=route().name==="deck"?"#library":"#bookstore";}
     else if(action==="lib-tab"){win.location.hash=target.dataset.tab==="cardcase"?"#library/cardcase":"#library";}
@@ -569,7 +602,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // While the AI searches, the form sheet cannot be dismissed with Esc.
   main.addEventListener("cancel",event=>{if(event.target.matches?.("[data-ui2-authoring-sheet]")&&authoring?.searching)event.preventDefault();},true);
   main.addEventListener("close",event=>{
-    if(event.target.matches?.("[data-ui2-authoring-sheet]")){if(authoring&&!authoring.searching)authoring=null;render();}
+    if(event.target.matches?.(".ui2-settings")&&settings){settings=null;render();}
+    else if(event.target.matches?.(".ui2-feedbackdialog")&&settings?.feedback){settings.feedback=null;render();}
+    else if(event.target.matches?.(".ui2-signoutdialog")&&settings?.confirmOut){settings.confirmOut=false;render();}
+    else if(event.target.matches?.("[data-ui2-authoring-sheet]")){if(authoring&&!authoring.searching)authoring=null;render();}
     else if(event.target.matches?.(".ui2-interestdialog")){if(prompt){prompt=null;render();}}
     else if(event.target.matches?.("dialog[data-ui2-modal]")&&failure){failure=null;render();}
     else if(event.target.matches?.(".ui2-finishdialog")&&finish){finish=null;render();}
@@ -578,6 +614,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(event.target.matches?.("dialog[data-ui2-sheet]")&&sheetState){sheetState=null;render();}
   },true);
   main.addEventListener("input",event=>{
+    if(settings?.feedback&&event.target.id==="ui2-fb-message"){
+      settings.feedback.message=event.target.value;
+      const send=main.querySelector(".ui2-feedbackdialog [type=submit]");if(send)send.disabled=!event.target.value.trim();return;
+    }
     if(event.target.id==="ui2-search"){
       lb.query=event.target.value;lb.searching=true;clearTimeout(lb.timer);
       lb.timer=setTimeout(()=>{lb.searching=false;refreshResults();},SEARCH_DEBOUNCE_MS);
@@ -607,13 +647,19 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     authoring.touched={...authoring.touched,[name]:true};refreshAuthoring(name);
   });
   main.addEventListener("change",event=>{
+    if(settings&&event.target.name==="cover-tint"){tintMode=coverTintMode(event.target.value);store.save(storageKeys.coverTint,tintMode);render();main.querySelector(`[name="cover-tint"][value="${tintMode}"]`)?.focus({preventScroll:true});return;}
+    if(settings?.edit&&event.target.matches("[data-ui2-card-language]")){
+      const code=event.target.value;
+      settings.edit.draft=event.target.checked?[...settings.edit.draft,code]:settings.edit.draft.filter(item=>item!==code);
+      syncCardLanguages(main,settings.edit.draft,c);return;
+    }
     if(authoring?.kind==="deck"&&event.target.name==="contributionMode"){authoring.contributionMode=event.target.value;return;}
     const key=event.target.dataset?.bookstoreFilter;
     if(key&&key in lb.draft)lb.draft[key]=event.target.value;
   });
-  main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-search]")){settleSearch();return;}if(event.target.matches("[data-ui2-authoring]")){submitAuthoring();return;}submit();});
+  main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-search]")){settleSearch();return;}if(event.target.matches("[data-ui2-feedback]")){sendFeedback();return;}if(event.target.matches("[data-ui2-authoring]")){submitAuthoring();return;}submit();});
   win.addEventListener("hashchange",()=>{
-    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;profileAttempt=null;interestEditor.dispose();
+    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;profileAttempt=null;settings=null;interestEditor.dispose();
     clearTimeout(lb.timer);lb.searching=false;lb.open=false;
     if(route().name!=="bookstore"){lb.visitId=null;lb.newIds=[];}
     if(toast&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}

@@ -55,9 +55,9 @@ function interestRows(data,c){
 
 const growthTiles=(data,c,language)=>`<ul class="pf-growth" aria-label="${esc(c.ui2ProfileGrowth)}">${data.growth.map(stage=>`<li class="pf-stat pf-stat--green pf-stage${stage.count?"":" is-zero"}">${mascotIcon(stage.id,"pf-stage-img")}<span class="pf-stage-name">${esc(c[stage.name])}</span><strong>${number(stage.count,language)}</strong></li>`).join("")}</ul>`;
 
-// `legacy`: URL of the old interface, which still holds Ajustes and the other reader's Estantería.
+// `legacy`: URL of the old interface, which still holds the other reader's Estantería.
 export function perfilMarkup({data,c,language,legacy}){
-  const gear=data.own?`<a class="ui2-btn secondary--subtle pf-gear" href="${esc(`${legacy}#profile/${encodeURIComponent(data.id)}`)}" aria-label="${esc(c.settings)}">${icon("settings")}</a>`:"";
+  const gear=data.own?`<button type="button" class="ui2-btn secondary--subtle pf-gear" data-ui2="open-settings" aria-haspopup="dialog" aria-label="${esc(c.settings)}">${icon("settings")}</button>`:"";
   const shelf=data.own?"":`<a class="ui2-btn secondary--subtle pf-shelf" href="${esc(`${legacy}#library/${encodeURIComponent(data.id)}`)}">${icon("shelf")}<span>${esc(c.viewShelf)}</span></a>`;
   const editInterests=data.own?`<button type="button" class="ui2-btn secondary--subtle pf-edit" data-ui2="edit-interests" aria-haspopup="dialog" aria-label="${esc(c.edit)}">${icon("edit")}</button>`:"";
   return `<section class="pf-screen"><div class="pf-title"><button type="button" class="ui2-ib dp-back" data-ui2="page-back" aria-label="${esc(c.back)}">${icon("back")}</button><h1 tabindex="-1">${esc(c.profile)}</h1>${gear}</div>`
