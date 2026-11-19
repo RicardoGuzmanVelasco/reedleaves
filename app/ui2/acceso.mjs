@@ -1,4 +1,6 @@
 // Acceso: sign in and create account, in the new interface. Pure markup and state helpers; index.mjs owns the requests.
+// A visitor reaches it from a personal action (`notice`: the reason, as the old interface words it) or from the header;
+// `returnHash` is where they come back to once signed in and `intent` the action to finish then.
 // Credentials errors are callouts (never loose red text); connection and server errors go to the error screen.
 import {escapeHtml as esc} from "../views.mjs";
 import {mascotArt} from "../mascot-art.mjs?v=tumbleweed";
@@ -6,7 +8,7 @@ import {USERNAME_MIN_LENGTH,USERNAME_MAX_LENGTH,PASSWORD_MIN_LENGTH,PASSWORD_MAX
 import {icon} from "./icons.mjs";
 import {ui2Callout} from "./callout.mjs";
 
-export const newAuth=(extra={})=>({mode:"login",username:"",password:"",invite:"",busy:false,error:null,suggest:false,created:false,...extra});
+export const newAuth=(extra={})=>({mode:"login",username:"",password:"",invite:"",busy:false,error:null,suggest:false,created:false,notice:null,returnHash:null,intent:null,...extra});
 
 // Which field is marked red for an error from the server.
 export const authErrorField=code=>code==="invalidCredentials"?"password":code==="usernameTaken"?"username":/invite/i.test(code||"")?"invite":null;
@@ -23,10 +25,11 @@ function field({id,name,label,type="text",value="",hint="",invalid=false,attrs="
     +`<input id="${id}" name="${name}" type="${type}" value="${esc(value)}" ${attrs}${invalid?' aria-invalid="true"':""}${hint?` aria-describedby="${id}-h"`:""}>${hint?`<small id="${id}-h">${esc(hint)}</small>`:""}</div>`;
 }
 
-export function accesoMarkup({auth,inviteRequired=false,c,legacy}){
+export function accesoMarkup({auth,inviteRequired=false,c}){
   const signup=auth.mode==="register",invalid=authErrorField(auth.error);
   const message=auth.error?(typeof c[auth.error]==="string"?c[auth.error]:c.connectionError):"";
-  const callouts=(auth.error?ui2Callout({kind:auth.error==="sessionExpired"?"warning":"error",role:"alert",text:message}):"")
+  const callouts=(auth.notice&&typeof c[auth.notice]==="string"?ui2Callout({kind:"tip",role:"status",text:c[auth.notice]}):"")
+    +(auth.error?ui2Callout({kind:auth.error==="sessionExpired"?"warning":"error",role:"alert",text:message}):"")
     +(auth.suggest?ui2Callout({kind:"tip",role:"status",html:`<p><strong class="ui2-co-title">${esc(c.ui2CreatingAccount)}</strong></p><button type="button" class="ui2-btn ui2-co-btn" data-ui2="auth-create">${esc(c.signUp)}</button>`}):"")
     +(auth.created?ui2Callout({kind:"tip",role:"status",html:`<p><strong class="ui2-co-title">${esc(c.ui2CompleteFields)}</strong></p>`}):"");
   const form=`<form class="ui2-auth-form" data-ui2-auth aria-busy="${auth.busy}"><fieldset${auth.busy?" disabled":""}>`
@@ -37,5 +40,5 @@ export function accesoMarkup({auth,inviteRequired=false,c,legacy}){
       attrs:`autocomplete="${signup?"new-password":"current-password"}" required minlength="${PASSWORD_MIN_LENGTH}" maxlength="${PASSWORD_MAX_LENGTH}"`})
     +`</fieldset><button type="submit" class="ui2-btn ui2-auth-submit"${auth.busy?" disabled":""}>${esc(auth.busy?c.working:signup?c.signUp:c.signIn)}</button></form>`;
   return `<section class="ui2-auth"><div class="ui2-auth-head">${mascotArt("sprout","ui2-auth-mascot")}<h1 tabindex="-1">${esc(signup?c.signUp:c.signIn)}</h1></div>${callouts}${form}`
-    +`<button type="button" class="text-button ui2-auth-switch" data-ui2="auth-toggle"${auth.busy?" disabled":""}>${esc(signup?c.switchToSignIn:c.switchToSignUp)}</button>${lookAroundMarkup({c,href:`${legacy}#bookstore`})}</section>`;
+    +`<button type="button" class="text-button ui2-auth-switch" data-ui2="auth-toggle"${auth.busy?" disabled":""}>${esc(signup?c.switchToSignIn:c.switchToSignUp)}</button>${lookAroundMarkup({c})}</section>`;
 }

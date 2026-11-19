@@ -25,11 +25,12 @@ import {mountInterests} from "../interests.mjs";
 import {loadingPlaceholder} from "../loading-placeholder.mjs";
 import {createInitialInterestFlow} from "../initial-interests.mjs";
 import {newAuth,authErrorField,createFromSignIn,toggleMode,accesoMarkup} from "./acceso.mjs";
+import {isPublicRoute,accessRequest} from "./visitor.mjs";
 import {interestsMarkup} from "./intereses.mjs";
 import {bookstoreFiltersMarkup} from "../views.mjs";
 import {bookstoreDefaults} from "../book-search.mjs";
 import {validBookstoreSortOrder} from "../book-sort.mjs";
-import {createBookKnowledgeVisitId} from "../book-knowledge.mjs";
+import {createBookKnowledgeVisitId,visitVisitorBooks} from "../book-knowledge.mjs";
 import {coverTintGradients} from "../book-cover-tint.mjs";
 import {createNoteDrafts} from "../note-drafts.mjs";
 import {createBrowserStore,storageKeys} from "../storage.mjs";
@@ -43,8 +44,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // `legacy`: URL of the old interface, for destinations not built yet.
   let c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let auth=newAuth(),inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
-  const navFor=active=>navMarkup({active,practicePending,c,wallet:{leaves:reader?.wallet?.balance??0,petals:reader?.petals??0}});
+  let auth=newAuth(),resume=null,inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null;
+  // The reader signed in, or null for a visitor (no session): what the signed-out screens and actions ask before touching personal data.
+  const viewer=()=>session?.user??null,viewerId=()=>viewer()?.id??null;
+  const navFor=active=>navMarkup({active,practicePending,c,wallet:viewer()?{leaves:reader?.wallet?.balance??0,petals:reader?.petals??0}:null});
   const drafts=createNoteDrafts(store),observeXp=createReaderXpTracker();
   let shelfViews=(()=>{const saved=store.read(storageKeys.shelfViews);return saved&&typeof saved==="object"?saved:{};})(),disposeLists=()=>{};
   // Librería: search, filters, order, books new to the reader in this visit, and the debounced "Buscando" wait.
@@ -60,11 +63,11 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(bookMatch)return {name:"book-note",id:decode(bookMatch[1])};
     if(pageMatch)return {name:"book",id:decode(pageMatch[1])};
     const profileMatch=hash.match(/^#profile(?:\/([^/]+))?$/);
-    if(profileMatch)return {name:"profile",id:profileMatch[1]?decode(profileMatch[1]):session?.user?.id};
-    return {name:hash==="#bookstore"?"bookstore":hash==="#library"?"library":hash==="#library/cardcase"?"cardcase":hash==="#practice"?"practice":"home"};
+    if(profileMatch)return {name:"profile",id:profileMatch[1]?decode(profileMatch[1]):viewerId()};
+    return {name:hash==="#account"?"account":hash==="#bookstore"?"bookstore":hash==="#library"?"library":hash==="#library/cardcase"?"cardcase":hash==="#practice"?"practice":"home"};
   };
   const deckId=()=>{const r=route();return r.name==="deck"?r.id:null;};
-  const hasDeckDraft=deck=>drafts.list(session.user.id,deck.bookId).some(saved=>saved.noteDeckId===deck.id);
+  const hasDeckDraft=deck=>!!viewerId()&&drafts.list(viewerId(),deck.bookId).some(saved=>saved.noteDeckId===deck.id);
   const titleOf=deck=>{const book=catalog.booksById.get(deck.bookId);return book?bookTitle(book,language).text:deck.id;};
   const deckName=deck=>deck.title?.[deck.language]||deck.title?.[language]||titleOf(deck);
   const languageName=code=>{try{return new Intl.DisplayNames([language],{type:"language"}).of(code)||code;}catch{return code;}};
@@ -75,17 +78,17 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
 
   // ---- note form ----
-  const draftOf=f=>({noteUserId:session.user.id,noteBookId:f.bookId,noteDeckId:f.deckId||f.requestId,requestId:f.requestId,kind:f.isQuote?"quote":"idea",title:f.title,body:f.body,parentId:f.parentId||null,createNoteDeck:!f.deckId,noteLanguage:language});
+  const draftOf=f=>({noteUserId:viewerId(),noteBookId:f.bookId,noteDeckId:f.deckId||f.requestId,requestId:f.requestId,kind:f.isQuote?"quote":"idea",title:f.title,body:f.body,parentId:f.parentId||null,createNoteDeck:!f.deckId,noteLanguage:language});
   const persistDraft=()=>{if(form?.mode==="create")drafts.save(draftOf(form));};
   // A note being written: for a book with a draft deck of mine it goes there, otherwise the server creates the deck.
   function openForm({bookId,deckId:wanted=null,parentId=null,origin="deck"}){
-    const deck=wanted?catalog.decksById.get(wanted):inProgressDeck(catalog,bookId,session.user.id);
+    const deck=wanted?catalog.decksById.get(wanted):inProgressDeck(catalog,bookId,viewerId());
     const next={mode:"create",bookId,deckId:deck?.id??null,origin,parentId,isQuote:false,title:"",body:"",requestId:crypto.randomUUID(),recovered:false};
     if(!parentId){
       const model=deck&&catalog.deckModels.get(deck.id);
-      for(const saved of drafts.list(session.user.id,bookId)){
+      for(const saved of drafts.list(viewerId(),bookId)){
         if(deck?saved.noteDeckId!==deck.id||saved.createNoteDeck:!saved.createNoteDeck)continue;
-        if(catalog.cardsById.get(saved.requestId)?.deckId===saved.noteDeckId){drafts.remove({noteUserId:session.user.id,noteBookId:bookId,requestId:saved.requestId});continue;}
+        if(catalog.cardsById.get(saved.requestId)?.deckId===saved.noteDeckId){drafts.remove({noteUserId:viewerId(),noteBookId:bookId,requestId:saved.requestId});continue;}
         Object.assign(next,{requestId:saved.requestId,isQuote:saved.kind==="quote",title:saved.title,body:saved.body,
           parentId:saved.parentId&&model?.byId.has(saved.parentId)?saved.parentId:null,recovered:true});
         break;
@@ -160,13 +163,16 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   function render(){
     clearInterval(streakTimer);streakTimer=null;
-    if(!session?.user){
+    const where=route(),view=current();
+    // A visitor sees what the old interface shows them (visitor.mjs); the rest, and Acceso itself, is the sign-in screen.
+    if(!viewer()&&!isPublicRoute(where,{hasBook:id=>catalog.booksById.has(id),hasDeck:id=>catalog.decksById.has(id)})){
       doc.body.classList.remove("has-bottom-navigation");
-      paint(accesoMarkup({auth,inviteRequired,c,legacy:c.legacy}));
+      paint(accesoMarkup({auth,inviteRequired,c}));
       return;
     }
-    if(!reader){paint(`<div class="ui2-center">${loadingPlaceholder(c.busyOpening,{visible:true})}</div>`);return;}
-    const where=route(),view=current(),shell=where.name==="home"||where.name==="bookstore"||where.name==="library"||where.name==="cardcase"||where.name==="practice"||where.name==="book"||where.name==="profile"||(where.name==="deck"&&!!view);
+    if(viewer()&&where.name==="account"){win.location.replace("#home");return;}
+    if(viewer()&&!reader){paint(`<div class="ui2-center">${loadingPlaceholder(c.busyOpening,{visible:true})}</div>`);return;}
+    const shell=where.name==="home"||where.name==="bookstore"||where.name==="library"||where.name==="cardcase"||where.name==="practice"||where.name==="book"||where.name==="profile"||(where.name==="deck"&&!!view);
     doc.body.classList.toggle("has-bottom-navigation",shell&&!form);
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
     if(!form&&where.note&&view?.deck.status==="in_progress")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
@@ -191,7 +197,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       const state={...reader,catalog};
       let html=shelfMarkup({data:shelfData({catalog,state,language}),views:shelfViews,c,nav:navFor("library")});
       if(finish&&!failure){
-        const pending=drafts.list(session.user.id,finish.bookId).some(saved=>finish.decks.some(entry=>entry.deckId===saved.noteDeckId));
+        const pending=drafts.list(viewerId(),finish.bookId).some(saved=>finish.decks.some(entry=>entry.deckId===saved.noteDeckId));
         const cardCounts=new Map(finish.decks.map(entry=>[entry.deckId,entry.cardCount]));
         html+=finishDialogMarkup({decks:finishTiles({catalog,entries:finish.decks,language}).map(tile=>({...tile,cardCount:cardCounts.get(tile.id)})),pending,c});
       }
@@ -204,7 +210,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       const body=tiles.length?cardcaseGridMarkup({tiles,statuses:reader.statuses||{},c}):emptyMarkup(c.emptyCardcase,c);
       paint(withError(shellMarkup({header:headerMarkup({userId:data.userId,stage:data.avatarStage,wallet:data.wallet,c}),
         body:`<div class="ui2-body ui2-lib${tiles.length?"":" ui2-lib--empty"}"><h1 class="sr-only" tabindex="-1">${c.library}</h1>${libraryTabsMarkup({active:"cardcase",c})}${body}</div>`,nav:navFor("library")})
-        +(removed?removeDeckDialogMarkup({deck:removed,userId:session.user.id,c}):"")+(toast?toastMarkup({...toast,c}):"")));return;
+        +(removed?removeDeckDialogMarkup({deck:removed,userId:viewerId(),c}):"")+(toast?toastMarkup({...toast,c}):"")));return;
     }
     if(where.name==="practice"){
       const data=repasoData({state:reader,streak,topics}),month=calendarMonth||(reader.today||"").slice(0,7);
@@ -222,7 +228,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(!view){
       paint(withError(homeMarkup({data:homeData({catalog,state:reader,language}),c,nav:navFor("home"),toast:toast?toastMarkup({...toast,c}):""})));return;
     }
-    const {deck,model}=view,caps=deckCapabilities(deck,session.user.id);
+    const {deck,model}=view,caps=deckCapabilities(deck,viewerId());
     const state={...reader,catalog},page=deckPageData({catalog,state,language,deckId:deck.id,hasDraft:hasDeckDraft(deck)}),list=libreriaData({catalog,state,language});
     let html=shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),
       body:`<div class="ui2-body ui2-lib">${deckPageMarkup({page,outline:deckOutline(model,deck.language),languageName:languageName(deck.language),legacy:c.legacy,c})}</div>`,nav:navFor(page.inCardcase||page.owner?"library":"bookstore")});
@@ -234,14 +240,14 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     }
     if(finish&&!failure)html+=finishDialogMarkup({decks:finishTiles({catalog,entries:finish.decks,language}).map(tile=>({...tile,cardCount:finish.decks[0].cardCount})),pending:hasDeckDraft(deck),c});
     const removedDeck=removing===deck.id?tileOf(catalog,deck,language):null;
-    if(removedDeck)html+=removeDeckDialogMarkup({deck:removedDeck,userId:session.user.id,c});
+    if(removedDeck)html+=removeDeckDialogMarkup({deck:removedDeck,userId:viewerId(),c});
     if(toast)html+=toastMarkup({...toast,c});
     paint(withError(html));
   }
   // Perfil: the reader's profile and interest preferences. A reader that does not exist (404) shows its own message;
   // any other failure goes through run(): connection and server errors to the full-screen error, which retries this same load.
   async function loadProfile(id){
-    const own=id===session.user.id,path=`/api/profiles/${encodeURIComponent(id)}`;
+    const own=id===viewerId(),path=`/api/profiles/${encodeURIComponent(id)}`;
     try{
       const [data,prefs]=await Promise.all([api.request(path),api.request(own?"/api/reader/interests/preferences":`${path}/interests`)]);
       profile={id,data:data.profile,prefs};
@@ -255,7 +261,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const loaded=profile?.id===id?profile:null;
     const body=!loaded?`<div class="ui2-empty">${loadingPlaceholder(c.busyOpening,{visible:true})}</div>`
       :loaded.unavailable?perfilUnavailableMarkup(c)
-      :perfilMarkup({data:perfilData({profile:loaded.data,prefs:loaded.prefs,interests:catalog.interests,viewerId:session.user.id,language}),c,language,legacy:c.legacy});
+      :perfilMarkup({data:perfilData({profile:loaded.data,prefs:loaded.prefs,interests:catalog.interests,viewerId:viewerId(),language}),c,language,legacy:c.legacy});
     return shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),body:`<div class="ui2-body ui2-lib">${body}</div>`,nav:navFor(null)});
   }
   // Ajustes: a sheet over the own Perfil. The card languages are read when it opens; the rest is local or one request.
@@ -301,7 +307,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     }});
   }
   async function finishInterests(result,userId){
-    if(session?.user?.id!==userId)return;
+    if(viewerId()!==userId)return;
     const edited=interestMode==="edit";
     if(edited&&profile?.id===userId&&profile.prefs)profile={...profile,prefs:result.state};
     // The reward of the first choice is already in the server's balances.
@@ -313,7 +319,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // The first choice is mandatory: it opens while the reader has neither set up nor closed it.
   async function openInterestSetup(){
     const preferences=await api.request("/api/reader/interests/preferences");
-    if(!preferences.configured&&!preferences.initialOpportunityClosed&&session?.user)interestFlow.open({userId:session.user.id,catalog,preferences});
+    if(!preferences.configured&&!preferences.initialOpportunityClosed&&viewer())interestFlow.open({userId:viewerId(),catalog,preferences});
   }
   const libreriaState=()=>({...reader,catalog});
   const libreriaBooks=()=>libreriaData({catalog,state:libreriaState(),language,query:lb.query,filters:lb.filters,sortOrder:lb.sort,interestPreferences:lb.prefs,newBookIds:lb.newIds});
@@ -330,14 +336,16 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   async function startBookstoreVisit(){
     const visitId=createBookKnowledgeVisitId();lb.visitId=visitId;
     try{
-      const result=await api.request("/api/reader/book-knowledge/visit",{visitId,bookIds:catalog.books.map(book=>book.id)});
+      const bookIds=catalog.books.map(book=>book.id);
+      // A visitor's visit is remembered in this browser, as in the old interface.
+      const result=viewer()?await api.request("/api/reader/book-knowledge/visit",{visitId,bookIds}):{newBookIds:await visitVisitorBooks(store,bookIds)};
       if(lb.visitId!==visitId||!Array.isArray(result.newBookIds))return;
       lb.newIds=result.newBookIds.filter(id=>catalog.booksById.has(id));
       if(route().name==="bookstore")refreshResults();
     }catch{/* A failed visit is retried at the next one. */}
   }
   function loadInterestPreferences(){
-    const userId=session.user.id;
+    const userId=viewerId();
     return api.request("/api/reader/interests/preferences").then(result=>{lb.prefs={...result,userId};if(route().name==="bookstore")refreshResults();},()=>{});
   }
   const focusFilterButton=()=>main.querySelector('[data-action="open-bookstore-filters"]')?.focus({preventScroll:true});
@@ -348,7 +356,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(action==="reset-bookstore-filter-draft"){lb.draft={...bookstoreDefaults};lb.sortDraft="recent";render();}
     else if(action==="select-bookstore-sort"&&validBookstoreSortOrder(target.dataset.sort)){lb.sortDraft=target.dataset.sort;render();main.querySelector(`[data-action="select-bookstore-sort"][data-sort="${lb.sortDraft}"]`)?.focus({preventScroll:true});}
     else if(action==="apply-bookstore-filters"){
-      lb.filters={...lb.draft};lb.sort=lb.sortDraft;lb.open=false;
+      lb.filters={...lb.draft};lb.open=false;
+      // Sorting by interests needs a session: a visitor keeps the order they had and is asked to sign in.
+      if(lb.sortDraft==="interests"&&!viewer()){lb.sortDraft=lb.sort;doPersonal({kind:"sort-interests"});return;}
+      lb.sort=lb.sortDraft;
       if(lb.sort==="interests"&&!lb.prefs)loadInterestPreferences();
       render();focusFilterButton();
     }
@@ -381,14 +392,18 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(failure&&sessionLost(failure)){failure=null;lostSession();return;}
     // No connection or a server error: the full-screen error, whose Retry runs the same task again.
     if(failure&&blockingFailure(failure)){const lost=failure;failure=null;offerRetry(lost,task);}
-    render();
+    render();finishResume();
+  }
+  function finishResume(){
+    const intent=resume;resume=null;
+    if(intent&&viewer()&&reader)queueMicrotask(()=>personal[intent.kind]?.(intent));
   }
   function offerRetry(lost,task){
     showErrorScreen({message:errorInfo(lost,c).detail,c,doc,onRetry:async()=>{
       busy=true;
       try{await task();}
       catch(caught){const next=asFailure(caught);if(blockingFailure(next))offerRetry(next,task);else if(!sessionLost(next))failure=next;else{busy=false;lostSession();return;}}
-      busy=false;render();
+      busy=false;render();finishResume();
     }});
   }
   // A change the server may ask to confirm (a book with an interest the reader rejected): the warning shows,
@@ -422,13 +437,41 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // The session ended (401): back to Acceso with the username kept and the warning; the reader returns to where they were.
   function lostSession(){
     hideErrorScreen(doc);interestFlow.dispose();
-    const username=session?.user?.username||"";
-    session={user:null};reader=null;profile=null;profileAttempt=null;settings=null;failure=null;prompt=null;authoring=null;form=null;finish=null;removing=null;sheetState=null;busy=false;
-    auth=newAuth({username,error:"sessionExpired"});render();
+    const username=viewer()?.username||"";
+    session={user:null};reader=null;profile=null;profileAttempt=null;settings=null;failure=null;prompt=null;authoring=null;form=null;finish=null;removing=null;sheetState=null;busy=false;resume=null;
+    auth=newAuth({username,error:"sessionExpired",...accessRequest({returnHash:win.location.hash})});
+    if(win.location.hash!=="#account")win.location.hash="#account";else render();
+  }
+  // A visitor asks for something personal (or taps "Entrar", with no intent): Acceso opens with its reason and they come back here, finishing it.
+  function askAccount(intent=null){
+    auth=newAuth(accessRequest({intent,returnHash:win.location.hash}));
+    win.location.hash="#account";
+  }
+  // What each personal action does once there is a session; the visitor's tap and the finish after signing in share it.
+  const personal={
+    "book-status":({book,status})=>{
+      if((reader.statuses?.[book]||"unread")===status)return;
+      confirmable("/api/reader/book-status",{bookId:book,status},async()=>{
+        await reload();
+        const entries=status==="read"?finishData({catalog,bookId:book,userId:viewerId()}):[];
+        if(entries.length)finish={bookId:book,decks:entries};
+      });
+    },
+    "add-deck":({deck})=>confirmable("/api/reader/cardcase/add",{deckId:deck},async()=>{await reload();showToast(c.deckAddedToCardcase);}),
+    "catalog-book":()=>openAuthoring(newBookForm({title:lb.query.trim(),requestId:crypto.randomUUID()}),"#ui2-bk-title"),
+    "create-deck":({book})=>openAuthoring(newDeckForm({bookId:book,language,requestId:crypto.randomUUID()}),"#ui2-dk-title"),
+    "sort-interests":()=>{lb.sort="interests";if(!lb.prefs)loadInterestPreferences();render();}
+  };
+  function doPersonal(intent){
+    if(!viewer())askAccount(intent);else personal[intent.kind](intent);
   }
   const focusAuth=name=>main.querySelector({username:"#ui2-au-user",password:"#ui2-au-pass",invite:"#ui2-au-invite"}[name]||".ui2-auth-submit")?.focus({preventScroll:true});
   // Everything the signed-in screens need; run() shows the error screen with Retry when it fails.
-  const enterApp=async()=>{reader=await api.request("/api/reader/state");await Promise.all([loadStreak(),loadTopics()]);await openInterestSetup();};
+  // A visitor's catalog is the public one: after signing in it is read again (it carries the reader's own decks).
+  const enterApp=async({refreshCatalog=false}={})=>{
+    [catalog,reader]=await Promise.all([refreshCatalog?loadCatalog():catalog,api.request("/api/reader/state")]);
+    await Promise.all([loadStreak(),loadTopics()]);await openInterestSetup();
+  };
   async function submitAuth(){
     if(auth.busy)return;
     const attempt=auth;
@@ -442,8 +485,15 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       auth={...auth,error:failed.code,suggest:attempt.mode==="login"&&failed.code==="invalidCredentials"};
       render();focusAuth(authErrorField(failed.code));return;
     }
-    session=state;inviteRequired=state.inviteRequired===true||inviteRequired;auth=newAuth();
-    await run(enterApp);
+    session=state;inviteRequired=state.inviteRequired===true||inviteRequired;
+    // A gated screen opened in place has no return address: the sign-in leaves them on it.
+    const {intent}=attempt,returnHash=attempt.returnHash||(route().name==="account"?"#home":win.location.hash||"#home");auth=newAuth();
+    // Back to where they were; the action that asked for the sign-in finishes there, unless the first choice of interests is pending.
+    await run(async()=>{
+      await enterApp({refreshCatalog:true});
+      resume=interestFlow.state?null:intent;
+      if(win.location.hash!==returnHash)win.location.hash=returnHash;
+    });
   }
 
   // ---- catalog a new book / create a deck ----
@@ -513,7 +563,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
         if(caught?.code==="bookAlreadyExists"){draft.error="bookAlreadyExists";return;}
         throw Object.assign(asFailure(caught),{title:c.ui2ErrorTitle});
       }
-      const gain=observeXp(session.user.id,undefined,result.xpReward);
+      const gain=observeXp(viewerId(),undefined,result.xpReward);
       if(gain)xpFeedback?.present(gain);
       await reload();authoring=null;lb.query="";win.location.hash=`#book/${encodeURIComponent(result.bookId)}`;
     });
@@ -545,7 +595,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       // First note of a book without a draft: the server creates the deck.
       const result=await api.request("/api/author/notes",deck?{deckId:deck.id,parentId:saved.parentId||null,...text}:{bookId:saved.bookId,language,...text});
       drafts.remove(draftOf(saved));
-      const gain=observeXp(session.user.id,undefined,result.xpReward);
+      const gain=observeXp(viewerId(),undefined,result.xpReward);
       if(gain)xpFeedback?.present(gain);
       await reload();form=null;
       if(saved.origin==="home"){showToast(c.ui2NoteSaved,result.deckId);win.location.hash="#home";}
@@ -606,26 +656,13 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(action==="open-sign-out"&&settings){settings.confirmOut=true;render();}
     else if(action==="sign-out-cancel"&&settings){settings.confirmOut=false;render();}
     else if(action==="sign-out-confirm")run(async()=>{await api.request("/api/auth/logout",{});win.location.hash="#home";win.location.reload();});
-    else if(action==="edit-interests"){if(profile?.prefs&&profile.id===session.user.id)interestFlow.open({userId:profile.id,catalog,preferences:profile.prefs,mode:"edit"});}
+    else if(action==="edit-interests"){if(profile?.prefs&&profile.id===viewerId())interestFlow.open({userId:profile.id,catalog,preferences:profile.prefs,mode:"edit"});}
     else if(action==="page-back"){if(win.history.length>1)win.history.back();else win.location.hash=route().name==="deck"?"#library":"#bookstore";}
     else if(action==="lib-tab"){win.location.hash=target.dataset.tab==="cardcase"?"#library/cardcase":"#library";}
-    else if(action==="book-status"){
-      const bookId=target.dataset.book,status=target.dataset.status;
-      if((reader.statuses?.[bookId]||"unread")===status)return;
-      confirmable("/api/reader/book-status",{bookId,status},async()=>{
-        await reload();
-        const entries=status==="read"?finishData({catalog,bookId,userId:session.user.id}):[];
-        if(entries.length)finish={bookId,decks:entries};
-      });
-    }
-    else if(action==="add-deck"){
-      const id=target.dataset.deck;
-      confirmable("/api/reader/cardcase/add",{deckId:id},async()=>{await reload();showToast(c.deckAddedToCardcase);});
-    }
+    else if(action==="sign-in"){event.preventDefault();askAccount();}
+    else if(action==="book-status"||action==="add-deck"||action==="catalog-book"||action==="create-deck")doPersonal({kind:action,book:target.dataset.book,status:target.dataset.status,deck:target.dataset.deck});
     else if(action==="interest-cancel"){prompt=null;render();}
     else if(action==="interest-continue")continuePrompt();
-    else if(action==="catalog-book")openAuthoring(newBookForm({title:lb.query.trim(),requestId:crypto.randomUUID()}),"#ui2-bk-title");
-    else if(action==="create-deck")openAuthoring(newDeckForm({bookId:target.dataset.book,language,requestId:crypto.randomUUID()}),"#ui2-dk-title");
     else if(action==="authoring-close"){if(!authoring?.searching){authoring=null;render();}}
     else if(action==="autofill-book")autofillBook();
     else if(action==="pick-interest"&&authoring?.kind==="book"&&!authoring.searching){
@@ -652,7 +689,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(action==="finish-keep"){finish=null;render();}
     else if(action==="finish-confirm"&&finish){
       const done=finish;
-      if(drafts.list(session.user.id,done.bookId).some(saved=>done.decks.some(entry=>entry.deckId===saved.noteDeckId)))return;
+      if(drafts.list(viewerId(),done.bookId).some(saved=>done.decks.some(entry=>entry.deckId===saved.noteDeckId)))return;
       run(async()=>{await api.request("/api/author/decks/finish-notes",{bookId:done.bookId,decks:done.decks});finish=null;await reload();});
     }
     else if(action==="calendar-open"){sheetState={type:"calendar"};render();}
@@ -746,12 +783,12 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(route().name!=="bookstore"){lb.visitId=null;lb.newIds=[];}
     if(toast&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
     render();
-    if(route().name==="practice")Promise.all([loadStreak(),loadTopics(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{if(route().name==="practice"&&!form)render();});
+    if(route().name==="practice"&&viewer())Promise.all([loadStreak(),loadTopics(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{if(route().name==="practice"&&!form)render();});
   });
 
   async function start(){
     session=await api.request("/api/session");inviteRequired=session.inviteRequired===true;catalog=await loadCatalog();
-    if(session.user)await enterApp();
+    if(viewer())await enterApp();
   }
   main.innerHTML=`<div class="ui2-center">${loadingPlaceholder(c.busyOpening,{visible:true})}</div>`;
   try{await start();}

@@ -34,14 +34,15 @@ function sectionMarkup(section,views,c){
 
 export const searchingMarkup=c=>`<div class="lb-searching">${loadingPlaceholder(c.ui2Searching,{visible:true})}</div>`;
 
-const catalogButton=(c,userId)=>userId?`<button type="button" class="ui2-btn lb-catalog" data-ui2="catalog-book" aria-haspopup="dialog">${icon("book-add")}<span>${esc(c.ui2CatalogNewBook)}</span></button>`:"";
+// A visitor sees it too: tapping it asks them to sign in (index.mjs).
+const catalogButton=c=>`<button type="button" class="ui2-btn lb-catalog" data-ui2="catalog-book" aria-haspopup="dialog">${icon("book-add")}<span>${esc(c.ui2CatalogNewBook)}</span></button>`;
 
 // The part that changes while searching: sections, or the empty state.
 export function libreriaResultsMarkup({data,views,c}){
-  if(data.sections.length)return `<div class="shelf-groups">${data.sections.map(section=>sectionMarkup(section,views,c)).join("")}</div>${data.hasFilters?"":catalogButton(c,data.userId)}`;
+  if(data.sections.length)return `<div class="shelf-groups">${data.sections.map(section=>sectionMarkup(section,views,c)).join("")}</div>${data.hasFilters?"":catalogButton(c)}`;
   const reset=data.hasFilters?["reset-filters",c.resetBookstoreFilters]:["clear-search",c.clearSearch];
   return `<div class="ui2-empty lb-empty">${mascotArt("tumbleweed","",{animation:"tumble"})}<h2>${esc(data.hasFilters?c.noBookshelfMatches:c.noBookMatches)}</h2>`
-    +(data.hasFilters?"":catalogButton(c,data.userId))
+    +(data.hasFilters?"":catalogButton(c))
     +`<button type="button" class="ui2-btn secondary--subtle lb-reset" data-ui2="${reset[0]}"><span>${esc(reset[1])}</span></button></div>`;
 }
 

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {words} from "../i18n.mjs";
 import {newAuth,authErrorField,createFromSignIn,toggleMode,accesoMarkup,lookAroundMarkup} from "./acceso.mjs";
 
-const render=(auth,{language="es",inviteRequired=false}={})=>accesoMarkup({auth:{...newAuth(),...auth},inviteRequired,c:{...words[language],legacy:"/app/"},legacy:"/app/"});
+const render=(auth,{language="es",inviteRequired=false}={})=>accesoMarkup({auth:{...newAuth(),...auth},inviteRequired,c:{...words[language],legacy:"/app/"}});
 
 for(const language of ["es","en"])test(`Sign in: title, both fields with their hints, one primary button, switch and the Librería button (${language})`,()=>{
   const c=words[language],html=render({},{language});
@@ -12,7 +12,7 @@ for(const language of ["es","en"])test(`Sign in: title, both fields with their h
   assert.ok(html.includes(c.usernameHint)&&html.includes(c.passwordHint));
   assert.doesNotMatch(html,/inviteCode|callout/);
   assert.ok(html.includes(`data-ui2="auth-toggle">${c.switchToSignUp}`));
-  assert.match(html,/class="ui2-btn secondary--subtle ui2-explore" href="\/app\/#bookstore">[^]*data-icon="bookstore"/);
+  assert.match(html,/class="ui2-btn secondary--subtle ui2-explore" href="#bookstore">[^]*data-icon="bookstore"/);
   assert.equal(c.ui2LookAround.split("\n").length,2);
 });
 
@@ -46,4 +46,13 @@ test("Session ended is a warning (orange, alert) with the username kept; signing
 
 test("The Librería button is secondary and carries its icon",()=>{
   assert.match(lookAroundMarkup({c:words.en}),/secondary--subtle[^]*data-icon="bookstore"[^]*Have a look around<br>the bookstore/);
+});
+
+test("A personal action opens Acceso with its reason as a tip callout, in the old interface's words",()=>{
+  for(const language of ["es","en"]){
+    const c=words[language];
+    assert.match(render({notice:"accountLearningNotice",mode:"register"},{language}),new RegExp(`callout--info[^]*data-icon="idea"[^]*${c.accountLearningNotice}`));
+    assert.ok(render({notice:"interestSortSignInNotice"},{language}).includes(c.interestSortSignInNotice));
+  }
+  assert.doesNotMatch(render({}),/callout/);
 });

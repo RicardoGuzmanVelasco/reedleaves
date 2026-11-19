@@ -24,7 +24,7 @@ export function bookSheetData({catalog,state,language,bookId}){
   if(!book)return null;
   const userId=state.user?.id,added=new Set(state.cardcaseDeckIds||[]);
   return {entry:bookEntry({catalog,state,language,book}),anyDecks:availableDecks(catalog,bookId).length>0,
-    decks:catalog.decks.filter(deck=>deck.bookId===bookId&&(added.has(deck.id)||deck.creator?.userId===userId)).map(deck=>tileOf(catalog,deck,language))};
+    decks:catalog.decks.filter(deck=>deck.bookId===bookId&&(added.has(deck.id)||!!userId&&deck.creator?.userId===userId)).map(deck=>tileOf(catalog,deck,language))};
 }
 
 // Pure: the Bookstore sheet of a book: all its decks, the team recommendation first, no selection.
