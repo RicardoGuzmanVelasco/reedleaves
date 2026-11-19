@@ -27,6 +27,7 @@ import {createInitialInterestFlow} from "../initial-interests.mjs";
 import {newAuth,authErrorField,createFromSignIn,toggleMode,accesoMarkup} from "./acceso.mjs";
 import {isPublicRoute,accessRequest} from "./visitor.mjs";
 import {interestsMarkup} from "./intereses.mjs";
+import {createCurrencyReceiptPresentation,CURRENCY_RECEIPT_STEP_MS} from "../currency-receipt.mjs";
 import {bookstoreFiltersMarkup} from "../views.mjs";
 import {bookstoreDefaults} from "../book-search.mjs";
 import {validBookstoreSortOrder} from "../book-sort.mjs";
@@ -124,6 +125,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const body=main.querySelector(".ui2-fsheet-body");if(body)body.scrollTop=scrolled;
     raiseErrorScreen(doc);
     layoutToast();
+    receipt.sync();
   }
   function layoutToast(){
     const toastElement=main.querySelector(".ui2-toast"),panel=doc.querySelector("#reader-xp-feedback .xp-feedback-panel");
@@ -306,6 +308,13 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       if(!result.saved&&result.error&&result.error.status!==409&&result.error.status!==401)throw result.error;
     }});
   }
+  // The reward of the first choice counts up in the header's balances (the receipt of the old interface).
+  const reducedMotion=()=>!!win.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const receipt=createCurrencyReceiptPresentation({
+    readCurrent:()=>viewer()&&reader?{userId:viewerId(),leaves:reader.wallet?.balance,petals:reader.petals}:null,
+    onDisplay:value=>{for(const key of ["leaves","petals"]){const text=main.querySelector(`.ui2-wallet [data-currency="${key}"]`)?.lastChild;if(text&&Number.isFinite(value[key]))text.textContent=String(value[key]);}},
+    onPulse:key=>main.querySelector(`.ui2-wallet [data-currency="${key}"]`)?.animate?.([{transform:"scale(1)"},{transform:"scale(1.22)",offset:.42},{transform:"scale(1)"}],{duration:CURRENCY_RECEIPT_STEP_MS,easing:"cubic-bezier(.2,.75,.3,1)"}),
+    reducedMotion});
   async function finishInterests(result,userId){
     if(viewerId()!==userId)return;
     const edited=interestMode==="edit";
@@ -314,7 +323,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     try{reader=await api.request("/api/reader/state");}catch{/* The balances refresh with the next load. */}
     if(edited)showToast(c.profileInterestSaved);
     render();
-    if(edited)focusInterestEdit();
+    if(edited)focusInterestEdit();else receipt.present({userId,newlyGranted:result.newlyGranted});
   }
   // The first choice is mandatory: it opens while the reader has neither set up nor closed it.
   async function openInterestSetup(){
@@ -710,7 +719,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const chip=event.target.closest("[data-ui2-int]");
     if(chip){
       interestFlow.toggle(chip.dataset.interest,chip.dataset.ui2Int);
-      main.querySelector(`[data-ui2-int][data-interest="${CSS.escape(chip.dataset.interest)}"]`)?.focus({preventScroll:true});
+      const next=main.querySelector(`[data-ui2-int][data-interest="${CSS.escape(chip.dataset.interest)}"]`);
+      next?.focus({preventScroll:true});
+      if(next?.classList.contains("is-on"))next.classList.add("is-pick");
       return;
     }
     const action=event.target.closest("[data-ui2-int-action]")?.dataset.ui2IntAction;

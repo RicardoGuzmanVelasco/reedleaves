@@ -32,9 +32,14 @@ export function interestsMarkup({flow,language,c}){
   const head=`<div class="ui2-onb-head">${second?`<button type="button" class="ui2-ib ui2-onb-back" data-ui2-int-action="back" aria-label="${esc(c.back)}"${flow.saving?" disabled":""}>${icon("back")}</button>`:""}`
     +`<div class="initial-interest-progress" role="img" aria-label="${esc(c.initialInterestStep(draft.step))}"><span class="${second?"is-complete":"is-current"}" aria-hidden="true">1</span><span class="initial-interest-progress-line" aria-hidden="true"></span><span class="${second?"is-current":""}" aria-hidden="true">2</span></div></div>`;
   const cancel=editing?`<button type="button" class="dialog-close dialog-close--float" data-ui2-int-action="cancel" aria-label="${esc(c.cancel)}"${flow.saving?" disabled":""}>${icon("close")}</button>`:"";
+  const label=flow.saving?c.working:second?c.save:nextLabel(c);
+  // The last step of the first choice with its reward in reach celebrates like the old interface's practice button: the label waves letter by letter.
+  const celebrate=view.celebrate&&!flow.saving&&draft.interested.length&&!flow.conflict;
+  const nextButton=celebrate?`<button type="submit" class="ui2-btn ui2-onb-next ui2-launch" aria-label="${esc(label)}"><span class="ui2-launch-label" aria-hidden="true">${[...label].map(char=>`<span class="ui2-launch-char">${char===" "?"&nbsp;":esc(char)}</span>`).join("")}</span></button>`
+    :`<button type="submit" class="ui2-btn ui2-onb-next"${!draft.interested.length||flow.conflict||flow.saving?" disabled":""}>${esc(label)}</button>`;
   return `<dialog class="ui2-sheet ui2-fsheet ui2-onb ui2-onb--${editing?"edit":"initial"}" data-ui2-sheet data-ui2-interests aria-labelledby="ui2-onb-title">${cancel}<div class="ui2-grab" aria-hidden="true"></div>`
     +`<form class="ui2-fsheet-form" data-ui2-interest-form novalidate aria-busy="${!!flow.saving}"><div class="ui2-fsheet-body ui2-onb-body">${head}<h1 id="ui2-onb-title" tabindex="-1">${esc(view.title)}</h1>`
     +(second?`<p class="ui2-onb-purpose">${esc(c.initialInterestPurpose)}</p>`:"")
     +`<div class="int-pick ui2-onb-chips" role="group" aria-labelledby="ui2-onb-title">${chips}</div>${tipMarkup(view,{second,c})}${notices}</div>`
-    +`<div class="ui2-fsheet-foot"><button type="submit" class="ui2-btn ui2-onb-next"${!draft.interested.length||flow.conflict||flow.saving?" disabled":""}>${esc(flow.saving?c.working:second?c.save:nextLabel(c))}</button></div></form></dialog>`;
+    +`<div class="ui2-fsheet-foot">${nextButton}</div></form></dialog>`;
 }

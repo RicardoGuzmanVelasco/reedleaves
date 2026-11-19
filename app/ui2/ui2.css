@@ -577,3 +577,15 @@ button.int-chip:disabled{opacity:1}
 .ui2-onb-tip .ui2-rw{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ui2-onb-tip .ui2-rw-sub{font-size:12.5px;font-weight:700;opacity:.85}
 @media(max-width:899px){.ui2-sheet.ui2-fsheet.ui2-onb--initial{height:100dvh;margin:0;border-top:0;border-radius:0}}
+
+/* Escritorio: el alto de la elección de intereses sigue al contenido (sin hueco bajo los chips) */
+@media(min-width:900px){.ui2-sheet.ui2-fsheet.ui2-onb{height:auto;max-height:min(760px,calc(100dvh - 96px))}}
+/* Botón de los pasos con premio al alcance: brillo y ola de letras, con la misma sincronía que «Vamos a practicar» */
+.ui2-launch{position:relative;overflow:hidden}
+.ui2-launch::after{position:absolute;inset:0;background:linear-gradient(110deg,transparent 38%,#fff8d980 46%,#fffdf0e6 50%,#fff8d9b3 54%,transparent 62%);content:"";opacity:0;pointer-events:none;animation:practice-launch-glint 7.5s ease-in-out infinite}
+.ui2-launch-char{display:inline-block;animation:practice-launch-char-wave 7.5s ease-in-out infinite}
+.ui2-launch-char:nth-child(2){animation-delay:24ms}.ui2-launch-char:nth-child(3){animation-delay:48ms}.ui2-launch-char:nth-child(4){animation-delay:72ms}.ui2-launch-char:nth-child(5){animation-delay:96ms}.ui2-launch-char:nth-child(6){animation-delay:120ms}.ui2-launch-char:nth-child(7){animation-delay:144ms}.ui2-launch-char:nth-child(8){animation-delay:168ms}.ui2-launch-char:nth-child(9){animation-delay:192ms}.ui2-launch-char:nth-child(10){animation-delay:216ms}.ui2-launch-char:nth-child(11){animation-delay:240ms}.ui2-launch-char:nth-child(12){animation-delay:264ms}
+/* Giro del emoji al elegir un interés (solo el pulsado: .is-pick lo pone index.mjs) */
+.ui2-onb .int-chip.is-pick .interest-emoji{animation:ui2-pick .34s cubic-bezier(.2,.8,.3,1)}
+@keyframes ui2-pick{0%{transform:rotate(0) scale(1)}58%{transform:rotate(-18deg) scale(1.5)}100%{transform:rotate(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.ui2-launch::after,.ui2-launch-char,.ui2-onb .int-chip.is-pick .interest-emoji{animation:none!important}}

@@ -24,8 +24,8 @@ export function navMarkup({active,practicePending=false,c,wallet=null}){
     +`</nav>`;
 }
 
-const pill=(src,value,label)=>`<span role="img" aria-label="${esc(`${label}: ${value}`)}"><img src="${imageUrl(src)}" alt="" width="20" height="20">${value}</span>`;
-const walletMarkup=(wallet,c,className="")=>`<div class="ui2-wallet${className?` ${className}`:""}" role="group" aria-label="${esc(c.ui2Balances)}">${pill("/app/assets/icons/ui2/leaf-token.svg",wallet.leaves,c.ui2Leaves)}${pill("/app/assets/icons/ui2/petal-token.svg",wallet.petals,c.ui2Petals)}</div>`;
+const pill=(src,value,label,currency)=>`<span data-currency="${currency}" role="img" aria-label="${esc(`${label}: ${value}`)}"><img src="${imageUrl(src)}" alt="" width="20" height="20">${value}</span>`;
+const walletMarkup=(wallet,c,className="")=>`<div class="ui2-wallet${className?` ${className}`:""}" role="group" aria-label="${esc(c.ui2Balances)}">${pill("/app/assets/icons/ui2/leaf-token.svg",wallet.leaves,c.ui2Leaves,"leaves")}${pill("/app/assets/icons/ui2/petal-token.svg",wallet.petals,c.ui2Petals,"petals")}</div>`;
 // The avatar is the reader's mascot of their level; it opens their profile. A visitor has neither avatar nor balances: "Entrar" opens Acceso.
 export function headerMarkup({userId,stage,wallet,c}){
   if(!userId)return `<header class="ui2-top ui2-top--home ui2-top--visitor"><a class="ui2-btn secondary--subtle ui2-signin" href="#account" data-ui2="sign-in">${esc(c.signIn)}</a></header>`;
