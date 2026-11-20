@@ -169,12 +169,12 @@ Object.assign(words.en,{ui2SignOutTitle:"Sign out?",ui2SignOutNote:"Your data is
 Object.assign(words.es,{ui2LookAround:"Echar un vistazo\npor la librería",ui2CreatingAccount:"¿Estás creando una cuenta?",ui2CompleteFields:"¡Completa el resto de campos y crea tu cuenta!"});
 Object.assign(words.en,{ui2LookAround:"Have a look around\nthe bookstore",ui2CreatingAccount:"Are you creating an account?",ui2CompleteFields:"Fill in the remaining fields and create your account!"});
 // Editar baraja y Editar nota (?ui=2, mockup editar-baraja-v2 aprobado). El aviso de tarjeta borrada es provisional hasta rediseñar la vista de tarjetas.
-Object.assign(words.es,{ui2EditNote:"Editar nota",ui2DeckData:"Datos de la baraja",ui2DeckCards:"Tarjetas",ui2RenameDeck:"Renombrar baraja",ui2EditFocus:"Editar enfoque",ui2FocusSaved:"Enfoque guardado.",ui2DeckLanguageOf:name=>`Idioma de la baraja: ${name}`,
+Object.assign(words.es,{ui2EditNote:"Editar nota",ui2DeckData:"Datos de la baraja",ui2NotesLanguage:"Idioma de las notas",ui2DeckCards:"Tarjetas",ui2RenameDeck:"Renombrar baraja",ui2EditFocus:"Editar enfoque",ui2FocusSaved:"Enfoque guardado.",
   ui2DeckFilling:"¡La baraja se está llenando!",ui2IdeaTitleRequired:"El título es obligatorio en las ideas.",ui2QuoteNoTitle:"Las citas no llevan título.",
   ui2DeleteNote:"Borrar nota",ui2DeleteNoteTitle:"¿Borrar esta nota?",ui2DeleteNoteBelow:n=>n===1?"También se borrará la nota que tiene debajo.":`También se borrarán las ${n} notas que tiene debajo.`,
   ui2DeleteNoteMoveFirst:"Si no quieres perder sus notas hijas, muévelas antes de borrar esta.",ui2CannotUndo:"No se puede deshacer.",ui2DeleteNoteSavedStays:"Quienes ya la hayan guardado podrán seguir viéndola.",
   ui2NoteDeleted:"Nota borrada.",ui2EditNoteOf:title=>`Editar: ${title}`,ui2MoveNoteOf:title=>`Mover: ${title}`,ui2DragHandle:"asa de arrastre",cardNoteDeleted:"La nota de esta tarjeta ha sido borrada de su baraja"});
-Object.assign(words.en,{ui2EditNote:"Edit note",ui2DeckData:"Deck details",ui2DeckCards:"Cards",ui2RenameDeck:"Rename deck",ui2EditFocus:"Edit focus",ui2FocusSaved:"Focus saved.",ui2DeckLanguageOf:name=>`Deck language: ${name}`,
+Object.assign(words.en,{ui2EditNote:"Edit note",ui2DeckData:"Deck details",ui2NotesLanguage:"Notes language",ui2DeckCards:"Cards",ui2RenameDeck:"Rename deck",ui2EditFocus:"Edit focus",ui2FocusSaved:"Focus saved.",
   ui2DeckFilling:"The deck is filling up!",ui2IdeaTitleRequired:"Ideas need a title.",ui2QuoteNoTitle:"Quotes have no title.",
   ui2DeleteNote:"Delete note",ui2DeleteNoteTitle:"Delete this note?",ui2DeleteNoteBelow:n=>n===1?"The note below it will be deleted too.":`The ${n} notes below it will be deleted too.`,
   ui2DeleteNoteMoveFirst:"If you don’t want to lose its child notes, move them before deleting this one.",ui2CannotUndo:"This can’t be undone.",ui2DeleteNoteSavedStays:"Anyone who already saved it will still be able to see it.",

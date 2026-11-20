@@ -297,8 +297,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(!deck){win.location.replace("#library");return;}
     const data=deckCapabilities(deck,viewerId()).edit&&editDeckData({catalog,deck,language,hasDraft:hasDeckDraft(deck)});
     if(!data){editor=null;win.location.replace(`#deck/${encodeURIComponent(id)}`);return;}
-    if(editor?.deckId!==id)editor={deckId:id,langOpen:false,modal:null,deleting:null,flash:null,grabbed:null};
-    let html=editDeckMarkup({data,c,languageName:ownLanguageName,legacy:c.legacy,langOpen:editor.langOpen,flash:editor.flash,grabbed:editor.grabbed});
+    if(editor?.deckId!==id)editor={deckId:id,modal:null,deleting:null,flash:null,grabbed:null};
+    let html=editDeckMarkup({data,c,languageName:ownLanguageName,legacy:c.legacy,flash:editor.flash,grabbed:editor.grabbed});
     if(finish&&!failure)html+=finishDeckDialogMarkup({c});
     if(editor.modal)html+=deckFieldModalMarkup({modal:editor.modal,max:editor.modal.kind==="title"?TITLE_MAX_LENGTH:DESCRIPTION_MAX_LENGTH,c});
     if(toast)html+=toastMarkup({...toast,c});
@@ -768,7 +768,6 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(bookLink&&["library","bookstore"].includes(route().name)&&!event.target.closest("[data-ui2]")){event.preventDefault();sheetState={type:"book",id:bookLink.dataset.book};render();return;}
     const target=event.target.closest("[data-ui2]");if(!target)return;
     const action=target.dataset.ui2,view=current();
-    if(editor?.langOpen&&action!=="edit-lang"&&action!=="edit-lang-pick"){editor.langOpen=false;if(!action.startsWith("edit-")){render();return;}}
     if(action==="open-note"){sheetState={type:"note",id:target.dataset.id};render();}
     // Back where the reader came from (Tarjetero, the book…); a direct link has nowhere to go back: the Library.
     else if(action==="edit-close"){editor=null;if(win.history.length>1)win.history.back();else win.location.replace("#library");}
@@ -778,10 +777,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       const field=main.querySelector("#ui2-edm-value");if(field){field.focus({preventScroll:true});field.setSelectionRange?.(field.value.length,field.value.length);}
     }
     else if(action==="edit-modal-cancel"&&editor){const kind=editor.modal?.kind;main.querySelector(".ui2-edmodal")?.close();editor.modal=null;render();main.querySelector(`[data-ui2="${kind==="title"?"edit-rename":"edit-focus"}"]`)?.focus({preventScroll:true});}
-    else if(action==="edit-lang"&&editor){editor.langOpen=!editor.langOpen;render();(main.querySelector('.ed-langopt[aria-selected="true"]')||main.querySelector('[data-ui2="edit-lang"]'))?.focus({preventScroll:true});}
     else if(action==="edit-lang-pick"&&editor){
-      const deck=editorDeck(),next=target.dataset.language;editor.langOpen=false;
-      if(!deck||next===deck.language){render();main.querySelector('[data-ui2="edit-lang"]')?.focus({preventScroll:true});return;}
+      const deck=editorDeck(),next=target.dataset.language;
+      if(!deck||next===deck.language)return;
       editorRun(c.busySaving,async()=>{await api.request("/api/author/decks/language",{deckId:deck.id,language:next,previousLanguage:deck.language});await reload();showToast(c.deckLanguageSaved);});
     }
     else if(action==="edit-take-note"&&editor){const deck=editorDeck();if(deck&&!target.disabled){openForm({bookId:deck.bookId,deckId:deck.id,origin:"edit"});render();}}

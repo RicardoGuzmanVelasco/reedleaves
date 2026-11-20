@@ -1,6 +1,6 @@
 // «Editar baraja» (#edit/<deckId>): the screen of the owner's personal deck in progress (it has no deck
 // page). Share and read its cards, name and focus (each with its modal), card count, language
-// chip-selector, «Tomar nota», the outline of notes (a tap opens «Editar nota», a handle moves it) and
+// chip-selector (in the data card), «Tomar nota», the outline of notes (a tap opens «Editar nota», a handle moves it) and
 // «Terminar baraja». Every change is saved at once (index.mjs).
 import {escapeHtml as esc,attributionIcon} from "../views.mjs";
 import {bookTitle,LANGUAGES,MAX_CARDS_PER_DECK,DECK_NEARLY_FULL_CARDS} from "../core.mjs";
@@ -33,37 +33,34 @@ function nodeMarkup(item,data,c,flash,grabbed){
   return `<li data-ed-id="${esc(item.id)}"${item.id===flash?' class="ed-flash"':""}><div class="ed-row">${node}</div>${children}</li>`;
 }
 
-const languageMenu=(data,languageName)=>`<div class="ed-langmenu" role="listbox" aria-label="${esc(languageName.label)}">${LANGUAGES.map(code=>
-  `<button type="button" class="ed-langopt" role="option" aria-selected="${code===data.language}" data-ui2="edit-lang-pick" data-language="${esc(code)}">${flag(code)}<span>${esc(languageName(code))}</span>${code===data.language?icon("check"):""}</button>`).join("")}</div>`;
-
 // `languageName(code)` names a language in the interface; `languageName.label` is «Idioma de la baraja».
-export function editDeckMarkup({data,c,languageName,legacy,langOpen=false,flash=null,grabbed=null}){
+export function editDeckMarkup({data,c,languageName,legacy,flash=null,grabbed=null}){
   const full=data.level==="full";
-  const notice=full?ui2Callout({kind:"warning",main:c.deckCardLimitReached}):data.level==="near"?ui2Callout({kind:"info",main:c.ui2DeckFilling}):"";
+  const notice=full?ui2Callout({kind:"warning",main:c.deckCardLimitReached,width:"auto",className:"ed-fillnote"}):data.level==="near"?ui2Callout({kind:"info",main:c.ui2DeckFilling,width:"auto",className:"ed-fillnote"}):"";
   const pencil=(action,label)=>`<button type="button" class="ui2-btn secondary--subtle dp-ibtn" data-ui2="${action}" aria-label="${esc(label)}" title="${esc(label)}">${icon("edit")}</button>`;
-  const languageLabel=c.ui2DeckLanguageOf(languageName(data.language));
-  const chip=`<span class="ed-langwrap"><button type="button" class="ed-chip ed-flag" data-ui2="edit-lang" aria-haspopup="listbox" aria-expanded="${langOpen}" aria-label="${esc(languageLabel)}" title="${esc(languageLabel)}">${flag(data.language)}${icon("expand")}</button>${langOpen?languageMenu(data,languageName):""}</span>`;
+  const langRow=`<div class="ed-drow ed-lang"><div class="ed-grow"><small>${esc(c.ui2NotesLanguage)}</small></div><div class="segmented-selector" role="group" aria-label="${esc(c.ui2NotesLanguage)}">${LANGUAGES.map(code=>`<button type="button" data-ui2="edit-lang-pick" data-language="${esc(code)}" aria-pressed="${code===data.language}" aria-label="${esc(languageName(code))}" lang="${esc(code)}">${flag(code)}</button>`).join("")}</div></div>`;
   const take=`<button type="button" class="ui2-btn ed-take" data-ui2="edit-take-note"${full?' disabled aria-disabled="true"':""}>${icon("take-note")}<span>${esc(c.takeNote)}</span></button>`;
   // Share sends the link to read the deck, never this screen; «Leer tarjetas» only once it has cards.
-  const tools=`<div class="ed-tools" role="group" aria-label="${esc(c.ui2DeckActions)}">${ibtn({label:c.shareDeck,iconName:"share",attrs:' data-ui2="share-deck"'})}${data.count?readCardsButton({page:data,legacy,c}):""}</div>`;
+  const tools=`<div class="ed-tools" role="group" aria-label="${esc(c.ui2DeckActions)}">${data.count?readCardsButton({page:data,legacy,c}):""}${ibtn({label:c.shareDeck,iconName:"share",attrs:' data-ui2="share-deck"'})}</div>`;
   // Why «Terminar baraja» is off: a note is still a draft, or there is nothing to finish.
   const why=data.cannotFinish?ui2Callout({kind:"info",main:data.hasDraft?c.pendingNoteBeforeFinish:c.emptyDeckCannotFinish}):"";
-  const finish=`<div class="ed-finish">${why}<button type="button" class="ui2-btn secondary--subtle${data.cannotFinish?" is-disabled":""}" data-ui2="finish-deck"${data.cannotFinish?' aria-disabled="true"':""}>${icon("finish-deck")}<span>${esc(c.finishDeck)}</span></button></div>`;
+  const finish=`<button type="button" class="ui2-btn secondary--subtle ed-finish${data.cannotFinish?" is-disabled":""}" data-ui2="finish-deck"${data.cannotFinish?' aria-disabled="true"':""}>${icon("finish-deck")}<span>${esc(c.finishDeck)}</span></button>`;
   const {tree,unsorted}=data.outline;
   const list=items=>`<ul class="ed-tree">${items.map(item=>nodeMarkup(item,data,c,flash,grabbed)).join("")}</ul>`;
   const notes=data.count
     ?(tree.length?list(tree):"")+(unsorted.length?`<h3 class="ed-sub">${esc(c.unclassifiedQuotes)}</h3>${list(unsorted)}`:"")
     :`<div class="ui2-empty ed-empty">${mascotArt("tumbleweed","",{animation:"tumble"})}<h2>${esc(c.ui2DeckEmpty)}</h2></div>`;
-  return `<div class="ui2-capture ed-screen" data-ui2-editor="${esc(data.id)}"><header class="ui2-top ui2-top--form"><div class="ui2-titles"><h1 tabindex="-1">${esc(c.ui2EditDeck)}</h1></div>${tools}
-<button type="button" class="dialog-close" data-ui2="edit-close" aria-label="${esc(c.ui2Close)}">${icon("close")}</button></header>
+  return `<div class="ui2-capture ed-screen" data-ui2-editor="${esc(data.id)}"><header class="ui2-top ui2-top--edit"><button type="button" class="ui2-ib" data-ui2="edit-close" aria-label="${esc(c.back)}">${icon("back")}</button><div class="ui2-titles"><h1 tabindex="-1">${esc(c.ui2EditDeck)}</h1></div>${tools}</header>
 <p class="ui2-bookline">${attributionIcon("book")}<a class="book-link" href="#book/${encodeURIComponent(data.bookId)}" lang="${esc(data.bookTitleLanguage)}" dir="auto">${esc(data.bookTitle)}</a></p>
-<div class="ui2-body ed-body">${notice?`<div class="ui2-notices ed-notices">${notice}</div>`:""}
+<div class="ui2-body ed-body">
 <section class="ed-data" aria-label="${esc(c.ui2DeckData)}">
 <div class="ed-drow"><div class="ed-grow"><small>${esc(c.deckTitle)}</small><strong lang="${esc(data.language)}" dir="auto">${esc(data.title)}</strong></div>${pencil("edit-rename",c.ui2RenameDeck)}</div>
 <div class="ed-drow"><div class="ed-grow"><small>${esc(c.deckDescription)}</small><p class="ed-focus${data.focus?"":" is-empty"}" lang="${esc(data.language)}" dir="auto">${esc(data.focus||"—")}</p></div>${pencil("edit-focus",c.ui2EditFocus)}</div>
+${langRow}
 </section>
-<div class="ed-bar"><span class="ed-count${data.level==="ok"?"":` is-${data.level}`}" role="img" aria-label="${esc(c.deckCardCount(data.count,data.max))}">${icon("deck")}<b aria-hidden="true">${data.count}/${data.max}</b></span>${chip}${take}</div>
-<section class="ed-map" aria-label="${esc(c.ui2DeckCards)}">${notes}</section>${finish}</div>
+<div class="ed-actions">${take}${finish}</div>${why}
+<div class="ed-bar"><span class="ed-count${data.level==="ok"?"":` is-${data.level}`}" role="img" aria-label="${esc(c.deckCardCount(data.count,data.max))}">${icon("deck")}<b aria-hidden="true">${data.count}/${data.max}</b></span>${notice}</div>
+<section class="ed-map" aria-label="${esc(c.ui2DeckCards)}">${notes}</section></div>
 <div class="ed-rootzone" data-ed-root hidden>${esc(c.ui2NoParent)}</div></div>`;
 }
 
