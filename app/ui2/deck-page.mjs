@@ -9,14 +9,19 @@ import {mascotArt} from "../mascot-art.mjs?v=tumbleweed";
 import {icon} from "./icons.mjs";
 import {flag} from "./book-sheet.mjs";
 import {outlineMarkup} from "./markup.mjs";
-import {deckFocus,editRoute} from "./editar-baraja.mjs";
 
 // Pure: everything the page shows, from the catalog and the reader's state.
-export function deckPageData({catalog,state,language,deckId,hasDraft=false}){
+// A deck with no focus stores its name as the description: then the focus is empty.
+export function deckFocus(deck,language){
+  const focus=contentText(deck.description,language,deck.language),title=contentText(deck.title,language,deck.language);
+  return focus&&focus!==title?focus:"";
+}
+
+// The owner's personal deck in progress has no page: it opens in «Editar baraja» (index.mjs).
+export function deckPageData({catalog,state,language,deckId}){
   const deck=catalog.decksById.get(deckId),book=deck&&catalog.booksById.get(deck.bookId),model=deck&&catalog.deckModels.get(deck.id);
   if(!deck||!book||!model)return null;
   const userId=state.user?.id,owner=!!userId&&deck.creator?.userId===userId,open=deck.status==="in_progress";
-  const personal=owner&&(deck.contributionPolicy||"owner")==="owner";
   const book_=bookTitle(book,language),quotes=model.cards.filter(card=>card.isQuote).length;
   const focus=deckFocus(deck,language);
   return {id:deck.id,bookId:book.id,bookTitle:book_.text,bookTitleLanguage:book_.language,
@@ -24,8 +29,8 @@ export function deckPageData({catalog,state,language,deckId,hasDraft=false}){
     creator:deck.creator?.name?{name:deck.creator.name,id:deck.creator.userId||null}:null,
     deckLanguage:deck.language,open,count:model.cards.length,quotes,focus,focusLanguage:focus?contentLocale(deck.description,language,deck.language):deck.language,
     quoteSource:validQuoteSourceUrl(deck.quoteSourceUrl)?deck.quoteSourceUrl:"",
-    owner,write:personal&&open,inCardcase:(state.cardcaseDeckIds||[]).includes(deck.id),
-    cannotFinish:!model.cards.length||hasDraft,hasDraft,addCost:owner?0:DECK_ADD_COST,canAfford:(state.wallet?.balance??Infinity)>=DECK_ADD_COST};
+    owner,inCardcase:(state.cardcaseDeckIds||[]).includes(deck.id),
+    addCost:owner?0:DECK_ADD_COST,canAfford:(state.wallet?.balance??Infinity)>=DECK_ADD_COST};
 }
 
 const chip=(inner,label="")=>`<span class="dp-chip"${label?` role="img" aria-label="${esc(label)}"`:""}>${inner}</span>`;
@@ -38,24 +43,22 @@ function chipsMarkup(page,c,languageName){
     +chip(`${icon("quote")}<span aria-hidden="true">${page.quotes}</span>`,c.quoteCount(page.quotes))+`</div>`;
 }
 
-const ibtn=({tag="button",label,iconName,primary=false,disabled=false,attrs=""})=>
+export const ibtn=({tag="button",label,iconName,primary=false,disabled=false,attrs=""})=>
   `<${tag} class="ui2-btn dp-ibtn${primary?"":" secondary--subtle"}${disabled?" is-disabled":""}"${tag==="button"?' type="button"':""} aria-label="${esc(label)}" title="${esc(label)}"${disabled?' aria-disabled="true"':""}${attrs}>${icon(iconName)}</${tag}>`;
 
+// «Leer tarjetas»: the cards of the deck in the old interface until the card view is redesigned; off while empty.
+export const readCardsButton=({page,legacy,c})=>page.count
+  ?ibtn({tag:"a",label:c.readDeckCards,iconName:"deck-view",attrs:` href="${esc(`${legacy}#preview/${encodeURIComponent(page.id)}/carousel`)}"`})
+  :ibtn({label:c.readDeckCards,iconName:"deck-view",disabled:true});
+
 export function deckPageMarkup({page,outline,languageName,legacy,c}){
-  // While the deck is being written the main action is Edit; once finished (no Edit) it is Share.
-  const stack=[ibtn({label:c.shareDeck,iconName:"share",primary:!page.write,attrs:' data-ui2="share-deck"'}),
-    page.count?ibtn({tag:"a",label:c.readDeckCards,iconName:"deck-view",attrs:` href="${esc(`${legacy}#preview/${encodeURIComponent(page.id)}/carousel`)}"`}):ibtn({label:c.readDeckCards,iconName:"deck-view",disabled:true}),
-    page.write?ibtn({tag:"a",label:c.ui2EditDeck,iconName:"edit",primary:true,attrs:` href="${esc(editRoute(page.id))}"`}):""].join("");
+  const stack=[ibtn({label:c.shareDeck,iconName:"share",primary:true,attrs:' data-ui2="share-deck"'}),readCardsButton({page,legacy,c})].join("");
   const person=page.creator?(page.creator.id?`<a class="card-attribution-row" href="${esc(`#profile/${encodeURIComponent(page.creator.id)}`)}">${attributionIcon("user")}<bdi>${esc(page.creator.name)}</bdi></a>`:`<span class="card-attribution-row">${attributionIcon("user")}<bdi>${esc(page.creator.name)}</bdi></span>`):"";
   const row=(...buttons)=>`<div class="dp-actions"><div class="dp-row">${buttons.join("")}</div></div>`;
-  const take=`<button type="button" class="ui2-btn dp-grow" data-ui2="take-note" data-parent="">${icon("take-note")}<span>${esc(c.takeNote)}</span></button>`;
-  const finish=`<button type="button" class="ui2-btn secondary--subtle dp-grow${page.cannotFinish?" is-disabled":""}" data-ui2="finish-deck"${page.cannotFinish?' aria-disabled="true"':""}>${icon("finish-deck")}<span>${esc(c.finishDeck)}</span></button>`;
   const remove=`<button type="button" class="ui2-btn secondary--subtle dp-grow" data-ui2="cardcase-remove" data-deck="${esc(page.id)}" aria-haspopup="dialog">${icon("remove-from-cardcase")}<span>${esc(c.removeDeckFromCardcase)}</span></button>`;
   const add=`<button type="button" class="ui2-btn dp-grow" data-ui2="add-deck" data-deck="${esc(page.id)}">${icon("add-to-cardcase")}<span>${esc(c.addDeckToCardcase)}</span>${page.addCost?priceTagMarkup({amount:page.addCost,state:page.canAfford===false?"insufficient":"normal",c}):""}</button>`;
-  const actions=page.write?row(take,finish):row(page.inCardcase?remove:add);
+  const actions=row(page.inCardcase?remove:add);
   const notice=!page.owner&&page.open?ui2Callout({kind:"info",className:"dp-msg",main:c.ui2DeckStillWriting}):"";
-  // Why «Terminar baraja» is off: a note is still a draft, or there is nothing to finish.
-  const why=page.write&&page.cannotFinish?ui2Callout({kind:"info",className:"dp-msg",main:page.hasDraft?c.pendingNoteBeforeFinish:c.emptyDeckCannotFinish}):"";
   const body=page.count?outlineMarkup(outline,c):`<div class="ui2-empty dp-empty">${mascotArt("tumbleweed","",{animation:"tumble"})}<h2>${esc(c.ui2DeckEmpty)}</h2></div>`;
   return `<section class="deck-page"><div class="dp-head"><div class="dp-stack" role="group" aria-label="${esc(c.ui2DeckActions)}">${stack}</div>`
     +`<div class="dp-title"><button type="button" class="ui2-ib dp-back" data-ui2="page-back" aria-label="${esc(c.back)}">${icon("back")}</button><div class="dp-titles"><h1 class="dp-deckname" tabindex="-1" lang="${esc(page.titleLanguage)}" dir="auto">${esc(page.title)}</h1>`
@@ -63,5 +66,5 @@ export function deckPageMarkup({page,outline,languageName,legacy,c}){
     +(person?`<p class="dp-author">${person}</p>`:"")+chipsMarkup(page,c,languageName)
     +(page.focus?`<p class="dp-focus" lang="${esc(page.focusLanguage)}" dir="auto">${esc(page.focus)}</p>`:"")
     +(page.quotes&&page.quoteSource?`<p class="dp-source"><a class="dp-srclink" href="${esc(page.quoteSource)}" target="_blank" rel="noopener noreferrer" title="${esc(c.newTab)}">${esc(c.quoteSource)}</a></p>`:"")
-    +`</div>${notice}${actions}${why}${body}</section>`;
+    +`</div>${notice}${actions}${body}</section>`;
 }

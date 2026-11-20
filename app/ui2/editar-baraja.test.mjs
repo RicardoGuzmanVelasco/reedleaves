@@ -20,10 +20,10 @@ const many=n=>Array.from({length:n},(_,index)=>card(`n${index}`,null,index+1));
 
 for(const language of ["es","en"])test(`Editar baraja: name and focus with pencils, count, language chip, Tomar nota and editable notes (${language})`,()=>{
   const c=words[language],s=state(),deck=s.catalog.decksById.get("d");
-  const data=editDeckData({catalog:s.catalog,deck,language,userId:"me"});
-  assert.equal(data.readOnly,false);assert.equal(data.focus,"");assert.equal(data.level,"ok");
+  const data=editDeckData({catalog:s.catalog,deck,language});
+  assert.equal(data.cannotFinish,false);assert.equal(data.focus,"");assert.equal(data.level,"ok");
   const html=editDeckMarkup({data,c,languageName:name});
-  for(const action of ["edit-close","edit-rename","edit-focus","edit-lang","edit-take-note"])assert.match(html,new RegExp(`data-ui2="${action}"`));
+  for(const action of ["edit-close","share-deck","edit-rename","edit-focus","edit-lang","edit-take-note","finish-deck"])assert.match(html,new RegExp(`data-ui2="${action}"`));
   assert.match(html,/data-ui2="edit-lang"[^>]*aria-haspopup="listbox"[^>]*aria-expanded="false"/);
   assert.ok(html.includes(c.ui2DeckLanguageOf("Español")));
   assert.match(html,/data-ui2="edit-note" data-id="a"/);assert.match(html,/data-ui2-drag="a"/);
@@ -38,38 +38,28 @@ for(const language of ["es","en"])test(`Editar baraja: name and focus with penci
 
 test("Editar baraja: fills up from the threshold and stops taking notes at the limit, while notes stay editable",()=>{
   const c=words.es,near=state({cards:many(DECK_NEARLY_FULL_CARDS)}),full=state({cards:many(MAX_CARDS_PER_DECK)});
-  const nearData=editDeckData({catalog:near.catalog,deck:near.catalog.decksById.get("d"),language:"es",userId:"me"});
+  const nearData=editDeckData({catalog:near.catalog,deck:near.catalog.decksById.get("d"),language:"es"});
   assert.equal(nearData.level,"near");
   assert.match(editDeckMarkup({data:nearData,c,languageName:name}),/ui2-co--info[\s\S]*ed-count is-near/);
-  const fullData=editDeckData({catalog:full.catalog,deck:full.catalog.decksById.get("d"),language:"es",userId:"me"});
-  const html=editDeckMarkup({data:fullData,c,languageName:name});
+  const fullData=editDeckData({catalog:full.catalog,deck:full.catalog.decksById.get("d"),language:"es"});
+  const html=editDeckMarkup({data:fullData,c,languageName:name,legacy:"/"});
   assert.ok(html.includes(c.deckCardLimitReached));assert.match(html,/ui2-co--warning/);assert.match(html,/ed-count is-full/);
   assert.match(html,/data-ui2="edit-take-note" disabled/);assert.match(html,/data-ui2-drag="n0"/);
 });
 
-test("Editar baraja: a finished deck or someone else's is read only; closed meanwhile it says so",()=>{
-  const c=words.es,s=state({deck:{status:"finished"}}),deck=s.catalog.decksById.get("d");
-  assert.equal(editDeckData({catalog:s.catalog,deck,language:"es",userId:"me"}).readOnly,true);
-  assert.equal(editDeckData({catalog:s.catalog,deck:{...deck,status:"in_progress"},language:"es",userId:"other"}).readOnly,true);
-  const html=editDeckMarkup({data:editDeckData({catalog:s.catalog,deck,language:"es",userId:"me",readOnly:true}),c,languageName:name});
-  assert.ok(html.includes(c.deckReadOnly));
-  assert.doesNotMatch(html,/data-ui2="(edit-rename|edit-focus|edit-take-note|edit-note)"|data-ui2-drag|data-ed-root/);
-  assert.match(html,/data-ui2="edit-lang"[^>]*disabled/);
-});
-
 test("Editar baraja: an empty deck shows the tumbleweed; focus equal to the name is no focus",()=>{
   const c=words.es,s=state({cards:[],deck:{description:{es:"Capítulo a capítulo"}}}),deck=s.catalog.decksById.get("d");
-  const data=editDeckData({catalog:s.catalog,deck,language:"es",userId:"me"});
+  const data=editDeckData({catalog:s.catalog,deck,language:"es"});
   assert.equal(data.focus,"Capítulo a capítulo");
   assert.ok(editDeckMarkup({data,c,languageName:name}).includes(c.ui2DeckEmpty));
   assert.equal(deckFocus({...deck,description:{es:"Notas"}},"es"),"");
 });
 
-test("The deck page pencil opens the editor, not the old interface",()=>{
-  const c=words.es,s=state(),page=deckPageData({catalog:s.catalog,state:s,language:"es",deckId:"d"});
+test("The deck page has no pencil and shows the focus only when it differs from the name",()=>{
+  const c=words.es,s=state({deck:{status:"finished"}}),page=deckPageData({catalog:s.catalog,state:s,language:"es",deckId:"d"});
   const html=deckPageMarkup({page,outline:deckOutline(s.catalog.deckModels.get("d"),"es"),languageName:"Español",legacy:"/old",c});
-  assert.ok(html.includes(`href="${editRoute("d")}"`));assert.doesNotMatch(html,/\/old#deck\//);
-  assert.equal(page.focus,"");
+  assert.doesNotMatch(html,/#edit\//);assert.equal(page.focus,"");
+  assert.equal(editRoute("a/b"),"#edit/a%2Fb");
 });
 
 for(const language of ["es","en"])test(`Rename, focus and delete dialogs (${language})`,()=>{

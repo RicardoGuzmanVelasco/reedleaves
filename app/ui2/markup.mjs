@@ -16,15 +16,14 @@ export function outlineMarkup(outline,c){
   return [outline.tree,outline.unsorted].filter(list=>list.length).map(list=>`<ul class="ui2-tree">${list.map(item=>noteItem(item,c)).join("")}</ul>`).join("");
 }
 
-// The note read from the deck page; changing it lives only in «Editar baraja». Its one action: a note below it.
-export function noteSheetMarkup({note,caps,c}){
-  const rows=caps.takeBelow&&!note.isQuote?`<button type="button" class="ui2-row" data-ui2="take-note-under" data-id="${esc(note.id)}">${icon("take-note")}<span class="ui2-grow">${esc(c.ui2TakeNoteUnder)}</span></button>`:"";
+// The note read from the deck page (a finished or foreign deck: nothing to change there).
+export function noteSheetMarkup({note,c}){
   return `<dialog class="ui2-sheet" data-ui2-sheet aria-labelledby="ui2-sheet-title"><div class="ui2-grab" aria-hidden="true"></div>
 <span class="ui2-chip">${esc(note.isQuote?c.ui2Quote:c.ui2Idea)}</span>
-<h2 id="ui2-sheet-title">${esc(note.isQuote?c.ui2Note:note.title)}</h2><p class="ui2-full">${esc(note.body)}</p>${rows}</dialog>`;
+<h2 id="ui2-sheet-title">${esc(note.isQuote?c.ui2Note:note.title)}</h2><p class="ui2-full">${esc(note.body)}</p></dialog>`;
 }
 
-export function placeSheetMarkup({note,targets,currentParentId,c,action="place-to"}){
+export function placeSheetMarkup({note,targets,currentParentId,c,action}){
   const row=(id,label,depth,current)=>`<button type="button" class="ui2-row" data-ui2="${action}" data-parent="${esc(id??"")}" data-depth="${Math.min(depth,8)}"${current?' aria-current="true"':""}><span class="ui2-grow">${esc(label)}</span>${current?icon("check"):""}</button>`;
   return `<dialog class="ui2-sheet" data-ui2-sheet aria-labelledby="ui2-sheet-title"><div class="ui2-grab" aria-hidden="true"></div>
 <h2 id="ui2-sheet-title">${esc(c.ui2PlaceUnderTitle)}</h2><p class="ui2-lead">${esc(note.title||note.body)}</p>

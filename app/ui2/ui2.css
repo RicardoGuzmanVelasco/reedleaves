@@ -358,7 +358,6 @@ button.int-chip:disabled{opacity:1}
 .deck-page{display:flex;flex-direction:column;gap:10px}
 .dp-head{position:relative;display:flow-root}.dp-head>*+*{margin-top:10px}
 .dp-stack{position:absolute;top:0;right:0;display:flex;flex-direction:column;gap:8px;margin:0;z-index:1}
-.dp-head:has(.dp-stack>.dp-ibtn:nth-child(3)){min-height:136px}
 .dp-head:has(.dp-stack>.dp-ibtn:nth-child(2)){min-height:88px}
 .dp-head>.dp-title{padding-right:50px}
 .dp-ibtn{width:40px;min-height:40px;height:40px;padding:0;border-radius:14px}
@@ -617,6 +616,9 @@ button.int-chip:disabled{opacity:1}
 @media(prefers-reduced-motion:reduce){.ui2-launch::after,.ui2-launch-char,.ui2-onb .int-chip.is-pick .interest-emoji{animation:none!important}}
 /* Editar baraja (#edit/<deck>) y Editar nota: mockup editar-baraja-v2. Columna de 640 px en escritorio. */
 .ed-screen{width:100%;max-width:640px;margin:0 auto;position:relative}
+.ed-tools{display:flex;align-items:center;gap:8px;flex:none;margin-right:6px}
+.ui2-bookline .book-link{min-width:0;overflow-wrap:anywhere}
+.ed-finish{display:flex;flex-direction:column;gap:10px;margin-top:22px}
 .ed-body{padding-bottom:110px}
 .ed-notices{padding:0 0 10px}
 .ed-data{border:1.5px solid var(--ui2-sage);border-radius:16px;background:var(--ui2-card);box-shadow:0 2px 0 var(--ui2-card-shadow)}

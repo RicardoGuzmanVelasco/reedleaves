@@ -39,8 +39,7 @@ export function placementTargets(model,cardId,language){
 // Only the author of a personal deck in progress changes it; a finished deck is closed for good.
 export function deckCapabilities(deck,userId){
   const personal=!!userId&&deck?.creator?.userId===userId&&(deck.contributionPolicy||"owner")==="owner";
-  const open=personal&&deck?.status==="in_progress";
-  return {edit:open,takeBelow:open};
+  return {edit:personal&&deck?.status==="in_progress"};
 }
 
 export function noteCount(model){return {count:model.cards.length,max:MAX_CARDS_PER_DECK};}

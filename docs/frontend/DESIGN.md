@@ -124,7 +124,8 @@ Fuente de verdad del estilo de iconos de la interfaz nueva (`?ui=2`). Los SVG vi
 - «Fuente de las citas»: un único enlace externo (otra pestaña) solo si la baraja tiene `quoteSourceUrl`; solo el equipo lo fija.
 - La recomendación del equipo (`isRecommended`) lleva la etiqueta «Te recomendamos» con papel ondulado dorado; las guías de lectura llevan siempre «Destacada». No hay etiqueta de relleno en las demás.
 - Idioma: chip con bandera (español, inglés) o globo con código (otros); nombre localizado en el nombre accesible. Las barajas terminadas no muestran estado; las en curso, el candado abierto. Recuento de tarjetas y de citas (también a cero) con sus iconos.
-- Dueño con baraja en curso: **Editar** es la acción principal; con la baraja terminada o ajena, lo es **Compartir**. Quien no la tiene en su tarjetero ve «Añadir al tarjetero».
+- Baraja personal propia en curso: su pantalla es **Editar baraja** (`#edit/<id>`; `#deck/<id>` redirige allí). No existe un botón «Editar». Desde el editor se comparte (el enlace abre la baraja para leer sus tarjetas, nunca el editor), se leen las tarjetas, se toman, editan, mueven y borran notas y se termina la baraja; la X vuelve al origen.
+- La página de baraja es para barajas terminadas, ajenas o colectivas: **Compartir** es la acción principal. Quien no la tiene en su tarjetero ve «Añadir al tarjetero».
 
 ## Vista exclusiva de tarjetas
 

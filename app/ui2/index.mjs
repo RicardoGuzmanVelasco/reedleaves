@@ -147,8 +147,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   const panel=doc.querySelector("#reader-xp-feedback .xp-feedback-panel");
   if(panel&&typeof MutationObserver==="function")new MutationObserver(layoutToast).observe(panel,{attributes:true,attributeFilter:["hidden"]});
-  function showToast(message,deck=""){
-    clearTimeout(toastTimer);toast={message,deckId:deck};
+  // `keep`: the toast survives the next route change (the editor replaced by the deck page).
+  function showToast(message,deck="",{keep=false}={}){
+    clearTimeout(toastTimer);toast={message,deckId:deck,keep};
     toastTimer=setTimeout(()=>{toast=null;main.querySelector(".ui2-toast")?.remove();},TOAST_MS);
   }
   // The interest warning and, over everything, the business error (not enough balance has its own modal).
@@ -276,28 +277,29 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(!view){
       paint(withError(homeMarkup({data:homeData({catalog,state:reader,language}),c,nav:navFor("home"),toast:toast?toastMarkup({...toast,c}):""})));return;
     }
-    const {deck,model}=view,caps=deckCapabilities(deck,viewerId());
-    const state={...reader,catalog},page=deckPageData({catalog,state,language,deckId:deck.id,hasDraft:hasDeckDraft(deck)}),list=libreriaData({catalog,state,language});
+    const {deck,model}=view;
+    // The owner's personal deck in progress has no page: its screen is the editor.
+    if(deckCapabilities(deck,viewerId()).edit){win.location.replace(editRoute(deck.id));return;}
+    const state={...reader,catalog},page=deckPageData({catalog,state,language,deckId:deck.id}),list=libreriaData({catalog,state,language});
     let html=shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),
       body:`<div class="ui2-body ui2-lib">${deckPageMarkup({page,outline:deckOutline(model,deck.language),languageName:languageName(deck.language),legacy:c.legacy,c})}</div>`,nav:navFor(page.inCardcase||page.owner?"library":"bookstore")});
     const note=sheetState?.type==="note"&&model.byId.get(sheetState.id);
-    if(note)html+=noteSheetMarkup({note:{id:note.id,isQuote:note.isQuote,title:note.title?.[deck.language]||"",body:note.body?.[deck.language]||""},caps,c});
-    if(finish&&!failure)html+=finishDeckDialogMarkup({c});
+    if(note)html+=noteSheetMarkup({note:{id:note.id,isQuote:note.isQuote,title:note.title?.[deck.language]||"",body:note.body?.[deck.language]||""},c});
     const removedDeck=removing===deck.id?tileOf(catalog,deck,language):null;
     if(removedDeck)html+=removeDeckDialogMarkup({deck:removedDeck,userId:viewerId(),c});
     if(toast)html+=toastMarkup({...toast,c});
     paint(withError(html));
   }
   // ---- Editar baraja ----
-  // The owner's deck in progress. A finished (or foreign) deck is not editable: its page opens instead,
-  // unless the server closed it while the editor was open (then it stays, read only, with the callout).
+  // The screen of the owner's personal deck in progress. Any other deck (finished, foreign, shared) has its page.
   function editScreen(id){
     const deck=catalog.decksById.get(id);
     if(!deck){win.location.replace("#library");return;}
-    if(editor?.deckId!==id)editor={deckId:id,langOpen:false,modal:null,deleting:null,readOnly:false,flash:null,grabbed:null};
-    const data=editDeckData({catalog,deck,language,userId:viewerId(),readOnly:editor.readOnly});
-    if(!data||data.readOnly&&!editor.readOnly){editor=null;win.location.replace(`#deck/${encodeURIComponent(id)}`);return;}
-    let html=editDeckMarkup({data,c,languageName:ownLanguageName,langOpen:editor.langOpen,flash:editor.flash,grabbed:editor.grabbed});
+    const data=deckCapabilities(deck,viewerId()).edit&&editDeckData({catalog,deck,language,hasDraft:hasDeckDraft(deck)});
+    if(!data){editor=null;win.location.replace(`#deck/${encodeURIComponent(id)}`);return;}
+    if(editor?.deckId!==id)editor={deckId:id,langOpen:false,modal:null,deleting:null,flash:null,grabbed:null};
+    let html=editDeckMarkup({data,c,languageName:ownLanguageName,legacy:c.legacy,langOpen:editor.langOpen,flash:editor.flash,grabbed:editor.grabbed});
+    if(finish&&!failure)html+=finishDeckDialogMarkup({c});
     if(editor.modal)html+=deckFieldModalMarkup({modal:editor.modal,max:editor.modal.kind==="title"?TITLE_MAX_LENGTH:DESCRIPTION_MAX_LENGTH,c});
     if(toast)html+=toastMarkup({...toast,c});
     paint(withError(html));
@@ -305,7 +307,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(editor.grabbed)main.querySelector(`[data-ui2-drag="${CSS.escape(editor.grabbed)}"]`)?.focus({preventScroll:true});
   }
   const editorDeck=()=>editor&&catalog.decksById.get(editor.deckId);
-  // Every editor change: the sleeping sprout waits; a deck closed meanwhile turns the editor read only,
+  // Every editor change: the sleeping sprout waits; a deck finished meanwhile (another session) goes to its page,
   // a name changed in another session shows in the modal; connection and server errors go to run()'s error screen.
   const WAIT_AFTER_MS=350;
   function editorRun(label,task){
@@ -315,7 +317,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       try{await task();}
       catch(caught){
         const code=caught?.code;
-        if(code==="deckReadOnly"){await reload().catch(()=>{});if(editor){editor.readOnly=true;editor.modal=null;editor.deleting=null;editor.grabbed=null;}form=null;return;}
+        if(code==="deckReadOnly"){
+          const id=editor?.deckId;await reload().catch(()=>{});editor=null;form=null;
+          showToast(c.deckReadOnly,"",{keep:true});if(id)win.location.replace(`#deck/${encodeURIComponent(id)}`);return;
+        }
         if(code==="deckTitleChanged"&&editor?.modal){await reload().catch(()=>{});editor.modal.conflict=true;return;}
         if(code==="deckLanguageChanged"){await reload().catch(()=>{});showToast(c.deckLanguageChanged);return;}
         throw caught;
@@ -765,7 +770,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const action=target.dataset.ui2,view=current();
     if(editor?.langOpen&&action!=="edit-lang"&&action!=="edit-lang-pick"){editor.langOpen=false;if(!action.startsWith("edit-")){render();return;}}
     if(action==="open-note"){sheetState={type:"note",id:target.dataset.id};render();}
-    else if(action==="edit-close"){const id=editor?.deckId||route().id;editor=null;win.location.hash=`#deck/${encodeURIComponent(id)}`;}
+    // Back where the reader came from (Tarjetero, the book…); a direct link has nowhere to go back: the Library.
+    else if(action==="edit-close"){editor=null;if(win.history.length>1)win.history.back();else win.location.replace("#library");}
     else if((action==="edit-rename"||action==="edit-focus")&&editor){
       const deck=editorDeck(),kind=action==="edit-rename"?"title":"focus",initial=kind==="title"?deck.title?.[deck.language]||"":deckFocus(deck,deck.language);
       editor.modal={kind,value:initial,initial,conflict:false};render();
@@ -786,9 +792,6 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     }
     else if(action==="delete-cancel"&&editor){main.querySelector(".ui2-deletedialog")?.close();editor.deleting=null;render();}
     else if(action==="delete-confirm")deleteEditorNote();
-    else if((action==="take-note"||action==="take-note-under")&&view){
-      openForm({bookId:view.deck.bookId,deckId:view.deck.id,parentId:action==="take-note"?null:target.dataset.id??null});sheetState=null;render();
-    }
     else if(action==="kind"&&form){form.isQuote=target.dataset.kind==="quote";persistDraft();render();}
     else if(action==="form-close"){leaveForm(form?.origin==="home"?"#home":null);}
     else if(action==="discard-draft"&&form){drafts.remove(draftOf(form));form.title="";form.body="";form.recovered=false;render();}
@@ -863,7 +866,11 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       if(drafts.list(viewerId(),done.bookId).some(saved=>done.decks.some(entry=>entry.deckId===saved.noteDeckId)))return;
       // The sleeping sprout waits over everything; a failure replaces it with the error screen.
       showWaitScreen({label:c.finishingDeck,c,doc:win.document});
-      run(async()=>{await api.request("/api/author/decks/finish-notes",{bookId:done.bookId,decks:done.decks});finish=null;await reload();showToast(view?c.deckFinishedAnnouncement:c.notesFinishedAnnouncement);}).finally(()=>{if(isWaitScreen(win.document))hideErrorScreen(win.document);});
+      run(async()=>{
+        await api.request("/api/author/decks/finish-notes",{bookId:done.bookId,decks:done.decks});finish=null;await reload();
+        // From the editor, a finished deck goes to its page (replacing the editor); the toast goes with it.
+        showToast(view?c.deckFinishedAnnouncement:c.notesFinishedAnnouncement,"",{keep:route().name==="edit"});
+      }).finally(()=>{if(isWaitScreen(win.document))hideErrorScreen(win.document);});
     }
     else if(action==="calendar-open"){sheetState={type:"calendar"};render();}
     else if(action==="calendar-month"){calendarMonth=target.dataset.month;render();}
@@ -975,7 +982,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(interestFlow.state?.mode==="edit")interestFlow.dispose();
     clearTimeout(lb.timer);lb.searching=false;lb.open=false;
     if(route().name!=="bookstore"){lb.visitId=null;lb.newIds=[];}
-    if(toast&&!exit&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
+    if(toast?.keep)toast.keep=false;
+    else if(toast&&!exit&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
     render();
     resumeAfterHash=false;finishResume();
     if(route().name==="practice"&&viewer())Promise.all([loadStreak(),loadTopics(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{if(route().name==="practice"&&!form)render();});

@@ -42,10 +42,10 @@ test("Place-under targets exclude the note and its descendants (quotes can be pa
 
 test("Only the author of a personal deck in progress can change it; a finished deck is closed",()=>{
   const {deck}=fixture();
-  assert.deepEqual(deckCapabilities(deck,"me"),{edit:true,takeBelow:true});
-  assert.deepEqual(deckCapabilities({...deck,status:"finished"},"me"),{edit:false,takeBelow:false});
-  assert.deepEqual(deckCapabilities(deck,"someone"),{edit:false,takeBelow:false});
-  assert.deepEqual(deckCapabilities({...deck,contributionPolicy:"open"},"me"),{edit:false,takeBelow:false});
+  assert.deepEqual(deckCapabilities(deck,"me"),{edit:true});
+  assert.deepEqual(deckCapabilities({...deck,status:"finished"},"me"),{edit:false});
+  assert.deepEqual(deckCapabilities(deck,"someone"),{edit:false});
+  assert.deepEqual(deckCapabilities({...deck,contributionPolicy:"open"},"me"),{edit:false});
 });
 
 test("Keyboard and drop moves give the server's parent and 1-based position among the new siblings",()=>{
@@ -72,16 +72,15 @@ test("Keyboard and drop moves give the server's parent and 1-based position amon
 });
 
 for(const language of ["es","en"])test(`Screens expose named controls and sheets in ${language}`,()=>{
-  const c=words[language],{model,deck}=fixture(),outline=deckOutline(model,"es"),caps=deckCapabilities(deck,"me");
+  const c=words[language],{model}=fixture(),outline=deckOutline(model,"es");
   const screen=outlineMarkup(outline,c);
   assert.match(screen,/data-ui2="open-note"[^>]*aria-label="T a"/);
   assert.match(screen,/aria-label="Cita: Texto q"|aria-label="[^"]*Texto q"/);
   const note={id:"a1",isQuote:false,title:"T a1",body:"Texto a1"};
-  // Changing a note lives only in «Editar baraja»: the sheet only takes a note below it.
-  const sheet=noteSheetMarkup({note,caps,c});
-  assert.match(sheet,/data-ui2="take-note-under"/);assert.doesNotMatch(sheet,/data-ui2="(correct|place)"/);
-  assert.doesNotMatch(noteSheetMarkup({note,caps:{edit:false,takeBelow:false},c}),/data-ui2="take-note-under"/);
-  const place=placeSheetMarkup({note,targets:placementTargets(model,"a1","es"),currentParentId:"a",c});
+  // The deck page is for finished or foreign decks: its note sheet only reads.
+  const sheet=noteSheetMarkup({note,c});
+  assert.ok(sheet.includes("Texto a1"));assert.doesNotMatch(sheet,/data-ui2="/);
+  const place=placeSheetMarkup({note,targets:placementTargets(model,"a1","es"),currentParentId:"a",c,action:"form-parent"});
   assert.match(place,/data-parent=""/);
   assert.match(place,/data-parent="a"[^>]*aria-current="true"/);
   assert.doesNotMatch(place,/data-parent="a2"/);

@@ -3,20 +3,19 @@ import assert from "node:assert/strict";
 import {words} from "../i18n.mjs";
 import {READING_GUIDE_REWARD_XP} from "../core.mjs";
 import {deckPageMarkup} from "./deck-page.mjs";
+import {editDeckMarkup} from "./editar-baraja.mjs";
 import {finishDeckDialogMarkup,bookSheetMarkup} from "./book-sheet.mjs";
 import {prizeTagMarkup} from "./prize-tag.mjs";
 
-const page=(extra={})=>({id:"d1",bookId:"b1",bookTitle:"Libro",bookTitleLanguage:"es",title:"Baraja",titleLanguage:"es",creator:null,deckLanguage:"es",open:true,count:0,quotes:0,focus:"",focusLanguage:"es",quoteSource:"",owner:true,write:true,inCardcase:true,cannotFinish:false,addCost:0,canAfford:true,...extra});
+const page=(extra={})=>({id:"d1",bookId:"b1",bookTitle:"Libro",bookTitleLanguage:"es",title:"Baraja",titleLanguage:"es",creator:null,deckLanguage:"es",open:true,count:0,quotes:0,focus:"",focusLanguage:"es",quoteSource:"",owner:true,inCardcase:true,addCost:0,canAfford:true,...extra});
 const render=(p,c=words.es)=>deckPageMarkup({page:p,outline:[],languageName:"Español",legacy:"/",c});
 
 for(const language of ["es","en"]){
   const c=words[language];
-  test(`Own deck: Edit is the primary while it is written; Share is once it is finished (${language})`,()=>{
-    const open=render(page(),c),closed=render(page({open:false,write:false}),c);
-    assert.match(open,new RegExp(`class="ui2-btn dp-ibtn secondary--subtle"[^>]*aria-label="${c.shareDeck}"`));
-    assert.match(open,new RegExp(`class="ui2-btn dp-ibtn"[^>]*aria-label="${c.ui2EditDeck}"`));
-    assert.match(closed,new RegExp(`class="ui2-btn dp-ibtn"[^>]*aria-label="${c.shareDeck}"`));
-    assert.doesNotMatch(closed,new RegExp(`aria-label="${c.ui2EditDeck}"`));
+  test(`The deck page (finished or foreign deck): Share is the primary, with no Edit, Take a note or Finish (${language})`,()=>{
+    const html=render(page({open:false}),c);
+    assert.match(html,new RegExp(`class="ui2-btn dp-ibtn"[^>]*aria-label="${c.shareDeck}"`));
+    assert.doesNotMatch(html,new RegExp(`aria-label="${c.ui2EditDeck}"|data-ui2="(take-note|finish-deck)"`));
   });
   test(`The language chip is only the flag (${language})`,()=>{
     assert.doesNotMatch(render(page(),c),/<span>Español<\/span>/);
@@ -39,10 +38,19 @@ for(const language of ["es","en"]){
   });
 }
 
-test("The page says why «Terminar baraja» is off: a draft note or an empty deck",()=>{
+const editor=(extra={})=>editDeckMarkup({data:{id:"d1",bookId:"b1",bookTitle:"Libro",bookTitleLanguage:"es",title:"Baraja",focus:"",language:"es",count:2,max:25,level:"ok",cannotFinish:false,hasDraft:false,outline:{tree:[],unsorted:[]},...extra},c:words.es,languageName:Object.assign(code=>code,{label:"Idioma"}),legacy:"/old"});
+
+test("The editor finishes the deck and says why «Terminar baraja» is off: a draft note or an empty deck",()=>{
   const c=words.es;
-  const draft=deckPageMarkup({page:page({cannotFinish:true,hasDraft:true,count:0}),outline:[],languageName:"Español",legacy:"/",c});
-  const empty=deckPageMarkup({page:page({cannotFinish:true,hasDraft:false,count:0}),outline:[],languageName:"Español",legacy:"/",c});
+  assert.match(editor(),/data-ui2="finish-deck"(?![^>]*aria-disabled)/);
+  const draft=editor({cannotFinish:true,hasDraft:true}),empty=editor({cannotFinish:true,count:0});
   assert.ok(draft.includes(c.pendingNoteBeforeFinish));assert.ok(empty.includes(c.emptyDeckCannotFinish));
-  assert.doesNotMatch(render(page({count:0}),c),/dp-msg/);
+  assert.match(empty,/data-ui2="finish-deck" aria-disabled="true"/);
+});
+
+test("The editor shares the deck and reads its cards only when it has some; the book line links to the book",()=>{
+  const c=words.es,html=editor();
+  assert.match(html,new RegExp(`data-ui2="share-deck"[^>]*|aria-label="${c.shareDeck}"[^>]*data-ui2="share-deck"`));
+  assert.ok(html.includes('href="/old#preview/d1/carousel"'));assert.match(html,/href="#book\/b1"/);
+  assert.doesNotMatch(editor({count:0,cannotFinish:true}),/#preview\//);
 });
