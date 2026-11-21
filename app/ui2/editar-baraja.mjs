@@ -34,14 +34,14 @@ function nodeMarkup(item,data,c,flash,grabbed){
 }
 
 // `languageName(code)` names a language in the interface; `languageName.label` is «Idioma de la baraja».
-export function editDeckMarkup({data,c,languageName,legacy,flash=null,grabbed=null}){
+export function editDeckMarkup({data,c,languageName,flash=null,grabbed=null}){
   const full=data.level==="full";
   const notice=full?ui2Callout({kind:"warning",main:c.deckCardLimitReached,width:"auto",className:"ed-fillnote"}):data.level==="near"?ui2Callout({kind:"info",main:c.ui2DeckFilling,width:"auto",className:"ed-fillnote"}):"";
   const pencil=(action,label)=>`<button type="button" class="ui2-btn secondary--subtle dp-ibtn" data-ui2="${action}" aria-label="${esc(label)}" title="${esc(label)}">${icon("edit")}</button>`;
   const langRow=`<div class="ed-drow ed-lang"><div class="ed-grow"><small>${esc(c.ui2NotesLanguage)}</small></div><div class="segmented-selector" role="group" aria-label="${esc(c.ui2NotesLanguage)}">${LANGUAGES.map(code=>`<button type="button" data-ui2="edit-lang-pick" data-language="${esc(code)}" aria-pressed="${code===data.language}" aria-label="${esc(languageName(code))}" lang="${esc(code)}">${flag(code)}</button>`).join("")}</div></div>`;
   const take=`<button type="button" class="ui2-btn ed-take" data-ui2="edit-take-note"${full?' disabled aria-disabled="true"':""}>${icon("take-note")}<span>${esc(c.takeNote)}</span></button>`;
   // Share sends the link to read the deck, never this screen; «Leer tarjetas» only once it has cards.
-  const tools=`<div class="ed-tools" role="group" aria-label="${esc(c.ui2DeckActions)}">${data.count?readCardsButton({page:data,legacy,c}):""}${ibtn({label:c.shareDeck,iconName:"share",attrs:' data-ui2="share-deck"'})}</div>`;
+  const tools=`<div class="ed-tools" role="group" aria-label="${esc(c.ui2DeckActions)}">${data.count?readCardsButton({page:data,c}):""}${ibtn({label:c.shareDeck,iconName:"share",attrs:' data-ui2="share-deck"'})}</div>`;
   // Why «Terminar baraja» is off: a note is still a draft, or there is nothing to finish.
   const why=data.cannotFinish?ui2Callout({kind:"info",main:data.hasDraft?c.pendingNoteBeforeFinish:c.emptyDeckCannotFinish}):"";
   const finish=`<button type="button" class="ui2-btn secondary--subtle ed-finish${data.cannotFinish?" is-disabled":""}" data-ui2="finish-deck"${data.cannotFinish?' aria-disabled="true"':""}>${icon("finish-deck")}<span>${esc(c.finishDeck)}</span></button>`;

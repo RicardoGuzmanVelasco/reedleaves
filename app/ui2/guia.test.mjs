@@ -32,7 +32,7 @@ for(const language of ["es","en"]){
   });
   test(`Approved is read-only with a single action to read the guides; an unread book only warns (${language})`,()=>{
     const approved=render({view:"approved",ownId:"c",ownLanguage:"es",ownText:"Mi guía",review:"approved"},undefined,c);
-    assert.ok(approved.includes(c.ui2GuideApproved));assert.doesNotMatch(approved,/<textarea|type="submit"/);assert.match(approved,/carousel/);assert.doesNotMatch(approved,/ui2-prize-tag/);
+    assert.ok(approved.includes(c.ui2GuideApproved));assert.doesNotMatch(approved,/<textarea|type="submit"/);assert.match(approved,/href="#preview\/reading-guides%3Ab"/);assert.doesNotMatch(approved,/ui2-prize-tag/);
     const locked=render({view:"locked"},undefined,c);assert.ok(locked.includes(c.readingGuideContribution));assert.doesNotMatch(locked,/<textarea/);
     assert.equal(guideCanSave({...base,ownId:"c",ownText:long},{body:long}),false);
   });

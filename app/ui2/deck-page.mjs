@@ -46,13 +46,13 @@ function chipsMarkup(page,c,languageName){
 export const ibtn=({tag="button",label,iconName,primary=false,disabled=false,attrs=""})=>
   `<${tag} class="ui2-btn dp-ibtn${primary?"":" secondary--subtle"}${disabled?" is-disabled":""}"${tag==="button"?' type="button"':""} aria-label="${esc(label)}" title="${esc(label)}"${disabled?' aria-disabled="true"':""}${attrs}>${icon(iconName)}</${tag}>`;
 
-// «Leer tarjetas»: the cards of the deck in the old interface until the card view is redesigned; off while empty.
-export const readCardsButton=({page,legacy,c})=>page.count
-  ?ibtn({tag:"a",label:c.readDeckCards,iconName:"deck-view",attrs:` href="${esc(`${legacy}#preview/${encodeURIComponent(page.id)}/carousel`)}"`})
+// «Leer tarjetas»: the deck's cards in the card view (tarjetas.mjs); off while empty.
+export const readCardsButton=({page,c})=>page.count
+  ?ibtn({tag:"a",label:c.readDeckCards,iconName:"deck-view",attrs:` href="#preview/${encodeURIComponent(page.id)}"`})
   :ibtn({label:c.readDeckCards,iconName:"deck-view",disabled:true});
 
-export function deckPageMarkup({page,outline,languageName,legacy,c}){
-  const stack=[ibtn({label:c.shareDeck,iconName:"share",primary:true,attrs:' data-ui2="share-deck"'}),readCardsButton({page,legacy,c})].join("");
+export function deckPageMarkup({page,outline,languageName,c}){
+  const stack=[ibtn({label:c.shareDeck,iconName:"share",primary:true,attrs:' data-ui2="share-deck"'}),readCardsButton({page,c})].join("");
   const person=page.creator?(page.creator.id?`<a class="card-attribution-row" href="${esc(`#profile/${encodeURIComponent(page.creator.id)}`)}">${attributionIcon("user")}<bdi>${esc(page.creator.name)}</bdi></a>`:`<span class="card-attribution-row">${attributionIcon("user")}<bdi>${esc(page.creator.name)}</bdi></span>`):"";
   const row=(...buttons)=>`<div class="dp-actions"><div class="dp-row">${buttons.join("")}</div></div>`;
   const remove=`<button type="button" class="ui2-btn secondary--subtle dp-grow" data-ui2="cardcase-remove" data-deck="${esc(page.id)}" aria-haspopup="dialog">${icon("remove-from-cardcase")}<span>${esc(c.removeDeckFromCardcase)}</span></button>`;

@@ -41,7 +41,7 @@ test("Editar baraja: fills up from the threshold and stops taking notes at the l
   assert.equal(nearData.level,"near");
   assert.match(editDeckMarkup({data:nearData,c,languageName:name}),/ed-count is-near[\s\S]*ui2-co--info/);
   const fullData=editDeckData({catalog:full.catalog,deck:full.catalog.decksById.get("d"),language:"es"});
-  const html=editDeckMarkup({data:fullData,c,languageName:name,legacy:"/"});
+  const html=editDeckMarkup({data:fullData,c,languageName:name});
   assert.ok(html.includes(c.deckCardLimitReached));assert.match(html,/ui2-co--warning/);assert.match(html,/ed-count is-full/);
   assert.match(html,/data-ui2="edit-take-note" disabled/);assert.match(html,/data-ui2-drag="n0"/);
 });
@@ -56,7 +56,7 @@ test("Editar baraja: an empty deck shows the tumbleweed; focus equal to the name
 
 test("The deck page has no pencil and shows the focus only when it differs from the name",()=>{
   const c=words.es,s=state({deck:{status:"finished"}}),page=deckPageData({catalog:s.catalog,state:s,language:"es",deckId:"d"});
-  const html=deckPageMarkup({page,outline:deckOutline(s.catalog.deckModels.get("d"),"es"),languageName:"Español",legacy:"/old",c});
+  const html=deckPageMarkup({page,outline:deckOutline(s.catalog.deckModels.get("d"),"es"),languageName:"Español",c});
   assert.doesNotMatch(html,/#edit\//);assert.equal(page.focus,"");
   assert.equal(editRoute("a/b"),"#edit/a%2Fb");
 });

@@ -83,7 +83,7 @@ Fuente de verdad del estilo de iconos de la interfaz nueva (`?ui=2`). Los SVG vi
 
 **Fuera de esta familia** (se mantienen tal cual): banderas de idioma, mascotas, Hoja, Pétalo, racha, arte de marca y emojis de intereses.
 
-**Libros:** la portada va sin el ribete del lado del lomo (izquierda) para dar aire al contenido; `reading-guide` es la portada con una «i».
+**Libros:** la portada va sin el ribete del lado del lomo (izquierda) para dar aire al contenido; `reading-guide` es la portada con una «i» latina (punto, asta y pie).
 
 ## Repaso
 

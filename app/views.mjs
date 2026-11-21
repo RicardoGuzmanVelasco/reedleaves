@@ -419,7 +419,7 @@ const linkArrow = '<svg class="attribution-arrow" viewBox="0 0 24 24" fill="none
 export const attributionIcon = kind => `<svg class="attribution-icon" viewBox="0 0 24 24" aria-hidden="true">${attributionIcons[kind]}</svg>`;
 export const bottomNavigationProfileIconMarkup = () => `<svg class="bottom-navigation-profile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${attributionIcons.user}</svg>`;
 
-function nameLink({icon,name,language=null,href=null}) {
+export function nameLink({icon,name,language=null,href=null}) {
   if (!name) return "";
   const contents=`${icon === "deck" ? '<span class="cards-icon cards-icon--filled" aria-hidden="true"></span>' : attributionIcon(icon)}<bdi${language ? ` lang="${esc(language)}" dir="auto"` : ""}>${esc(name)}</bdi>${href ? linkArrow : ""}`;
   return href ? `<a class="card-attribution-row" href="${esc(href)}">${contents}</a>` : `<span class="card-attribution-row">${contents}</span>`;

@@ -138,7 +138,9 @@ export function interestWarningMarkup({prompt,c}){
   const result=prompt.result||{},name=result.interest?.name||result.interest?.id||"";
   const deck=prompt.path==="/api/reader/cardcase/add";
   const status=prompt.input?.status,statusLabel=c[status==="to_read"?"toRead":status==="read"?"readStatus":"readingStatus"];
-  const title=deck?c.ui2InterestDeckTitle:c.ui2InterestStatusTitle(statusLabel),text=deck?c.ui2InterestDeckWarning(name,result.price||0):c.bookInterestWarning(name,statusLabel);
+  // Saving a card also adds its book to the Library.
+  const save=prompt.path==="/api/cards/save";
+  const title=deck?c.ui2InterestDeckTitle:save?c.saveCard:c.ui2InterestStatusTitle(statusLabel),text=deck?c.ui2InterestDeckWarning(name,result.price||0):save?c.bookInterestSaveWarning(name):c.bookInterestWarning(name,statusLabel);
   return `<dialog class="ui2-errdialog ui2-interestdialog" data-ui2-modal role="alertdialog" aria-labelledby="ui2-iw-title" aria-describedby="ui2-iw-copy"><div class="ui2-errshell"><button type="button" class="dialog-close" data-ui2="interest-cancel" aria-label="${esc(c.bookInterestCancel)}">${icon("close")}</button>`
     +`<div class="ui2-errpanel ui2-finishpanel"><h2 id="ui2-iw-title">${esc(title)}</h2>`
     +ui2Callout({kind:"warning",main:text,id:"ui2-iw-copy"})

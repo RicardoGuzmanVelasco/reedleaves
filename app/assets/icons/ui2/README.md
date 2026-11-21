@@ -34,23 +34,23 @@ Catálogo de los iconos de la interfaz nueva. Las reglas del estilo están en `d
 | `lock` | Baraja cerrada | Consecuencia «no se podrán añadir más notas» |
 | `take-note` | Tomar nota | Botón principal; «Tomar nota debajo de esta» |
 | `edit` | Corregir (editar una nota) | Hoja de nota; lector |
-| `place-under` | Colocar debajo de | Hoja de nota; lector |
+| `place-under` | Colocar debajo de | Hoja de nota; vista de tarjetas: chip de la tarjeta superior |
 | `idea`, `idea-active` | Tarjeta de tipo Idea | Selector de tipo; consecuencia «idea del día» |
 | `warning` | Aviso con consecuencia [PROPUESTO] | Callout warning (triángulo con exclamación; `alert` queda para error) |
 | `info` | Información neutra [PROPUESTO] | Callout info (círculo con «i»; no pide acción) |
 | `quote`, `quote-active` | Tarjeta de tipo Cita | Selector de tipo; citas en el esquema |
-| `bookmark`, `bookmark-active` | Guardar tarjeta / guardada | Fila de acciones |
-| `like`, `like-active` | Me gusta | Fila de acciones |
-| `dislike`, `dislike-active` | No me gusta | Fila de acciones |
-| `share` | Compartir | Fila de acciones |
-| `reading-guide`, `reading-guide-active` | Guía de lectura | Acceso a la guía del libro |
+| `bookmark`, `bookmark-active` | Guardar tarjeta / guardada | Vista de tarjetas: fila de acciones; marca de guardada en el índice |
+| `like`, `like-active` | Me gusta | Vista de tarjetas: valoración |
+| `dislike`, `dislike-active` | No me gusta | Vista de tarjetas: valoración |
+| `share` | Compartir | Página y editor de baraja; vista de tarjetas |
+| `reading-guide`, `reading-guide-active` | Guía de lectura: libro cerrado con una «i» latina (punto, asta y pie) | Vista de tarjetas: cabecera «Guías de lectura», índice y glifo de fondo de las guías |
 | `book-unread` | Libro sin leer | Estado del libro |
 | `book-to-read` | Libro por leer | Estado del libro |
 | `book-reading` | Leyendo | Estado del libro; chip de estado |
 | `book-read` | Leído | Estado del libro |
 | `close` | Cerrar; quitar | Cabeceras de hojas y captura; lista de colaboradores |
-| `back`, `forward` | Volver / anterior; siguiente / ir a | Cabecera; paso entre notas; filas |
-| `expand` | Desplegar | Chip de estado; selector |
+| `back`, `forward` | Volver / anterior; siguiente / ir a | Cabecera; vista de tarjetas: ‹ › y «Volver a la tarjeta superior» (girado); filas |
+| `expand` | Desplegar | Chip de estado; selector; vista de tarjetas: «Profundizar» y selector «N de M» |
 | `add`, `remove` | Más / menos | Contador de límite de notas |
 | `more` | Más opciones | Cabecera de baraja |
 | `check` | Elegido / hecho | Opción elegida; «En tu Tarjetero» |

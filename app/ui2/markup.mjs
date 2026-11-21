@@ -4,16 +4,20 @@ import {icon} from "./icons.mjs";
 
 const clip=(text,length=32)=>text.length>length?text.slice(0,length):text;
 
-function noteButton(item,c){
-  const label=item.isQuote?c.ui2QuoteOf(clip(item.body)):item.title;
-  const body=item.isQuote?`<span class="ui2-note-text">${esc(item.body)}</span>`:`<b>${esc(item.title)}</b><span class="ui2-note-text">${esc(item.body)}</span>`;
-  const children=item.children.length?`<ul class="ui2-tree">${item.children.map(child=>noteItem(child,c)).join("")}</ul>`:"";
-  return `<button type="button" class="ui2-note${item.isQuote?" is-quote":""}" data-ui2="open-note" data-id="${esc(item.id)}" aria-label="${esc(label)}" aria-haspopup="dialog">${body}</button>${children}`;
+// `jump`: the index of the card view (tarjetas.mjs): each note jumps to its card, the current one is marked and the saved ones
+// carry the bookmark. Without it, each note opens its sheet (deck page).
+function noteButton(item,c,jump){
+  const label=item.isQuote?c.ui2QuoteOf(clip(item.body)):item.title||clip(item.body);
+  const body=item.isQuote||!item.title?`<span class="ui2-note-text">${esc(item.body)}</span>`:`<b>${esc(item.title)}</b><span class="ui2-note-text">${esc(item.body)}</span>`;
+  const children=item.children.length?`<ul class="ui2-tree">${item.children.map(child=>noteItem(child,c,jump)).join("")}</ul>`:"";
+  const current=jump?.current===item.id,isSaved=!!jump?.saved?.has(item.id),saved=isSaved?`<span class="ui2-note-saved" aria-hidden="true">${icon("bookmark-active")}</span>`:"";
+  const action=jump?' data-ui2="card-jump"':' data-ui2="open-note" aria-haspopup="dialog"';
+  return `<button type="button" class="ui2-note${item.isQuote?" is-quote":""}${current?" is-cur":""}"${action} data-id="${esc(item.id)}" aria-label="${esc(isSaved?`${label}, ${c.ui2CardSaved}`:label)}"${current?' aria-current="true"':""}>${body}${saved}</button>${children}`;
 }
-const noteItem=(item,c)=>`<li>${noteButton(item,c)}</li>`;
+const noteItem=(item,c,jump)=>`<li>${noteButton(item,c,jump)}</li>`;
 
-export function outlineMarkup(outline,c){
-  return [outline.tree,outline.unsorted].filter(list=>list.length).map(list=>`<ul class="ui2-tree">${list.map(item=>noteItem(item,c)).join("")}</ul>`).join("");
+export function outlineMarkup(outline,c,jump=null){
+  return [outline.tree,outline.unsorted].filter(list=>list.length).map(list=>`<ul class="ui2-tree">${list.map(item=>noteItem(item,c,jump)).join("")}</ul>`).join("");
 }
 
 // The note read from the deck page (a finished or foreign deck: nothing to change there).

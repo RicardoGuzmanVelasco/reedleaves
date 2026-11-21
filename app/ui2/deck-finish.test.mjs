@@ -8,7 +8,7 @@ import {finishDeckDialogMarkup,bookSheetMarkup} from "./book-sheet.mjs";
 import {prizeTagMarkup} from "./prize-tag.mjs";
 
 const page=(extra={})=>({id:"d1",bookId:"b1",bookTitle:"Libro",bookTitleLanguage:"es",title:"Baraja",titleLanguage:"es",creator:null,deckLanguage:"es",open:true,count:0,quotes:0,focus:"",focusLanguage:"es",quoteSource:"",owner:true,inCardcase:true,addCost:0,canAfford:true,...extra});
-const render=(p,c=words.es)=>deckPageMarkup({page:p,outline:[],languageName:"Español",legacy:"/",c});
+const render=(p,c=words.es)=>deckPageMarkup({page:p,outline:[],languageName:"Español",c});
 
 for(const language of ["es","en"]){
   const c=words[language];
@@ -38,7 +38,7 @@ for(const language of ["es","en"]){
   });
 }
 
-const editor=(extra={})=>editDeckMarkup({data:{id:"d1",bookId:"b1",bookTitle:"Libro",bookTitleLanguage:"es",title:"Baraja",focus:"",language:"es",count:2,max:25,level:"ok",cannotFinish:false,hasDraft:false,outline:{tree:[],unsorted:[]},...extra},c:words.es,languageName:Object.assign(code=>code,{label:"Idioma"}),legacy:"/old"});
+const editor=(extra={})=>editDeckMarkup({data:{id:"d1",bookId:"b1",bookTitle:"Libro",bookTitleLanguage:"es",title:"Baraja",focus:"",language:"es",count:2,max:25,level:"ok",cannotFinish:false,hasDraft:false,outline:{tree:[],unsorted:[]},...extra},c:words.es,languageName:Object.assign(code=>code,{label:"Idioma"})});
 
 test("The editor finishes the deck and says why «Terminar baraja» is off: a draft note or an empty deck",()=>{
   const c=words.es;
@@ -51,6 +51,7 @@ test("The editor finishes the deck and says why «Terminar baraja» is off: a dr
 test("The editor shares the deck and reads its cards only when it has some; the book line links to the book",()=>{
   const c=words.es,html=editor();
   assert.match(html,new RegExp(`data-ui2="share-deck"[^>]*|aria-label="${c.shareDeck}"[^>]*data-ui2="share-deck"`));
-  assert.ok(html.includes('href="/old#preview/d1/carousel"'));assert.match(html,/href="#book\/b1"/);
+  // «Leer tarjetas» stays in the new interface: the card view, not the old one's carousel.
+  assert.ok(html.includes('href="#preview/d1"'));assert.doesNotMatch(html,/carousel|\/old#/);assert.match(html,/href="#book\/b1"/);
   assert.doesNotMatch(editor({count:0,cannotFinish:true}),/#preview\//);
 });

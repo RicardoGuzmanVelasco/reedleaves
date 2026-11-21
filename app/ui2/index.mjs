@@ -23,7 +23,7 @@ import {bookSheetData,bookstoreSheetData,bookSheetMarkup,bookPageData,bookPageMa
 import {deckPageData,deckPageMarkup} from "./deck-page.mjs";
 import {settingsMarkup,feedbackMarkup,signOutMarkup,syncCardLanguages} from "./ajustes.mjs";
 import {perfilData,perfilMarkup,perfilUnavailableMarkup,mountPerfil} from "./perfil.mjs";
-import {deckShareUrl} from "../deck-navigation.mjs";
+import {deckShareUrl,cardShareUrl} from "../deck-navigation.mjs";
 import {libreriaData,libreriaMarkup,libreriaResultsMarkup,searchingMarkup} from "./libreria.mjs";
 import {mountInterests} from "../interests.mjs";
 import {loadingPlaceholder} from "../loading-placeholder.mjs";
@@ -42,6 +42,9 @@ import {createBrowserStore,storageKeys} from "../storage.mjs";
 import {mountXpMeterArt} from "../xp-meter-art.mjs";
 import {createReaderXpTracker,mountReaderXpFeedback} from "../reader-xp-feedback.mjs?v=level-up-polish-2";
 import {noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMarkup} from "./markup.mjs";
+import {deckReaderData,cardReaderData,cardReaderMarkup,cardActionsMarkup,cardIndexMarkup,cardSignInMarkup,cardTarget,readingOrder} from "./tarjetas.mjs";
+import {mountCardSwipe,burstLeaves} from "./tarjetas-gestos.mjs";
+import {loadCardContext} from "../catalog.mjs";
 
 export const ui2Enabled=search=>new URLSearchParams(search).get("ui")==="2";
 const TOAST_MS=6500;
@@ -51,6 +54,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   let c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
   let guide=null,guideReturn="#library",guideExit=null,auth=newAuth(),resume=null,resumeAfterHash=false,inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null,editor=null;
+  // The card view: the explanation of «Baraja en curso» open, the way the card came in, the context of a card missing from the
+  // catalog (#card of a deleted note), the votes read per reader and card, and the cards already counted as viewed.
+  const reading={pop:false,enter:null,context:null,records:new Map(),viewed:new Set()};
   // The reader signed in, or null for a visitor (no session): what the signed-out screens and actions ask before touching personal data.
   const viewer=()=>session?.user??null,viewerId=()=>viewer()?.id??null;
   const navFor=active=>navMarkup({active,practicePending,c,wallet:viewer()?{leaves:reader?.wallet?.balance??0,petals:reader?.petals??0}:null});
@@ -74,6 +80,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(editMatch)return {name:"edit",id:decode(editMatch[1])};
     const guideMatch=hash.match(/^#guide\/([^/]+)$/);
     if(guideMatch)return {name:"guide",id:decode(guideMatch[1])};
+    const previewMatch=hash.match(/^#preview\/([^/]+)(?:\/([^/]+))?$/);
+    if(previewMatch)return {name:"cards",id:decode(previewMatch[1]),card:previewMatch[2]&&previewMatch[2]!=="carousel"?decode(previewMatch[2]):null};
+    const cardMatch=hash.match(/^#card\/([^/]+)(?:\/[^/]*)?$/);
+    if(cardMatch)return {name:"card",id:decode(cardMatch[1])};
     const profileMatch=hash.match(/^#profile(?:\/([^/]+))?$/);
     if(profileMatch)return {name:"profile",id:profileMatch[1]?decode(profileMatch[1]):viewerId()};
     return {name:hash==="#account"?"account":hash==="#bookstore"?"bookstore":hash==="#library"?"library":hash==="#library/cardcase"?"cardcase":hash==="#practice"?"practice":"home"};
@@ -223,6 +233,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
     if(!form&&where.note&&view?.deck.status==="in_progress")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
     if(form){paint(formScreen());return;}
+    if(where.name==="cards"||where.name==="card"){readerScreen(where);return;}
     if(where.name==="edit"){editScreen(where.id);return;}
     if(where.name==="guide"){paint(withError(guideScreen(where.id)));return;}
     if(where.name==="profile"){
@@ -282,7 +293,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(deckCapabilities(deck,viewerId()).edit){win.location.replace(editRoute(deck.id));return;}
     const state={...reader,catalog},page=deckPageData({catalog,state,language,deckId:deck.id}),list=libreriaData({catalog,state,language});
     let html=shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),
-      body:`<div class="ui2-body ui2-lib">${deckPageMarkup({page,outline:deckOutline(model,deck.language),languageName:languageName(deck.language),legacy:c.legacy,c})}</div>`,nav:navFor(page.inCardcase||page.owner?"library":"bookstore")});
+      body:`<div class="ui2-body ui2-lib">${deckPageMarkup({page,outline:deckOutline(model,deck.language),languageName:languageName(deck.language),c})}</div>`,nav:navFor(page.inCardcase||page.owner?"library":"bookstore")});
     const note=sheetState?.type==="note"&&model.byId.get(sheetState.id);
     if(note)html+=noteSheetMarkup({note:{id:note.id,isQuote:note.isQuote,title:note.title?.[deck.language]||"",body:note.body?.[deck.language]||""},c});
     const removedDeck=removing===deck.id?tileOf(catalog,deck,language):null;
@@ -290,6 +301,114 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(toast)html+=toastMarkup({...toast,c});
     paint(withError(html));
   }
+  // ---- Vista de tarjetas (tarjetas.mjs) ----
+  // #preview/<deck>[/<card>] reads a deck card by card; #card/<id> shows one card alone. The current card lives in the hash,
+  // replaced and not pushed: closing goes back to where the reader came from.
+  const readerState=()=>({...(reader||{}),user:viewer(),catalog});
+  function readerData(where){
+    if(where.name==="cards")return deckReaderData({catalog,state:readerState(),language,deckId:where.id,cardId:where.card})||{mode:"deck",deck:null,card:null};
+    return cardReaderData({catalog,context:reading.context?.id===where.id?reading.context:null,state:readerState(),language,cardId:where.id});
+  }
+  const recordKey=cardId=>`${viewerId()||""}:${cardId}`;
+  function readerScreen(where){
+    if(where.name==="card"&&!catalog.cardsById.has(where.id)&&reading.context?.id!==where.id)loadCardContextFor(where.id);
+    const data=readerData(where),card=data.card;
+    const focused=main.contains(doc.activeElement)?doc.activeElement.dataset?.ui2||null:null;
+    let html=cardReaderMarkup({data,ui:{pop:reading.pop,enter:reading.enter,record:card?reading.records.get(recordKey(card.id)):null},c});
+    reading.enter=null;
+    if(sheetState?.type==="card-index"&&data.mode==="deck"&&card)html+=cardIndexMarkup({data,c});
+    if(sheetState?.type==="card-signin")html+=cardSignInMarkup({c});
+    if(toast)html+=toastMarkup({...toast,c});
+    paint(withError(html));
+    // Long content scrolls the screen: then the vertical drag is the browser's.
+    const stage=main.querySelector("[data-ui2-stage]"),screen=main.querySelector(".tc-reader");
+    if(stage&&screen)stage.classList.toggle("is-scroll",screen.scrollHeight>screen.clientHeight+1);
+    // The control the reader used keeps the focus on the next card; a grey arrow hands it to the position.
+    if(focused?.startsWith("card")&&!sheetState){
+      const again=main.querySelector(`.tc-reader [data-ui2="${CSS.escape(focused)}"]`);
+      (again&&!again.disabled?again:main.querySelector('.tc-reader [data-ui2="card-index"],.tc-deck'))?.focus({preventScroll:true});
+    }
+    if(card)readCard(card);
+  }
+  // A card missing from the catalog (a deleted note) comes with its own context; a 404 says it is unavailable.
+  function loadCardContextFor(id){
+    reading.context={id,status:"loading"};
+    queueMicrotask(()=>{
+      if(busy){reading.context=null;return;}
+      run(async()=>{const context=await loadCardContext(id);reading.context={id,status:context.cardsById.has(id)?"ready":"missing",catalog:context};});
+    });
+  }
+  // Each card shown counts once as viewed (as reading a card did in the old interface) and reads its votes.
+  function readCard(card){
+    const userId=viewerId(),key=recordKey(card.id);
+    if(userId&&!card.deleted&&!reading.viewed.has(key)){
+      reading.viewed.add(key);
+      api.request("/api/reader/view",{cardId:card.id,context:"practice"}).then(result=>{const gain=observeXp(userId,undefined,result?.xpReward);if(gain)xpFeedback?.present(gain);},()=>reading.viewed.delete(key));
+    }
+    if(reading.records.has(key))return;
+    reading.records.set(key,null);
+    api.request(`/api/cards/${encodeURIComponent(card.id)}/${userId?"actions":"votes"}`).then(record=>{reading.records.set(key,record);refreshCardActions(card.id);},()=>reading.records.delete(key));
+  }
+  // Only the actions change when the votes arrive: a drag in progress is not cut.
+  function refreshCardActions(cardId){
+    const where=route();if(where.name!=="cards"&&where.name!=="card")return;
+    const data=readerData(where),host=main.querySelector(".tc-reader [data-ui2-acts]");
+    if(data.card?.id===cardId&&host)host.innerHTML=cardActionsMarkup({card:data.card,record:reading.records.get(recordKey(cardId)),saved:data.saved,c});
+  }
+  const readerTheme=()=>main.querySelector(".tc-reader")?.dataset.interestColor||"";
+  function voteCard(cardId,value,button){
+    const record=reading.records.get(recordKey(cardId));
+    if(record?.isOwn)return;
+    const next=record?.vote===value?0:value;
+    if(next===1)burstLeaves(button,{color:readerTheme(),doc,win});
+    run(async()=>{reading.records.set(recordKey(cardId),await api.request("/api/cards/vote",{cardId,value:next}));});
+  }
+  // Saving may ask to confirm a rejected interest of the book (it joins the Library); the leaves fly once it is saved.
+  function saveCard(cardId,saved){
+    confirmable("/api/cards/save",{cardId,saved},async()=>{
+      if(saved)burstLeaves(main.querySelector('.tc-reader [data-ui2="card-save"]'),{color:readerTheme(),doc,win});
+      reader=await api.request("/api/reader/state");
+    });
+  }
+  async function shareCard(){
+    const data=readerData(route()),card=data.card;if(!card||card.deleted)return;
+    const url=cardShareUrl(win.location.href,card.id,card.bodyLanguage),text=c.cardShareText(card.type==="reading-guide"?"card":card.type,data.book.title);
+    try{
+      if(typeof win.navigator.share==="function"){
+        try{await win.navigator.share({text:`${text} ${url}`});return;}catch(error){if(error?.name==="AbortError")return;}
+      }
+      await win.navigator.clipboard.writeText(`${text}\n${url}`);showToast(c.cardLinkCopied);
+    }catch{showToast(c.deckShareError);}
+    render();
+  }
+  function currentReaderCard(where){
+    const model=catalog.deckModels.get(where.id);if(!model)return null;
+    return {model,id:model.byId.has(where.card)?where.card:readingOrder(model)[0]?.id??null};
+  }
+  const readerCan=direction=>{const where=route(),at=where.name==="cards"&&currentReaderCard(where);return !!at?.id&&!!cardTarget(at.model,at.id,direction);};
+  function readerGo(direction){
+    const where=route(),at=where.name==="cards"&&currentReaderCard(where),target=at?.id&&cardTarget(at.model,at.id,direction);
+    if(!target)return false;
+    reading.enter=direction;reading.pop=false;
+    win.history.replaceState(win.history.state,"",`#preview/${encodeURIComponent(where.id)}/${encodeURIComponent(target)}`);
+    render();return true;
+  }
+  // Back where the reader came from; a direct link has nowhere to go back: the deck's page, or Inicio for a card alone.
+  function closeReader(){
+    const where=route();
+    if(win.history.length>1)win.history.back();
+    else win.location.replace(where.name==="cards"?`#deck/${encodeURIComponent(where.id)}`:"#home");
+  }
+  mountCardSwipe(main,{can:readerCan,go:readerGo,win});
+  win.addEventListener("keydown",event=>{
+    const where=route();
+    if(where.name!=="cards"&&where.name!=="card"||event.defaultPrevented||event.altKey||event.ctrlKey||event.metaKey)return;
+    if(doc.querySelector("dialog[open]")||event.target.closest?.("input,textarea,select,[contenteditable=true]"))return;
+    if(event.key==="Escape"){event.preventDefault();if(reading.pop){reading.pop=false;render();}else closeReader();return;}
+    const direction={ArrowLeft:"prev",ArrowRight:"next",ArrowDown:"down",ArrowUp:"up"}[event.key];
+    if(direction&&readerGo(direction))event.preventDefault();
+  });
+
   // ---- Editar baraja ----
   // The screen of the owner's personal deck in progress. Any other deck (finished, foreign, shared) has its page.
   function editScreen(id){
@@ -298,7 +417,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const data=deckCapabilities(deck,viewerId()).edit&&editDeckData({catalog,deck,language,hasDraft:hasDeckDraft(deck)});
     if(!data){editor=null;win.location.replace(`#deck/${encodeURIComponent(id)}`);return;}
     if(editor?.deckId!==id)editor={deckId:id,modal:null,deleting:null,flash:null,grabbed:null};
-    let html=editDeckMarkup({data,c,languageName:ownLanguageName,legacy:c.legacy,flash:editor.flash,grabbed:editor.grabbed});
+    let html=editDeckMarkup({data,c,languageName:ownLanguageName,flash:editor.flash,grabbed:editor.grabbed});
     if(finish&&!failure)html+=finishDeckDialogMarkup({c});
     if(editor.modal)html+=deckFieldModalMarkup({modal:editor.modal,max:editor.modal.kind==="title"?TITLE_MAX_LENGTH:DESCRIPTION_MAX_LENGTH,c});
     if(toast)html+=toastMarkup({...toast,c});
@@ -591,8 +710,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(win.location.hash!=="#account")win.location.hash="#account";else render();
   }
   // A visitor asks for something personal (or taps "Entrar", with no intent): Acceso opens with its reason and they come back here, finishing it.
-  function askAccount(intent=null){
-    auth=newAuth(accessRequest({intent,returnHash:win.location.hash}));
+  // `mode`: the visitor chose Entrar or Crear cuenta (the card sign-in sheet); otherwise the action's own one.
+  function askAccount(intent=null,mode=null){
+    auth=newAuth(accessRequest({intent,returnHash:win.location.hash,mode}));
     win.location.hash="#account";
   }
   // What each personal action does once there is a session; the visitor's tap and the finish after signing in share it.
@@ -608,7 +728,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     "add-deck":({deck})=>confirmable("/api/reader/cardcase/add",{deckId:deck},async()=>{await reload();showToast(c.deckAddedToCardcase);}),
     "catalog-book":()=>openAuthoring(newBookForm({title:lb.query.trim(),requestId:crypto.randomUUID()}),"#ui2-bk-title"),
     "create-deck":({book})=>openAuthoring(newDeckForm({bookId:book,language,requestId:crypto.randomUUID()}),"#ui2-dk-title"),
-    "sort-interests":()=>{lb.sort="interests";if(!lb.prefs)loadInterestPreferences();render();}
+    "sort-interests":()=>{lb.sort="interests";if(!lb.prefs)loadInterestPreferences();render();},
+    "card-vote":({card,value})=>voteCard(card,Number(value),null),
+    "card-save":({card})=>saveCard(card,true)
   };
   function doPersonal(intent){
     if(!viewer())askAccount(intent);else personal[intent.kind](intent);
@@ -758,6 +880,35 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     });
   }
 
+  // The controls of the card view. True when the action was one of them.
+  function cardAction(action,target){
+    const where=route(),reading_=where.name==="cards"||where.name==="card";
+    if(action==="cards-close"){closeReader();return true;}
+    if(!reading_)return false;
+    const card=readerData(where).card;
+    const moves={"card-prev":"prev","card-next":"next","card-down":"down","card-up":"up"};
+    if(moves[action]){if(!target.disabled)readerGo(moves[action]);return true;}
+    if(action==="card-state"){reading.pop=!reading.pop;render();return true;}
+    if(action==="card-index"){sheetState={type:"card-index"};render();main.querySelector(".tc-index .is-cur")?.scrollIntoView?.({block:"center"});return true;}
+    if(action==="card-jump"){
+      const id=target.dataset.id;main.querySelector("dialog")?.close();sheetState=null;
+      if(where.name==="cards"&&id&&id!==card?.id){reading.pop=false;win.history.replaceState(win.history.state,"",`#preview/${encodeURIComponent(where.id)}/${encodeURIComponent(id)}`);}
+      render();return true;
+    }
+    if(action==="card-parent"){const parent=catalog.cardsById.get(target.dataset.id);if(parent)win.location.hash=`#preview/${encodeURIComponent(parent.deckId)}/${encodeURIComponent(parent.id)}`;return true;}
+    if(action==="card-share"){shareCard();return true;}
+    if((action==="card-vote"||action==="card-save")&&card&&!target.disabled){
+      const value=Number(target.dataset.value),saved=target.getAttribute("aria-pressed")!=="true";
+      const intent=action==="card-vote"?{kind:"card-vote",card:card.id,value}:{kind:"card-save",card:card.id};
+      // A visitor is asked to sign in first; Acceso brings them back here and finishes it.
+      if(!viewer()){sheetState={type:"card-signin",intent};render();}
+      else if(action==="card-vote")voteCard(card.id,value,target);
+      else saveCard(card.id,saved);
+      return true;
+    }
+    if(action==="card-signin"){const intent=sheetState?.intent||null;main.querySelector("dialog")?.close();sheetState=null;askAccount(intent,target.dataset.mode);return true;}
+    return false;
+  }
   main.addEventListener("click",event=>{
     const bookLink=event.target.closest("a[data-book]");
     if(route().name==="bookstore"){
@@ -766,8 +917,14 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       if(act&&bookstoreAction(act))return;
     }
     if(bookLink&&["library","bookstore"].includes(route().name)&&!event.target.closest("[data-ui2]")){event.preventDefault();sheetState={type:"book",id:bookLink.dataset.book};render();return;}
+    // The explanation of «Baraja en curso» closes with any other tap.
+    if(reading.pop&&!event.target.closest('[data-ui2="card-state"]')){
+      reading.pop=false;main.querySelector(".tc-pop")?.remove();
+      const state=main.querySelector('[data-ui2="card-state"]');state?.setAttribute("aria-expanded","false");state?.removeAttribute("aria-describedby");
+    }
     const target=event.target.closest("[data-ui2]");if(!target)return;
     const action=target.dataset.ui2,view=current();
+    if(action.startsWith("card")&&cardAction(action,target))return;
     if(action==="open-note"){sheetState={type:"note",id:target.dataset.id};render();}
     // Back where the reader came from (Tarjetero, the book…); a direct link has nowhere to go back: the Library.
     else if(action==="edit-close"){editor=null;if(win.history.length>1)win.history.back();else win.location.replace("#library");}
@@ -844,7 +1001,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(action==="share-deck"&&view)shareDeck(view.deck);
     else if(action==="guide-close"&&guide){const bookId=guide.bookId;guide=null;guideExit={sheet:{type:"book",id:bookId}};win.location.hash=guideReturn;}
     else if(action==="guide-language"&&guide){guide.language=target.dataset.language;render();}
-    else if(action==="guide-examples")win.location.assign(`${c.legacy}#preview/${encodeURIComponent(target.dataset.deck)}/carousel`);
+    else if(action==="guide-examples")win.location.hash=`#preview/${encodeURIComponent(target.dataset.deck)}`;
     else if(action==="finish-pending"){const entries=finishData({catalog,bookId:target.dataset.book,userId:viewerId()});if(entries.length){finish={bookId:target.dataset.book,decks:entries};render();}}
     else if(action==="write-guide"){guideReturn=win.location.hash||"#library";guide=null;win.location.hash=`#guide/${encodeURIComponent(target.dataset.book)}`;}
     else if(action==="finish-deck"&&view){
@@ -974,7 +1131,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   });
   main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-auth]")){void submitAuth();return;}if(event.target.matches("[data-ui2-interest-form]")){if(interestFlow.state?.draft.step===1)interestFlow.next();else void interestFlow.save();return;}if(event.target.matches("[data-ui2-search]")){settleSearch();return;}if(event.target.matches("[data-ui2-guide-form]")){saveGuide();return;}if(event.target.matches("[data-ui2-feedback]")){sendFeedback();return;}if(event.target.matches("[data-ui2-authoring]")){submitAuthoring();return;}if(event.target.matches("[data-ui2-edmodal]")){saveDeckField();return;}submit();});
   win.addEventListener("hashchange",()=>{
-    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;profileAttempt=null;settings=null;if(route().name!=="guide")guide=null;
+    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;profileAttempt=null;settings=null;reading.pop=false;reading.enter=null;
+    // «Ver ejemplos» opens the guides and comes back to the guide being written, with its text.
+    if(route().name!=="guide"&&route().name!=="cards")guide=null;
     if(route().name!=="edit"||route().id!==editor?.deckId)editor=null;
     const exit=guideExit;guideExit=null;if(exit)sheetState=exit.sheet;
     if(interestFlow.state?.mode==="edit")interestFlow.dispose();

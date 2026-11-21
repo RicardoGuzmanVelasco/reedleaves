@@ -51,7 +51,7 @@ export function parentOf(model,cardId){
 
 const siblingsOf=(model,parentId)=>parentId===null?model.roots:model.children.get(parentId)||[];
 // Siblings as the outline shows them: at the root, ideas first and then the unclassified quotes.
-const shownSiblings=(model,parentId)=>{
+export const shownSiblings=(model,parentId)=>{
   const siblings=siblingsOf(model,parentId);
   return parentId===null?[...siblings.filter(card=>!card.isQuote),...siblings.filter(card=>card.isQuote)]:siblings;
 };
