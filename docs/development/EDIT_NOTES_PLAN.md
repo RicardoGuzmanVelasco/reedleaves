@@ -124,3 +124,15 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 - XP en ui2: `observeXp` y `xpFeedback` (`app/ui2/index.mjs`) son el enganche de la animación de ganar experiencia y se conservan aunque hoy ninguna ruta del servidor les mande `xpReward`; no borrarlos como código muerto. Se usarán al diseñar de dónde sale el XP.
 - Vista de tarjetas (mockup `tarjetas-v1`: A Mazo, B Hilo, C Inmersiva): se iteran las TRES por separado hasta pulirlas; la intención es usarlas como layouts distintos según el contexto y, más adelante, dejar que el lector elija. Las modificaciones de la v2 las aporta el dueño.
 - Vista de tarjetas C (inmersiva) implementada en ui2: `app/ui2/tarjetas.mjs` (datos y marcado) y `tarjetas-gestos.mjs` (arrastre y hojitas). Rutas `#preview/<baraja>[/<tarjeta>]` (también `/carousel`) y `#card/<id>`; «Leer tarjetas» (página, editor, guía aprobada) y «Ver ejemplos» ya no salen a la UI vieja. Los enlaces compartidos siguen sin `?ui=2`. Cada tarjeta mostrada cuenta como vista (`/api/reader/view`, contexto `practice`). Pendiente: B (barajas propias en curso), ajuste de preferencia de layout, acceso a las guías desde la ficha del libro ui2.
+
+## Pendiente tras la vista de tarjetas inmersiva (2026-11-21)
+
+- Vista de tarjetas: C inmersiva implementada (`app/ui2/tarjetas.mjs`, `tarjetas-gestos.mjs`; rutas `#preview/<baraja>[/<tarjeta>]` y `#card/<id>`). Falta: layout B «Hilo» (baraja propia en curso; spec `tarjetas-v2-b`), ajuste de preferencia «Forma de leer las tarjetas» (Inmersiva / Lista, por defecto Automático; en Ajustes), y decidir si A se construye (hoy, reserva).
+- Reparto aprobado: «Leer tarjetas» de baraja terminada/ajena, guías y `#card` → C; baraja propia en curso → B; Repaso (futuro) reutiliza el contenido de C sin la barra (la valoración ahí no puede ir por swipe lateral).
+- Por probar en la app real: flujo de visitante (valorar/guardar → Acceso → retoma), copia al portapapeles al compartir, aviso de interés al guardar.
+- Acceso a las guías desde la ficha del libro en ui2 (hoy solo por el editor de guía).
+- Los enlaces compartidos (`deckShareUrl`, `cardShareUrl`) no llevan `?ui=2` y abren la UI vieja hasta el cierre.
+- Decisión abierta de C: gestos verticales (hoy abajo = profundizar, arriba = volver; se recomienda probar la dirección contraria con 3–5 personas).
+- Compartir baraja desde la vista de tarjetas: no; solo compartir tarjeta (la baraja se comparte desde su página o el editor).
+- Sesión de práctica, pantalla completa de la nota (F6), editor de intereses en ui2 y sistema de XP (de dónde sale la experiencia; conservar `observeXp`/`xpFeedback`).
+- Cierre: borrar la UI vieja y el prefijo `ui2`, quitar «Probar la nueva UI», `.library-tabs`, normalizar copy con nombres de sección en mayúscula, etc.
