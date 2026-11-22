@@ -136,3 +136,5 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 - Compartir baraja desde la vista de tarjetas: no; solo compartir tarjeta (la baraja se comparte desde su página o el editor).
 - Sesión de práctica, pantalla completa de la nota (F6), editor de intereses en ui2 y sistema de XP (de dónde sale la experiencia; conservar `observeXp`/`xpFeedback`).
 - Cierre: borrar la UI vieja y el prefijo `ui2`, quitar «Probar la nueva UI», `.library-tabs`, normalizar copy con nombres de sección en mayúscula, etc.
+- Tests: `app/ui2/*.test.mjs` entran en `npm test` y en la CI (`TEST_FILES` de `scripts/test-postgres.mjs`). Son los que se quedan al retirar la UI vieja; en el cierre se borran los tests de la UI antigua, no estos.
+- Tarjetas, por mirar después: choque visual libro–título (`tarjetas-titulos-v1`, recomendación S1 antetítulo en versalitas, S3 como variante), tono verde de los botones de A / verde de Repaso como fondo, A y B por construir sobre `app/ui2/tarjeta.mjs`.

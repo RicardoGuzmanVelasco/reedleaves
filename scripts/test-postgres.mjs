@@ -3,7 +3,7 @@ import {randomUUID} from "node:crypto";
 import {fileURLToPath} from "node:url";
 import path from "node:path";
 
-export const TEST_FILES = ["app/*.test.mjs", "server/*.test.mjs", "test-support/*.test.mjs"];
+export const TEST_FILES = ["app/*.test.mjs", "app/ui2/*.test.mjs", "server/*.test.mjs", "test-support/*.test.mjs"];
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const isMac = process.platform === "darwin";
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
