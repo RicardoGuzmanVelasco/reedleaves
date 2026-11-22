@@ -42,8 +42,9 @@ import {createBrowserStore,storageKeys} from "../storage.mjs";
 import {mountXpMeterArt} from "../xp-meter-art.mjs";
 import {createReaderXpTracker,mountReaderXpFeedback} from "../reader-xp-feedback.mjs?v=level-up-polish-2";
 import {noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMarkup} from "./markup.mjs";
-import {deckReaderData,cardReaderData,cardReaderMarkup,cardActionsMarkup,cardIndexMarkup,cardSignInMarkup,cardTarget,readingOrder} from "./tarjetas.mjs";
-import {mountCardSwipe,burstLeaves} from "./tarjetas-gestos.mjs";
+import {deckReaderData,cardReaderData,cardReaderMarkup,cardIndexMarkup,cardSignInMarkup,cardTarget,readingOrder} from "./tarjetas.mjs";
+import {cardActionsMarkup} from "./tarjeta.mjs";
+import {mountCardSwipe,burstLeaves,fitCardText} from "./tarjetas-gestos.mjs";
 import {loadCardContext} from "../catalog.mjs";
 
 export const ui2Enabled=search=>new URLSearchParams(search).get("ui")==="2";
@@ -320,9 +321,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(sheetState?.type==="card-signin")html+=cardSignInMarkup({c});
     if(toast)html+=toastMarkup({...toast,c});
     paint(withError(html));
-    // Long content scrolls the screen: then the vertical drag is the browser's.
-    const stage=main.querySelector("[data-ui2-stage]"),screen=main.querySelector(".tc-reader");
-    if(stage&&screen)stage.classList.toggle("is-scroll",screen.scrollHeight>screen.clientHeight+1);
+    fitReader();
     // The control the reader used keeps the focus on the next card; a grey arrow hands it to the position.
     if(focused?.startsWith("card")&&!sheetState){
       const again=main.querySelector(`.tc-reader [data-ui2="${CSS.escape(focused)}"]`);
@@ -330,6 +329,15 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     }
     if(card)readCard(card);
   }
+  // The text takes the room between the header and the bar; what still does not fit scrolls the screen, and then the
+  // vertical drag is the browser's.
+  function fitReader(){
+    const stage=main.querySelector("[data-ui2-stage]"),screen=main.querySelector(".tc-reader");if(!screen)return;
+    fitCardText(screen);
+    stage?.classList.toggle("is-scroll",screen.scrollHeight>screen.clientHeight+1);
+  }
+  let fitFrame=0;
+  win.addEventListener("resize",()=>{cancelAnimationFrame(fitFrame);fitFrame=requestAnimationFrame(fitReader);});
   // A card missing from the catalog (a deleted note) comes with its own context; a 404 says it is unavailable.
   function loadCardContextFor(id){
     reading.context={id,status:"loading"};

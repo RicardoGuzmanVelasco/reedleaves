@@ -681,11 +681,12 @@ button.ed-node{cursor:pointer}
 /* Tarjeta cuya nota se borró de su baraja (provisional, hasta rediseñar la vista de tarjetas). */
 .card-deleted-note{display:flex;align-items:center;gap:8px;margin:10px 0 0;padding:10px 12px;border-radius:12px;background:#f4efe6;color:#6b5b45;font-size:14px;font-weight:700}
 .card-deleted-note svg{flex:none;width:20px;height:20px}
-/* ---- Vista de tarjetas inmersiva (tarjetas.mjs; propuesta C de tarjetas-v2): fondo a sangre del color del tema ---- */
+/* ---- Vista de tarjetas inmersiva (tarjetas.mjs; propuesta C de tarjetas-v2/v4): fondo a sangre del color del tema.
+   El componente tarjeta (tarjeta.mjs) usa .tc, .tc-book, .tc-ctx, .tc-vote y .tc-rb; .tc-reader y el resto son del layout C. ---- */
 .tc-reader,.tc-index,.tc-leaves{--c:var(--interest-color,#aad57b);--d:color-mix(in srgb,var(--c) 55%,#2c3a2c);--t1:color-mix(in srgb,var(--c) 12%,#fffdf6);--t2:color-mix(in srgb,var(--c) 28%,#fffdf6);--t3:color-mix(in srgb,var(--c) 48%,#fffdf6)}
 .tc-reader.is-del{--c:color-mix(in srgb,var(--interest-color,#aad57b) 70%,#b9b5ac)}
 .tc-reader{position:fixed;inset:0;z-index:1;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;background:linear-gradient(172deg,var(--t2) 0%,var(--t3) 55%,color-mix(in srgb,var(--c) 75%,#fffdf6) 100%);color:var(--ui2-ink)}
-.tc-col{position:relative;display:flex;flex-direction:column;width:100%;max-width:640px;min-height:100%;margin:0 auto;padding:env(safe-area-inset-top) 0 calc(14px + env(safe-area-inset-bottom))}
+.tc-col{position:relative;display:flex;flex-direction:column;width:100%;max-width:640px;min-height:100%;margin:0 auto;overflow:clip;padding:env(safe-area-inset-top) 0 calc(14px + env(safe-area-inset-bottom))}
 .tc-head{display:flex;align-items:flex-start;gap:10px;padding:10px 14px 6px 20px;flex:none}
 .tc-titles{position:relative;flex:1;min-width:0;padding-top:4px}
 .tc-deck{display:flex;align-items:center;gap:8px;margin:0;font-size:24px;font-weight:850;line-height:1.12;letter-spacing:-.04em;overflow-wrap:anywhere}
@@ -693,11 +694,12 @@ button.ed-node{cursor:pointer}
 .tc-state{display:flex;align-items:center;gap:4px;min-height:32px;margin-top:2px;padding:0;border:0;background:none;font:inherit;font-size:11.5px;font-weight:700;color:var(--ui2-muted);text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
 .tc-state .ui2-icon{width:14px;height:14px}
 .tc-state[aria-expanded=true]{color:var(--ui2-ink)}
+.tc-headwho{margin-top:2px}.tc-headwho .card-attribution-row{min-height:28px;font-size:12.5px;font-weight:700;color:var(--ui2-muted)}
 .tc-pop{position:absolute;left:-4px;top:calc(100% + 8px);z-index:4;width:min(250px,calc(100vw - 48px));padding:10px 13px;border:2px solid var(--ui2-ink);border-radius:14px;background:#fffdf6;box-shadow:0 4px 0 var(--ui2-ink);font-size:13.5px;font-weight:700;line-height:1.4}
 .tc-pop::before{content:"";position:absolute;left:18px;top:-8px;width:12px;height:12px;background:#fffdf6;border-left:2px solid var(--ui2-ink);border-top:2px solid var(--ui2-ink);transform:rotate(45deg)}
-.tc-pop p{margin:0}
-.tc-row{display:flex;align-items:center;gap:10px;margin:2px 14px 0 20px;flex:none}
-.tc-segs{flex:1;display:flex;gap:5px;min-width:0}
+.tc-pop strong{display:block;font-weight:900}.tc-pop p{margin:2px 0 0;font-weight:600}
+.tc-row{display:flex;align-items:flex-end;gap:10px;margin:2px 14px 0 20px;flex:none}
+.tc-segs{flex:1;display:flex;gap:5px;min-width:0;margin-bottom:5px}
 .tc-segs i{flex:1;height:6px;border-radius:3px;background:rgb(255 253 246 / 70%)}
 .tc-segs i.on{background:var(--d)}
 .tc-segs i.cur{background:linear-gradient(90deg,var(--d) 50%,rgb(255 253 246 / 70%) 50%)}
@@ -707,35 +709,34 @@ button.ed-node{cursor:pointer}
 .tc-notice{margin:0 0 14px}
 .tc-stage{position:relative;touch-action:none}
 .tc-stage.is-scroll{touch-action:pan-y}
-.tc{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:center;min-height:220px;padding:46px 8px 0;color:var(--ui2-ink);transition:transform .2s}
+.tc{--fs:18.5px;position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:center;min-height:220px;padding:46px 8px 0;color:var(--ui2-ink);transition:transform .2s}
 .tc.is-dragging{transition:none;user-select:none;-webkit-user-select:none}
 .tc-wm{position:absolute;right:-44px;top:50%;width:300px;height:340px;transform:translateY(-50%) rotate(-8deg);fill:#fffdf6;opacity:.5;z-index:-1;pointer-events:none}
 .tc-wm--line{fill:none;stroke:#fffdf6;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;opacity:.7}
+.tc-book{margin:0 0 10px}
+.tc-book .card-attribution-row{min-height:30px;font-size:20px;font-weight:900;letter-spacing:-.02em;color:var(--ui2-ink)}
+.tc-book .attribution-icon{width:20px;height:20px}
+.tc-book .card-attribution-row bdi{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tc-text{min-width:0}
-.tc h2{margin:0 0 10px;font-size:27px;line-height:1.1;letter-spacing:-.04em;text-wrap:balance;overflow-wrap:anywhere}
-.tc-body{margin:0;font-family:Courier,"Courier New",monospace;font-size:17.5px;line-height:1.55;overflow-wrap:anywhere}
-.tc--quote .tc-body{font-style:italic;font-size:19px;line-height:1.5}
-.tc--reading-guide .tc-body{font-family:inherit;font-weight:600;font-size:17px;line-height:1.55}
-.tc.is-short h2{font-size:32px}.tc.is-short .tc-body{font-size:21px}.tc--quote.is-short .tc-body{font-size:27px;line-height:1.35}
-.tc.is-long h2{font-size:21px}.tc.is-long .tc-body{font-size:14.5px;line-height:1.5}
+/* Una sola tipografía, la de la interfaz; --fs es el cuerpo (el título escala con él) y tarjetas-gestos.mjs lo ajusta al hueco. */
+.tc h2{margin:0 0 .4em;font-size:min(40px,calc(var(--fs) * 1.45));font-weight:900;line-height:1.1;letter-spacing:-.035em;text-wrap:balance;overflow-wrap:anywhere}
+.tc-body{margin:0;font-family:inherit;font-size:var(--fs);font-weight:600;line-height:1.5;color:#26462f;overflow-wrap:anywhere}
+.tc--quote{--fs:20px}.tc--quote .tc-body{font-weight:800;line-height:1.3;letter-spacing:-.02em}
+.tc--reading-guide{--fs:16px}
+.tc.is-short{--fs:22px}.tc--quote.is-short{--fs:28px}.tc.is-long{--fs:15.5px}
 .tc.is-del{border:2.5px dashed var(--d);border-radius:24px;padding:46px 16px 12px}
 .tc-rib{position:absolute;top:2px;right:0;z-index:2;width:142px;height:30px}
 .tc-rib .team-recommendation{left:0;top:0;max-width:none;transform:rotate(3deg)}
-.tc[data-enter=next]{animation:tc-in-x .24s ease-out}.tc[data-enter=prev]{animation:tc-in-x .24s ease-out;--from:-40px}
-.tc[data-enter=down]{animation:tc-in-y .24s ease-out}.tc[data-enter=up]{animation:tc-in-y .24s ease-out;--from:-30px}
-@keyframes tc-in-x{from{opacity:0;transform:translateX(var(--from,40px))}}
-@keyframes tc-in-y{from{opacity:0;transform:translateY(var(--from,30px))}}
-.tc-who{flex:none;padding:6px 22px 0}
-.tc-book .card-attribution-row{min-height:30px;font-size:18px;font-weight:850;color:var(--ui2-ink)}
-.tc-book .attribution-icon{width:19px;height:19px}
-.tc-whorow{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
-.tc-whorow .card-attribution-row{flex:0 1 auto;min-width:0;max-width:100%;font-size:13px;font-weight:700;color:var(--ui2-muted)}
-.tc-whorow:has(.tc-upchip) .card-attribution-row{max-width:42%}
-.tc-who .card-attribution-row bdi{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tc-upchip{position:relative;display:inline-flex;align-items:center;gap:6px;flex:0 1 auto;margin-left:auto;max-width:56%;min-width:0;min-height:34px;padding:4px 11px 4px 8px;border:0;border-radius:11px;background:rgb(255 253 246 / 88%);box-shadow:inset 0 0 0 1.5px var(--t3);font:inherit;font-size:13px;font-weight:800;color:var(--ui2-ink);cursor:pointer}
-.tc-upchip::after{content:"";position:absolute;inset:-5px 0}
-.tc-upchip .ui2-icon{width:16px;height:16px;color:var(--d)}
-.tc-upchip span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tc[data-enter]{animation:tc-in .4s cubic-bezier(.3,1.3,.5,1)}
+.tc[data-enter=next]{--from:translateX(44px) rotate(3deg)}.tc[data-enter=prev]{--from:translateX(-44px) rotate(-3deg)}
+.tc[data-enter=down]{--from:translateY(34px) rotate(1.5deg)}.tc[data-enter=up]{--from:translateY(-34px) rotate(-1.5deg)}
+@keyframes tc-in{from{opacity:0;transform:var(--from)}}
+.tc-who{display:flex;flex-direction:column;gap:6px;flex:none;padding:8px 18px 0}
+.tc-who>.card-attribution-row{min-height:28px;padding-left:4px;font-size:13px;font-weight:700;color:var(--ui2-muted)}
+/* Contexto de la tarjeta madre: una tarjeta discreta, en línea completa, que se puede pulsar para ir a ella. */
+.tc-ctx{display:flex;align-items:center;gap:8px;width:100%;min-width:0;min-height:44px;padding:6px 12px;border:1.5px solid color-mix(in srgb,var(--d) 30%,transparent);border-radius:14px;background:color-mix(in srgb,var(--c) 10%,rgb(255 253 246 / 72%));font:inherit;font-size:14px;font-weight:800;color:var(--d);text-align:left;cursor:pointer}
+.tc-ctx .ui2-icon{width:18px;height:18px}
+.tc-ctx span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tc-nav{display:grid;grid-template-columns:46px minmax(0,1fr) 46px;gap:10px;align-items:center;padding:14px 16px 0;flex:none}
 .tc-arrow{display:grid;place-items:center;width:46px;height:46px;padding:0;border:2px solid var(--d);border-radius:50%;background:#fffdf6;box-shadow:0 3px 0 var(--d);color:var(--ui2-ink);cursor:pointer}
 .tc-arrow:disabled{opacity:1;border-color:#b9bcb0;box-shadow:none;background:#f1f0ea;color:#a6a99e;cursor:default}
@@ -755,12 +756,14 @@ button.ed-node{cursor:pointer}
 .tc-vote.is-off{opacity:.45;box-shadow:none}
 .tc-rb{display:grid;place-items:center;flex:none;width:50px;height:50px;padding:0;border:2px solid var(--d);border-radius:50%;background:#fffdf6;box-shadow:0 4px 0 var(--d);color:var(--ui2-ink);cursor:pointer}
 .tc-rb.is-saved{background:var(--t3)}
+/* Los botones activos se hunden */
+.tc-vote,.tc-rb{transition:transform .12s,box-shadow .12s}
+.tc-vote:has(button[aria-pressed=true]),.tc-rb[aria-pressed=true]{transform:translateY(3px);box-shadow:0 1px 0 var(--d)}
 .tc-keys{display:none}
 .tc-empty{padding-top:20px}
 .tc-reader~.ui2-toast{bottom:calc(84px + env(safe-area-inset-bottom) + var(--ui2-toast-lift,0px))}
 @media(min-width:900px){
-  .tc-main{padding:10px 40px 0}.tc-nav{padding:14px 40px 0}
-  .tc h2{font-size:30px}.tc.is-short h2{font-size:36px}
+  .tc-main{padding:10px 40px 0}.tc-nav{padding:14px 40px 0}.tc-who{padding:8px 40px 0}
   .tc-reader~.ui2-toast{left:50%;bottom:calc(24px + var(--ui2-toast-lift,0px))}
 }
 @media(min-width:900px) and (hover:hover){.tc-keys{display:block;position:fixed;right:28px;bottom:22px;margin:0;font-size:13px;font-weight:700;color:var(--ui2-muted)}}
@@ -783,4 +786,4 @@ button.ed-node{cursor:pointer}
 .tc-leaves svg:nth-child(1){--x:-14px;--y:-30px;--r:-20deg}.tc-leaves svg:nth-child(2){--x:12px;--y:-32px;--r:20deg}.tc-leaves svg:nth-child(3){--x:27px;--y:-20px;--r:50deg}
 .tc-leaves svg:nth-child(4){--x:-22px;--y:26px;--r:-140deg}.tc-leaves svg:nth-child(5){--x:4px;--y:32px;--r:170deg}.tc-leaves svg:nth-child(6){--x:24px;--y:24px;--r:130deg}
 @keyframes tc-leaf{0%{opacity:1;transform:translate(0,0) scale(.4)}65%{opacity:1}100%{opacity:0;transform:translate(calc(var(--x) * 1.4),calc(var(--y) * 1.4)) rotate(var(--r)) scale(1)}}
-@media(prefers-reduced-motion:reduce){.tc,.tc[data-enter]{animation:none;transition:none}.tc-leaves{display:none}}
+@media(prefers-reduced-motion:reduce){.tc,.tc[data-enter]{animation:none;transition:none}.tc-vote,.tc-rb{transition:none}.tc-leaves{display:none}}

@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import {validateCards} from "../core.mjs";
 import {words} from "../i18n.mjs";
 import {readerState,emptyCatalog} from "../../test-support/reader-state.mjs";
-import {readingOrder,cardPlace,cardTarget,textSize,SHORT_TEXT,LONG_TEXT,GUIDE_COLOR,deckReaderData,cardReaderData,cardReaderMarkup,cardActionsMarkup,cardIndexMarkup,cardSignInMarkup} from "./tarjetas.mjs";
-import {swipeIntent,swipeAxis,SWIPE} from "./tarjetas-gestos.mjs";
+import {readingOrder,cardPlace,cardTarget,GUIDE_COLOR,deckReaderData,cardReaderData,cardReaderMarkup,cardIndexMarkup,cardSignInMarkup} from "./tarjetas.mjs";
+import {textSize,fraction,SHORT_TEXT,LONG_TEXT,cardContentMarkup,cardActionsMarkup,cardContextMarkup} from "./tarjeta.mjs";
+import {swipeIntent,swipeAxis,SWIPE,largestFitting,FIT} from "./tarjetas-gestos.mjs";
 import {isPublicRoute,accessRequest,PERSONAL_ACTIONS} from "./visitor.mjs";
 import {interestWarningMarkup} from "./forms.mjs";
 import {partialCatalog} from "../catalog.mjs";
@@ -54,7 +55,11 @@ for(const language of ["es","en"])test(`Deck reader: header, position, bar and a
   const html=cardReaderMarkup({data:first,c});
   assert.match(html,/<h1 class="tc-deck"[^>]*><span[^>]*>Notas de lectura<\/span><\/h1>/);
   assert.match(html,new RegExp(`data-ui2="cards-close" aria-label="${c.closeCard}"`));
-  assert.ok(html.includes(`aria-label="${c.presentationCards} · ${c.position(1,7)}"`));
+  // The position is a fraction; its name says it in words.
+  assert.ok(html.includes(`aria-label="${c.presentationCards} · ${c.position(1,7)}"`));assert.match(html,/<b>1\/7<\/b>/);
+  // The deck's creator in the header, before the progress; the book, large, inside the card before its title.
+  assert.ok(html.indexOf('href="#profile/ana"')<html.indexOf("tc-segs"));
+  assert.ok(html.indexOf('href="#book/b"')>html.indexOf("<article")&&html.indexOf('href="#book/b"')<html.indexOf("<h2"));
   assert.match(html,/<div class="tc-segs" aria-hidden="true"><i class="cur"><\/i><i><\/i><i><\/i><\/div>/);
   assert.match(html,new RegExp(`<nav class="tc-nav" aria-label="${c.ui2CardNavigation}">`));
   // ‹ › always there, grey when there is no sibling; «Profundizar» with the children, no «Volver» at a root.
@@ -71,13 +76,14 @@ for(const language of ["es","en"])test(`Deck reader: header, position, bar and a
 test("A deck in progress says so under its name; the explanation depends on who reads",()=>{
   const c=words.es;
   const open=s=>deckData(s,"a").deck;
-  assert.equal(open(fixture({deck:{status:"in_progress"}})).explain,"deckMayChangeUnadded");
-  assert.equal(open(fixture({deck:{status:"in_progress"},extra:{cardcaseDeckIds:["d"]}})).explain,"deckMayChange");
+  assert.equal(open(fixture({deck:{status:"in_progress"}})).explain,"ui2DeckMayChange");
+  assert.equal(open(fixture({deck:{status:"in_progress"},extra:{cardcaseDeckIds:["d"]}})).explain,"ui2DeckMayChange");
   assert.equal(open(fixture({deck:{status:"in_progress",creator:{userId:"me",name:"me"}}})).explain,"deckInProgressOwnerExplanation");
   const data=deckData(fixture({deck:{status:"in_progress"}}),"a");
   assert.match(cardReaderMarkup({data,c}),/data-ui2="card-state" aria-expanded="false">[^]*Baraja en curso/);
   const popped=cardReaderMarkup({data,ui:{pop:true},c});
-  assert.match(popped,/aria-expanded="true" aria-describedby="tc-pop"/);assert.ok(popped.includes(c.deckMayChangeUnadded));
+  assert.match(popped,/aria-expanded="true" aria-describedby="tc-pop"/);
+  assert.ok(popped.includes(`<strong>${c.deckInProgress}</strong><p>${c.ui2DeckMayChange}</p>`));
 });
 
 test("Rating and saving: pressed states, the likes once read, and the author sees the votes but cannot vote",()=>{
@@ -166,4 +172,22 @@ test("Drags pick an axis after the slop: left is next, right previous, down deep
   assert.deepEqual(swipeIntent(SWIPE.horizontal/2,0,"x"),{direction:"prev",progress:.5});
   assert.equal(swipeIntent(0,SWIPE.vertical*2,"y").direction,"down");assert.equal(swipeIntent(0,-10,"y").direction,"up");
   assert.deepEqual(swipeIntent(0,20,"x"),{direction:null,progress:0});
+});
+
+test("The card component: book before the content, no opening quote mark, the parent as a card to travel to",()=>{
+  const c=words.es,book={id:"b",title:"Hábitos atómicos",titleLanguage:"es"};
+  const quote=cardContentMarkup({card:{id:"q",type:"quote",title:"",body:"El entorno pesa más.",bodyLanguage:"es",size:"short",deleted:false},book,c});
+  assert.ok(quote.indexOf('href="#book/b"')<quote.indexOf("<blockquote"));assert.doesNotMatch(quote,/[“"]El entorno/);
+  assert.equal(cardContentMarkup({card:{id:"q",type:"idea",title:"T",body:"x",bodyLanguage:"es",titleLanguage:"es",size:"",deleted:false},c}).includes("tc-book"),false);
+  const context=cardContextMarkup({card:{parent:{id:"a",title:"Madre"}},action:"card-up",c});
+  assert.match(context,/<button type="button" class="tc-ctx" data-ui2="card-up" data-id="a" aria-label="[^"]*: Madre">/);
+  assert.equal(cardContextMarkup({card:{parent:null},action:"card-up",c}),"");
+  assert.equal(fraction(2,9),"2/9");assert.equal(c.position(2,9),"2 de 9");
+});
+
+test("Fitted type: the largest legible size that fits, never under the minimum nor over the type's maximum",()=>{
+  assert.equal(largestFitting({min:FIT.min,max:FIT.max.idea,fits:()=>true}),FIT.max.idea);
+  assert.equal(largestFitting({min:FIT.min,max:FIT.max.quote,fits:()=>false}),FIT.min);
+  assert.equal(largestFitting({min:15,max:24,fits:size=>size<=19.3}),19);
+  assert.ok(FIT.min>=15);
 });

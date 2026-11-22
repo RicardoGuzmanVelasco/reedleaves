@@ -84,3 +84,27 @@ export function burstLeaves(button,{color,doc=document,win=window}={}){
   win.setTimeout(done,1400);
   return burst;
 }
+
+// Fitted type: the card's text takes the room between the header and the bar. The body size (--fs) is the largest that keeps the
+// whole screen without scrolling, between a legible minimum and a maximum per type (little text does not grow without end).
+// When even the minimum does not fit, the screen scrolls (long guides).
+export const FIT={min:15,max:{idea:24,quote:30,"reading-guide":22}};
+
+// Pure: the largest size in [min,max] (steps of `step`) for which `fits(size)` holds; `min` when none does.
+export function largestFitting({min,max,fits,step=.5}){
+  if(fits(max))return max;
+  let low=min,high=max;
+  while(high-low>step){const middle=(low+high)/2;if(fits(middle))low=middle;else high=middle;}
+  return Math.floor(low/step)*step;
+}
+
+export function fitCardText(screen){
+  const card=screen?.querySelector(".tc");if(!card)return null;
+  const type=["quote","reading-guide"].find(name=>card.classList.contains(`tc--${name}`))||"idea";
+  const fits=size=>{card.style.setProperty("--fs",`${size}px`);return screen.scrollHeight<=screen.clientHeight+1;};
+  // The entry movement would count as overflow while it is measured: it restarts right after.
+  card.style.animation="none";
+  const size=largestFitting({min:FIT.min,max:FIT.max[type],fits});
+  card.style.setProperty("--fs",`${size}px`);card.style.removeProperty("animation");
+  return size;
+}
