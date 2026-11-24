@@ -172,3 +172,4 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 - `failed` pesa en la selección de tarjetas; `passed` no. La recompensa no cambia (25 XP al completar).
 - Registro por tipo en código: tabla, validación, interfaz y evaluación. API self: `{sessionId, cardId, outcome}`; auto: el cliente manda la elección y el servidor calcula el resultado.
 - Retirada de «ver más / menos a menudo» en el cierre de la UI v1: botones, valores `see_less`/`see_more` del endpoint y su `CHECK`. `practice_answers` queda como histórico; decidir al cierre si se borra.
+- Selección de pruebas: módulo pequeño y aislado (función pura: tarjetas elegibles, resultados previos y hora entran; lista de pruebas sale). Sin acoplarla al resto de la sesión, para cambiar la regla a futuro tocando solo ese módulo.
