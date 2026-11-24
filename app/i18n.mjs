@@ -179,3 +179,10 @@ Object.assign(words.en,{ui2EditNote:"Edit note",ui2DeckData:"Deck details",ui2No
   ui2DeleteNote:"Delete note",ui2DeleteNoteTitle:"Delete this note?",ui2DeleteNoteBelow:n=>n===1?"The note below it will be deleted too.":`The ${n} notes below it will be deleted too.`,
   ui2DeleteNoteMoveFirst:"If you don’t want to lose its child notes, move them before deleting this one.",ui2CannotUndo:"This can’t be undone.",ui2DeleteNoteSavedStays:"Anyone who already saved it will still be able to see it.",ui2CardSignIn:"Sign in to rate and save cards.",ui2CardNavigation:"Card navigation",ui2CardKeys:"← → siblings · ↓ go deeper · ↑ back · Esc close",ui2CardSaved:"Saved",ui2DeckMayChange:"Its author may still edit, delete and add notes.",
   ui2NoteDeleted:"Note deleted.",ui2EditNoteOf:title=>`Edit: ${title}`,ui2MoveNoteOf:title=>`Move: ${title}`,ui2DragHandle:"drag handle",cardNoteDeleted:"This card’s note has been deleted from its deck"});
+// Sesión de Repaso (hito 1, mockup repaso-sesion-v3).
+Object.assign(words.es,{practiceLocked:"Primero termina tu repaso a medias.",practiceParentTitle:"Esta tarjeta forma parte de una idea más grande",
+  practiceParentBody:"Guárdala o añade su baraja al tarjetero para repasar sus tarjetas más adelante.",practiceParentOf:title=>`Tarjeta superior: ${title}`,
+  practiceDayAdded:"+1 día",practiceDayCounted:"Ya contó hoy",practiceKeys:"← → para pasar · Esc para salir"});
+Object.assign(words.en,{practiceLocked:"First finish your unfinished session.",practiceParentTitle:"This card is part of a bigger idea",
+  practiceParentBody:"Save it or add its deck to your cardcase to practice its cards later.",practiceParentOf:title=>`Parent card: ${title}`,
+  practiceDayAdded:"+1 day",practiceDayCounted:"Already counted today",practiceKeys:"← → to move · Esc to exit"});

@@ -39,7 +39,7 @@ export function cardTarget(model,cardId,direction){
   return {prev:place.previous,next:place.next,down:place.child,up:place.parentId}[direction]??null;
 }
 
-const themeOf=(catalog,book,guide)=>{
+export const themeOf=(catalog,book,guide)=>{
   if(guide)return ` data-interest-color="${GUIDE_COLOR}"`;
   const first=(book?.interests||[]).map(id=>catalog.interests?.find(interest=>interest.id===id)).find(Boolean);
   return interestColor(first);

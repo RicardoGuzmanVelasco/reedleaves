@@ -430,3 +430,34 @@ test("mascot growth starts a new local day at midnight",async t=>{
   const days=await db.prepare("SELECT completed_local_day FROM practice_sessions WHERE completed_at IS NOT NULL ORDER BY completed_local_day").all();
   assert.deepEqual(days.map(row=>row.completed_local_day),["2026-10-06","2026-10-07"]);
 });
+
+test("a neutral view advances the session, keeps earlier answers and completes on the last card with 25 XP",async t=>{
+  const {db,session}=await fixture(t),now=new Date("2026-10-06T12:00:00.000Z");
+  const started=await startPracticeSession(db,session,"reading",now),ids=started.session.cardIds;
+  await db.prepare("INSERT INTO practice_answers(user_id,card_id,answer,answered_at) VALUES (?,?,?,?)").run("reader",ids[0],"see_less","2026-10-01T10:00:00.000Z");
+  await assert.rejects(answerPracticeSession(db,session,{sessionId:started.session.id,index:0,cardId:ids[0],answer:"remembered"},now),{code:"invalidRequest"});
+  let result;
+  for(const [index,cardId] of ids.entries()){
+    result=await answerPracticeSession(db,session,{sessionId:started.session.id,index,cardId,answer:"view"},now);
+    if(index<ids.length-1)assert.equal(result.session.completedAt,null);
+  }
+  assert.ok(result.session.completedAt);assert.deepEqual(result.xpReward,{amount:25,balance:25});
+  assert.deepEqual({...db.prepare("SELECT answer FROM practice_answers WHERE user_id='reader' AND card_id=?").get(ids[0])},{answer:"see_less"});
+  assert.equal(db.prepare("SELECT count(*) AS n FROM practice_answers WHERE user_id='reader'").get().n,1);
+  assert.equal((await readReaderState(db,session,now)).activePracticeSession,null);
+});
+
+test("a note deleted during a session is replaced in the pending cards and never selected again",async t=>{
+  const {db,session}=await fixture(t),now=new Date("2026-10-06T12:00:00.000Z");
+  const started=await startPracticeSession(db,session,"reading",now),ids=started.session.cardIds;
+  await answerPracticeSession(db,session,{sessionId:started.session.id,index:0,cardId:ids[0],answer:"view"},now);
+  // Soft delete as the editor does: the note with its descendants, the later siblings closing the gap.
+  const gone=db.prepare("SELECT deck_id,parent_id,position FROM cards WHERE id=?").get(ids[2]);
+  db.prepare(`WITH RECURSIVE below(id) AS (SELECT ? UNION SELECT c.id FROM cards c JOIN below b ON c.parent_id=b.id) UPDATE cards SET deleted_at=? WHERE id IN (SELECT id FROM below)`).run(ids[2],"2026-10-06T12:01:00.000Z");
+  db.prepare("UPDATE cards SET position=position-1 WHERE deck_id=? AND parent_id IS ? AND position>? AND deleted_at IS NULL").run(gone.deck_id,gone.parent_id,gone.position);
+  const repaired=await answerPracticeSession(db,session,{sessionId:started.session.id,index:1,cardId:ids[1],answer:"view"},now);
+  assert.equal(repaired.practiceRecovery.status,"repaired");
+  assert.deepEqual(repaired.session.cardIds.slice(0,2),ids.slice(0,2));
+  assert.ok(!repaired.session.cardIds.includes(ids[2]));
+  assert.equal(repaired.session.cardIds.length,PRACTICE_SESSION_SIZE);
+});

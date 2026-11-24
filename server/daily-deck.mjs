@@ -31,9 +31,9 @@ export async function ensureDailyCardInside(db,userId,day) {
   await db.prepare("INSERT INTO daily_ideas(day,card_id) VALUES (?,?) ON CONFLICT(day) DO NOTHING").run(day,selected.id);
 }
 
-// Today's card first, then the most recent earlier ones: up to five distinct cards.
+// Today's card first, then the most recent earlier ones: up to five distinct cards, never a deleted note.
 export async function dailyDeckCardIds(db,day) {
-  const rows=await db.prepare("SELECT day,card_id FROM daily_ideas WHERE day<=? ORDER BY day DESC LIMIT ?").all(day,DAILY_DECK_SIZE*2);
+  const rows=await db.prepare("SELECT di.day,di.card_id FROM daily_ideas di JOIN cards c ON c.id=di.card_id WHERE di.day<=? AND c.deleted_at IS NULL ORDER BY di.day DESC LIMIT ?").all(day,DAILY_DECK_SIZE*2);
   return {ids:[...new Set(rows.map(row=>row.card_id))].slice(0,DAILY_DECK_SIZE),todayCardId:rows.find(row=>row.day===day)?.card_id||null};
 }
 

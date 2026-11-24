@@ -192,12 +192,13 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .ui2-pack .practice-mode-pack{position:absolute;left:0;top:0;width:129px;height:139px;margin:0;transform:scale(.5);transform-origin:top left}
 .ui2-modes .practice-mode-label{max-width:68px;margin:0 auto;font-size:10.5px;line-height:1.15;font-weight:850;text-wrap:balance}
 .ui2-modes .ui2-price-tag{margin-top:6px}
-.ui2-modes .practice-mode-icon{opacity:.78}
-.ui2-modes .practice-mode{--icon-x:-8px;--icon-y:0px;--icon-scale:1}
-.ui2-rp-box--discover .practice-mode-card{border-color:#6f97aa;background:#e7f2f7;box-shadow:0 3px 0 #a9c8d6}
-.ui2-rp-box--discover .practice-mode-card--left{background:#d9ebf3}.ui2-rp-box--discover .practice-mode-card--right{background:#bfdcea}
-.ui2-rp-box--discover .practice-mode-card--cover{background:linear-gradient(145deg,#fdfeff,#dcecf3)}
-.ui2-rp-box--discover .practice-mode-icon{color:#86b3c7}.ui2-rp-box--discover .practice-mode-icon-fill{fill:#cfe5ef}
+/* The theme's glyph stays behind: first the card of a deck, then its icon (smaller and softer than the old interface's). */
+.ui2-pack{--icon-x:-6px;--icon-y:2px;--icon-scale:.8}
+.ui2-pack .practice-mode-icon{opacity:.42}
+:is(.ui2-rp-box--discover,.rs-resume--discover) .practice-mode-card{border-color:#6f97aa;background:#e7f2f7;box-shadow:0 3px 0 #a9c8d6}
+:is(.ui2-rp-box--discover,.rs-resume--discover) .practice-mode-card--left{background:#d9ebf3}:is(.ui2-rp-box--discover,.rs-resume--discover) .practice-mode-card--right{background:#bfdcea}
+:is(.ui2-rp-box--discover,.rs-resume--discover) .practice-mode-card--cover{background:linear-gradient(145deg,#fdfeff,#dcecf3)}
+:is(.ui2-rp-box--discover,.rs-resume--discover) .practice-mode-icon{color:#86b3c7}:is(.ui2-rp-box--discover,.rs-resume--discover) .practice-mode-icon-fill{fill:#cfe5ef}
 .ui2-flame-badge{position:absolute;top:-7px;right:-4px;z-index:6;display:grid;place-items:center;width:26px;height:26px;border:1.5px solid #d4564b;border-radius:50%;background:#fde8e4;color:#c4382d;box-shadow:0 2px 0 #d4564b40;pointer-events:none}
 .ui2-flame-badge .ui2-icon{width:16px;height:16px}
 .ui2-flame-badge:not(.is-done)::after{content:"";position:absolute;inset:-2px;border:2px solid #a9322e;border-radius:50%;opacity:0;animation:ui2-flame-wave 3s ease-out infinite}
@@ -714,9 +715,10 @@ button.ed-node{cursor:pointer}
 .tc-wm{position:absolute;right:-44px;top:50%;width:300px;height:340px;transform:translateY(-50%) rotate(-8deg);fill:#fffdf6;opacity:.5;z-index:-1;pointer-events:none}
 .tc-wm--line{fill:none;stroke:#fffdf6;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;opacity:.7}
 .tc-book{margin:0 0 10px}
-.tc-book .card-attribution-row{min-height:30px;font-size:20px;font-weight:900;letter-spacing:-.02em;color:var(--ui2-ink)}
-.tc-book .attribution-icon{width:20px;height:20px}
-.tc-book .card-attribution-row bdi{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* The book as the card's overline, in real small caps (Avenir Next / SF carry them; elsewhere they may be synthesised), up to two lines. */
+.tc-book .card-attribution-row{align-items:flex-start;min-height:24px;font-family:"Avenir Next",system-ui,sans-serif;font-variant-caps:small-caps;font-synthesis-small-caps:auto;font-size:20px;font-weight:500;letter-spacing:.03em;line-height:1.2;color:var(--d)}
+.tc-book .attribution-icon{width:16px;height:16px;margin-top:3px;flex:none;fill:var(--d);opacity:.75}
+.tc-book .card-attribution-row bdi{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-width:0;overflow:hidden;white-space:normal;text-overflow:clip}
 .tc-text{min-width:0}
 /* Una sola tipografía, la de la interfaz; --fs es el cuerpo (el título escala con él) y tarjetas-gestos.mjs lo ajusta al hueco. */
 .tc h2{margin:0 0 .4em;font-size:min(40px,calc(var(--fs) * 1.45));font-weight:900;line-height:1.1;letter-spacing:-.035em;text-wrap:balance;overflow-wrap:anywhere}
@@ -787,3 +789,116 @@ button.ed-node{cursor:pointer}
 .tc-leaves svg:nth-child(4){--x:-22px;--y:26px;--r:-140deg}.tc-leaves svg:nth-child(5){--x:4px;--y:32px;--r:170deg}.tc-leaves svg:nth-child(6){--x:24px;--y:24px;--r:130deg}
 @keyframes tc-leaf{0%{opacity:1;transform:translate(0,0) scale(.4)}65%{opacity:1}100%{opacity:0;transform:translate(calc(var(--x) * 1.4),calc(var(--y) * 1.4)) rotate(var(--r)) scale(1)}}
 @media(prefers-reduced-motion:reduce){.tc,.tc[data-enter]{animation:none;transition:none}.tc-vote,.tc-rb{transition:none}.tc-leaves{display:none}}
+/* ---- Sesión de Repaso (repaso-sesion.mjs, mockup repaso-sesion-v3): layout C con cinco segmentos tipo stories ---- */
+.rs-segs{flex:1;display:flex;gap:5px;min-width:0}
+.rs-segs i{flex:1;height:6px;border-radius:3px;background:rgb(255 253 246 / 70%);transition:background .2s}
+.rs-segs i.on{background:var(--d,#3f8850)}
+.rs-segs--sm i{height:5px;background:rgb(63 136 80 / 22%)}.rs-segs--sm i.on{background:#3f8850}
+.rs-segrow{margin-top:0}.rs-segrow .rs-segs{margin-bottom:6px}
+.rs-head-min{min-height:56px}
+.tc-reader.rs [data-ui2-stage]{touch-action:none;cursor:pointer}
+.tc-reader.rs [data-ui2-stage].is-scroll{touch-action:pan-y}
+.tc-reader.rs .tc-col{z-index:1}
+/* Transición «disolver»: el fondo de la tarjeta anterior se funde y el glifo nuevo entra girando; al arrastrar, el color de la siguiente sube con el dedo. */
+.rs-diss-bg,.rs-peek{--c:var(--interest-color,#aad57b);--t2:color-mix(in srgb,var(--c) 28%,#fffdf6);--t3:color-mix(in srgb,var(--c) 48%,#fffdf6);position:fixed;inset:0;z-index:0;pointer-events:none;background:linear-gradient(172deg,var(--t2) 0%,var(--t3) 55%,color-mix(in srgb,var(--c) 75%,#fffdf6) 100%)}
+.rs-diss-bg{opacity:0;animation:rs-dissolve .32s ease-out}
+@keyframes rs-dissolve{from{opacity:var(--from,1)}}
+.rs-peek{opacity:var(--p,0)}
+.tc-reader.rs.is-dissolving .tc-wm{animation:rs-glyph-in .42s cubic-bezier(.3,1.2,.5,1)}
+@keyframes rs-glyph-in{from{opacity:0;transform:translateY(-50%) rotate(14deg) scale(.85)}}
+/* Entrada: mazo de cinco reversos con sombra fina; el de arriba se voltea y la primera tarjeta crece hasta la pantalla. */
+.rs-deal .tc-main{align-items:center}
+.rs-deck{position:relative;width:170px;height:238px;margin:0 auto;perspective:800px}
+.rs-back{position:absolute;inset:0;width:100%;height:100%;border-radius:18px;box-shadow:0 0 0 1px rgb(23 61 44 / 22%),0 6px 14px -4px rgb(23 61 44 / 35%);transition:transform .3s cubic-bezier(.3,1.2,.5,1)}
+.rs-back--0{transform:rotate(-7deg) translate(-8px,6px)}.rs-back--1{transform:rotate(-3deg) translate(-4px,3px)}.rs-back--2{transform:rotate(1deg)}.rs-back--3{transform:rotate(4deg) translate(3px,-2px)}.rs-back--4{transform:rotate(7deg) translate(6px,-4px)}
+.rs-deck.is-dealing .rs-back--0{transform:rotate(-12deg) translate(-26px,10px)}.rs-deck.is-dealing .rs-back--3{transform:rotate(10deg) translate(20px,4px)}
+.rs-deck.is-dealing .rs-back--4{animation:rs-flip .42s ease-in forwards}
+@keyframes rs-flip{to{transform:translateY(-30px) rotateY(90deg) scale(1.25);box-shadow:0 18px 28px -8px rgb(0 0 0 / 35%)}}
+.rs-deal-t{margin:28px 0 0;text-align:center;font-size:16px;font-weight:850;color:var(--ui2-ink)}
+.tc-reader.rs.is-dealt .tc-col{animation:rs-grow .55s cubic-bezier(.25,1.1,.4,1)}
+@keyframes rs-grow{from{opacity:.2;transform:perspective(900px) rotateY(-70deg) scale(.5)}}
+/* Pasar con flechas: solo en escritorio; en móvil quedan para lectores de pantalla. */
+.rs-arrows{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.rs-arrows:focus-within{position:static;width:auto;height:auto;clip-path:none;display:flex;justify-content:center;gap:16px;padding-top:10px}
+@media(min-width:900px) and (hover:hover){
+  .rs-arrows{position:fixed;left:50%;top:50%;z-index:4;display:flex;justify-content:space-between;width:780px;height:auto;margin:-23px 0 0 -390px;overflow:visible;clip-path:none;pointer-events:none}
+  .rs-arrows .tc-arrow{pointer-events:auto}
+}
+/* Modal de la tarjeta madre: modal normal de la app; dos botones primary en una línea, precio en la esquina. */
+.rs-parentpanel{text-align:left}
+.rs-parent-ctx{display:flex;align-items:center;gap:6px;margin:0 0 6px;font-size:13px;font-weight:800;color:var(--ui2-muted)}
+.rs-parent-ctx .ui2-icon{width:16px;height:16px;flex:none}.rs-parent-ctx span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rs-parentpanel h2{margin:0 0 6px;font-size:20px;line-height:1.15;letter-spacing:-.03em;text-wrap:balance}
+.rs-parent-p{margin:0;font-size:14.5px;line-height:1.45;color:var(--ui2-muted);font-weight:600}
+.rs-parent-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
+.rs-parent-row .ui2-btn{position:relative;overflow:visible;flex-wrap:nowrap;white-space:nowrap;min-height:50px;padding:8px 6px;gap:5px;font-size:12.5px;letter-spacing:-.01em}
+.rs-parent-row .ui2-btn .ui2-icon{width:18px;height:18px;flex:none}
+.rs-parent-row .ui2-btn .ui2-price-tag{position:absolute;top:-13px;right:-8px;margin:0;transform:rotate(8deg) scale(.85)}
+/* Pestaña Repaso con un repaso a medias: «Continuar repaso» y los temas en gris. */
+.rs-resume{margin:0 0 12px;padding:12px 14px 14px;border:2px solid #4d8a55;border-radius:22px;background:linear-gradient(150deg,#f6fbec,#d9edb6);box-shadow:0 5px 0 #91bb72;animation:rs-pop .5s cubic-bezier(.3,1.3,.5,1)}
+.rs-resume--discover{border-color:#5f8ea3;background:linear-gradient(150deg,#f4fafd,#d3eaf4);box-shadow:0 5px 0 #93bfd2}
+@keyframes rs-pop{from{transform:scale(.94);opacity:0}}
+.rs-resume.is-wiggle{animation:rs-wiggle .45s ease-in-out}
+@keyframes rs-wiggle{20%{transform:rotate(-1.6deg)}45%{transform:rotate(1.3deg)}70%{transform:rotate(-.7deg)}}
+.rs-resume-top{display:flex;align-items:center;gap:14px;min-height:100px}
+.rs-resume-art{position:relative;flex:none;width:92px;height:100px}
+.rs-resume-art .ui2-pack{position:absolute;left:6px;top:4px;margin:0;transform:scale(1.25) rotate(-9deg);transform-origin:top left}
+.rs-resume-art .ui2-flame-badge{top:-4px;right:-2px}
+.rs-resume-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px}
+.rs-resume-txt h2{max-width:14ch;margin:0;font-size:17px;font-weight:900;letter-spacing:-.03em;line-height:1.15;text-wrap:balance}
+.rs-resume-art .practice-mode-icon{opacity:.32}
+.rs-resume-go{margin-top:12px}.rs-resume-go .ui2-icon{width:20px;height:20px}
+.rs-resume-go .ui2-launch-char{white-space:pre}
+.ui2-rp-box.is-locked{filter:grayscale(1);opacity:.5}
+.ui2-rp-box.is-locked .practice-mode{cursor:not-allowed}
+.ui2-rp-box.is-locked .practice-mode .ui2-pack{opacity:1;filter:none}
+.ui2-rp-box.is-locked .practice-mode .practice-mode-card{border-style:solid}
+.ui2-rp-streak.rs-streak-lit{animation:rs-lit 1.6s ease-out}
+.ui2-rp-streak.rs-streak-lit img{animation:rs-flame 1s cubic-bezier(.3,1.5,.5,1)}
+@keyframes rs-lit{0%,40%{background:#fff6e0;box-shadow:0 0 0 4px #ffd08a,0 4px 0 #e8b86a}}
+@keyframes rs-flame{0%{transform:scale(.4) rotate(-12deg)}60%{transform:scale(1.3)}}
+/* Final: una sola pantalla con autoscroll. */
+.rs-end{position:fixed;inset:0;z-index:1;overflow:auto;overscroll-behavior:contain;background:linear-gradient(180deg,#eef8dc 0%,#d6edb3 60%,#c5e39a 100%);color:var(--ui2-ink)}
+.rs-end-col{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:14px;max-width:520px;min-height:100%;margin:0 auto;padding:calc(22px + env(safe-area-inset-top)) 18px calc(22px + env(safe-area-inset-bottom));text-align:center}
+.rs-confetti{position:absolute;inset:0 0 auto;height:260px;pointer-events:none}
+.rs-confetti svg{--c:var(--interest-color,#aad57b);position:absolute;width:17px;height:17px;fill:var(--c);stroke:color-mix(in srgb,var(--c) 55%,#2c3a2c);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;overflow:visible;animation:rs-wind 6s ease-in-out infinite}
+.rs-confetti svg:nth-child(3n){animation-duration:7.5s;animation-delay:-2s}.rs-confetti svg:nth-child(3n+1){animation-duration:5.2s;animation-delay:-4s}
+.rs-confetti svg:nth-child(1){left:0;top:0;rotate:0deg}.rs-confetti svg:nth-child(2){left:37%;top:11%;rotate:71deg}.rs-confetti svg:nth-child(3){left:74%;top:22%;rotate:142deg}.rs-confetti svg:nth-child(4){left:11%;top:33%;rotate:213deg}.rs-confetti svg:nth-child(5){left:48%;top:2%;rotate:284deg}.rs-confetti svg:nth-child(6){left:85%;top:13%;rotate:355deg}.rs-confetti svg:nth-child(7){left:22%;top:24%;rotate:66deg}
+.rs-confetti svg:nth-child(8){left:59%;top:35%;rotate:137deg}.rs-confetti svg:nth-child(9){left:96%;top:4%;rotate:208deg}.rs-confetti svg:nth-child(10){left:33%;top:15%;rotate:279deg}.rs-confetti svg:nth-child(11){left:70%;top:26%;rotate:350deg}.rs-confetti svg:nth-child(12){left:7%;top:37%;rotate:61deg}.rs-confetti svg:nth-child(13){left:44%;top:6%;rotate:132deg}.rs-confetti svg:nth-child(14){left:81%;top:17%;rotate:203deg}
+@keyframes rs-wind{0%{translate:0 0;opacity:0}15%{opacity:1}50%{translate:34px 8px}85%{opacity:1}100%{translate:70px 2px;opacity:0}}
+.rs-end-hero{position:relative;height:132px}
+.rs-end-mascot{display:block;width:128px;height:128px;margin:0 auto}
+.rs-end-mascot .mascot-art{width:100%;height:100%}
+.rs-end-pack{position:absolute;left:calc(50% + 46px);top:58px;transform:scale(.72) rotate(12deg)}
+.rs-end-pack .ui2-pack{margin:0}
+.rs-end h1{margin:4px 0 0;font-size:28px;font-weight:900;letter-spacing:-.04em;line-height:1.1}
+.rs-end h1:focus{outline:none}
+.rs-end-prize{display:flex;justify-content:center}
+.rs-end-prize .ui2-prize-tag{margin:0;transform:scale(1.25);border-width:1.5px;border-color:#a7bd8d;box-shadow:none}
+.rs-minis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0;padding:0;list-style:none}
+.rs-mini{--c:var(--interest-color,#aad57b);--d:color-mix(in srgb,var(--c) 55%,#2c3a2c);position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;aspect-ratio:3/4;padding:6px 5px;border:0;border-radius:10px;background:linear-gradient(170deg,#fffdf6,color-mix(in srgb,var(--c) 35%,#fffdf6));box-shadow:0 0 0 1px rgb(23 61 44 / 14%),0 3px 8px -2px rgb(23 61 44 / 22%);font:inherit;color:var(--ui2-ink);text-align:left;overflow:hidden;cursor:pointer}
+.rs-mini>.ui2-icon{width:14px;height:14px;flex:none;color:var(--d)}
+.rs-mini span{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;font-size:9.5px;font-weight:800;line-height:1.2}
+.rs-mini em{position:absolute;top:3px;right:3px;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#fffdf6;color:var(--d)}
+.rs-mini em .ui2-icon{width:12px;height:12px}
+.rs-growth .growth-feedback-inner{max-height:none;overflow:visible;padding:16px 12px 14px;text-align:left}
+.rs-growth .growth-feedback-inner h2{margin:0 0 12px;font-size:24px;white-space:normal;text-wrap:balance;text-align:center}
+.rs-growth .growth-feedback-list{max-height:none;overflow:visible}
+.rs-growth .growth-feedback-row{grid-template-columns:64px minmax(0,1fr);min-height:78px;gap:10px}
+.rs-growth .growth-feedback-art{width:62px;height:62px}
+.rs-gr-list{display:grid;gap:6px;margin:10px 0 0;padding:0;list-style:none}
+.rs-gr{display:grid;grid-template-columns:28px minmax(0,1fr) 64px auto;align-items:center;gap:8px;min-height:44px;padding:6px 10px;border:1.5px solid #d2dfbd;border-radius:14px;background:#f7f9e8;text-align:left}
+.rs-gr-ic{width:28px;height:28px;object-fit:contain}
+.rs-gr-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:850}
+.rs-gr-bar{height:8px;border-radius:4px;background:#e2e8cc;overflow:hidden}
+.rs-gr-bar i{display:block;width:var(--w,0%);height:100%;background:#58be59;animation:rs-bar 1s .9s ease-out backwards}
+@keyframes rs-bar{from{width:0}}
+.rs-gr-bar--0{--w:0%}.rs-gr-bar--10{--w:10%}.rs-gr-bar--20{--w:20%}.rs-gr-bar--30{--w:30%}.rs-gr-bar--40{--w:40%}.rs-gr-bar--50{--w:50%}.rs-gr-bar--60{--w:60%}.rs-gr-bar--70{--w:70%}.rs-gr-bar--80{--w:80%}.rs-gr-bar--90{--w:90%}.rs-gr-bar--100{--w:100%}
+.rs-gr-n{font-size:12px;font-weight:900;color:#3f8850;white-space:nowrap}
+.rs-gr.is-flat{opacity:.7}.rs-gr.is-flat .rs-gr-n{color:var(--ui2-muted)}
+.rs-end.is-settled .rs-gr-bar i,.rs-end.is-settled .rs-resume{animation:none}
+.rs-end-go{margin-top:auto}
+@media(min-width:900px){.rs-end-col{max-width:560px;padding-top:30px}}
+@media(prefers-reduced-motion:reduce){
+  .rs-diss-bg{animation-duration:.12s}.tc-reader.rs.is-dissolving .tc-wm,.tc-reader.rs.is-dealt .tc-col,.rs-back,.rs-deck.is-dealing .rs-back--4,.rs-resume,.rs-resume.is-wiggle,.ui2-rp-streak.rs-streak-lit,.ui2-rp-streak.rs-streak-lit img,.rs-confetti svg,.rs-gr-bar i{animation:none;transition:none}
+}

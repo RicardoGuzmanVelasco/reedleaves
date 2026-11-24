@@ -23,12 +23,14 @@ const buttonFor=(root,direction)=>root.querySelector(`.tc-nav [data-ui2="${BUTTO
  * @param {HTMLElement} root
  * @param {{can:(direction:string)=>boolean,go:(direction:string)=>void,win?:Window}} o
  * `can` tells whether there is a card that way (otherwise the drag resists and nothing fills); `go` moves.
+ * Optional, for the Repaso session: `progress(direction,p)` follows the drag (null, 0 when it ends) and `tap(event)` gets a tap
+ * on the stage (a press that never left the slop) that is not on a control.
  */
-export function mountCardSwipe(root,{can,go,win=window}){
+export function mountCardSwipe(root,{can,go,progress=()=>{},tap=()=>{},win=window}){
   let drag=null;
   const reset=()=>{
     if(!drag)return;
-    const {card,armed}=drag;drag=null;
+    const {card,armed}=drag;drag=null;progress(null,0);
     if(armed){armed.classList.remove("is-armed");armed.style.removeProperty("--p");}
     if(card){card.classList.remove("is-dragging");card.style.removeProperty("transform");}
   };
@@ -58,11 +60,14 @@ export function mountCardSwipe(root,{can,go,win=window}){
     if(drag.armed&&drag.armed!==button){drag.armed.classList.remove("is-armed");drag.armed.style.removeProperty("--p");}
     drag.armed=button;
     if(button){button.classList.add("is-armed");button.style.setProperty("--p",`${Math.round(intent.progress*100)}%`);}
+    progress(able?intent.direction:null,able?intent.progress:0);
   });
   const end=event=>{
     if(!drag||event.pointerId!==drag.id)return;
-    const intent=drag.intent;reset();
-    if(event.type==="pointerup"&&intent?.progress>=1)go(intent.direction);
+    const intent=drag.intent,tapped=!drag.axis;reset();
+    if(event.type!=="pointerup")return;
+    if(intent?.progress>=1)go(intent.direction);
+    else if(tapped&&!event.target.closest?.("button,a,input,textarea,select"))tap(event);
   };
   root.addEventListener("pointerup",end);
   root.addEventListener("pointercancel",end);

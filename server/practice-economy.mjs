@@ -15,13 +15,19 @@ import {practiceDeckIds} from "./practice-card-access.mjs";
 import {discoverPracticeCandidateContext,selectDiscoverPracticeForReader} from "./discover-practice.mjs";
 
 import {dailyCardCandidates,ensureDailyCardInside,dailyDeckCardIds,recordDailyCardViewInside,DAILY_DECK_SIZE} from "./daily-deck.mjs";
-import {PRACTICE_BASE_COST,PRACTICE_DISCOUNT_COST,PRACTICE_LEAF_COST,practicePrice} from "../app/practice-modes.mjs";
+import {PRACTICE_BASE_COST,PRACTICE_DISCOUNT_COST,PRACTICE_LEAF_COST,PRACTICE_COMPLETION_XP,practicePrice} from "../app/practice-modes.mjs";
 export const PRACTICE_TOPICS=Object.freeze(["mixed","reading","read","saved","dailyDeck","interests","novelties","teamPicks"]);
 export const PRACTICE_ENABLED_MODES=PRACTICE_TOPICS;
 const LEGACY_TOPICS={discover:"interests"};
 export {PRACTICE_BASE_COST,PRACTICE_DISCOUNT_COST,PRACTICE_LEAF_COST};
 export const PRACTICE_SESSION_SIZE=5;
-const COMPLETED_PRACTICE_XP=25;
+// Answers a card of a session accepts. "view" (Repaso hito 1) only says the card was shown: it advances the session
+// and leaves the reader's earlier see_less/see_more answers untouched.
+export const PRACTICE_ANSWERS=Object.freeze(["view","see_less","see_more"]);
+
+// Reward, apart from the selection: a completed session always earns the same XP, however many cards it had.
+export const COMPLETED_PRACTICE_XP=PRACTICE_COMPLETION_XP;
+export const practiceCompletionReward=()=>COMPLETED_PRACTICE_XP;
 
 const timestampText=value=>value instanceof Date?value.toISOString():String(value||"");
 export function practiceDiscountMode(userId,seedTimestamp) {
@@ -93,25 +99,46 @@ async function availableCards(db,userId,topic,languages=null) {
 }
 
 // Cards and counts of a topic. The caller owns the account lock and the transaction.
-async function selectTopic(db,userId,topic,{languages,answers,day,context}) {
+// Selection, apart from the reward: up to five cards spread over books and decks, without weights. A topic below its
+// minimum (always five cards) cannot be started.
+async function selectTopic(db,userId,topic,{languages,day,context}) {
   if(topic==="dailyDeck") {
     const {ids,todayCardId}=await dailyDeckCardIds(db,day);
-    return {cardIds:ids,available:ids.length,required:1,todayCardId};
+    return {cardIds:ids,available:ids.length,required:PRACTICE_SESSION_SIZE,todayCardId};
   }
   if(topic==="interests") {
-    const discovery=await selectDiscoverPracticeForReader(db,userId,{languages,answers,count:PRACTICE_SESSION_SIZE});
+    const discovery=await selectDiscoverPracticeForReader(db,userId,{languages,count:PRACTICE_SESSION_SIZE});
     return {cardIds:discovery.selected.map(card=>card.id),available:discovery.available,required:PRACTICE_SESSION_SIZE};
   }
   const cards=topicCards(context||await practiceContext(db,userId),topic,languages);
-  return {cardIds:cards.length>=PRACTICE_SESSION_SIZE?selectPracticeCards(cards,answers,PRACTICE_SESSION_SIZE).map(card=>card.id):[],available:cards.length,required:PRACTICE_SESSION_SIZE};
+  return {cardIds:cards.length>=PRACTICE_SESSION_SIZE?selectPracticeCards(cards,{},PRACTICE_SESSION_SIZE).map(card=>card.id):[],available:cards.length,required:PRACTICE_SESSION_SIZE};
+}
+
+// Completes a session: the reward and, for the two streak topics, today's part of the streak. "mixed" counts by its
+// completion time (daily-streak.mjs); "dailyDeck" counts once completed as the daily card seen, never at its start.
+// The caller owns the account lock and the transaction. Returns the XP granted ({amount,balance}) or null.
+async function completePracticeSessionInside(db,userId,{id,practiceMode,cardIds,index},now) {
+  const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(userId);
+  const completedAt=now.toISOString(),day=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.mascotGrowth);
+  // The last answer (`index`) was already checked against the locked row; a recovery finishes only a still active session.
+  if(index!==undefined) await db.prepare("UPDATE practice_sessions SET card_index=?,completed_at=?,completed_local_day=? WHERE id=? AND user_id=?").run(index,completedAt,day,id,userId);
+  else {
+    const updated=await db.prepare("UPDATE practice_sessions SET completed_at=?,completed_local_day=? WHERE id=? AND completed_at IS NULL AND cancelled_at IS NULL").run(completedAt,day,id);
+    if(updated.changes!==1) throw new Error("Practice session completion lost its lock");
+  }
+  const reward=await grantReaderXpInside(db,userId,{eventKey:`practice_session:${id}`,rewardType:"practice_session",amount:practiceCompletionReward()});
+  let amount=reward.awarded||0,balance=reward.balance;
+  if(practiceMode==="dailyDeck") {
+    const ideaDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea),today=await db.prepare("SELECT card_id FROM daily_ideas WHERE day=?").get(ideaDay);
+    const daily=today&&Array.isArray(cardIds)&&cardIds.includes(today.card_id)?await recordDailyCardViewInside(db,userId,today.card_id,ideaDay):null;
+    if(daily){amount+=daily.amount;balance=daily.balance;}
+  }
+  return amount?{amount,balance}:null;
 }
 
 async function finishUnavailableSession(db,userId,active,now) {
-  const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(userId);
-  const completedAt=now.toISOString(),day=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.mascotGrowth);
-  const updated=await db.prepare("UPDATE practice_sessions SET completed_at=?,completed_local_day=? WHERE id=? AND completed_at IS NULL AND cancelled_at IS NULL").run(completedAt,day,active.id);
-  if(updated.changes!==1) throw new Error("Practice session completion lost its lock");
-  await grantReaderXpInside(db,userId,{eventKey:`practice_session:${active.id}`,rewardType:"practice_session",amount:COMPLETED_PRACTICE_XP});
+  const session=sessionFromRow(active);
+  await completePracticeSessionInside(db,userId,{id:active.id,practiceMode:active.practice_mode,cardIds:session.cardIds},now);
   return {session:null,recovery:"finished",sessionId:active.id,practiceMode:active.practice_mode};
 }
 
@@ -121,7 +148,7 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   const active=await db.prepare(`SELECT * FROM practice_sessions WHERE user_id=? AND completed_at IS NULL AND cancelled_at IS NULL${isPostgres(db)?" FOR UPDATE":""}`).get(userId);
   if(!active) return {session:null,recovery:null};
 
-  const session=sessionFromRow(active),rows=await db.prepare(`SELECT psc.card_id,psc.position,c.id AS existing_card_id,c.is_reading_guide,c.language AS card_language,d.language AS deck_language,
+  const session=sessionFromRow(active),rows=await db.prepare(`SELECT psc.card_id,psc.position,c.id AS existing_card_id,c.is_reading_guide,c.deleted_at,c.language AS card_language,d.language AS deck_language,
       d.id AS existing_deck_id
     FROM practice_session_cards psc LEFT JOIN cards c ON c.id=psc.card_id
     LEFT JOIN decks d ON d.id=c.deck_id
@@ -152,8 +179,8 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   let changed=rows.some(row=>Number(row.position)>=size);
   for(let position=session.index;position<size;position++) {
     const id=cardIds[position],row=cardByPosition.get(position);
-    // Purchased cards survive Cardcase and deck-state changes.
-    const valid=row?.card_id===id&&row.existing_card_id===id&&row.existing_deck_id&&!row.is_reading_guide&&!seen.has(id);
+    // Purchased cards survive Cardcase and deck-state changes; a deleted note (soft delete) is replaced.
+    const valid=row?.card_id===id&&row.existing_card_id===id&&row.existing_deck_id&&!row.is_reading_guide&&!row.deleted_at&&!seen.has(id);
     if(valid) { pending[position-session.index]=id;seen.add(id); }
     else changed=true;
   }
@@ -162,9 +189,8 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   let replacementIds;
   if(session.practiceMode==="dailyDeck") replacementIds=[];
   else if(session.practiceMode==="interests") {
-    const answers=Object.fromEntries((await db.prepare("SELECT card_id,answer FROM practice_answers WHERE user_id=?").all(userId)).map(row=>[row.card_id,row.answer]));
     const missing=pending.filter(id=>id===null).length;
-    replacementIds=(await selectDiscoverPracticeForReader(db,userId,{languages:session.languageSnapshot,answers,count:missing,excludeCardIds:[...seen]})).selected.map(card=>card.id);
+    replacementIds=(await selectDiscoverPracticeForReader(db,userId,{languages:session.languageSnapshot,count:missing,excludeCardIds:[...seen]})).selected.map(card=>card.id);
   } else {
     const candidates=await availableCards(db,userId,session.practiceMode,session.languageSnapshot);
     replacementIds=candidates.map(card=>card.id).filter(id=>!seen.has(id));
@@ -215,10 +241,9 @@ export async function startPracticeSession(db,session,requestedMode,now=new Date
     if(recovery.session) return {session:recovery.session,resumed:true,...(recovery.recovery?{practiceRecovery:{status:recovery.recovery,practiceMode:recovery.session.practiceMode}}:{}),discountMode:await currentDiscount(db,userId),balance:wallet.balance};
 
     const preferences=await readerLanguagePreferencesInside(db,userId),languages=preferences.languages;
-    const answers=Object.fromEntries((await db.prepare("SELECT card_id,answer FROM practice_answers WHERE user_id=?").all(userId)).map(row=>[row.card_id,row.answer]));
     const day=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea);
     if(practiceMode==="dailyDeck") await ensureDailyCardInside(db,userId,day);
-    const topic=await selectTopic(db,userId,practiceMode,{languages,answers,day}),available=topic.available;
+    const topic=await selectTopic(db,userId,practiceMode,{languages,day}),available=topic.available;
     if(available<topic.required) return {reason:"notEnoughCards",practiceMode,available,required:topic.required,balance:wallet.balance};
     const {discountMode,leafMode}=await currentOffers(db,userId),cost=practicePrice(practiceMode,discountMode,leafMode);
     const leafPrice=practiceMode===leafMode,spendWallet=leafPrice?await accrueLeafWallet(db,userId,cycleDay):wallet;
@@ -233,8 +258,7 @@ export async function startPracticeSession(db,session,requestedMode,now=new Date
       await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)")
         .run(id,cardId,position);
     }
-    const xpReward=topic.todayCardId?await recordDailyCardViewInside(db,userId,topic.todayCardId,day):null;
-    return {session:{id,practiceMode,cardIds,index:0,cost,startedAt,completedAt:null,languageSnapshot:languages},discountMode,balance:spendWallet.balance-cost,...(xpReward?{xpReward}:{})};
+    return {session:{id,practiceMode,cardIds,index:0,cost,startedAt,completedAt:null,languageSnapshot:languages},discountMode,balance:spendWallet.balance-cost};
   });
 }
 
@@ -252,24 +276,24 @@ export async function answerPracticeSession(db,session,input,now=new Date()) {
     const current=sessionFromRow(row);
     if(row.completed_at&&endedEarly(row)) return {session:null,practiceRecovery:{status:"finished",practiceMode:row.practice_mode},sessionId:row.id};
     if(row.cancelled_at) return {session:null,practiceRecovery:{status:"cancelled",practiceMode:row.practice_mode},sessionId:row.id};
-    if(typeof input.cardId!=="string"||!input.cardId||!Number.isSafeInteger(input.index)||input.index<0||!['see_less','see_more'].includes(input.answer)) throw new ApiError(400,"invalidRequest");
+    if(typeof input.cardId!=="string"||!input.cardId||!Number.isSafeInteger(input.index)||input.index<0||!PRACTICE_ANSWERS.includes(input.answer)) throw new ApiError(400,"invalidRequest");
     if(input.index<current.index) return {session:current,idempotent:true};
     if(row.completed_at) throw new ApiError(409,"invalidRequest");
     if(input.index!==current.index||current.cardIds[current.index]!==input.cardId) return {
       session:current,practiceRecovery:{status:"repaired",practiceMode:current.practiceMode},sessionId:current.id
     };
-    const answeredAt=now.toISOString(),nextIndex=current.index+1,completedAt=nextIndex===current.cardIds.length?answeredAt:null;
-    const account=completedAt ? await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id) : null;
-    const completedLocalDay=account ? dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.mascotGrowth) : null;
-    await db.prepare(`INSERT INTO practice_answers(user_id,card_id,answer,answered_at) VALUES (?,?,?,?)
+    const answeredAt=now.toISOString(),nextIndex=current.index+1,completes=nextIndex===current.cardIds.length;
+    // A neutral view keeps the reader's earlier answer of the card.
+    if(input.answer!=="view") await db.prepare(`INSERT INTO practice_answers(user_id,card_id,answer,answered_at) VALUES (?,?,?,?)
       ON CONFLICT(user_id,card_id) DO UPDATE SET answer=excluded.answer,answered_at=excluded.answered_at`)
       .run(session.user_id,input.cardId,input.answer,answeredAt);
-    await db.prepare("UPDATE practice_sessions SET card_index=?,completed_at=?,completed_local_day=? WHERE id=? AND user_id=?")
-      .run(nextIndex,completedAt,completedLocalDay,input.sessionId,session.user_id);
-    const reward=completedAt ? await grantReaderXpInside(db,session.user_id,{
-      eventKey:`practice_session:${input.sessionId}`,rewardType:"practice_session",amount:COMPLETED_PRACTICE_XP
-    }) : null;
-    return {session:{...current,index:nextIndex,completedAt},...(reward?.awarded?{xpReward:{amount:reward.awarded,balance:reward.balance}}:{})};
+    // Reaching the last card completes the session.
+    if(completes) {
+      const xpReward=await completePracticeSessionInside(db,session.user_id,{id:current.id,practiceMode:current.practiceMode,cardIds:current.cardIds,index:nextIndex},now);
+      return {session:{...current,index:nextIndex,completedAt:answeredAt},...(xpReward?{xpReward}:{})};
+    }
+    await db.prepare("UPDATE practice_sessions SET card_index=? WHERE id=? AND user_id=?").run(nextIndex,input.sessionId,session.user_id);
+    return {session:{...current,index:nextIndex,completedAt:null}};
   });
 }
 

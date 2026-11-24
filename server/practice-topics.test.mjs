@@ -4,7 +4,7 @@ import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION,POSTGRES_SCHEMA_VERSION} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {historicalDatabase} from "../test-support/historical-database.mjs";
-import {startPracticeSession,answerPracticeSession,readPracticeTopics,PRACTICE_TOPICS} from "./practice-economy.mjs";
+import {startPracticeSession,answerPracticeSession,readPracticeTopics,PRACTICE_TOPICS,PRACTICE_SESSION_SIZE} from "./practice-economy.mjs";
 import {readDailyStreak} from "./daily-streak.mjs";
 
 const at=iso=>new Date(iso);
@@ -33,7 +33,7 @@ const setDays=async(db,rows)=>{
 };
 const finish=async(db,session,started)=>{
   let result;
-  for(const [index,cardId] of started.session.cardIds.entries()) result=await answerPracticeSession(db,session,{sessionId:started.session.id,cardId,index,answer:"see_more"},NOW);
+  for(const [index,cardId] of started.session.cardIds.entries()) result=await answerPracticeSession(db,session,{sessionId:started.session.id,cardId,index,answer:"view"},NOW);
   return result;
 };
 
@@ -64,44 +64,49 @@ for(const [dialect,version] of [["sqlite",67],["postgres",59]]) {
 }
 
 for(const dialect of ["sqlite","postgres"]) {
-  test(`${dialect}: dailyDeck takes today and the previous cards in reverse order and marks the daily card as seen`,async t=>{
+  test(`${dialect}: dailyDeck takes today and the previous cards in reverse order and counts for the streak once completed`,async t=>{
     const {db,session}=await fixture(t,dialect),cards=await rootCards(db,7);
     await setDays(db,[["2026-10-06",cards[0]],["2026-10-07",cards[1]],["2026-10-08",cards[2]],["2026-10-09",cards[3]],["2026-10-10",cards[4]],["2026-10-11",cards[5]]]);
     assert.equal((await readDailyStreak(db,session,NOW)).dailyCardSeenToday,false);
     const started=await startPracticeSession(db,session,"dailyDeck",NOW,null);
     assert.deepEqual(started.session.cardIds,[cards[4],cards[3],cards[2],cards[1],cards[0]]);
     assert.equal(started.session.practiceMode,"dailyDeck");
-    assert.equal((await readDailyStreak(db,session,NOW)).dailyCardSeenToday,true);
+    assert.equal((await readDailyStreak(db,session,NOW)).dailyCardSeenToday,false,"starting does not count");
     assert.ok([3,5,10].includes(started.session.cost));
     assert.equal(started.balance,(started.session.cost===10?100:20)-started.session.cost);
     assert.equal((await db.prepare("SELECT count(*) AS n FROM practice_session_cards WHERE session_id=?").get(started.session.id)).n,5);
+    const done=await finish(db,session,started);
+    assert.ok(done.session.completedAt);
+    assert.equal((await readDailyStreak(db,session,NOW)).dailyCardSeenToday,true,"completing counts");
+    const xp=(await db.prepare("SELECT xp FROM reader_xp_balances WHERE user_id=?").get(session.user_id)).xp;
+    assert.deepEqual(done.xpReward,{amount:25+20,balance:xp},"the session's 25 XP plus the daily card's first view");
   });
 
-  test(`${dialect}: dailyDeck skips gaps, caps at five and shortens with a young history`,async t=>{
+  test(`${dialect}: dailyDeck needs five cards: gaps are skipped, a recycled card counts once and a deleted note never enters`,async t=>{
     const {db,session}=await fixture(t,dialect),cards=await rootCards(db,7);
     await setDays(db,[["2026-09-01",cards[0]],["2026-10-02",cards[1]],["2026-10-05",cards[2]],["2026-10-10",cards[3]]]);
-    const gaps=await startPracticeSession(db,session,"dailyDeck",NOW,null);
-    assert.deepEqual(gaps.session.cardIds,[cards[3],cards[2],cards[1],cards[0]]);
-    await finish(db,session,gaps);
-    // A recycled card appears once.
-    await setDays(db,[["2026-10-08",cards[0]],["2026-10-09",cards[1]],["2026-10-10",cards[0]]]);
-    const repeated=await startPracticeSession(db,session,"dailyDeck",NOW,null);
-    assert.deepEqual(repeated.session.cardIds,[cards[0],cards[1]]);
-    const done=await finish(db,session,repeated);
-    assert.ok(done.session.completedAt,"a two-card deck completes after two answers");
-    assert.deepEqual(done.xpReward,{amount:25,balance:(await db.prepare("SELECT xp FROM reader_xp_balances WHERE user_id=?").get(session.user_id)).xp});
+    const young=await startPracticeSession(db,session,"dailyDeck",NOW,null);
+    assert.deepEqual({reason:young.reason,available:young.available,required:young.required},{reason:"notEnoughCards",available:4,required:PRACTICE_SESSION_SIZE});
+    await setDays(db,[["2026-10-06",cards[0]],["2026-10-07",cards[1]],["2026-10-08",cards[0]],["2026-10-09",cards[2]],["2026-10-10",cards[3]]]);
+    assert.equal((await startPracticeSession(db,session,"dailyDeck",NOW,null)).reason,"notEnoughCards","the recycled card appears once");
+    await db.prepare("INSERT INTO daily_ideas(day,card_id) VALUES (?,?)").run("2026-10-04",cards[5]);
+    await db.prepare("UPDATE cards SET deleted_at=? WHERE id=?").run("2026-10-09T10:00:00.000Z",cards[2]);
+    assert.equal((await startPracticeSession(db,session,"dailyDeck",NOW,null)).reason,"notEnoughCards","the deleted note does not count");
+    await db.prepare("UPDATE cards SET deleted_at=NULL WHERE id=?").run(cards[2]);
+    const started=await startPracticeSession(db,session,"dailyDeck",NOW,null);
+    assert.deepEqual(started.session.cardIds,[cards[3],cards[2],cards[0],cards[1],cards[5]]);
   });
 
   test(`${dialect}: dailyDeck assigns today's card when missing and does not count as the mixed session`,async t=>{
-    const {db,session}=await fixture(t,dialect),cards=await rootCards(db,3);
-    await setDays(db,[["2026-10-08",cards[0]],["2026-10-09",cards[1]]]);
+    const {db,session}=await fixture(t,dialect),cards=await rootCards(db,5);
+    await setDays(db,[["2026-10-06",cards[0]],["2026-10-07",cards[1]],["2026-10-08",cards[2]],["2026-10-09",cards[3]]]);
     const topics=await readPracticeTopics(db,session);
-    assert.equal(topics.topics.find(topic=>topic.id==="dailyDeck").cards,3,"counts the card that will be assigned today");
+    assert.equal(topics.topics.find(topic=>topic.id==="dailyDeck").cards,5,"counts the card that will be assigned today");
     const started=await startPracticeSession(db,session,"dailyDeck",NOW,null);
     const today=await db.prepare("SELECT card_id FROM daily_ideas WHERE day='2026-10-10'").get();
     assert.ok(today);
     assert.equal(started.session.cardIds[0],today.card_id);
-    assert.equal(started.session.cardIds.length,3);
+    assert.equal(started.session.cardIds.length,5);
     await finish(db,session,started);
     const streak=await readDailyStreak(db,session,NOW);
     assert.deepEqual([streak.days,streak.dailyCardSeenToday,streak.mixedDoneToday],[0,true,false]);

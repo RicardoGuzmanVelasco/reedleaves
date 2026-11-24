@@ -13,9 +13,11 @@ import {errorInfo,practiceStartDetail,blockingFailure,sessionLost} from "./error
 import {showErrorScreen,hideErrorScreen,raiseErrorScreen,showWaitScreen,isWaitScreen} from "./error-screen.mjs";
 import {newBookForm,newDeckForm,bookFormErrors,deckFormErrors,visibleErrors,toggleInterest,bookDuplicates,canSubmitBook,autofillInput,applyAutofill,bookCreateInput,deckCreateInput,bookFormMarkup,deckFormMarkup,duplicatesMarkup,syncFieldError,interestWarningMarkup,INSUFFICIENT_BALANCE,balanceMessage,balanceModalMarkup} from "./forms.mjs";
 import {DECK_ADD_COST} from "../wallet.mjs";
-import {PRACTICE_BASE_COST} from "../practice-modes.mjs";
+import {PRACTICE_BASE_COST,PRACTICE_COMPLETION_XP} from "../practice-modes.mjs";
 import {guideData,guideMarkup,guideCanSave} from "./guia.mjs";
-import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending,tickStreakCountdown} from "./repaso.mjs";
+import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending,tickStreakCountdown,packMarkup} from "./repaso.mjs";
+import {practiceItems,sessionCardMarkup,dealMarkup,parentModalMarkup,practiceGrowth,finaleMarkup,SESSION_CARDS} from "./repaso-sesion.mjs";
+import {playGrowthFeedback} from "../growth-feedback.mjs";
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
 import {shelfData,shelfMarkup,libraryTabsMarkup,emptyMarkup} from "./biblioteca.mjs";
@@ -45,7 +47,7 @@ import {noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMa
 import {deckReaderData,cardReaderData,cardReaderMarkup,cardIndexMarkup,cardSignInMarkup,cardTarget,readingOrder} from "./tarjetas.mjs";
 import {cardActionsMarkup} from "./tarjeta.mjs";
 import {mountCardSwipe,burstLeaves,fitCardText} from "./tarjetas-gestos.mjs";
-import {loadCardContext} from "../catalog.mjs";
+import {loadCardContext,loadCardContexts,partialCatalog} from "../catalog.mjs";
 
 export const ui2Enabled=search=>new URLSearchParams(search).get("ui")==="2";
 const TOAST_MS=6500;
@@ -54,7 +56,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // `legacy`: URL of the old interface, for destinations not built yet.
   let c={...(words[language]||words.es),legacy:win.location.pathname};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let guide=null,guideReturn="#library",guideExit=null,auth=newAuth(),resume=null,resumeAfterHash=false,inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null,editor=null;
+  let guide=null,guideReturn="#library",guideExit=null,auth=newAuth(),resume=null,resumeAfterHash=false,inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null,editor=null,practice=null,streakCelebrate=false;
   // The card view: the explanation of «Baraja en curso» open, the way the card came in, the context of a card missing from the
   // catalog (#card of a deleted note), the votes read per reader and card, and the cards already counted as viewed.
   const reading={pop:false,enter:null,context:null,records:new Map(),viewed:new Set()};
@@ -85,6 +87,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(previewMatch)return {name:"cards",id:decode(previewMatch[1]),card:previewMatch[2]&&previewMatch[2]!=="carousel"?decode(previewMatch[2]):null};
     const cardMatch=hash.match(/^#card\/([^/]+)(?:\/[^/]*)?$/);
     if(cardMatch)return {name:"card",id:decode(cardMatch[1])};
+    if(hash==="#practice/session")return {name:"practice-session"};
     const profileMatch=hash.match(/^#profile(?:\/([^/]+))?$/);
     if(profileMatch)return {name:"profile",id:profileMatch[1]?decode(profileMatch[1]):viewerId()};
     return {name:hash==="#account"?"account":hash==="#bookstore"?"bookstore":hash==="#library"?"library":hash==="#library/cardcase"?"cardcase":hash==="#practice"?"practice":"home"};
@@ -234,6 +237,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
     if(!form&&where.note&&view?.deck.status==="in_progress")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
     if(form){paint(formScreen());return;}
+    if(where.name==="practice-session"){practiceScreen();return;}
     if(where.name==="cards"||where.name==="card"){readerScreen(where);return;}
     if(where.name==="edit"){editScreen(where.id);return;}
     if(where.name==="guide"){paint(withError(guideScreen(where.id)));return;}
@@ -275,8 +279,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     }
     if(where.name==="practice"){
       const data=repasoData({state:reader,streak,topics}),month=calendarMonth||(reader.today||"").slice(0,7);
-      let html=repasoMarkup({data,c,nav:navFor("practice"),month,language});
+      const celebrate=streakCelebrate&&data.streak.doneToday;if(celebrate)streakCelebrate=false;
+      let html=repasoMarkup({data,c,nav:navFor("practice"),month,language,active:reader.activePracticeSession||null,celebrate});
       if(sheetState?.type==="calendar")html+=calendarSheetMarkup({data,month,c,language});
+      if(toast)html+=toastMarkup({...toast,c});
       paint(withError(html));
       // Once today counts, the row counts down to the next streak day; when it opens, the server's streak is read again.
       if(data.streak.doneToday)streakTimer=setInterval(()=>{
@@ -359,9 +365,16 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   // Only the actions change when the votes arrive: a drag in progress is not cut.
   function refreshCardActions(cardId){
-    const where=route();if(where.name!=="cards"&&where.name!=="card")return;
-    const data=readerData(where),host=main.querySelector(".tc-reader [data-ui2-acts]");
-    if(data.card?.id===cardId&&host)host.innerHTML=cardActionsMarkup({card:data.card,record:reading.records.get(recordKey(cardId)),saved:data.saved,c});
+    const where=route();if(where.name!=="cards"&&where.name!=="card"&&where.name!=="practice-session")return;
+    const data=readerCardNow(),host=main.querySelector(".tc-reader [data-ui2-acts]");
+    if(data.card?.id===cardId&&host)host.innerHTML=cardActionsMarkup({card:data.card,record:reading.records.get(recordKey(cardId)),saved:savedIdsNow().has(cardId),c});
+  }
+  // The card on screen, in the card view or in a Repaso session: {card, book}.
+  const savedIdsNow=()=>new Set((reader?.cardSaves||[]).map(row=>row.cardId));
+  function readerCardNow(){
+    const where=route();
+    if(where.name!=="practice-session")return readerData(where);
+    const item=practiceShown();return item?{card:item.card,book:item.book}:{card:null,book:null};
   }
   const readerTheme=()=>main.querySelector(".tc-reader")?.dataset.interestColor||"";
   function voteCard(cardId,value,button){
@@ -379,7 +392,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     });
   }
   async function shareCard(){
-    const data=readerData(route()),card=data.card;if(!card||card.deleted)return;
+    const data=readerCardNow(),card=data.card;if(!card||card.deleted)return;
     const url=cardShareUrl(win.location.href,card.id,card.bodyLanguage),text=c.cardShareText(card.type==="reading-guide"?"card":card.type,data.book.title);
     try{
       if(typeof win.navigator.share==="function"){
@@ -407,9 +420,17 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(win.history.length>1)win.history.back();
     else win.location.replace(where.name==="cards"?`#deck/${encodeURIComponent(where.id)}`:"#home");
   }
-  mountCardSwipe(main,{can:readerCan,go:readerGo,win});
+  const inPractice=()=>route().name==="practice-session";
+  mountCardSwipe(main,{can:direction=>inPractice()?practiceCan(direction):readerCan(direction),go:direction=>inPractice()?practiceGo(direction,1):readerGo(direction),
+    progress:(direction,amount)=>{if(inPractice())practicePeek(direction,amount);},tap:event=>{if(inPractice())practiceTap(event);},win});
   win.addEventListener("keydown",event=>{
     const where=route();
+    if(where.name==="practice-session"&&practice&&!event.defaultPrevented&&!event.altKey&&!event.ctrlKey&&!event.metaKey&&!doc.querySelector("dialog[open]")){
+      if(event.key==="Escape"){event.preventDefault();if(practice.phase==="excl")closeExclusive();else if(practice.phase!=="done")win.location.replace("#practice");return;}
+      const direction={ArrowLeft:"prev",ArrowRight:"next"}[event.key];
+      if(direction&&practice.phase==="cards"&&practiceGo(direction))event.preventDefault();
+      return;
+    }
     if(where.name!=="cards"&&where.name!=="card"||event.defaultPrevented||event.altKey||event.ctrlKey||event.metaKey)return;
     if(doc.querySelector("dialog[open]")||event.target.closest?.("input,textarea,select,[contenteditable=true]"))return;
     if(event.key==="Escape"){event.preventDefault();if(reading.pop){reading.pop=false;render();}else closeReader();return;}
@@ -848,16 +869,188 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   const leaveForm=back=>{form=null;failure=null;if(back&&win.location.hash!==back)win.location.hash=back;else render();};
 
-  // The server starts the session; the old interface restores it and shows it (the new session screen is pending).
-  function startPractice(mode,cost){
+  // ---- Sesión de Repaso (repaso-sesion.mjs; ruta #practice/session) ----
+  // The server starts or resumes the session (one active at a time); each card shown is answered as a neutral «view» in order,
+  // and reaching the last one completes it. `practice`: {phase deal|cards|excl|done, session, context, items, at (card shown),
+  // reached, completed, xpReward, growth (before), streakDone (before), modal, enter, from, played, endScroll, excl}.
+  const DEFAULT_THEME=' data-interest-color="#AAD57B"',DEAL_MIN_MS=700,DEAL_FLIP_MS=420;
+  const practiceShown=()=>{if(!practice)return null;return practice.phase==="excl"?practice.items.filter(Boolean)[practice.excl]||null:practice.items[practice.at]||null;};
+  const practiceRefresh=()=>{if(practice?.session)practice.items=practiceItems({session:practice.session,catalog,context:practice.context,language});};
+  async function practiceContext(p){
+    const missing=p.session.cardIds.filter(id=>!catalog.cardsById.has(id)&&!p.context.cardsById.has(id));
+    if(missing.length){const extra=await loadCardContexts(missing);for(const key of ["cardsById","booksById","decksById"])for(const [id,value] of extra[key])p.context[key].set(id,value);}
+    if(practice===p)practiceRefresh();
+  }
+  // Back to Repaso without a session screen, keeping what a run() failure shows there.
+  const abandonPractice=()=>{practice=null;if(route().name==="practice-session")win.history.replaceState(win.history.state,"","#practice");};
+  function openPractice({mode,cost=null,sessionId=null}){
+    if(busy)return;
+    const doneToday=!!streak?.mixedDoneToday&&!!streak?.dailyCardSeenToday;
+    const opened=practice={phase:"deal",dealing:false,session:null,context:partialCatalog({}),items:[],at:0,reached:0,completed:false,xpReward:null,
+      growth:reader.growth||{},streakDone:doneToday,modal:null,enter:null,from:null,played:false,endScroll:0,excl:0};
+    if(route().name!=="practice-session")win.location.hash="#practice/session";else render();
+    const shownAt=Date.now();
     run(async()=>{
       let result;
-      try{result=await api.request("/api/reader/practice/start",{practiceMode:mode,sessionId:reader.activePracticeSession?.id||null,expectedCost:cost});}
-      catch(caught){throw Object.assign(caught,{title:c.ui2PracticeError});}
-      if(result?.practiceRecovery?.status==="finished"){win.location.assign(`${c.legacy}#practice/done`);return;}
-      if(result?.reason)throw {code:result.reason,title:c.ui2PracticeError,detail:practiceStartDetail(result,cost,c)};
-      win.location.assign(`${c.legacy}#practice/session`);
+      try{result=await api.request("/api/reader/practice/start",{practiceMode:mode,...(sessionId?{sessionId}:{expectedCost:cost})});}
+      catch(caught){if(practice===opened)abandonPractice();throw Object.assign(asFailure(caught),{title:c.ui2PracticeError});}
+      if(result?.state)reader=result.state;
+      if(practice!==opened)return;
+      if(result?.reason){
+        abandonPractice();
+        if(result.practiceRecovery)return;
+        throw {code:result.reason,title:c.ui2PracticeError,detail:practiceStartDetail(result,cost??PRACTICE_BASE_COST,c)};
+      }
+      opened.session=result.session;opened.context=partialCatalog(result.context||{});
+      opened.at=opened.reached=Math.min(SESSION_CARDS-1,Math.max(0,result.session.index));
+      await practiceContext(opened);
+      setTimeout(()=>dealFirst(opened),Math.max(0,DEAL_MIN_MS-(Date.now()-shownAt)));
     });
+  }
+  // The top card back turns over and the first card grows into the screen.
+  function dealFirst(p){
+    if(practice!==p||p.phase!=="deal")return;
+    const show=()=>{if(practice!==p||p.phase!=="deal")return;p.phase="cards";p.dealt=!reducedMotion();render();};
+    if(reducedMotion()){show();return;}
+    p.dealing=true;render();setTimeout(show,DEAL_FLIP_MS);
+  }
+  // Answers, in order, every card reached and not yet answered; the answer of the last card completes the session.
+  function practiceAnswer(){
+    const p=practice;if(!p?.session||p.completed||p.answering||p.session.index>p.reached||p.session.index>=p.session.cardIds.length)return;
+    const index=p.session.index;p.answering=true;
+    api.request("/api/reader/practice/answer",{sessionId:p.session.id,cardId:p.session.cardIds[index],index,answer:"view"}).then(async result=>{
+      p.answering=false;if(result?.state)reader=result.state;
+      if(practice!==p)return;
+      const status=result?.practiceRecovery?.status;
+      if(status==="finished"||status==="cancelled"){p.completed=true;}
+      else if(result?.session){
+        const changed=result.session.cardIds.join()!==p.session.cardIds.join();p.session=result.session;
+        if(changed){await practiceContext(p);if(p.phase==="cards")render();}
+        if(result.session.completedAt){p.completed=true;p.xpReward=result.xpReward||null;}
+      }
+      if(p.completed){if(p.wantDone){p.wantDone=false;showFinale();}return;}
+      practiceAnswer();
+    },caught=>{
+      p.answering=false;if(practice!==p)return;
+      const failed=asFailure(caught);
+      if(sessionLost(failed)){lostSession();return;}
+      if(blockingFailure(failed)){offerRetry(failed,async()=>{});return;}
+      abandonPractice();failure={...failed,title:c.ui2PracticeError};render();
+    });
+  }
+  const practiceCan=direction=>!!practice&&practice.phase==="cards"&&(direction==="next"||direction==="prev"&&practice.at>0);
+  // `pulled`: how far the drag went (1: past the threshold), so the dissolve goes on from there.
+  function practiceGo(direction,pulled=0){
+    const p=practice;if(!practiceCan(direction))return false;
+    if(direction==="next"&&p.at>=p.items.length-1){
+      if(p.completed)showFinale();else{p.wantDone=true;practiceAnswer();}
+      return true;
+    }
+    const from=p.items[p.at]?.theme||DEFAULT_THEME;
+    p.at+=direction==="next"?1:-1;p.reached=Math.max(p.reached,p.at);
+    p.enter=direction;p.from=from;p.fromOpacity=1-pulled;
+    render();return true;
+  }
+  // While dragging, the next (or previous) card's colour rises over the current one.
+  function practicePeek(direction,amount){
+    for(const layer of main.querySelectorAll(".rs-peek"))layer.style.setProperty("--p",layer.classList.contains(`rs-peek--${direction}`)?String(amount):"0");
+  }
+  // Tap: the left third goes back, the rest goes on.
+  function practiceTap(event){
+    const width=win.innerWidth||1;
+    practiceGo(event.clientX<width/3?"prev":"next");
+  }
+  function showFinale(){
+    const p=practice;if(!p)return;
+    p.phase="done";p.modal=null;render();
+  }
+  function practiceFinaleMarkup(){
+    const p=practice,items=p.items.filter(Boolean),saved=savedIdsNow();
+    const marks=items.map(item=>saved.has(item.id)?"bookmark-active":reading.records.get(recordKey(item.id))?.vote===1?"like-active":"");
+    const booksById=new Map([...p.context.booksById,...catalog.booksById]);
+    const growth=practiceGrowth({before:p.growth,after:reader.growth||{},bookIds:items.map(item=>item.bookId)});
+    return finaleMarkup({stage:reader.readerProgression?.stage||"sprout",pack:packMarkup(p.session.practiceMode),items,marks,growth,booksById,language,reward:PRACTICE_COMPLETION_XP,c});
+  }
+  // The growth of the books' mascots plays once, with the growth modal's script; the screen scrolls down to it when it is below.
+  function mountFinale(){
+    const p=practice,end=main.querySelector("[data-rs-end]"),block=main.querySelector("[data-rs-growth]");if(!end)return;
+    const host={get open(){return !!block?.isConnected&&practice===p&&p.phase==="done";},querySelectorAll:selector=>block?block.querySelectorAll(selector):[]};
+    if(p.played||reducedMotion()){
+      end.classList.add("is-settled");playGrowthFeedback(host,{reducedMotion:true});
+      if(p.played)end.scrollTop=p.endScroll;else main.querySelector(".rs-end h1")?.focus({preventScroll:true});
+      p.played=true;return;
+    }
+    p.played=true;main.querySelector(".rs-end h1")?.focus({preventScroll:true});
+    if(!block)return;
+    setTimeout(()=>{
+      if(!host.open)return;
+      const top=block.getBoundingClientRect().top,bottom=block.getBoundingClientRect().bottom;
+      if(bottom>win.innerHeight)end.scrollTo({top:end.scrollTop+top-72,behavior:"smooth"});
+      playGrowthFeedback(host);
+    },650);
+  }
+  function closeExclusive(){const p=practice;if(!p)return;p.phase="done";render();}
+  // Leaving the session (its X, «Volver», the browser's back): a completed one hands its XP to the header (and the level
+  // modal, when it levels up) and lights the streak row of Repaso when it completed today's streak.
+  function leavePractice(){
+    const p=practice;practice=null;
+    if(!p?.completed)return;
+    streakCelebrate=!p.streakDone;
+    const gain=observeXp(viewerId(),undefined,p.xpReward);if(gain)xpFeedback?.present(gain);
+  }
+  function practiceScreen(){
+    if(!practice){
+      const active=reader.activePracticeSession;
+      if(active)openPractice({mode:active.practiceMode,sessionId:active.id});else win.location.replace("#practice");
+      return;
+    }
+    const p=practice;let html;
+    if(p.phase==="deal")html=dealMarkup({dealing:p.dealing,c});
+    else if(p.phase==="done")html=practiceFinaleMarkup();
+    else{
+      const exclusive=p.phase==="excl",item=practiceShown(),at=exclusive?p.excl:p.at;
+      if(!item)html=dealMarkup({c});
+      else{
+        html=sessionCardMarkup({item,at,exclusive,ui:{enter:p.enter,from:p.from,dealt:p.dealt,record:reading.records.get(recordKey(item.id)),saved:savedIdsNow().has(item.id),
+          neighbours:exclusive?{}:{prev:at>0?p.items[at-1]?.theme||DEFAULT_THEME:null,next:p.items[at+1]?p.items[at+1].theme||DEFAULT_THEME:null}},c});
+        if(p.modal&&!exclusive){
+          const deck=catalog.decksById.get(item.deckId)||p.context.decksById.get(item.deckId);
+          html+=parentModalMarkup({title:item.card.parent?.title||"",saved:savedIdsNow().has(item.parentId),inCardcase:(reader.cardcaseDeckIds||[]).includes(item.deckId)||!!deck&&deck.creator?.userId===viewerId(),cost:DECK_ADD_COST,c});
+        }
+      }
+    }
+    const fromOpacity=p.fromOpacity;p.enter=null;p.from=null;p.dealt=false;p.fromOpacity=null;
+    if(toast)html+=toastMarkup({...toast,c});
+    paint(withError(html));
+    if(p.phase==="done"){mountFinale();return;}
+    if(p.phase==="cards"||p.phase==="excl"){
+      const layer=main.querySelector(".rs-diss-bg");if(layer&&Number.isFinite(fromOpacity))layer.style.setProperty("--from",String(fromOpacity));
+      fitReader();
+      const item=practiceShown();if(item)readCard(item.card);
+      if(p.phase==="cards")practiceAnswer();
+    }
+  }
+  // The controls of the session. True when the action was one of them.
+  function practiceAction(action,target){
+    const p=practice;
+    if(action==="practice-start"){openPractice({mode:target.dataset.mode,cost:Number(target.dataset.cost)||PRACTICE_BASE_COST});return true;}
+    if(action==="practice-resume"){const active=reader?.activePracticeSession;if(active)openPractice({mode:active.practiceMode,sessionId:active.id});return true;}
+    if(action==="practice-locked"){
+      showToast(c.practiceLocked);render();
+      const card=main.querySelector(".rs-resume");
+      if(card&&!reducedMotion()){card.classList.remove("is-wiggle");void card.offsetWidth;card.classList.add("is-wiggle");card.addEventListener("animationend",()=>card.classList.remove("is-wiggle"),{once:true});}
+      return true;
+    }
+    if(!p)return false;
+    if(action==="practice-exit"||action==="practice-done"){win.location.replace("#practice");return true;}
+    if(action==="practice-prev"||action==="practice-next"){practiceGo(action==="practice-prev"?"prev":"next");return true;}
+    if(action==="practice-mini"){p.endScroll=main.querySelector("[data-rs-end]")?.scrollTop||0;p.excl=Number(target.dataset.index)||0;p.phase="excl";render();main.querySelector(".tc-deck")?.focus({preventScroll:true});return true;}
+    if(action==="practice-excl-close"){closeExclusive();return true;}
+    if(action==="practice-parent"){p.modal=true;render();return true;}
+    if(action==="practice-parent-close"){main.querySelector(".rs-parentdialog")?.close();return true;}
+    if(action==="practice-parent-save"){const item=practiceShown();if(item?.parentId)confirmable("/api/cards/save",{cardId:item.parentId,saved:true},async()=>{reader=await api.request("/api/reader/state");});return true;}
+    if(action==="practice-parent-add"){const item=practiceShown();if(item)confirmable("/api/reader/cardcase/add",{deckId:item.deckId},async()=>{reader=await api.request("/api/reader/state");showToast(c.deckAddedToCardcase);});return true;}
+    return false;
   }
 
   function submit(){
@@ -890,10 +1083,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
 
   // The controls of the card view. True when the action was one of them.
   function cardAction(action,target){
-    const where=route(),reading_=where.name==="cards"||where.name==="card";
+    const where=route(),reading_=where.name==="cards"||where.name==="card"||where.name==="practice-session";
     if(action==="cards-close"){closeReader();return true;}
     if(!reading_)return false;
-    const card=readerData(where).card;
+    const card=readerCardNow().card;
     const moves={"card-prev":"prev","card-next":"next","card-down":"down","card-up":"up"};
     if(moves[action]){if(!target.disabled)readerGo(moves[action]);return true;}
     if(action==="card-state"){reading.pop=!reading.pop;render();return true;}
@@ -907,6 +1100,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(action==="card-share"){shareCard();return true;}
     if((action==="card-vote"||action==="card-save")&&card&&!target.disabled){
       const value=Number(target.dataset.value),saved=target.getAttribute("aria-pressed")!=="true";
+      if(where.name==="practice-session"){if(action==="card-vote")voteCard(card.id,value,target);else saveCard(card.id,saved);return true;}
       const intent=action==="card-vote"?{kind:"card-vote",card:card.id,value}:{kind:"card-save",card:card.id};
       // A visitor is asked to sign in first; Acceso brings them back here and finishes it.
       if(!viewer()){sheetState={type:"card-signin",intent};render();}
@@ -933,6 +1127,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const target=event.target.closest("[data-ui2]");if(!target)return;
     const action=target.dataset.ui2,view=current();
     if(action.startsWith("card")&&cardAction(action,target))return;
+    if(action.startsWith("practice-")&&practiceAction(action,target))return;
     if(action==="open-note"){sheetState={type:"note",id:target.dataset.id};render();}
     // Back where the reader came from (Tarjetero, the book…); a direct link has nowhere to go back: the Library.
     else if(action==="edit-close"){editor=null;if(win.history.length>1)win.history.back();else win.location.replace("#library");}
@@ -1038,7 +1233,6 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(action==="calendar-open"){sheetState={type:"calendar"};render();}
     else if(action==="calendar-month"){calendarMonth=target.dataset.month;render();}
     else if(action==="sheet-close"){main.querySelector("dialog")?.close();}
-    else if(action==="practice-start"){startPractice(target.dataset.mode,Number(target.dataset.cost)||PRACTICE_BASE_COST);}
     else if(action==="retry"){failure=null;submit();}
     else if(action==="home-note"){win.location.hash=target.dataset.deck?`#deck/${encodeURIComponent(target.dataset.deck)}/note`:`#book/${encodeURIComponent(target.dataset.book)}/note`;}
     else if(action==="toast-deck"){toast=null;win.location.hash=`#deck/${encodeURIComponent(target.dataset.deck)}`;}
@@ -1058,6 +1252,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // The first choice cannot be dismissed; the edit one closes like any sheet. While the AI searches, the form sheet cannot be dismissed with Esc.
   main.addEventListener("cancel",event=>{if(event.target.matches?.("[data-ui2-authoring-sheet]")&&authoring?.searching||event.target.matches?.(".ui2-onb--initial"))event.preventDefault();},true);
   main.addEventListener("close",event=>{
+    if(event.target.matches?.(".rs-parentdialog")){if(practice?.modal){practice.modal=null;render();}return;}
     if(event.target.matches?.(".ui2-edmodal")){if(editor?.modal){editor.modal=null;render();}return;}
     if(event.target.matches?.(".ui2-deletedialog")){if(editor?.deleting){editor.deleting=null;render();}return;}
     if(event.target.matches?.(".ui2-settings")&&settings){settings=null;render();}
@@ -1143,6 +1338,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     // «Ver ejemplos» opens the guides and comes back to the guide being written, with its text.
     if(route().name!=="guide"&&route().name!=="cards")guide=null;
     if(route().name!=="edit"||route().id!==editor?.deckId)editor=null;
+    if(route().name!=="practice-session"&&practice)leavePractice();
     const exit=guideExit;guideExit=null;if(exit)sheetState=exit.sheet;
     if(interestFlow.state?.mode==="edit")interestFlow.dispose();
     clearTimeout(lb.timer);lb.searching=false;lb.open=false;

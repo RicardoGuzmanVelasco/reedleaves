@@ -6,6 +6,7 @@ import {imageUrl} from "../image-url.mjs";
 import {icon} from "./icons.mjs";
 import {headerMarkup} from "./shell.mjs";
 import {nextDailyCycleBoundary,DAILY_CYCLE_STARTS} from "../daily-cycle.mjs";
+import {segmentsMarkup} from "./repaso-sesion.mjs";
 
 const REGULAR_COST=5;
 // Topic ids are the server's (GET /api/reader/practice/topics). `streak`: counts for the daily streak.
@@ -42,12 +43,12 @@ export function streakLabel(data,c,minutes=null){
   if(streak.doneToday&&minutes!==null)parts.push(c.ui2NextStreakDay(countdownText(minutes,c)));
   return [...parts,c.ui2SeeCalendar].join(". ");
 }
-function streakRow(data,c,now){
+function streakRow(data,c,now,celebrate=false){
   const {streak}=data,until=streak.doneToday?nextStreakDay(data.timeZone,now)?.getTime()??null:null,minutes=until===null?null:minutesUntil(until,now);
   const today=!streak.known?"":minutes!==null
     ?`<span class="ui2-rp-today is-done" data-streak-countdown="${until}" aria-hidden="true"><svg class="ui2-rp-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg><span data-streak-countdown-text>${esc(countdownText(minutes,c))}</span></span>`
     :`<span class="ui2-rp-today${streak.doneToday?" is-done":""}" aria-hidden="true">${flame(streak.doneToday)}<span>${streak.doneSteps}/2</span></span>`;
-  return `<button type="button" class="ui2-rp-streak${streak.doneToday?"":" is-cold"}" data-ui2="calendar-open" aria-haspopup="dialog" aria-label="${esc(streakLabel(data,c,minutes))}"><img src="${imageUrl("/app/assets/brand/streak-flame.svg")}" alt="" width="34" height="34"><strong>${esc(c.dailyIdeaStreakDays(streak.days))}</strong>`
+  return `<button type="button" class="ui2-rp-streak${streak.doneToday?"":" is-cold"}${celebrate&&streak.doneToday?" rs-streak-lit":""}" data-ui2="calendar-open" aria-haspopup="dialog" aria-label="${esc(streakLabel(data,c,minutes))}"><img src="${imageUrl("/app/assets/brand/streak-flame.svg")}" alt="" width="34" height="34"><strong>${esc(c.dailyIdeaStreakDays(streak.days))}</strong>`
     +today+`<span class="ui2-go" aria-hidden="true">${icon("forward")}</span></button>`;
 }
 // Refreshes the countdown in place; returns false once the next streak day has opened (the caller reloads the streak).
@@ -74,17 +75,31 @@ const ICON_PATHS={
   saved:'<path class="practice-mode-icon-fill" d="M20 21.4l-8-4.7-8 4.7V5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5z"/>'
 };
 const modeGlyph=id=>ICON_PATHS[id]?`<svg class="practice-mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICON_PATHS[id]}</svg>`:practiceDeckIcon(id==="interests"?"discover":id);
-function topicMarkup(topic,data,c){
+// The theme's deck: the pack of cards with the topic's glyph on its cover (also the card of a session left halfway).
+export const packMarkup=(id,badge="")=>`<span class="ui2-pack" aria-hidden="true"><span class="practice-mode-pack"><span class="practice-mode-card practice-mode-card--left"></span><span class="practice-mode-card practice-mode-card--right"></span><span class="practice-mode-card practice-mode-card--cover">${modeGlyph(id)}</span></span>${badge}</span>`;
+export const topicKind=id=>TOPICS.discover.some(topic=>topic.id===id)?"discover":"practice";
+// `locked`: a session is halfway; the topics stay grey and a tap only says so (index.mjs shows the toast).
+function topicMarkup(topic,data,c,locked=false){
   const name=c[labelKey[topic.id]],info=data.topics.get(topic.id),available=info?info.available:true;
   const done=topic.streak&&data.streak.known&&stepState(topic.id,data),owed=available&&topic.streak&&data.streak.known&&!done;
-  const glyph=modeGlyph(topic.id);
-  const attrs=available?` data-ui2="practice-start" data-mode="${topic.id}" data-cost="${info?.cost??REGULAR_COST}"`:' aria-disabled="true"';
+  const attrs=locked?' data-ui2="practice-locked" aria-disabled="true"':available?` data-ui2="practice-start" data-mode="${topic.id}" data-cost="${info?.cost??REGULAR_COST}"`:' aria-disabled="true"';
   const baseAria=!available?`${name}, ${c.practiceNeedMoreCards(info.cards,info.required)}`:owed?`${name}, ${c.ui2PendingForStreak}`:done?`${name}, ${c.ui2DoneForStreak}`:name;
   const aria=available?`${baseAria}. ${priceTagLabel(c,{amount:info?.cost??REGULAR_COST,currency:info?.currency||"petal",original:info?.discounted?REGULAR_COST:null})}`:baseAria;
   const badge=owed||done?`<span class="ui2-flame-badge${done?" is-done":""}">${flame(done)}</span>`:"";
-  return `<button type="button" class="practice-mode practice-mode--${topic.id}" aria-label="${esc(aria)}"${attrs}><span class="ui2-pack" aria-hidden="true"><span class="practice-mode-pack"><span class="practice-mode-card practice-mode-card--left"></span><span class="practice-mode-card practice-mode-card--right"></span><span class="practice-mode-card practice-mode-card--cover">${glyph}</span></span>${badge}</span><span class="practice-mode-label">${esc(name)}</span>${available?price(info,data,c):""}</button>`;
+  return `<button type="button" class="practice-mode practice-mode--${topic.id}" aria-label="${esc(aria)}"${attrs}>${packMarkup(topic.id,badge)}<span class="practice-mode-label">${esc(name)}</span>${available?price(info,data,c):""}</button>`;
 }
-const box=(kind,title,topics,data,c)=>`<section class="ui2-rp-box ui2-rp-box--${kind}" aria-labelledby="ui2-rp-${kind}"><h2 id="ui2-rp-${kind}">${esc(title)}</h2><div class="ui2-modes">${topics.map(topic=>topicMarkup(topic,data,c)).join("")}</div></section>`;
+const box=(kind,title,topics,data,c,locked)=>`<section class="ui2-rp-box ui2-rp-box--${kind}${locked?" is-locked":""}" aria-labelledby="ui2-rp-${kind}"><h2 id="ui2-rp-${kind}">${esc(title)}</h2><div class="ui2-modes">${topics.map(topic=>topicMarkup(topic,data,c,locked)).join("")}</div></section>`;
+
+// «Continuar repaso»: the session left halfway, with its theme's deck (still, with the streak flame while it counts and is
+// pending), the segments reached and the button with the shine and the wave of letters of the launch buttons.
+export function resumeMarkup({active,data,c}){
+  const id=active.practiceMode,streak=TOPICS_STREAK.includes(id)&&data.streak.known&&!stepState(id,data);
+  const name=c[labelKey[id]]||"",label=[c.practiceResume,name,c.position(Math.min(5,active.index),5),...(streak?[c.ui2PendingForStreak]:[])].filter(Boolean).join(". ");
+  const letters=[...c.practiceResume].map(char=>`<span class="ui2-launch-char">${char===" "?"&nbsp;":esc(char)}</span>`).join("");
+  return `<section class="rs-resume rs-resume--${topicKind(id)}" aria-labelledby="rs-resume-t"><div class="rs-resume-top"><div class="rs-resume-art" aria-hidden="true">${packMarkup(id)}${streak?`<span class="ui2-flame-badge">${flame(false)}</span>`:""}</div>`
+    +`<div class="rs-resume-txt"><h2 id="rs-resume-t">${esc(c.practiceResumeTitle)}</h2>${segmentsMarkup(active.index,c,{label:false,small:true})}</div></div>`
+    +`<button type="button" class="ui2-btn ui2-launch rs-resume-go" data-ui2="practice-resume" aria-label="${esc(label)}"><span aria-hidden="true">${letters}</span>${icon("forward")}</button></section>`;
+}
 
 // Month grid (Monday first). Days the server lists as completed carry a check.
 export function calendarMarkup({data,month,c,language}){
@@ -110,7 +125,10 @@ export function calendarSheetMarkup({data,month,c,language}){
   return `<dialog class="ui2-sheet" data-ui2-sheet aria-label="${esc(c.ui2SeeCalendar)}"><div class="ui2-grab" aria-hidden="true"></div><div class="ui2-cal-head"><div class="ui2-cal-streak"><img src="${imageUrl("/app/assets/brand/streak-flame.svg")}" alt="" width="30" height="30"><strong>${esc(c.dailyIdeaStreakDays(data.streak.days))}</strong></div><button type="button" class="dialog-close" data-ui2="sheet-close" aria-label="${esc(c.ui2Close)}">${icon("close")}</button></div>${calendarMarkup({data,month,c,language})}</dialog>`;
 }
 
-export function repasoMarkup({data,c,nav,month,language,now=new Date()}){
-  const body=`<div class="ui2-body ui2-rp"><h1 class="sr-only" tabindex="-1">${esc(c.ui2TabPractice)}</h1><section class="ui2-repaso">${streakRow(data,c,now)}${box("practice",c.practice,TOPICS.practice,data,c)}${box("discover",c.practiceMode_discover,TOPICS.discover,data,c)}</section><div class="ui2-rp-side">${calendarMarkup({data,month,c,language})}</div></div>`;
+// `active`: the session left halfway (state.activePracticeSession), or null. `celebrate`: the streak row lights up once
+// today's streak has just been completed by a session.
+export function repasoMarkup({data,c,nav,month,language,now=new Date(),active=null,celebrate=false}){
+  const locked=!!active;
+  const body=`<div class="ui2-body ui2-rp"><h1 class="sr-only" tabindex="-1">${esc(c.ui2TabPractice)}</h1><section class="ui2-repaso">${locked?resumeMarkup({active,data,c}):""}${streakRow(data,c,now,celebrate)}${box("practice",c.practice,TOPICS.practice,data,c,locked)}${box("discover",c.practiceMode_discover,TOPICS.discover,data,c,locked)}</section><div class="ui2-rp-side">${calendarMarkup({data,month,c,language})}</div></div>`;
   return `<div class="ui2-shell">${headerMarkup({userId:data.userId,stage:data.avatarStage,wallet:data.wallet,c})}${body}${nav}</div>`;
 }

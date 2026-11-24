@@ -88,8 +88,9 @@ Fuente de verdad del estilo de iconos de la interfaz nueva (`?ui=2`). Los SVG vi
 ## Repaso
 
 - El reverso de tarjeta (`app/assets/brand/card-back.svg`) es un recurso aprobado: mascota estática girada 12° sobre círculo y marco crema, brotes arriba y abajo, 17 % de opacidad.
-- La sesión se está rediseñando (ver `docs/development/EDIT_NOTES_PLAN.md`); no fijar aquí su detalle visual.
-- Principios: durante la tarjeta, solo el contenido (sin mascota); «Ver menos a menudo» a la izquierda, «Ver más a menudo» a la derecha, también por arrastre horizontal con botones como alternativa; los precios reutilizan `priceTag`; mostrar disponibilidad antes de comprar y que el servidor revalide; movimiento reducido elimina desplazamientos.
+- La sesión (hito 1, `app/ui2/repaso-sesion.mjs`) usa la vista inmersiva de tarjetas con cinco segmentos tipo stories; detalle en `docs/development/EDIT_NOTES_PLAN.md`.
+- Principios: durante la tarjeta, solo el contenido (sin mascota); se pasa tocando o deslizando (izquierda = siguiente), con flechas y teclado en escritorio; los precios reutilizan `priceTag`; mostrar disponibilidad antes de comprar y que el servidor revalide; movimiento reducido elimina desplazamientos.
+- Las barajas de tema (`.ui2-pack`) leen primero como baraja: el icono del tema va detrás, pequeño y suave.
 - Racha: las dos opciones que cuentan («Un poco de todo», «La baraja del día») llevan la llama `flame` (gris al faltar, naranja al cumplirse); con 2/2, cuenta atrás hasta el siguiente día (fuente `app/daily-cycle.mjs`).
 
 ## Chips informativos

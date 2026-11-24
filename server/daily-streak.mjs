@@ -4,7 +4,7 @@ import {dailyCycleDay,DAILY_CYCLE_STARTS,previousCalendarDay} from "./daily-cycl
 const CALENDAR_DAYS=60;
 
 // A day counts when a "mixed" practice session was completed AND the daily card
-// was seen. Days follow the daily card cycle, the same one used to key
+// was seen (the daily idea, or a completed "dailyDeck" session: practice-economy.mjs). Days follow the daily card cycle, the same one used to key
 // daily_idea_views. Computed from existing tables; nothing is stored.
 export async function readDailyStreak(db,session,now=new Date()) {
   const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(session.user_id);
