@@ -51,7 +51,7 @@ function contentMarkup(item,enter,c){
 export function sessionCardMarkup({item,at,exclusive=false,ui={},c}){
   const {enter=null,record=null,saved=false,from=null,neighbours={}}=ui,card=item.card,deleted=!!card.deleted;
   const creator=item.deck.creator.name?`<div class="tc-headwho">${nameLink({icon:"user",name:item.deck.creator.name})}</div>`:"";
-  const head=`<header class="tc-head"><div class="tc-titles"><h1 class="tc-deck" tabindex="-1"><span lang="${esc(item.deck.nameLanguage)}" dir="auto">${esc(item.deck.name)}</span></h1>${creator}</div>`
+  const head=`<header class="tc-head"><div class="tc-titles"><h1 class="tc-deck" tabindex="-1">${icon("deck")}<span lang="${esc(item.deck.nameLanguage)}" dir="auto">${esc(item.deck.name)}</span></h1>${creator}</div>`
     +(exclusive?closeButton("practice-excl-close",c.closeCard):closeButton("practice-exit",c.practiceExit))+`</header>`;
   const row=exclusive?"":`<div class="tc-row rs-segrow">${segmentsMarkup(at+1,c)}</div>`;
   const context=card.parent?cardContextMarkup({card,action:"practice-parent",c}).replace(/aria-label="[^"]*"/,`aria-label="${esc(c.practiceParentOf(card.parent.title))}" aria-haspopup="dialog"`):"";

@@ -92,7 +92,7 @@ const segmentsMarkup=place=>`<div class="tc-segs" aria-hidden="true">${Array.fro
 
 // Header: the deck's name, «Baraja en curso» (tap: its explanation) and the deck's creator. Guides name their author on each card.
 function headMarkup({data,pop,c}){
-  const deck=data.deck,name=deck?.guide?`${icon("reading-guide")}<span>${esc(c.readingGuides)}</span>`:`<span lang="${esc(deck?.nameLanguage||"")}" dir="auto">${esc(deck?.name||"")}</span>`;
+  const deck=data.deck,name=deck?.guide?`${icon("reading-guide")}<span>${esc(c.readingGuides)}</span>`:`${icon("deck")}<span lang="${esc(deck?.nameLanguage||"")}" dir="auto">${esc(deck?.name||"")}</span>`;
   const state=deck?.open&&!data.card?.deleted?`<button type="button" class="tc-state" data-ui2="card-state" aria-expanded="${pop}"${pop?' aria-describedby="tc-pop"':""}>${icon("lock-open")}<span>${esc(c.deckInProgress)}</span></button>`
     +(pop?`<div class="tc-pop" role="tooltip" id="tc-pop"><strong>${esc(c.deckInProgress)}</strong><p>${esc(c[deck.explain])}</p></div>`:""):"";
   const creator=deck&&!deck.guide&&deck.creator.name?`<div class="tc-headwho">${creatorMarkup(deck.creator)}</div>`:"";
