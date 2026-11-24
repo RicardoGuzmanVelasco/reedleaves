@@ -138,3 +138,10 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 - Cierre: borrar la UI vieja y el prefijo `ui2`, quitar «Probar la nueva UI», `.library-tabs`, normalizar copy con nombres de sección en mayúscula, etc.
 - Tests: `app/ui2/*.test.mjs` entran en `npm test` y en la CI (`TEST_FILES` de `scripts/test-postgres.mjs`). Son los que se quedan al retirar la UI vieja; en el cierre se borran los tests de la UI antigua, no estos.
 - Tarjetas, por mirar después: choque visual libro–título (`tarjetas-titulos-v1`, recomendación S1 antetítulo en versalitas, S3 como variante), tono verde de los botones de A / verde de Repaso como fondo, A y B por construir sobre `app/ui2/tarjeta.mjs`.
+
+## Repaso: decisiones (2026-11-24)
+
+- Se retira «Ver más / menos a menudo» (herencia de dating app). Sin «Continuar»: navegación de la vista C (tocar o deslizar).
+- Hito 1: sesión completa en ui2 sin pruebas. Cada tarjeta se marca como vista (valor neutro en `practice/answer`; las respuestas antiguas se conservan). Selección sin peso (solo diversidad de libros y barajas). Se completa al llegar a la última tarjeta.
+- Hito 2: pruebas en algunas tarjetas (ocultar título, cuerpo…). Swipe «me acordaba / no me acordaba» solo en ellas; «no me acordaba» pesa en la selección.
+- Abiertas: cancelar con reembolso, XP y racha, pantalla final, puntos de entrada, precios. Detalle en `reedleaves-mockups/repaso-propuesta.md`.
