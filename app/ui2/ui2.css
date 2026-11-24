@@ -716,7 +716,7 @@ button.ed-node{cursor:pointer}
 .tc-wm--line{fill:none;stroke:#fffdf6;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;opacity:.7}
 .tc-book{margin:0 0 10px}
 /* The book as the card's overline, in real small caps (Avenir Next / SF carry them; elsewhere they may be synthesised), up to two lines. */
-.tc-book .card-attribution-row{align-items:flex-start;min-height:24px;font-family:"Avenir Next",system-ui,sans-serif;font-variant-caps:small-caps;font-synthesis-small-caps:auto;font-size:20px;font-weight:500;letter-spacing:.03em;line-height:1.2;color:var(--d)}
+.tc-book .card-attribution-row{align-items:flex-start;min-height:24px;font-family:"Avenir Next",system-ui,sans-serif;font-variant-caps:small-caps;font-synthesis-small-caps:auto;font-size:20px;font-weight:600;letter-spacing:.03em;line-height:1.2;color:var(--d)}
 .tc-book .attribution-icon{width:16px;height:16px;margin-top:3px;flex:none;fill:var(--d);opacity:.75}
 .tc-book .card-attribution-row bdi{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-width:0;overflow:hidden;white-space:normal;text-overflow:clip}
 .tc-text{min-width:0}

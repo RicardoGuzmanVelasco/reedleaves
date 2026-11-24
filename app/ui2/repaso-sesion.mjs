@@ -10,7 +10,7 @@ import {growthFeedbackChanges,growthFeedbackMarkup} from "../growth-feedback.mjs
 import {icon} from "./icons.mjs";
 import {priceTagMarkup} from "./price-tag.mjs";
 import {prizeTagMarkup} from "./prize-tag.mjs";
-import {cardView,cardContentMarkup,cardDeletedMarkup,cardContextMarkup,cardActionsMarkup} from "./tarjeta.mjs";
+import {cardView,cardContentMarkup,cardDeletedMarkup,cardContextMarkup,cardActionsMarkup,kickerTitle} from "./tarjeta.mjs";
 import {themeOf} from "./tarjetas.mjs";
 
 export const SESSION_CARDS=5;
@@ -41,7 +41,7 @@ export function segmentsMarkup(reached,c,{label=true,small=false}={}){
 const closeButton=(action,label)=>`<button type="button" class="dialog-close" data-ui2="${action}" aria-label="${esc(label)}" title="${esc(label)}">${icon("close")}</button>`;
 
 // The book as the card's overline, without a link: tapping it would leave the session.
-const plainBook=book=>`<div class="tc-book">${nameLink({icon:"book",name:book.title,language:book.titleLanguage})}</div>`;
+const plainBook=book=>`<div class="tc-book">${nameLink({icon:"book",name:kickerTitle(book.title,book.titleLanguage),language:book.titleLanguage})}</div>`;
 function contentMarkup(item,enter,c){
   return cardContentMarkup({card:item.card,enter,c}).replace(/(<svg class="tc-wm[^]*?<\/svg>)/,`$1${plainBook(item.book)}`);
 }

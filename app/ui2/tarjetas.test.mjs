@@ -4,7 +4,7 @@ import {validateCards} from "../core.mjs";
 import {words} from "../i18n.mjs";
 import {readerState,emptyCatalog} from "../../test-support/reader-state.mjs";
 import {readingOrder,cardPlace,cardTarget,GUIDE_COLOR,deckReaderData,cardReaderData,cardReaderMarkup,cardIndexMarkup,cardSignInMarkup} from "./tarjetas.mjs";
-import {textSize,fraction,SHORT_TEXT,LONG_TEXT,cardContentMarkup,cardActionsMarkup,cardContextMarkup} from "./tarjeta.mjs";
+import {textSize,fraction,SHORT_TEXT,LONG_TEXT,cardContentMarkup,cardActionsMarkup,cardContextMarkup,kickerTitle} from "./tarjeta.mjs";
 import {swipeIntent,swipeAxis,SWIPE,largestFitting,FIT} from "./tarjetas-gestos.mjs";
 import {isPublicRoute,accessRequest,PERSONAL_ACTIONS} from "./visitor.mjs";
 import {interestWarningMarkup} from "./forms.mjs";
@@ -190,4 +190,12 @@ test("Fitted type: the largest legible size that fits, never under the minimum n
   assert.equal(largestFitting({min:FIT.min,max:FIT.max.quote,fits:()=>false}),FIT.min);
   assert.equal(largestFitting({min:15,max:24,fits:size=>size<=19.3}),19);
   assert.ok(FIT.min>=15);
+});
+
+test("kickerTitle capitalises long words only when the title has just one capital", () => {
+  assert.equal(kickerTitle("Los siete hábitos de la gente altamente efectiva"), "Los Siete Hábitos de la Gente Altamente Efectiva");
+  assert.equal(kickerTitle("The Power of Habit"), "The Power of Habit");
+  assert.equal(kickerTitle("El arte de la guerra","es"), "El Arte de la Guerra");
+  assert.equal(kickerTitle(""), "");
+  assert.equal(kickerTitle(undefined), undefined);
 });

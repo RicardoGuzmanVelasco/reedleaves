@@ -35,7 +35,24 @@ function glyph(type){
   return `<svg class="tc-wm" viewBox="${art.viewBox}" preserveAspectRatio="xMaxYMax meet" aria-hidden="true" focusable="false">${art.paths}</svg>`;
 }
 
-export const bookLinkMarkup=book=>`<div class="tc-book">${nameLink({icon:"book",name:book.title,language:book.titleLanguage,href:`#book/${encodeURIComponent(book.id)}`})}</div>`;
+// Cosmetic only: if just the first word is capitalised, capitalise every word longer than two characters
+// so the small-caps overline reads as a title. Any problem returns the title untouched.
+export function kickerTitle(title,language){
+  try{
+    if(typeof title!=="string")return title;
+    const parts=title.split(/(\s+)/);
+    const isWord=part=>/\p{L}/u.test(part)&&!/^\s+$/.test(part);
+    const capitalised=parts.filter(part=>isWord(part)&&/^\p{Lu}/u.test(part)).length;
+    if(capitalised>1)return title;
+    return parts.map(part=>{
+      if(!isWord(part)||[...part].length<=2)return part;
+      const [first,...rest]=[...part];
+      return first.toLocaleUpperCase(language||undefined)+rest.join("");
+    }).join("");
+  }catch{return title}
+}
+
+export const bookLinkMarkup=book=>`<div class="tc-book">${nameLink({icon:"book",name:kickerTitle(book.title,book.titleLanguage),language:book.titleLanguage,href:`#book/${encodeURIComponent(book.id)}`})}</div>`;
 export const creatorMarkup=creator=>nameLink({icon:"user",name:creator.name,href:creator.id?`#profile/${encodeURIComponent(creator.id)}`:null});
 
 // The card's content: glyph, «Destacada» on guides, the book (large, before the content) and title and text.
