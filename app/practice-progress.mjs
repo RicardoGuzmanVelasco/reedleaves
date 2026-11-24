@@ -1,4 +1,6 @@
-const weightForSavedAnswer = answer => answer === "see_less" ? 0.5 : answer === "see_more" ? 2 : 1;
+// A numeric value is a ready weight (e.g. server/practice-card-weights.mjs); strings are the saved see_less/see_more answers.
+const weightForSavedAnswer = answer => typeof answer === "number" && Number.isFinite(answer) && answer > 0 ? answer :
+  answer === "see_less" ? 0.5 : answer === "see_more" ? 2 : 1;
 const unitRandom = random => {
   const value=random();
   return Number.isFinite(value) ? Math.min(1-Number.EPSILON,Math.max(0,value)) : 0;

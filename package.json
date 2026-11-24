@@ -15,6 +15,7 @@
     "db:init": "node server/manage.mjs init",
     "db:seed": "node server/manage.mjs seed",
     "db:check": "node server/manage.mjs check",
+    "db:check-tests": "node server/manage.mjs check-tests",
     "db:leaves": "node server/manage.mjs leaves",
     "db:guide-reviews": "node server/manage.mjs guide-reviews",
     "db:guide-review": "node server/manage.mjs guide-review",

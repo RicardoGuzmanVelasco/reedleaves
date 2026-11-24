@@ -3,12 +3,13 @@ import { resolve } from "node:path";
 import { openDatabase, initializeDatabase, backupDatabase, DEFAULT_DB } from "./database.mjs";
 import { seedCatalog } from "./seed.mjs";
 import { checkCatalog } from "./catalog-repository.mjs";
+import { checkCardTests } from "./practice-tests.mjs";
 import { setLeafBalance } from "./leaf-wallet-repository.mjs";
 import {decideReadingGuide,listPendingReadingGuides} from "./reading-guides.mjs";
 import {assignRole} from "./reader-roles.mjs";
 
 const action = process.argv[2];
-if (!["init", "seed", "check", "backup", "leaves","guide-reviews","guide-review","role-grant","role-revoke"].includes(action)) throw new Error("Use init, seed, check, backup <destination>, leaves <username> <balance>, guide-reviews, guide-review <cardId> approve|reject [reason], or role-grant|role-revoke <username> archivist");
+if (!["init", "seed", "check", "check-tests", "backup", "leaves","guide-reviews","guide-review","role-grant","role-revoke"].includes(action)) throw new Error("Use init, seed, check, check-tests, backup <destination>, leaves <username> <balance>, guide-reviews, guide-review <cardId> approve|reject [reason], or role-grant|role-revoke <username> archivist");
 if (action === "leaves" && (process.argv.length !== 5 || !process.argv[3].trim() || !/^\d+$/.test(process.argv[4]) || !Number.isSafeInteger(Number(process.argv[4])))) {
   throw new Error("Uso: npm run db:leaves -- <usuario> <saldo entero no negativo>");
 }
@@ -20,6 +21,7 @@ try {
   await initializeDatabase(db);
   if (action === "seed") console.log(await seedCatalog(db));
   else if (action === "check") console.log(await checkCatalog(db));
+  else if (action === "check-tests") { const result=await checkCardTests(db); console.log(JSON.stringify(result,null,2)); if (result.problems.length) process.exitCode=1; }
   else if (action === "leaves") console.log(await setLeafBalance(db,process.argv[3],Number(process.argv[4])));
   else if(action==="guide-reviews") console.log(JSON.stringify(await listPendingReadingGuides(db),null,2));
   else if(action==="guide-review") console.log(await decideReadingGuide(db,process.argv[3],process.argv[4],process.argv[5]===undefined?{}:{reason:process.argv[5]}));

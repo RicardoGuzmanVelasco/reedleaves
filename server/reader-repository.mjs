@@ -20,6 +20,7 @@ import {requireBookInterestConfirmation,BOOK_INTEREST_CONFIRMATION_ENABLED} from
 import {readReaderProgression} from "./reader-xp-repository.mjs";
 import {ensureDailyCardInside,dailyCardCandidates} from "./daily-deck.mjs";
 import {readerRoles} from "./reader-roles.mjs";
+import {readSessionTests} from "./practice-tests.mjs";
 
 export async function readReaderState(db,session,now=new Date()) {
   return transaction(db,async()=>{
@@ -101,7 +102,8 @@ async function stateInside(db,session,now) {
   const discountMode=practiceDiscountMode(userId,lastPractice?.seed);
   const activePracticeSession=activePracticeRow?{
     id:activePracticeRow.id,practiceMode:activePracticeRow.practice_mode,cardIds:JSON.parse(activePracticeRow.card_ids),
-    index:Number(activePracticeRow.card_index),cost:Number(activePracticeRow.cost),startedAt:activePracticeRow.started_at instanceof Date?activePracticeRow.started_at.toISOString():activePracticeRow.started_at
+    index:Number(activePracticeRow.card_index),cost:Number(activePracticeRow.cost),startedAt:activePracticeRow.started_at instanceof Date?activePracticeRow.started_at.toISOString():activePracticeRow.started_at,
+    tests:await readSessionTests(db,activePracticeRow.id)
   }:null;
   const bookSort=await db.prepare("SELECT sort_order FROM reader_book_sort_preferences WHERE user_id = ?").get(userId);
   const distinguished=await distinguishedBookIds(db,userId);

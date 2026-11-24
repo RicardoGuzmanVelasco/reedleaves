@@ -35,3 +35,15 @@ export function previousCalendarDay(day) {
   const previous=new Date(Date.UTC(year,month-1,date)-86400000);
   return `${previous.getUTCFullYear()}-${String(previous.getUTCMonth()+1).padStart(2,"0")}-${String(previous.getUTCDate()).padStart(2,"0")}`;
 }
+
+// Whole calendar days from one local day ("YYYY-MM-DD") to another; negative when `toDay` is earlier.
+export function calendarDaysBetween(fromDay, toDay) {
+  const utc=day=>{const [year,month,date]=day.split("-").map(Number);return Date.UTC(year,month-1,date);};
+  return Math.round((utc(toDay)-utc(fromDay))/86400000);
+}
+
+// Repaso tests: a result belongs to the reader's local calendar day (same start as the completed session day), and a
+// (card, kind) test becomes eligible again this many local days after its last result: failed the day after
+// tomorrow, passed a week later.
+export const PRACTICE_TEST_DAY_START = DAILY_CYCLE_STARTS.mascotGrowth;
+export const PRACTICE_TEST_COOLDOWN_DAYS = Object.freeze({failed:2, passed:7});

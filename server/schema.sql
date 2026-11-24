@@ -372,10 +372,38 @@ CREATE TABLE practice_session_cards (
   session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
   card_id TEXT NOT NULL REFERENCES cards(id),
   position INTEGER NOT NULL CHECK(position BETWEEN 0 AND 4),
+  test_kind TEXT,
   PRIMARY KEY(session_id,card_id),
   UNIQUE(session_id,position)
 ) STRICT;
 CREATE INDEX practice_session_cards_by_card ON practice_session_cards(card_id,session_id);
+-- Repaso tests: one definition table per kind (server/practice-test-kinds.mjs). An empty fragment hides the whole field.
+CREATE TABLE card_test_hide_title(
+  card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
+  fragment TEXT NOT NULL CHECK(fragment = trim(fragment)),
+  PRIMARY KEY(card_id,language,fragment)
+) STRICT;
+CREATE TABLE card_test_hide_content(
+  card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
+  fragment TEXT NOT NULL CHECK(fragment = trim(fragment)),
+  PRIMARY KEY(card_id,language,fragment)
+) STRICT;
+CREATE TABLE practice_results(
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  outcome TEXT NOT NULL CHECK(outcome IN ('passed','failed')),
+  answered_at TEXT NOT NULL,
+  local_day TEXT NOT NULL CHECK(local_day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(local_day,'+0 days') IS local_day),
+  UNIQUE(session_id,card_id)
+) STRICT;
+CREATE INDEX practice_results_by_reader ON practice_results(user_id,card_id,answered_at);
+CREATE TRIGGER practice_results_append_only BEFORE UPDATE ON practice_results
+BEGIN SELECT RAISE(ABORT,'Practice results are append-only'); END;
 CREATE TABLE card_views (
   user_id TEXT NOT NULL REFERENCES users(id),
   card_id TEXT NOT NULL REFERENCES cards(id),
@@ -411,4 +439,4 @@ CREATE TABLE feedback_submissions (
 ) STRICT;
 CREATE INDEX feedback_by_date ON feedback_submissions(created_at DESC);
 
-PRAGMA user_version = 70;
+PRAGMA user_version = 71;

@@ -13,6 +13,8 @@ import {effectiveCardLanguage,normalizeLanguageList} from "../app/core.mjs";
 import {readerLanguagePreferencesInside} from "./reader-language-preferences.mjs";
 import {practiceDeckIds} from "./practice-card-access.mjs";
 import {discoverPracticeCandidateContext,selectDiscoverPracticeForReader} from "./discover-practice.mjs";
+import {choosePracticeTestsInside,readPracticeResults,withPracticeTests} from "./practice-tests.mjs";
+import {practiceCardWeights} from "./practice-card-weights.mjs";
 
 import {dailyCardCandidates,ensureDailyCardInside,dailyDeckCardIds,recordDailyCardViewInside,DAILY_DECK_SIZE} from "./daily-deck.mjs";
 import {PRACTICE_BASE_COST,PRACTICE_DISCOUNT_COST,PRACTICE_LEAF_COST,PRACTICE_COMPLETION_XP,practicePrice} from "../app/practice-modes.mjs";
@@ -99,19 +101,20 @@ async function availableCards(db,userId,topic,languages=null) {
 }
 
 // Cards and counts of a topic. The caller owns the account lock and the transaction.
-// Selection, apart from the reward: up to five cards spread over books and decks, without weights. A topic below its
-// minimum (always five cards) cannot be started.
-async function selectTopic(db,userId,topic,{languages,day,context}) {
+// Selection, apart from the reward: up to five cards spread over books and decks. `weights` ({cardId: weight},
+// practice-card-weights.mjs) makes cards with a recently failed test more likely. A topic below its minimum
+// (always five cards) cannot be started.
+async function selectTopic(db,userId,topic,{languages,day,context,weights={}}) {
   if(topic==="dailyDeck") {
     const {ids,todayCardId}=await dailyDeckCardIds(db,day);
     return {cardIds:ids,available:ids.length,required:PRACTICE_SESSION_SIZE,todayCardId};
   }
   if(topic==="interests") {
-    const discovery=await selectDiscoverPracticeForReader(db,userId,{languages,count:PRACTICE_SESSION_SIZE});
+    const discovery=await selectDiscoverPracticeForReader(db,userId,{languages,count:PRACTICE_SESSION_SIZE,answers:weights});
     return {cardIds:discovery.selected.map(card=>card.id),available:discovery.available,required:PRACTICE_SESSION_SIZE};
   }
   const cards=topicCards(context||await practiceContext(db,userId),topic,languages);
-  return {cardIds:cards.length>=PRACTICE_SESSION_SIZE?selectPracticeCards(cards,{},PRACTICE_SESSION_SIZE).map(card=>card.id):[],available:cards.length,required:PRACTICE_SESSION_SIZE};
+  return {cardIds:cards.length>=PRACTICE_SESSION_SIZE?selectPracticeCards(cards,weights,PRACTICE_SESSION_SIZE).map(card=>card.id):[],available:cards.length,required:PRACTICE_SESSION_SIZE};
 }
 
 // Completes a session: the reward and, for the two streak topics, today's part of the streak. "mixed" counts by its
@@ -215,7 +218,8 @@ export async function reconcilePracticeSessionInside(db,userId,now=new Date()) {
   return {session:{...session,cardIds:repairedIds},recovery:"repaired",sessionId:active.id};
 }
 
-export async function startPracticeSession(db,session,requestedMode,now=new Date(),expectedSessionId,expectedCost) {
+// `options.random` drives the test draw (practice-test-selection.mjs); tests inject it.
+export async function startPracticeSession(db,session,requestedMode,now=new Date(),expectedSessionId,expectedCost,{random=Math.random}={}) {
   const practiceMode=LEGACY_TOPICS[requestedMode]||requestedMode;
   if(!PRACTICE_TOPICS.includes(practiceMode)||(expectedSessionId!==undefined&&expectedSessionId!==null&&(typeof expectedSessionId!=="string"||!expectedSessionId))) throw new ApiError(400,"invalidRequest");
   if(expectedCost!==undefined&&![2,PRACTICE_BASE_COST,PRACTICE_DISCOUNT_COST,PRACTICE_LEAF_COST].includes(expectedCost)) throw new ApiError(400,"invalidRequest");
@@ -238,12 +242,13 @@ export async function startPracticeSession(db,session,requestedMode,now=new Date
     const account=await db.prepare("SELECT time_zone FROM accounts WHERE user_id=?").get(userId);
     if(!account) throw new ApiError(401,"signInRequired");
     const cycleDay=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.currencyRefill),wallet=await accruePetalWallet(db,userId,cycleDay);
-    if(recovery.session) return {session:recovery.session,resumed:true,...(recovery.recovery?{practiceRecovery:{status:recovery.recovery,practiceMode:recovery.session.practiceMode}}:{}),discountMode:await currentDiscount(db,userId),balance:wallet.balance};
+    if(recovery.session) return {session:await withPracticeTests(db,recovery.session),resumed:true,...(recovery.recovery?{practiceRecovery:{status:recovery.recovery,practiceMode:recovery.session.practiceMode}}:{}),discountMode:await currentDiscount(db,userId),balance:wallet.balance};
 
     const preferences=await readerLanguagePreferencesInside(db,userId),languages=preferences.languages;
     const day=dailyCycleDay(account.time_zone,now,DAILY_CYCLE_STARTS.dailyIdea);
     if(practiceMode==="dailyDeck") await ensureDailyCardInside(db,userId,day);
-    const topic=await selectTopic(db,userId,practiceMode,{languages,day}),available=topic.available;
+    const weights=practiceCardWeights(await readPracticeResults(db,userId));
+    const topic=await selectTopic(db,userId,practiceMode,{languages,day,weights}),available=topic.available;
     if(available<topic.required) return {reason:"notEnoughCards",practiceMode,available,required:topic.required,balance:wallet.balance};
     const {discountMode,leafMode}=await currentOffers(db,userId),cost=practicePrice(practiceMode,discountMode,leafMode);
     const leafPrice=practiceMode===leafMode,spendWallet=leafPrice?await accrueLeafWallet(db,userId,cycleDay):wallet;
@@ -254,17 +259,26 @@ export async function startPracticeSession(db,session,requestedMode,now=new Date
     const id=randomUUID(),startedAt=now.toISOString(),cardIds=topic.cardIds;
     await db.prepare("INSERT INTO practice_sessions(id,user_id,practice_mode,card_ids,card_index,cost,started_at,language_snapshot) VALUES (?,?,?,?,0,?,?,?)")
       .run(id,userId,practiceMode,JSON.stringify(cardIds),cost,startedAt,JSON.stringify(languages));
+    const testKinds=new Map((await choosePracticeTestsInside(db,userId,cardIds,{timeZone:account.time_zone,now,random})).map(test=>[test.cardId,test.kind]));
     for (const [position,cardId] of cardIds.entries()) {
-      await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position) VALUES (?,?,?)")
-        .run(id,cardId,position);
+      await db.prepare("INSERT INTO practice_session_cards(session_id,card_id,position,test_kind) VALUES (?,?,?,?)")
+        .run(id,cardId,position,testKinds.get(cardId)??null);
     }
-    return {session:{id,practiceMode,cardIds,index:0,cost,startedAt,completedAt:null,languageSnapshot:languages},discountMode,balance:spendWallet.balance-cost};
+    const started=await withPracticeTests(db,{id,practiceMode,cardIds,index:0,cost,startedAt,completedAt:null,languageSnapshot:languages});
+    return {session:started,discountMode,balance:spendWallet.balance-cost};
   });
 }
 
 export async function answerPracticeSession(db,session,input,now=new Date()) {
   if(typeof input.sessionId!=="string"||!input.sessionId) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
+    const result=await answerPracticeSessionInside(db,session,input,now);
+    return result.session?{...result,session:await withPracticeTests(db,result.session)}:result;
+  });
+}
+
+async function answerPracticeSessionInside(db,session,input,now) {
+  {
     await lockReaderAccount(db,session.user_id);
     const recovery=await reconcilePracticeSessionInside(db,session.user_id,now);
     if(recovery.recovery==="finished") return {session:null,practiceRecovery:{status:"finished",practiceMode:recovery.practiceMode},sessionId:recovery.sessionId};
@@ -294,7 +308,7 @@ export async function answerPracticeSession(db,session,input,now=new Date()) {
     }
     await db.prepare("UPDATE practice_sessions SET card_index=? WHERE id=? AND user_id=?").run(nextIndex,input.sessionId,session.user_id);
     return {session:{...current,index:nextIndex,completedAt:null}};
-  });
+  }
 }
 
 // Read-only state of the eight Repaso topics: price with the daily offer applied and availability.

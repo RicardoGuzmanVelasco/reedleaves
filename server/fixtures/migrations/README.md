@@ -53,3 +53,5 @@ Fixtures v66 (SQLite) y v58 (PostgreSQL): esquemas anteriores al renombrado de `
 Fixtures v67 (SQLite) y v59 (PostgreSQL): esquemas anteriores a los topics de Repaso (`practice_mode` pasa a `reading, read, saved, mixed, dailyDeck, interests, novelties, teamPicks`; `discover` se renombra `interests`), copiados del esquema vigente antes de cambiarlo, con las constantes de aplicación resueltas.
 
 Fixtures v69 (SQLite) y v61 (PostgreSQL): esquemas anteriores al borrado suave de notas (`cards.deleted_at` e índices de orden parciales), copiados del esquema vigente antes de cambiarlo, con las constantes de aplicación resueltas.
+
+Fixtures v70 (SQLite) y v62 (PostgreSQL): esquemas anteriores a las pruebas de Repaso (`card_test_hide_title`, `card_test_hide_content`, `practice_results` y `practice_session_cards.test_kind`), copiados del esquema vigente antes de cambiarlo, con las constantes de aplicación resueltas.

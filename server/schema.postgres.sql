@@ -1,5 +1,5 @@
-CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 62));
-INSERT INTO reed_schema VALUES (62);
+CREATE TABLE reed_schema(version INTEGER PRIMARY KEY CHECK(version = 63));
+INSERT INTO reed_schema VALUES (63);
 
 CREATE TABLE interests(id TEXT PRIMARY KEY CHECK(length(btrim(id)) > 0),
   emoji TEXT NOT NULL DEFAULT '',
@@ -336,11 +336,44 @@ CREATE UNIQUE INDEX one_active_practice_session ON practice_sessions(user_id) WH
 ALTER TABLE practice_sessions ENABLE ROW LEVEL SECURITY;
 CREATE TABLE practice_session_cards(
   session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
-  card_id TEXT NOT NULL REFERENCES cards(id), position INTEGER NOT NULL CHECK(position BETWEEN 0 AND 4),
+  card_id TEXT NOT NULL REFERENCES cards(id), position INTEGER NOT NULL CHECK(position BETWEEN 0 AND 4), test_kind TEXT,
   PRIMARY KEY(session_id,card_id), UNIQUE(session_id,position)
 );
 CREATE INDEX practice_session_cards_by_card ON practice_session_cards(card_id,session_id);
 ALTER TABLE practice_session_cards ENABLE ROW LEVEL SECURITY;
+-- Repaso tests: one definition table per kind (server/practice-test-kinds.mjs). An empty fragment hides the whole field.
+CREATE TABLE card_test_hide_title(
+  card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
+  fragment TEXT NOT NULL CHECK(fragment = btrim(fragment)),
+  PRIMARY KEY(card_id,language,fragment)
+);
+ALTER TABLE card_test_hide_title ENABLE ROW LEVEL SECURITY;
+CREATE TABLE card_test_hide_content(
+  card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  language TEXT NOT NULL CHECK(length(language) BETWEEN 2 AND 35),
+  fragment TEXT NOT NULL CHECK(fragment = btrim(fragment)),
+  PRIMARY KEY(card_id,language,fragment)
+);
+ALTER TABLE card_test_hide_content ENABLE ROW LEVEL SECURITY;
+CREATE TABLE practice_results(
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+  card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  outcome TEXT NOT NULL CHECK(outcome IN ('passed','failed')),
+  answered_at TIMESTAMPTZ NOT NULL,
+  local_day TEXT NOT NULL CHECK(local_day ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND to_char(to_date(local_day,'YYYY-MM-DD'),'YYYY-MM-DD') = local_day),
+  UNIQUE(session_id,card_id)
+);
+CREATE INDEX practice_results_by_reader ON practice_results(user_id,card_id,answered_at);
+ALTER TABLE practice_results ENABLE ROW LEVEL SECURITY;
+CREATE FUNCTION reed_practice_results_append_only() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'Practice results are append-only';
+END $$;
+CREATE TRIGGER practice_results_append_only BEFORE UPDATE ON practice_results FOR EACH ROW EXECUTE FUNCTION reed_practice_results_append_only();
 CREATE TABLE card_views (
   user_id TEXT NOT NULL REFERENCES users(id),
   card_id TEXT NOT NULL REFERENCES cards(id),

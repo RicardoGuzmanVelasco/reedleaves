@@ -6,6 +6,7 @@ import {readCardContexts} from "./catalog-repository.mjs";
 import {readReaderState,readReaderBalances,readReaderHomeBooks,openDeck,addDeckToCardcase,removeDeckFromCardcase,openCard,changeBookStatus,changePreferences,dailyIdea,dailyIdeaStatus} from "./reader-repository.mjs";
 import {readDailyStreak} from "./daily-streak.mjs";
 import {startPracticeSession,answerPracticeSession,readPracticeTopics} from "./practice-economy.mjs";
+import {recordPracticeTestResult} from "./practice-tests.mjs";
 
 import {createBook,createDeck,addDeckContributors,changeDeckLanguage,changeDeckTitle,changeDeckDescription,takeNote,moveNote,editNote,deleteNote,finishDeck,finishNoteDecks,completeBook,ownedBookInformation,mergeOwnedBookMetadata} from "./author-repository.mjs";
 import {createBookAutofill} from "./book-autofill.mjs";
@@ -54,7 +55,7 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
       ["/api/auth/logout",["POST"]],["/api/interests",["GET","HEAD"]],["/api/reader/state",["GET","HEAD"]],["/api/reader/balances",["GET","HEAD"]],["/api/reader/home-books",["GET","HEAD"]],["/api/reader/practice/discover-availability",["GET","HEAD"]],["/api/reader/deck/open",["POST"]],["/api/reader/cardcase/add",["POST"]],["/api/reader/cardcase/remove",["POST"]],
       ["/api/reader/book-knowledge/visit",["POST"]],
       ["/api/reader/interests/knowledge/snapshot",["POST"]],["/api/reader/interests/knowledge/recognize",["POST"]],
-      ["/api/reader/open",["POST"]],["/api/reader/book-status",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily-idea",["POST"]],["/api/reader/daily-idea-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]]]);
+      ["/api/reader/open",["POST"]],["/api/reader/book-status",["POST"]],["/api/reader/practice/start",["POST"]],["/api/reader/practice/answer",["POST"]],["/api/reader/practice/test-result",["POST"]],["/api/reader/preferences",["POST"]],["/api/reader/interests/preferences",["GET","HEAD","POST"]],["/api/reader/interests/initial",["POST"]],["/api/reader/language-preferences",["GET","HEAD","POST"]],["/api/reader/daily-idea",["POST"]],["/api/reader/daily-idea-status",["GET"]],["/api/author/books",["POST"]],["/api/author/books/autofill",["POST"]],["/api/author/books/complete",["POST"]],["/api/author/decks",["POST"]],["/api/author/decks/finish",["POST"]]]);
     routes.set("/api/progress/streak",["GET","HEAD"]);
     routes.set("/api/reader/practice/topics",["GET","HEAD"]);
     routes.set("/api/reader/guides",["POST"]);
@@ -159,6 +160,11 @@ export function createReaderApi(db,{now = ()=>new Date(),origin,secureCookies = 
         const state=await readReaderState(db,active,currentTime);
         // The practice cards arrive with their books and decks, so the screen does not need the full catalog.
         send(200,{...result,state,...(state.activePracticeSession?{context:await readCardContexts(db,state.activePracticeSession.cardIds,active.user_id)}:{})}); return true;
+      }
+      if (path === "/api/reader/practice/test-result") {
+        // Self-assessed test of the current card (server/practice-tests.mjs); the client then sends practice/answer "view".
+        const result=await recordPracticeTestResult(db,active,input,currentTime);
+        send(200,{...result,state:await readReaderState(db,active,currentTime)}); return true;
       }
       if (path === "/api/reader/practice/answer") {
         const result=await answerPracticeSession(db,active,input,currentTime);
