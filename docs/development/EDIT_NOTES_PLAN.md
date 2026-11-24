@@ -154,3 +154,8 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 - Contexto de la tarjeta madre en el repaso: se ve y no saca de la sesión. Al pulsarlo sale un modal que invita a guardar la tarjeta o a añadir su baraja al tarjetero para repasarla después, con tres botones: guardar tarjeta (icono), añadir baraja al tarjetero (icono) y, a la izquierda, un descarte tipo «Me lo he pensado mejor…». Copy exacto: lo propone el diseño UI/UX.
 - Progreso del repaso: segmentos arriba, estilo stories (cinco, como en la vista C).
 - Economía (oferta diaria real, precio del tema pagado con hojas): no se toca en el hito 1; se aborda después.
+- Hito 3 del Repaso (onboarding): pista de swipe la primera vez (una vez por usuario), junto al resto de onboarding.
+- Modales: usan primary/secondary de siempre; los estilos marcados quedan reservados a tarjetas y repaso. El modal de la madre queda con dos botones primary en fila (guardar tarjeta, añadir al tarjetero) y solo cierre; sin «Me lo he pensado mejor».
+- Pantalla final: sin chip de tema, sin fichas de XP/racha/tarjetas; +25 XP con prizetag; «Volver». Progreso de mascotas (hoy en modal) a integrar aquí; decisiones de nivel, mascota y racha pendientes del diseño UI/UX.
+- Título del libro en la vista inmersiva y el repaso: hasta dos líneas, con tratamiento unificado.
+- Pendiente al final: el azul de cita es un doble código de color; revisarlo.
