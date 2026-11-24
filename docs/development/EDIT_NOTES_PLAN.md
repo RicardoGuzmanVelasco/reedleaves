@@ -160,3 +160,15 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 - Título del libro en la vista inmersiva y el repaso: hasta dos líneas, con tratamiento unificado.
 - Pendiente al final: el azul de cita es un doble código de color; revisarlo.
 - Hito 1 implementado en ui2 (`app/ui2/repaso-sesion.mjs`, ruta `#practice/session`): «Continuar repaso» y temas en gris con toast, entrada con mazo, sesión inmersiva con segmentos y disolver, modal de la madre, final con miniaturas, crecimiento de mascotas y racha al volver. Servidor: respuesta neutra `view` (no toca `practice_answers`), selección sin peso, siempre cinco tarjetas (también «La baraja del día»), notas borradas fuera de sesiones y de la reparación, 25 XP al completar (`PRACTICE_COMPLETION_XP`) y «La baraja del día» cuenta para la racha al completarse, no al empezar.
+
+## Repaso hito 2: pruebas (diseño, 2026-11-24)
+- Prueba = tipo + tarjeta + definición. Resultado `passed`/`failed`; el tipo fija si es `self` (swipe «me acordaba / no me acordaba») o `auto` (la evalúa el servidor, p. ej. preguntas futuras). Sin columna `assessed_by`: el tipo lo implica.
+- Tipos iniciales: `hideTitle` y `hideContent`. Las citas no llevan prueba. Futuro: preguntas de elegir respuesta (`auto`).
+- Una tabla de definición por tipo: `card_test_hide_title`, `card_test_hide_content`, clave `(card_id, language, fragment)`, cascada con la tarjeta. Cada fila oculta todas las ocurrencias del fragmento (sin mayúsculas, palabra completa). Fragmento vacío = campo entero y no se mezcla con otros. Debe haber al menos una ocurrencia; si deja de haberla, la prueba se descarta al servir.
+- Las definiciones las cargamos nosotros (SQL desde el MCP) con validación estilo `checkCatalog`. Sin editor de autor. Futuro: los archivistas las crean ad hoc.
+- `practice_results(id, user_id, card_id, session_id, kind, outcome, answered_at, local_day)`, solo se añaden filas, sin `CHECK` sobre `kind` (se valida en el registro del código). `practice_session_cards.test_kind` nula. Migración SQLite y PostgreSQL con esquemas históricos.
+- Selección: al crear la sesión, tarjetas con definición válida, no cita y fuera de enfriamiento; todas llevan prueba con tope de 2 (sorteo si hay más); mínimo 0.
+- Enfriamiento por prueba y tarjeta, en días locales de la fuente temporal centralizada: fallada, vuelve a ser elegible pasado mañana; acertada, a los 7 días. Constantes centralizadas.
+- `failed` pesa en la selección de tarjetas; `passed` no. La recompensa no cambia (25 XP al completar).
+- Registro por tipo en código: tabla, validación, interfaz y evaluación. API self: `{sessionId, cardId, outcome}`; auto: el cliente manda la elección y el servidor calcula el resultado.
+- Retirada de «ver más / menos a menudo» en el cierre de la UI v1: botones, valores `see_less`/`see_more` del endpoint y su `CHECK`. `practice_answers` queda como histórico; decidir al cierre si se borra.
