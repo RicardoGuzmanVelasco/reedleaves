@@ -101,14 +101,14 @@ export function practiceGrowth({before={},after={},bookIds}){
 const SPROUT='<path d="M0 10V0M0 1C-7 1-10-3-10-8 0-8 0-2 0 1ZM0-2C0-8 4-11 10-11 10-5 6-2 0-2Z"/>';
 // The final screen: the reader's mascot, the XP, the five cards (tap: the card alone), the growth of the books and «Volver».
 // `items`: the session's cards; `marks`: per card, "bookmark-active" or "like-active"; `growth`: practiceGrowth().
-export function finaleMarkup({stage,pack="",items,marks=[],growth,booksById,language,reward,c}){
+export function finaleMarkup({stage,items,marks=[],growth,booksById,language,reward,c}){
   const confetti=`<span class="rs-confetti" aria-hidden="true">${Array.from({length:14},(_,index)=>`<svg viewBox="-12 -13 24 25"${items[index%items.length]?.theme||""}>${SPROUT}</svg>`).join("")}</span>`;
   const minis=`<ol class="rs-minis" aria-label="${esc(c.ui2DeckCards)}">${items.map((item,index)=>`<li><button type="button" class="rs-mini" data-ui2="practice-mini" data-index="${index}"${item.theme||""} aria-label="${esc(item.card.title||item.card.body)}">${icon(item.card.type==="quote"?"quote":"idea")}<span>${esc(item.card.title||item.card.body)}</span>${marks[index]?`<em>${icon(marks[index])}</em>`:""}</button></li>`).join("")}</ol>`;
   const changes=growth.changes.length?growthFeedbackMarkup(growth.changes,{booksById},language).replace(/<button type="button" class="dialog-close growth-feedback-close"[^]*?<\/button>/,""):"";
   const rows=growth.rows.map(row=>{const book=booksById.get(row.bookId),title=book?bookTitle(book,language):{text:"",language};
     return `<li class="rs-gr${row.grew?"":" is-flat"}">${mascotIcon(row.stage,"rs-gr-ic")}<span class="rs-gr-t" lang="${esc(title.language)}" dir="auto">${esc(title.text)}</span><span class="rs-gr-bar rs-gr-bar--${Math.round(row.share/10)*10}" aria-hidden="true"><i></i></span><span class="rs-gr-n">${esc(row.grew?c.practiceDayAdded:c.practiceDayCounted)}</span></li>`;}).join("");
   const block=changes||rows?`<section class="rs-growth" data-rs-growth>${changes}${rows?`<ul class="rs-gr-list">${rows}</ul>`:""}</section>`:"";
-  return `<div class="rs-end" data-rs-end><div class="rs-end-col">${confetti}<div class="rs-end-hero"><span class="rs-end-mascot">${mascotArt(stage,"",{expression:"happy"})}</span>${pack?`<span class="rs-end-pack" aria-hidden="true">${pack}</span>`:""}</div>`
+  return `<div class="rs-end" data-rs-end><div class="rs-end-col">${confetti}<div class="rs-end-hero"><span class="rs-end-mascot">${mascotArt(stage,"",{expression:"happy"})}</span></div>`
     +`<h1 tabindex="-1">${esc(c.practiceDone)}</h1>${reward?`<div class="rs-end-prize">${prizeTagMarkup({amount:reward,currency:"xp",c})}</div>`:""}${minis}${block}`
     +`<button type="button" class="ui2-btn rs-end-go" data-ui2="practice-done">${esc(c.back)}</button></div></div>`;
 }

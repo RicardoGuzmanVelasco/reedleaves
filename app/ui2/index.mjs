@@ -15,7 +15,7 @@ import {newBookForm,newDeckForm,bookFormErrors,deckFormErrors,visibleErrors,togg
 import {DECK_ADD_COST} from "../wallet.mjs";
 import {PRACTICE_BASE_COST,PRACTICE_COMPLETION_XP} from "../practice-modes.mjs";
 import {guideData,guideMarkup,guideCanSave} from "./guia.mjs";
-import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending,tickStreakCountdown,packMarkup} from "./repaso.mjs";
+import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending,tickStreakCountdown} from "./repaso.mjs";
 import {practiceItems,sessionCardMarkup,dealMarkup,parentModalMarkup,practiceGrowth,finaleMarkup,SESSION_CARDS} from "./repaso-sesion.mjs";
 import {playGrowthFeedback} from "../growth-feedback.mjs";
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
@@ -969,24 +969,28 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const marks=items.map(item=>saved.has(item.id)?"bookmark-active":reading.records.get(recordKey(item.id))?.vote===1?"like-active":"");
     const booksById=new Map([...p.context.booksById,...catalog.booksById]);
     const growth=practiceGrowth({before:p.growth,after:reader.growth||{},bookIds:items.map(item=>item.bookId)});
-    return finaleMarkup({stage:reader.readerProgression?.stage||"sprout",pack:packMarkup(p.session.practiceMode),items,marks,growth,booksById,language,reward:PRACTICE_COMPLETION_XP,c});
+    return finaleMarkup({stage:reader.readerProgression?.stage||"sprout",items,marks,growth,booksById,language,reward:PRACTICE_COMPLETION_XP,c});
   }
-  // The growth of the books' mascots plays once, with the growth modal's script; the screen scrolls down to it when it is below.
+  // The growth of the books' mascots plays once, with the growth modal's script; only the books' zone scrolls, never the screen.
   function mountFinale(){
     const p=practice,end=main.querySelector("[data-rs-end]"),block=main.querySelector("[data-rs-growth]");if(!end)return;
     const host={get open(){return !!block?.isConnected&&practice===p&&p.phase==="done";},querySelectorAll:selector=>block?block.querySelectorAll(selector):[]};
     if(p.played||reducedMotion()){
       end.classList.add("is-settled");playGrowthFeedback(host,{reducedMotion:true});
-      if(p.played)end.scrollTop=p.endScroll;else main.querySelector(".rs-end h1")?.focus({preventScroll:true});
+      if(p.played&&block)block.scrollTop=p.endScroll;else main.querySelector(".rs-end h1")?.focus({preventScroll:true});
       p.played=true;return;
     }
     p.played=true;main.querySelector(".rs-end h1")?.focus({preventScroll:true});
     if(!block)return;
     setTimeout(()=>{
       if(!host.open)return;
-      const top=block.getBoundingClientRect().top,bottom=block.getBoundingClientRect().bottom;
-      if(bottom>win.innerHeight)end.scrollTo({top:end.scrollTop+top-72,behavior:"smooth"});
       playGrowthFeedback(host);
+      // Only the books' zone scrolls: each row that grows is brought into view inside it.
+      [...block.querySelectorAll(".growth-feedback-row")].forEach((row,index)=>setTimeout(()=>{
+        if(!host.open)return;
+        const over=row.getBoundingClientRect().bottom-block.getBoundingClientRect().bottom;
+        if(over>0)block.scrollTo({top:block.scrollTop+over+8,behavior:"smooth"});
+      },300+index*1250));
     },650);
   }
   function closeExclusive(){const p=practice;if(!p)return;p.phase="done";render();}
@@ -1044,7 +1048,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(!p)return false;
     if(action==="practice-exit"||action==="practice-done"){win.location.replace("#practice");return true;}
     if(action==="practice-prev"||action==="practice-next"){practiceGo(action==="practice-prev"?"prev":"next");return true;}
-    if(action==="practice-mini"){p.endScroll=main.querySelector("[data-rs-end]")?.scrollTop||0;p.excl=Number(target.dataset.index)||0;p.phase="excl";render();main.querySelector(".tc-deck")?.focus({preventScroll:true});return true;}
+    if(action==="practice-mini"){p.endScroll=main.querySelector("[data-rs-growth]")?.scrollTop||0;p.excl=Number(target.dataset.index)||0;p.phase="excl";render();main.querySelector(".tc-deck")?.focus({preventScroll:true});return true;}
     if(action==="practice-excl-close"){closeExclusive();return true;}
     if(action==="practice-parent"){p.modal=true;render();return true;}
     if(action==="practice-parent-close"){main.querySelector(".rs-parentdialog")?.close();return true;}

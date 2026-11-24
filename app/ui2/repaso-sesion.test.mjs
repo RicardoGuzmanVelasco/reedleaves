@@ -97,6 +97,8 @@ for(const language of ["es","en"])test(`Repaso session: the final screen shows t
   assert.match(html,/data-rs-growth[^]*growth-feedback-row is-pending/);
   assert.doesNotMatch(html,/growth-feedback-close/,"the growth is part of the screen, not a modal");
   assert.match(html,new RegExp(`data-ui2="practice-done">${c.back}<`));
+  assert.doesNotMatch(html,/ui2-pack/,"the theme's deck does not appear beside the mascot");
+  assert.ok(html.indexOf("data-rs-growth")<html.indexOf('data-ui2="practice-done"'),"«Volver» is outside the growth zone, after it");
   const flat=finaleMarkup({stage:"sprout",items,growth:practiceGrowth({before:{b1:{added:true,practiceDays:5}},after:{b1:{added:true,practiceDays:5}},bookIds:["b1"]}),booksById:catalog.booksById,language,reward:25,c});
   assert.ok(flat.includes(c.practiceDayCounted));
 });
