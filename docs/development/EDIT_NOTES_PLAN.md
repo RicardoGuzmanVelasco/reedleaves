@@ -145,3 +145,5 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 - Hito 1: sesión completa en ui2 sin pruebas. Cada tarjeta se marca como vista (valor neutro en `practice/answer`; las respuestas antiguas se conservan). Selección sin peso (solo diversidad de libros y barajas). Se completa al llegar a la última tarjeta.
 - Hito 2: pruebas en algunas tarjetas (ocultar título, cuerpo…). Swipe «me acordaba / no me acordaba» solo en ellas; «no me acordaba» pesa en la selección.
 - Abiertas: cancelar con reembolso, XP y racha, pantalla final, puntos de entrada, precios. Detalle en `reedleaves-mockups/repaso-propuesta.md`.
+- Sin cancelar sesión: queda a medias y se reanuda (no hay reembolso).
+- Selección y recompensa son partes distintas y desacopladas en el código. Selección: decide qué tarjetas entran (hasta cinco; si hay menos, menos). Recompensa: 25 XP al terminar el repaso, siempre, también con menos de cinco tarjetas. Invariante: un tema que no llega al mínimo de tarjetas no se puede lanzar.
