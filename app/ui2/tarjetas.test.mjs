@@ -53,7 +53,7 @@ for(const language of ["es","en"])test(`Deck reader: header, position, bar and a
   const c=words[language],s=fixture(),first=deckData(s,null,language);
   assert.equal(first.card.id,"a");assert.equal(first.theme,' data-interest-color="#f2937d"');
   const html=cardReaderMarkup({data:first,c});
-  assert.match(html,/<h1 class="tc-deck"[^>]*><span[^>]*>Notas de lectura<\/span><\/h1>/);
+  assert.match(html,/<h1 class="tc-deck"[^>]*>(?:<span class="ui2-icon"[^>]*><\/span>)?<span[^>]*>Notas de lectura<\/span><\/h1>/);
   assert.match(html,new RegExp(`data-ui2="cards-close" aria-label="${c.closeCard}"`));
   // The position is a fraction; its name says it in words.
   assert.ok(html.includes(`aria-label="${c.presentationCards} · ${c.position(1,7)}"`));assert.match(html,/<b>1\/7<\/b>/);
