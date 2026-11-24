@@ -147,3 +147,5 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 - Abiertas: cancelar con reembolso, XP y racha, pantalla final, puntos de entrada, precios. Detalle en `reedleaves-mockups/repaso-propuesta.md`.
 - Sin cancelar sesión: queda a medias y se reanuda (no hay reembolso).
 - Selección y recompensa son partes distintas y desacopladas en el código. Selección: decide qué tarjetas entran (hasta cinco; si hay menos, menos). Recompensa: 25 XP al terminar el repaso, siempre, también con menos de cinco tarjetas. Invariante: un tema que no llega al mínimo de tarjetas no se puede lanzar.
+- Mínimo para lanzar un repaso: 5 tarjetas (siempre cinco). Racha: las dos opciones que cuentan lo hacen al completar.
+- Pantalla final del repaso: sofisticada, al estilo de otras apps del género, con toda la información de progreso (la propone el diseño UI/UX). El progreso de experiencia no se ve hasta salir de esa pantalla; salir vuelve a la pestaña Repaso. Sin «otro repaso» desde dentro.
