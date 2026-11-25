@@ -68,7 +68,7 @@ test("Tab bar: five pieces in the old order, one active, Social disabled",()=>{
   assert.deepEqual([...html.matchAll(/data-nav="([a-z]+)"/g)].map(m=>m[1]),["bookstore","library","home","social","practice"]);
   assert.equal(html.match(/aria-current="page"/g).length,1);
   assert.match(html,/data-nav="home" href="#home" aria-current="page"/);
-  assert.match(html,/<button[^>]*disabled[^>]*aria-disabled="true"[^>]*data-nav="social"/);
+  assert.match(html,/<button(?![^>]*\sdisabled)[^>]*data-ui2="coming-soon"[^>]*data-nav="social"/);
   assert.match(html,/data-nav="bookstore" href="#bookstore"/);
   assert.match(html,/data-nav="practice" href="#practice"/);
   assert.match(html,/data-icon="home-active"/);

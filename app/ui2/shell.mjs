@@ -18,7 +18,7 @@ export function navMarkup({active,practicePending=false,c,wallet=null}){
     +link("bookstore","#bookstore",c.navBookstore)
     +link("library","#library",c.navLibrary)
     +link("home","#home",c.navHome)
-    +`<button class="bottom-navigation-link is-disabled" type="button" disabled aria-disabled="true" data-nav="social">${pieceInner("profile",c.ui2TabSocial)}</button>`
+    +`<button class="bottom-navigation-link is-disabled" type="button" aria-disabled="true" data-ui2="coming-soon" data-nav="social">${pieceInner("profile",c.ui2TabSocial)}</button>`
     +link("practice","#practice",c.ui2TabPractice,practicePending?badge:"",practicePending?c.ui2PracticePending:c.ui2TabPractice)
     +`</nav>`;
 }
