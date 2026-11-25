@@ -3,7 +3,7 @@ import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
 import {StreamableHTTPServerTransport} from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {z} from "zod/v4";
 import {readCatalog} from "./catalog-repository.mjs";
-import {appendTeamDeckCards,createTeamDeck,finishTeamDeck,reassignTeamDeckCreator,readTeamDeckInProgress} from "./author-repository.mjs";
+import {appendTeamDeckCards,createTeamDeck,finishAnyDeck,reassignTeamDeckCreator,readAllDecksInProgress,readTeamDeckInProgress} from "./author-repository.mjs";
 import {TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,EDITORIAL_NOTE_MAX_LENGTH,BOOK_AUTHOR_MAX_LENGTH,MAX_CARDS_PER_DECK} from "../app/core.mjs";
 import {ApiError} from "./errors.mjs";
 import {normalizeQuoteSourceUrl} from "../app/quote-source.mjs";
@@ -51,7 +51,7 @@ const bookMetadataPatch=z.object({
 
 function makeServer(db,publicBaseUrl) {
   const server=new McpServer({name:"reedleaves-deck-authoring",version:"1.2.0"},{
-    instructions:"Create or edit public catalog books only when the user clearly asks to add or change a catalog book. Create finished Reedleaves team decks from the user's conversation. Saving publishes and freezes the complete deck in the shared catalog, attributed to Equipo Reedleaves. Prepare all cards first. Find a book only when unclear. Use list_team_drafts to identify older team in-progress decks and finish_deck only when the user asks to finish them. Use reassign_deck_creator only when the user explicitly requests changing attribution of a finished team deck to an existing account by username. Never invent source quotes, book links or quote-source URLs; use only links supplied by the user or verified at their target, and use isQuote only for wording supplied by the user.",
+    instructions:"Create or edit public catalog books only when the user clearly asks to add or change a catalog book. Create finished Reedleaves team decks from the user's conversation. Saving publishes and freezes the complete deck in the shared catalog, attributed to Equipo Reedleaves. Prepare all cards first. Find a book only when unclear. Use list_drafts to identify any in-progress deck and finish_deck only when the user asks to finish it. The private MCP credential is administrative and can finish a deck owned by any account. Use list_team_drafts only for team-owned decks. Use reassign_deck_creator only when the user explicitly requests changing attribution of a finished team deck to an existing account by username. Never invent source quotes, book links or quote-source URLs; use only links supplied by the user or verified at their target, and use isQuote only for wording supplied by the user.",
     maxToolInputElements:5000
   });
   server.registerTool("find_book",{
@@ -110,10 +110,16 @@ function makeServer(db,publicBaseUrl) {
   },safeTool(async(input)=>toolText(await appendTeamDeckCards(db,input))));
   server.registerTool("finish_deck",{
     title:"Marcar baraja como terminada",
-    description:"Mark a nonempty in-progress deck created by Equipo Reedleaves as finished. Call only when the user explicitly asks to finish that deck. Finishing freezes its cards and prevents further additions. Decks owned by other users or without an owner are rejected. Repeating this call for an already finished team deck is safe.",
-    inputSchema:{deckId:z.string().trim().min(1).max(256).describe("Deck ID of the team deck to finish, as returned by create_deck.")},
+    description:"Administrative action: mark any nonempty in-progress deck as finished, regardless of owner. Call only when the user explicitly asks to finish that deck. Finishing freezes its cards and prevents further additions. Empty or deleted decks are rejected. Repeating this call for an already finished deck is safe.",
+    inputSchema:{deckId:z.string().trim().min(1).max(256).describe("Deck ID of the in-progress deck to finish, as returned by list_drafts or another Reedleaves tool.")},
     annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:false}
-  },safeTool(async(input)=>toolText(await finishTeamDeck(db,input))));
+  },safeTool(async(input)=>toolText(await finishAnyDeck(db,input))));
+  server.registerTool("list_drafts",{
+    title:"Listar barajas en curso",
+    description:"List all in-progress decks across owners, optionally filtered by book. Returns deck IDs, titles, language, owner name and ID, and card counts so an administrator can identify a deck before finishing it. This call does not change any deck.",
+    inputSchema:{bookId:z.string().trim().min(1).max(240).optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false}
+  },safeTool(async(input)=>toolText(await readAllDecksInProgress(db,input))));
   server.registerTool("list_team_drafts",{
     title:"Listar barajas en curso del equipo",
     description:"List only in-progress decks owned by Equipo Reedleaves, optionally filtered by book. Returns deck IDs, titles and card counts so the user can identify existing in-progress decks before finishing them. This call does not change any deck.",
