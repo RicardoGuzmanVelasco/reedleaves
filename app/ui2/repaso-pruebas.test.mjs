@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {words} from "../i18n.mjs";
 import {emptyCatalog} from "../../test-support/reader-state.mjs";
-import {practiceTestView,testMarks,fragmentPattern} from "./repaso-pruebas.mjs";
+import {practiceTestView,testMarks,fragmentPattern,introTap,TEST_INTRO_MS,TEST_TAP_GUARD_MS} from "./repaso-pruebas.mjs";
+import {readFileSync} from "node:fs";
 import {practiceItems,sessionCardMarkup,segmentsMarkup} from "./repaso-sesion.mjs";
 import {resumeMarkup,repasoData} from "./repaso.mjs";
 import {errorInfo} from "./errors.mjs";
@@ -90,4 +91,25 @@ for(const language of ["es","en"])test(`Repaso tests: the server's refusals of a
     assert.equal(errorInfo({code,status:409},c).detail,c[code]);
   }
   for(const key of ["practiceTest","practiceTestHint_hideTitle","practiceTestHint_hideContent","practiceRemembered","practiceForgot","practiceReveal","practiceHidden"])assert.ok(c[key],key);
+});
+
+test("Repaso tests: a tap closes the «¡Prueba!» entry, and two quick taps never close it and uncover the test",()=>{
+  const shownAt=10_000,guard=TEST_TAP_GUARD_MS;
+  assert.ok(guard>=400&&guard<=600);
+  assert.equal(introTap({now:5_000,shownAt:0}),"pass","no entry: the tap uncovers");
+  assert.equal(introTap({now:shownAt-200,shownAt}),"ignore","the entry is about to show (after the deal)");
+  assert.equal(introTap({now:shownAt+guard-1,shownAt}),"ignore","right after it shows");
+  assert.equal(introTap({now:shownAt+guard,shownAt}),"close");
+  assert.equal(introTap({now:shownAt+TEST_INTRO_MS-1,shownAt}),"close","it stays until the end of its time");
+  // Closed by a tap: the next tap within the guard does nothing; later ones uncover.
+  const closedAt=shownAt+1_200;
+  assert.equal(introTap({now:closedAt+guard-1,shownAt,closedAt}),"ignore");
+  assert.equal(introTap({now:closedAt+guard,shownAt,closedAt}),"pass");
+  // Ended by itself: the same guard after it goes.
+  assert.equal(introTap({now:shownAt+TEST_INTRO_MS+guard-1,shownAt}),"ignore");
+  assert.equal(introTap({now:shownAt+TEST_INTRO_MS+guard,shownAt}),"pass");
+  // A few seconds on screen, and the stylesheet plays it for the same time.
+  assert.ok(TEST_INTRO_MS>=4000);
+  const css=readFileSync(new URL("./ui2.css",import.meta.url),"utf8");
+  assert.match(css,new RegExp(`\\.pr-intro\\{[^}]*animation:pr-intro ${TEST_INTRO_MS/1000}s`));
 });

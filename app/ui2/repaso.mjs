@@ -80,16 +80,17 @@ const modeGlyph=id=>ICON_PATHS[id]?`<svg class="practice-mode-icon" viewBox="0 0
 export const packMarkup=(id,badge="")=>`<span class="ui2-pack" aria-hidden="true"><span class="practice-mode-pack"><span class="practice-mode-card practice-mode-card--left"></span><span class="practice-mode-card practice-mode-card--right"></span><span class="practice-mode-card practice-mode-card--cover">${modeGlyph(id)}</span></span>${badge}</span>`;
 export const topicKind=id=>TOPICS.discover.some(topic=>topic.id===id)?"discover":"practice";
 // `locked`: a session is halfway; the topics stay grey and a tap only says so (index.mjs shows the toast).
-function topicMarkup(topic,data,c,locked=false){
+// `pending`: the prices are being read again (after a session): the tags keep their room hidden and the name says no price.
+function topicMarkup(topic,data,c,locked=false,pending=false){
   const name=c[labelKey[topic.id]],info=data.topics.get(topic.id),available=info?info.available:true;
   const done=topic.streak&&data.streak.known&&stepState(topic.id,data),owed=available&&topic.streak&&data.streak.known&&!done;
   const attrs=locked?' data-ui2="practice-locked" aria-disabled="true"':available?` data-ui2="practice-start" data-mode="${topic.id}" data-cost="${info?.cost??REGULAR_COST}"`:' aria-disabled="true"';
   const baseAria=!available?`${name}, ${c.practiceNeedMoreCards(info.cards,info.required)}`:owed?`${name}, ${c.ui2PendingForStreak}`:done?`${name}, ${c.ui2DoneForStreak}`:name;
-  const aria=available?`${baseAria}. ${priceTagLabel(c,{amount:info?.cost??REGULAR_COST,currency:info?.currency||"petal",original:info?.discounted?REGULAR_COST:null})}`:baseAria;
+  const aria=available&&!pending?`${baseAria}. ${priceTagLabel(c,{amount:info?.cost??REGULAR_COST,currency:info?.currency||"petal",original:info?.discounted?REGULAR_COST:null})}`:baseAria;
   const badge=owed||done?`<span class="ui2-flame-badge${done?" is-done":""}">${flame(done)}</span>`:"";
   return `<button type="button" class="practice-mode practice-mode--${topic.id}" aria-label="${esc(aria)}"${attrs}>${packMarkup(topic.id,badge)}<span class="practice-mode-label">${esc(name)}</span>${available?price(info,data,c):""}</button>`;
 }
-const box=(kind,title,topics,data,c,locked)=>`<section class="ui2-rp-box ui2-rp-box--${kind}${locked?" is-locked":""}" aria-labelledby="ui2-rp-${kind}"><h2 id="ui2-rp-${kind}">${esc(title)}</h2><div class="ui2-modes">${topics.map(topic=>topicMarkup(topic,data,c,locked)).join("")}</div></section>`;
+const box=(kind,title,topics,data,c,locked,pending)=>`<section class="ui2-rp-box ui2-rp-box--${kind}${locked?" is-locked":""}" aria-labelledby="ui2-rp-${kind}"><h2 id="ui2-rp-${kind}">${esc(title)}</h2><div class="ui2-modes">${topics.map(topic=>topicMarkup(topic,data,c,locked,pending)).join("")}</div></section>`;
 
 // «Continuar repaso»: the session left halfway, with its theme's deck (still, with the streak flame while it counts and is
 // pending), the segments reached and the button with the shine and the wave of letters of the launch buttons.
@@ -127,9 +128,11 @@ export function calendarSheetMarkup({data,month,c,language}){
 }
 
 // `active`: the session left halfway (state.activePracticeSession), or null. `celebrate`: the streak row lights up once
-// today's streak has just been completed by a session.
-export function repasoMarkup({data,c,nav,month,language,now=new Date(),active=null,celebrate=false}){
-  const locked=!!active;
-  const body=`<div class="ui2-body ui2-rp"><h1 class="sr-only" tabindex="-1">${esc(c.ui2TabPractice)}</h1><section class="ui2-repaso">${locked?resumeMarkup({active,data,c}):""}${streakRow(data,c,now,celebrate)}${box("practice",c.practice,TOPICS.practice,data,c,locked)}${box("discover",c.practiceMode_discover,TOPICS.discover,data,c,locked)}</section><div class="ui2-rp-side">${calendarMarkup({data,month,c,language})}</div></div>`;
+// today's streak has just been completed by a session. `prices`: "pending" while the topics' prices are read again after a
+// session (the tags stay hidden, so they never change before the eyes), "pop" once they arrive (they pop in; the discount
+// and the leaf price, more), otherwise null.
+export function repasoMarkup({data,c,nav,month,language,now=new Date(),active=null,celebrate=false,prices=null}){
+  const locked=!!active,pending=prices==="pending";
+  const body=`<div class="ui2-body ui2-rp${pending?" is-prices-pending":prices==="pop"?" is-prices-pop":""}"><h1 class="sr-only" tabindex="-1">${esc(c.ui2TabPractice)}</h1><section class="ui2-repaso">${locked?resumeMarkup({active,data,c}):""}${streakRow(data,c,now,celebrate)}${box("practice",c.practice,TOPICS.practice,data,c,locked,pending)}${box("discover",c.practiceMode_discover,TOPICS.discover,data,c,locked,pending)}</section><div class="ui2-rp-side">${calendarMarkup({data,month,c,language})}</div></div>`;
   return `<div class="ui2-shell">${headerMarkup({userId:data.userId,stage:data.avatarStage,wallet:data.wallet,c})}${body}${nav}</div>`;
 }

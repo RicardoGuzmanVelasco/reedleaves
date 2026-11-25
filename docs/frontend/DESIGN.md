@@ -91,6 +91,8 @@ Fuente de verdad del estilo de iconos de la interfaz nueva (`?ui=2`). Los SVG vi
 - La sesión (hito 1, `app/ui2/repaso-sesion.mjs`) usa la vista inmersiva de tarjetas con cinco segmentos tipo stories; detalle en `docs/development/EDIT_NOTES_PLAN.md`.
 - Principios: durante la tarjeta, solo el contenido (sin mascota); se pasa tocando o deslizando (izquierda = siguiente), con flechas y teclado en escritorio; los precios reutilizan `priceTag`; mostrar disponibilidad antes de comprar y que el servidor revalide; movimiento reducido elimina desplazamientos.
 - Pruebas (hito 2, `app/ui2/repaso-pruebas.mjs`): tapa del color oscuro del tema con «?» que conserva el largo del texto; tocar descubre (el tercio izquierdo sigue siendo «anterior»); se responde con «No me acordaba» (izquierda) / «Me acordaba» (derecha) o deslizando a ese lado; cuentas monocromas ✓/✗ en los segmentos.
+- Precios de tema: tras una sesión no se muestran hasta tener los nuevos; entonces entran con «pop» (más el descuento y el precio en hojas). Movimiento reducido: aparecen sin animación.
+- Entrada de la sesión: el mazo de la v1 adaptado (apilar, cortar, voltear) mientras se prepara la sesión; movimiento reducido deja los cinco reversos quietos.
 - Las barajas de tema (`.ui2-pack`) leen primero como baraja: el icono del tema va detrás, pequeño y suave.
 - Racha: las dos opciones que cuentan («Un poco de todo», «La baraja del día») llevan la llama `flame` (gris al faltar, naranja al cumplirse); con 2/2, cuenta atrás hasta el siguiente día (fuente `app/daily-cycle.mjs`).
 

@@ -192,6 +192,19 @@ body.ui2.has-bottom-navigation main{padding-bottom:0}
 .ui2-pack .practice-mode-pack{position:absolute;left:0;top:0;width:129px;height:139px;margin:0;transform:scale(.5);transform-origin:top left}
 .ui2-modes .practice-mode-label{max-width:68px;margin:0 auto;font-size:10.5px;line-height:1.15;font-weight:850;text-wrap:balance}
 .ui2-modes .ui2-price-tag{margin-top:6px}
+/* Prices after a session: hidden (keeping their room) until they are read again, then they pop in; the discount and the
+   leaf price pop more. Reduced motion: they just appear. */
+.ui2-rp.is-prices-pending .ui2-modes .ui2-price-tag{visibility:hidden}
+@media(prefers-reduced-motion:no-preference){
+  .ui2-rp.is-prices-pop .ui2-modes .ui2-price-tag{animation:ui2-tag-pop .45s cubic-bezier(.3,1.5,.5,1) both}
+  .ui2-rp.is-prices-pop .ui2-modes .ui2-price-tag:is(.ui2-price-tag--discount,.ui2-price-tag--leaf){animation:ui2-tag-pop-big .8s cubic-bezier(.3,1.3,.5,1) .12s both}
+  .ui2-rp.is-prices-pop .ui2-modes .practice-mode:nth-child(2) .ui2-price-tag{animation-delay:50ms}
+  .ui2-rp.is-prices-pop .ui2-modes .practice-mode:nth-child(3) .ui2-price-tag{animation-delay:100ms}
+  .ui2-rp.is-prices-pop .ui2-modes .practice-mode:nth-child(4) .ui2-price-tag{animation-delay:150ms}
+  .ui2-rp.is-prices-pop .ui2-modes .practice-mode .ui2-price-tag:is(.ui2-price-tag--discount,.ui2-price-tag--leaf){animation-delay:.22s}
+}
+@keyframes ui2-tag-pop{0%{opacity:0;scale:.3}55%{opacity:1;scale:1.14}80%{scale:.97}100%{opacity:1;scale:1}}
+@keyframes ui2-tag-pop-big{0%{opacity:0;scale:.2;rotate:-16deg}40%{opacity:1;scale:1.5;rotate:7deg}60%{scale:.88;rotate:-4deg}78%{scale:1.12;rotate:2deg}90%{scale:.97;rotate:0deg}100%{opacity:1;scale:1;rotate:0deg}}
 /* The theme's glyph stays behind: first the card of a deck, then its icon (smaller and softer than the old interface's). */
 .ui2-pack{--icon-x:-6px;--icon-y:2px;--icon-scale:.8}
 .ui2-pack .practice-mode-icon{opacity:.42}
@@ -806,11 +819,34 @@ button.ed-node{cursor:pointer}
 .rs-peek{opacity:var(--p,0)}
 .tc-reader.rs.is-dissolving .tc-wm{animation:rs-glyph-in .42s cubic-bezier(.3,1.2,.5,1)}
 @keyframes rs-glyph-in{from{opacity:0;transform:translateY(-50%) rotate(14deg) scale(.85)}}
-/* Entrada: mazo de cinco reversos con sombra fina; el de arriba se voltea y la primera tarjeta crece hasta la pantalla. */
+/* Entrada: el mazo de la primera interfaz, adaptado (dealMarkup). Nueve reversos caen por turnos de una torre y se apilan
+   (is-stack, 1,44 s), los cinco de la sesión se levantan mientras los otros cuatro salen por debajo (is-cut, 0,65 s), y el
+   de arriba se voltea y la primera tarjeta crece hasta la pantalla (is-dealing). --t (CSSOM): tiempo ya pasado en la etapa. */
 .rs-deal .tc-main{align-items:center}
 .rs-deck{position:relative;width:170px;height:238px;margin:0 auto;perspective:800px}
 .rs-back{position:absolute;inset:0;width:100%;height:100%;border-radius:18px;box-shadow:0 0 0 1px rgb(23 61 44 / 22%),0 6px 14px -4px rgb(23 61 44 / 35%);transition:transform .3s cubic-bezier(.3,1.2,.5,1)}
-.rs-back--0{transform:rotate(-7deg) translate(-8px,6px)}.rs-back--1{transform:rotate(-3deg) translate(-4px,3px)}.rs-back--2{transform:rotate(1deg)}.rs-back--3{transform:rotate(4deg) translate(3px,-2px)}.rs-back--4{transform:rotate(7deg) translate(6px,-4px)}
+.rs-back--0{--fan:rotate(-7deg) translate(-8px,6px)}.rs-back--1{--fan:rotate(-3deg) translate(-4px,3px)}.rs-back--2{--fan:rotate(1deg)}.rs-back--3{--fan:rotate(4deg) translate(3px,-2px)}.rs-back--4{--fan:rotate(7deg) translate(6px,-4px)}
+.rs-back{transform:var(--fan,none)}
+.rs-back--x0{--i:0;--s:-1}.rs-back--x1{--i:1;--s:1}.rs-back--x2{--i:2;--s:-1}.rs-back--x3{--i:3;--s:1}
+.rs-back--0{--i:4;--s:-1}.rs-back--1{--i:5;--s:1}.rs-back--2{--i:6;--s:-1}.rs-back--3{--i:7;--s:1}.rs-back--4{--i:8;--s:-1}
+.rs-deck.is-stack .rs-back{animation:rs-stack 1s cubic-bezier(.25,.7,.25,1) calc(var(--i) * 55ms - var(--t,0ms)) both}
+.rs-deck.is-cut .rs-back{animation:rs-cut-keep .65s cubic-bezier(.4,0,.25,1) calc(0ms - var(--t,0ms)) both}
+.rs-deck.is-cut .rs-back:is(.rs-back--x0,.rs-back--x1,.rs-back--x2,.rs-back--x3){animation-name:rs-cut-out}
+@keyframes rs-stack{
+  0%{opacity:0;transform:translate(0,calc(-150px - var(--i) * 12px)) rotate(calc(var(--s) * 2deg))}
+  16%{opacity:1;transform:translate(0,calc(-120px - var(--i) * 10px)) rotate(calc(var(--s) * 2deg))}
+  48%{transform:translate(calc(var(--s) * 70px),calc(-50px - var(--i) * 4px)) rotate(calc(var(--s) * 13deg))}
+  84%{transform:translate(calc(var(--s) * 3px),calc(5px - var(--i) * 1.5px)) rotate(calc(var(--s) * .6deg))}
+  100%{opacity:1;transform:translate(0,calc(var(--i) * -1.5px))}}
+@keyframes rs-cut-keep{
+  0%{transform:translate(0,calc(var(--i) * -1.5px))}
+  32%,62%{transform:translate(-10px,calc(-26px - var(--i) * 1.5px)) rotate(-3deg)}
+  100%{transform:var(--fan)}}
+@keyframes rs-cut-out{
+  0%{opacity:1;transform:translate(0,calc(var(--i) * -1.5px))}
+  32%{opacity:1;transform:translate(22%,6px) rotate(4deg)}
+  70%{opacity:1;transform:translate(110%,16px) rotate(9deg)}
+  100%{opacity:0;transform:translate(155%,22px) rotate(12deg)}}
 .rs-deck.is-dealing .rs-back--0{transform:rotate(-12deg) translate(-26px,10px)}.rs-deck.is-dealing .rs-back--3{transform:rotate(10deg) translate(20px,4px)}
 .rs-deck.is-dealing .rs-back--4{animation:rs-flip .42s ease-in forwards}
 @keyframes rs-flip{to{transform:translateY(-30px) rotateY(90deg) scale(1.25);box-shadow:0 18px 28px -8px rgb(0 0 0 / 35%)}}
@@ -959,10 +995,12 @@ button.ed-node{cursor:pointer}
 .rs-segs i.pr-t.is-pop::after{animation:pr-pop .45s cubic-bezier(.3,1.5,.5,1)}
 @keyframes pr-pop{40%{transform:scale(1.35);box-shadow:0 0 0 4px color-mix(in srgb,var(--d,#3f8850) 25%,transparent)}}
 .rs-segs--sm i.pr-t::after{width:13px;height:13px;margin:-6.5px;border-width:2px;background-size:8px 8px}
-/* Entrada de una prueba: «¡Prueba!» con rebote y «?» que saltan, y una frase por tipo. ≈ 2,4 s; no recibe toques.
-   --delay (CSSOM) la espera tras el mazo o el disolver. */
-.pr-intro{position:absolute;left:16px;right:16px;top:122px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;pointer-events:none;animation:pr-intro 2.4s cubic-bezier(.3,1.4,.5,1) var(--delay,0ms) both}
-@keyframes pr-intro{0%{opacity:0;transform:scale(.3) rotate(-14deg)}14%{opacity:1;transform:scale(1.15) rotate(-2deg)}24%{transform:none}86%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-34px) scale(.92)}}
+/* Entrada de una prueba: «¡Prueba!» con rebote y «?» que saltan, y una frase por tipo. 5,2 s (TEST_INTRO_MS); no recibe
+   toques: un toque en la pantalla la cierra antes (.is-closing). --delay (CSSOM) la espera tras el mazo o el disolver. */
+.pr-intro{position:absolute;left:16px;right:16px;top:122px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;pointer-events:none;animation:pr-intro 5.2s cubic-bezier(.3,1.4,.5,1) var(--delay,0ms) both}
+.pr-intro.is-closing{animation:pr-intro-out .18s ease-in both}
+@keyframes pr-intro{0%{opacity:0;transform:scale(.3) rotate(-14deg)}6.5%{opacity:1;transform:scale(1.15) rotate(-2deg)}11%{transform:none}94%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-34px) scale(.92)}}
+@keyframes pr-intro-out{to{opacity:0;transform:translateY(-22px) scale(.94)}}
 .pr-intro-t{margin:0;font-size:54px;font-weight:900;line-height:1;letter-spacing:-.04em;color:#fffdf6;-webkit-text-stroke:7px var(--d);paint-order:stroke fill;text-shadow:0 6px 0 var(--d);transform:rotate(-5deg)}
 .pr-intro-s{margin:0;max-width:340px;padding:6px 14px;border-radius:14px;background:rgb(255 253 246 / 82%);font-size:14.5px;font-weight:650;line-height:1.35;color:var(--ui2-ink)}
 .pr-intro-q{position:absolute;left:50%;top:30px;width:0;height:0}
@@ -970,8 +1008,8 @@ button.ed-node{cursor:pointer}
 .pr-intro-q i:nth-child(1){transform:translate(-152px,6px) rotate(-18deg);font-size:28px}.pr-intro-q i:nth-child(2){transform:translate(146px,-4px) rotate(16deg);font-size:24px}
 .pr-intro-q i:nth-child(3){transform:translate(-122px,-26px) rotate(-8deg);font-size:15px}.pr-intro-q i:nth-child(4){transform:translate(124px,-30px) rotate(12deg);font-size:16px}
 @keyframes pr-q{from{opacity:0;translate:0 14px;scale:.4}}
-@keyframes pr-fade{0%,100%{opacity:0}8%,90%{opacity:1}}
+@keyframes pr-intro-fade{0%,100%{opacity:0}4%,96%{opacity:1}}
 @media(prefers-reduced-motion:reduce){
   .pr-hide{animation:none}.pr-judge,.pr-judge.is-hop button,.rs-segs i.pr-t.is-pop::after{animation:none}.pr-judge button{transition:none}.pr-arrow{animation:none!important}
-  .pr-intro{animation:pr-fade 2.4s linear var(--delay,0ms) both}.pr-intro-q{display:none}
+  .pr-intro{animation:pr-intro-fade 5.2s linear var(--delay,0ms) both}.pr-intro-q{display:none}
 }

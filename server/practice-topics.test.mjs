@@ -4,8 +4,9 @@ import {PGlite} from "@electric-sql/pglite";
 import {openDatabase,PostgresDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION,POSTGRES_SCHEMA_VERSION} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {historicalDatabase} from "../test-support/historical-database.mjs";
-import {startPracticeSession,answerPracticeSession,readPracticeTopics,PRACTICE_TOPICS,PRACTICE_SESSION_SIZE} from "./practice-economy.mjs";
+import {startPracticeSession,answerPracticeSession,readPracticeTopics,PRACTICE_TOPICS,PRACTICE_SESSION_SIZE,NOVELTY_BOOKS} from "./practice-economy.mjs";
 import {readDailyStreak} from "./daily-streak.mjs";
+import {noveltyCards} from "./practice-economy.mjs";
 
 const at=iso=>new Date(iso);
 const NOW=at("2026-10-10T12:00:00Z");
@@ -36,6 +37,18 @@ const finish=async(db,session,started)=>{
   for(const [index,cardId] of started.session.cardIds.entries()) result=await answerPracticeSession(db,session,{sessionId:started.session.id,cardId,index,answer:"view"},NOW);
   return result;
 };
+
+test("novelties: the newest books by incorporation (the Bookstore's «Más recientes»), ideas only, several books and decks",()=>{
+  const books=Array.from({length:12},(_,index)=>({id:`b${index}`,incorporatedAt:new Date(Date.UTC(2026,0,1+index)).toISOString(),incorporationOrder:index+1}));
+  const cards=books.flatMap(book=>[0,1,2].map(n=>({id:`${book.id}-${n}`,bookId:book.id,deckId:`${book.id}-d${n%2}`,isQuote:n===2})));
+  // The newest book has only quotes: it does not take a place among the eight.
+  cards.push({id:"b12-q",bookId:"b12",deckId:"b12-d",isQuote:true});books.push({id:"b12",incorporatedAt:"2026-02-01T00:00:00.000Z",incorporationOrder:13});
+  const pool=noveltyCards({books},cards),poolBooks=new Set(pool.map(card=>card.bookId));
+  assert.deepEqual([...poolBooks].sort(),Array.from({length:NOVELTY_BOOKS},(_,index)=>`b${11-index}`).sort());
+  assert.ok(pool.every(card=>!card.isQuote));
+  assert.ok(new Set(pool.map(card=>card.deckId)).size>NOVELTY_BOOKS,"several decks per book stay in the pool");
+  assert.ok(NOVELTY_BOOKS>PRACTICE_SESSION_SIZE,"more books than cards: a session can take one card per book");
+});
 
 for(const [dialect,version] of [["sqlite",67],["postgres",59]]) {
   test(`${dialect} v${version}: practice topics migration renames discover and accepts the new topics`,async t=>{
@@ -130,9 +143,8 @@ for(const dialect of ["sqlite","postgres"]) {
     const bought=await startPracticeSession(db,session,"novelties",NOW,null,topic.cost);
     assert.equal(bought.session.practiceMode,"novelties");assert.equal(bought.session.cost,topic.cost);
     assert.equal(bought.balance,(topic.currency==="leaf"?100:20)-topic.cost);
-    const unknown=new Set((await db.prepare("SELECT id FROM books WHERE id NOT IN (SELECT book_id FROM reader_known_books WHERE user_id=?)").all(session.user_id)).map(row=>row.id));
-    const books=(await db.prepare(`SELECT book_id FROM cards WHERE id IN (${bought.session.cardIds.map(()=>"?").join(",")})`).all(...bought.session.cardIds)).map(row=>row.book_id);
-    assert.ok(books.every(id=>unknown.has(id)));
+    const picked=await db.prepare(`SELECT book_id,deck_id,is_quote FROM cards WHERE id IN (${bought.session.cardIds.map(()=>"?").join(",")})`).all(...bought.session.cardIds);
+    assert.equal(picked.length,PRACTICE_SESSION_SIZE);assert.ok(picked.every(row=>!Number(row.is_quote)),"novelties never bring quotes");
     await finish(db,session,bought);
 
     const legacy=await startPracticeSession(db,session,"discover",NOW,null);
@@ -140,14 +152,22 @@ for(const dialect of ["sqlite","postgres"]) {
     assert.equal((await startPracticeSession(db,session,"other",NOW,null).catch(error=>error.message)),"invalidRequest");
   });
 
-  test(`${dialect}: novelties empty once the Bookstore books are known; teamPicks use recommended decks; saved counts saved cards`,async t=>{
+  test(`${dialect}: novelties always draw from the most recent books, spread over books and decks; teamPicks use recommended decks; saved counts saved cards`,async t=>{
     const {db,session}=await fixture(t,dialect);
+    // Knowing every book of the Bookstore does not empty it: it never depended on what the reader knows.
     await db.prepare("INSERT INTO reader_known_books(user_id,book_id) SELECT ?,id FROM books").run(session.user_id);
+    const ideaBooks=(await db.prepare("SELECT DISTINCT book_id FROM cards WHERE is_quote=0 AND is_reading_guide=0").all()).length;
+    await db.prepare("UPDATE petal_wallets SET balance=100 WHERE user_id=?").run(session.user_id);
     let by=Object.fromEntries((await readPracticeTopics(db,session)).topics.map(topic=>[topic.id,topic]));
-    assert.equal(by.novelties.available,false);assert.equal(by.novelties.cards,0);
-    const none=await startPracticeSession(db,session,"novelties",NOW,null);
-    assert.equal(none.reason,"notEnoughCards");assert.equal(none.available,0);
-    assert.equal((await db.prepare("SELECT balance FROM petal_wallets WHERE user_id=?").get(session.user_id)).balance,20,"nothing is charged when unavailable");
+    assert.equal(by.novelties.available,true);
+    for(let round=0;round<3;round++) {
+      const started=await startPracticeSession(db,session,"novelties",NOW,null);
+      assert.equal(started.session.cardIds.length,PRACTICE_SESSION_SIZE,"always five cards");
+      const rows=await db.prepare(`SELECT book_id,deck_id,is_quote FROM cards WHERE id IN (${started.session.cardIds.map(()=>"?").join(",")})`).all(...started.session.cardIds);
+      assert.ok(rows.every(row=>!Number(row.is_quote)),"no quotes");
+      assert.equal(new Set(rows.map(row=>row.book_id)).size,Math.min(PRACTICE_SESSION_SIZE,ideaBooks),"one card per book while there are books enough");
+      await finish(db,session,started);
+    }
 
     await db.prepare("UPDATE decks SET is_recommended=0").run();
     await db.prepare("UPDATE decks SET is_recommended=1 WHERE id IN (SELECT deck_id FROM cards GROUP BY deck_id HAVING count(*)>=5 LIMIT 1)").run();

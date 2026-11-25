@@ -16,8 +16,8 @@ import {DECK_ADD_COST} from "../wallet.mjs";
 import {PRACTICE_BASE_COST,PRACTICE_COMPLETION_XP} from "../practice-modes.mjs";
 import {guideData,guideMarkup,guideCanSave} from "./guia.mjs";
 import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending,tickStreakCountdown} from "./repaso.mjs";
-import {practiceItems,sessionCardMarkup,dealMarkup,parentModalMarkup,practiceGrowth,finaleMarkup,SESSION_CARDS} from "./repaso-sesion.mjs";
-import {practiceTestView,testMarks,TEST_INTRO_MS,TEST_PEEL_MS,TEST_FADE_MS} from "./repaso-pruebas.mjs";
+import {practiceItems,sessionCardMarkup,dealMarkup,parentModalMarkup,practiceGrowth,finaleMarkup,SESSION_CARDS,DEAL_STAGE_MS} from "./repaso-sesion.mjs";
+import {practiceTestView,testMarks,introTap,TEST_INTRO_MS,TEST_INTRO_CLOSE_MS,TEST_PEEL_MS,TEST_FADE_MS} from "./repaso-pruebas.mjs";
 import {playGrowthFeedback} from "../growth-feedback.mjs";
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
@@ -55,7 +55,7 @@ const TOAST_MS=6500;
 export async function mountUi2({main,api,loadCatalog,language,tintMode="off",store=createBrowserStore(),doc=document,win=window}){
   let c={...(words[language]||words.es)};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let guide=null,guideReturn="#library",guideExit=null,auth=newAuth(),resume=null,resumeAfterHash=false,inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null,editor=null,practice=null,streakCelebrate=false;
+  let guide=null,guideReturn="#library",guideExit=null,auth=newAuth(),resume=null,resumeAfterHash=false,inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null,editor=null,practice=null,streakCelebrate=false,topicsStale=false,pricesPop=false;
   // The card view: the explanation of «Baraja en curso» open, the way the card came in, the context of a card missing from the
   // catalog (#card of a deleted note), the votes read per reader and card, and the cards already counted as viewed.
   const reading={pop:false,enter:null,context:null,records:new Map(),viewed:new Set()};
@@ -280,7 +280,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(where.name==="practice"){
       const data=repasoData({state:reader,streak,topics}),month=calendarMonth||(reader.today||"").slice(0,7);
       const celebrate=streakCelebrate&&data.streak.doneToday;if(celebrate)streakCelebrate=false;
-      let html=repasoMarkup({data,c,nav:navFor("practice"),month,language,active:reader.activePracticeSession||null,celebrate});
+      // After a session the prices may change: hidden until they are read again, then they pop in (once).
+      const prices=topicsStale?"pending":pricesPop?"pop":null;pricesPop=false;
+      let html=repasoMarkup({data,c,nav:navFor("practice"),month,language,active:reader.activePracticeSession||null,celebrate,prices});
       if(sheetState?.type==="calendar")html+=calendarSheetMarkup({data,month,c,language});
       if(toast)html+=toastMarkup({...toast,c});
       paint(withError(html));
@@ -879,9 +881,12 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // and reaching the last one completes it. `practice`: {phase deal|cards|excl|done, session, context, items, at (card shown),
   // reached, completed, xpReward, growth (before), streakDone (before), modal, enter, from, played, endScroll, excl, and for the
 // tests (repaso-pruebas.mjs): revealed (card ids uncovered here; not kept: a session resumed shows them covered again),
-// outcomes (answers given here, before the server confirms them), introFor/introAt (the «¡Prueba!» entry) and pop}.
+// outcomes (answers given here, before the server confirms them), introFor/introAt/introClosedAt (the «¡Prueba!» entry: the
+// card, when it shows and when a tap closed it) and pop}.
 // A card with a test counts as seen only once answered: test-result first, then its «view».
-  const DEFAULT_THEME=' data-interest-color="#AAD57B"',DEAL_MIN_MS=700,DEAL_FLIP_MS=420;
+  // The entry's deck plays while the start request runs (dealMarkup): the first card waits for both. Reduced motion: still
+  // backs for at least DEAL_MIN_MS.
+  const DEFAULT_THEME=' data-interest-color="#AAD57B"',DEAL_MIN_MS=700;
   const practiceShown=()=>{if(!practice)return null;return practice.phase==="excl"?practice.items.filter(Boolean)[practice.excl]||null:practice.items[practice.at]||null;};
   const practiceRefresh=()=>{if(practice?.session)practice.items=practiceItems({session:practice.session,catalog,context:practice.context,language});};
   async function practiceContext(p){
@@ -894,9 +899,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   function openPractice({mode,cost=null,sessionId=null}){
     if(busy)return;
     const doneToday=!!streak?.mixedDoneToday&&!!streak?.dailyCardSeenToday;
-    const opened=practice={phase:"deal",dealing:false,session:null,context:partialCatalog({}),items:[],at:0,reached:0,completed:false,xpReward:null,
+    const opened=practice={phase:"deal",stage:reducedMotion()?null:"stack",stageAt:Date.now(),session:null,context:partialCatalog({}),items:[],at:0,reached:0,completed:false,xpReward:null,
       growth:reader.growth||{},streakDone:doneToday,modal:null,enter:null,from:null,played:false,endScroll:0,excl:0,
-      revealed:new Set(),outcomes:new Map(),introFor:null,introAt:0,pop:-1};
+      revealed:new Set(),outcomes:new Map(),introFor:null,introAt:0,introClosedAt:null,pop:-1};
     if(route().name!=="practice-session")win.location.hash="#practice/session";else render();
     const shownAt=Date.now();
     run(async()=>{
@@ -913,15 +918,17 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       opened.session=result.session;opened.context=partialCatalog(result.context||{});
       opened.at=opened.reached=Math.min(SESSION_CARDS-1,Math.max(0,result.session.index));
       await practiceContext(opened);
-      setTimeout(()=>dealFirst(opened),Math.max(0,DEAL_MIN_MS-(Date.now()-shownAt)));
+      const least=opened.stage?DEAL_STAGE_MS.stack:DEAL_MIN_MS;
+      setTimeout(()=>dealFirst(opened),Math.max(0,least-(Date.now()-shownAt)));
     });
   }
-  // The top card back turns over and the first card grows into the screen.
+  // The deck is cut (the session's five stay), the top card back turns over and the first card grows into the screen.
   function dealFirst(p){
     if(practice!==p||p.phase!=="deal")return;
     const show=()=>{if(practice!==p||p.phase!=="deal")return;p.phase="cards";p.dealt=!reducedMotion();render();};
-    if(reducedMotion()){show();return;}
-    p.dealing=true;render();setTimeout(show,DEAL_FLIP_MS);
+    if(!p.stage||reducedMotion()){show();return;}
+    const stage=(name,next)=>{if(practice!==p||p.phase!=="deal")return;p.stage=name;p.stageAt=Date.now();render();setTimeout(next,DEAL_STAGE_MS[name]);};
+    stage("cut",()=>stage("dealing",show));
   }
   // Answers, in order, every card reached and not yet answered; the answer of the last card completes the session.
   function practiceAnswer(){
@@ -995,9 +1002,13 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     judge.classList.remove("is-hop");void judge.offsetWidth;judge.classList.add("is-hop");
   }
   // The cover peels off and drops little leaves (reduced motion: it fades in 120 ms); then the answers rise.
+  // While the «¡Prueba!» entry plays, a tap closes it instead; taps right after it shows or closes do nothing (introTap).
   function practiceReveal(){
     const p=practice;if(practiceTestStep()!=="hidden"||p.revealing)return;
     const id=p.session.cardIds[p.at],screen=main.querySelector(".tc-reader"),keyboard=!!doc.activeElement?.matches?.(".pr-reveal");
+    const gate=p.introFor===id?introTap({now:Date.now(),shownAt:p.introAt,closedAt:p.introClosedAt}):"pass";
+    if(gate==="ignore")return;
+    if(gate==="close"){closeIntro(p);return;}
     p.revealing=true;
     const done=()=>{
       p.revealing=false;if(practice!==p||p.phase!=="cards"||p.session.cardIds[p.at]!==id)return;
@@ -1008,6 +1019,12 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     screen?.classList.add("pr-peel");
     for(const cover of [...main.querySelectorAll(".tc-stage .pr-hide,.tc-ctx .pr-hide")].slice(0,4))burstLeaves(cover,{color:readerTheme(),doc,win});
     setTimeout(done,TEST_PEEL_MS);
+  }
+  function closeIntro(p){
+    p.introClosedAt=Date.now();
+    const intro=main.querySelector(".pr-intro");if(!intro)return;
+    if(reducedMotion()){intro.remove();return;}
+    intro.classList.add("is-closing");setTimeout(()=>intro.remove(),TEST_INTRO_CLOSE_MS);
   }
   // The answer: the button sinks, the segment's bead fills (✓ or ✗), the content leaves on that side and the next card comes.
   // The result goes to the server at once; the card's «view» follows it (practiceAnswer waits for the confirmation).
@@ -1084,7 +1101,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // Leaving the session (its X, «Volver», the browser's back): a completed one hands its XP to the header (and the level
   // modal, when it levels up) and lights the streak row of Repaso when it completed today's streak.
   function leavePractice(){
-    const p=practice;practice=null;
+    const p=practice;practice=null;topicsStale=true;
     if(!p?.completed)return;
     streakCelebrate=!p.streakDone;
     const gain=observeXp(viewerId(),undefined,p.xpReward);if(gain)xpFeedback?.present(gain);
@@ -1096,7 +1113,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       return;
     }
     const p=practice;let html;
-    if(p.phase==="deal")html=dealMarkup({dealing:p.dealing,c});
+    if(p.phase==="deal")html=dealMarkup({stage:p.stage,c});
     else if(p.phase==="done")html=practiceFinaleMarkup();
     else{
       const exclusive=p.phase==="excl",item=practiceShown(),at=exclusive?p.excl:p.at;
@@ -1104,8 +1121,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       else{
         const test=exclusive?null:practiceTestAt(p,at),id=p.session.cardIds[at];
         // The «¡Prueba!» entry plays once on reaching a covered test, after the deck's deal or the dissolve.
-        if(test?.state==="hidden"&&p.introFor!==id){p.introFor=id;p.introAt=Date.now()+(p.dealt?550:p.from?320:0);}
-        const intro=test?.state==="hidden"&&p.introFor===id&&Date.now()<p.introAt+TEST_INTRO_MS;
+        if(test?.state==="hidden"&&p.introFor!==id){p.introFor=id;p.introAt=Date.now()+(p.dealt?550:p.from?320:0);p.introClosedAt=null;}
+        const intro=test?.state==="hidden"&&p.introFor===id&&p.introClosedAt===null&&Date.now()<p.introAt+TEST_INTRO_MS;
         html=sessionCardMarkup({item,at,exclusive,ui:{enter:p.enter,from:p.from,dealt:p.dealt,record:reading.records.get(recordKey(item.id)),saved:savedIdsNow().has(item.id),
           marks:testMarks(p.session,p.outcomes),pop:p.pop,test,intro,
           neighbours:exclusive?{}:{prev:at>0?p.items[at-1]?.theme||DEFAULT_THEME:null,next:p.items[at+1]?p.items[at+1].theme||DEFAULT_THEME:null}},c});
@@ -1119,6 +1136,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(toast)html+=toastMarkup({...toast,c});
     paint(withError(html));
     if(p.phase==="done"){mountFinale();return;}
+    if(p.phase==="deal"){main.querySelector(".rs-deck")?.style.setProperty("--t",`${Date.now()-p.stageAt}ms`);return;}
     if(p.phase==="cards"||p.phase==="excl"){
       const layer=main.querySelector(".rs-diss-bg");if(layer&&Number.isFinite(fromOpacity))layer.style.setProperty("--from",String(fromOpacity));
       const intro=main.querySelector(".pr-intro");
@@ -1449,7 +1467,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(toast&&!exit&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
     render();
     resumeAfterHash=false;finishResume();
-    if(route().name==="practice"&&viewer())Promise.all([loadStreak(),loadTopics(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{if(route().name==="practice"&&!form)render();});
+    if(route().name==="practice"&&viewer())Promise.all([loadStreak(),loadTopics(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{
+      if(topicsStale){topicsStale=false;pricesPop=true;}
+      if(route().name==="practice"&&!form)render();else pricesPop=false;
+    });
   });
 
   async function start(){

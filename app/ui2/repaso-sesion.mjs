@@ -78,11 +78,19 @@ export function sessionCardMarkup({item,at,exclusive=false,ui={},c}){
     +(context?`<div class="tc-who">${context}</div>`:"")+testControls+`<div class="tc-acts" data-ui2-acts>${cardActionsMarkup({card,record,saved,c})}</div>${arrows}</div></div>`;
 }
 
-// Entry: five card backs while the session is prepared; `dealing` turns the top one over before the first card shows.
-export function dealMarkup({dealing=false,c}){
-  const backs=Array.from({length:SESSION_CARDS},(_,index)=>`<img class="rs-back rs-back--${index}" src="${imageUrl("/app/assets/brand/card-back.svg")}" alt="">`).join("");
+// Entry, while the session is prepared (the start request runs meanwhile): the deck of the first interface, adapted.
+// `stage`: "stack" (nine card backs fall in turns from a tower and settle in one pile), "cut" (the session's five lift
+// while the other four slide out underneath), "dealing" (the top one turns over before the first card shows) or null
+// (the five backs, still: reduced motion). The timing of each stage is ui2.css's (DEAL_STAGE_MS); index.mjs sets --t,
+// the time already spent in the stage, so a repaint goes on where it was.
+export const DEAL_EXTRA=4;
+export const DEAL_STAGE_MS=Object.freeze({stack:1440,cut:650,dealing:420});
+export function dealMarkup({stage=null,c}){
+  const back=name=>`<img class="rs-back rs-back--${name}" src="${imageUrl("/app/assets/brand/card-back.svg")}" alt="">`;
+  const backs=(stage==="stack"||stage==="cut"?Array.from({length:DEAL_EXTRA},(_,index)=>back(`x${index}`)).join(""):"")
+    +Array.from({length:SESSION_CARDS},(_,index)=>back(index)).join("");
   return `<div class="tc-reader rs rs-deal"><div class="tc-col"><header class="tc-head rs-head-min"><div class="tc-titles"></div>${closeButton("practice-exit",c.practiceExit)}</header>`
-    +`<div class="tc-row rs-segrow">${segmentsMarkup(0,c,{label:false})}</div><div class="tc-main"><div class="rs-deck${dealing?" is-dealing":""}" aria-hidden="true">${backs}</div>`
+    +`<div class="tc-row rs-segrow">${segmentsMarkup(0,c,{label:false})}</div><div class="tc-main"><div class="rs-deck${stage?` is-${stage}`:""}" aria-hidden="true">${backs}</div>`
     +`<p class="rs-deal-t" role="status">${esc(c.practiceStarting)}</p></div></div></div>`;
 }
 

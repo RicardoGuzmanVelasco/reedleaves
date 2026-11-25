@@ -15,6 +15,7 @@ import {practiceDeckIds} from "./practice-card-access.mjs";
 import {discoverPracticeCandidateContext,selectDiscoverPracticeForReader} from "./discover-practice.mjs";
 import {choosePracticeTestsInside,readPracticeResults,withPracticeTests} from "./practice-tests.mjs";
 import {practiceCardWeights} from "./practice-card-weights.mjs";
+import {sortBooksByRecent} from "../app/catalog-incorporation.mjs";
 
 import {dailyCardCandidates,ensureDailyCardInside,dailyDeckCardIds,recordDailyCardViewInside,DAILY_DECK_SIZE} from "./daily-deck.mjs";
 import {PRACTICE_BASE_COST,PRACTICE_DISCOUNT_COST,PRACTICE_LEAF_COST,PRACTICE_COMPLETION_XP,practicePrice} from "../app/practice-modes.mjs";
@@ -70,24 +71,33 @@ function sessionFromRow(row) {
 
 async function practiceContext(db,userId) {
   const catalog=prepareCatalog(await readCatalog(db,userId));
-  const [statusRows,cardcaseRows,savedRows,knownRows,access]=await Promise.all([
+  const [statusRows,cardcaseRows,savedRows,access]=await Promise.all([
     db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId),
     db.prepare("SELECT deck_id FROM cardcase_decks WHERE user_id=?").all(userId),
     db.prepare("SELECT card_id FROM card_saves WHERE user_id=?").all(userId),
-    db.prepare("SELECT book_id FROM reader_known_books WHERE user_id=?").all(userId),
     practiceDeckIds(db,userId)
   ]);
   return {catalog,access,statuses:new Map(statusRows.map(row=>[row.book_id,row.status])),cardcaseDeckIds:new Set(cardcaseRows.map(row=>row.deck_id)),
-    saved:new Set(savedRows.map(row=>row.card_id)),knownBookIds:new Set(knownRows.map(row=>row.book_id))};
+    saved:new Set(savedRows.map(row=>row.card_id))};
+}
+
+// «Entre las novedades» always draws from the catalog's most recent books (the Bookstore's «Más recientes» order), whatever
+// the reader already knows: the newest books that have practisable ideas, enough of them for a session spread over books
+// and decks. Ideas only: no quotes (deleted notes never reach the catalog).
+export const NOVELTY_BOOKS=8;
+export function noveltyCards(catalog,cards) {
+  const byBook=new Map();
+  for(const card of cards) if(!card.isQuote) {if(!byBook.has(card.bookId)) byBook.set(card.bookId,[]);byBook.get(card.bookId).push(card);}
+  return sortBooksByRecent(catalog.books.filter(book=>byBook.has(book.id))).slice(0,NOVELTY_BOOKS).flatMap(book=>byBook.get(book.id));
 }
 
 // Candidate cards of the topics drawn from the reader's own state or the catalog.
 // "dailyDeck" and "interests" have their own composition and are not handled here.
 function topicCards(context,topic,languages=null) {
-  const {catalog,access,statuses,cardcaseDeckIds,saved,knownBookIds}=context;
-  return catalog.allCards.filter(card=>{
-    if(card.isReadingGuide||!access.has(card.deckId)||languages&&!languages.includes(effectiveCardLanguage(card))) return false;
-    if(topic==="novelties") return !knownBookIds.has(card.bookId);
+  const {catalog,access,statuses,cardcaseDeckIds,saved}=context;
+  const usable=catalog.allCards.filter(card=>!card.isReadingGuide&&access.has(card.deckId)&&(!languages||languages.includes(effectiveCardLanguage(card))));
+  if(topic==="novelties") return noveltyCards(catalog,usable);
+  return usable.filter(card=>{
     if(topic==="teamPicks") return !!catalog.decksById.get(card.deckId)?.isRecommended;
     const status=statuses.get(card.bookId)||"unread",isSaved=saved.has(card.id);
     const inCardcase=cardcaseDeckIds.has(card.deckId),isReadingBook=inCardcase&&status==="reading",isReadBook=inCardcase&&status==="read";

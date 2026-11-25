@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {words} from "../i18n.mjs";
 import {partialCatalog} from "../catalog.mjs";
 import {emptyCatalog} from "../../test-support/reader-state.mjs";
-import {practiceItems,sessionCardMarkup,dealMarkup,parentModalMarkup,practiceGrowth,finaleMarkup,segmentsMarkup,SESSION_CARDS} from "./repaso-sesion.mjs";
+import {practiceItems,sessionCardMarkup,dealMarkup,parentModalMarkup,practiceGrowth,finaleMarkup,segmentsMarkup,SESSION_CARDS,DEAL_EXTRA,DEAL_STAGE_MS} from "./repaso-sesion.mjs";
 import {repasoData,repasoMarkup} from "./repaso.mjs";
 import {navMarkup} from "./shell.mjs";
 
@@ -56,11 +56,19 @@ test("Repaso session: a card opened from the final screen is alone, without segm
   assert.match(html,new RegExp(`data-ui2="practice-excl-close" aria-label="${c.closeCard}"`));
 });
 
-test("Repaso session: the entry deals five card backs while it prepares",()=>{
-  const c=words.es,html=dealMarkup({c});
-  assert.equal(html.match(/class="rs-back rs-back--\d"/g).length,5);
-  assert.ok(html.includes(c.practiceStarting));
-  assert.match(dealMarkup({dealing:true,c}),/rs-deck is-dealing/);
+test("Repaso session: the entry stacks nine card backs, cuts the session's five and deals while it prepares",()=>{
+  const c=words.es,still=dealMarkup({c}),backs=html=>(html.match(/class="rs-back rs-back--\w+"/g)||[]).length;
+  assert.equal(backs(still),SESSION_CARDS,"reduced motion: the five backs, still");
+  assert.ok(still.includes(c.practiceStarting));
+  assert.match(still,/role="status"/);
+  for(const stage of ["stack","cut"]){
+    const html=dealMarkup({stage,c});
+    assert.match(html,new RegExp(`rs-deck is-${stage}`));
+    assert.equal(backs(html),SESSION_CARDS+DEAL_EXTRA,"the four extra backs leave at the cut");
+  }
+  const dealing=dealMarkup({stage:"dealing",c});
+  assert.match(dealing,/rs-deck is-dealing/);assert.equal(backs(dealing),SESSION_CARDS);
+  assert.equal(DEAL_STAGE_MS.stack,1000+(SESSION_CARDS+DEAL_EXTRA-1)*55,"the stack lasts as its last back's fall (ui2.css)");
   assert.match(segmentsMarkup(0,c,{label:false}),/aria-hidden="true"/);
 });
 

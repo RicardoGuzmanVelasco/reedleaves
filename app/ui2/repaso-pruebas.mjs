@@ -8,8 +8,22 @@ import {icon} from "./icons.mjs";
 // The card field each kind hides (server/practice-test-kinds.mjs keeps the same registry).
 export const PRACTICE_TEST_FIELD=Object.freeze({hideTitle:"title",hideContent:"body"});
 export const PRACTICE_TEST_OUTCOMES=Object.freeze(["passed","failed"]);
-// How long the «¡Prueba!» entry stays (ui2.css .pr-intro) and the uncovering of the cover (.pr-peel / reduced motion).
-export const TEST_INTRO_MS=2400,TEST_PEEL_MS=300,TEST_FADE_MS=120,TEST_ANSWER_MS=450;
+// How long the «¡Prueba!» entry stays (ui2.css .pr-intro, same duration) and the uncovering of the cover (.pr-peel /
+// reduced motion). A tap closes the entry early (.pr-intro.is-closing, TEST_INTRO_CLOSE_MS).
+export const TEST_INTRO_MS=5200,TEST_INTRO_CLOSE_MS=180,TEST_PEEL_MS=300,TEST_FADE_MS=120,TEST_ANSWER_MS=450;
+// Taps this close to the entry showing or closing do nothing: two quick taps never close it and uncover the test at once.
+export const TEST_TAP_GUARD_MS=500;
+
+// Pure: what a tap that would uncover the test does while the «¡Prueba!» entry plays. `shownAt`: when the entry shows
+// (0: no entry for this card); `closedAt`: when a tap closed it (null: it plays or ended by itself).
+// "ignore" (guard: too close to it showing or closing, or it is about to show), "close" (the tap closes it) or "pass".
+export function introTap({now,shownAt=0,closedAt=null}){
+  if(!shownAt)return "pass";
+  if(now<shownAt+TEST_TAP_GUARD_MS)return "ignore";
+  const closed=closedAt??shownAt+TEST_INTRO_MS;
+  if(now<closed)return "close";
+  return now<closed+TEST_TAP_GUARD_MS?"ignore":"pass";
+}
 
 const word="[\\p{L}\\p{M}\\p{N}_]";
 const escapeRegExp=text=>text.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");

@@ -10,9 +10,9 @@ const state=(extra={})=>({user:{id:"me",timeZone:"Europe/Madrid"},today:"2026-11
 const streak=(extra={})=>({days:5,dailyCardSeenToday:false,mixedDoneToday:false,completedDays:["2026-11-13","2026-11-14"],...extra});
 const topicState=(over={})=>["mixed","reading","read","saved","dailyDeck","interests","novelties","teamPicks"].map(id=>({id,cost:id==="read"?3:id==="saved"?10:5,currency:id==="saved"?"leaf":"petal",discounted:id==="read",cards:10,required:5,available:true,...(over[id]||{})}));
 const NOW=new Date("2026-11-15T10:30:00Z");                                       // 11:30 in Madrid: next streak day at 06:00, in 18 h 30 min
-const render=(language,s,st=state(),topics=topicState())=>{
+const render=(language,s,st=state(),topics=topicState(),prices=null)=>{
   const c={...words[language]},data=repasoData({state:st,streak:s,topics});
-  return repasoMarkup({data,c,nav:navMarkup({active:"practice",practicePending:streakPending(s),c}),month:"2026-11",language,now:NOW});
+  return repasoMarkup({data,c,nav:navMarkup({active:"practice",practicePending:streakPending(s),c}),month:"2026-11",language,now:NOW,prices});
 };
 
 test("Streak pending depends only on the server response: both parts needed",()=>{
@@ -81,6 +81,18 @@ test("Every topic starts the server session with the cost the server announced; 
   assert.equal(dimmed.match(/ui2-flame-badge"/g).length,1);                       // an unavailable topic carries no pending badge; mixed keeps its own
   const unknown=render("es",streak(),state(),null);                                // endpoint down: nothing is blocked, regular price
   assert.equal(unknown.match(/data-ui2="practice-start"/g).length,8);
+});
+
+for(const language of ["es","en"])test(`After a session the prices stay hidden until read again, then pop in (${language})`,()=>{
+  const c=words[language],pending=render(language,streak(),state(),topicState(),"pending");
+  assert.match(pending,/class="ui2-body ui2-rp is-prices-pending"/);
+  // The topics can still be started; their names say no price until it is known.
+  assert.equal(pending.match(/data-ui2="practice-start"/g).length,8);
+  assert.doesNotMatch(pending,new RegExp(`aria-label="[^"]*${c.ui2PriceCost(5,"petal")}`));
+  const popped=render(language,streak(),state(),topicState(),"pop");
+  assert.match(popped,/class="ui2-body ui2-rp is-prices-pop"/);
+  assert.match(popped,new RegExp(`aria-label="[^"]*${c.ui2PriceCost(5,"petal")}`));
+  assert.doesNotMatch(render(language,streak()),/is-prices-/);
 });
 
 for(const language of ["es","en"])test(`Calendar marks the days the server lists and cannot go past the current month (${language})`,()=>{
