@@ -96,7 +96,7 @@ test(`${dialect}: MCP creates finished team decks atomically and retries safely`
   assert.equal(unauthenticated.status,401);
 
   const {tools}=await client.listTools();
-  assert.deepEqual(tools.map(tool=>tool.name),["find_book","create_book","edit_book","create_deck","append_cards_to_draft","finish_deck","list_team_drafts","reassign_deck_creator","merge_books"]);
+  assert.deepEqual(tools.map(tool=>tool.name),["find_book","create_book","edit_book","create_deck","append_cards_to_draft","finish_deck","list_drafts","list_team_drafts","reassign_deck_creator","merge_books"]);
 
   const found=await client.callTool({name:"find_book",arguments:{query:"Atomic Habits"}});
   const matches=JSON.parse(found.content[0].text).matches;
@@ -164,7 +164,7 @@ test(`${dialect}: MCP lists, extends and finishes existing team drafts`,async t=
   assert.ok(!JSON.parse(after.content[0].text).drafts.some(draft=>draft.deckId===deckId));
 });
 
-test(`${dialect}: MCP finishing rejects foreign, empty and deleted decks`,async t=>{
+test(`${dialect}: MCP admins can list and finish any nonempty in-progress deck`,async t=>{
   const {db,client}=await fixture(t,dialect);
   const initial=await client.callTool({name:"list_team_drafts",arguments:{bookId:"atomic-habits"}});
   const initialIds=JSON.parse(initial.content[0].text).drafts.map(draft=>draft.deckId);
@@ -176,24 +176,29 @@ test(`${dialect}: MCP finishing rejects foreign, empty and deleted decks`,async 
   };
   const foreign=await create("mcp-other"),empty=await create("reed-team",false),deleted=await create("reed-team",false);
   await finishNoteDecks(db,{user_id:"reed-team"},{bookId:"atomic-habits",decks:[{deckId:deleted,cardCount:0}]});
-  const listing=await client.callTool({name:"list_team_drafts",arguments:{bookId:"atomic-habits",creatorUserId:"mcp-other"}});
+  const listing=await client.callTool({name:"list_drafts",arguments:{bookId:"atomic-habits",creatorUserId:"mcp-other"}});
   const drafts=JSON.parse(listing.content[0].text).drafts;
-  assert.deepEqual(drafts.map(draft=>draft.deckId).sort(),[...initialIds,empty].sort());
+  assert.deepEqual(drafts.map(draft=>draft.deckId).sort(),[...initialIds,foreign,empty].sort());
   assert.ok(drafts.every(draft=>draft.bookId==="atomic-habits"));
+  assert.equal(drafts.find(draft=>draft.deckId===foreign).creatorUserId,"mcp-other");
+  assert.equal(drafts.find(draft=>draft.deckId===foreign).creatorName,"Otra persona");
   const before=await db.prepare("SELECT id,status FROM decks ORDER BY id").all();
-  for (const [deckId,error] of [[foreign,"deckUnavailable"],[empty,"emptyDeckCannotFinish"],[deleted,"deckUnavailable"],["missing-version","deckUnavailable"]]) {
+  const finished=await client.callTool({name:"finish_deck",arguments:{deckId:foreign}});
+  assert.equal(finished.isError,undefined);
+  assert.deepEqual(JSON.parse(finished.content[0].text),{deckId:foreign,status:"finished"});
+  assert.equal((await db.prepare("SELECT creator_user_id FROM decks WHERE id=?").get(foreign)).creator_user_id,"mcp-other");
+  assert.equal((await db.prepare("SELECT status FROM decks WHERE id=?").get(foreign)).status,"finished");
+  for (const [deckId,error] of [[empty,"emptyDeckCannotFinish"],[deleted,"deckUnavailable"],["missing-version","deckUnavailable"]]) {
     const result=await client.callTool({name:"finish_deck",arguments:{deckId,creatorUserId:"mcp-other"}});
     assert.equal(result.isError,true);
     assert.equal(JSON.parse(result.content[0].text).error,error);
-    assert.deepEqual(await db.prepare("SELECT id,status FROM decks ORDER BY id").all(),before);
+    assert.deepEqual(await db.prepare("SELECT id,status FROM decks ORDER BY id").all(),before.map(row=>row.id===foreign ? {...row,status:"finished"} : row));
   }
-  // A finished foreign deck must still fail before the idempotent-success path.
-  await db.prepare("UPDATE decks SET status='finished' WHERE id=?").run(foreign.replace(/$/, ""));
-  const denied=await client.callTool({name:"finish_deck",arguments:{deckId:foreign}});
-  assert.equal(denied.isError,true);
-  assert.equal(JSON.parse(denied.content[0].text).error,"deckUnavailable");
+  const retry=await client.callTool({name:"finish_deck",arguments:{deckId:foreign}});
+  assert.deepEqual(JSON.parse(retry.content[0].text),{deckId:foreign,status:"finished"});
+  const after=await client.callTool({name:"list_drafts",arguments:{bookId:"atomic-habits"}});
+  assert.ok(!JSON.parse(after.content[0].text).drafts.some(draft=>draft.deckId===foreign));
 });
-
 test(`${dialect}: MCP reassigns only finished team decks to authors`,async t=>{
   const {db,client}=await fixture(t,dialect);
   await db.prepare("INSERT INTO users(id,display_name) VALUES ('mcp-friend','joserbala'),('mcp-other','Other author'),('mcp-reader','Reader')").run();
