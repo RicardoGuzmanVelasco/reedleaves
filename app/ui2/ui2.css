@@ -545,10 +545,23 @@ button.int-chip:disabled{opacity:1}
 .pf-stage strong{font-size:21px;line-height:1;font-weight:900;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .pf-stage-img{position:absolute;z-index:-1;right:-12px;bottom:-12px;width:58px;height:58px;object-fit:contain;opacity:.5;transform:rotate(-10deg);pointer-events:none}
 .pf-stage.is-zero{opacity:.6;border-style:dashed;box-shadow:none}
+.pf-stage.is-link{transition:transform .12s,box-shadow .12s}
+.pf-stage-link{position:absolute;inset:0;z-index:1;border-radius:inherit}
+.pf-stage-link:focus-visible{outline:3px solid var(--ui2-green);outline-offset:2px}
+.pf-stage.is-link:has(.pf-stage-link:active){transform:translateY(2px);box-shadow:0 1px 0 #e2ddc9}
+@media(hover:hover){.pf-stage.is-link:hover{transform:translateY(-2px);box-shadow:0 5px 0 #e2ddc9}}
+@media(prefers-reduced-motion:reduce){.pf-stage.is-link,.pf-stage.is-link:hover,.pf-stage.is-link:has(.pf-stage-link:active){transform:none;transition:none}}
 @media(min-width:900px){
   .pf-heading{grid-template-columns:112px 1fr}.pf-avatar{width:112px;height:112px}
   .pf-growth{gap:8px}.pf-stage-name{font-size:11px}.pf-stage-img{width:84px;height:84px}
 }
+
+/* ---------- Estantería de otro lector ---------- */
+.rsh-owner{margin:0 0 4px;color:var(--ui2-muted);font-size:13px;font-weight:750;overflow-wrap:anywhere}
+.rsh-filter{display:flex;align-items:center;gap:4px;margin:10px 0 0}
+.rsh-stage{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:3px 12px 3px 5px;border-radius:999px;background:#e4efcc;font-size:14px;font-weight:800}
+.rsh-stage-img{width:28px;height:28px;object-fit:contain}
+.rsh-empty{padding-top:30px}
 
 /* ---------- Ajustes ---------- */
 .st-body{gap:20px}

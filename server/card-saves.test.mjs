@@ -39,7 +39,7 @@ for(const dialect of ['sqlite','postgres']){
     assert.equal((await readCardActions(db,b,'habit-2')).saved,false);
     await assert.rejects(recordCardView(db,b,{cardId:'habit-2',context:'saved'},now),{code:'notAllowed'});
     const profile=await readProfile(db,a.user_id,b.user_id);
-    assert.equal(profile.cardSaves,undefined);assert.deepEqual(profile.bookshelf.find(entry=>entry.bookId==='seven-habits'),{bookId:'seven-habits',reading:'to_read'});
+    assert.equal(profile.cardSaves,undefined);assert.deepEqual(profile.bookshelf.find(entry=>entry.bookId==='seven-habits'),{bookId:'seven-habits',reading:'to_read',stage:'pot'});
     await setCardVote(db,a,{cardId:'habit-2',value:1});
     const actions=await readCardActions(db,a,'habit-2');assert.equal(actions.saved,true);assert.equal(actions.vote,1);
     const removed=await setCardSave(db,a,{cardId:'habit-2',saved:false},now);assert.equal(removed.savedCount,0);

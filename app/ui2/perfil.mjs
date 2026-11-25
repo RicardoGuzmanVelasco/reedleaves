@@ -8,6 +8,7 @@ import {readerLevelName} from "../reader-level-name.mjs";
 import {levelSunMarkup} from "./level-sun.mjs";
 import {icon} from "./icons.mjs";
 import {interestChipMarkup} from "./interest-chip.mjs";
+import {readerShelfHref} from "./biblioteca.mjs";
 
 const READINGS=[["book-read","booksRead"],["book-reading","booksReading"],["deck-view","cardsViewed"]];
 const CONTRIBUTIONS=[["new-deck","decksCreated"],["take-note","cardsCreated"],["quote","quotesCreated"]];
@@ -54,12 +55,16 @@ function interestRows(data,c){
   return rows?`<div class="pf-int-rows">${rows}</div>`:`<p class="pf-empty">${esc(c.profileInterestsEmpty)}</p>`;
 }
 
-const growthTiles=(data,c,language)=>`<ul class="pf-growth" aria-label="${esc(c.ui2ProfileGrowth)}">${data.growth.map(stage=>`<li class="pf-stat pf-stat--green pf-stage${stage.count?"":" is-zero"}">${mascotIcon(stage.id,"pf-stage-img")}<span class="pf-stage-name">${esc(c[stage.name])}</span><strong>${number(stage.count,language)}</strong></li>`).join("")}</ul>`;
+// On another reader's Perfil, a stage with books opens their Estantería with only those books.
+const growthTiles=(data,c,language)=>`<ul class="pf-growth" aria-label="${esc(c.ui2ProfileGrowth)}">${data.growth.map(stage=>{
+  const link=!data.own&&stage.count>0;
+  return `<li class="pf-stat pf-stat--green pf-stage${stage.count?"":" is-zero"}${link?" is-link":""}">${mascotIcon(stage.id,"pf-stage-img")}<span class="pf-stage-name">${esc(c[stage.name])}</span><strong>${number(stage.count,language)}</strong>`
+    +(link?`<a class="pf-stage-link" href="${esc(readerShelfHref(data.id,stage.id))}" aria-label="${esc(`${c[stage.name]}: ${number(stage.count,language)}`)}"></a>`:"")+`</li>`;
+}).join("")}</ul>`;
 
-// Another reader's Estantería is not built in this interface yet: «Ver estantería» says «Próximamente» and stays here.
 export function perfilMarkup({data,c,language}){
   const gear=data.own?`<button type="button" class="ui2-btn secondary--subtle pf-gear" data-ui2="open-settings" aria-haspopup="dialog" aria-label="${esc(c.settings)}">${icon("settings")}</button>`:"";
-  const shelf=data.own?"":`<button type="button" class="ui2-btn secondary--subtle pf-shelf" data-ui2="coming-soon">${icon("shelf")}<span>${esc(c.viewShelf)}</span></button>`;
+  const shelf=data.own?"":`<a class="ui2-btn secondary--subtle pf-shelf" href="${esc(readerShelfHref(data.id))}">${icon("shelf")}<span>${esc(c.viewShelf)}</span></a>`;
   const editInterests=data.own?`<button type="button" class="ui2-btn secondary--subtle pf-edit" data-ui2="edit-interests" aria-haspopup="dialog" aria-label="${esc(c.edit)}">${icon("edit")}</button>`:"";
   return `<section class="pf-screen"><div class="pf-title"><button type="button" class="ui2-ib dp-back" data-ui2="page-back" aria-label="${esc(c.back)}">${icon("back")}</button><h1 tabindex="-1">${esc(c.profile)}</h1>${gear}</div>`
     +`<header class="pf-heading"><span class="pf-avatar" aria-hidden="true">${data.stage?mascotArt(data.stage):""}</span><div class="pf-identity"><h2 class="pf-name"><bdi>${esc(data.name)}</bdi></h2>`

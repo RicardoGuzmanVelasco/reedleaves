@@ -111,7 +111,7 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 - Escribir guía de lectura: pantalla ui2 (`app/ui2/guia.mjs`, ruta `#guide/<libro>`): callout verde con «Ver ejemplos» si hay guías ajenas, mínimo de caracteres (`READING_GUIDE_MIN_LENGTH`, servidor y cliente), pendiente con prize tag de XP, rechazada con motivo, aprobada con «Leer tarjetas». Las guías de un libro son una baraja especial que se abre directo en el carrusel, sin lista. Pendiente: que ese carrusel y «Leer tarjetas» dejen de abrir la UI antigua al diseñar la vista de tarjetas.
 - Revisar después el estilo de booklink y authorlink para unificarlos y comunicar mejor que son enlaces.
 - Sin sesión, «Echar un vistazo por la librería» abre la Librería de la UI vieja (la de ui2 exige sesión); decidir si ui2 tendrá Librería de visitante. Tras guardar los intereses del alta, el saldo se actualiza sin la animación de recibo de la UI vieja.
-- Perfil ajeno: «Ver estantería» aún abre la Estantería de la UI vieja.
+- Perfil ajeno: «Ver estantería» abre la estantería ajena de ui2 (ver «Estantería de otro lector»).
 - Pendiente técnico: «Catalogar nuevo libro» y «Leer tarjetas» aún abren la UI vieja; el toast «Baraja añadida al tarjetero.» no cruza esa navegación; aviso de interés (`confirmationRequired`) sin diálogo ui2.
 - Transversal: revisar discrepancias de callouts y unificar: mismo icono y color por significado (error, warning, consejo) en toda la app.
 - Chips de interés: el estilo quedó unificado en ui2 (`app/ui2/interest-chip.mjs`, clase `.int-chip`: propuesta B, relleno liso, borde y sombra del tono oscuro, prioridad en insignia de esquina; estados por defecto, prioridad, bloqueado ✓, rechazado ×, deshabilitado, con texto o solo emoji). Lo usan la ficha del libro, Catalogar libro y el Perfil. La UI vieja conserva sus variantes hasta que se borre al cierre.
@@ -185,13 +185,15 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 ## ui2 como única UI visible (2026-11-25)
 - `startReader` (`app/reader-app.mjs`) monta siempre la ui2, con o sin `?ui=2`; ningún parámetro, ruta ni enlace abre la UI vieja. Su código sigue en el repo, inaccesible (`startLegacyReader`), hasta decidir su retirada; el prefijo `ui2` se mantiene.
 - Quitado «Probar la nueva UI» (y su clave `tryNewUi`). Los enlaces de libro de Inicio, Biblioteca y Librería ya no salen a la UI vieja (`c.legacy` retirado): van a `#book/<id>` de la ui2.
-- `#bookstore/book/<id>` (enlace viejo) abre la ficha ui2 del libro. El resto de rutas solo de la UI vieja abren Inicio sin aviso: `#library/<usuario>`, `#daily-idea[/…]`, `#guides/<libro>`, `#guide-preview/…`, `#saved/…`, `#mascots/…`, `#practice/empty`, `#bookstore/author/<autor>`. Una baraja o libro desconocido (`#deck/…`, `#book/…`) también abre Inicio.
+- `#bookstore/book/<id>` (enlace viejo) abre la ficha ui2 del libro. `#library/<usuario>` abre la estantería ajena de ui2. El resto de rutas solo de la UI vieja abren Inicio sin aviso: `#daily-idea[/…]`, `#guides/<libro>`, `#guide-preview/…`, `#saved/…`, `#mascots/…`, `#practice/empty`, `#bookstore/author/<autor>`. Una baraja o libro desconocido (`#deck/…`, `#book/…`) también abre Inicio.
+
+## Estantería de otro lector (2026-11-25)
+- `#library/<lector>` (`app/ui2/biblioteca.mjs`, `readerShelf*`): título «Estantería», «<nombre> · Solo lectura», los mismos grupos y vistas que la estantería propia. Sin pestañas, sin «Tomar nota» ni cambios de estado: cada libro abre `#book/<id>`. `#library/<id propio>` redirige a `#library`.
+- Datos: `GET /api/profiles/:id` (nombre) y `GET /api/profiles/:id/bookshelf`, que ahora da también la etapa de la mascota de cada libro (`stage`, la misma que cuentan las losetas de Crecimiento). Sin migración. La privacidad no cambia: requiere sesión (un visitante ve Acceso y vuelve a la ruta al entrar) y solo lista libros visibles para quien mira.
+- `#library/<lector>/<etapa>`: las losetas de Crecimiento con libros del perfil ajeno abren la estantería con solo esa etapa; chip de la etapa con aspa «Borrar filtros». La loseta puede contar más libros que la estantería filtrada: cuenta también libros repasados que no están en su biblioteca, y esos no se muestran.
+- Vacía: «Todavía no hay libros disponibles en esta estantería.» o, filtrada, «No hay libros con estos filtros.». Lector desconocido: «Este usuario no está disponible.». Conexión o servidor: pantalla de error con «Reintentar».
 
 ## Pantallas que aún no existen en ui2 (toast Próximamente)
-Acción `data-ui2="coming-soon"`: toast «Próximamente» / «Coming soon» (`ui2ComingSoon`) sin navegar.
+Acción `data-ui2="coming-soon"`: toast «Próximamente» / «Coming soon» (`ui2ComingSoon`) sin navegar. Ahora no la usa ningún control; queda para el siguiente destino sin construir.
 
-| Ruta o acción | Dónde se origina | Qué falta |
-| --- | --- | --- |
-| «Ver estantería» de otro lector (antes `#library/<usuario>` de la UI vieja) | Perfil ajeno, sección Lecturas (`app/ui2/perfil.mjs`) | Estantería ajena de solo lectura en ui2 |
-
-Revisado sin caso «Próximamente»: perfil ajeno, editor de intereses y página de baraja ya existen en ui2; la ficha completa de nota (F6) no tiene entrada en ui2 (la página de baraja abre la hoja de nota); Social sigue deshabilitado en la barra.
+Revisado sin caso «Próximamente»: perfil ajeno y su estantería, editor de intereses y página de baraja ya existen en ui2; la ficha completa de nota (F6) no tiene entrada en ui2 (la página de baraja abre la hoja de nota); Social sigue deshabilitado en la barra.

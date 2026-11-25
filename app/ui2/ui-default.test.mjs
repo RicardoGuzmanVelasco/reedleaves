@@ -6,7 +6,8 @@ import {deckShareUrl,cardShareUrl} from "../deck-navigation.mjs";
 import {perfilData,perfilMarkup} from "./perfil.mjs";
 import {navMarkup,headerMarkup} from "./shell.mjs";
 import {accesoMarkup,newAuth} from "./acceso.mjs";
-import {emptyMarkup} from "./biblioteca.mjs";
+import {emptyMarkup,readerShelfData,readerShelfMarkup} from "./biblioteca.mjs";
+import {emptyCatalog} from "../../test-support/reader-state.mjs";
 import {bookstoreCoverMarkup} from "./libreria.mjs";
 import {coverMarkup} from "./home.mjs";
 
@@ -50,10 +51,11 @@ for(const language of ["es","en"]){
     for(const viewerId of ["me","ana"])staysInside(perfilMarkup({data:perfilData({profile:profile("ana"),prefs:{interested:[],notInterested:[]},interests,viewerId,language}),c,language}));
   });
 
-  test(`A destination not built yet is a «${c.ui2ComingSoon}» button, never a link (${language})`,()=>{
-    assert.equal(c.ui2ComingSoon,language==="es"?"Próximamente":"Coming soon");
+  test(`«${c.viewShelf}» opens that reader's Estantería in this interface (${language})`,()=>{
     const other=perfilMarkup({data:perfilData({profile:profile("ana"),prefs:{interested:[],notInterested:[]},interests,viewerId:"me",language}),c,language});
     const shelf=other.match(/<(a|button)\b[^>]*>(?:(?!<\/\1>).)*?<span>([^<]*)<\/span><\/\1>/gs).find(control=>control.includes(c.viewShelf));
-    assert.ok(shelf);assert.match(shelf,/^<button type="button"[^>]*data-ui2="coming-soon"/);assert.doesNotMatch(shelf,/href=/);
+    assert.ok(shelf);assert.match(shelf,/^<a\b[^>]*href="#library\/ana"/);assert.doesNotMatch(shelf,/coming-soon/);
+    const books={...emptyCatalog(),booksById:new Map([["b 1",{id:"b 1",title:{es:"Libro"},author:"Autora"}]])};
+    staysInside(readerShelfMarkup({data:readerShelfData({catalog:books,profile:profile("ana"),bookshelf:[{bookId:"b 1",reading:"reading",stage:"pot"}],language}),views:{},c}));
   });
 }

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {words} from "../i18n.mjs";
 import {readerState,emptyCatalog} from "../../test-support/reader-state.mjs";
-import {shelfData,shelfMarkup,libraryTabsMarkup,viewOf,SECTIONS} from "./biblioteca.mjs";
+import {shelfData,shelfMarkup,libraryTabsMarkup,viewOf,SECTIONS,readerShelfRoute,readerShelfHref,readerShelfData,readerShelfMarkup,readerShelfUnavailableMarkup} from "./biblioteca.mjs";
 import {navMarkup} from "./shell.mjs";
 
 const book=(id,title)=>({id,author:"Autor",title:{es:title},popularTitle:title,popularLanguage:"es"});
@@ -56,4 +56,46 @@ test("Empty Library shows the production text",()=>{
   const {catalog,state}=fixture({}),c={...words.es};
   const html=shelfMarkup({data:shelfData({catalog,state:{...state,shelfBookIds:[]},language:"es"}),views:{},c,nav:""});
   assert.ok(html.includes(c.emptyBookshelf));assert.doesNotMatch(html,/shelf-section/);
+});
+
+// ---- Another reader's Estantería ----
+const ana={id:"ana 1",name:"Ana"};
+const anaShelf=[{bookId:"a",reading:"reading",stage:"sprout"},{bookId:"c",reading:"to_read",stage:"pot"},{bookId:"d",reading:"read",stage:"sprout"},{bookId:"gone",reading:"read",stage:"sprout"}];
+const readerShelf=(stage=null,language="es",bookshelf=anaShelf)=>{const {catalog}=fixture({});return readerShelfData({catalog,profile:ana,bookshelf,language,stage});};
+
+test("#library/<reader>[/<stage>] is another reader's Estantería; #library and #library/cardcase stay the own Library",()=>{
+  assert.deepEqual(readerShelfRoute(readerShelfHref("ana 1")),{id:"ana 1",stage:null});
+  assert.deepEqual(readerShelfRoute(readerShelfHref("ana 1","sprout")),{id:"ana 1",stage:"sprout"});
+  assert.deepEqual(readerShelfRoute("#library/ana/nope"),{id:"ana",stage:null});
+  for(const hash of ["#library","#library/cardcase","#library/a/b/c","#profile/ana"])assert.equal(readerShelfRoute(hash),null,hash);
+});
+
+test("Another reader's Estantería groups their books by their reading state, only those in the viewer's catalog, and filters by stage",()=>{
+  const all=readerShelf();
+  assert.equal(all.owner.name,"Ana");
+  assert.deepEqual(all.sections.map(section=>[section.key,ids(section)]),[["reading",["a"]],["to_read",["c"]],["read",["d"]]]);
+  assert.deepEqual(all.sections[0].books[0],{id:"a",title:"Leyendo uno",titleLanguage:"es",author:"Autor",status:"reading",deckId:null,stage:"sprout"});
+  const sprout=readerShelf("sprout");
+  assert.equal(sprout.stage.id,"sprout");
+  assert.deepEqual(sprout.sections.map(section=>[section.key,ids(section)]),[["reading",["a"]],["read",["d"]]]);
+});
+
+for(const language of ["es","en"])test(`Another reader's Estantería says whose it is and only reads: books open their page, nothing changes their collection (${language})`,()=>{
+  const c=words[language],html=readerShelfMarkup({data:readerShelf(null,language),views:{to_read:"covers"},c});
+  assert.match(html,/<h1 tabindex="-1">[^<]*<\/h1>/);assert.ok(html.includes(`<h1 tabindex="-1">${c.shelf}</h1>`));
+  assert.ok(html.includes("<bdi>Ana</bdi>")&&html.includes(c.readOnly));
+  const actions=new Set([...html.matchAll(/data-ui2="([^"]+)"/g)].map(match=>match[1]));
+  assert.deepEqual([...actions].sort(),["page-back","set-view"]);
+  const hrefs=[...html.matchAll(/href="([^"]*)"/g)].map(match=>match[1]);
+  assert.deepEqual([...new Set(hrefs)].sort(),["#book/a","#book/c","#book/d"]);
+  const filtered=readerShelfMarkup({data:readerShelf("sprout",language),views:{},c});
+  assert.ok(filtered.includes(c.mascotNameSprout));
+  assert.match(filtered,new RegExp(`href="#library/ana%201" aria-label="${c.resetFilters}"`));
+});
+
+test("An empty or unknown Estantería of another reader says so with the production texts",()=>{
+  const c=words.es;
+  assert.ok(readerShelfMarkup({data:readerShelf(null,"es",[]),views:{},c}).includes(c.noUserBookshelf));
+  assert.ok(readerShelfMarkup({data:readerShelf("evergreen"),views:{},c}).includes(c.noBookshelfMatches));
+  assert.ok(readerShelfUnavailableMarkup(c).includes(c.profileUnavailable));
 });

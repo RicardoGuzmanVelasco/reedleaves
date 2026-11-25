@@ -45,3 +45,11 @@ test("Every tile label takes two lines",()=>{
   assert.equal(data.growth.length,10);
   assert.deepEqual(data.growth.slice(0,1).map(stage=>stage.count),[2]);
 });
+
+test("Another reader's growth tiles with books open their Estantería with that stage; empty tiles and the own Perfil do not",()=>{
+  const other=render(perfilData({profile:profile({id:"x y"}),prefs:{interested:[],notInterested:[]},interests,viewerId:"me",language:"es"}));
+  const links=[...other.matchAll(/class="pf-stage-link" href="([^"]*)" aria-label="([^"]*)"/g)].map(match=>[match[1],match[2]]);
+  assert.deepEqual(links,[["#library/x%20y/pot","Maceta: 2"],["#library/x%20y/sprout","Brote: 1"]]);
+  assert.match(other,/class="ui2-btn secondary--subtle pf-shelf" href="#library\/x%20y"/);
+  assert.doesNotMatch(render(own()),/pf-stage-link|#library\//);
+});

@@ -11,7 +11,7 @@ test("A visitor sees the Librería, a book page and a deck page, as in the old i
   assert.equal(isPublicRoute({name:"bookstore"},lookup),true);
   assert.equal(isPublicRoute({name:"book",id:"b"},lookup),true);
   assert.equal(isPublicRoute({name:"deck",id:"d",note:false},lookup),true);
-  for(const where of [{name:"home"},{name:"library"},{name:"cardcase"},{name:"practice"},{name:"profile",id:"x"},{name:"account"},{name:"book-note",id:"b"},
+  for(const where of [{name:"home"},{name:"library"},{name:"cardcase"},{name:"practice"},{name:"profile",id:"x"},{name:"reader-shelf",id:"x",stage:null},{name:"account"},{name:"book-note",id:"b"},
     {name:"book",id:"gone"},{name:"deck",id:"gone",note:false},{name:"deck",id:"d",note:true}])assert.equal(isPublicRoute(where,lookup),false,JSON.stringify(where));
 });
 

@@ -21,7 +21,7 @@ import {practiceTestView,testMarks,introTap,TEST_INTRO_MS,TEST_INTRO_CLOSE_MS,TE
 import {playGrowthFeedback} from "../growth-feedback.mjs";
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
-import {shelfData,shelfMarkup,libraryTabsMarkup,emptyMarkup} from "./biblioteca.mjs";
+import {shelfData,shelfMarkup,libraryTabsMarkup,emptyMarkup,readerShelfRoute,readerShelfData,readerShelfMarkup,readerShelfUnavailableMarkup} from "./biblioteca.mjs";
 import {bookSheetData,bookstoreSheetData,bookSheetMarkup,bookPageData,bookPageMarkup,tileOf,finishData,finishTiles,finishDialogMarkup,finishDeckDialogMarkup,cardcaseTiles,cardcaseGridMarkup,removeDeckDialogMarkup} from "./book-sheet.mjs";
 import {deckPageData,deckPageMarkup} from "./deck-page.mjs";
 import {settingsMarkup,feedbackMarkup,signOutMarkup,syncCardLanguages} from "./ajustes.mjs";
@@ -55,8 +55,8 @@ const TOAST_MS=6500;
 export async function mountUi2({main,api,loadCatalog,language,tintMode="off",store=createBrowserStore(),doc=document,win=window}){
   let c={...(words[language]||words.es)};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-  let guide=null,guideReturn="#library",guideExit=null,auth=newAuth(),resume=null,resumeAfterHash=false,inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null,editor=null,practice=null,streakCelebrate=false,topicsStale=false,pricesPop=false;
-  // The card view: the explanation of «Baraja en curso» open, the way the card came in, the context of a card missing from the
+<<<<<<< HEAD
+  let guide=null,guideReturn="#library",guideExit=null,auth=newAuth(),resume=null,resumeAfterHash=false,inviteRequired=false,settings=null,profile=null,profileAttempt=null,readerShelf=null,readerShelfAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null,editor=null,practice=null,streakCelebrate=false,topicsStale=false,pricesPop=false;
   // catalog (#card of a deleted note), the votes read per reader and card, and the cards already counted as viewed.
   const reading={pop:false,enter:null,context:null,records:new Map(),viewed:new Set()};
   // The reader signed in, or null for a visitor (no session): what the signed-out screens and actions ask before touching personal data.
@@ -90,6 +90,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(hash==="#practice/session")return {name:"practice-session"};
     const profileMatch=hash.match(/^#profile(?:\/([^/]+))?$/);
     if(profileMatch)return {name:"profile",id:profileMatch[1]?decode(profileMatch[1]):viewerId()};
+    const shelfMatch=readerShelfRoute(hash);
+    if(shelfMatch)return {name:"reader-shelf",...shelfMatch};
     return {name:hash==="#account"?"account":hash==="#bookstore"?"bookstore":hash==="#library"?"library":hash==="#library/cardcase"?"cardcase":hash==="#practice"?"practice":"home"};
   };
   const deckId=()=>{const r=route();return r.name==="deck"||r.name==="edit"?r.id:null;};
@@ -232,7 +234,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     }
     if(viewer()&&where.name==="account"){win.location.replace("#home");return;}
     if(viewer()&&!reader){paint(`<div class="ui2-center">${loadingPlaceholder(c.busyOpening,{visible:true})}</div>`);return;}
-    const shell=where.name==="home"||where.name==="bookstore"||where.name==="library"||where.name==="cardcase"||where.name==="practice"||where.name==="book"||where.name==="profile"||(where.name==="deck"&&!!view);
+    const shell=where.name==="home"||where.name==="bookstore"||where.name==="library"||where.name==="cardcase"||where.name==="practice"||where.name==="book"||where.name==="profile"||where.name==="reader-shelf"||(where.name==="deck"&&!!view);
     doc.body.classList.toggle("has-bottom-navigation",shell&&!form);
     if(!form&&where.name==="book-note")openForm({bookId:where.id,origin:"home"});
     if(!form&&where.note&&view?.deck.status==="in_progress")openForm({bookId:view.deck.bookId,deckId:view.deck.id,origin:"home"});
@@ -244,6 +246,12 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(where.name==="profile"){
       if(profileAttempt!==where.id){profileAttempt=where.id;queueMicrotask(()=>{if(busy)profileAttempt=null;else run(()=>loadProfile(where.id));});}
       paint(withError(profileScreen(where.id)+settingsScreen()+(toast?toastMarkup({...toast,c}):"")));return;
+    }
+    if(where.name==="reader-shelf"){
+      // The own Estantería is the Library's one, with its tabs and actions.
+      if(where.id===viewerId()){win.location.replace("#library");return;}
+      if(readerShelfAttempt!==where.id){readerShelfAttempt=where.id;queueMicrotask(()=>{if(busy)readerShelfAttempt=null;else run(()=>loadReaderShelf(where.id));});}
+      paint(withError(readerShelfScreen(where)));return;
     }
     if(where.name==="bookstore"){
       if(!lb.visitId)startBookstoreVisit();
@@ -557,6 +565,25 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       :perfilMarkup({data:perfilData({profile:loaded.data,prefs:loaded.prefs,interests:catalog.interests,viewerId:viewerId(),language}),c,language});
     return shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),body:`<div class="ui2-body ui2-lib">${body}</div>`,nav:navFor(null)});
   }
+  // Another reader's Estantería: their profile (name) and their books as the server lets this viewer see them.
+  async function loadReaderShelf(id){
+    const path=`/api/profiles/${encodeURIComponent(id)}`;
+    try{
+      const [data,shelf]=await Promise.all([api.request(path),api.request(`${path}/bookshelf`)]);
+      readerShelf={id,profile:data.profile,bookshelf:shelf.bookshelf};
+    }catch(caught){
+      if(asFailure(caught).status!==404)throw caught;
+      readerShelf={id,unavailable:true};
+    }
+  }
+  function readerShelfScreen(where){
+    const list=libreriaData({catalog,state:{...reader,catalog},language});
+    const loaded=readerShelf?.id===where.id?readerShelf:null;
+    const body=!loaded?`<div class="ui2-empty">${loadingPlaceholder(c.busyOpening,{visible:true})}</div>`
+      :loaded.unavailable?readerShelfUnavailableMarkup(c)
+      :readerShelfMarkup({data:readerShelfData({catalog,profile:loaded.profile,bookshelf:loaded.bookshelf,language,stage:where.stage}),views:shelfViews,c});
+    return shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),body:`<div class="ui2-body ui2-lib">${body}</div>`,nav:navFor(null)});
+  }
   // Ajustes: a sheet over the own Perfil. The card languages are read when it opens; the rest is local or one request.
   const settingsScreen=()=>settings?settingsMarkup({settings,language,tint:coverTintMode(tintMode),c})+(settings.feedback?feedbackMarkup({feedback:settings.feedback,c}):"")+(settings.confirmOut?signOutMarkup(c):""):"";
   function openSettings(){
@@ -741,7 +768,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   function lostSession(){
     hideErrorScreen(doc);interestFlow.dispose();
     const username=viewer()?.username||"";
-    session={user:null};reader=null;profile=null;profileAttempt=null;settings=null;failure=null;prompt=null;authoring=null;form=null;finish=null;removing=null;sheetState=null;busy=false;resume=null;resumeAfterHash=false;
+    session={user:null};reader=null;profile=null;profileAttempt=null;readerShelf=null;readerShelfAttempt=null;settings=null;failure=null;prompt=null;authoring=null;form=null;finish=null;removing=null;sheetState=null;busy=false;resume=null;resumeAfterHash=false;
     auth=newAuth({username,error:"sessionExpired",...accessRequest({returnHash:win.location.hash})});
     if(win.location.hash!=="#account")win.location.hash="#account";else render();
   }
@@ -1302,7 +1329,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(action==="sign-out-cancel"&&settings){settings.confirmOut=false;render();}
     else if(action==="sign-out-confirm")run(async()=>{await api.request("/api/auth/logout",{});win.location.hash="#home";win.location.reload();});
     else if(action==="edit-interests"){if(profile?.prefs&&profile.id===viewerId())interestFlow.open({userId:profile.id,catalog,preferences:profile.prefs,mode:"edit"});}
-    else if(action==="page-back"){if(win.history.length>1)win.history.back();else win.location.hash=route().name==="deck"?"#library":"#bookstore";}
+    else if(action==="page-back"){const where=route();if(win.history.length>1)win.history.back();else win.location.hash=where.name==="deck"?"#library":where.name==="reader-shelf"?`#profile/${encodeURIComponent(where.id)}`:"#bookstore";}
     else if(action==="lib-tab"){win.location.hash=target.dataset.tab==="cardcase"?"#library/cardcase":"#library";}
     else if(action==="sign-in"){event.preventDefault();askAccount();}
     // A destination not built in this interface yet: the toast says so and the screen stays as it is.
@@ -1454,7 +1481,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   });
   main.addEventListener("submit",event=>{event.preventDefault();if(event.target.matches("[data-ui2-auth]")){void submitAuth();return;}if(event.target.matches("[data-ui2-interest-form]")){if(interestFlow.state?.draft.step===1)interestFlow.next();else void interestFlow.save();return;}if(event.target.matches("[data-ui2-search]")){settleSearch();return;}if(event.target.matches("[data-ui2-guide-form]")){saveGuide();return;}if(event.target.matches("[data-ui2-feedback]")){sendFeedback();return;}if(event.target.matches("[data-ui2-authoring]")){submitAuthoring();return;}if(event.target.matches("[data-ui2-edmodal]")){saveDeckField();return;}submit();});
   win.addEventListener("hashchange",()=>{
-    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;profileAttempt=null;settings=null;reading.pop=false;reading.enter=null;
+    sheetState=null;finish=null;removing=null;form=null;failure=null;authoring=null;prompt=null;profileAttempt=null;readerShelfAttempt=null;settings=null;reading.pop=false;reading.enter=null;
     // «Ver ejemplos» opens the guides and comes back to the guide being written, with its text.
     if(route().name!=="guide"&&route().name!=="cards")guide=null;
     if(route().name!=="edit"||route().id!==editor?.deckId)editor=null;
@@ -1466,6 +1493,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(toast?.keep)toast.keep=false;
     else if(toast&&!exit&&!["","#home","#library/cardcase"].includes(win.location.hash)){toast=null;clearTimeout(toastTimer);}
     render();
+    // Another reader's Estantería opens at its top, also from a growth tile at the end of their Perfil.
+    if(route().name==="reader-shelf")win.scrollTo?.(0,0);
     resumeAfterHash=false;finishResume();
     if(route().name==="practice"&&viewer())Promise.all([loadStreak(),loadTopics(),api.request("/api/reader/state").then(state=>{reader=state;},()=>{})]).then(()=>{
       if(topicsStale){topicsStale=false;pricesPop=true;}

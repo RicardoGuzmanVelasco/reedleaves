@@ -348,6 +348,7 @@ test("Profiles require a session and view writes require origin, CSRF and a vali
   const base=`http://127.0.0.1:${server.address().port}`;
   const post=(path,input,headers={})=>fetch(base+path,{method:"POST",headers:{Origin:base,"Content-Type":"application/json",...headers},body:JSON.stringify(input)});
   assert.equal((await fetch(base+"/api/profiles/reed-team")).status,401);
+  assert.equal((await fetch(base+"/api/profiles/reed-team/bookshelf")).status,401);
   const response=await post("/api/auth/register",{username:"profile.http",password:"http profile test phrase"});
   const state=await response.json(),cookie=response.headers.get("set-cookie").split(";")[0];
   const headers={Cookie:cookie,"X-CSRF-Token":state.csrfToken};
@@ -358,7 +359,8 @@ test("Profiles require a session and view writes require origin, CSRF and a vali
   assert.doesNotMatch(JSON.stringify(data),/password|csrf|token|timeZone/);
   assert.equal(data.bookshelf,undefined);
   const shelf=await fetch(base+"/api/profiles/reed-team/bookshelf",{headers:{Cookie:cookie}});
-  assert.equal(shelf.status,200);assert.ok(Array.isArray((await shelf.json()).bookshelf));
+  assert.equal(shelf.status,200);const entries=(await shelf.json()).bookshelf;assert.ok(Array.isArray(entries));
+  assert.ok(entries.every(entry=>"stage" in entry));
   assert.equal((await fetch(base+"/api/profiles/missing/bookshelf",{headers:{Cookie:cookie}})).status,404);
   assert.equal((await fetch(base+"/api/profiles/missing",{headers:{Cookie:cookie}})).status,404);
   assert.equal((await fetch(base+"/api/profiles/reed-team",{method:"POST",headers})).status,405);

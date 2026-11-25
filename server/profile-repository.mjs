@@ -55,12 +55,28 @@ async function readStatuses(db,userId) {
   return Object.fromEntries([...distinguished.map(id=>[id,"to_read"]),...(await db.prepare("SELECT book_id,status FROM book_reading WHERE user_id=?").all(userId)).map(r=>[r.book_id,r.status])]);
 }
 
-async function profileBookshelf(db,userId,viewerId,statuses) {
+// The mascot stage of each book of the reader (the profile's growth tiles count these): books in the Library or the
+// Cardcase, and books practiced on distinct local days.
+async function readBookStages(db,userId,statuses) {
+  const days=new Map((await db.prepare(`SELECT v.book_id,COUNT(DISTINCT ps.completed_local_day) AS n
+    FROM practice_sessions ps JOIN practice_session_cards psc ON psc.session_id=ps.id
+    JOIN cards c ON c.id=psc.card_id JOIN decks v ON v.id=c.deck_id
+    WHERE ps.user_id=? AND ps.completed_at IS NOT NULL AND ps.completed_local_day IS NOT NULL GROUP BY v.book_id`).all(userId)).map(r=>[r.book_id,Number(r.n)]));
+  const added=new Set([...Object.keys(statuses),...(await db.prepare("SELECT d.book_id FROM cardcase_decks s JOIN decks d ON d.id=s.deck_id WHERE s.user_id=?").all(userId)).map(row=>row.book_id)]);
+  const stages=new Map();
+  for (const bookId of new Set([...added,...days.keys()])) {
+    const stage=currentMascotStage({practiceDays:days.get(bookId)||0,added:added.has(bookId)});
+    if (stage) stages.set(bookId,stage);
+  }
+  return stages;
+}
+
+async function profileBookshelf(db,userId,viewerId,statuses,stages) {
   // Library entries are computed only from content visible to this viewer.
   const catalog=prepareCatalog(await readCatalog(db,viewerId));
   const cardcaseDeckIds=(await db.prepare("SELECT deck_id FROM cardcase_decks WHERE user_id=?").all(userId)).map(r=>r.deck_id+"-v1");
   const entries=bookshelfBooks({catalog,statuses,shelfBookIds:Object.keys(statuses),cardcaseDeckIds,userId});
-  return entries.map(({book,reading})=>({bookId:book.id,reading}));
+  return entries.map(({book,reading})=>({bookId:book.id,reading,stage:stages.get(book.id)??null}));
 }
 
 function assertProfileId(userId) {
@@ -72,7 +88,8 @@ export async function readProfileBookshelf(db,userId,viewerId) {
   assertProfileId(userId);
   return transaction(db,async()=>{
     if (!await db.prepare("SELECT 1 FROM users WHERE id=?").get(userId)) throw new ApiError(404,"profileUnavailable");
-    return {bookshelf:await profileBookshelf(db,userId,viewerId,await readStatuses(db,userId))};
+    const statuses=await readStatuses(db,userId);
+    return {bookshelf:await profileBookshelf(db,userId,viewerId,statuses,await readBookStages(db,userId,statuses))};
   });
 }
 
@@ -83,16 +100,9 @@ export async function readProfile(db,userId,viewerId,{bookshelf=true}={}) {
     if (!user) throw new ApiError(404,"profileUnavailable");
     // Creation totals are independent of the reader's practice counts.
     const statuses=await readStatuses(db,userId);
-    const days=new Map((await db.prepare(`SELECT v.book_id,COUNT(DISTINCT ps.completed_local_day) AS n
-      FROM practice_sessions ps JOIN practice_session_cards psc ON psc.session_id=ps.id
-      JOIN cards c ON c.id=psc.card_id JOIN decks v ON v.id=c.deck_id
-      WHERE ps.user_id=? AND ps.completed_at IS NOT NULL AND ps.completed_local_day IS NOT NULL GROUP BY v.book_id`).all(userId)).map(r=>[r.book_id,Number(r.n)]));
+    const stages=await readBookStages(db,userId,statuses);
     const mascots={...Object.fromEntries(mascotStages.map(stage=>[stage.id,0])),sapling:0,plant:0};
-    const added=new Set([...Object.keys(statuses),...(await db.prepare("SELECT d.book_id FROM cardcase_decks s JOIN decks d ON d.id=s.deck_id WHERE s.user_id=?").all(userId)).map(row=>row.book_id)]);
-    for (const bookId of new Set([...added,...days.keys()])) {
-      const stage=currentMascotStage({practiceDays:days.get(bookId)||0,added:added.has(bookId)});
-      if (stage) mascots[stage]++;
-    }
+    for (const stage of stages.values()) mascots[stage]++;
     const count=async(sql,...values)=>Number((await db.prepare(sql).get(...values)).n);
     const counts={
       booksRead:Object.values(statuses).filter(s=>s==="read").length,
@@ -106,6 +116,6 @@ export async function readProfile(db,userId,viewerId,{bookshelf=true}={}) {
     const readerProgression=progression&&(userId===viewerId
       ? progression
       : {level:progression.level,fullName:progression.fullName,stage:progression.stage});
-    return {profile:{id:user.id,name:user.display_name,username:user.username||null,createdAt:user.created_at,counts,mascots,...(readerProgression?{readerProgression}:{})},...(bookshelf?{bookshelf:await profileBookshelf(db,userId,viewerId,statuses)}:{})};
+    return {profile:{id:user.id,name:user.display_name,username:user.username||null,createdAt:user.created_at,counts,mascots,...(readerProgression?{readerProgression}:{})},...(bookshelf?{bookshelf:await profileBookshelf(db,userId,viewerId,statuses,stages)}:{})};
   });
 }

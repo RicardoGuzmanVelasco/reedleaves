@@ -5,7 +5,7 @@ import {randomUUID} from "node:crypto";
 import {openDatabase,initializeDatabase,SQLITE_SCHEMA_VERSION} from "./database.mjs";
 import {seedCatalog} from "./seed.mjs";
 import {authenticate} from "./auth.mjs";
-import {readProfile,recordCardView} from "./profile-repository.mjs";
+import {readProfile,readProfileBookshelf,recordCardView} from "./profile-repository.mjs";
 import {openCard,changeBookStatus,openDeck,readReaderState} from "./reader-repository.mjs";
 import {createBook,createDeck,takeNote} from "./author-repository.mjs";
 import {serverDay} from "./auth.mjs";
@@ -114,7 +114,7 @@ test("Author stats include quotes as a subset; shared libraries expose content b
   assert.equal(own.profile.counts.cardsViewed,1);assert.equal("cardsReviewed" in own.profile.counts,false);
   assert.ok(own.bookshelf.some(entry=>entry.bookId===bookId));
   assert.deepEqual(new Set(foreign.bookshelf.map(entry=>entry.bookId)),new Set([bookId,"atomic-habits"]));
-  assert.deepEqual(foreign.bookshelf.find(entry=>entry.bookId===bookId),{bookId,reading:"reading"});
+  assert.deepEqual(foreign.bookshelf.find(entry=>entry.bookId===bookId),{bookId,reading:"reading",stage:"pot"});
   assert.deepEqual(foreign.bookshelf,own.bookshelf);
   assert.doesNotMatch(JSON.stringify(foreign),/Personal text|password|csrf|time_zone|wallet/);
   await assert.rejects(recordCardView(db,b,{cardId,context:"author"}),{code:"notAllowed"});
@@ -127,8 +127,20 @@ test("Public bookshelf groups explicit and deck-associated books as Para leer",a
   await changeBookStatus(db,a,"atomic-habits","to_read",day(10));
   await createDeck(db,a,{requestId:randomUUID(),bookId:"seven-habits",title:"Another deck",language:"es"});
   const shelf=(await readProfile(db,a.user_id,b.user_id)).bookshelf;
-  assert.deepEqual(shelf.find(entry=>entry.bookId==="atomic-habits"),{bookId:"atomic-habits",reading:"to_read"});
-  assert.deepEqual(shelf.find(entry=>entry.bookId==="seven-habits"),{bookId:"seven-habits",reading:"to_read"});
+  assert.deepEqual(shelf.find(entry=>entry.bookId==="atomic-habits"),{bookId:"atomic-habits",reading:"to_read",stage:"pot"});
+  assert.deepEqual(shelf.find(entry=>entry.bookId==="seven-habits"),{bookId:"seven-habits",reading:"to_read",stage:"pot"});
+});
+
+test("Another reader's bookshelf gives each book the mascot stage the profile's growth tiles count",async t=>{
+  const {db,a,b}=await fixture(t);
+  await changeBookStatus(db,a,"atomic-habits","reading",day(1));
+  await changeBookStatus(db,a,"seven-habits","to_read",day(1));
+  for(let n=0;n<5;n++)await recordCompletedPractice(db,a,"seven-habits",day(1+n));
+  const {bookshelf}=await readProfileBookshelf(db,a.user_id,b.user_id),{mascots}=(await readProfile(db,a.user_id,b.user_id)).profile;
+  assert.equal(bookshelf.find(entry=>entry.bookId==="seven-habits").stage,"sprout");
+  assert.equal(bookshelf.find(entry=>entry.bookId==="atomic-habits").stage,"pot");
+  for(const stage of ["pot","sprout"])assert.equal(bookshelf.filter(entry=>entry.stage===stage).length,mascots[stage]);
+  await assert.rejects(readProfileBookshelf(db,"missing",b.user_id),{code:"profileUnavailable"});
 });
 
 test("SQLite v12 view migration preserves accounts and unlocks, backfills once and is repeatable",async t=>{
