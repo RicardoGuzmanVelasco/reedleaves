@@ -192,7 +192,7 @@ test(`${dialect}: MCP admins can list and finish any nonempty in-progress deck`,
     const result=await client.callTool({name:"finish_deck",arguments:{deckId,creatorUserId:"mcp-other"}});
     assert.equal(result.isError,true);
     assert.equal(JSON.parse(result.content[0].text).error,error);
-    assert.deepEqual(await db.prepare("SELECT id,status FROM decks ORDER BY id").all(),before.map(row=>row.id===foreign ? {...row,status:"finished"} : row));
+    assert.deepEqual(await db.prepare("SELECT id,status FROM decks ORDER BY id").all(),before.map(row=>({...row,...(row.id===foreign ? {status:"finished"} : {})})));
   }
   const retry=await client.callTool({name:"finish_deck",arguments:{deckId:foreign}});
   assert.deepEqual(JSON.parse(retry.content[0].text),{deckId:foreign,status:"finished"});
