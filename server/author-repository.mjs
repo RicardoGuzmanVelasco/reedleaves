@@ -391,11 +391,20 @@ export async function deleteNote(db,session,input) {
 
 // Finishing freezes this deck. Existing database triggers enforce immutability.
 export async function finishDeck(db,session,input) {
+  return finishDeckWithAccess(db,input,session.user_id);
+}
+
+// The private MCP credential is administrative and can finish any owner's deck.
+export async function finishAnyDeck(db,input) {
+  return finishDeckWithAccess(db,input,null);
+}
+
+async function finishDeckWithAccess(db,input,ownerId) {
   if (typeof input.deckId !== "string" || !input.deckId || input.deckId.length > 256) throw new ApiError(400,"invalidRequest");
   return transaction(db,async()=>{
     // Shares takeNote's deck lock: adding a note and finishing cannot race.
     const deck=await db.prepare(`SELECT d.*,d.id AS deck_id FROM decks d WHERE d.id=?${isPostgres(db) ? " FOR UPDATE OF d" : ""}`).get(input.deckId);
-    if (!deck || deck.creator_user_id !== session.user_id) throw new ApiError(404,"deckUnavailable");
+    if (!deck || (ownerId !== null && deck.creator_user_id !== ownerId)) throw new ApiError(404,"deckUnavailable");
     if (deck.status === "finished") return {deckId:deck.id,status:"finished"};
     if (deck.status !== "in_progress") throw new ApiError(409,"deckReadOnly");
     const {total}=await db.prepare("SELECT COUNT(*) AS total FROM cards WHERE deck_id=? AND deleted_at IS NULL").get(deck.id);
@@ -422,6 +431,19 @@ export async function readTeamDeckInProgress(db,{bookId}={}) {
     ORDER BY b.position,d.id`).all(...(bookId===undefined ? [] : [bookId]));
   return {drafts:rows.map(row=>({deckId:row.deck_id,bookId:row.book_id,bookTitle:row.book_title,
     title:row.title,language:row.language,cardCount:row.card_count}))};
+}
+
+export async function readAllDecksInProgress(db,{bookId}={}) {
+  if (bookId!==undefined && (typeof bookId!=="string" || !bookId.trim() || bookId.length>240)) throw new ApiError(400,"invalidRequest");
+  const rows=await db.prepare(`SELECT d.id AS deck_id,d.book_id,d.creator_user_id,u.display_name AS creator_name,d.language,b.popular_title AS book_title,t.title,
+    (SELECT COUNT(*) FROM cards c WHERE c.deck_id=d.id AND c.deleted_at IS NULL) AS card_count
+    FROM decks d JOIN books b ON b.id=d.book_id
+    JOIN users u ON u.id=d.creator_user_id
+    JOIN deck_translations t ON t.deck_id=d.id AND t.language=d.language
+    WHERE d.status='in_progress'${bookId===undefined ? "" : " AND d.book_id=?"}
+    ORDER BY b.position,d.id`).all(...(bookId===undefined ? [] : [bookId]));
+  return {drafts:rows.map(row=>({deckId:row.deck_id,bookId:row.book_id,bookTitle:row.book_title,
+    title:row.title,language:row.language,creatorUserId:row.creator_user_id,creatorName:row.creator_name,cardCount:row.card_count}))};
 }
 
 // Only the private MCP integration can transfer a finished team deck to an
