@@ -50,12 +50,15 @@ import {createCurrencyReceiptPresentation,pulseCurrencyWallet} from "./currency-
 import {createInitialInterestCompletion} from "./initial-interest-completion.mjs";
 import {createReaderXpTracker,mountReaderXpFeedback,syncReaderProgressionState} from "./reader-xp-feedback.mjs?v=level-up-polish-2";
 
-export function startReader({createCardFeatures} = {}) {
-  if(new URLSearchParams(location.search).get("ui")==="2"){
-    const api=createAccountClient();
-    import("./ui2/index.mjs").then(({mountUi2})=>mountUi2({main:document.getElementById("main"),api,loadCatalog,language:restoreLanguage(createBrowserStore().read(keys.language)),tintMode:createBrowserStore().read(keys.coverTint),store:createBrowserStore()}));
-    return;
-  }
+// The new interface (app/ui2) is the only one readers can reach: no parameter, route or link opens the old one.
+// `load` and `doc` are there for the tests; the URL (search or hash) never chooses the interface.
+export function startReader({load=()=>import("./ui2/index.mjs"),doc=globalThis.document}={}) {
+  const api=createAccountClient(),store=createBrowserStore();
+  return load().then(({mountUi2})=>mountUi2({main:doc.getElementById("main"),api,loadCatalog,language:restoreLanguage(store.read(keys.language)),tintMode:store.read(keys.coverTint),store}));
+}
+
+// The old interface stays in the repository, unreachable, until its code is retired (docs/development/EDIT_NOTES_PLAN.md).
+export function startLegacyReader({createCardFeatures} = {}) {
   const main = document.getElementById("main"), live = document.getElementById("announcement"), store = createBrowserStore(), api = createAccountClient();
   function fitOneLineLabel(container) {
     const label=container.querySelector("bdi");

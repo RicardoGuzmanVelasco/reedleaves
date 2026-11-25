@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {words} from "../i18n.mjs";
 import {newAuth,authErrorField,createFromSignIn,toggleMode,accesoMarkup,lookAroundMarkup} from "./acceso.mjs";
 
-const render=(auth,{language="es",inviteRequired=false}={})=>accesoMarkup({auth:{...newAuth(),...auth},inviteRequired,c:{...words[language],legacy:"/app/"}});
+const render=(auth,{language="es",inviteRequired=false}={})=>accesoMarkup({auth:{...newAuth(),...auth},inviteRequired,c:{...words[language]}});
 
 for(const language of ["es","en"])test(`Sign in: title, both fields with their hints, one primary button, switch and the Librería button (${language})`,()=>{
   const c=words[language],html=render({},{language});

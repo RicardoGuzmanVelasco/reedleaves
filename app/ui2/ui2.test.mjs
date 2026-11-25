@@ -6,7 +6,6 @@ import {readerState,emptyCatalog} from "../../test-support/reader-state.mjs";
 import {deckOutline,placementTargets,deckCapabilities,parentOf,keyboardMove,dropMove,isCurrentPlace} from "./outline.mjs";
 import {outlineMarkup,noteSheetMarkup,placeSheetMarkup,noteFormMarkup,errorModalMarkup,toastMarkup} from "./markup.mjs";
 import {errorInfo,sessionLost} from "./errors.mjs";
-import {ui2Enabled} from "./index.mjs";
 
 const card=(id,parentId,order,isQuote=false)=>({id,bookId:"b",deckId:"d",deckLanguage:"es",language:"es",parentId,order,isQuote,
   title:{es:isQuote?"Cita":`T ${id}`},body:{es:`Texto ${id}`}});
@@ -18,11 +17,6 @@ function fixture() {
   const catalog={...emptyCatalog(),decks:[deck,{...deck,id:"other",creator:{userId:"x"}},{...deck,id:"shared",contributionPolicy:"open"}]};
   return {model,deck,state:readerState(catalog,{userId:"me"})};
 }
-
-test("?ui=2 is the only switch for the new interface",()=>{
-  assert.equal(ui2Enabled("?ui=2"),true);
-  for(const search of ["","?ui=1","?ui=","?x=2"])assert.equal(ui2Enabled(search),false);
-});
 
 test("Outline keeps the hierarchy and moves root quotes after the ideas",()=>{
   const {model}=fixture(),outline=deckOutline(model,"es");

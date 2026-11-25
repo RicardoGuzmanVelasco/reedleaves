@@ -1,5 +1,5 @@
-// New interface (?ui=2). Mounted by reader-app.mjs only when the parameter is present;
-// the old interface is untouched. Only existing /api endpoints are used.
+// The interface every reader gets: reader-app.mjs mounts it always (with or without the old `?ui=2`); the old interface
+// stays in the repository, unreachable. Destinations not built here yet show the «Próximamente» toast and never navigate.
 import {words} from "../i18n.mjs";
 import {bookTitle,TITLE_MAX_LENGTH,CARD_BODY_MAX_LENGTH,DESCRIPTION_MAX_LENGTH,MAX_CARDS_PER_DECK,READING_GUIDE_MAX_LENGTH,READING_GUIDE_MIN_LENGTH} from "../core.mjs";
 import {deckOutline,placementTargets,deckCapabilities,noteCount,descendantIds,keyboardMove,dropMove,isCurrentPlace} from "./outline.mjs";
@@ -50,12 +50,10 @@ import {cardActionsMarkup} from "./tarjeta.mjs";
 import {mountCardSwipe,burstLeaves,fitCardText} from "./tarjetas-gestos.mjs";
 import {loadCardContext,loadCardContexts,partialCatalog} from "../catalog.mjs";
 
-export const ui2Enabled=search=>new URLSearchParams(search).get("ui")==="2";
 const TOAST_MS=6500;
 
 export async function mountUi2({main,api,loadCatalog,language,tintMode="off",store=createBrowserStore(),doc=document,win=window}){
-  // `legacy`: URL of the old interface, for destinations not built yet.
-  let c={...(words[language]||words.es),legacy:win.location.pathname};
+  let c={...(words[language]||words.es)};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
   let guide=null,guideReturn="#library",guideExit=null,auth=newAuth(),resume=null,resumeAfterHash=false,inviteRequired=false,settings=null,profile=null,profileAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null,editor=null,practice=null,streakCelebrate=false;
   // The card view: the explanation of «Baraja en curso» open, the way the card came in, the context of a card missing from the
@@ -75,8 +73,9 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   if(xpFeedback)mountXpMeterArt(doc,{showLevels:false});
 
   const decode=value=>{try{return decodeURIComponent(value);}catch{return value;}};
+  // `#bookstore/book/<id>` is the old interface's book link (bookmarks): the same book page. Other old-only routes open Inicio.
   const route=()=>{
-    const hash=win.location.hash,deckMatch=hash.match(/^#deck\/([^/]+)(\/note)?$/),bookMatch=hash.match(/^#book\/([^/]+)\/note$/),pageMatch=hash.match(/^#book\/([^/]+)$/);
+    const hash=win.location.hash,deckMatch=hash.match(/^#deck\/([^/]+)(\/note)?$/),bookMatch=hash.match(/^#book\/([^/]+)\/note$/),pageMatch=hash.match(/^#(?:bookstore\/)?book\/([^/]+)$/);
     if(deckMatch)return {name:"deck",id:decode(deckMatch[1]),note:!!deckMatch[2]};
     if(bookMatch)return {name:"book-note",id:decode(bookMatch[1])};
     if(pageMatch)return {name:"book",id:decode(pageMatch[1])};
@@ -553,7 +552,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     const loaded=profile?.id===id?profile:null;
     const body=!loaded?`<div class="ui2-empty">${loadingPlaceholder(c.busyOpening,{visible:true})}</div>`
       :loaded.unavailable?perfilUnavailableMarkup(c)
-      :perfilMarkup({data:perfilData({profile:loaded.data,prefs:loaded.prefs,interests:catalog.interests,viewerId:viewerId(),language}),c,language,legacy:c.legacy});
+      :perfilMarkup({data:perfilData({profile:loaded.data,prefs:loaded.prefs,interests:catalog.interests,viewerId:viewerId(),language}),c,language});
     return shellMarkup({header:headerMarkup({userId:list.userId,stage:list.avatarStage,wallet:list.wallet,c}),body:`<div class="ui2-body ui2-lib">${body}</div>`,nav:navFor(null)});
   }
   // Ajustes: a sheet over the own Perfil. The card languages are read when it opens; the rest is local or one request.
@@ -563,7 +562,7 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     run(async()=>{const cards=await api.request("/api/reader/language-preferences");if(settings)settings.cards=cards;});
   }
   function applyLanguage(next){
-    language=next;c={...words[language],legacy:win.location.pathname};store.save(storageKeys.language,language);
+    language=next;c={...words[language]};store.save(storageKeys.language,language);
     doc.documentElement.lang=language;
   }
   function sendFeedback(){
@@ -1288,6 +1287,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else if(action==="page-back"){if(win.history.length>1)win.history.back();else win.location.hash=route().name==="deck"?"#library":"#bookstore";}
     else if(action==="lib-tab"){win.location.hash=target.dataset.tab==="cardcase"?"#library/cardcase":"#library";}
     else if(action==="sign-in"){event.preventDefault();askAccount();}
+    // A destination not built in this interface yet: the toast says so and the screen stays as it is.
+    else if(action==="coming-soon"){showToast(c.ui2ComingSoon);render();}
     else if(action==="book-status"||action==="add-deck"||action==="catalog-book"||action==="create-deck")doPersonal({kind:action,book:target.dataset.book,status:target.dataset.status,deck:target.dataset.deck});
     else if(action==="interest-cancel"){prompt=null;render();}
     else if(action==="interest-continue")continuePrompt();

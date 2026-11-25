@@ -22,7 +22,7 @@ export function libreriaData({catalog,state,language,query="",filters,sortOrder=
 }
 
 // A cover with no badge and no note button: the book is not (necessarily) in the Library.
-export const bookstoreCoverMarkup=(book,c)=>`<div class="book-tile-entry"><a class="book-tile" href="${esc(`${c.legacy}#book/${encodeURIComponent(book.id)}`)}" data-book="${esc(book.id)}" title="${esc(`${book.title}, ${book.author}`)}" aria-label="${esc(`${c.bookInfo}: ${book.title}, ${book.author}`)}">`
+export const bookstoreCoverMarkup=(book,c)=>`<div class="book-tile-entry"><a class="book-tile" href="${esc(`#book/${encodeURIComponent(book.id)}`)}" data-book="${esc(book.id)}" title="${esc(`${book.title}, ${book.author}`)}" aria-label="${esc(`${c.bookInfo}: ${book.title}, ${book.author}`)}">`
   +`<span class="book-tile-cover"><strong class="book-tile-cover-title" lang="${esc(book.titleLanguage)}" dir="auto" title="${esc(book.title)}">${esc(book.title)}</strong><span class="book-tile-author" title="${esc(book.author)}">${esc(book.author)}</span>${mascotIcon(book.stage,"book-tile-mark")}</span></a></div>`;
 
 function sectionMarkup(section,views,c){

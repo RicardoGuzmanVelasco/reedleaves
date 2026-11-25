@@ -11,7 +11,7 @@ const streak=(extra={})=>({days:5,dailyCardSeenToday:false,mixedDoneToday:false,
 const topicState=(over={})=>["mixed","reading","read","saved","dailyDeck","interests","novelties","teamPicks"].map(id=>({id,cost:id==="read"?3:id==="saved"?10:5,currency:id==="saved"?"leaf":"petal",discounted:id==="read",cards:10,required:5,available:true,...(over[id]||{})}));
 const NOW=new Date("2026-11-15T10:30:00Z");                                       // 11:30 in Madrid: next streak day at 06:00, in 18 h 30 min
 const render=(language,s,st=state(),topics=topicState())=>{
-  const c={...words[language],legacy:"/app/"},data=repasoData({state:st,streak:s,topics});
+  const c={...words[language]},data=repasoData({state:st,streak:s,topics});
   return repasoMarkup({data,c,nav:navMarkup({active:"practice",practicePending:streakPending(s),c}),month:"2026-11",language,now:NOW});
 };
 

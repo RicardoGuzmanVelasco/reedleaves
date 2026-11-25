@@ -31,7 +31,7 @@ export function viewChip(section,view,title,c){
 }
 function sectionMarkup(section,views,c){
   const view=viewOf(section,views),title=c[titleKey[section.key]];
-  const list=bookListMarkup({books:section.books.map(book=>({id:book.id,title:book.title,language:book.titleLanguage,author:book.author,href:`${c.legacy}#book/${encodeURIComponent(book.id)}`})),
+  const list=bookListMarkup({books:section.books.map(book=>({id:book.id,title:book.title,language:book.titleLanguage,author:book.author,href:`#book/${encodeURIComponent(book.id)}`})),
     view,label:title,cover:entry=>coverMarkup(section.books.find(book=>book.id===entry.id),c)});
   return `<section class="shelf-section" data-section="${section.key}" aria-labelledby="ui2-shelf-${section.key}"><header class="shelf-head"><span class="sh-ic" aria-hidden="true">${icon(section.icon)}</span><h2 id="ui2-shelf-${section.key}">${esc(title)}</h2>${viewChip(section,view,title,c)}</header>${list}</section>`;
 }

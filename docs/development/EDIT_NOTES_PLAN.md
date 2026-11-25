@@ -131,7 +131,7 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 - Reparto aprobado: «Leer tarjetas» de baraja terminada/ajena, guías y `#card` → C; baraja propia en curso → B; Repaso (futuro) reutiliza el contenido de C sin la barra (la valoración ahí no puede ir por swipe lateral).
 - Por probar en la app real: flujo de visitante (valorar/guardar → Acceso → retoma), copia al portapapeles al compartir, aviso de interés al guardar.
 - Acceso a las guías desde la ficha del libro en ui2 (hoy solo por el editor de guía).
-- Los enlaces compartidos (`deckShareUrl`, `cardShareUrl`) no llevan `?ui=2` y abren la UI vieja hasta el cierre.
+- Los enlaces compartidos (`deckShareUrl`, `cardShareUrl`) no llevan `?ui=2` y abren la ui2 (también los antiguos con `?ui=2`).
 - Decisión abierta de C: gestos verticales (hoy abajo = profundizar, arriba = volver; se recomienda probar la dirección contraria con 3–5 personas).
 - Compartir baraja desde la vista de tarjetas: no; solo compartir tarjeta (la baraja se comparte desde su página o el editor).
 - Sesión de práctica, pantalla completa de la nota (F6), editor de intereses en ui2 y sistema de XP (de dónde sale la experiencia; conservar `observeXp`/`xpFeedback`).
@@ -179,3 +179,17 @@ Decisión: rehacer la interfaz de notas y barajas desde cero, a partir de mockup
 - Falta una forma de que lo que se oculta en el título se oculte también en el cuerpo cuando el cuerpo usa derivadas, singular/plural o sinónimos (la coincidencia actual es por palabra completa). Se aborda junto a las preguntas de elegir respuesta.
 - Casos de partida (descartados del primer lote por esta fuga; no deben quedar descartados): «Rechazo y Retirada» (título tapado deja «rechazado»), «Proponles algo que perder» («perdido»), «Pensamientos y acciones como destino» (singular), «Enlazamiento de hábitos» («enlaza»), «Stocks» («stock»), «X-as-a-Service» («service»), «Feeling» («feel»), «Clarify the Decision» («the choice»).
 - Carga inicial en producción: definiciones del primer lote revisadas por el usuario (archivos en reedleaves-mockups/pruebas-propuestas*.json, fuera del repo). Una definición por tarjeta y tipo: una segunda prueba del mismo tipo en la misma tarjeta no cabe en el modelo actual.
+
+## ui2 como única UI visible (2026-11-25)
+- `startReader` (`app/reader-app.mjs`) monta siempre la ui2, con o sin `?ui=2`; ningún parámetro, ruta ni enlace abre la UI vieja. Su código sigue en el repo, inaccesible (`startLegacyReader`), hasta decidir su retirada; el prefijo `ui2` se mantiene.
+- Quitado «Probar la nueva UI» (y su clave `tryNewUi`). Los enlaces de libro de Inicio, Biblioteca y Librería ya no salen a la UI vieja (`c.legacy` retirado): van a `#book/<id>` de la ui2.
+- `#bookstore/book/<id>` (enlace viejo) abre la ficha ui2 del libro. El resto de rutas solo de la UI vieja abren Inicio sin aviso: `#library/<usuario>`, `#daily-idea[/…]`, `#guides/<libro>`, `#guide-preview/…`, `#saved/…`, `#mascots/…`, `#practice/empty`, `#bookstore/author/<autor>`. Una baraja o libro desconocido (`#deck/…`, `#book/…`) también abre Inicio.
+
+## Pantallas que aún no existen en ui2 (toast Próximamente)
+Acción `data-ui2="coming-soon"`: toast «Próximamente» / «Coming soon» (`ui2ComingSoon`) sin navegar.
+
+| Ruta o acción | Dónde se origina | Qué falta |
+| --- | --- | --- |
+| «Ver estantería» de otro lector (antes `#library/<usuario>` de la UI vieja) | Perfil ajeno, sección Lecturas (`app/ui2/perfil.mjs`) | Estantería ajena de solo lectura en ui2 |
+
+Revisado sin caso «Próximamente»: perfil ajeno, editor de intereses y página de baraja ya existen en ui2; la ficha completa de nota (F6) no tiene entrada en ui2 (la página de baraja abre la hoja de nota); Social sigue deshabilitado en la barra.

@@ -7,7 +7,7 @@ const interests=[{id:"focus",name:{es:"Enfoque",en:"Focus"},emoji:"🧠",chipCol
 const profile=(extra={})=>({id:"me",name:"Ricardo",username:"ricardo",createdAt:"2026-10-10 08:00:00",
   readerProgression:{level:24,stage:"sprout",fullName:"Brote Prometedor",xp:1240,xpIntoLevel:80,xpForNextLevel:240},
   counts:{booksRead:2,booksReading:1,cardsViewed:9,decksCreated:3,cardsCreated:11,quotesCreated:2},mascots:{pot:2,sprout:1},...extra});
-const render=(data,language="es")=>perfilMarkup({data,c:{...words[language],legacy:"/app/"},language,legacy:"/app/"});
+const render=(data,language="es")=>perfilMarkup({data,c:{...words[language]},language});
 const own=()=>perfilData({profile:profile(),prefs:{interested:["focus"],notInterested:["money"]},interests,viewerId:"me",language:"es"});
 
 test("Perfil shows base info, then Intereses, Lecturas, Contribuciones and Crecimiento actual, with no @username",()=>{

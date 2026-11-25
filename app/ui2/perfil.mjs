@@ -56,10 +56,10 @@ function interestRows(data,c){
 
 const growthTiles=(data,c,language)=>`<ul class="pf-growth" aria-label="${esc(c.ui2ProfileGrowth)}">${data.growth.map(stage=>`<li class="pf-stat pf-stat--green pf-stage${stage.count?"":" is-zero"}">${mascotIcon(stage.id,"pf-stage-img")}<span class="pf-stage-name">${esc(c[stage.name])}</span><strong>${number(stage.count,language)}</strong></li>`).join("")}</ul>`;
 
-// `legacy`: URL of the old interface, which still holds the other reader's Estantería.
-export function perfilMarkup({data,c,language,legacy}){
+// Another reader's Estantería is not built in this interface yet: «Ver estantería» says «Próximamente» and stays here.
+export function perfilMarkup({data,c,language}){
   const gear=data.own?`<button type="button" class="ui2-btn secondary--subtle pf-gear" data-ui2="open-settings" aria-haspopup="dialog" aria-label="${esc(c.settings)}">${icon("settings")}</button>`:"";
-  const shelf=data.own?"":`<a class="ui2-btn secondary--subtle pf-shelf" href="${esc(`${legacy}#library/${encodeURIComponent(data.id)}`)}">${icon("shelf")}<span>${esc(c.viewShelf)}</span></a>`;
+  const shelf=data.own?"":`<button type="button" class="ui2-btn secondary--subtle pf-shelf" data-ui2="coming-soon">${icon("shelf")}<span>${esc(c.viewShelf)}</span></button>`;
   const editInterests=data.own?`<button type="button" class="ui2-btn secondary--subtle pf-edit" data-ui2="edit-interests" aria-haspopup="dialog" aria-label="${esc(c.edit)}">${icon("edit")}</button>`:"";
   return `<section class="pf-screen"><div class="pf-title"><button type="button" class="ui2-ib dp-back" data-ui2="page-back" aria-label="${esc(c.back)}">${icon("back")}</button><h1 tabindex="-1">${esc(c.profile)}</h1>${gear}</div>`
     +`<header class="pf-heading"><span class="pf-avatar" aria-hidden="true">${data.stage?mascotArt(data.stage):""}</span><div class="pf-identity"><h2 class="pf-name"><bdi>${esc(data.name)}</bdi></h2>`

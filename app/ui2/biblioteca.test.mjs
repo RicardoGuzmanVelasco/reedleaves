@@ -15,7 +15,7 @@ function fixture(statuses){
 const ids=section=>section.books.map(b=>b.id);
 const statuses={a:"reading",b:"reading",c:"to_read",d:"read"};
 const render=(language,views={})=>{
-  const {catalog,state}=fixture(statuses),c={...words[language],legacy:"/app/"};
+  const {catalog,state}=fixture(statuses),c={...words[language]};
   return shelfMarkup({data:shelfData({catalog,state:{...state,catalog},language}),views,c,nav:navMarkup({active:"library",c})});
 };
 
@@ -40,20 +40,20 @@ for(const language of ["es","en"])test(`Sections: loose icon, title, view chip w
   assert.match(html,new RegExp(`aria-label="${c.ui2ViewCovers}" title="${c.ui2ViewCovers}"`));
   assert.equal(html.match(/data-ui2="home-note"/g).length,2);                 // only the covers section (Reading) has buttons
   assert.match(html,/data-book-spines="stack"/);assert.match(html,/data-book-spines="shelf"/);
-  assert.match(html,/class="book-spine" href="\/app\/#book\/c" data-book="c"/);
+  assert.match(html,/class="book-spine" href="#book\/c" data-book="c"/);
   const covers=render(language,{to_read:"covers",read:"covers"});
   assert.equal(covers.match(/data-ui2="home-note"/g).length,4);                // every covers section, any state
 });
 
 test("Tabs: Shelf and Cardcase with their icons, Library piece active in the bar",()=>{
-  const c={...words.es,legacy:"/app/"},tabs=libraryTabsMarkup({active:"shelf",c});
+  const c={...words.es},tabs=libraryTabsMarkup({active:"shelf",c});
   assert.match(tabs,/segmented-selector[\s\S]*data-tab="shelf" aria-pressed="true"><span class="ui2-icon" data-icon="shelf"/);
   assert.match(tabs,/data-tab="cardcase" aria-pressed="false"><span class="ui2-icon" data-icon="cardcase"/);
   assert.match(render("es"),/data-nav="library" href="#library" aria-current="page"/);
 });
 
 test("Empty Library shows the production text",()=>{
-  const {catalog,state}=fixture({}),c={...words.es,legacy:"/app/"};
+  const {catalog,state}=fixture({}),c={...words.es};
   const html=shelfMarkup({data:shelfData({catalog,state:{...state,shelfBookIds:[]},language:"es"}),views:{},c,nav:""});
   assert.ok(html.includes(c.emptyBookshelf));assert.doesNotMatch(html,/shelf-section/);
 });

@@ -9,7 +9,6 @@ const BOTTOM_MARK="M22 2 Q2 2 2 22 L2 126 L50 118 L98 126 L98 22 Q98 2 78 2 Z";
 const SIDE_MARK="M22 2 Q2 2 2 22 L2 78 Q2 98 22 98 L126 98 L118 50 L126 2 Z";
 const pieceInner=(iconName,label,extra="")=>`${bookmark(false,BOTTOM_MARK)}${bookmark(true,SIDE_MARK)}<span class="bottom-navigation-icon" aria-hidden="true">${icon(iconName)}</span><span class="bottom-navigation-label">${esc(label)}</span>${extra}`;
 
-// Destinations not built in the new interface yet point at the old one (c.legacy = old app URL).
 // Order as in the old bar: Bookstore, Library, Home (centre), Social, Practice.
 export function navMarkup({active,practicePending=false,c,wallet=null}){
   const link=(id,href,label,extra="",name=label)=>`<a class="bottom-navigation-link" data-nav="${id}" href="${esc(href)}"${name!==label?` aria-label="${esc(name)}"`:""}${id===active?' aria-current="page"':""}>${pieceInner(id===active?`${id}-active`:id,label,extra)}</a>`;

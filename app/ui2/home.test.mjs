@@ -20,7 +20,7 @@ function fixture(overrides={}) {
   return {catalog,state};
 }
 const view=({catalog,state},language="es")=>homeData({catalog,state,language});
-const nav=(language="es",extra={})=>navMarkup({active:"home",c:{...words[language],legacy:"/app/"},...extra});
+const nav=(language="es",extra={})=>navMarkup({active:"home",c:{...words[language]},...extra});
 
 test("Home lists what the old Home lists: books being read and books with a draft of mine",()=>{
   const data=view(fixture());
@@ -34,7 +34,7 @@ test("Home orders books by latest note activity",()=>{
 });
 
 for(const language of ["es","en"])test(`Home markup: covers with one take-note button each, no draft line, in ${language}`,()=>{
-  const c={...words[language],legacy:"/app/"},html=homeMarkup({data:view(fixture(),language),c,nav:nav(language)});
+  const c={...words[language]},html=homeMarkup({data:view(fixture(),language),c,nav:nav(language)});
   assert.equal(html.match(/class="book-tile"/g).length,3);
   assert.equal(html.match(/data-ui2="home-note"/g).length,3);
   assert.match(html,/data-ui2="home-note" data-book="reading" data-deck="d1"/);
@@ -50,12 +50,12 @@ for(const language of ["es","en"])test(`Home markup: covers with one take-note b
 test("The avatar shows the mascot of the reader's level",()=>{
   const fx=fixture({readerProgression:{stage:"root"}});
   assert.equal(view(fx).avatarStage,"root");
-  assert.match(headerMarkup({userId:"me",stage:"root",wallet:{leaves:1,petals:2},c:{...words.es,legacy:"/app/"}}),/data-mascot="root"/);
+  assert.match(headerMarkup({userId:"me",stage:"root",wallet:{leaves:1,petals:2},c:{...words.es}}),/data-mascot="root"/);
 });
 
 for(const language of ["es","en"])test(`Home without books shows the rolling tumbleweed and empty-state text, in ${language}`,()=>{
   const fx=fixture({statuses:{}});fx.catalog.decks=[];
-  const c={...words[language],legacy:"/app/"},html=homeMarkup({data:view(fx,language),c,nav:nav(language)});
+  const c={...words[language]},html=homeMarkup({data:view(fx,language),c,nav:nav(language)});
   assert.doesNotMatch(html,/data-ui2="home-note"|class="book-tile"/);
   assert.match(html,/data-mascot="tumbleweed" data-idle="tumble"/);
   assert.ok(html.includes(c.ui2NotReading));

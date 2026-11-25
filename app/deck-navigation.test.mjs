@@ -15,7 +15,7 @@ test('Shared decks open clean reading without carrying the selected card',()=>{
   assert.equal(deckPageHash('a/deck'),'#deck/a%2Fdeck');
   assert.equal(deckReadingHash('a/deck'),'#preview/a%2Fdeck');
   assert.equal(deckShareUrl('https://reedleaves.com/app/?sharedCard=old&cardLanguage=es#card/old/es','new'),'https://reedleaves.com/app/#preview/new');
-  // Shared from «Editar baraja» (?ui=2): the link reads the deck, never the editor or the new-interface switch.
+  // Shared from «Editar baraja» (an old ?ui=2 URL): the link reads the deck, never the editor or the interface switch.
   const fromEditor=deckShareUrl('https://reedleaves.com/app/?ui=2#edit/a-deck','a-deck');
   assert.equal(fromEditor,'https://reedleaves.com/app/#preview/a-deck');assert.doesNotMatch(fromEditor,/#edit|ui=2/);
   for(const language of ['es','en']) for(const type of ['idea','quote','card']) {

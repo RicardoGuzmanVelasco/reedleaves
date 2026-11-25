@@ -27,7 +27,7 @@ export function homeData({catalog,state,language}){
 const statusLabel=(status,c)=>status==="reading"?c.readingStatus:status==="read"?c.readStatus:c.unread;
 export function coverMarkup(book,c){
   const info=`${c.bookInfo}: ${book.title}, ${book.author}`,noteLabel=`${c.takeNote}: ${book.title}`,stateId=`ui2-state-${esc(book.id)}`;
-  return `<div class="book-tile-entry book-tile-entry--notes"><a class="book-tile" href="${esc(`${c.legacy}#book/${encodeURIComponent(book.id)}`)}" data-book="${esc(book.id)}" title="${esc(`${book.title}, ${book.author}`)}" aria-describedby="${stateId}" aria-label="${esc(info)}">`
+  return `<div class="book-tile-entry book-tile-entry--notes"><a class="book-tile" href="${esc(`#book/${encodeURIComponent(book.id)}`)}" data-book="${esc(book.id)}" title="${esc(`${book.title}, ${book.author}`)}" aria-describedby="${stateId}" aria-label="${esc(info)}">`
     +`<span class="book-tile-cover"><strong class="book-tile-cover-title" lang="${esc(book.titleLanguage)}" dir="auto" title="${esc(book.title)}">${esc(book.title)}</strong><span class="book-tile-author" title="${esc(book.author)}">${esc(book.author)}</span>${mascotIcon(book.stage,"book-tile-mark")}`
     +`<span class="home-book-state" id="${stateId}"><span>${bookReadingIcon(book.status)}${esc(statusLabel(book.status,c))}</span></span></span></a>`
     +`<button type="button" class="book-note-add" data-ui2="home-note" data-book="${esc(book.id)}" data-deck="${esc(book.deckId||"")}" aria-label="${esc(noteLabel)}" title="${esc(noteLabel)}">${icon("take-note")}</button></div>`;
