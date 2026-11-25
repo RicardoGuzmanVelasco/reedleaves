@@ -56,11 +56,13 @@ export const bookLinkMarkup=book=>`<div class="tc-book">${nameLink({icon:"book",
 export const creatorMarkup=creator=>nameLink({icon:"user",name:creator.name,href:creator.id?`#profile/${encodeURIComponent(creator.id)}`:null});
 
 // The card's content: glyph, «Destacada» on guides, the book (large, before the content) and title and text.
-// Quotes carry no opening quote mark: the glyph already says the type.
-export function cardContentMarkup({card,book=null,guide=false,enter=null,c}){
+// Quotes carry no opening quote mark: the glyph already says the type. `html`: {title, body} already escaped markup that
+// replaces the text (the covers of a Repaso test); missing ones keep the card's text.
+export function cardContentMarkup({card,book=null,guide=false,enter=null,html={},c}){
+  const title=html.title??esc(card.title),body=html.body??esc(card.body);
   const ribbon=guide?`<span class="tc-rib" role="img" aria-label="${esc(c.featuredDeck)}">${deckDistinctionMarkup(c,{featured:true})}</span>`:"";
-  const text=card.type==="quote"?`<blockquote class="tc-body" lang="${esc(card.bodyLanguage)}" dir="auto">${esc(card.body)}</blockquote>`
-    :`${card.type==="idea"?`<h2 lang="${esc(card.titleLanguage)}" dir="auto">${esc(card.title)}</h2>`:""}<p class="tc-body" lang="${esc(card.bodyLanguage)}" dir="auto">${esc(card.body)}</p>`;
+  const text=card.type==="quote"?`<blockquote class="tc-body" lang="${esc(card.bodyLanguage)}" dir="auto">${body}</blockquote>`
+    :`${card.type==="idea"?`<h2 lang="${esc(card.titleLanguage)}" dir="auto">${title}</h2>`:""}<p class="tc-body" lang="${esc(card.bodyLanguage)}" dir="auto">${body}</p>`;
   const classes=["tc",`tc--${card.type}`,card.size?`is-${card.size}`:"",card.deleted?"is-del":""].filter(Boolean).join(" ");
   return `<article class="${classes}" data-card="${esc(card.id)}" aria-label="${esc(typeName(card.type,c))}"${enter?` data-enter="${esc(enter)}"`:""}>${glyph(card.type)}${ribbon}${book?bookLinkMarkup(book):""}<div class="tc-text">${text}</div></article>`;
 }

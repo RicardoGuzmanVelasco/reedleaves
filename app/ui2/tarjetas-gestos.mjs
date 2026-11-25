@@ -24,9 +24,10 @@ const buttonFor=(root,direction)=>root.querySelector(`.tc-nav [data-ui2="${BUTTO
  * @param {{can:(direction:string)=>boolean,go:(direction:string)=>void,win?:Window}} o
  * `can` tells whether there is a card that way (otherwise the drag resists and nothing fills); `go` moves.
  * Optional, for the Repaso session: `progress(direction,p)` follows the drag (null, 0 when it ends) and `tap(event)` gets a tap
- * on the stage (a press that never left the slop) that is not on a control.
+ * on the stage (a press that never left the slop) that is not on a control; `arm(direction)` names the button that fills
+ * instead of the bar's (the answers of a Repaso test), or null/undefined for the bar's.
  */
-export function mountCardSwipe(root,{can,go,progress=()=>{},tap=()=>{},win=window}){
+export function mountCardSwipe(root,{can,go,progress=()=>{},tap=()=>{},arm=()=>null,win=window}){
   let drag=null;
   const reset=()=>{
     if(!drag)return;
@@ -56,7 +57,7 @@ export function mountCardSwipe(root,{can,go,progress=()=>{},tap=()=>{},win=windo
       drag.card.classList.add("is-dragging");
       drag.card.style.transform=drag.axis==="x"?`translateX(${dx*pull}px) rotate(${dx*pull/30}deg)`:`translateY(${dy*pull*.5}px) scale(${1-Math.min(.04,Math.abs(dy)/2000)})`;
     }
-    const button=able?buttonFor(root,intent.direction):null;
+    const button=able?arm(intent.direction)||buttonFor(root,intent.direction):null;
     if(drag.armed&&drag.armed!==button){drag.armed.classList.remove("is-armed");drag.armed.style.removeProperty("--p");}
     drag.armed=button;
     if(button){button.classList.add("is-armed");button.style.setProperty("--p",`${Math.round(intent.progress*100)}%`);}

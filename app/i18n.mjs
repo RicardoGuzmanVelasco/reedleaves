@@ -183,6 +183,15 @@ Object.assign(words.en,{ui2EditNote:"Edit note",ui2DeckData:"Deck details",ui2No
 Object.assign(words.es,{practiceLocked:"Primero termina tu repaso a medias.",practiceParentTitle:"Esta tarjeta forma parte de una idea más grande",
   practiceParentBody:"Guárdala o añade su baraja al tarjetero para repasar sus tarjetas más adelante.",practiceParentOf:title=>`Tarjeta superior: ${title}`,
   practiceDayAdded:"+1 día",practiceDayCounted:"Ya contó hoy",practiceKeys:"← → para pasar · Esc para salir"});
+// Repaso hito 2: pruebas (mockup repaso-pruebas-v2). [PROPUESTO]
+Object.assign(words.es,{practiceTest:"¡Prueba!",practiceTestHint_hideTitle:"Tómate un momento para recordar el título. Cuando lo tengas, toca para comprobarlo.",
+  practiceTestHint_hideContent:"Tómate un momento para recordar lo que falta. Cuando lo tengas, toca para comprobarlo.",
+  practiceRemembered:"Me acordaba",practiceForgot:"No me acordaba",practiceReveal:"Descubrir",practiceHidden:"Oculto",
+  practiceTestUnavailable:"Esta prueba ya no se puede responder.",practiceTestAnswered:"Ya respondiste a esta prueba."});
 Object.assign(words.en,{practiceLocked:"First finish your unfinished session.",practiceParentTitle:"This card is part of a bigger idea",
   practiceParentBody:"Save it or add its deck to your cardcase to practice its cards later.",practiceParentOf:title=>`Parent card: ${title}`,
   practiceDayAdded:"+1 day",practiceDayCounted:"Already counted today",practiceKeys:"← → to move · Esc to exit"});
+Object.assign(words.en,{practiceTest:"Test!",practiceTestHint_hideTitle:"Take a moment to recall the title. When you have it, tap to check.",
+  practiceTestHint_hideContent:"Take a moment to recall what’s missing. When you have it, tap to check.",
+  practiceRemembered:"I remembered",practiceForgot:"I forgot",practiceReveal:"Reveal",practiceHidden:"Hidden",
+  practiceTestUnavailable:"This test can no longer be answered.",practiceTestAnswered:"You already answered this test."});

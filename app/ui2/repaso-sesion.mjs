@@ -12,6 +12,7 @@ import {priceTagMarkup} from "./price-tag.mjs";
 import {prizeTagMarkup} from "./prize-tag.mjs";
 import {cardView,cardContentMarkup,cardDeletedMarkup,cardContextMarkup,cardActionsMarkup,kickerTitle} from "./tarjeta.mjs";
 import {themeOf} from "./tarjetas.mjs";
+import {judgeMarkup,revealMarkup,introMarkup} from "./repaso-pruebas.mjs";
 
 export const SESSION_CARDS=5;
 
@@ -32,36 +33,49 @@ export function practiceItems({session,catalog,context,language}){
 }
 
 // The five segments: those reached are filled. `label`: false on the card of the Repaso tab (its button names the position).
-export function segmentsMarkup(reached,c,{label=true,small=false}={}){
+// `marks` (repaso-pruebas.mjs testMarks): the segment of a card with a test carries a bead, empty while pending, ✓ or ✗ once
+// answered; `pop`: the position whose bead was just answered (a little beat).
+export function segmentsMarkup(reached,c,{label=true,small=false,marks=[],pop=-1}={}){
   const total=SESSION_CARDS,at=Math.min(total,Math.max(0,reached));
   const aria=label?` role="progressbar" aria-label="${esc(c.position(Math.max(1,at),total))}" aria-valuemin="1" aria-valuemax="${total}" aria-valuenow="${Math.max(1,at)}"`:' aria-hidden="true"';
-  return `<div class="rs-segs${small?" rs-segs--sm":""}"${aria}>${Array.from({length:total},(_,index)=>`<i${index<at?' class="on"':""}></i>`).join("")}</div>`;
+  return `<div class="rs-segs${small?" rs-segs--sm":""}"${aria}>${Array.from({length:total},(_,index)=>{
+    const mark=marks[index],classes=[index<at?"on":"",...(typeof mark==="string"?["pr-t",mark==="passed"?"is-pass":mark==="failed"?"is-fail":"",index===pop&&mark?"is-pop":""]:[])].filter(Boolean);
+    return `<i${classes.length?` class="${classes.join(" ")}"`:""}></i>`;
+  }).join("")}</div>`;
 }
 
 const closeButton=(action,label)=>`<button type="button" class="dialog-close" data-ui2="${action}" aria-label="${esc(label)}" title="${esc(label)}">${icon("close")}</button>`;
 
 // The book as the card's overline, without a link: tapping it would leave the session.
 const plainBook=book=>`<div class="tc-book">${nameLink({icon:"book",name:kickerTitle(book.title,book.titleLanguage),language:book.titleLanguage})}</div>`;
-function contentMarkup(item,enter,c){
-  return cardContentMarkup({card:item.card,enter,c}).replace(/(<svg class="tc-wm[^]*?<\/svg>)/,`$1${plainBook(item.book)}`);
+function contentMarkup(item,enter,html,c){
+  return cardContentMarkup({card:item.card,enter,html,c}).replace(/(<svg class="tc-wm[^]*?<\/svg>)/,`$1${plainBook(item.book)}`);
 }
 
 // One card of the session (or, `exclusive`, a card opened from the final screen: no segments and its X goes back there).
-// `ui`: {enter, record, saved, from (theme of the card it came from, for the dissolve), neighbours {prev,next} themes}.
+// `ui`: {enter, record, saved, from (theme of the card it came from, for the dissolve), neighbours {prev,next} themes,
+// marks and pop (segmentsMarkup), test (repaso-pruebas.mjs practiceTestView) and intro (the «¡Prueba!» entry)}.
+// A test covers its text until it is uncovered; then it is answered with its two buttons, and «Siguiente» waits for that.
 export function sessionCardMarkup({item,at,exclusive=false,ui={},c}){
-  const {enter=null,record=null,saved=false,from=null,neighbours={}}=ui,card=item.card,deleted=!!card.deleted;
+  const {enter=null,record=null,saved=false,from=null,neighbours={},marks=[],pop=-1,test=null,intro=false}=ui,card=item.card,deleted=!!card.deleted;
+  const hidden=test?.state==="hidden",waiting=!!test&&!test.outcome;
   const creator=item.deck.creator.name?`<div class="tc-headwho">${nameLink({icon:"user",name:item.deck.creator.name})}</div>`:"";
   const head=`<header class="tc-head"><div class="tc-titles"><h1 class="tc-deck" tabindex="-1">${icon("deck")}<span lang="${esc(item.deck.nameLanguage)}" dir="auto">${esc(item.deck.name)}</span></h1>${creator}</div>`
     +(exclusive?closeButton("practice-excl-close",c.closeCard):closeButton("practice-exit",c.practiceExit))+`</header>`;
-  const row=exclusive?"":`<div class="tc-row rs-segrow">${segmentsMarkup(at+1,c)}</div>`;
-  const context=card.parent?cardContextMarkup({card,action:"practice-parent",c}).replace(/aria-label="[^"]*"/,`aria-label="${esc(c.practiceParentOf(card.parent.title))}" aria-haspopup="dialog"`):"";
+  const row=exclusive?"":`<div class="tc-row rs-segrow">${segmentsMarkup(at+1,c,{marks,pop})}</div>`;
+  // While the test is covered, its parent line is covered too and tapping it uncovers the card.
+  let context=card.parent?cardContextMarkup({card,action:hidden?"practice-reveal":"practice-parent",c})
+    .replace(/aria-label="[^"]*"/,hidden?`aria-label="${esc(c.practiceParentOf(c.practiceHidden))}"`:`aria-label="${esc(c.practiceParentOf(card.parent.title))}" aria-haspopup="dialog"`):"";
+  if(context&&test?.parent)context=context.replace(/<span>[^<]*<\/span><\/button>$/,`<span>${test.parent}</span></button>`);
+  const testControls=test?(hidden?revealMarkup(c):"")+judgeMarkup({outcome:test.outcome,wait:hidden,c}):"";
   const layers=(from?`<div class="rs-diss-bg"${from} aria-hidden="true"></div>`:"")
     +(exclusive?"":["prev","next"].map(side=>neighbours[side]?`<div class="rs-peek rs-peek--${side}"${neighbours[side]} aria-hidden="true"></div>`:"").join(""));
-  const arrows=exclusive?"":`<div class="rs-arrows"><button type="button" class="tc-arrow" data-ui2="practice-prev" aria-label="${esc(c.previous)}"${at>0?"":" disabled"}>${icon("back")}</button><button type="button" class="tc-arrow" data-ui2="practice-next" aria-label="${esc(c.next)}">${icon("forward")}</button></div>`
-    +`<p class="tc-keys rs-keys" aria-hidden="true">${esc(c.practiceKeys)}</p><p class="sr-only" role="status">${esc(c.position(at+1,SESSION_CARDS))}</p>`;
+  const arrows=exclusive?"":`<div class="rs-arrows"><button type="button" class="tc-arrow" data-ui2="practice-prev" aria-label="${esc(c.previous)}"${at>0?"":" disabled"}>${icon("back")}</button><button type="button" class="tc-arrow" data-ui2="practice-next" aria-label="${esc(c.next)}"${waiting?" disabled":""}>${icon("forward")}</button></div>`
+    +(waiting?"":`<p class="tc-keys rs-keys" aria-hidden="true">${esc(c.practiceKeys)}</p>`)+`<p class="sr-only" role="status">${esc(c.position(at+1,SESSION_CARDS))}</p>`;
   return `<div class="tc-reader rs${exclusive?" rs-excl":""}${deleted?" is-del":""}${from?" is-dissolving":""}${ui.dealt?" is-dealt":""}"${item.theme||""}>${layers}<div class="tc-col">${head}${row}`
-    +`<div class="tc-main"${exclusive?"":" data-ui2-stage"}>${deleted?cardDeletedMarkup(c):""}<div class="tc-stage">${contentMarkup(item,enter,c)}</div></div>`
-    +(context?`<div class="tc-who">${context}</div>`:"")+`<div class="tc-acts" data-ui2-acts>${cardActionsMarkup({card,record,saved,c})}</div>${arrows}</div></div>`;
+    +(intro&&hidden?introMarkup({kind:test.kind,c}):"")
+    +`<div class="tc-main"${exclusive?"":" data-ui2-stage"}>${deleted?cardDeletedMarkup(c):""}<div class="tc-stage">${contentMarkup(item,enter,test||{},c)}</div></div>`
+    +(context?`<div class="tc-who">${context}</div>`:"")+testControls+`<div class="tc-acts" data-ui2-acts>${cardActionsMarkup({card,record,saved,c})}</div>${arrows}</div></div>`;
 }
 
 // Entry: five card backs while the session is prepared; `dealing` turns the top one over before the first card shows.

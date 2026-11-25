@@ -17,6 +17,7 @@ import {PRACTICE_BASE_COST,PRACTICE_COMPLETION_XP} from "../practice-modes.mjs";
 import {guideData,guideMarkup,guideCanSave} from "./guia.mjs";
 import {repasoData,repasoMarkup,calendarSheetMarkup,streakPending,tickStreakCountdown} from "./repaso.mjs";
 import {practiceItems,sessionCardMarkup,dealMarkup,parentModalMarkup,practiceGrowth,finaleMarkup,SESSION_CARDS} from "./repaso-sesion.mjs";
+import {practiceTestView,testMarks,TEST_INTRO_MS,TEST_PEEL_MS,TEST_FADE_MS} from "./repaso-pruebas.mjs";
 import {playGrowthFeedback} from "../growth-feedback.mjs";
 import {mountBookCoverTints,coverTintMode} from "../book-cover-tint.mjs";
 import {mountBookLists,BOOK_VIEWS} from "../book-list.mjs";
@@ -421,12 +422,17 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     else win.location.replace(where.name==="cards"?`#deck/${encodeURIComponent(where.id)}`:"#home");
   }
   const inPractice=()=>route().name==="practice-session";
-  mountCardSwipe(main,{can:direction=>inPractice()?practiceCan(direction):readerCan(direction),go:direction=>inPractice()?practiceGo(direction,1):readerGo(direction),
-    progress:(direction,amount)=>{if(inPractice())practicePeek(direction,amount);},tap:event=>{if(inPractice())practiceTap(event);},win});
+  mountCardSwipe(main,{can:direction=>inPractice()?practiceSwipeCan(direction):readerCan(direction),go:direction=>inPractice()?practiceSwipeGo(direction):readerGo(direction),
+    progress:(direction,amount)=>{if(inPractice())practicePeek(direction,amount);},tap:event=>{if(inPractice())practiceTap(event);},
+    arm:direction=>inPractice()&&practiceTestStep()==="revealed"?main.querySelector(direction==="next"?".pr-no":".pr-yes"):null,win});
   win.addEventListener("keydown",event=>{
     const where=route();
     if(where.name==="practice-session"&&practice&&!event.defaultPrevented&&!event.altKey&&!event.ctrlKey&&!event.metaKey&&!doc.querySelector("dialog[open]")){
       if(event.key==="Escape"){event.preventDefault();if(practice.phase==="excl")closeExclusive();else if(practice.phase!=="done")win.location.replace("#practice");return;}
+      // A test waiting for its answer: ← «No me acordaba», → «Me acordaba» (the sides of the swipe); covered, Space uncovers it.
+      const step=practiceTestStep();
+      if(step==="revealed"&&(event.key==="ArrowLeft"||event.key==="ArrowRight")){event.preventDefault();practiceJudge(event.key==="ArrowLeft"?"failed":"passed");return;}
+      if(step==="hidden"&&event.key===" "&&!event.target.closest?.("button,a,input,textarea,select")){event.preventDefault();practiceReveal();return;}
       const direction={ArrowLeft:"prev",ArrowRight:"next"}[event.key];
       if(direction&&practice.phase==="cards"&&practiceGo(direction))event.preventDefault();
       return;
@@ -872,7 +878,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // ---- Sesión de Repaso (repaso-sesion.mjs; ruta #practice/session) ----
   // The server starts or resumes the session (one active at a time); each card shown is answered as a neutral «view» in order,
   // and reaching the last one completes it. `practice`: {phase deal|cards|excl|done, session, context, items, at (card shown),
-  // reached, completed, xpReward, growth (before), streakDone (before), modal, enter, from, played, endScroll, excl}.
+  // reached, completed, xpReward, growth (before), streakDone (before), modal, enter, from, played, endScroll, excl, and for the
+// tests (repaso-pruebas.mjs): revealed (card ids uncovered here; not kept: a session resumed shows them covered again),
+// outcomes (answers given here, before the server confirms them), introFor/introAt (the «¡Prueba!» entry) and pop}.
+// A card with a test counts as seen only once answered: test-result first, then its «view».
   const DEFAULT_THEME=' data-interest-color="#AAD57B"',DEAL_MIN_MS=700,DEAL_FLIP_MS=420;
   const practiceShown=()=>{if(!practice)return null;return practice.phase==="excl"?practice.items.filter(Boolean)[practice.excl]||null:practice.items[practice.at]||null;};
   const practiceRefresh=()=>{if(practice?.session)practice.items=practiceItems({session:practice.session,catalog,context:practice.context,language});};
@@ -887,7 +896,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(busy)return;
     const doneToday=!!streak?.mixedDoneToday&&!!streak?.dailyCardSeenToday;
     const opened=practice={phase:"deal",dealing:false,session:null,context:partialCatalog({}),items:[],at:0,reached:0,completed:false,xpReward:null,
-      growth:reader.growth||{},streakDone:doneToday,modal:null,enter:null,from:null,played:false,endScroll:0,excl:0};
+      growth:reader.growth||{},streakDone:doneToday,modal:null,enter:null,from:null,played:false,endScroll:0,excl:0,
+      revealed:new Set(),outcomes:new Map(),introFor:null,introAt:0,pop:-1};
     if(route().name!=="practice-session")win.location.hash="#practice/session";else render();
     const shownAt=Date.now();
     run(async()=>{
@@ -917,7 +927,10 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   // Answers, in order, every card reached and not yet answered; the answer of the last card completes the session.
   function practiceAnswer(){
     const p=practice;if(!p?.session||p.completed||p.answering||p.session.index>p.reached||p.session.index>=p.session.cardIds.length)return;
-    const index=p.session.index;p.answering=true;
+    const index=p.session.index;
+    // A test not yet answered on the server holds its «view» (and every card after it).
+    if(practiceTestAt(p,index)&&!p.session.tests?.[p.session.cardIds[index]]?.outcome)return;
+    p.answering=true;
     api.request("/api/reader/practice/answer",{sessionId:p.session.id,cardId:p.session.cardIds[index],index,answer:"view"}).then(async result=>{
       p.answering=false;if(result?.state)reader=result.state;
       if(practice!==p)return;
@@ -938,7 +951,22 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       abandonPractice();failure={...failed,title:c.ui2PracticeError};render();
     });
   }
-  const practiceCan=direction=>!!practice&&practice.phase==="cards"&&(direction==="next"||direction==="prev"&&practice.at>0);
+  // The test of the card at `index` as it shows (practiceTestView), or null: no test, or one this card cannot show.
+  function practiceTestAt(p,index){
+    const id=p?.session?.cardIds[index],test=id&&p.session.tests?.[id],item=p.items[index];
+    if(!test||!item)return null;
+    const outcome=p.outcomes.get(id)||test.outcome||null;
+    return practiceTestView({test:{...test,outcome},card:item.card,state:outcome||p.revealed.has(id)?"shown":"hidden",c});
+  }
+  // The test of the current card while it waits: "hidden" (covered) or "revealed" (uncovered, not answered); otherwise null.
+  const practiceTestStep=()=>{
+    const p=practice;if(!p||p.phase!=="cards")return null;
+    const test=practiceTestAt(p,p.at);return !test||test.outcome?null:test.state==="hidden"?"hidden":"revealed";
+  };
+  const practiceCan=direction=>!!practice&&practice.phase==="cards"&&(direction==="next"&&!practiceTestStep()||direction==="prev"&&practice.at>0);
+  // Swiping an uncovered test answers it: left «No me acordaba», right «Me acordaba»; both go on to the next card.
+  const practiceSwipeCan=direction=>practiceTestStep()==="revealed"||practiceCan(direction);
+  const practiceSwipeGo=direction=>practiceTestStep()==="revealed"?practiceJudge(direction==="next"?"failed":"passed",1):practiceGo(direction,1);
   // `pulled`: how far the drag went (1: past the threshold), so the dissolve goes on from there.
   function practiceGo(direction,pulled=0){
     const p=practice;if(!practiceCan(direction))return false;
@@ -953,12 +981,72 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
   }
   // While dragging, the next (or previous) card's colour rises over the current one.
   function practicePeek(direction,amount){
+    if(direction&&practiceTestStep()==="revealed")direction="next";
     for(const layer of main.querySelectorAll(".rs-peek"))layer.style.setProperty("--p",layer.classList.contains(`rs-peek--${direction}`)?String(amount):"0");
   }
-  // Tap: the left third goes back, the rest goes on.
+  // Tap: the left third goes back, the rest goes on. On a test waiting for its answer the rest uncovers it (covered) or makes
+  // the answers hop (uncovered): tapping never answers.
   function practiceTap(event){
-    const width=win.innerWidth||1;
-    practiceGo(event.clientX<width/3?"prev":"next");
+    const width=win.innerWidth||1,left=event.clientX<width/3,step=practiceTestStep();
+    if(step&&!left){if(step==="hidden")practiceReveal();else practiceHop();return;}
+    practiceGo(left?"prev":"next");
+  }
+  function practiceHop(){
+    const judge=main.querySelector(".pr-judge");if(!judge||reducedMotion())return;
+    judge.classList.remove("is-hop");void judge.offsetWidth;judge.classList.add("is-hop");
+  }
+  // The cover peels off and drops little leaves (reduced motion: it fades in 120 ms); then the answers rise.
+  function practiceReveal(){
+    const p=practice;if(practiceTestStep()!=="hidden"||p.revealing)return;
+    const id=p.session.cardIds[p.at],screen=main.querySelector(".tc-reader"),keyboard=!!doc.activeElement?.matches?.(".pr-reveal");
+    p.revealing=true;
+    const done=()=>{
+      p.revealing=false;if(practice!==p||p.phase!=="cards"||p.session.cardIds[p.at]!==id)return;
+      p.revealed.add(id);p.introFor=id;p.introAt=0;render();
+      if(keyboard)main.querySelector(".pr-judge button")?.focus();
+    };
+    if(reducedMotion()){screen?.classList.add("pr-fade");setTimeout(done,TEST_FADE_MS);return;}
+    screen?.classList.add("pr-peel");
+    for(const cover of [...main.querySelectorAll(".tc-stage .pr-hide,.tc-ctx .pr-hide")].slice(0,4))burstLeaves(cover,{color:readerTheme(),doc,win});
+    setTimeout(done,TEST_PEEL_MS);
+  }
+  // The answer: the button sinks, the segment's bead fills (✓ or ✗), the content leaves on that side and the next card comes.
+  // The result goes to the server at once; the card's «view» follows it (practiceAnswer waits for the confirmation).
+  function practiceJudge(outcome,pulled=0){
+    const p=practice;if(practiceTestStep()!=="revealed"||p.judging||!["passed","failed"].includes(outcome))return false;
+    const index=p.at,id=p.session.cardIds[index],reduced=reducedMotion();
+    p.outcomes.set(id,outcome);p.judging=true;
+    const button=main.querySelector(outcome==="passed"?".pr-yes":".pr-no");
+    for(const each of main.querySelectorAll(".pr-judge button"))each.setAttribute("aria-pressed",String(each===button));
+    main.querySelector('[data-ui2="practice-next"]')?.removeAttribute("disabled");
+    main.querySelectorAll(".rs-segrow .rs-segs i")[index]?.classList.add(outcome==="passed"?"is-pass":"is-fail");
+    if(outcome==="passed")burstLeaves(button,{color:readerTheme(),doc,win});
+    if(!reduced)main.querySelector(".tc-stage .tc")?.classList.add(outcome==="passed"?"pr-out--r":"pr-out--l");
+    sendTestResult(p,id,outcome);
+    setTimeout(()=>{
+      p.judging=false;if(practice!==p||p.phase!=="cards"||p.at!==index)return;
+      p.pop=index;practiceGo("next",pulled);
+    },reduced?TEST_FADE_MS:260);
+    return true;
+  }
+  function sendTestResult(p,id,outcome){
+    const send=()=>api.request("/api/reader/practice/test-result",{sessionId:p.session.id,cardId:id,outcome});
+    const confirmed=result=>{
+      if(result?.state)reader=result.state;
+      if(practice!==p)return;
+      const test=p.session.tests?.[id];
+      if(test)p.session={...p.session,tests:{...p.session.tests,[id]:{...test,outcome:result?.result?.outcome||outcome}}};
+      practiceAnswer();
+    };
+    send().then(confirmed,caught=>{
+      if(practice!==p)return;
+      const failed=asFailure(caught);
+      // Already answered (a retry that had reached the server): the session goes on.
+      if(failed.code==="practiceTestAnswered"){confirmed(null);return;}
+      if(sessionLost(failed)){lostSession();return;}
+      if(blockingFailure(failed)){offerRetry(failed,async()=>{let result=null;try{result=await send();}catch(again){if(asFailure(again).code!=="practiceTestAnswered")throw again;}confirmed(result);});return;}
+      abandonPractice();failure={...failed,title:c.ui2PracticeError};render();
+    });
   }
   function showFinale(){
     const p=practice;if(!p)return;
@@ -1015,7 +1103,12 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
       const exclusive=p.phase==="excl",item=practiceShown(),at=exclusive?p.excl:p.at;
       if(!item)html=dealMarkup({c});
       else{
+        const test=exclusive?null:practiceTestAt(p,at),id=p.session.cardIds[at];
+        // The «¡Prueba!» entry plays once on reaching a covered test, after the deck's deal or the dissolve.
+        if(test?.state==="hidden"&&p.introFor!==id){p.introFor=id;p.introAt=Date.now()+(p.dealt?550:p.from?320:0);}
+        const intro=test?.state==="hidden"&&p.introFor===id&&Date.now()<p.introAt+TEST_INTRO_MS;
         html=sessionCardMarkup({item,at,exclusive,ui:{enter:p.enter,from:p.from,dealt:p.dealt,record:reading.records.get(recordKey(item.id)),saved:savedIdsNow().has(item.id),
+          marks:testMarks(p.session,p.outcomes),pop:p.pop,test,intro,
           neighbours:exclusive?{}:{prev:at>0?p.items[at-1]?.theme||DEFAULT_THEME:null,next:p.items[at+1]?p.items[at+1].theme||DEFAULT_THEME:null}},c});
         if(p.modal&&!exclusive){
           const deck=catalog.decksById.get(item.deckId)||p.context.decksById.get(item.deckId);
@@ -1023,12 +1116,14 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
         }
       }
     }
-    const fromOpacity=p.fromOpacity;p.enter=null;p.from=null;p.dealt=false;p.fromOpacity=null;
+    const fromOpacity=p.fromOpacity;p.enter=null;p.from=null;p.dealt=false;p.fromOpacity=null;p.pop=-1;
     if(toast)html+=toastMarkup({...toast,c});
     paint(withError(html));
     if(p.phase==="done"){mountFinale();return;}
     if(p.phase==="cards"||p.phase==="excl"){
       const layer=main.querySelector(".rs-diss-bg");if(layer&&Number.isFinite(fromOpacity))layer.style.setProperty("--from",String(fromOpacity));
+      const intro=main.querySelector(".pr-intro");
+      if(intro){const wait=p.introAt-Date.now();intro.style.setProperty("--delay",`${wait}ms`);setTimeout(()=>intro.remove(),Math.max(0,wait+TEST_INTRO_MS));}
       fitReader();
       const item=practiceShown();if(item)readCard(item.card);
       if(p.phase==="cards")practiceAnswer();
@@ -1048,6 +1143,8 @@ export async function mountUi2({main,api,loadCatalog,language,tintMode="off",sto
     if(!p)return false;
     if(action==="practice-exit"||action==="practice-done"){win.location.replace("#practice");return true;}
     if(action==="practice-prev"||action==="practice-next"){practiceGo(action==="practice-prev"?"prev":"next");return true;}
+    if(action==="practice-reveal"){practiceReveal();return true;}
+    if(action==="practice-test"){if(target.getAttribute("aria-disabled")!=="true")practiceJudge(target.dataset.outcome);return true;}
     if(action==="practice-mini"){p.endScroll=main.querySelector("[data-rs-growth]")?.scrollTop||0;p.excl=Number(target.dataset.index)||0;p.phase="excl";render();main.querySelector(".tc-deck")?.focus({preventScroll:true});return true;}
     if(action==="practice-excl-close"){closeExclusive();return true;}
     if(action==="practice-parent"){p.modal=true;render();return true;}

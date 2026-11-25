@@ -901,3 +901,77 @@ button.ed-node{cursor:pointer}
 @media(prefers-reduced-motion:reduce){
   .rs-diss-bg{animation-duration:.12s}.tc-reader.rs.is-dissolving .tc-wm,.tc-reader.rs.is-dealt .tc-col,.rs-back,.rs-deck.is-dealing .rs-back--4,.rs-resume,.rs-resume.is-wiggle,.ui2-rp-streak.rs-streak-lit,.ui2-rp-streak.rs-streak-lit img,.rs-confetti svg,.rs-gr-bar i{animation:none;transition:none}
 }
+
+/* ---- Repaso hito 2: pruebas (repaso-pruebas.mjs, mockup repaso-pruebas-v2). ----
+   Lo tapado: barra del color oscuro del tema con el texto transparente (conserva el largo de cada renglón o palabra),
+   interrogaciones repartidas, trama suave de brotes y un brillo que la recorre cada pocos segundos. */
+.pr-hide{--leaf:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-12 -13 24 25' width='18' height='18'%3E%3Cpath d='M0 10V0M0 1C-7 1-10-3-10-8 0-8 0-2 0 1ZM0-2C0-8 4-11 10-11 10-5 6-2 0-2Z' fill='none' stroke='%23fffdf6' stroke-opacity='.22' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --q:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 24'%3E%3Ctext x='10' y='19.5' text-anchor='middle' font-family='Arial Rounded MT Bold,Arial,sans-serif' font-weight='900' font-size='21' fill='%23fffdf6' fill-opacity='.9'%3E%3F%3C/text%3E%3C/svg%3E");
+  color:transparent;-webkit-user-select:none;user-select:none;border-radius:.34em;padding:0 .14em;margin:0 -.04em;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone;
+  background:linear-gradient(100deg,transparent 30%,rgb(255 253 246 / 30%) 45%,transparent 60%) no-repeat,var(--q) space,var(--leaf) repeat,var(--d);
+  background-size:300% 100%,2.1em .92em,18px 18px,auto;background-position:120% 0,50% 50%,0 0,0 0;animation:pr-shine 3.2s ease-in-out 1s infinite;cursor:pointer}
+@keyframes pr-shine{0%,55%{background-position:120% 0,50% 50%,0 0,0 0}100%{background-position:-120% 0,50% 50%,0 0,0 0}}
+.tc h2 .pr-hide{border-radius:.26em}
+.tc-ctx .pr-hide{font-size:15px}
+.tc-body:has(.pr-hide){line-height:1.62}
+/* Al descubrir: la tapa se deshoja de izquierda a derecha (≈ 300 ms) mientras vuelve el texto; las hojitas son burstLeaves. */
+@property --pr-peel{syntax:"<percentage>";inherits:false;initial-value:0%}
+.pr-peel .pr-hide{background:linear-gradient(90deg,transparent var(--pr-peel),var(--d) var(--pr-peel));animation:pr-peel .3s ease-in forwards}
+@keyframes pr-peel{from{color:transparent}to{--pr-peel:100%;color:inherit}}
+.pr-fade .pr-hide{background-image:none;background-color:transparent;color:inherit;animation:none;transition:background-color .12s linear,color .12s linear}
+/* Descubierto por fragmentos: las palabras que faltaban quedan marcadas (la respuesta). */
+.pr-ans{border-radius:.3em;padding:0 .12em;margin:0 -.04em;background:color-mix(in srgb,var(--c) 55%,#fffdf6);box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--d) 55%,transparent);-webkit-box-decoration-break:clone;box-decoration-break:clone}
+/* «Descubrir»: para teclado y lector, visible solo con foco. */
+.pr-reveal{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.pr-reveal:focus-visible{position:static;width:auto;height:auto;clip-path:none;align-self:center;margin:10px auto 0;padding:8px 16px;border:2px solid var(--d);border-radius:14px;background:#fffdf6;box-shadow:0 3px 0 var(--d);font:inherit;font-weight:850;color:var(--ui2-ink)}
+/* Las dos respuestas, a cada lado como el gesto: madera = «No me acordaba», verde = «Me acordaba». Suben con muelle al descubrir. */
+.pr-judge{display:flex;gap:10px;padding:14px 18px 0;flex:none;animation:pr-up .38s cubic-bezier(.3,1.3,.5,1)}
+.pr-judge.is-wait{visibility:hidden;animation:none}
+@media(min-width:700px){.pr-judge{width:100%;max-width:480px;margin:0 auto}}
+@keyframes pr-up{from{opacity:0;transform:translateY(14px)}}
+.pr-judge button{position:relative;flex:1 1 0;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;min-height:54px;padding:6px 8px;border:2px solid;border-radius:18px;font:inherit;font-size:15px;font-weight:850;line-height:1.15;color:var(--ui2-ink);cursor:pointer;transition:transform .12s,box-shadow .12s}
+.pr-arrow{display:grid;flex:none}.pr-arrow .ui2-icon{width:20px;height:20px}
+.pr-no .pr-arrow{animation:pr-nudge-l 1.6s ease-in-out infinite}.pr-yes .pr-arrow{animation:pr-nudge-r 1.6s ease-in-out infinite}
+@keyframes pr-nudge-l{0%,55%,100%{transform:none}25%{transform:translateX(-5px)}40%{transform:translateX(-1px)}}
+@keyframes pr-nudge-r{0%,55%,100%{transform:none}25%{transform:translateX(5px)}40%{transform:translateX(1px)}}
+.pr-judge.is-done .pr-arrow,.pr-judge button[aria-pressed=true] .pr-arrow{animation:none}
+.pr-no{background:var(--wood);border-color:var(--wood-edge);box-shadow:0 4px 0 var(--wood-shadow)}
+.pr-yes{background:#d9edb6;border-color:#3f8850;box-shadow:0 4px 0 #91bb72}
+/* Al arrastrar, la respuesta de ese lado se llena con el dedo (como .is-armed de la vista de tarjetas). */
+.pr-no.is-armed{background:linear-gradient(270deg,#d6bb84 0 var(--p,0%),var(--wood) var(--p,0%));transform:scale(1.06)}
+.pr-yes.is-armed{background:linear-gradient(90deg,#b9e877 0 var(--p,0%),#d9edb6 var(--p,0%));transform:scale(1.06)}
+.pr-judge button[aria-pressed=true]{transform:translateY(3px)}
+.pr-no[aria-pressed=true]{box-shadow:0 1px 0 var(--wood-shadow);background:#d6bb84}.pr-yes[aria-pressed=true]{box-shadow:0 1px 0 #91bb72;background:#b9e877}
+.pr-judge.is-done button{cursor:default}.pr-judge.is-done button[aria-pressed=false]{opacity:.45;box-shadow:none}
+.pr-judge.is-hop button{animation:pr-hop .36s cubic-bezier(.3,1.5,.5,1)}
+@keyframes pr-hop{40%{transform:translateY(-7px)}}
+/* Al responder, el contenido sale por ese lado y la siguiente se disuelve. */
+.tc.pr-out--r,.tc.pr-out--l{opacity:.35;transition:transform .26s ease-in,opacity .26s ease-in}
+.tc.pr-out--r{transform:translateX(70px) rotate(6deg)}.tc.pr-out--l{transform:translateX(-70px) rotate(-6deg)}
+/* Segmentos: la tarjeta con prueba lleva una cuenta desde el principio; al responder se rellena del color oscuro del tema
+   con ✓ (me acordaba) o ✗ (no me acordaba): monocromo. */
+.rs-segs i.pr-t{position:relative}
+.rs-segs i.pr-t::after{content:"";position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px;border-radius:50%;box-sizing:border-box;border:2.5px solid var(--d,#3f8850);background:#fffdf6 no-repeat 50% 50%/10px 10px}
+.rs-segs i.pr-t.is-pass::after,.rs-segs i.pr-t.is-fail::after{background-color:var(--d,#3f8850)}
+.rs-segs i.pr-t.is-pass::after{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fffdf6' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 12.5l5 5L19.5 7'/%3E%3C/svg%3E")}
+.rs-segs i.pr-t.is-fail::after{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fffdf6' stroke-width='4' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E")}
+.rs-segs i.pr-t.is-pop::after{animation:pr-pop .45s cubic-bezier(.3,1.5,.5,1)}
+@keyframes pr-pop{40%{transform:scale(1.35);box-shadow:0 0 0 4px color-mix(in srgb,var(--d,#3f8850) 25%,transparent)}}
+.rs-segs--sm i.pr-t::after{width:13px;height:13px;margin:-6.5px;border-width:2px;background-size:8px 8px}
+/* Entrada de una prueba: «¡Prueba!» con rebote y «?» que saltan, y una frase por tipo. ≈ 2,4 s; no recibe toques.
+   --delay (CSSOM) la espera tras el mazo o el disolver. */
+.pr-intro{position:absolute;left:16px;right:16px;top:122px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;pointer-events:none;animation:pr-intro 2.4s cubic-bezier(.3,1.4,.5,1) var(--delay,0ms) both}
+@keyframes pr-intro{0%{opacity:0;transform:scale(.3) rotate(-14deg)}14%{opacity:1;transform:scale(1.15) rotate(-2deg)}24%{transform:none}86%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-34px) scale(.92)}}
+.pr-intro-t{margin:0;font-size:54px;font-weight:900;line-height:1;letter-spacing:-.04em;color:#fffdf6;-webkit-text-stroke:7px var(--d);paint-order:stroke fill;text-shadow:0 6px 0 var(--d);transform:rotate(-5deg)}
+.pr-intro-s{margin:0;max-width:340px;padding:6px 14px;border-radius:14px;background:rgb(255 253 246 / 82%);font-size:14.5px;font-weight:650;line-height:1.35;color:var(--ui2-ink)}
+.pr-intro-q{position:absolute;left:50%;top:30px;width:0;height:0}
+.pr-intro-q i{position:absolute;left:-.3em;top:-.5em;font-style:normal;font-weight:900;color:#fffdf6;-webkit-text-stroke:3px var(--d);paint-order:stroke fill;animation:pr-q .9s cubic-bezier(.3,1.5,.5,1) var(--delay,0ms) both}
+.pr-intro-q i:nth-child(1){transform:translate(-152px,6px) rotate(-18deg);font-size:28px}.pr-intro-q i:nth-child(2){transform:translate(146px,-4px) rotate(16deg);font-size:24px}
+.pr-intro-q i:nth-child(3){transform:translate(-122px,-26px) rotate(-8deg);font-size:15px}.pr-intro-q i:nth-child(4){transform:translate(124px,-30px) rotate(12deg);font-size:16px}
+@keyframes pr-q{from{opacity:0;translate:0 14px;scale:.4}}
+@keyframes pr-fade{0%,100%{opacity:0}8%,90%{opacity:1}}
+@media(prefers-reduced-motion:reduce){
+  .pr-hide{animation:none}.pr-judge,.pr-judge.is-hop button,.rs-segs i.pr-t.is-pop::after{animation:none}.pr-judge button{transition:none}.pr-arrow{animation:none!important}
+  .pr-intro{animation:pr-fade 2.4s linear var(--delay,0ms) both}.pr-intro-q{display:none}
+}

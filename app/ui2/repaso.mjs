@@ -7,6 +7,7 @@ import {icon} from "./icons.mjs";
 import {headerMarkup} from "./shell.mjs";
 import {nextDailyCycleBoundary,DAILY_CYCLE_STARTS} from "../daily-cycle.mjs";
 import {segmentsMarkup} from "./repaso-sesion.mjs";
+import {testMarks} from "./repaso-pruebas.mjs";
 
 const REGULAR_COST=5;
 // Topic ids are the server's (GET /api/reader/practice/topics). `streak`: counts for the daily streak.
@@ -97,7 +98,7 @@ export function resumeMarkup({active,data,c}){
   const name=c[labelKey[id]]||"",label=[c.practiceResume,name,c.position(Math.min(5,active.index),5),...(streak?[c.ui2PendingForStreak]:[])].filter(Boolean).join(". ");
   const letters=[...c.practiceResume].map(char=>`<span class="ui2-launch-char">${char===" "?"&nbsp;":esc(char)}</span>`).join("");
   return `<section class="rs-resume rs-resume--${topicKind(id)}" aria-labelledby="rs-resume-t"><div class="rs-resume-top"><div class="rs-resume-art" aria-hidden="true">${packMarkup(id)}${streak?`<span class="ui2-flame-badge">${flame(false)}</span>`:""}</div>`
-    +`<div class="rs-resume-txt"><h2 id="rs-resume-t">${esc(c.practiceResumeTitle)}</h2>${segmentsMarkup(active.index,c,{label:false,small:true})}</div></div>`
+    +`<div class="rs-resume-txt"><h2 id="rs-resume-t">${esc(c.practiceResumeTitle)}</h2>${segmentsMarkup(active.index,c,{label:false,small:true,marks:testMarks(active)})}</div></div>`
     +`<button type="button" class="ui2-btn ui2-launch rs-resume-go" data-ui2="practice-resume" aria-label="${esc(label)}"><span aria-hidden="true">${letters}</span>${icon("forward")}</button></section>`;
 }
 

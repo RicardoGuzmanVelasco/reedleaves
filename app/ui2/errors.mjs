@@ -1,5 +1,5 @@
 // Save errors → what the error modal shows. Pure.
-const SERVER_ONLY=new Set(["tryLater","deckCardLimitReached","contributorCardLimitReached","deckReadOnly","deckUnavailable","bookUnavailable","invalidParent","noteConflict"]);
+const SERVER_ONLY=new Set(["tryLater","deckCardLimitReached","contributorCardLimitReached","deckReadOnly","deckUnavailable","bookUnavailable","invalidParent","noteConflict","practiceTestUnavailable","practiceTestAnswered"]);
 
 // `failure`: an AccountError ({code,status,reference}); `c`: translations.
 export function errorInfo(failure,c){
