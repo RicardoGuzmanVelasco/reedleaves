@@ -55,8 +55,8 @@ const TOAST_MS=6500;
 export async function mountUi2({main,api,loadCatalog,language,tintMode="off",store=createBrowserStore(),doc=document,win=window}){
   let c={...(words[language]||words.es)};
   installIconStyles(doc);doc.body.classList.add("ui2");doc.body.classList.remove("is-opening");
-<<<<<<< HEAD
   let guide=null,guideReturn="#library",guideExit=null,auth=newAuth(),resume=null,resumeAfterHash=false,inviteRequired=false,settings=null,profile=null,profileAttempt=null,readerShelf=null,readerShelfAttempt=null,removing=null,authoring=null,prompt=null,session,reader,catalog,sheetState=null,finish=null,form=null,failure=null,busy=false,practicePending=false,streak=null,topics=null,calendarMonth=null,toast=null,toastTimer=null,streakTimer=null,editor=null,practice=null,streakCelebrate=false,topicsStale=false,pricesPop=false;
+  // The card view: the explanation of «Baraja en curso» open, the way the card came in, the context of a card missing from the
   // catalog (#card of a deleted note), the votes read per reader and card, and the cards already counted as viewed.
   const reading={pop:false,enter:null,context:null,records:new Map(),viewed:new Set()};
   // The reader signed in, or null for a visitor (no session): what the signed-out screens and actions ask before touching personal data.
