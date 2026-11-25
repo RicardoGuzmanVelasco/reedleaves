@@ -29,5 +29,5 @@ Present the complete draft in an easily editable format, with each card's title 
 
 - Use `parentIndex` to express card hierarchies, with a zero-based reference to another submitted card.
 - Use a fresh UUID for each creation request and reuse it when retrying the same operation.
-- Use `list_team_drafts` to identify older in-progress team decks; do not guess IDs. Only existing in-progress decks can be extended with `append_cards_to_draft`.
-- Call `finish_deck` only when the user explicitly asks to finish that specific in-progress team deck. Finishing freezes its cards. Report only details returned by the MCP.
+- Use `list_drafts` to identify any in-progress deck, optionally filtered by `bookId`; do not guess IDs. It returns owner and card count. Use `list_team_drafts` only when the user specifically wants team decks. Only existing team in-progress decks can be extended with `append_cards_to_draft`.
+- The private MCP credential is administrative. Call `finish_deck` only when the user explicitly asks to finish that specific in-progress deck; it works regardless of owner and preserves attribution. Finishing freezes its cards. Report only details returned by the MCP.
